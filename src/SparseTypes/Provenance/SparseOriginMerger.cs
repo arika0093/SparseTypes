@@ -18,11 +18,13 @@ internal static class SparseOriginMerger
         string? higherFallback
     )
     {
-        var lowerList = AsReadOnlyList(lower);
-        var higherList = AsReadOnlyList(higher);
-        var result = new string?[checked(lowerList.Count + higherList.Count)];
-        Fill(result, 0, lowerList, lowerOrigins, lowerFallback);
-        Fill(result, lowerList.Count, higherList, higherOrigins, higherFallback);
+        // Origins depend on element positions only; known counts fill the
+        // result without enumerating or retaining element payloads.
+        var lowerCount = GetCount(lower);
+        var higherCount = GetCount(higher);
+        var result = new string?[checked(lowerCount + higherCount)];
+        FillOriginRange(result, 0, lowerCount, lowerOrigins, lowerFallback);
+        FillOriginRange(result, lowerCount, higherCount, higherOrigins, higherFallback);
         return result;
     }
 
@@ -59,11 +61,12 @@ internal static class SparseOriginMerger
         IEnumerable<T> effective
     )
     {
-        var effectiveList = AsReadOnlyList(effective);
+        ArgumentNullException.ThrowIfNull(effective);
         var comparer = DiscoverSetComparer(lower, higher, effective);
         if (comparer is null)
         {
-            return new string?[effectiveList.Count];
+            // Count-only probe: no element payload is copied for the output.
+            return new string?[GetCount(effective)];
         }
 
         // First-origin tracking while building the union.
@@ -71,15 +74,29 @@ internal static class SparseOriginMerger
         AddFirst(lower, lowerOrigins, lowerFallback, firstByValue);
         AddFirst(higher, higherOrigins, higherFallback, firstByValue);
 
-        var result = new string?[effectiveList.Count];
-        for (var index = 0; index < result.Length; index++)
+        if (TryGetCount(effective, out var count))
         {
-            result[index] = firstByValue.TryGetValue(effectiveList[index], out var origin)
-                ? origin
-                : null;
+            var result = new string?[count];
+            var position = 0;
+            foreach (var value in effective)
+            {
+                result[position++] = firstByValue.TryGetValue(value, out var origin)
+                    ? origin
+                    : null;
+            }
+
+            return result;
         }
 
-        return result;
+        // Count-unknown effective sources enumerate once; only origin strings
+        // are buffered, never the element payloads.
+        var buffer = new List<string?>();
+        foreach (var value in effective)
+        {
+            buffer.Add(firstByValue.TryGetValue(value, out var origin) ? origin : null);
+        }
+
+        return buffer.ToArray();
     }
 
     private static IEqualityComparer<T>? DiscoverSetComparer<T>(
@@ -104,26 +121,71 @@ internal static class SparseOriginMerger
         return effectiveComparer ?? activeComparer ?? EqualityComparer<T>.Default;
     }
 
-    private static IReadOnlyList<T> AsReadOnlyList<T>(IEnumerable<T> values)
+    /// <summary>Obtains the element count without enumerating supported collection shapes.</summary>
+    private static int GetCount<T>(IEnumerable<T> values) =>
+        TryGetCount(values, out var count) ? count : CountEnumerable(values);
+
+    private static bool TryGetCount<T>(IEnumerable<T> values, out int count)
     {
         ArgumentNullException.ThrowIfNull(values);
-        return values as IReadOnlyList<T> ?? values.ToArray();
+        if (values is ICollection<T> genericCollection)
+        {
+            count = genericCollection.Count;
+            return true;
+        }
+
+        if (values is IReadOnlyCollection<T> readOnlyCollection)
+        {
+            count = readOnlyCollection.Count;
+            return true;
+        }
+
+        // Synchronized wrappers may be mutated concurrently; skip their stale
+        // Count and fall through to a single forward pass.
+        if (
+            values is System.Collections.ICollection nonGenericCollection
+            && !nonGenericCollection.IsSynchronized
+        )
+        {
+            count = nonGenericCollection.Count;
+            return true;
+        }
+
+        count = 0;
+        return false;
     }
 
-    private static void Fill<T>(
+    private static int CountEnumerable<T>(IEnumerable<T> values)
+    {
+        var count = 0;
+        using var enumerator = values.GetEnumerator();
+        checked
+        {
+            while (enumerator.MoveNext())
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static void FillOriginRange(
         string?[] result,
         int offset,
-        IReadOnlyList<T> values,
+        int count,
         string?[]? origins,
         string? fallback
     )
     {
-        for (var index = 0; index < values.Count; index++)
+        for (var index = 0; index < count; index++)
         {
-            result[offset + index] =
-                origins is null || index >= origins.Length ? fallback : origins[index] ?? fallback;
+            result[offset + index] = OriginAt(origins, index, fallback);
         }
     }
+
+    private static string? OriginAt(string?[]? origins, int index, string? fallback) =>
+        origins is null || index >= origins.Length ? fallback : origins[index] ?? fallback;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage(
         "Major Code Smell",
@@ -138,16 +200,16 @@ internal static class SparseOriginMerger
         List<string?> result
     )
     {
-        var list = AsReadOnlyList(values);
-        for (var index = 0; index < list.Count; index++)
+        ArgumentNullException.ThrowIfNull(values);
+        // Forward enumeration keeps per-element attribution aligned with the
+        // source positions; duplicates advance the position without emitting.
+        var position = 0;
+        foreach (var value in values)
         {
-            if (seen.Add(list[index]))
+            var index = position++;
+            if (seen.Add(value))
             {
-                result.Add(
-                    origins is null || index >= origins.Length
-                        ? fallback
-                        : origins[index] ?? fallback
-                );
+                result.Add(OriginAt(origins, index, fallback));
             }
         }
     }
@@ -164,15 +226,14 @@ internal static class SparseOriginMerger
         Dictionary<T, string?> firstByValue
     )
     {
-        var list = AsReadOnlyList(values);
-        for (var index = 0; index < list.Count; index++)
+        ArgumentNullException.ThrowIfNull(values);
+        var position = 0;
+        foreach (var value in values)
         {
-            if (!firstByValue.ContainsKey(list[index]))
+            var index = position++;
+            if (!firstByValue.ContainsKey(value))
             {
-                firstByValue[list[index]] =
-                    origins is null || index >= origins.Length
-                        ? fallback
-                        : origins[index] ?? fallback;
+                firstByValue[value] = OriginAt(origins, index, fallback);
             }
         }
     }

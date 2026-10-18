@@ -802,15 +802,36 @@ public sealed class EditSessionGroup
                 var freshPaths = Registration.EnumerateChangedPaths(fresh);
                 if (freshPaths is null)
                     return false;
-                var pending = new HashSet<string>(StringComparer.Ordinal);
+                // Structured set membership: typed keys and root types with
+                // identical display text must not falsely overlap.
+                var pending = new HashSet<SparsePath>();
                 foreach (var path in freshPaths)
-                    pending.Add(path.ToString());
-                return entry.ChangedPaths.All(path => !pending.Contains(path.ToString()));
+                    pending.Add(path);
+                return HasNoPendingCollision(entry.ChangedPaths, pending);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 return false;
             }
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage(
+            "Major Code Smell",
+            "S3267",
+            Justification = "Early-exiting foreach over the IReadOnlyList avoids LINQ's enumerator indirection and keeps disqualification cheap."
+        )]
+        private static bool HasNoPendingCollision(
+            IReadOnlyList<SparsePath> paths,
+            HashSet<SparsePath> pending
+        )
+        {
+            foreach (var path in paths)
+            {
+                if (pending.Contains(path))
+                    return false;
+            }
+
+            return true;
         }
 
         public bool TryReconcile(
