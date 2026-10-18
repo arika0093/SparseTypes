@@ -453,9 +453,22 @@ internal static class FragmentComparisonPrimitives
         return typeof(IEnumerable).IsAssignableFrom(elementType);
     }
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo> ComparerProperties = new();
+    /// <summary>Cached metadata outcome: a null property is a cached miss, not a missing entry.</summary>
+    /// <remarks>Absent, unreadable, indexed, wrongly typed, and ambiguous lookups all cache as misses so warmed reads skip discovery.</remarks>
+    private sealed class CachedProperty
+    {
+        public CachedProperty(PropertyInfo? property) => Property = property;
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo> CountProperties = new();
+        public PropertyInfo? Property { get; }
+    }
+
+    /// <summary>Test probe invoked once per uncached metadata discovery.</summary>
+    /// <remarks>Warmed reads hit the cache without invoking it. Tests must restore the previous value.</remarks>
+    internal static Action<Type, string>? DiscoveryObserver { get; set; }
+
+    private static readonly ConcurrentDictionary<Type, CachedProperty> ComparerProperties = new();
+
+    private static readonly ConcurrentDictionary<Type, CachedProperty> CountProperties = new();
 
     private static int? TryDictionaryCount(object value)
     {
@@ -480,16 +493,36 @@ internal static class FragmentComparisonPrimitives
         Justification = "Only reads optional public Comparer/Count properties; a trimmed property is treated as undiscoverable with a symmetric order-independent fallback."
     )]
     private static PropertyInfo? GetCachedProperty(
-        ConcurrentDictionary<Type, PropertyInfo> cache,
+        ConcurrentDictionary<Type, CachedProperty> cache,
         Type type,
         string name
     )
     {
         if (cache.TryGetValue(type, out var cached))
         {
-            return cached;
+            return cached.Property;
         }
 
+        // Cold misses may run discovery concurrently; publishing the winning
+        // entry is enough because discovery is stable per runtime type.
+        return cache
+            .GetOrAdd(type, static (key, propertyName) => DiscoverProperty(key, propertyName), name)
+            .Property;
+    }
+
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2070",
+        Justification = "Only reads optional public Comparer/Count/Key/Value properties; a trimmed property is treated as undiscoverable with a symmetric structural fallback."
+    )]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2072",
+        Justification = "Only reads optional public Comparer/Count properties; a trimmed property is treated as undiscoverable with a symmetric order-independent fallback."
+    )]
+    private static CachedProperty DiscoverProperty(Type type, string name)
+    {
+        DiscoveryObserver?.Invoke(type, name);
         PropertyInfo? property;
         try
         {
@@ -497,7 +530,8 @@ internal static class FragmentComparisonPrimitives
         }
         catch (AmbiguousMatchException)
         {
-            return null;
+            // Ambiguous metadata stays a cached miss; callers use the fallback.
+            return new CachedProperty(null);
         }
 
         if (
@@ -507,11 +541,10 @@ internal static class FragmentComparisonPrimitives
             || (name == "Count" && property.PropertyType != typeof(int))
         )
         {
-            return null;
+            return new CachedProperty(null);
         }
 
-        cache.TryAdd(type, property);
-        return property;
+        return new CachedProperty(property);
     }
 
     private static object? TryCollectionComparer(object value) =>
@@ -893,9 +926,9 @@ internal static class FragmentComparisonPrimitives
         );
     }
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo> EntryKeyProperties = new();
+    private static readonly ConcurrentDictionary<Type, CachedProperty> EntryKeyProperties = new();
 
-    private static readonly ConcurrentDictionary<Type, PropertyInfo> EntryValueProperties = new();
+    private static readonly ConcurrentDictionary<Type, CachedProperty> EntryValueProperties = new();
 
     private static CollectionShape? GetShape(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type

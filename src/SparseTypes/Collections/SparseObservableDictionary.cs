@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Threading;
 
 namespace SparseTypes;
 
@@ -28,6 +29,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     private static readonly PropertyChangedEventArgs ItemChanged = new("Item[]");
     private int _notificationVersion;
     private bool _disposed;
+    private ValueCollection? _values;
 
     /// <summary>Creates a notifying view over a live mutable dictionary.</summary>
     /// <remarks>The callback runs when callers access the raw model.</remarks>
@@ -89,7 +91,22 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     IEnumerable<TKey> IReadOnlyDictionary<TKey, TView>.Keys => _model.Keys;
 
     /// <inheritdoc />
-    public ICollection<TView> Values => new ValueCollection(this);
+    public ICollection<TView> Values
+    {
+        get
+        {
+            // The view queries the live model on each use, so one cached
+            // instance stays fresh without invalidation.
+            var values = Volatile.Read(ref _values);
+            if (values is null)
+            {
+                var created = new ValueCollection(this);
+                values = Interlocked.CompareExchange(ref _values, created, null) ?? created;
+            }
+
+            return values;
+        }
+    }
 
     IEnumerable<TView> IReadOnlyDictionary<TKey, TView>.Values => Values;
 
