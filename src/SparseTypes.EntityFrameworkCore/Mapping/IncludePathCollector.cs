@@ -127,7 +127,8 @@ internal sealed class IncludePathCollector
         return node;
     }
 
-    private List<List<IncludePathNode>> GetPaths()
+    // Internal for direct traversal tests; production callers use Apply.
+    internal List<List<IncludePathNode>> GetPaths()
     {
         var paths = new List<List<IncludePathNode>>();
         var current = new List<IncludePathNode>();
@@ -139,28 +140,37 @@ internal sealed class IncludePathCollector
         return paths;
     }
 
-    private static bool HasIncludedPath(IncludePathNode node) =>
-        node.IsIncluded || node.Children.Values.Any(HasIncludedPath);
-
-    private static void CollectLeafPaths(
+    // Single post-order pass: each node is visited once and reports whether
+    // its subtree holds an included node, replacing the repeated descendant
+    // scans previously done by a separate recursive predicate. Every child
+    // is visited even after an included one is found, since each subtree may
+    // still contribute its own leaf paths.
+    private static bool CollectLeafPaths(
         IncludePathNode node,
         List<IncludePathNode> current,
         List<List<IncludePathNode>> paths
     )
     {
         current.Add(node);
-        var includedChild = node.Children.Values.Any(HasIncludedPath);
-        if (node.IsIncluded && !includedChild)
+        var includedDescendant = false;
+        foreach (var child in node.Children.Values)
+        {
+            // Visit every child even after an included one is found; each
+            // subtree may still contribute its own leaf paths.
+            var childIncluded = CollectLeafPaths(child, current, paths);
+            includedDescendant = includedDescendant || childIncluded;
+        }
+
+        // A node emits only when no descendant emits, so emitting after the
+        // recursion keeps the previous output order. Unmarked owned prefixes
+        // still emit through an included descendant via the caller chain.
+        if (node.IsIncluded && !includedDescendant)
         {
             paths.Add([.. current]);
         }
 
-        foreach (var child in node.Children.Values.Where(HasIncludedPath))
-        {
-            CollectLeafPaths(child, current, paths);
-        }
-
         current.RemoveAt(current.Count - 1);
+        return node.IsIncluded || includedDescendant;
     }
 
     private static IQueryable<TEntity> ApplyPath<TEntity>(
@@ -302,7 +312,8 @@ internal sealed class IncludePathCollector
             });
     }
 
-    private sealed class IncludePathNode
+    // Internal alongside GetPaths so tests can assert exact path shapes.
+    internal sealed class IncludePathNode
     {
         public IncludePathNode(string name, Type targetType, bool isCollection, bool owned)
         {
@@ -364,7 +375,7 @@ internal sealed class IncludePathCollector
         }
     }
 
-    private sealed class IncludeFilter
+    internal sealed class IncludeFilter
     {
         private readonly HashSet<object> _keys = [];
 
