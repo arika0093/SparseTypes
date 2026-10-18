@@ -25,7 +25,16 @@ internal static class SparseChangeSetEnumeratorEmitter
             var ops = target.ChangeSetOperations;
             AppendValueHelpers(ops, runtime, optionalObject, pathType, modelType);
             AppendMethodShellStub(code, target);
-            AppendMethod(ops, members, propertyNames, optionalObject, pathType, modelType, target);
+            AppendMethod(
+                ops,
+                members,
+                propertyNames,
+                optionalObject,
+                pathType,
+                modelType,
+                dialect.PathTraversal,
+                target
+            );
             SparseChangeSetFindEmitter.AppendShellStub(code, dialect, modelType, target);
             SparseChangeSetFindEmitter.Append(
                 ops,
@@ -39,7 +48,16 @@ internal static class SparseChangeSetEnumeratorEmitter
         else
         {
             AppendValueHelpers(code, runtime, optionalObject, pathType, modelType);
-            AppendMethod(code, members, propertyNames, optionalObject, pathType, modelType, target);
+            AppendMethod(
+                code,
+                members,
+                propertyNames,
+                optionalObject,
+                pathType,
+                modelType,
+                dialect.PathTraversal,
+                target
+            );
             SparseChangeSetFindEmitter.Append(
                 code,
                 dialect,
@@ -49,6 +67,30 @@ internal static class SparseChangeSetEnumeratorEmitter
                 target
             );
         }
+    }
+
+    /// <summary>Appends the internal push/pop traversal after public members.</summary>
+    /// <remarks>The orchestrator calls this after path enumeration so internal helpers trail public members.</remarks>
+    internal static void AppendTraversal(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+    )
+    {
+        if (dialect.PathTraversal is null)
+        {
+            return;
+        }
+
+        ComputePublicNames(members, out var propertyNames, out _);
+        var optionalObject = dialect.RuntimeNamespace + "Optional<object?>";
+        SparseChangeSetTraversalEmitter.AppendCollect(
+            code,
+            members,
+            propertyNames,
+            optionalObject,
+            dialect.PathTraversal
+        );
     }
 
     private static void AppendMethodShellStub(
@@ -193,6 +235,7 @@ internal static class SparseChangeSetEnumeratorEmitter
         string optionalObject,
         string pathType,
         string? modelType,
+        SparsePathTraversalContracts? traversal,
         SparseOperationTarget? target = null
     )
     {
@@ -250,47 +293,56 @@ internal static class SparseChangeSetEnumeratorEmitter
         );
         code.AppendLineAt(4, "return changes;");
         code.AppendLineAt(3, "}");
-        foreach (var member in members)
+        if (traversal is not null)
         {
-            // Relocated bodies read transitions through the facade instance.
-            var property =
-                (target is null ? string.Empty : "self.")
-                + SparseNaming.EscapeIdentifier(propertyNames[member.Id]);
-            var memberPath = "__sparse_member_" + member.Id;
-            var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
-                member.Property.Name,
-                true
-            );
-            var changed = IsNested(member) ? "!" + property + ".IsEmpty" : property + ".IsChanged";
-            code.AppendLineAt(3, "if (" + changed + ")");
-            code.AppendLineAt(3, "{");
-            code.IndentOffset++;
-            code.AppendLineAt(
-                3,
-                "var " + memberPath + " = __sparse_prefix.Member(" + literal + ");"
-            );
-            if (IsNested(member))
+            SparseChangeSetTraversalEmitter.AppendRootWalk(code, rootModel, traversal, target);
+        }
+        else
+        {
+            foreach (var member in members)
             {
-                AppendNestedChanges(code, property, memberPath, "nested" + member.Id, 3);
+                // Relocated bodies read transitions through the facade instance.
+                var property =
+                    (target is null ? string.Empty : "self.")
+                    + SparseNaming.EscapeIdentifier(propertyNames[member.Id]);
+                var memberPath = "__sparse_member_" + member.Id;
+                var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
+                    member.Property.Name,
+                    true
+                );
+                var changed = IsNested(member)
+                    ? "!" + property + ".IsEmpty"
+                    : property + ".IsChanged";
+                code.AppendLineAt(3, "if (" + changed + ")");
+                code.AppendLineAt(3, "{");
+                code.IndentOffset++;
+                code.AppendLineAt(
+                    3,
+                    "var " + memberPath + " = __sparse_prefix.Member(" + literal + ");"
+                );
+                if (IsNested(member))
+                {
+                    AppendNestedChanges(code, property, memberPath, "nested" + member.Id, 3);
+                }
+                else if (IsKeyed(member))
+                {
+                    AppendKeyedChanges(code, member, property, memberPath, optionalObject);
+                }
+                else if (IsDict(member))
+                {
+                    AppendDictionaryChanges(code, member, property, memberPath);
+                }
+                else if (IsSet(member))
+                {
+                    AppendSetChanges(code, member, property, memberPath, optionalObject);
+                }
+                else
+                {
+                    AppendValueChange(code, property, memberPath, "value" + member.Id);
+                }
+                code.IndentOffset--;
+                code.AppendLineAt(3, "}");
             }
-            else if (IsKeyed(member))
-            {
-                AppendKeyedChanges(code, member, property, memberPath, optionalObject);
-            }
-            else if (IsDict(member))
-            {
-                AppendDictionaryChanges(code, member, property, memberPath);
-            }
-            else if (IsSet(member))
-            {
-                AppendSetChanges(code, member, property, memberPath, optionalObject);
-            }
-            else
-            {
-                AppendValueChange(code, property, memberPath, "value" + member.Id);
-            }
-            code.IndentOffset--;
-            code.AppendLineAt(3, "}");
         }
 
         code.AppendLineAt(3, "return changes;");

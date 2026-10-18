@@ -71,27 +71,14 @@ public sealed class RebaseResolutionFailure
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public abstract class SparseRebaseResolution<TChange>
 {
-    private enum DecisionKind
-    {
-        UseIncoming,
-        UseCurrent,
-        Custom,
-    }
-
-    private sealed record Decision
-    {
-        public DecisionKind Kind { get; init; }
-
-        public Optional<object?> CustomValue { get; init; }
-    }
-
-    private readonly Dictionary<SparsePath, Decision> _decisions = new();
+    private readonly SparseResolutionIndex _index;
 
     /// <summary>Creates resolution state for a rebase result.</summary>
     /// <param name="rebase">The original rebase result to resolve.</param>
     protected SparseRebaseResolution(RebaseResult<TChange> rebase)
     {
         Rebase = rebase ?? throw new ArgumentNullException(nameof(rebase));
+        _index = new SparseResolutionIndex(Rebase.Conflicts);
     }
 
     /// <summary>Gets the original rebase result being resolved.</summary>
@@ -104,7 +91,7 @@ public abstract class SparseRebaseResolution<TChange>
     public bool HasConflicts => Rebase.HasConflicts;
 
     /// <summary>Gets the number of explicit path decisions stored.</summary>
-    public int DecidedCount => _decisions.Count;
+    public int DecidedCount => _index.DecisionCount;
 
     /// <summary>Enumerates all conflicts in reported order.</summary>
     /// <returns>A snapshot of every conflict.</returns>
@@ -114,29 +101,22 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns>A live-filtered snapshot of unresolved conflicts.</returns>
     public IReadOnlyList<SparseConflict> EnumerateUnresolvedConflicts()
     {
-        var unresolved = new List<SparseConflict>();
-        foreach (var conflict in Rebase.Conflicts)
-        {
-            if (!TryGetEffectiveKind(conflict.Path, out _))
-            {
-                unresolved.Add(conflict);
-            }
-        }
-
-        return Array.AsReadOnly(unresolved.ToArray());
+        return Array.AsReadOnly(
+            Rebase.Conflicts.Where(conflict => _index.Nearest(conflict.Path) is null).ToArray()
+        );
     }
 
     /// <summary>Enumerates paths carrying an explicit decision.</summary>
     /// <returns>A snapshot of decided paths for generic consumers.</returns>
     public IReadOnlyList<SparsePath> EnumerateDecidedPaths() =>
-        Array.AsReadOnly(_decisions.Keys.ToArray());
+        Array.AsReadOnly(_index.DecidedPaths());
 
     /// <summary>Finds the conflict at an exact path.</summary>
     /// <param name="path">The canonical path to look up.</param>
     /// <returns>The conflict, or <see langword="null"/> when no conflict sits exactly there.</returns>
     public SparseConflict? FindConflict(SparsePath path)
     {
-        return FindExact(path);
+        return _index.FindExact(path);
     }
 
     /// <summary>Finds the conflict at an exact typed path.</summary>
@@ -146,7 +126,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns>The conflict, or <see langword="null"/> when no conflict sits exactly there.</returns>
     public SparseConflict? FindConflict<TModel, TValue>(SparsePath<TModel, TValue> path)
     {
-        return FindExact(path.Path);
+        return _index.FindExact(path.Path);
     }
 
     /// <summary>Whether a conflict sits exactly at
@@ -155,7 +135,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns><see langword="true"/> for an exact conflict match.</returns>
     public bool HasConflict(SparsePath path)
     {
-        return FindExact(path) is not null;
+        return _index.FindExact(path) is not null;
     }
 
     /// <summary>Whether a conflict sits exactly at a typed path.</summary>
@@ -165,7 +145,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns><see langword="true"/> for an exact conflict match.</returns>
     public bool HasConflict<TModel, TValue>(SparsePath<TModel, TValue> path)
     {
-        return FindExact(path.Path) is not null;
+        return _index.FindExact(path.Path) is not null;
     }
 
     /// <summary>Whether any conflict sits strictly below
@@ -175,7 +155,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// descends from <paramref name="path"/>.</returns>
     public bool HasConflictsUnder(SparsePath path)
     {
-        return Rebase.Conflicts.Any(conflict => path.IsAncestorOf(conflict.Path));
+        return _index.HasUnder(path);
     }
 
     /// <summary>Whether any conflict sits strictly below a typed path.</summary>
@@ -186,7 +166,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// descends from <paramref name="path"/>.</returns>
     public bool HasConflictsUnder<TModel, TValue>(SparsePath<TModel, TValue> path)
     {
-        return HasConflictsUnder(path.Path);
+        return _index.HasUnder(path.Path);
     }
 
     /// <summary>Whether any conflict affects <paramref name="path"/> (exact,
@@ -196,11 +176,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// above, or below <paramref name="path"/>.</returns>
     public bool HasConflictsAffecting(SparsePath path)
     {
-        return Rebase.Conflicts.Any(conflict =>
-            conflict.Path.Equals(path)
-            || conflict.Path.IsAncestorOf(path)
-            || conflict.Path.IsDescendantOf(path)
-        );
+        return _index.HasAffecting(path);
     }
 
     /// <summary>Whether any conflict affects a typed path (exact, ancestor, or descendant).</summary>
@@ -211,7 +187,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// above, or below <paramref name="path"/>.</returns>
     public bool HasConflictsAffecting<TModel, TValue>(SparsePath<TModel, TValue> path)
     {
-        return HasConflictsAffecting(path.Path);
+        return _index.HasAffecting(path.Path);
     }
 
     /// <summary>Gets the lightweight resolution state of one path for generic consumers.</summary>
@@ -219,22 +195,18 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns>The effective state; no per-model members are generated.</returns>
     public SparseConflictState GetState(SparsePath path)
     {
-        if (FindExact(path) is null)
+        if (_index.FindExact(path) is null)
         {
             return SparseConflictState.NoConflict;
         }
 
-        if (!TryGetEffectiveKind(path, out var kind))
+        var decision = _index.Nearest(path);
+        if (decision is null)
         {
             return SparseConflictState.Unresolved;
         }
 
-        return kind switch
-        {
-            DecisionKind.UseIncoming => SparseConflictState.ResolvedUseIncoming,
-            DecisionKind.UseCurrent => SparseConflictState.ResolvedUseCurrent,
-            _ => SparseConflictState.ResolvedCustom,
-        };
+        return StateFor(decision.Value);
     }
 
     /// <summary>Gets the lightweight resolution state of one typed path.</summary>
@@ -253,7 +225,10 @@ public abstract class SparseRebaseResolution<TChange>
     {
         ValidateDecisionTarget(path, custom: false);
         RejectRedactedCoverage(path, incoming: true);
-        _decisions[path] = new Decision { Kind = DecisionKind.UseIncoming };
+        StoreDecision(
+            path,
+            new SparseResolutionDecision(SparseResolutionDecisionKind.UseIncoming, default)
+        );
     }
 
     /// <summary>Resolves a typed path to the incoming (local) value.</summary>
@@ -270,7 +245,10 @@ public abstract class SparseRebaseResolution<TChange>
     public void UseCurrent(SparsePath path)
     {
         ValidateDecisionTarget(path, custom: false);
-        _decisions[path] = new Decision { Kind = DecisionKind.UseCurrent };
+        StoreDecision(
+            path,
+            new SparseResolutionDecision(SparseResolutionDecisionKind.UseCurrent, default)
+        );
     }
 
     /// <summary>Resolves a typed path to the current value (keep).</summary>
@@ -314,7 +292,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns><see langword="true"/> when a decision was stored there.</returns>
     public bool ClearDecision(SparsePath path)
     {
-        return _decisions.Remove(path);
+        return _index.Clear(path);
     }
 
     /// <summary>Builds a baseline-aware change set holding every clean rebased edit plus the chosen resolutions.</summary>
@@ -329,7 +307,8 @@ public abstract class SparseRebaseResolution<TChange>
         foreach (var conflict in Rebase.Conflicts)
         {
             var path = conflict.Path;
-            if (EffectiveDecision(path) is not { } decision)
+            var decision = _index.Nearest(path);
+            if (decision is null)
             {
                 unresolved.Add(conflict);
                 continue;
@@ -339,7 +318,7 @@ public abstract class SparseRebaseResolution<TChange>
             {
                 // Only UseCurrent survives validation for redacted conflicts,
                 // and it writes nothing.
-                if (decision.Kind == DecisionKind.UseCurrent)
+                if (decision.Value.Kind == SparseResolutionDecisionKind.UseCurrent)
                 {
                     continue;
                 }
@@ -348,7 +327,7 @@ public abstract class SparseRebaseResolution<TChange>
                 continue;
             }
 
-            choices.Add(new ResolvedChoice(conflict, DesiredFor(conflict, decision)));
+            choices.Add(new ResolvedChoice(conflict, DesiredFor(conflict, decision.Value)));
         }
 
         if (unresolved.Count > 0)
@@ -402,7 +381,10 @@ public abstract class SparseRebaseResolution<TChange>
     {
         ValidateDecisionTarget(path, custom: true);
         RejectRedactedCoverage(path, incoming: true);
-        _decisions[path] = new Decision { Kind = DecisionKind.Custom, CustomValue = value };
+        StoreDecision(
+            path,
+            new SparseResolutionDecision(SparseResolutionDecisionKind.Custom, value)
+        );
     }
 
     /// <summary>Boxes a present value for storage.</summary>
@@ -423,18 +405,19 @@ public abstract class SparseRebaseResolution<TChange>
             ? Optional<object?>.Present((object?)value.Value)
             : Optional<object?>.Missing;
 
-    private SparseConflict? FindExact(SparsePath path) =>
-        Rebase.Conflicts.FirstOrDefault(conflict => conflict.Path.Equals(path));
+    private void StoreDecision(SparsePath path, SparseResolutionDecision decision)
+    {
+        _index.Set(path, decision);
+    }
 
     private void ValidateDecisionTarget(SparsePath path, bool custom)
     {
-        if (FindExact(path) is not null)
+        if (_index.FindExact(path) is not null)
         {
             return;
         }
 
-        var covers = Rebase.Conflicts.Any(conflict => path.IsAncestorOf(conflict.Path));
-        if (!covers)
+        if (!_index.HasUnder(path))
         {
             throw new InvalidOperationException(
                 "No conflict exists at or under '" + path.ToString() + "'."
@@ -453,63 +436,34 @@ public abstract class SparseRebaseResolution<TChange>
 
     private void RejectRedactedCoverage(SparsePath path, bool incoming)
     {
-        foreach (var conflict in Rebase.Conflicts)
+        if (!_index.HasRedactedAtOrUnder(path))
         {
-            var candidate = conflict.Path;
-            if (
-                conflict.Kind == SparseConflictKind.RedactedBefore
-                && (candidate.Equals(path) || candidate.IsDescendantOf(path))
-            )
-            {
-                throw new InvalidOperationException(
-                    "Redacted-before conflicts carry no plaintext and cannot take "
-                        + (incoming ? "incoming or custom values" : "custom values")
-                        + "; use UseCurrent to keep the current value."
-                );
-            }
-        }
-    }
-
-    private bool TryGetEffectiveKind(SparsePath conflictPath, out DecisionKind kind)
-    {
-        var decision = EffectiveDecision(conflictPath);
-        if (decision is null)
-        {
-            kind = default;
-            return false;
+            return;
         }
 
-        kind = decision.Kind;
-        return true;
+        throw new InvalidOperationException(
+            "Redacted-before conflicts carry no plaintext and cannot take "
+                + (incoming ? "incoming or custom values" : "custom values")
+                + "; use UseCurrent to keep the current value."
+        );
     }
 
-    private Decision? EffectiveDecision(SparsePath conflictPath) =>
-        NearestDecision(conflictPath) is SparsePath nearest ? _decisions[nearest] : null;
-
-    private static Optional<object?> DesiredFor(SparseConflict conflict, Decision decision) =>
+    private static SparseConflictState StateFor(SparseResolutionDecision decision) =>
         decision.Kind switch
         {
-            DecisionKind.UseIncoming => conflict.LocalValue,
-            DecisionKind.UseCurrent => conflict.CurrentValue,
-            _ => decision.CustomValue,
+            SparseResolutionDecisionKind.UseIncoming => SparseConflictState.ResolvedUseIncoming,
+            SparseResolutionDecisionKind.UseCurrent => SparseConflictState.ResolvedUseCurrent,
+            _ => SparseConflictState.ResolvedCustom,
         };
 
-    private SparsePath? NearestDecision(SparsePath conflictPath)
-    {
-        SparsePath? nearest = null;
-        foreach (var decided in _decisions.Keys)
+    private static Optional<object?> DesiredFor(
+        SparseConflict conflict,
+        SparseResolutionDecision decision
+    ) =>
+        decision.Kind switch
         {
-            if (!conflictPath.StartsWith(decided))
-            {
-                continue;
-            }
-
-            if (nearest is null || nearest.Value.Depth < decided.Depth)
-            {
-                nearest = decided;
-            }
-        }
-
-        return nearest;
-    }
+            SparseResolutionDecisionKind.UseIncoming => conflict.LocalValue,
+            SparseResolutionDecisionKind.UseCurrent => conflict.CurrentValue,
+            _ => decision.CustomValue,
+        };
 }

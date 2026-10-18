@@ -12,6 +12,7 @@ internal static class SparseResolutionApplyEmitter
         string pathType,
         string conflict,
         string optionalObject,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         SparseOperationTarget? target
     )
     {
@@ -22,6 +23,9 @@ internal static class SparseResolutionApplyEmitter
             return;
         }
 
+        var workspace = dialect.ResolutionWorkspaceType;
+        var workspaceParameter = WorkspaceParameter(workspace);
+        var workspaceArgument = WorkspaceArgument(workspace);
         shell.AppendLineAt(
             2,
             "/// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>"
@@ -42,6 +46,14 @@ internal static class SparseResolutionApplyEmitter
             2,
             "/// <param name=\"desired\">The presence-aware value to write.</param>"
         );
+        if (workspace is not null)
+        {
+            shell.AppendLineAt(
+                2,
+                "/// <param name=\"workspace\">Per-build collection staging.</param>"
+            );
+        }
+
         shell.AppendLineAt(2, "/// <param name=\"updated\">The updated fragment.</param>");
         shell.AppendLineAt(2, "/// <param name=\"error\">A value-free reason on failure.</param>");
         shell.AppendLineAt(
@@ -54,11 +66,23 @@ internal static class SparseResolutionApplyEmitter
                 + pathType
                 + " path, int offset, "
                 + optionalObject
-                + " desired, out Fragment? updated, out string? error) => "
+                + " desired"
+                + workspaceParameter
+                + ", out Fragment? updated, out string? error) => "
                 + target.ChangeSetOperationsType
-                + ".__SparseTryApplyResolution(fragment, path, offset, desired, out updated, out error);"
+                + ".__SparseTryApplyResolution(fragment, path, offset, desired"
+                + workspaceArgument
+                + ", out updated, out error);"
         );
     }
+
+    /// <summary>Emits the workspace parameter declaration, or an empty string when the product does not stage.</summary>
+    internal static string WorkspaceParameter(string? workspace) =>
+        workspace is null ? string.Empty : ", " + workspace + " workspace";
+
+    /// <summary>Emits a workspace argument expression, or an empty string when the product does not stage.</summary>
+    internal static string WorkspaceArgument(string? workspace) =>
+        workspace is null ? string.Empty : ", workspace";
 
     internal static void AppendApplier(
         SharedIndentedBuilder body,
@@ -77,6 +101,8 @@ internal static class SparseResolutionApplyEmitter
         _ = conflict;
         _ = modelType;
         var segmentKind = runtime + "SparsePathSegmentKind";
+        var workspace = dialect.ResolutionWorkspaceType;
+        var workspaceParameter = WorkspaceParameter(workspace);
         body.AppendLineAt(
             2,
             "/// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>"
@@ -88,7 +114,9 @@ internal static class SparseResolutionApplyEmitter
                 + pathType
                 + " path, int offset, "
                 + optionalObject
-                + " desired, out Fragment? updated, out string? error)"
+                + " desired"
+                + workspaceParameter
+                + ", out Fragment? updated, out string? error)"
         );
         body.AppendLineAt(2, "{");
         body.AppendLineAt(3, "updated = null;");
@@ -112,7 +140,7 @@ internal static class SparseResolutionApplyEmitter
         body.AppendLineAt(3, "var builder = fragment.ToBuilder();");
         foreach (var member in members)
         {
-            AppendMemberBranch(body, member, runtime, segmentKind, dialect);
+            AppendMemberBranch(body, member, runtime, segmentKind, dialect, workspace);
         }
 
         body.AppendLineAt(3, "error = \"Unknown member '\" + head.Name + \"'.\";");
@@ -126,7 +154,8 @@ internal static class SparseResolutionApplyEmitter
         SparseMemberModel member,
         string runtime,
         string segmentKind,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? workspace
     )
     {
         var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -143,15 +172,29 @@ internal static class SparseResolutionApplyEmitter
         body.AppendLineAt(3, "{");
         if (IsNested(member) && !member.ChildIsStructural)
         {
-            AppendNestedBranch(body, member, esc, name, dialect);
+            AppendNestedBranch(body, member, esc, name, dialect, workspace);
         }
         else if (IsKeyed(member))
         {
-            SparseResolutionCollectionEmitter.AppendKeyedBranch(body, member, esc, name, runtime);
+            SparseResolutionCollectionEmitter.AppendKeyedBranch(
+                body,
+                member,
+                esc,
+                name,
+                runtime,
+                workspace
+            );
         }
         else if (IsDict(member))
         {
-            SparseResolutionDictEmitter.AppendDictBranch(body, member, esc, name, runtime);
+            SparseResolutionDictEmitter.AppendDictBranch(
+                body,
+                member,
+                esc,
+                name,
+                runtime,
+                workspace
+            );
         }
         else if (IsSet(member) || IsCollection(member))
         {
@@ -274,7 +317,8 @@ internal static class SparseResolutionApplyEmitter
         SparseMemberModel member,
         string esc,
         string name,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? workspace
     )
     {
         var childFragment = member.ChildFragmentType ?? "object";
@@ -351,7 +395,9 @@ internal static class SparseResolutionApplyEmitter
                 + childChangeSet
                 + ".__SparseTryApplyResolution(child"
                 + member.Id
-                + ".Value, path, offset + 1, desired, out var updatedChild"
+                + ".Value, path, offset + 1, desired"
+                + WorkspaceArgument(workspace)
+                + ", out var updatedChild"
                 + member.Id
                 + ", out error)) return false;"
         );

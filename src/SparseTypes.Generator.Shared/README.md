@@ -173,6 +173,13 @@ and dictionary element leaves report `[Member, key, ...]` conflict paths, which
 keeps per-element decisions unambiguous; keyed order conflicts share the member
 path and resolve through the desired key list.
 
+`SparsePatchDialect` accepts an optional `ResolutionWorkspaceType` naming a
+caller-owned per-build staging type. When set, the generated applier copies
+each touched keyed collection or dictionary once per `TryBuild` and reuses
+that buffer across choices instead of copying per choice. The type exposes
+instance `TryGetStaged`/`StoreStaged` methods keyed by member path plus a
+static `StagingKey` factory. Leave it null to keep the per-choice copies.
+
 ## Emission features
 
 `SparseEmissionFeatures` selects which generated families appear for a model:
@@ -205,6 +212,15 @@ carrying a canonical path. `Before` and `After` use the configured runtime's `Op
 to preserve missing versus present-null values; `ChangeKind.Order` carries
 keyed collection order as a collection-level entry. Consumers decide how to
 format or display these entries.
+
+`SparsePatchDialect` accepts an optional `PathTraversal` record. When set,
+`EnumerateChanges()` walks nested transitions through a single push/pop
+segment buffer and materializes each final path once instead of rebuilding a
+prefixed path at every level. Entry order, endpoints, and kinds match the
+historical walk. The record names the caller-owned segment type, the
+member/key/temporary-key segment expressions, and a root-plus-segments path
+expression. Leave `PathTraversal` null to keep the historical nested
+enumeration byte-identical.
 
 `SparsePatchDialect` accepts an optional `TransitionContracts` record naming
 the caller-owned read-only transition contracts. When set, every generated

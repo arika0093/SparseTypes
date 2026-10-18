@@ -44,6 +44,14 @@ public partial class ResRoster
 }
 
 [SparseModel]
+public partial class ResPair
+{
+    public List<ResItem> First { get; set; } = new();
+
+    public List<ResItem> Second { get; set; } = new();
+}
+
+[SparseModel]
 public partial class ResDict
 {
     public Dictionary<string, int> Scores { get; set; } = new();

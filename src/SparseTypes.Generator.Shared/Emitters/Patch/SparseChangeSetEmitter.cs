@@ -259,6 +259,9 @@ internal static class SparseChangeSetEmitter
         {
             code.Append(surfaceDeferred.ToString());
         }
+        // Internal enumeration traversal precedes private canonical storage
+        // to keep public-first member order.
+        SparseChangeSetEnumeratorEmitter.AppendTraversal(code, members, dialect);
         if (privateDeferred is not null)
         {
             code.Append(privateDeferred.ToString());

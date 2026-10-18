@@ -45,6 +45,7 @@ internal static class SparseRebaseResolutionEmitter
             pathType,
             conflict,
             optionalObject,
+            dialect,
             target
         );
         AppendTryCreateResolved(
@@ -57,6 +58,7 @@ internal static class SparseRebaseResolutionEmitter
             conflict,
             choices,
             modelType,
+            dialect,
             target
         );
         SparseResolutionApplyEmitter.AppendApplier(
@@ -93,6 +95,7 @@ internal static class SparseRebaseResolutionEmitter
             pathType,
             conflict,
             optionalObject,
+            dialect,
             target
         );
         var body = target?.ChangeSetOperations ?? infra ?? code;
@@ -327,6 +330,7 @@ internal static class SparseRebaseResolutionEmitter
         string conflict,
         string choices,
         string modelType,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         SparseOperationTarget? target
     )
     {
@@ -402,12 +406,19 @@ internal static class SparseRebaseResolutionEmitter
         body.AppendLineAt(4, "return false;");
         body.AppendLineAt(3, "}");
         body.AppendLineAt(3, "var working = applied.Value;");
+        if (dialect.ResolutionWorkspaceType is not null)
+        {
+            body.AppendLineAt(3, "var workspace = new " + dialect.ResolutionWorkspaceType + "();");
+        }
+
         body.AppendLineAt(3, "foreach (var choice in choices)");
         body.AppendLineAt(3, "{");
         body.AppendLineAt(4, "if (choice.Conflict.Path.IsRoot) continue;");
         body.AppendLineAt(
             4,
-            "if (!__SparseTryApplyResolution(working, choice.Conflict.Path, 0, choice.Desired, out var updated, out failureReason)) return false;"
+            "if (!__SparseTryApplyResolution(working, choice.Conflict.Path, 0, choice.Desired"
+                + SparseResolutionApplyEmitter.WorkspaceArgument(dialect.ResolutionWorkspaceType)
+                + ", out var updated, out failureReason)) return false;"
         );
         body.AppendLineAt(4, "if (updated is null)");
         body.AppendLineAt(4, "{");

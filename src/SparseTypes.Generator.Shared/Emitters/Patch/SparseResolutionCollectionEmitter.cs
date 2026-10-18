@@ -68,7 +68,8 @@ internal static class SparseResolutionCollectionEmitter
         SparseMemberModel member,
         string esc,
         string name,
-        string runtime
+        string runtime,
+        string? workspace
     )
     {
         var valueType = FragmentValueType(member);
@@ -209,7 +210,44 @@ internal static class SparseResolutionCollectionEmitter
         );
         body.AppendLineAt(5, "return false;");
         body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var list" + id + " = new " + listType + "(source" + id + ");");
+        if (workspace is not null)
+        {
+            // Detached staging: copy once per build, then reuse while the slot
+            // still holds the published working buffer.
+            body.AppendLineAt(
+                4,
+                "global::System.Collections.Generic.List<" + elementType + "> list" + id + ";"
+            );
+            body.AppendLineAt(
+                4,
+                "var stageKey" + id + " = " + workspace + ".StagingKey(path, offset + 1);"
+            );
+            body.AppendLineAt(
+                4,
+                "if (workspace.TryGetStaged(stageKey"
+                    + id
+                    + ", out var staged"
+                    + id
+                    + ") && global::System.Object.ReferenceEquals(source"
+                    + id
+                    + ", staged"
+                    + id
+                    + "))"
+            );
+            body.AppendLineAt(4, "{");
+            body.AppendLineAt(5, "list" + id + " = (" + listType + ")staged" + id + "!;");
+            body.AppendLineAt(4, "}");
+            body.AppendLineAt(4, "else");
+            body.AppendLineAt(4, "{");
+            body.AppendLineAt(5, "list" + id + " = new " + listType + "(source" + id + ");");
+            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", list" + id + ");");
+            body.AppendLineAt(4, "}");
+        }
+        else
+        {
+            body.AppendLineAt(4, "var list" + id + " = new " + listType + "(source" + id + ");");
+        }
+
         body.AppendLineAt(4, "var index" + id + " = -1;");
         body.AppendLineAt(
             4,
@@ -297,7 +335,9 @@ internal static class SparseResolutionCollectionEmitter
                     + elementChangeSet
                     + ".__SparseTryApplyResolution(elementFragment"
                     + id
-                    + ", path, offset + 2, desired, out var updatedElement"
+                    + ", path, offset + 2, desired"
+                    + SparseResolutionApplyEmitter.WorkspaceArgument(workspace)
+                    + ", out var updatedElement"
                     + id
                     + ", out error)) return false;"
             );
@@ -533,6 +573,9 @@ internal static class SparseResolutionCollectionEmitter
         );
         body.AppendLineAt(6, "return false;");
         body.AppendLineAt(5, "}");
+        // One source-side key index replaces the quadratic per-key scans.
+        // Duplicates and unknown keys stay lazily reported per requested key
+        // so unmentioned duplicate rows keep their historical pass.
         body.AppendLineAt(
             5,
             "var orderComparer"
@@ -545,35 +588,123 @@ internal static class SparseResolutionCollectionEmitter
             5,
             "var reordered" + id + " = new " + listType + "(orderSource" + id + ".Count);"
         );
-        body.AppendLineAt(5, "foreach (var orderKey" + id + " in " + orderValue + ")");
+        body.AppendLineAt(
+            5,
+            "var orderIndex"
+                + id
+                + " = new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", ("
+                + elementType
+                + " element, int matches)>(orderSource"
+                + id
+                + ".Count);"
+        );
+        body.AppendLineAt(
+            5,
+            "global::System.Collections.Generic.List<"
+                + elementType
+                + ">? orderNull"
+                + id
+                + " = null;"
+        );
+        body.AppendLineAt(5, "foreach (var orderElement" + id + " in orderSource" + id + ")");
         body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "var orderMatches" + id + " = 0;");
-        body.AppendLineAt(6, "var orderMatch" + id + " = default(" + elementType + ");");
-        body.AppendLineAt(6, "foreach (var orderElement" + id + " in orderSource" + id + ")");
-        body.AppendLineAt(6, "{");
         if (elementIsRef)
         {
-            body.AppendLineAt(7, "if (orderElement" + id + " is null) continue;");
+            body.AppendLineAt(6, "if (orderElement" + id + " is null) continue;");
         }
 
         body.AppendLineAt(
-            7,
-            "if (orderComparer"
-                + id
-                + ".Equals("
-                + keyOf
-                + "(orderElement"
-                + id
-                + "), orderKey"
-                + id
-                + ")) { orderMatch"
-                + id
-                + " = orderElement"
-                + id
-                + "; orderMatches"
-                + id
-                + "++; }"
+            6,
+            "var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");"
         );
+        body.AppendLineAt(6, "if ((object?)orderElementKey" + id + " is null)");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(
+            7,
+            "(orderNull"
+                + id
+                + " ??= new global::System.Collections.Generic.List<"
+                + elementType
+                + ">()).Add(orderElement"
+                + id
+                + ");"
+        );
+        body.AppendLineAt(7, "continue;");
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(
+            6,
+            "if (orderIndex"
+                + id
+                + ".TryGetValue(orderElementKey"
+                + id
+                + ", out var orderEntry"
+                + id
+                + "))"
+        );
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(
+            7,
+            "orderIndex"
+                + id
+                + "[orderElementKey"
+                + id
+                + "] = (orderEntry"
+                + id
+                + ".element, orderEntry"
+                + id
+                + ".matches + 1);"
+        );
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(6, "else");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(
+            7,
+            "orderIndex" + id + ".Add(orderElementKey" + id + ", (orderElement" + id + ", 1));"
+        );
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(5, "}");
+        body.AppendLineAt(
+            5,
+            "var orderMentioned"
+                + id
+                + " = new global::System.Collections.Generic.HashSet<"
+                + keyType
+                + ">(orderComparer"
+                + id
+                + ");"
+        );
+        body.AppendLineAt(5, "var orderNullMentioned" + id + " = false;");
+        body.AppendLineAt(5, "foreach (var orderKey" + id + " in " + orderValue + ")");
+        body.AppendLineAt(5, "{");
+        body.AppendLineAt(6, "var orderMatch" + id + " = default(" + elementType + ");");
+        body.AppendLineAt(6, "int orderMatches" + id + ";");
+        body.AppendLineAt(6, "if ((object?)orderKey" + id + " is null)");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(7, "orderMatches" + id + " = orderNull" + id + "?.Count ?? 0;");
+        body.AppendLineAt(
+            7,
+            "if (orderMatches" + id + " == 1) orderMatch" + id + " = orderNull" + id + "![0];"
+        );
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(
+            6,
+            "else if (orderIndex"
+                + id
+                + ".TryGetValue(orderKey"
+                + id
+                + ", out var orderEntry"
+                + id
+                + "))"
+        );
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(7, "orderMatches" + id + " = orderEntry" + id + ".matches;");
+        body.AppendLineAt(7, "orderMatch" + id + " = orderEntry" + id + ".element;");
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(6, "else");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(7, "orderMatches" + id + " = 0;");
         body.AppendLineAt(6, "}");
         body.AppendLineAt(6, "if (orderMatches" + id + " == 0)");
         body.AppendLineAt(6, "{");
@@ -585,6 +716,14 @@ internal static class SparseResolutionCollectionEmitter
         body.AppendLineAt(7, "error = \"The collection holds duplicate keys.\";");
         body.AppendLineAt(7, "return false;");
         body.AppendLineAt(6, "}");
+        body.AppendLineAt(6, "if ((object?)orderKey" + id + " is null)");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(7, "orderNullMentioned" + id + " = true;");
+        body.AppendLineAt(6, "}");
+        body.AppendLineAt(6, "else");
+        body.AppendLineAt(6, "{");
+        body.AppendLineAt(7, "orderMentioned" + id + ".Add(orderKey" + id + ");");
+        body.AppendLineAt(6, "}");
         body.AppendLineAt(6, "reordered" + id + ".Add(orderMatch" + id + "!);");
         body.AppendLineAt(5, "}");
         body.AppendLineAt(5, "foreach (var orderElement" + id + " in orderSource" + id + ")");
@@ -594,24 +733,24 @@ internal static class SparseResolutionCollectionEmitter
             body.AppendLineAt(6, "if (orderElement" + id + " is null) continue;");
         }
 
-        body.AppendLineAt(6, "var orderKnown" + id + " = false;");
-        body.AppendLineAt(6, "foreach (var orderKey" + id + " in " + orderValue + ")");
-        body.AppendLineAt(6, "{");
         body.AppendLineAt(
-            7,
-            "if (orderComparer"
-                + id
-                + ".Equals("
-                + keyOf
-                + "(orderElement"
-                + id
-                + "), orderKey"
-                + id
-                + ")) { orderKnown"
-                + id
-                + " = true; break; }"
+            6,
+            "var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");"
         );
-        body.AppendLineAt(6, "}");
+        body.AppendLineAt(
+            6,
+            "var orderKnown"
+                + id
+                + " = (object?)orderElementKey"
+                + id
+                + " is null ? orderNullMentioned"
+                + id
+                + " : orderMentioned"
+                + id
+                + ".Contains(orderElementKey"
+                + id
+                + ");"
+        );
         body.AppendLineAt(
             6,
             "if (!orderKnown" + id + ") reordered" + id + ".Add(orderElement" + id + ");"

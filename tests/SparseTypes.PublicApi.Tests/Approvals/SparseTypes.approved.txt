@@ -1071,6 +1071,13 @@ namespace SparseTypes
     {
         public SparseRedactBeforeAttribute() { }
     }
+    public sealed class SparseResolutionWorkspace
+    {
+        public SparseResolutionWorkspace() { }
+        public void StoreStaged(SparseTypes.SparsePath key, object staged) { }
+        public bool TryGetStaged(SparseTypes.SparsePath key, out object? staged) { }
+        public static SparseTypes.SparsePath StagingKey(SparseTypes.SparsePath path, int depth) { }
+    }
     public static class SparseStateQueries
     {
         public static SparseTypes.SparseChangeSetQueryView CaptureQueryView(this SparseTypes.ISparseChangeSet changes) { }

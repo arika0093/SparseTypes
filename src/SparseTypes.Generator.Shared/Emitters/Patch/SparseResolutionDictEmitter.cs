@@ -11,7 +11,8 @@ internal static class SparseResolutionDictEmitter
         SparseMemberModel member,
         string esc,
         string name,
-        string runtime
+        string runtime,
+        string? workspace
     )
     {
         var valueType = FragmentValueType(member);
@@ -118,6 +119,33 @@ internal static class SparseResolutionDictEmitter
         );
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, dictType + "? editable" + id + " = null;");
+        if (workspace is not null)
+        {
+            // Detached staging: the built dictionary is reused while the slot
+            // still references the published buffer; membership changes re-stage.
+            body.AppendLineAt(
+                4,
+                "var stageKey" + id + " = " + workspace + ".StagingKey(path, offset + 1);"
+            );
+            body.AppendLineAt(
+                4,
+                "if (workspace.TryGetStaged(stageKey"
+                    + id
+                    + ", out var staged"
+                    + id
+                    + ") && global::System.Object.ReferenceEquals(builder."
+                    + esc
+                    + ".Value, staged"
+                    + id
+                    + "))"
+            );
+            body.AppendLineAt(4, "{");
+            body.AppendLineAt(5, "editable" + id + " = (" + dictType + ")staged" + id + "!;");
+            body.AppendLineAt(4, "}");
+            body.AppendLineAt(4, "if (editable" + id + " is null)");
+            body.AppendLineAt(4, "{");
+        }
+
         body.AppendLineAt(
             4,
             "if (builder." + esc + ".Value is " + dictType + " concrete" + id + ")"
@@ -135,6 +163,11 @@ internal static class SparseResolutionDictEmitter
                 + id
                 + ".Comparer);"
         );
+        if (workspace is not null)
+        {
+            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
+        }
+
         body.AppendLineAt(4, "}");
         body.AppendLineAt(
             4,
@@ -153,6 +186,11 @@ internal static class SparseResolutionDictEmitter
                 + keyType
                 + ">.Default);"
         );
+        if (workspace is not null)
+        {
+            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
+        }
+
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, "else");
         body.AppendLineAt(4, "{");
@@ -162,6 +200,10 @@ internal static class SparseResolutionDictEmitter
         );
         body.AppendLineAt(5, "return false;");
         body.AppendLineAt(4, "}");
+        if (workspace is not null)
+        {
+            body.AppendLineAt(4, "}");
+        }
         // Typed lookup honors the dictionary comparer; no display-text
         // fallback.
         body.AppendLineAt(
@@ -183,7 +225,8 @@ internal static class SparseResolutionDictEmitter
                 member.Collection.ValueType?.IsReferenceType == true
                     || member.Collection.ValueType?.Name.EndsWith("?", StringComparison.Ordinal)
                         == true,
-                runtime
+                runtime,
+                workspace
             );
         }
         else
@@ -344,7 +387,8 @@ internal static class SparseResolutionDictEmitter
         string valueChangeSet,
         int id,
         bool valueMayBeNull,
-        string runtime
+        string runtime,
+        string? workspace
     )
     {
         _ = runtime;
@@ -433,7 +477,9 @@ internal static class SparseResolutionDictEmitter
                 + valueChangeSet
                 + ".__SparseTryApplyResolution(valueFragment"
                 + id
-                + ", path, offset + 2, desired, out var updatedValue"
+                + ", path, offset + 2, desired"
+                + SparseResolutionApplyEmitter.WorkspaceArgument(workspace)
+                + ", out var updatedValue"
                 + id
                 + ", out error)) return false;"
         );

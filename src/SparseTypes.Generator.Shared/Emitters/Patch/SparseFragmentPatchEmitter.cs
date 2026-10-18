@@ -254,6 +254,14 @@ internal static class SparseFragmentPatchEmitter
         /// <remarks>The arguments are source expressions for two registered paths.</remarks>
         public Func<string, string, string>? ChildPathOverlapExpression { get; init; }
 
+        /// <summary>Per-build resolution staging type used by the applier, or null when the product does not stage.</summary>
+        /// <remarks>The type exposes an instance member-keyed <c>TryGetStaged</c>/<c>StoreStaged</c> surface plus a static <c>StagingKey</c> factory.</remarks>
+        public string? ResolutionWorkspaceType { get; init; }
+
+        /// <summary>Caller-owned path-traversal vocabulary for change-set enumeration, or null for the legacy walk.</summary>
+        /// <remarks>Null keeps the historical nested enumeration byte-identical; set it to thread one push/pop segment buffer through nested transitions.</remarks>
+        public SparsePathTraversalContracts? PathTraversal { get; init; }
+
         /// <summary>Creates a conflict with a child-session path prepended.</summary>
         /// <remarks>The arguments are source expressions for a conflict and its path prefix.</remarks>
         public Func<string, string, string>? ChildConflictPathPrefixExpression { get; init; }
