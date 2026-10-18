@@ -8,9 +8,9 @@ using SparseTypes.Generator.Shared;
 
 namespace SparseTypes.Tests.Shared;
 
-// Verify attribute bridges are emitted whenever relocation can reference them,
-// regardless of descriptor dialect.
-public sealed class RelocatedAttributeBridgeTests
+// Verify attribute bridges are emitted on the surface and referenced by
+// descriptor factories, regardless of descriptor dialect.
+public sealed class AttributeBridgeTests
 {
     private const string AttributeExpression =
         "new global::System.ComponentModel.DescriptionAttribute(\"bridge-probe\")";
@@ -131,24 +131,24 @@ public sealed class RelocatedAttributeBridgeTests
     ) => BuildSplit(config, members).Surface;
 
     [Test]
-    public void RewriteReferencesTheSameBridgeTheSurfaceEmits()
+    public void SurfaceAndFactoryAgreeOnBridgeNames()
     {
         var config = ProductConfigWithoutDescriptors();
         var members = AttributedMembers();
-        var legacy =
-            "var attributes = new global::System.Attribute[] { " + AttributeExpression + " };";
-        var relocated = SparseModelImplementationEmitter.RelocateUiReferences(
-            legacy,
-            "ReadModel",
-            members,
-            ImmutableArray<SparseReadOnlyViewModel>.Empty,
-            config,
-            CancellationToken.None
-        );
-        relocated.ShouldContain("ReadModel.__SparseAttributes_0()");
-
         var surface = BuildSurface(config, members);
         surface.ShouldContain("internal static global::System.Attribute[] __SparseAttributes_0()");
+
+        // The descriptor factory calls back into the same model-local bridge
+        // the surface defines instead of inlining private attribute types.
+        var factoryConfig = ProductConfig();
+        var factory = SparseDescriptorFactoryEmitter.BuildSource(
+            BridgeModel(),
+            members,
+            factoryConfig,
+            CancellationToken.None,
+            factoryConfig.RuntimeDialect!.Namespace
+        );
+        factory.Source.ShouldContain("ReadModel.__SparseAttributes_0()");
     }
 
     [Test]
@@ -192,7 +192,7 @@ public sealed class RelocatedAttributeBridgeTests
     }
 
     [Test]
-    public void NoDescriptorDialect_RelocatedOutputsCompileWithoutMissingBridges()
+    public void NoDescriptorDialect_OutputsCompileWithoutMissingBridges()
     {
         var config = ProductConfigWithoutDescriptors();
         var members = AttributedMembers();
@@ -207,8 +207,8 @@ public sealed class RelocatedAttributeBridgeTests
         );
         implementations.ShouldNotBeEmpty();
 
-        // Every bridge call in the relocated outputs must resolve to a bridge
-        // the surface defines; otherwise the compilation below fails.
+        // Every bridge call in the implementation outputs must resolve to a
+        // bridge the surface defines; otherwise the compilation below fails.
         var defined = new HashSet<string>(
             Regex
                 .Matches(

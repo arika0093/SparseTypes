@@ -168,9 +168,48 @@ public sealed class RelocatedUiPlacementTests
     }
 
     [Test]
+    public void ChildUiReferencesStayModelNested()
+    {
+        const string source = """
+            using SparseTypes;
+            namespace Reloc.Probe;
+            [SparseModel]
+            public partial class NestedParent
+            {
+                public NestedChild Child { get; set; } = new();
+            }
+            [SparseModel]
+            public partial class NestedChild
+            {
+                public string Name { get; set; } = string.Empty;
+            }
+            """;
+        var (compilation, _, all) = Generate(source);
+        compilation
+            .GetDiagnostics()
+            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            .ShouldBeEmpty();
+        // Child UI references resolve to model-nested types, never to an
+        // implementation-container copy.
+        all.Values.ShouldContain(static text =>
+            text.Contains("NestedChild.Observable", StringComparison.Ordinal)
+        );
+        var childContainer = SparseGeneratedPlacement.GetContainerForQualifiedName(
+            "global::Reloc.Probe.NestedChild",
+            CancellationToken.None
+        );
+        foreach (var text in all.Values)
+        {
+            text.ShouldNotContain("SparseTypes.Generated." + childContainer + ".Observable");
+            text.ShouldNotContain("SparseTypes.Generated." + childContainer + ".ReadOnlyView");
+        }
+    }
+
+    [Test]
     public void CollisionNamesAndTrickyLiteralsStayIntact()
     {
-        // Hardening for the string-based relocation rewrites.
+        // Hardening: member-like text inside attribute literals must survive
+        // emission verbatim.
         const string source = """
             using SparseTypes;
             using System.ComponentModel;

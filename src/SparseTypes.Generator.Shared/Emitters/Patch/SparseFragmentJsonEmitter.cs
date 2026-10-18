@@ -191,13 +191,18 @@ internal static class SparseFragmentJsonEmitter
             5,
             "if (!reader.Read()) { throw new global::System.Text.Json.JsonException(\"Unexpected end of fragment.\"); }"
         );
-        var jsonMembers = members
-            .Where(static member => !member.Property.IsJsonIgnored)
-            .ToImmutableArray();
-        var ignoredMembers = members
-            .Where(static member => member.Property.IsJsonIgnored)
-            .ToImmutableArray();
-        if (jsonMembers.Length + ignoredMembers.Length > 0)
+        // Carry original positions through the visible/ignored partition so
+        // indexed dispatch reuses them instead of re-searching the array.
+        var jsonMemberIndexes = ImmutableArray.CreateBuilder<int>(members.Length);
+        var ignoredMemberIndexes = ImmutableArray.CreateBuilder<int>();
+        for (var memberIndex = 0; memberIndex < members.Length; memberIndex++)
+        {
+            if (members[memberIndex].Property.IsJsonIgnored)
+                ignoredMemberIndexes.Add(memberIndex);
+            else
+                jsonMemberIndexes.Add(memberIndex);
+        }
+        if (jsonMemberIndexes.Count + ignoredMemberIndexes.Count > 0)
         {
             var first = true;
             if (indexedDispatch)
@@ -210,22 +215,20 @@ internal static class SparseFragmentJsonEmitter
                 code.AppendLineAt(6, "switch (propertyIndex)");
                 code.AppendLineAt(6, "{");
             }
-            foreach (var member in jsonMembers)
+            foreach (var index in jsonMemberIndexes)
             {
+                var member = members[index];
                 var property = SparseNaming.EscapeIdentifier(member.Property.Name);
                 var wireName = WireName(member);
                 var explicitName = member.Property.HasExplicitJsonPropertyName;
                 if (indexedDispatch)
-                    code.AppendIndent(7)
-                        .Append("case ")
-                        .Append(members.IndexOf(member).ToString())
-                        .AppendLine(":");
+                    code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
                 else
                 {
                     code.AppendIndent(5).Append(first ? "if (" : "else if (");
                     if (utf8Dispatch)
                         code.Append("propertyIndex == ")
-                            .Append(members.IndexOf(member).ToString())
+                            .Append(index.ToString())
                             .Append(" || (propertyIndex == -2 && ");
                     code.Append("Matches(propertyName, ")
                         .Append(SymbolDisplay.FormatLiteral(wireName, true))
@@ -269,21 +272,18 @@ internal static class SparseFragmentJsonEmitter
                 first = false;
             }
 
-            foreach (var ignoredMember in ignoredMembers)
+            foreach (var index in ignoredMemberIndexes)
             {
-                var ignored = ignoredMember.Property;
+                var ignored = members[index].Property;
                 var ignoredWireName = ignored.JsonPropertyName ?? ignored.Name;
                 if (indexedDispatch)
-                    code.AppendIndent(7)
-                        .Append("case ")
-                        .Append(members.IndexOf(ignoredMember).ToString())
-                        .AppendLine(":");
+                    code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
                 else
                 {
                     code.AppendIndent(5).Append(first ? "if (" : "else if (");
                     if (utf8Dispatch)
                         code.Append("propertyIndex == ")
-                            .Append(members.IndexOf(ignoredMember).ToString())
+                            .Append(index.ToString())
                             .Append(" || (propertyIndex == -2 && ");
                     code.Append("Matches(propertyName, ")
                         .Append(SymbolDisplay.FormatLiteral(ignoredWireName, true))
@@ -350,8 +350,9 @@ internal static class SparseFragmentJsonEmitter
         );
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "writer.WriteStartObject();");
-        foreach (var member in jsonMembers)
+        foreach (var index in jsonMemberIndexes)
         {
+            var member = members[index];
             var property = SparseNaming.EscapeIdentifier(member.Property.Name);
             var wireName = WireName(member);
             var explicitName = member.Property.HasExplicitJsonPropertyName;
@@ -571,10 +572,9 @@ internal static class SparseFragmentJsonEmitter
                 4,
                 "var indexes = new global::System.Collections.Generic.Dictionary<string, int>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
             );
-            foreach (var member in jsonMembers)
+            foreach (var index in jsonMemberIndexes)
             {
-                var property = member.Property;
-                var index = members.IndexOf(member).ToString();
+                var property = members[index].Property;
                 var nameVariable = "__jsonName_" + index;
                 var literal = SymbolDisplay.FormatLiteral(
                     property.JsonPropertyName ?? property.Name,
@@ -592,10 +592,9 @@ internal static class SparseFragmentJsonEmitter
                 );
                 code.AppendLineAt(4, "indexes.Add(" + nameVariable + ", " + index + ");");
             }
-            foreach (var member in ignoredMembers)
+            foreach (var index in ignoredMemberIndexes)
             {
-                var property = member.Property;
-                var index = members.IndexOf(member).ToString();
+                var property = members[index].Property;
                 var nameVariable = "__jsonName_" + index;
                 var literal = SymbolDisplay.FormatLiteral(
                     property.JsonPropertyName ?? property.Name,
@@ -626,7 +625,7 @@ internal static class SparseFragmentJsonEmitter
                 "private static void ValidateJsonNames(global::System.Text.Json.JsonSerializerOptions options)"
             );
             code.AppendLineAt(3, "{");
-            var comparePairs = jsonMembers.Length <= 3;
+            var comparePairs = jsonMemberIndexes.Count <= 3;
             if (!comparePairs)
             {
                 code.AppendLineAt(
@@ -634,7 +633,7 @@ internal static class SparseFragmentJsonEmitter
                     "var names = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
                 );
             }
-            else if (jsonMembers.Length > 1)
+            else if (jsonMemberIndexes.Count > 1)
             {
                 code.AppendLineAt(
                     4,
@@ -647,8 +646,9 @@ internal static class SparseFragmentJsonEmitter
                 code.AppendLineAt(4, "_ = options.PropertyNameCaseInsensitive;");
             }
             var nameIndex = 0;
-            foreach (var property in jsonMembers.Select(static member => member.Property))
+            foreach (var index in jsonMemberIndexes)
             {
+                var property = members[index].Property;
                 var literal = SymbolDisplay.FormatLiteral(
                     property.JsonPropertyName ?? property.Name,
                     true
@@ -665,7 +665,7 @@ internal static class SparseFragmentJsonEmitter
                             + ")) { throw new global::System.Text.Json.JsonException(\"Multiple fragment members map to the same JSON property name.\"); }"
                     );
                 }
-                else if (jsonMembers.Length == 1)
+                else if (jsonMemberIndexes.Count == 1)
                 {
                     // Retain naming-policy evaluation even when collisions are
                     // impossible.

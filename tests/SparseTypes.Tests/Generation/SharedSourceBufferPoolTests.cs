@@ -80,6 +80,16 @@ public sealed class SharedSourceBufferPoolTests
     }
 
     [Test]
+    public void NegativeCapacityIsRejectedBeforeTakingOwnership()
+    {
+        DrainPool();
+        var cached = SharedSourceBufferPool.Rent();
+        SharedSourceBufferPool.Return(cached);
+        Should.Throw<ArgumentOutOfRangeException>(() => SharedSourceBufferPool.Rent(-1));
+        SharedSourceBufferPool.Rent().ShouldBeSameAs(cached);
+    }
+
+    [Test]
     public void RetentionHasFourSlots()
     {
         DrainPool();

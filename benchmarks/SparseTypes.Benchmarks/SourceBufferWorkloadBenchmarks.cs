@@ -4,9 +4,6 @@ using SparseTypes.Generator.Shared;
 [MemoryDiagnoser]
 public class SourceBufferWorkloadBenchmarks
 {
-    private const string OldValue = "global::Ns.Child.Observable";
-    private const string NewValue = "global::Impl.ChildImpl.Observable";
-    private string _largeSource = null!;
     private string _ordinarySource = null!;
 
     [Params(4096, 8192)]
@@ -18,39 +15,40 @@ public class SourceBufferWorkloadBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _largeSource = string.Concat(
-            Enumerable.Repeat("var view = " + OldValue + ".Create();\n", LargeRepetitions)
-        );
         _ordinarySource = string.Concat(Enumerable.Repeat("    // generated member body\n", 1024));
-        var expected = _largeSource.Replace(OldValue, NewValue, StringComparison.Ordinal);
-        if (RewriteLarge() != expected)
-            throw new InvalidOperationException("The large rewrite must preserve every reference.");
+        if (EmitLarge().Length <= _ordinarySource.Length)
+            throw new InvalidOperationException(
+                "The large emission must exceed an ordinary group."
+            );
         if (EmitOrdinaryGroup() != 4 * _ordinarySource.Length)
             throw new InvalidOperationException(
                 "All simultaneous source owners must remain intact."
             );
-        if (RewriteThenEmit() != expected.Length + OrdinaryGroups * 4 * _ordinarySource.Length)
+        if (EmitThenEmit() != EmitLarge().Length + OrdinaryGroups * 4 * _ordinarySource.Length)
             throw new InvalidOperationException(
                 "Mixed source workloads must preserve output sizes."
             );
     }
 
     [Benchmark]
-    public int RewriteThenEmit()
+    public int EmitThenEmit()
     {
-        var length = RewriteLarge().Length;
+        var length = EmitLarge().Length;
         for (var group = 0; group < OrdinaryGroups; group++)
             length += EmitOrdinaryGroup();
         return length;
     }
 
-    private string RewriteLarge() =>
-        SparseCodeRewrite.ReplaceOutsideLiteralsAndComments(
-            _largeSource,
-            OldValue,
-            NewValue,
-            CancellationToken.None
-        );
+    // A representative large emission through the shared builder: one large
+    // source followed by ordinary simultaneous emissions, verifying
+    // pooled-buffer retention and ownership without the retired rewrite stage.
+    private string EmitLarge()
+    {
+        using var code = new SharedIndentedBuilder(CancellationToken.None);
+        for (var index = 0; index < LargeRepetitions; index++)
+            code.AppendLine("var view = global::Ns.Child.Observable.Create();");
+        return code.ToString();
+    }
 
     private int EmitOrdinaryGroup()
     {
