@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
@@ -75,6 +76,8 @@ internal sealed record ModelConstructorBinding(
                 || property.SetMethod.DeclaredAccessibility == Accessibility.Public
             )
             .ToArray();
+        // Indexed lazily so the parameterless fast path pays nothing.
+        Dictionary<string, List<IPropertySymbol>>? propertyIndex = null;
         foreach (
             var constructor in model
                 .InstanceConstructors.Where(constructor =>
@@ -108,20 +111,13 @@ internal sealed record ModelConstructorBinding(
             var parameters = ImmutableArray.CreateBuilder<ConstructorParameterBinding>();
             foreach (var parameter in constructorParameters)
             {
-                var matches = properties
-                    .Where(property =>
-                        string.Equals(
-                            parameter.Name,
-                            property.Name,
-                            StringComparison.OrdinalIgnoreCase
-                        ) && SymbolEqualityComparer.Default.Equals(parameter.Type, property.Type)
-                    )
-                    .ToArray();
-                if (parameter.RefKind != RefKind.None || matches.Length != 1)
+                propertyIndex ??= BuildPropertyIndex(properties);
+                var match = FindUniqueMatch(propertyIndex, parameter);
+                if (parameter.RefKind != RefKind.None || match is null)
                     break;
                 parameters.Add(
                     new ConstructorParameterBinding(
-                        matches[0].Name,
+                        match.Name,
                         DefaultExpression(parameter),
                         parameter.HasExplicitDefaultValue
                     )
@@ -131,6 +127,42 @@ internal sealed record ModelConstructorBinding(
                 return new(parameters.ToImmutable(), setsRequiredMembers);
         }
         return model.IsValueType ? Parameterless : null;
+    }
+
+    // Buckets share a case-insensitive name; the parameter type then selects
+    // within the bucket, so same-name/different-type candidates still bind
+    // while same-name/same-type candidates stay ambiguous.
+    private static Dictionary<string, List<IPropertySymbol>> BuildPropertyIndex(
+        IPropertySymbol[] properties
+    )
+    {
+        var index = new Dictionary<string, List<IPropertySymbol>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in properties)
+        {
+            if (!index.TryGetValue(property.Name, out var bucket))
+                index[property.Name] = bucket = new List<IPropertySymbol>(1);
+            bucket.Add(property);
+        }
+        return index;
+    }
+
+    private static IPropertySymbol? FindUniqueMatch(
+        Dictionary<string, List<IPropertySymbol>> index,
+        IParameterSymbol parameter
+    )
+    {
+        if (!index.TryGetValue(parameter.Name, out var bucket))
+            return null;
+        IPropertySymbol? match = null;
+        foreach (var candidate in bucket)
+        {
+            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, candidate.Type))
+                continue;
+            if (match is not null)
+                return null;
+            match = candidate;
+        }
+        return match;
     }
 
     private static string DefaultExpression(IParameterSymbol parameter)

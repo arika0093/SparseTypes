@@ -88,6 +88,14 @@ internal static class SparseModelDiscovery
             ? ModelConstructorBinding.AnalyzeRoot(model, config, cancellationToken)
             : ModelConstructorBinding.AnalyzeStructural(model, config, cancellationToken);
         var comparisonRules = SparseComparisonRules.CreateRuleSet(model, config, cancellationToken);
+        // Ordinal set built once; the getter-only check below used to scan the
+        // parameter bindings again for every property.
+        HashSet<string>? boundNames = null;
+        if (constructor is not null && !constructor.Parameters.IsEmpty)
+            boundNames = new HashSet<string>(
+                constructor.Parameters.Select(static parameter => parameter.PropertyName),
+                StringComparer.Ordinal
+            );
         var index = 0;
         foreach (
             var property in GetReadableProperties(model, config, cancellationToken)
@@ -95,10 +103,8 @@ internal static class SparseModelDiscovery
                     property.SetMethod?.DeclaredAccessibility == Accessibility.Public
                     || (
                         property.SetMethod is null
-                        && constructor is not null
-                        && constructor.Parameters.Any(parameter =>
-                            parameter.PropertyName == property.Name
-                        )
+                        && boundNames is not null
+                        && boundNames.Contains(property.Name)
                     )
                 )
         )
