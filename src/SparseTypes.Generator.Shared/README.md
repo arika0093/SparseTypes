@@ -349,11 +349,23 @@ opt-in `ObserveField`/`WatchField` factories returning a disposable
 `INotifyPropertyChanged` watcher per path; the watcher refreshes on the
 session's `PropertyChanged` notification, which covers baseline-only accepts
 that never publish a transition, and notifies only on effective state changes.
-Setting the optional `QueryViewType` entry adds a `CaptureStateSnapshot`
+The hooks type must also expose a settable `DispatchQuery` member returning
+the same field state shape as `Query`; dialects that bind the observe entries
+without the snapshot entry keep the legacy per-watcher live query and never
+reference the member. Setting the optional `QueryViewType` entry adds a `CaptureStateSnapshot`
 factory returning a reusable query view over one captured change set: one root
 snapshot/diff plus one flattened projection serves any number of field queries
 from a segment index, while live `FieldState` queries keep re-diffing the
-unnotified live model. Queries derive from the session's retained baseline or
+unnotified live model. The bound view type must expose `FieldState` overloads
+matching the session's typed and model-agnostic queries, because observation
+dispatch calls them. When both the observe entries and `QueryViewType` are
+bound, `ObserveField` wires each watcher to a session-owned coordinator:
+the first watcher subscribes once to the session invalidation signal, each
+dispatch captures one snapshot shared by every watcher in that generation,
+a model edit during delivery schedules a fresh generation instead of recursing,
+and removing the last watcher unsubscribes and releases the snapshot. Explicit
+`Refresh` calls and direct `FieldState` reads always re-diff the live model,
+so unnotified mutations stay visible there. Queries derive from the session's retained baseline or
 change set on each call and keep
 no per-field caches or subscriptions; change-set queries are point-in-time
 while session queries re-diff the live model. Row states reuse the typed

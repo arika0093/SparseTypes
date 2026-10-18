@@ -79,25 +79,26 @@
     private string LowerTabId = "lower-csharp";
     private string HigherTabId = "higher-csharp";
 
-    private PlaygroundSettings.Fragment LowerFragment => Lower.Build("lower");
-    private PlaygroundSettings.Fragment HigherFragment => Higher.Build("higher");
-    private PlaygroundSettings.Fragment MergedFragment => LowerFragment.Merge(HigherFragment);
+    // One memoized preview generation: fragments, models and presentations
+    // are shared across panes and repeated reads; any input change drops it.
+    private Case1Preview? _preview;
+    private Case1Preview Preview =>
+        _preview ??= new Case1Preview(() => Lower.Build("lower"), () => Higher.Build("higher"));
 
     private string LowerCSharp => PlaygroundSnippets.FragmentCSharp("lower", Lower);
     private string HigherCSharp => PlaygroundSnippets.FragmentCSharp("higher", Higher);
 
-    private string LowerFragmentJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(LowerFragment));
-    private string HigherFragmentJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(HigherFragment));
-    private string MergedFragmentJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(MergedFragment));
-    private string MergeDiffJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(
-        PlaygroundSettings.Fragment.Diff(LowerFragment.ToModel(), MergedFragment.ToModel())));
-    private string MergedOrigins => PlaygroundPageHelper.Try(() =>
-        string.Join(
-            System.Environment.NewLine,
-            MergedFragment.EnumerateOrigins().Select(entry => $"{entry.Path}: {entry.Origin ?? "Unknown"}")
-        ));
+    private string LowerFragmentJson => Preview.LowerFragmentJson;
+    private string HigherFragmentJson => Preview.HigherFragmentJson;
+    private string MergedFragmentJson => Preview.MergedFragmentJson;
+    private string MergeDiffJson => Preview.MergeDiffJson;
+    private string MergedOrigins => Preview.MergedOrigins;
 
-    private void Refresh() => StateHasChanged();
+    private void Refresh()
+    {
+        _preview = null;
+        StateHasChanged();
+    }
 
     private void OnLayerTabChanged(string? id)
     {
@@ -110,7 +111,15 @@
         HigherTabId = $"higher-{language}";
     }
 
-    private void ResetLower() => Lower = FragmentEditState.LowerDefaults(includeTags: true);
+    private void ResetLower()
+    {
+        Lower = FragmentEditState.LowerDefaults(includeTags: true);
+        _preview = null;
+    }
 
-    private void ResetHigher() => Higher = FragmentEditState.HigherDefaults(includeTags: true);
+    private void ResetHigher()
+    {
+        Higher = FragmentEditState.HigherDefaults(includeTags: true);
+        _preview = null;
+    }
 }

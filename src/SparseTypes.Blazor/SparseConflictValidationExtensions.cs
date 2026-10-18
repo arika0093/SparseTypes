@@ -162,43 +162,26 @@ public static class SparseConflictValidationExtensions
     {
         // Foreign-root paths never resolve against this graph; surface them at
         // model level.
-        if (conflict.Path.RootType != typeof(TModel))
+        if (conflict.Path.RootType != typeof(TModel) || conflict.Path.IsRoot)
         {
             return new FieldIdentifier(model, string.Empty);
         }
 
-        if (conflict.Path.IsRoot)
+        // One non-throwing walk returns the exact field or the nearest
+        // surviving member; missing nested targets are expected inputs and
+        // must not allocate exceptions per shortened prefix.
+        var resolution = SparseFieldPathResolver.ResolveNearest(model, conflict.Path);
+        if (resolution.Resolved)
         {
-            return new FieldIdentifier(model, string.Empty);
+            return resolution.Field;
         }
 
-        try
+        if (fallback is SparseConflictFallbackMode.NearestParent && !resolution.AtRoot)
         {
-            return SparseFieldPathResolver.Resolve(model, conflict.Path);
+            return resolution.Field;
         }
-        catch (ArgumentException) when (fallback is SparseConflictFallbackMode.NearestParent)
-        {
-            // Walk toward the root so removed keys and missing nested models
-            // land on the nearest surviving member instead of being dropped.
-            var parent = conflict.Path.Parent;
-            while (parent is not null && !parent.Value.IsRoot)
-            {
-                try
-                {
-                    return SparseFieldPathResolver.Resolve(model, parent.Value);
-                }
-                catch (ArgumentException)
-                {
-                    parent = parent.Value.Parent;
-                }
-            }
 
-            return new FieldIdentifier(model, string.Empty);
-        }
-        catch (ArgumentException)
-        {
-            return new FieldIdentifier(model, string.Empty);
-        }
+        return new FieldIdentifier(model, string.Empty);
     }
 
     private static TModel GetSessionModel<TModel>(ISparseEditSession<TModel> session)

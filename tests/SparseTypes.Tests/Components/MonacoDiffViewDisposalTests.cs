@@ -261,8 +261,13 @@ public sealed class MonacoDiffViewDisposalTests
     {
         private readonly FakeJsRuntime _js;
         private readonly PlaygroundThemeState _themes = new();
+        private readonly MonacoThemeCoordinator _coordinator;
 
-        public TestServices(FakeJsRuntime js) => _js = js;
+        public TestServices(FakeJsRuntime js)
+        {
+            _js = js;
+            _coordinator = new MonacoThemeCoordinator(_js, _themes);
+        }
 
         public PlaygroundThemeState Themes => _themes;
 
@@ -276,6 +281,11 @@ public sealed class MonacoDiffViewDisposalTests
             if (serviceType == typeof(PlaygroundThemeState))
             {
                 return _themes;
+            }
+
+            if (serviceType == typeof(MonacoThemeCoordinator))
+            {
+                return _coordinator;
             }
 
             return null;

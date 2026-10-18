@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace SparseTypes.Blazor.Tests;
@@ -338,5 +340,299 @@ public sealed class BlazorConflictValidationTests
         var messages = context.GetValidationMessages(session.Field(nameof(OrderDto.Number)));
         messages.ShouldContain("Server rejected the order number.");
         messages.ShouldContain(m => m.Contains("Conflict at 'Number'"));
+    }
+
+    private static Case6Catalog Catalog() =>
+        new()
+        {
+            Title = "catalog",
+            Section = new()
+            {
+                Tiers =
+                [
+                    new Case6Tier
+                    {
+                        Code = "t1",
+                        Label = "Tier one",
+                        UnitPrice = 10m,
+                        Bands = [new Case6Band { Code = "b1", Percent = 5m }],
+                    },
+                ],
+            },
+        };
+
+    [Test]
+    public void DeepMissingKeySuffixFallsBackToNearestCollections()
+    {
+        var session = Catalog().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var missingTier = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .Key("missing")
+            .Member(nameof(Case6Tier.Bands))
+            .Key("b1")
+            .Member(nameof(Case6Band.Percent));
+        Should.Throw<ArgumentException>(() => session.Field(missingTier));
+
+        session.AddConflicts(store, context, [Conflict(missingTier)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .ShouldNotBeEmpty();
+        context.GetValidationMessages().ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void MissingKeyFallbackThrowsNoResolutionExceptions()
+    {
+        var session = Catalog().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+        var missingTier = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .Key("missing")
+            .Member(nameof(Case6Tier.Bands))
+            .Key("b1")
+            .Member(nameof(Case6Band.Percent));
+
+        // Warm up outside the handler so one-off initialization never counts.
+        session.AddConflicts(store, context, [Conflict(missingTier)]).ShouldBe(1);
+
+        // Expected missing targets must resolve through one non-throwing walk:
+        // no shortened-prefix retry may throw out of conflict projection.
+        // The frame filter keeps parallel tests' own expected throws (for
+        // example session.Field on missing paths) out of the count.
+        var projectionThrows = 0;
+        void Handler(object? sender, FirstChanceExceptionEventArgs e)
+        {
+            if (
+                e.Exception is ArgumentException argument
+                && argument.Message.Contains("does not resolve", StringComparison.Ordinal)
+                && argument.StackTrace?.Contains(
+                    "ResolveConflictField",
+                    StringComparison.Ordinal
+                ) == true
+            )
+            {
+                Interlocked.Increment(ref projectionThrows);
+            }
+        }
+
+        AppDomain.CurrentDomain.FirstChanceException += Handler;
+        try
+        {
+            for (var index = 0; index < 25; index++)
+            {
+                session.AddConflicts(store, context, [Conflict(missingTier)]).ShouldBe(1);
+            }
+        }
+        finally
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= Handler;
+        }
+
+        projectionThrows.ShouldBe(0);
+    }
+
+    [Test]
+    public void DeletedInnerKeyKeepsOuterKeyNearest()
+    {
+        var session = Catalog().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var innerMissing = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .Key("t1")
+            .Member(nameof(Case6Tier.Bands))
+            .Key("b2")
+            .Member(nameof(Case6Band.Percent));
+
+        session.AddConflicts(store, context, [Conflict(innerMissing)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field("Section.Tiers[\"t1\"].Bands"))
+            .ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void CollectionEntryEndingPathsMapToOwningMember()
+    {
+        var session = Catalog().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var trailingKey = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .Key("t1");
+
+        session.AddConflicts(store, context, [Conflict(trailingKey)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void NullNestedDeepModelKeepsRootMemberNearest()
+    {
+        var session = Catalog().CreateEditSession();
+        Raw(session).Section = null!;
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var deep = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .Key("t1")
+            .Member(nameof(Case6Tier.Bands));
+
+        session.AddConflicts(store, context, [Conflict(deep)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section)))
+            .ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void RootMissingMemberFallsBackToModelLevelInBothModes()
+    {
+        var missing = SparsePath.Root<Case6Catalog>().Member("NotGenerated");
+        var session = Catalog().CreateEditSession();
+        var model = Raw(session);
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+        var modelField = new FieldIdentifier(model, string.Empty);
+        Should.Throw<ArgumentException>(() => session.Field(missing));
+
+        session.AddConflicts(store, context, [Conflict(missing)]).ShouldBe(1);
+        context.GetValidationMessages(modelField).ShouldNotBeEmpty();
+
+        var otherStore = session.CreateValidationStore(context);
+        var options = new SparseConflictValidationOptions
+        {
+            Fallback = SparseConflictFallbackMode.Model,
+        };
+        session.AddConflicts(otherStore, context, [Conflict(missing)], options).ShouldBe(1);
+        context.GetValidationMessages(modelField).Count().ShouldBe(2);
+    }
+
+    [Test]
+    public void OutOfRangeIndexFallsBackToMember()
+    {
+        var session = Catalog().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var outOfRange = SparsePath
+            .Root<Case6Catalog>()
+            .Member(nameof(Case6Catalog.Section))
+            .Member(nameof(Case6Section.Tiers))
+            .At(9)
+            .Member(nameof(Case6Tier.Label));
+        Should.Throw<ArgumentException>(() => session.Field(outOfRange));
+
+        session.AddConflicts(store, context, [Conflict(outOfRange)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void MissingTemporaryKeyFallsBackToMember()
+    {
+        var session = new BlazorDraftBoard
+        {
+            Drafts = [new BlazorDraftLine { Id = 1, Title = "one" }],
+        }.CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var temporary = SparsePath
+            .Root<BlazorDraftBoard>()
+            .Member(nameof(BlazorDraftBoard.Drafts))
+            .TemporaryKey(Guid.NewGuid())
+            .Member(nameof(BlazorDraftLine.Title));
+
+        session.AddConflicts(store, context, [Conflict(temporary)]).ShouldBe(1);
+        context
+            .GetValidationMessages(session.Field(nameof(BlazorDraftBoard.Drafts)))
+            .ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void MissingDictionaryKeyFallsBackBeforeSuffix()
+    {
+        var session = Order().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+
+        var missingKey = SparsePath
+            .Root<OrderDto>()
+            .Member(nameof(OrderDto.Contacts))
+            .Key("nope")
+            .Member(nameof(OrderCustomer.Email));
+
+        session.AddConflicts(store, context, [Conflict(missingKey)]).ShouldBe(1);
+        context.GetValidationMessages(session.Field(nameof(OrderDto.Contacts))).ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void ModelLevelFallbackKeepsResolvedFieldsWhenResolvable()
+    {
+        var session = Order().CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+        var options = new SparseConflictValidationOptions
+        {
+            Fallback = SparseConflictFallbackMode.Model,
+        };
+        var resolved = SparsePath.Root<OrderDto>().Member(nameof(OrderDto.Number));
+
+        session.AddConflicts(store, context, [Conflict(resolved)], options).ShouldBe(1);
+        context.GetValidationMessages(session.Field(nameof(OrderDto.Number))).ShouldNotBeEmpty();
+    }
+
+    [Test]
+    public void ThrowingGetterSurfacesInsteadOfSilentFallback()
+    {
+        var order = new BlazorThrowingOrder
+        {
+            Number = "ok",
+            Customer = new OrderCustomer { Name = "Ada" },
+        };
+        var session = order.CreateEditSession();
+        var context = session.CreateEditContext();
+        var store = session.CreateValidationStore(context);
+        var nested = SparsePath
+            .Root<BlazorThrowingOrder>()
+            .Member(nameof(BlazorThrowingOrder.Customer))
+            .Member(nameof(OrderCustomer.Name));
+
+        // Fail the getter through an instance sentinel so no shared static
+        // state is involved.
+        order.Number = "boom";
+
+        // A user getter failure is unexpected, not a missing target: both
+        // fallback modes surface it instead of mapping a parent field.
+        var failure = Should.Throw<TargetInvocationException>(() =>
+            session.AddConflicts(store, context, [Conflict(nested)])
+        );
+        failure.InnerException.ShouldBeOfType<InvalidOperationException>();
+        var modelOptions = new SparseConflictValidationOptions
+        {
+            Fallback = SparseConflictFallbackMode.Model,
+        };
+        Should.Throw<TargetInvocationException>(() =>
+            session.AddConflicts(store, context, [Conflict(nested)], modelOptions)
+        );
+        context.GetValidationMessages().ShouldBeEmpty();
     }
 }

@@ -1,9 +1,6 @@
 @using BlazorMonaco.Editor
-@using Microsoft.JSInterop
 @using SparseTypes.Playground.Models
-@inject PlaygroundThemeState ThemeState
-@inject IJSRuntime JS
-@implements IDisposable
+@inject MonacoThemeCoordinator ThemeCoordinator
 
 <div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
     <StandaloneCodeEditor @ref="_editor"
@@ -40,13 +37,11 @@
 
     private string EditorId { get; } = $"monaco-edit-{Guid.NewGuid():N}";
 
-    private string CurrentTheme => ThemeState.IsDark ? "pg-dark" : "pg-light";
+    private string CurrentTheme => ThemeCoordinator.CurrentTheme;
 
     private string MonacoLanguage => Language == "csharp" ? "playground-csharp" : Language;
 
     private string WrapperStyle => Fill ? "height: 100%; min-height: 220px;" : $"height: {Height};";
-
-    protected override void OnInitialized() => ThemeState.Changed += OnThemeChanged;
 
     private StandaloneEditorConstructionOptions GetOptions(StandaloneCodeEditor editor)
     {
@@ -69,6 +64,7 @@
     private async Task HandleInit()
     {
         _initialized = true;
+        ThemeCoordinator.NotifyEditorReady();
         await SyncValueAsync();
     }
 
@@ -92,24 +88,6 @@
         }
     }
 
-    private void OnThemeChanged()
-    {
-        if (!_initialized || _editor is null)
-        {
-            return;
-        }
-        _ = InvokeAsync(async () =>
-        {
-            try
-            {
-                await JS.InvokeVoidAsync("blazorMonaco.editor.setTheme", CurrentTheme);
-            }
-            catch (JSDisconnectedException)
-            {
-            }
-        });
-    }
-
     private async Task SyncValueAsync()
     {
         if (!_initialized || _editor is null)
@@ -123,6 +101,4 @@
         _lastValue = Value;
         await _editor.SetValue(Value);
     }
-
-    public void Dispose() => ThemeState.Changed -= OnThemeChanged;
 }

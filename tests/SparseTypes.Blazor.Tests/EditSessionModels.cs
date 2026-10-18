@@ -218,3 +218,22 @@ public partial class Case6Catalog
 
     public Case6Section Section { get; set; } = new();
 }
+
+// A member whose getter fails on a sentinel value: conflict projection must
+// surface the failure instead of silently falling back to a parent field.
+[SparseModel]
+public partial class BlazorThrowingOrder
+{
+    public string Number { get; set; } = string.Empty;
+
+    public OrderCustomer Customer
+    {
+        get =>
+            Number == "boom"
+                ? throw new InvalidOperationException("Customer is unavailable.")
+                : _customer;
+        set => _customer = value;
+    }
+
+    private OrderCustomer _customer = new();
+}

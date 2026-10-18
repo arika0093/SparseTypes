@@ -11,6 +11,10 @@ public sealed class SparseObservedFieldHooks<T>
     /// <summary>Gets or sets the live field-state query.</summary>
     public Func<SparseFieldState<T>>? Query { get; set; }
 
+    /// <summary>Gets or sets the dispatch-generation query.</summary>
+    /// <remarks>When set, session invalidations refresh through this query (typically backed by the dispatch snapshot) while explicit <c>Refresh</c> calls keep using the live query.</remarks>
+    public Func<SparseFieldState<T>>? DispatchQuery { get; set; }
+
     /// <summary>Gets or sets the session invalidation subscription.</summary>
     public Action<PropertyChangedEventHandler>? Subscribe { get; set; }
 
@@ -26,6 +30,7 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
 {
     private readonly SparsePath _path;
     private readonly Func<SparseFieldState<T>> _query;
+    private readonly Func<SparseFieldState<T>>? _dispatchQuery;
     private readonly Action<PropertyChangedEventHandler> _unsubscribe;
     private readonly PropertyChangedEventHandler _handler;
     private SparseFieldState<T> _current;
@@ -61,6 +66,7 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
 
         _path = path;
         _query = hooks.Query;
+        _dispatchQuery = hooks.DispatchQuery;
         _unsubscribe = hooks.Unsubscribe;
         _current = _query();
         _handler = OnSessionInvalidated;
@@ -159,15 +165,7 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
     public void Refresh()
     {
         ThrowIfDisposed();
-        var next = _query();
-        if (_current.Equals(next))
-        {
-            return;
-        }
-
-        var previous = _current;
-        _current = next;
-        RaiseForChanges(previous, next);
+        RefreshWith(_query());
     }
 
     /// <summary>Unsubscribes from session invalidations.</summary>
@@ -191,13 +189,34 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
 
         try
         {
-            Refresh();
+            // Dispatch generations share one snapshot through DispatchQuery;
+            // explicit refreshes always re-read the live model.
+            if (_dispatchQuery is null)
+            {
+                Refresh();
+            }
+            else
+            {
+                RefreshWith(_dispatchQuery());
+            }
         }
         catch (InvalidOperationException)
         {
             // Multi-step mutations pass through transiently invalid keyed
             // states (duplicate keys mid-swap.
         }
+    }
+
+    private void RefreshWith(SparseFieldState<T> next)
+    {
+        if (_current.Equals(next))
+        {
+            return;
+        }
+
+        var previous = _current;
+        _current = next;
+        RaiseForChanges(previous, next);
     }
 
     // One property per changed member, in the documented order, so bindings

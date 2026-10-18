@@ -52,6 +52,9 @@ internal static class SparseReadOnlyViewEmitter
             dictionaryName,
             dictionaryEntriesName
         );
+        // One retention collector per emitted view keeps per-member cached
+        // adapter fields out of the public-first member ordering.
+        var retention = new SparseReadOnlyViewRetention(allMemberNames);
         code.AppendLineAt(
             1,
             "/// <summary>Recursive read-only view over a live model instance.</summary>"
@@ -81,7 +84,8 @@ internal static class SparseReadOnlyViewEmitter
                 collectionName,
                 dictionaryName,
                 dictionaryEntriesName,
-                pocoViewNames
+                pocoViewNames,
+                retention
             );
         }
 
@@ -104,6 +108,7 @@ internal static class SparseReadOnlyViewEmitter
         // Shared adapters are emitted once per compilation; only the legacy
         // single-file path redefines the generic adapters per model.
         code.AppendLineAt(2, "private readonly " + modelType + " " + modelFieldName + ";");
+        retention.Flush(code, 2);
         if (!useShared)
         {
             SparseReadOnlyAdapterEmitter.AppendCollectionAdapter(code, collectionName);
@@ -129,7 +134,8 @@ internal static class SparseReadOnlyViewEmitter
         string collectionName,
         string dictionaryName,
         string dictionaryEntriesName,
-        System.Collections.Generic.Dictionary<string, string> pocoViewNames
+        System.Collections.Generic.Dictionary<string, string> pocoViewNames,
+        SparseReadOnlyViewRetention? retention
     )
     {
         var property = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -185,7 +191,8 @@ internal static class SparseReadOnlyViewEmitter
                 modelFieldName,
                 dictionaryName,
                 dictionaryEntriesName,
-                pocoViewNames
+                pocoViewNames,
+                retention
             );
             return;
         }
@@ -206,7 +213,8 @@ internal static class SparseReadOnlyViewEmitter
                 indent,
                 modelFieldName,
                 collectionName,
-                pocoViewNames
+                pocoViewNames,
+                retention
             );
             return;
         }
@@ -247,6 +255,13 @@ internal static class SparseReadOnlyViewEmitter
         );
     }
 
+    // Per-member adapter retention: one cached adapter per collection member
+    // is kept while the backing source reference is unchanged, so repeated
+    // reads on a long-lived view stop reallocating wrappers per getter call.
+    // Value-type views pass no retention: mutating a readonly-struct copy
+    // could not publish a cache entry, and boxing would defeat reference
+    // comparison, so they keep the allocating read. Value-type sources take
+    // the same legacy path for the same boxing reason.
     private static void AppendCollectionMember(
         SharedIndentedBuilder code,
         SparseMemberModel member,
@@ -254,7 +269,8 @@ internal static class SparseReadOnlyViewEmitter
         int indent,
         string modelFieldName,
         string collectionName,
-        System.Collections.Generic.Dictionary<string, string> pocoViewNames
+        System.Collections.Generic.Dictionary<string, string> pocoViewNames,
+        SparseReadOnlyViewRetention? retention
     )
     {
         var modelElement = member.Collection.ElementType.Name;
@@ -264,34 +280,74 @@ internal static class SparseReadOnlyViewEmitter
                 ? "global::System.Collections.Generic.IReadOnlyCollection<" + viewElement + ">"
                 : "global::System.Collections.Generic.IReadOnlyList<" + viewElement + ">";
         var nullable = member.Property.IsNullable ? "?" : "";
+        var adapterType = collectionName + "<" + modelElement + ", " + viewElement + ">";
+        var construction =
+            "new "
+            + adapterType
+            + "((global::System.Collections.Generic.IEnumerable<"
+            + modelElement
+            + ">)current, "
+            + ReadOnlyMapper(member.Collection.ElementType, pocoViewNames)
+            + ")";
+        AppendPropertySummary(code, member, indent);
+        if (retention is null || !member.Property.Type.IsReferenceType)
+        {
+            code.AppendLineAt(
+                indent,
+                "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources.</remarks>"
+            );
+            code.AppendLineAt(indent, "public " + viewCollection + nullable + " " + property);
+            code.AppendLineAt(indent, "{");
+            code.AppendLineAt(indent + 1, "get");
+            code.AppendLineAt(indent + 1, "{");
+            code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
+            code.AppendLineAt(
+                indent + 2,
+                "if ((object?)current is null) return null"
+                    + (member.Property.IsNullable ? ";" : "!;")
+            );
+            code.AppendLineAt(indent + 2, "return " + construction + ";");
+            code.AppendLineAt(indent + 1, "}");
+            code.AppendLineAt(indent, "}");
+            return;
+        }
+
+        var retentionNames = retention.Enter(property, adapterType);
         AppendPropertySummary(code, member, indent);
         code.AppendLineAt(
             indent,
-            "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources.</remarks>"
+            "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources. The wrapper is retained while the backing source reference is unchanged; a captured wrapper keeps viewing the source it was created for. Concurrent readers may construct duplicates, but a returned wrapper always views the source it was created for.</remarks>"
         );
         code.AppendLineAt(indent, "public " + viewCollection + nullable + " " + property);
         code.AppendLineAt(indent, "{");
         code.AppendLineAt(indent + 1, "get");
         code.AppendLineAt(indent + 1, "{");
         code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
+        code.AppendLineAt(indent + 2, "if ((object?)current is null)");
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(indent + 3, "if (" + retentionNames.Adapter + " is not null)");
+        code.AppendLineAt(indent + 3, "{");
+        // Source-clear-on-null keeps the cache from pinning replaced sources.
+        code.AppendLineAt(indent + 4, retentionNames.Source + " = null;");
+        code.AppendLineAt(indent + 4, retentionNames.Adapter + " = null;");
+        code.AppendLineAt(indent + 3, "}");
+        code.AppendLineAt(indent + 3, "return null" + (member.Property.IsNullable ? ";" : "!;"));
+        code.AppendLineAt(indent + 2, "}");
+        // The adapter is captured once so a concurrent null-clear cannot
+        // turn the trailing return into a null for a non-nullable member.
+        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Adapter + ";");
         code.AppendLineAt(
             indent + 2,
-            "if ((object?)current is null) return null" + (member.Property.IsNullable ? ";" : "!;")
+            "if (cached is null || !ReferenceEquals(" + retentionNames.Source + ", current))"
         );
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(indent + 3, retentionNames.Source + " = current;");
         code.AppendLineAt(
-            indent + 2,
-            "return new "
-                + collectionName
-                + "<"
-                + modelElement
-                + ", "
-                + viewElement
-                + ">((global::System.Collections.Generic.IEnumerable<"
-                + modelElement
-                + ">)current, "
-                + ReadOnlyMapper(member.Collection.ElementType, pocoViewNames)
-                + ");"
+            indent + 3,
+            "cached = " + retentionNames.Adapter + " = " + construction + ";"
         );
+        code.AppendLineAt(indent + 2, "}");
+        code.AppendLineAt(indent + 2, "return cached;");
         code.AppendLineAt(indent + 1, "}");
         code.AppendLineAt(indent, "}");
     }
@@ -304,7 +360,8 @@ internal static class SparseReadOnlyViewEmitter
         string modelFieldName,
         string dictionaryName,
         string dictionaryEntriesName,
-        System.Collections.Generic.Dictionary<string, string> pocoViewNames
+        System.Collections.Generic.Dictionary<string, string> pocoViewNames,
+        SparseReadOnlyViewRetention? retention
     )
     {
         var keyType = member.Collection.ElementType.Name;
@@ -325,43 +382,83 @@ internal static class SparseReadOnlyViewEmitter
                     + ", "
                     + viewValue
                     + ">>";
-        code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "get");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(
-            indent + 2,
-            "if ((object?)current is null) return null" + (member.Property.IsNullable ? ";" : "!;")
-        );
-        var sourceType =
-            "(global::System.Collections.Generic.IReadOnlyDictionary<"
-            + keyType
-            + ", "
-            + modelValue
-            + ">)current";
-        var adapter = keyType == viewKey ? dictionaryName : dictionaryEntriesName;
         var adapterType =
             keyType == viewKey
-                ? "<" + keyType + ", " + modelValue + ", " + viewValue + ">"
-                : "<" + keyType + ", " + modelValue + ", " + viewKey + ", " + viewValue + ">";
+                ? dictionaryName + "<" + keyType + ", " + modelValue + ", " + viewValue + ">"
+                : dictionaryEntriesName
+                    + "<"
+                    + keyType
+                    + ", "
+                    + modelValue
+                    + ", "
+                    + viewKey
+                    + ", "
+                    + viewValue
+                    + ">";
         var mapValues = ReadOnlyMapper(member.Collection.ValueType.Value, pocoViewNames);
         var mapKey =
             keyType == viewKey
                 ? string.Empty
                 : ReadOnlyMapper(member.Collection.ElementType, pocoViewNames) + ", ";
+        var construction =
+            "new "
+            + adapterType
+            + "((global::System.Collections.Generic.IReadOnlyDictionary<"
+            + keyType
+            + ", "
+            + modelValue
+            + ">)current, "
+            + mapKey
+            + mapValues
+            + ")";
+        if (retention is null || !member.Property.Type.IsReferenceType)
+        {
+            code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
+            code.AppendLineAt(indent, "{");
+            code.AppendLineAt(indent + 1, "get");
+            code.AppendLineAt(indent + 1, "{");
+            code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
+            code.AppendLineAt(
+                indent + 2,
+                "if ((object?)current is null) return null"
+                    + (member.Property.IsNullable ? ";" : "!;")
+            );
+            code.AppendLineAt(indent + 2, "return " + construction + ";");
+            code.AppendLineAt(indent + 1, "}");
+            code.AppendLineAt(indent, "}");
+            return;
+        }
+
+        var retentionNames = retention.Enter(property, adapterType);
+        code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
+        code.AppendLineAt(indent, "{");
+        code.AppendLineAt(indent + 1, "get");
+        code.AppendLineAt(indent + 1, "{");
+        code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
+        code.AppendLineAt(indent + 2, "if ((object?)current is null)");
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(indent + 3, "if (" + retentionNames.Adapter + " is not null)");
+        code.AppendLineAt(indent + 3, "{");
+        code.AppendLineAt(indent + 4, retentionNames.Source + " = null;");
+        code.AppendLineAt(indent + 4, retentionNames.Adapter + " = null;");
+        code.AppendLineAt(indent + 3, "}");
+        code.AppendLineAt(indent + 3, "return null" + (member.Property.IsNullable ? ";" : "!;"));
+        code.AppendLineAt(indent + 2, "}");
+        // The adapter is captured once so a concurrent null-clear cannot
+        // turn the trailing return into a null for a non-nullable member.
+        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Adapter + ";");
         code.AppendLineAt(
             indent + 2,
-            "return new "
-                + adapter
-                + adapterType
-                + "("
-                + sourceType
-                + ", "
-                + mapKey
-                + mapValues
-                + ");"
+            "if (cached is null || !ReferenceEquals(" + retentionNames.Source + ", current))"
         );
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(indent + 3, retentionNames.Source + " = current;");
+        code.AppendLineAt(
+            indent + 3,
+            "cached = " + retentionNames.Adapter + " = " + construction + ";"
+        );
+        code.AppendLineAt(indent + 2, "}");
+        code.AppendLineAt(indent + 2, "return cached;");
         code.AppendLineAt(indent + 1, "}");
         code.AppendLineAt(indent, "}");
     }
@@ -409,6 +506,9 @@ internal static class SparseReadOnlyViewEmitter
     )
     {
         var modelFieldName = HelperName(MemberNames(viewModel.Members), "__model");
+        // Value-type views keep the allocating read: a readonly-struct copy
+        // could not publish a cache entry, and boxing would defeat the
+        // reference comparison, so no retention fields are emitted here.
         code.AppendLineAt(
             2,
             "/// <summary>Read-only view over a live " + viewModel.Name + " instance.</summary>"
@@ -441,7 +541,8 @@ internal static class SparseReadOnlyViewEmitter
                 collectionName,
                 dictionaryName,
                 dictionaryEntriesName,
-                pocoViewNames
+                pocoViewNames,
+                null
             );
         }
 

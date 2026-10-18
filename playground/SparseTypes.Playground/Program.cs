@@ -14,5 +14,6 @@ builder.Services.AddScoped(sp => new HttpClient
 });
 builder.Services.AddFluentUIComponents();
 builder.Services.AddScoped<PlaygroundThemeState>();
+builder.Services.AddScoped<MonacoThemeCoordinator>();
 
 await builder.Build().RunAsync();

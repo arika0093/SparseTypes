@@ -330,9 +330,14 @@
         && _conflictRows.Any(static row => row.CanResolve)
         && _conflictRows.Where(static row => row.CanResolve).All(static row => row.UseSubmitted.HasValue);
 
-    private string EntityJson => PlaygroundEfPresentation.Try(() => _tracked is null ? "{}" : PlaygroundOrderJson.WriteEntity(_tracked));
-    private string BaselineJson => PlaygroundEfPresentation.Try(() => PlaygroundOrderJson.WriteDto(_baselineView));
-    private string DraftJson => PlaygroundEfPresentation.Try(() => PlaygroundOrderJson.WriteDto(_draft));
+    private string EntityJson => _preview.EntityJson;
+    private string BaselineJson => _preview.BaselineJson;
+    private string DraftJson => _preview.DraftJson;
+
+    // Lazy JSON panes with per-source invalidation: the entity pane refreshes
+    // on explicit save/reload events, the baseline pane when a persisted DTO
+    // is adopted, and the draft pane on every draft edit.
+    private Case5Preview _preview = null!;
 
     // The live draft instance owned by the session; the UI mutates it directly.
     private PlaygroundOrderDto _draft => _liveDraft;
@@ -524,6 +529,7 @@
                         .Include(static order => order.Note)
                         .Include(static order => order.Lines)
                         .Single(order => order.Id == orderId);
+                    _preview.InvalidateEntity();
                 }
                 finally
                 {
@@ -601,6 +607,11 @@
         _liveDraft = initial;
         _session = initial.CreateEditSession();
         _baselineView = initial.DeepClone();
+        _preview = new Case5Preview(
+            () => PlaygroundEfPresentation.Try(() => _tracked is null ? "{}" : PlaygroundOrderJson.WriteEntity(_tracked)),
+            () => PlaygroundEfPresentation.Try(() => PlaygroundOrderJson.WriteDto(_baselineView)),
+            () => PlaygroundEfPresentation.Try(() => PlaygroundOrderJson.WriteDto(_draft))
+        );
         _applied = false;
         _applyResult = null;
         _simulateConflict = false;
@@ -785,6 +796,7 @@
         _changesError = null;
         _applyError = null;
         _saveError = null;
+        _preview.InvalidateDraft();
         // Line Ids are read-only and new rows never set one, so duplicate keys
         // cannot be introduced from the UI.
         try
@@ -938,6 +950,7 @@
                 PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
                 _entityJsonBeforeApply = EntityJson;
                 applyResult = _mapper.ApplyWithResult(_db, _tracked, snapshot.Submitted);
+                _preview.InvalidateEntity();
                 _applyResult = applyResult;
                 _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
                 return Task.FromResult(applyResult);
@@ -951,6 +964,7 @@
 
                 _tracked.Revision++;
                 await _db.SaveChangesAsync();
+                _preview.InvalidateEntity();
                 _entityJsonAfterApply = EntityJson;
             },
             readBack: (_, _) =>
@@ -1011,6 +1025,7 @@
             .Include(static order => order.Note)
             .Include(static order => order.Lines)
             .SingleAsync(order => order.Id == orderId);
+        _preview.InvalidateEntity();
         var persisted = await ReadAuthoritativeDtoAsync(orderId);
         _mapper.AssignTemporaryKeys(_db, applyResult, submittedDraft, persisted);
         return persisted;
@@ -1049,6 +1064,7 @@
         _latestCustomerUpdate = null;
         _latestNotesUpdate = null;
         _baselineView = persisted;
+        _preview.InvalidateBaseline();
         _draftBaseRevision = _tracked?.Revision
             ?? throw new InvalidOperationException("The saved order is no longer tracked.");
         _conflictSubmittedHeader = "Later local draft";
@@ -1177,6 +1193,7 @@
             .Include(static order => order.Note)
             .Include(static order => order.Lines)
             .Single(order => order.Id == orderId);
+        _preview.InvalidateEntity();
         if (_mapper is null)
         {
             throw new InvalidOperationException("The EF Core mapper is not initialized.");
@@ -1188,6 +1205,7 @@
             // Reject the whole submission.
             _session = current.CreateEditSession(_liveDraft);
             _baselineView = current;
+            _preview.InvalidateBaseline();
             _draftBaseRevision = _tracked.Revision;
             ClearConflictResolution();
             _conflictSubmittedHeader = "Submitted changes";
@@ -1261,6 +1279,7 @@
                 PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, retryRevision);
                 _entityJsonBeforeApply = EntityJson;
                 retry = _mapper.ApplyWithResult(_db, _tracked, submittedRebase.Rebased);
+                _preview.InvalidateEntity();
                 _applyResult = retry;
                 _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
                 return Task.FromResult(retry);
@@ -1277,6 +1296,7 @@
                     _tracked.Revision++;
                     await _db.SaveChangesAsync();
                 }
+                _preview.InvalidateEntity();
                 _entityJsonAfterApply = EntityJson;
             },
             readBack: (_, _) =>
@@ -1408,6 +1428,7 @@
 
                     _entityJsonBeforeApply = EntityJson;
                     applyResult = _mapper.ApplyWithResult(_db, _tracked, resolved);
+                    _preview.InvalidateEntity();
                     _applyResult = applyResult;
                     _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
                     return Task.FromResult(applyResult);
@@ -1424,6 +1445,7 @@
                         _tracked.Revision++;
                         await _db.SaveChangesAsync();
                     }
+                    _preview.InvalidateEntity();
                     _entityJsonAfterApply = EntityJson;
                 },
                 readBack: (_, _) =>

@@ -100,31 +100,39 @@
     private string? _importError;
     private string? _importResult;
 
-    private PlaygroundSettings.Fragment LowerFragment => Lower.Build();
-    private PlaygroundSettings.Fragment HigherFragment => Higher.Build();
-    private PlaygroundSettings.Fragment MergedFragment => LowerFragment.Merge(HigherFragment);
-    private PlaygroundSettings.Patch TypedPatch => PatchState.Build();
-    private PlaygroundSettings.Fragment PatchedFragment => MergedFragment.Apply(TypedPatch);
+    // One memoized preview generation: fragments, models and presentations
+    // are shared across panes and repeated reads; any input change drops it.
+    private Case2Preview? _preview;
+    private Case2Preview Preview =>
+        _preview ??= new Case2Preview(
+            () => Lower.Build(),
+            () => Higher.Build(),
+            () => PatchState.Build(),
+            () => PlaygroundSnippets.PatchCSharp("patch", PatchState)
+        );
 
-    private string PatchCSharp => PlaygroundSnippets.PatchCSharp("patch", PatchState);
+    private string PatchCSharp => Preview.PatchCSharp;
 
-    private string MergedFragmentJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(MergedFragment));
-    private string MergedModelJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteModel(MergedFragment.ToModel()));
-    private string MergedModelCSharp => PlaygroundPageHelper.Try(() => PlaygroundSnippets.ModelCSharp("model", MergedFragment.ToModel()));
-    private string PatchedFragmentJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteFragment(PatchedFragment));
-    private string PatchedModelJson => PlaygroundPageHelper.Try(() => PlaygroundJson.WriteModel(PatchedFragment.ToModel()));
-    private string PatchedModelCSharp => PlaygroundPageHelper.Try(() => PlaygroundSnippets.ModelCSharp("model", PatchedFragment.ToModel()));
+    private string MergedFragmentJson => Preview.MergedFragmentJson;
+    private string MergedModelJson => Preview.MergedModelJson;
+    private string MergedModelCSharp => Preview.MergedModelCSharp;
+    private string PatchedFragmentJson => Preview.PatchedFragmentJson;
+    private string PatchedModelJson => Preview.PatchedModelJson;
+    private string PatchedModelCSharp => Preview.PatchedModelCSharp;
 
-    private string ChangeSetExportText => PlaygroundPageHelper.Try(() =>
+    private string ChangeSetExportText => Preview.ChangeSetExportText;
+
+    private void Refresh()
     {
-        var baseline = Optional<PlaygroundSettings.Fragment?>.Present(MergedFragment);
-        var changes = PlaygroundSettings.ChangeSet.FromPatch(baseline, TypedPatch);
-        return PlaygroundJson.WriteSettingsChangeSet(changes);
-    });
+        _preview = null;
+        StateHasChanged();
+    }
 
-    private void Refresh() => StateHasChanged();
-
-    private void ResetPatch() => PatchState = PatchEditState.Defaults();
+    private void ResetPatch()
+    {
+        PatchState = PatchEditState.Defaults();
+        _preview = null;
+    }
 
     private async Task OpenImport()
     {
@@ -163,7 +171,7 @@
                 throw new JsonException("The ChangePayload JSON deserialized to null.");
             }
 
-            var applied = MergedFragment.Apply(changes.ToPatch());
+            var applied = Preview.MergedFragment.Apply(changes.ToPatch());
             _importResult =
                 $"IsEmpty: {changes.IsEmpty}\nChangePayload JSON:\n{PlaygroundJson.WriteSettingsChangeSet(changes)}\nApplied fragment:\n{PlaygroundJson.WriteFragment(applied)}\nApplied model:\n{PlaygroundJson.WriteModel(applied.ToModel())}";
         }

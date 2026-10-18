@@ -556,6 +556,8 @@ internal static class SparseEditSessionEmitter
             conflictType,
             historyBinding
         );
+        // Session-owned observation fan-out trails every public member.
+        SparseEditSessionStateEmitter.AppendObservationCoordinatorMembers(code, patchDialect);
         if (
             config.DescriptorDialect is { } descriptorsDialect
             && config.EffectiveEmissionFeatures.EmitObservable

@@ -27,8 +27,12 @@ public class FieldStateWatcherBenchmarks
 {
     private const int EditCount = 32;
     private const int RowCount = 64;
+    private const int LargeRowCount = 2048;
     private const int FewWatchers = 4;
     private const int ManyWatchers = 64;
+    private const int TenWatchers = 10;
+    private const int HundredWatchers = 100;
+    private const int ThousandWatchers = 1000;
 
     private WatcherBenchRoot _prototype = null!;
 
@@ -87,14 +91,33 @@ public class FieldStateWatcherBenchmarks
                 .ToList(),
         };
 
+    private static WatcherBenchRoot FreshLargeRoot() =>
+        new()
+        {
+            Title = "large",
+            Count = 7,
+            Items = Enumerable
+                .Range(0, LargeRowCount)
+                .Select(index => new WatcherBenchItem { Id = "id-" + index, Name = "n-" + index })
+                .ToList(),
+        };
+
     private static List<IDisposable> CreateWatchers(
         WatcherBenchRoot.EditSession session,
         int watcherCount
     )
     {
         var watchers = new List<IDisposable>(watcherCount);
-        watchers.Add(session.ObserveField(WatcherBenchRoot.SparsePath.Title));
-        watchers.Add(session.ObserveField(WatcherBenchRoot.SparsePath.Count));
+        if (watcherCount >= 1)
+        {
+            watchers.Add(session.ObserveField(WatcherBenchRoot.SparsePath.Title));
+        }
+
+        if (watcherCount >= 2)
+        {
+            watchers.Add(session.ObserveField(WatcherBenchRoot.SparsePath.Count));
+        }
+
         for (var index = 0; index < watcherCount - 2; index++)
         {
             var key = "id-" + (index % RowCount);
@@ -181,6 +204,85 @@ public class FieldStateWatcherBenchmarks
             }
 
             return model.Items.Count + model.Items[0].Name.Length;
+        }
+        finally
+        {
+            DisposeWatchers(watchers);
+        }
+    }
+
+    // #318 matrix: one shared dispatch snapshot serves every watcher, so the
+    // marginal cost per watcher stays flat while the root grows.
+    [Benchmark(Description = "32 scalar edits with 1 watcher")]
+    public int ScalarEditsWithOneWatcher() => ScalarEditsWithWatchers(1);
+
+    [Benchmark(Description = "32 scalar edits with 10 watchers")]
+    public int ScalarEditsWithTenWatchers() => ScalarEditsWithWatchers(TenWatchers);
+
+    [Benchmark(Description = "32 scalar edits with 100 watchers")]
+    public int ScalarEditsWithHundredWatchers() => ScalarEditsWithWatchers(HundredWatchers);
+
+    [Benchmark(Description = "32 scalar edits with 1000 watchers")]
+    public int ScalarEditsWithThousandWatchers() => ScalarEditsWithWatchers(ThousandWatchers);
+
+    [Benchmark(Description = "32 scalar edits, 1000 watchers, 2048 rows")]
+    public int ScalarEditsLargeRootWithThousandWatchers()
+    {
+        var model = FreshLargeRoot();
+        var session = model.CreateEditSession();
+        var watchers = CreateWatchers(session, ThousandWatchers);
+        try
+        {
+            for (var index = 0; index < EditCount; index++)
+            {
+                session.Observable.Title = "edit-" + index;
+            }
+
+            return model.Title.Length + model.Items.Count;
+        }
+        finally
+        {
+            DisposeWatchers(watchers);
+        }
+    }
+
+    [Benchmark(Description = "One batch of 32 edits with 1000 watchers")]
+    public int BatchedEditsWithThousandWatchers()
+    {
+        var model = FreshRoot();
+        var session = model.CreateEditSession();
+        var watchers = CreateWatchers(session, ThousandWatchers);
+        try
+        {
+            session.BatchEdit(() =>
+            {
+                for (var index = 0; index < EditCount; index++)
+                {
+                    session.Observable.Title = "edit-" + index;
+                }
+            });
+
+            return model.Title.Length + model.Count;
+        }
+        finally
+        {
+            DisposeWatchers(watchers);
+        }
+    }
+
+    private int ScalarEditsWithWatchers(int watcherCount)
+    {
+        var model = FreshRoot();
+        var session = model.CreateEditSession();
+        var watchers = CreateWatchers(session, watcherCount);
+        try
+        {
+            for (var index = 0; index < EditCount; index++)
+            {
+                session.Observable.Title = "edit-" + index;
+            }
+
+            return model.Title.Length + model.Count;
         }
         finally
         {

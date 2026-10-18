@@ -198,10 +198,17 @@
     private FluentDialog? _submitDialog;
     private FluentDialog? _completionDialog;
 
-    private string CurrentJson => PlaygroundJson.WriteMaskedSettingsSummary(_model);
-    private string ChangePayloadJson => PlaygroundPageHelper.Try(() =>
-        PlaygroundJson.WriteSettingsChangeSet(_session.CreateChangeSet())
-    );
+    private string CurrentJson => Preview.CurrentJson;
+    private string ChangePayloadJson => Preview.ChangePayloadJson;
+
+    // One memoized preview generation shared across panes and repeated
+    // reads; every session notification drops it.
+    private Case4Preview? _preview;
+    private Case4Preview Preview =>
+        _preview ??= new Case4Preview(
+            () => PlaygroundJson.WriteMaskedSettingsSummary(_model),
+            () => _session.CreateChangeSet()
+        );
 
     protected override void OnInitialized()
     {
@@ -211,8 +218,12 @@
         // The subscription below only appends changelog entries. Refresh is
         // owned by the edit root, which re-renders on session notifications.
         _session.TransitionObserved += OnTransitionObserved;
+        _session.PropertyChanged += InvalidatePreview;
         CaptureBaseline();
     }
+
+    private void InvalidatePreview(object? sender, System.ComponentModel.PropertyChangedEventArgs e) =>
+        _preview = null;
 
     private void OnHistoryStateChanged() => _ = InvokeAsync(StateHasChanged);
 
@@ -411,6 +422,7 @@
         if (_session is not null)
         {
             _session.TransitionObserved -= OnTransitionObserved;
+            _session.PropertyChanged -= InvalidatePreview;
         }
 
         if (_history is not null)

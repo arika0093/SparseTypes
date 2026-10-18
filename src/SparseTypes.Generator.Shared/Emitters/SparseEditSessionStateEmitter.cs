@@ -162,17 +162,41 @@ internal static class SparseEditSessionStateEmitter
         // The concrete path struct keeps overload resolution unambiguous
         // against the model-agnostic overload, mirroring FieldState.
         var typedPath = SparseFragmentPatchEmitter.GetTypedPathType(dialect, modelType, "TValue");
-        AppendObserveOverload(code, states, typedPath, "TValue", true, dialect);
-        AppendObserveOverload(code, states, pathType, "object?", false, dialect);
+        // With a bound query view, one session-owned coordinator shares a
+        // single captured snapshot across every watcher in a dispatch
+        // generation; without it each watcher keeps its live query.
+        var coordinated = states.HasQueryView;
+        AppendObserveOverload(
+            code,
+            modelType,
+            states,
+            typedPath,
+            "TValue",
+            true,
+            dialect,
+            coordinated
+        );
+        AppendObserveOverload(
+            code,
+            modelType,
+            states,
+            pathType,
+            "object?",
+            false,
+            dialect,
+            coordinated
+        );
     }
 
     private static void AppendObserveOverload(
         SharedIndentedBuilder code,
+        string modelType,
         SparseStateContracts states,
         string pathParameterType,
         string valueType,
         bool typed,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        bool coordinated
     )
     {
         var kind = typed ? "a typed path" : "a model-agnostic path";
@@ -187,7 +211,13 @@ internal static class SparseEditSessionStateEmitter
         );
         code.AppendLineAt(
             2,
-            "/// <remarks>Opt-in live subscription: refreshes on every session state notification (observable edits, batches, in-place apply, revert, both baseline accepts, reload, reconcile) and raises <see cref=\"global::System.ComponentModel.INotifyPropertyChanged.PropertyChanged\"/> only on effective changes, synchronously with no UI thread marshaling. <c>IsChanged</c> is the semantic baseline diff, not a visited flag. Dispose the watcher to unsubscribe. Key segments keep identity across moves; index segments stay positional.</remarks>"
+            "/// <remarks>Opt-in live subscription: refreshes on every session state notification (observable edits, batches, in-place apply, revert, both baseline accepts, reload, reconcile) and raises <see cref=\"global::System.ComponentModel.INotifyPropertyChanged.PropertyChanged\"/> only on effective changes, synchronously with no UI thread marshaling. <c>IsChanged</c> is the semantic baseline diff, not a visited flag. Dispose the watcher to unsubscribe. Key segments keep identity across moves; index segments stay positional."
+                + (
+                    coordinated
+                        ? " One invalidation captures a single state snapshot shared by every watcher in that dispatch; explicit <c>Refresh</c> calls always re-read the live model."
+                        : string.Empty
+                )
+                + "</remarks>"
         );
         code.AppendLineAt(2, "/// <param name=\"path\">The path to observe.</param>");
         if (typed)
@@ -200,7 +230,17 @@ internal static class SparseEditSessionStateEmitter
 
         code.AppendLineAt(2, "/// <returns>A disposable watcher bound to this session.</returns>");
         code.AppendLineAt(2, "public " + watcherType + " ObserveField" + typeParameters);
-        AppendObserveBody(code, pathParameterType, states, valueType, typed, dialect, true);
+        AppendObserveBody(
+            code,
+            modelType,
+            pathParameterType,
+            states,
+            valueType,
+            typed,
+            dialect,
+            true,
+            coordinated
+        );
         code.AppendLineAt(
             2,
             "/// <summary>Observes the semantic field state at "
@@ -222,17 +262,29 @@ internal static class SparseEditSessionStateEmitter
 
         code.AppendLineAt(2, "/// <returns>A disposable watcher bound to this session.</returns>");
         code.AppendLineAt(2, "public " + watcherType + " WatchField" + typeParameters);
-        AppendObserveBody(code, pathParameterType, states, valueType, typed, dialect, false);
+        AppendObserveBody(
+            code,
+            modelType,
+            pathParameterType,
+            states,
+            valueType,
+            typed,
+            dialect,
+            false,
+            coordinated
+        );
     }
 
     private static void AppendObserveBody(
         SharedIndentedBuilder code,
+        string modelType,
         string pathParameterType,
         SparseStateContracts states,
         string valueType,
         bool typed,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        bool primary
+        bool primary,
+        bool coordinated
     )
     {
         code.AppendLineAt(2, "(" + pathParameterType + " path)");
@@ -247,14 +299,37 @@ internal static class SparseEditSessionStateEmitter
 
         if (primary)
         {
-            code.AppendLineAt(
-                3,
-                "var hooks = new "
-                    + states.ObservedFieldHooksType
-                    + "<"
-                    + valueType
-                    + "> { Query = () => FieldState(path), Subscribe = handler => PropertyChanged += handler, Unsubscribe = handler => PropertyChanged -= handler };"
-            );
+            if (coordinated)
+            {
+                // The dispatch query reads the generation snapshot while one
+                // is bound and falls back to the live model otherwise; the
+                // live query serves construction and explicit refreshes.
+                var snapshotQuery = typed
+                    ? "view.FieldState<" + modelType + ", " + valueType + ">(path)"
+                    : "view.FieldState(path)";
+                code.AppendLineAt(
+                    3,
+                    "var hooks = new "
+                        + states.ObservedFieldHooksType
+                        + "<"
+                        + valueType
+                        + "> { Query = () => FieldState(path), DispatchQuery = () => { var view = __observationView; return view is null ? FieldState(path) : "
+                        + snapshotQuery
+                        + "; }, Subscribe = handler => __ObservationSubscribe(handler), Unsubscribe = handler => __ObservationUnsubscribe(handler) };"
+                );
+            }
+            else
+            {
+                code.AppendLineAt(
+                    3,
+                    "var hooks = new "
+                        + states.ObservedFieldHooksType
+                        + "<"
+                        + valueType
+                        + "> { Query = () => FieldState(path), Subscribe = handler => PropertyChanged += handler, Unsubscribe = handler => PropertyChanged -= handler };"
+                );
+            }
+
             code.AppendLineAt(
                 3,
                 "return new " + states.ObservedFieldType + "<" + valueType + ">(path, hooks);"
@@ -266,6 +341,121 @@ internal static class SparseEditSessionStateEmitter
             code.AppendLineAt(3, "return ObserveField" + typeArguments + "(path);");
         }
 
+        code.AppendLineAt(2, "}");
+    }
+
+    // Session-owned observation fan-out: the first watcher subscribes once to
+    // the session invalidation signal, each dispatch captures one reusable
+    // snapshot, and the last removal releases everything. Reentrant edits
+    // during delivery schedule a fresh generation instead of recursing.
+    // Private state trails every public session member to keep the
+    // public-first generated member ordering; session emitters call this in
+    // their private tail.
+    internal static void AppendObservationCoordinatorMembers(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+    )
+    {
+        if (dialect.StateContracts is not { HasObservedField: true, HasQueryView: true } states)
+        {
+            return;
+        }
+
+        AppendObservationCoordinator(code, states);
+    }
+
+    private static void AppendObservationCoordinator(
+        SharedIndentedBuilder code,
+        SparseStateContracts states
+    )
+    {
+        var handlerList =
+            "global::System.Collections.Generic.List<global::System.ComponentModel.PropertyChangedEventHandler>";
+        code.AppendLineAt(2, "private " + handlerList + "? __observationHandlers;");
+        code.AppendLineAt(2, "private " + states.QueryViewType + "? __observationView;");
+        code.AppendLineAt(2, "private bool __observationDispatching;");
+        code.AppendLineAt(2, "private bool __observationPending;");
+        code.AppendLineAt(
+            2,
+            "private void __ObservationSubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)"
+        );
+        code.AppendLineAt(2, "{");
+        code.AppendLineAt(3, "__observationHandlers ??= new " + handlerList + "();");
+        code.AppendLineAt(3, "if (__observationHandlers.Count == 0)");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "PropertyChanged += __ObservationInvalidated;");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(3, "__observationHandlers.Add(handler);");
+        code.AppendLineAt(2, "}");
+        code.AppendLineAt(
+            2,
+            "private void __ObservationUnsubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)"
+        );
+        code.AppendLineAt(2, "{");
+        code.AppendLineAt(3, "if (__observationHandlers is null)");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "return;");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(3, "__observationHandlers.Remove(handler);");
+        code.AppendLineAt(3, "if (__observationHandlers.Count == 0)");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "PropertyChanged -= __ObservationInvalidated;");
+        code.AppendLineAt(4, "__observationHandlers = null;");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(2, "}");
+        code.AppendLineAt(
+            2,
+            "private void __ObservationInvalidated(object? sender, global::System.ComponentModel.PropertyChangedEventArgs e)"
+        );
+        code.AppendLineAt(2, "{");
+        code.AppendLineAt(3, "if (__observationDispatching)");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "__observationPending = true;");
+        code.AppendLineAt(4, "return;");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(3, "__observationDispatching = true;");
+        code.AppendLineAt(3, "try");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "do");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(5, "__observationPending = false;");
+        code.AppendLineAt(5, "var handlers = __observationHandlers;");
+        code.AppendLineAt(5, "if (handlers is null || handlers.Count == 0)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "break;");
+        code.AppendLineAt(5, "}");
+        // Transient keyed states skip one generation without retaining the
+        // snapshot; the next notification captures fresh.
+        code.AppendLineAt(5, states.QueryViewType + " view;");
+        code.AppendLineAt(5, "try");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "view = CaptureStateSnapshot();");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "catch (global::System.InvalidOperationException)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "break;");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "__observationView = view;");
+        code.AppendLineAt(5, "try");
+        code.AppendLineAt(5, "{");
+        // A fixed copy keeps subscribe/dispose during delivery safe; a
+        // watcher added mid-dispatch is already live and joins the next
+        // generation.
+        code.AppendLineAt(6, "foreach (var handler in handlers.ToArray())");
+        code.AppendLineAt(6, "{");
+        code.AppendLineAt(7, "handler(sender, e);");
+        code.AppendLineAt(6, "}");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "finally");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "__observationView = null;");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(4, "} while (__observationPending);");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(3, "finally");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "__observationDispatching = false;");
+        code.AppendLineAt(4, "}");
         code.AppendLineAt(2, "}");
     }
 

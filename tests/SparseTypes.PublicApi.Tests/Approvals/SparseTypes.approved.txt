@@ -889,6 +889,7 @@ namespace SparseTypes
     public sealed class SparseObservedFieldHooks<T>
     {
         public SparseObservedFieldHooks() { }
+        public System.Func<SparseTypes.SparseFieldState<T>>? DispatchQuery { get; set; }
         public System.Func<SparseTypes.SparseFieldState<T>>? Query { get; set; }
         public System.Action<System.ComponentModel.PropertyChangedEventHandler>? Subscribe { get; set; }
         public System.Action<System.ComponentModel.PropertyChangedEventHandler>? Unsubscribe { get; set; }

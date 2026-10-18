@@ -1,7 +1,7 @@
 @using BlazorMonaco.Editor
 @using Microsoft.JSInterop
 @using SparseTypes.Playground.Models
-@inject PlaygroundThemeState ThemeState
+@inject MonacoThemeCoordinator ThemeCoordinator
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 @implements IDisposable
@@ -41,13 +41,11 @@
 
     private string EditorId { get; } = $"monaco-diff-{Guid.NewGuid():N}";
 
-    private string CurrentTheme => ThemeState.IsDark ? "pg-dark" : "pg-light";
+    private string CurrentTheme => ThemeCoordinator.CurrentTheme;
 
     private string MonacoLanguage => Language == "csharp" ? "playground-csharp" : Language;
 
     private string WrapperStyle => Fill ? "height: 100%; min-height: 220px;" : $"height: {Height};";
-
-    protected override void OnInitialized() => ThemeState.Changed += OnThemeChanged;
 
     private StandaloneDiffEditorConstructionOptions GetOptions(StandaloneDiffEditor editor)
     {
@@ -102,6 +100,7 @@
             _lastOriginal = Original;
             _lastModified = Modified;
             _initialized = true;
+            ThemeCoordinator.NotifyEditorReady();
         }
         catch (Exception exception) when (_disposed && IsTeardownNoise(exception))
         {
@@ -253,52 +252,14 @@
         }
     }
 
-    private void OnThemeChanged()
-    {
-        if (_disposed || !_initialized || _editor is null)
-        {
-            return;
-        }
-
-        try
-        {
-            _ = InvokeAsync(ApplyThemeAsync);
-        }
-        catch (Exception exception) when (IsTeardownNoise(exception))
-        {
-            // The renderer is gone; nothing left to theme.
-        }
-    }
-
-    private async Task ApplyThemeAsync()
-    {
-        if (_disposed || _editor is null)
-        {
-            return;
-        }
-
-        try
-        {
-            await JS.InvokeVoidAsync("blazorMonaco.editor.setTheme", CurrentTheme);
-        }
-        catch (Exception exception)
-            when (exception is JSDisconnectedException
-                || (_disposed && IsTeardownNoise(exception)))
-        {
-            // Teardown raced the theme update.
-        }
-    }
-
     public async ValueTask DisposeAsync()
     {
-        ThemeState.Changed -= OnThemeChanged;
         _disposed = true;
         await DetachAndDisposeOwnedModelsAsync(tolerateDisconnect: true);
     }
 
     public void Dispose()
     {
-        ThemeState.Changed -= OnThemeChanged;
         _disposed = true;
     }
 }
