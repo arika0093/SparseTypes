@@ -442,21 +442,34 @@ internal static class SparseKeyedSequenceComposeEmitter
         {
             code.AppendLineAt(4, "if (next.__order is not null && next.__order.Count > 0)");
             code.AppendLineAt(4, "{");
+            // The removal set and the order-membership set both use the
+            // configured key comparer, which is EqualityComparer<T>.Default at
+            // every construction site today; List.Contains and
+            // Enumerable.Contains over the same comparer therefore agree with
+            // set membership, and the sets only replace linear scans. The
+            // filtered list keeps every surviving entry (duplicates included);
+            // the set only gates later additions.
             code.AppendLineAt(
                 5,
-                "var __nextOrder = new global::System.Collections.Generic.List<"
+                "var __nextOrder = new global::System.Collections.Generic.List<" + keyType + ">();"
+            );
+            code.AppendLineAt(
+                5,
+                "var __nextOrderSet = new global::System.Collections.Generic.HashSet<"
                     + keyType
-                    + ">(); foreach (var k in next.__order) if (!netRemoved.Contains(k)) __nextOrder.Add(k);"
+                    + ">("
+                    + comparer
+                    + ");"
+            );
+            code.AppendLineAt(
+                5,
+                "foreach (var k in next.__order) if (!__netRemovedSet.Contains(k)) { __nextOrder.Add(k); __nextOrderSet.Add(k); }"
             );
             code.AppendLineAt(
                 5,
                 "if (next.__added is not null) foreach (var item in next.__added) { var __ak = "
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
-                    // Static Enumerable call: generated code cannot assume
-                    // "using System.Linq".
-                    + "(item); if (!global::System.Linq.Enumerable.Contains(__nextOrder, __ak, "
-                    + comparer
-                    + ")) __nextOrder.Add(__ak); }"
+                    + "(item); if (__nextOrderSet.Add(__ak)) __nextOrder.Add(__ak); }"
             );
             code.AppendLineAt(5, "if (__nextOrder.Count > 0) result.__order = __nextOrder;");
             code.AppendLineAt(4, "}");

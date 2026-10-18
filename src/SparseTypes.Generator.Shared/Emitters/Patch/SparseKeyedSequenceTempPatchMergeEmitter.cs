@@ -101,6 +101,27 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
     internal static void AppendTempRemovalMerge(SharedIndentedBuilder code, int id)
     {
         // Net temporary removals: removed by either side, minus re-added later.
+        // The ordered list stays authoritative; the companion set only replaces
+        // repeated linear deduplication scans. Guid equality is the default in
+        // both representations, so membership semantics are unchanged.
+        code.AppendLineAt(
+            4,
+            "global::System.Collections.Generic.HashSet<global::System.Guid>? __firstRemovedTempSet"
+                + id
+                + " = (__removedTemp is null || __removedTemp.Count == 0) ? null : new global::System.Collections.Generic.HashSet<global::System.Guid>(__removedTemp);"
+        );
+        code.AppendLineAt(
+            4,
+            "global::System.Collections.Generic.HashSet<global::System.Guid>? __nextRemovedTempSet"
+                + id
+                + " = (next.__removedTemp is null || next.__removedTemp.Count == 0) ? null : new global::System.Collections.Generic.HashSet<global::System.Guid>(next.__removedTemp);"
+        );
+        code.AppendLineAt(
+            4,
+            "var __netRemovedTempSet"
+                + id
+                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
+        );
         code.AppendLineAt(
             4,
             "var netRemovedTemp"
@@ -111,9 +132,9 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
             4,
             "if (__removedTemp is not null) foreach (var __t in __removedTemp) if (!nextTempAdded"
                 + id
-                + ".ContainsKey(__t) && !netRemovedTemp"
+                + ".ContainsKey(__t) && __netRemovedTempSet"
                 + id
-                + ".Contains(__t)) netRemovedTemp"
+                + ".Add(__t)) netRemovedTemp"
                 + id
                 + ".Add(__t);"
         );
@@ -121,9 +142,13 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
             4,
             "if (next.__removedTemp is not null) foreach (var __t in next.__removedTemp) if ((!thisTempAdded"
                 + id
-                + ".ContainsKey(__t) || ((__removedTemp is not null) && __removedTemp.Contains(__t))) && !netRemovedTemp"
+                + ".ContainsKey(__t) || (__firstRemovedTempSet"
                 + id
-                + ".Contains(__t)) netRemovedTemp"
+                + " is not null && __firstRemovedTempSet"
+                + id
+                + ".Contains(__t))) && __netRemovedTempSet"
+                + id
+                + ".Add(__t)) netRemovedTemp"
                 + id
                 + ".Add(__t);"
         );
@@ -150,7 +175,11 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
-            "if (next.__removedTemp is not null && next.__removedTemp.Contains(__tt)) continue;"
+            "if (__nextRemovedTempSet"
+                + id
+                + " is not null && __nextRemovedTempSet"
+                + id
+                + ".Contains(__tt)) continue;"
         );
         code.AppendLineAt(5, "var __titem = thisTempAdded" + id + "[__tt];");
         if (hasPatch)
@@ -209,7 +238,11 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
-            "if (next.__removedTemp is not null && next.__removedTemp.Contains(__tkv.Key)) continue;"
+            "if (__nextRemovedTempSet"
+                + id
+                + " is not null && __nextRemovedTempSet"
+                + id
+                + ".Contains(__tkv.Key)) continue;"
         );
         code.AppendLineAt(5, "if (nextTempAdded" + id + ".ContainsKey(__tkv.Key)) continue;");
         if (hasPatch)
@@ -305,6 +338,11 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         var sentinel = member.Collection.UnassignedKeyExpression ?? "default!";
+        // Assigned-key removal filtering reuses the composition's
+        // __netRemovedSet (configured comparer, currently always
+        // EqualityComparer<T>.Default, matching the previous List.Contains).
+        // __assignedSeen only gates later additions; copied order entries keep
+        // their exact list contents.
         code.AppendLineAt(4, "if (next.__order is not null && next.__order.Count > 0)");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
@@ -319,6 +357,14 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
             5,
             "var __slotted = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
+        code.AppendLineAt(
+            5,
+            "var __assignedSeen = new global::System.Collections.Generic.HashSet<"
+                + keyType
+                + ">("
+                + comparer
+                + ");"
+        );
         code.AppendLineAt(5, "for (var __oi = 0; __oi < next.__order.Count; __oi++)");
         code.AppendLineAt(5, "{");
         code.AppendLineAt(5, "var __ok = next.__order[__oi];");
@@ -330,13 +376,13 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
             5,
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__ok")
-                + ") { if (__ot.HasValue && netRemovedTemp"
+                + ") { if (__ot.HasValue && __netRemovedTempSet"
                 + id
                 + ".Contains(__ot.Value)) continue; __nextOrder.Add(__ok); __nextOrderTemp.Add(__ot); if (__ot.HasValue) __slotted.Add(__ot.Value); }"
         );
         code.AppendLineAt(
             5,
-            "else { if (netRemoved.Contains(__ok)) continue; __nextOrder.Add(__ok); __nextOrderTemp.Add(null); }"
+            "else { if (__netRemovedSet.Contains(__ok)) continue; __nextOrder.Add(__ok); __nextOrderTemp.Add(null); __assignedSeen.Add(__ok); }"
         );
         code.AppendLineAt(5, "}");
         code.AppendLineAt(5, "if (next.__added is not null) foreach (var __item in next.__added)");
@@ -354,9 +400,7 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
         );
         code.AppendLineAt(
             5,
-            "else if (!global::System.Linq.Enumerable.Contains(__nextOrder, __ak, "
-                + comparer
-                + ")) { __nextOrder.Add(__ak); __nextOrderTemp.Add(null); }"
+            "else if (__assignedSeen.Add(__ak)) { __nextOrder.Add(__ak); __nextOrderTemp.Add(null); }"
         );
         code.AppendLineAt(5, "}");
         code.AppendLineAt(
@@ -397,13 +441,13 @@ internal static class SparseKeyedSequenceTempPatchMergeEmitter
             5,
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__ok")
-                + ") { if (__ot.HasValue && netRemovedTemp"
+                + ") { if (__ot.HasValue && __netRemovedTempSet"
                 + id
                 + ".Contains(__ot.Value)) continue; __thisOrder.Add(__ok); __thisOrderTemp.Add(__ot); if (__ot.HasValue) __slotted.Add(__ot.Value); }"
         );
         code.AppendLineAt(
             5,
-            "else { if (netRemoved.Contains(__ok)) continue; __thisOrder.Add(__ok); __thisOrderTemp.Add(null); }"
+            "else { if (__netRemovedSet.Contains(__ok)) continue; __thisOrder.Add(__ok); __thisOrderTemp.Add(null); }"
         );
         code.AppendLineAt(5, "}");
         code.AppendLineAt(5, "if (next.__added is not null) foreach (var __item in next.__added)");
