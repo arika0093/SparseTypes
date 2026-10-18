@@ -1,105 +1,8 @@
 using System.ComponentModel;
-using System.Linq.Expressions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor;
-
-/// <summary>A stable-identity row supplied to <see cref="SparseCollection{TModel, TElement}"/>.</summary>
-/// <typeparam name="TModel">The root model type.</typeparam>
-/// <typeparam name="TElement">The collection element model type.</typeparam>
-public sealed class SparseCollectionRow<TModel, TElement>
-    where TModel : class
-    where TElement : class
-{
-    internal delegate bool RemoveOperation(
-        SparseCollectionRow<TModel, TElement> row,
-        out SparseCollectionEditError error
-    );
-    internal delegate bool MoveOperation(
-        SparseCollectionRow<TModel, TElement> row,
-        int newIndex,
-        out SparseCollectionEditError error
-    );
-
-    private readonly RemoveOperation _remove;
-    private readonly MoveOperation _move;
-
-    internal SparseCollectionRow(
-        TElement item,
-        int index,
-        Guid uiKey,
-        SparsePath<TModel, TElement> path,
-        SparseCollectionItemState? itemState,
-        string? stateQueryError,
-        RemoveOperation remove,
-        MoveOperation move
-    )
-    {
-        Item = item;
-        Index = index;
-        UiKey = uiKey;
-        Path = path;
-        ItemState = itemState;
-        StateQueryError = stateQueryError;
-        _remove = remove;
-        _move = move;
-    }
-
-    /// <summary>Gets the live collection element model.</summary>
-    public TElement Item { get; }
-
-    /// <summary>Gets the row's current index when the collection was rendered.</summary>
-    public int Index { get; }
-
-    /// <summary>Gets the UI identity, which remains stable for a keyed row across model replacement.</summary>
-    public Guid UiKey { get; }
-
-    /// <summary>Gets the typed, root-preserving path to this row.</summary>
-    public SparsePath<TModel, TElement> Path { get; }
-
-    /// <summary>Gets the row's semantic state snapshot, when the collection supports item state.</summary>
-    /// <remarks>Item state is available for keyed collections; unkeyed collections expose positional paths only.</remarks>
-    public SparseCollectionItemState? ItemState { get; }
-
-    /// <summary>Gets why the item state snapshot was unavailable, or null when it was available.</summary>
-    public string? StateQueryError { get; }
-
-    /// <summary>Gets the item state snapshot or throws when the collection cannot provide one.</summary>
-    /// <exception cref="InvalidOperationException">The item state query was unavailable.</exception>
-    public SparseCollectionItemState RequireItemState() =>
-        ItemState
-        ?? throw new InvalidOperationException(
-            StateQueryError ?? "The collection item state is unavailable."
-        );
-
-    /// <summary>Navigates from this row to a child member with a root-preserving typed path.</summary>
-    /// <param name="selector">A member-access chain from the row model.</param>
-    /// <typeparam name="TValue">The addressed member type.</typeparam>
-    /// <returns>A typed path usable by <see cref="SparseField{TModel, TValue}"/>.</returns>
-    public SparsePath<TModel, TValue> Select<TValue>(Expression<Func<TElement, TValue>> selector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        return new SparsePath<TModel, TValue>(
-            SparseFieldContext<TModel, object?>.AppendSelector(
-                Path.Path,
-                typeof(TElement),
-                selector,
-                nameof(selector)
-            )
-        );
-    }
-
-    /// <summary>Removes this row if the same model instance is still present.</summary>
-    public bool TryRemove(out SparseCollectionEditError error) => _remove(this, out error);
-
-    /// <summary>Moves this row to the requested index if it is still present.</summary>
-    /// <param name="newIndex">The target index.</param>
-    /// <param name="error">The failure reason, or <see cref="SparseCollectionEditError.None"/> on success.</param>
-    /// <returns>True when the row moved.</returns>
-    public bool TryMoveTo(int newIndex, out SparseCollectionEditError error) =>
-        _move(this, newIndex, out error);
-}
 
 /// <summary>Enumerates a session collection and assigns stable Blazor keys to its typed row template.</summary>
 /// <typeparam name="TModel">The root edit-session model type.</typeparam>
@@ -141,6 +44,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
     private long _parameterSetVersion;
     private int _refreshQueued;
     private SparseCollectionState? _collectionState;
+    private IReadOnlyList<TElement>? _removedItems;
 
     /// <summary>Gets the current typed rows, refreshed for each render.</summary>
     public IReadOnlyList<SparseCollectionRow<TModel, TElement>> Rows { get; private set; } = [];
@@ -149,6 +53,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
     public SparseCollectionState? CollectionState => _collectionState;
 
     /// <summary>Gets the removed entries from the latest keyed collection state.</summary>
+    /// <remarks>Repeated reads of one retained snapshot share a single cached projection.</remarks>
     /// <exception cref="InvalidOperationException">A removed entry does not contain its typed baseline value.</exception>
     public IReadOnlyList<TElement> RemovedItems
     {
@@ -159,7 +64,12 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
                 return [];
             }
 
-            var removed = new List<TElement>();
+            if (_removedItems is { } cached)
+            {
+                return cached;
+            }
+
+            List<TElement>? removed = null;
             foreach (var change in state.ChangedItems)
             {
                 if (!change.IsRemoved)
@@ -174,10 +84,17 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
                     );
                 }
 
+                removed ??= [];
                 removed.Add(item);
             }
 
-            return removed;
+            // Publish only a completed projection so a malformed entry never
+            // poisons the cache. The wrapper keeps callers from mutating it.
+            IReadOnlyList<TElement> result = removed is null
+                ? Array.Empty<TElement>()
+                : removed.AsReadOnly();
+            _removedItems = result;
+            return result;
         }
     }
 
@@ -372,6 +289,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         {
             Rows = [];
             QueryError = "The collection editor is unavailable.";
+            SetCollectionState(null);
             return;
         }
 
@@ -399,9 +317,27 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             stateQueryError = exception.Message;
         }
 
-        _collectionState = hasCollectionState ? collectionState : null;
+        SetCollectionState(hasCollectionState ? collectionState : null);
 
         var bindingVersion = Interlocked.Read(ref _bindingVersion);
+        // One shared delegate pair per build: every row resolves its own index
+        // from the row argument, so no row-specific capture is needed. The
+        // captured version stays per-build so rows retained across rebinding
+        // still fail with UnknownCollection.
+        SparseCollectionRow<TModel, TElement>.RemoveOperation? remove = null;
+        SparseCollectionRow<TModel, TElement>.MoveOperation? move = null;
+        if (count > 0)
+        {
+            remove = (
+                SparseCollectionRow<TModel, TElement> row,
+                out SparseCollectionEditError removeError
+            ) => RemoveRow(row, bindingVersion, out removeError);
+            move = (
+                SparseCollectionRow<TModel, TElement> row,
+                int newIndex,
+                out SparseCollectionEditError moveError
+            ) => MoveRow(row, newIndex, bindingVersion, out moveError);
+        }
         for (var index = 0; index < count; index++)
         {
             if (!editor.TryGetAt(index, out var item, out var error) || item is null)
@@ -459,15 +395,8 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
                     new SparsePath<TModel, TElement>(_path.Append(identitySegment)),
                     itemState,
                     rowStateError,
-                    (
-                        SparseCollectionRow<TModel, TElement> row,
-                        out SparseCollectionEditError error
-                    ) => RemoveRow(row, bindingVersion, out error),
-                    (
-                        SparseCollectionRow<TModel, TElement> row,
-                        int newIndex,
-                        out SparseCollectionEditError error
-                    ) => MoveRow(row, newIndex, bindingVersion, out error)
+                    remove!,
+                    move!
                 )
             );
         }
@@ -734,6 +663,12 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
     }
 
     private void InvalidateRows() => Interlocked.Increment(ref _rowsVersion);
+
+    private void SetCollectionState(SparseCollectionState? state)
+    {
+        _collectionState = state;
+        _removedItems = null;
+    }
 
     private void Unsubscribe()
     {
