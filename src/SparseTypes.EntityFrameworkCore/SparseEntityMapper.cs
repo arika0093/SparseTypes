@@ -15,20 +15,24 @@ public sealed class SparseEntityMapper<TEntity, TDto>
     where TEntity : class
     where TDto : class
 {
-    private readonly Lazy<(
-        Expression<Func<TEntity, TDto>> Expression,
-        Func<TEntity, TDto> Compiled
-    )> _projection;
+    // Expression construction and delegate compilation are lazy separately:
+    // expression-only consumers never pay for compilation or retain it.
+    private readonly Lazy<Expression<Func<TEntity, TDto>>> _projectionExpression;
+    private readonly Lazy<Func<TEntity, TDto>> _projectionCompiled;
 
     private SparseEntityMapper(IModel model, EntityPlanBase plan, string mapper)
     {
         Model = model;
         Plan = plan;
         MapperName = mapper;
-        _projection = new Lazy<(
-            Expression<Func<TEntity, TDto>> Expression,
-            Func<TEntity, TDto> Compiled
-        )>(CreateProjection, LazyThreadSafetyMode.ExecutionAndPublication);
+        _projectionExpression = new Lazy<Expression<Func<TEntity, TDto>>>(
+            CreateProjection,
+            LazyThreadSafetyMode.ExecutionAndPublication
+        );
+        _projectionCompiled = new Lazy<Func<TEntity, TDto>>(
+            CompileProjection,
+            LazyThreadSafetyMode.ExecutionAndPublication
+        );
     }
 
     internal IModel Model { get; }
@@ -40,8 +44,11 @@ public sealed class SparseEntityMapper<TEntity, TDto>
     /// <summary>
     /// Gets the expression that projects an entity into the mapped DTO.
     /// </summary>
-    /// <remarks>Read-side validation is deferred until this property is first accessed.</remarks>
-    public Expression<Func<TEntity, TDto>> Projection => _projection.Value.Expression;
+    /// <remarks>
+    /// Read-side validation is deferred until this property is first accessed.
+    /// No in-memory projection delegate is compiled for expression-only usage.
+    /// </remarks>
+    public Expression<Func<TEntity, TDto>> Projection => _projectionExpression.Value;
 
     /// <summary>
     /// Projects an entity in memory into the mapped DTO.
@@ -52,7 +59,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
     public TDto ToDto(TEntity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
-        return _projection.Value.Compiled(entity);
+        return _projectionCompiled.Value(entity);
     }
 
     /// <summary>
@@ -263,10 +270,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
         );
     }
 
-    private (
-        Expression<Func<TEntity, TDto>> Expression,
-        Func<TEntity, TDto> Compiled
-    ) CreateProjection()
+    private Expression<Func<TEntity, TDto>> CreateProjection()
     {
         var entity = Expression.Parameter(typeof(TEntity), "entity");
         var context = new ReadProjectionBuildContext();
@@ -276,9 +280,10 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             throw ScopeToMapper(SparseEntityMappingException.FromErrors(context.Errors));
         }
 
-        var expression = Expression.Lambda<Func<TEntity, TDto>>(body, entity);
-        return (expression, expression.Compile());
+        return Expression.Lambda<Func<TEntity, TDto>>(body, entity);
     }
+
+    private Func<TEntity, TDto> CompileProjection() => _projectionExpression.Value.Compile();
 
     private static SparseEntityMapper<TEntity, TDto> Build(
         IEntityModelMapping<TEntity, TDto> mapping,

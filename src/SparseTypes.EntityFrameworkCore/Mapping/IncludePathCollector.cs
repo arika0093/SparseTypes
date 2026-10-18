@@ -420,14 +420,35 @@ internal sealed class IncludePathCollector
         {
             var parameter = Selector.Parameters[0];
             var body = StripConvert(Selector.Body);
-            Expression? predicate = null;
+            // Pairwise combination keeps the OR spine logarithmic: providers
+            // walk the expression recursively, and a deep chain burdens every
+            // translation visitor. Leaf order is preserved in-order.
+            var leaves = new List<Expression>(_keys.Count);
             foreach (var key in _keys)
             {
-                var equality = Expression.Equal(body, CreateConstant(key, KeyType));
-                predicate = predicate is null ? equality : Expression.OrElse(predicate, equality);
+                leaves.Add(Expression.Equal(body, CreateConstant(key, KeyType)));
             }
 
-            return Expression.Lambda(predicate!, parameter);
+            while (leaves.Count > 1)
+            {
+                var next = new List<Expression>((leaves.Count + 1) / 2);
+                var index = 0;
+                for (; index + 1 < leaves.Count; index += 2)
+                {
+                    next.Add(Expression.OrElse(leaves[index], leaves[index + 1]));
+                }
+
+                // A trailing odd node stays in order; re-associating it later
+                // keeps every equality leaf at the same left-to-right position.
+                for (; index < leaves.Count; index++)
+                {
+                    next.Add(leaves[index]);
+                }
+
+                leaves = next;
+            }
+
+            return Expression.Lambda(leaves[0], parameter);
         }
 
         private static bool IsSimpleMappedSelector(

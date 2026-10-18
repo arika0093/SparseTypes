@@ -385,7 +385,7 @@ internal static class CollectionSync
             if (
                 item.TemporaryKey is not null
                 && item.TemporaryKey != Guid.Empty
-                && plan.Added.Any(existing => existing.TemporaryKey == item.TemporaryKey)
+                && plan.ContainsTemporaryKey(item.TemporaryKey.Value)
             )
             {
                 throw new SparseEntityMappingException(
@@ -406,12 +406,7 @@ internal static class CollectionSync
                 );
             }
 
-            if (
-                plan.Added.Any(existing =>
-                    existing.AssignedKey is not null
-                    && runtime.KeyComparer.Equals(existing.AssignedKey, key)
-                )
-            )
+            if (plan.ContainsAssignedKey(key))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -430,6 +425,13 @@ internal static class CollectionSync
                 path,
                 $"The Create() factory for '{runtime.DtoName}' returned null."
             );
+        // Bookkeeping stays plan-scoped and only records valid rows, so a
+        // throw above leaves the index untouched by the failed row.
+        plan.RegisterAddition(
+            key is null || runtime.IsUnassigned(key) ? null : key,
+            item.TemporaryKey,
+            runtime.KeyComparer
+        );
         return new PlannedAddition<TDtoChild, TEntityChild>(
             after,
             created,

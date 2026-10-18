@@ -73,6 +73,64 @@ public sealed partial class ReadProjectionTests
     }
 
     [Test]
+    public async Task ToDtoAndProjectionInitializeIndependentlyInEitherOrder()
+    {
+        using var connection = TestDatabases.OpenMemory();
+        using var context = TestDatabases.CreateSample(connection, new QueryCounter());
+        var entity = context
+            .Orders.Add(
+                new OrderEntity
+                {
+                    CustomerName = "Ann",
+                    Code = "stored",
+                    Address = new AddressEntity { City = "Osaka" },
+                    Lines =
+                    [
+                        new OrderLineEntity
+                        {
+                            Quantity = 1,
+                            UnitPrice = 2m,
+                            SortOrder = 1,
+                        },
+                    ],
+                }
+            )
+            .Entity;
+        await context.SaveChangesAsync();
+        await context.Entry(entity).Collection(static order => order.Lines).LoadAsync();
+
+        // Compiled in-memory usage initializes first; the expression is then
+        // served independently and still translates server-side.
+        var mapper1 = SparseEntityMapper<OrderEntity, OrderDto>.Create(
+            new ProjectionOrderMapper(),
+            context.Model
+        );
+        var dto = mapper1.ToDto(entity);
+        dto.Name.ShouldBe("Ann");
+        dto.Lines[0].Subtotal.ShouldBe(2m);
+        var query1 = context
+            .Orders.AsNoTracking()
+            .Where(order => order.Id == entity.Id)
+            .Select(mapper1.Projection);
+        query1.ToQueryString().ShouldContain("OrderLineEntity");
+        (await query1.SingleAsync()).Name.ShouldBe("Ann");
+
+        // The reverse order: expression-first usage translates without the
+        // compiled delegate, which then initializes on demand.
+        var mapper2 = SparseEntityMapper<OrderEntity, OrderDto>.Create(
+            new ProjectionOrderMapper(),
+            context.Model
+        );
+        var projected = await context
+            .Orders.AsNoTracking()
+            .Where(order => order.Id == entity.Id)
+            .Select(mapper2.Projection)
+            .SingleAsync();
+        projected.Name.ShouldBe("Ann");
+        mapper2.ToDto(entity).Lines[0].UnitPrice.ShouldBe(2m);
+    }
+
+    [Test]
     public async Task NullReferencesAndCollectionsProjectWithoutThrowing()
     {
         using var connection = TestDatabases.OpenMemory();

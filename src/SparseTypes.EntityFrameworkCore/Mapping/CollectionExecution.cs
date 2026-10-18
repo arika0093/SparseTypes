@@ -362,6 +362,55 @@ internal sealed class SyncPlan<TDtoChild, TEntityChild>
 
     /// <summary>Gets or sets whether the accepted transition changed order.</summary>
     public bool OrderChanged { get; set; }
+
+    private HashSet<object>? _assignedKeys;
+
+    private HashSet<Guid>? _temporaries;
+
+    /// <summary>Checks whether one assigned key was already planned in this collection.</summary>
+    /// <remarks>The set carries the runtime's key comparer from first registration.</remarks>
+    /// <param name="key">The assigned (non-sentinel) key to probe.</param>
+    /// <returns>Whether a planned addition carries that key.</returns>
+    public bool ContainsAssignedKey(object key) => _assignedKeys?.Contains(key) ?? false;
+
+    /// <summary>Checks whether one nonempty temporary identity was already planned in this collection.</summary>
+    /// <param name="temporaryKey">The temporary identity to probe.</param>
+    /// <returns>Whether any planned addition carries that temporary identity.</returns>
+    public bool ContainsTemporaryKey(Guid temporaryKey) =>
+        _temporaries?.Contains(temporaryKey) ?? false;
+
+    /// <summary>Registers a planned addition in the plan-local identity index.</summary>
+    /// <remarks>
+    /// Records successful planning only: identities of rows whose planning
+    /// already threw stay unregistered. The temporaries set accumulates every
+    /// planned addition's nonempty identity so an unassigned row still sees
+    /// assigned rows sharing its temporary identity, while assigned rows are
+    /// only ever probed against assigned keys.
+    /// </remarks>
+    /// <param name="assignedKey">The assigned key, or null for unassigned additions.</param>
+    /// <param name="temporaryKey">The temporary identity, when the row carries one.</param>
+    /// <param name="comparer">The collection runtime's key comparer.</param>
+    public void RegisterAddition(
+        object? assignedKey,
+        Guid? temporaryKey,
+        IEqualityComparer<object> comparer
+    )
+    {
+        if (assignedKey is not null)
+        {
+            if (_assignedKeys is null)
+            {
+                _assignedKeys = new HashSet<object>(comparer);
+            }
+
+            _assignedKeys.Add(assignedKey);
+        }
+
+        if (temporaryKey is not null && temporaryKey != Guid.Empty)
+        {
+            (_temporaries ??= new HashSet<Guid>()).Add(temporaryKey.Value);
+        }
+    }
 }
 
 /// <summary>

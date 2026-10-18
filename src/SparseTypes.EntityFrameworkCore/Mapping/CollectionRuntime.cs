@@ -387,7 +387,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         );
         foreach (var scope in scopeKeys)
         {
-            if (foreign is not null && foreign.Contains(scope.Key))
+            if (foreign.Contains(scope.Key))
             {
                 continue;
             }
@@ -576,20 +576,19 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         return staged;
     }
 
-    /// <summary>Collects apply-recorded members known to belong to sibling scopes.</summary>
-    /// <returns>The foreign member set, or null when every record stays eligible.</returns>
-    private HashSet<object>? ForeignScopeMembers(
+    /// <summary>Collects a membership filter over apply-recorded sibling-scope members.</summary>
+    /// <returns>Filter answering sibling membership; empty results stay never-foreign.</returns>
+    private NestedScopeTable.ForeignMemberFilter ForeignScopeMembers(
         SparseEntityApplyResult result,
         IReadOnlyList<CollectionScopePath>? parentScopes
     )
     {
         if (parentScopes is null || parentScopes.Count == 0)
         {
-            return null;
+            return default;
         }
 
-        var foreign = result.ForeignMembers(this, parentScopes);
-        return foreign.Count == 0 ? null : foreign;
+        return result.ForeignMembers(this, parentScopes);
     }
 
     /// <summary>Looks up created children through the parent-scope fallback chain.</summary>

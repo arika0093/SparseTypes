@@ -147,11 +147,11 @@ public sealed class SparseEntityApplyResult
             ? scopes
             : EmptyScopeKeys;
 
-    /// <summary>Collects recorded members known to belong to sibling scopes.</summary>
+    /// <summary>Builds a membership filter over recorded members known to belong to sibling scopes.</summary>
     /// <param name="collectionIdentity">The mapped collection runtime identity.</param>
     /// <param name="mine">The parent scopes of the current item.</param>
-    /// <returns>Members recorded under other scopes; empty when unknown.</returns>
-    internal HashSet<object> ForeignMembers(
+    /// <returns>Filter for members recorded under other scopes; never foreign when nothing was recorded.</returns>
+    internal NestedScopeTable.ForeignMemberFilter ForeignMembers(
         object collectionIdentity,
         IReadOnlyList<CollectionScopePath> mine
     )
@@ -160,7 +160,7 @@ public sealed class SparseEntityApplyResult
         ArgumentNullException.ThrowIfNull(mine);
         if (!_nestedScopes.TryGetValue(collectionIdentity, out var table))
         {
-            return [];
+            return default;
         }
 
         return table.ForeignMembers(mine);
