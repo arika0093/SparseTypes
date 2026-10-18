@@ -38,6 +38,14 @@ internal static class SparseGeneratedOnceRemovalIndex
             "internal static void CancelRemoval(global::System.Collections.Generic.List<TKey> removed, ref int[]? lookup, TKey key)"
         );
         code.AppendLineAt(2, "{");
+        // Fast path: a valid index already proves absence without scanning
+        // the ordered list. Keep the full scan on an indexed hit (order and
+        // duplicate cleanup) and when no index exists.
+        code.AppendLineAt(3, "var slots = lookup;");
+        code.AppendLineAt(
+            3,
+            "if (slots is not null && slots[RemovedSlot(removed, key, slots)] == 0) return;"
+        );
         code.AppendLineAt(3, "for (int index = removed.Count - 1; index >= 0; index--)");
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "if (!" + comparer + ".Equals(removed[index], key)) continue;");

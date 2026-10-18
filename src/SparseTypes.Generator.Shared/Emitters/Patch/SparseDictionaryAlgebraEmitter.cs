@@ -130,36 +130,36 @@ internal static class SparseDictionaryAlgebraEmitter
             4,
             "if (__set is not null) foreach (var kv in __set) set[kv.Key] = kv.Value;"
         );
+        // Set overrides Remove under the shared comparer: the loop below
+        // already drops every next-set key from the removal set, so no second
+        // scan of first.__removed is needed. The removal set, the merged set,
+        // and next.__set are all built with the same comparer expression.
         code.AppendLineAt(
             4,
             "if (next.__set is not null) foreach (var kv in next.__set) { set[kv.Key] = kv.Value; removed.Remove(kv.Key); }"
-        );
-        code.AppendLineAt(
-            4,
-            "if (__removed is not null) foreach (var k in __removed) if (next.__set is not null && next.__set.ContainsKey(k)) removed.Remove(k);"
         );
         // Drop keys added by this patch when the next patch removes them.
         code.AppendLineAt(
             4,
             "if (next.__removed is not null) foreach (var k in next.__removed) set.Remove(k);"
         );
-        // Pre-index next removals once so per-edit checks below are O(1)
-        // comparer-correct lookups instead of O(K) List.Contains scans.
-        code.AppendLineAt(
-            4,
-            "var __nextRemoved = (next.__removed is null) ? new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ") : new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">(next.__removed, "
-                + comparer
-                + ");"
-        );
         if (hasPatch)
         {
             var valuePatch = SparseKeyedCollectionEmitter.ValuePatchType(member);
+            // Pre-index next removals only when first-patch nested edits need
+            // filtering: a nullable local with a guarded Contains check keeps
+            // comparer-correct O(1) lookups without allocating for scalar-only
+            // callers or when either side is empty.
+            code.AppendLineAt(
+                4,
+                "global::System.Collections.Generic.HashSet<"
+                    + keyType
+                    + ">? __nextRemoved = (__edited is not null && __edited.Count > 0 && next.__removed is not null && next.__removed.Count > 0) ? new global::System.Collections.Generic.HashSet<"
+                    + keyType
+                    + ">(next.__removed, "
+                    + comparer
+                    + ") : null;"
+            );
             code.AppendLineAt(
                 4,
                 "global::System.Collections.Generic.Dictionary<"
@@ -170,7 +170,7 @@ internal static class SparseDictionaryAlgebraEmitter
             );
             code.AppendLineAt(
                 4,
-                "if (__edited is not null) foreach (var kv in __edited) { if (kv.Value.__SparseIsEmpty()) continue; if (__nextRemoved.Contains(kv.Key)) continue; edited ??= new global::System.Collections.Generic.Dictionary<"
+                "if (__edited is not null) foreach (var kv in __edited) { if (kv.Value.__SparseIsEmpty()) continue; if (__nextRemoved is not null && __nextRemoved.Contains(kv.Key)) continue; edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
                     + valuePatch
@@ -454,36 +454,47 @@ internal static class SparseDictionaryAlgebraEmitter
         );
         code.AppendLineAt(
             4,
-            "var __pendingKeys = new global::System.Collections.Generic.HashSet<"
+            "var __pendingSeen = new global::System.Collections.Generic.HashSet<"
                 + keyType
-                + ">(local.__set is not null ? (global::System.Collections.Generic.IEnumerable<"
-                + keyType
-                + ">)local.__set.Keys : (local.__edited is not null ? (global::System.Collections.Generic.IEnumerable<"
-                + keyType
-                + ">)local.__edited.Keys : __dictRemoved), "
+                + ">("
                 + comparer
                 + ");"
         );
         code.AppendLineAt(
             4,
-            "if (local.__set is not null && local.__edited is not null) __pendingKeys.UnionWith(local.__edited.Keys);"
+            "var __pendingKeys = new global::System.Collections.Generic.List<"
+                + keyType
+                + ">((local.__set is null ? 0 : local.__set.Count) + (local.__edited is null ? 0 : local.__edited.Count) + __dictRemoved.Count);"
         );
-        code.AppendLineAt(4, "__pendingKeys.UnionWith(__dictRemoved);");
+        code.AppendLineAt(
+            4,
+            "if (local.__set is not null) foreach (var k in local.__set.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
+        );
+        code.AppendLineAt(
+            4,
+            "if (local.__edited is not null) foreach (var k in local.__edited.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
+        );
+        code.AppendLineAt(
+            4,
+            "if (local.__removed is not null) foreach (var k in local.__removed) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
+        );
         if (hasPatch)
         {
             var valuePatch = SparseKeyedCollectionEmitter.ValuePatchType(member);
             var valueFragment = SparseKeyedCollectionEmitter.ValueFragmentType(member);
             var prefix = SparseKeyedCollectionEmitter.ValuePatchPrefix(member);
-            SparseKeyedCollectionEmitter.AppendPendingKeyLoopStart(
-                code,
-                "baseDict",
-                "currentDict",
-                "desiredDict"
-            );
+            // Drive the per-key phase from the ordered pending operations and
+            // probe each map directly: a single pending key never scans full
+            // maps. Conflicts follow operation order (Set, Edit, Remove) with
+            // the local key representative; keys absent from every map keep
+            // the previous skip behavior.
+            code.AppendLineAt(4, "foreach (var k in __pendingKeys)");
+            code.AppendLineAt(4, "{");
             code.AppendLineAt(
                 5,
                 "var inBase = baseDict.TryGetValue(k, out var b); var inCurrent = currentDict.TryGetValue(k, out var c); var inDesired = desiredDict.TryGetValue(k, out var d);"
             );
+            code.AppendLineAt(5, "if (!inBase && !inCurrent && !inDesired) continue;");
             code.AppendLineAt(
                 5,
                 "var touchesSet = local.__set is not null && local.__set.ContainsKey(k); var touchesRemoved = __dictRemoved.Contains(k); var touchesEdited = local.__edited is not null && local.__edited.ContainsKey(k);"
@@ -570,20 +581,18 @@ internal static class SparseDictionaryAlgebraEmitter
                     + runtime
                     + "Optional<object?>.Present((object?)c), \"The dictionary entry conflicts with a concurrent change.\"));"
             );
-            SparseKeyedCollectionEmitter.AppendPendingKeyLoopEnd(code);
+            code.AppendLineAt(4, "}");
         }
         else
         {
-            SparseKeyedCollectionEmitter.AppendPendingKeyLoopStart(
-                code,
-                "baseDict",
-                "currentDict",
-                "desiredDict"
-            );
+            // Same operation-driven traversal as the nested-edit branch above.
+            code.AppendLineAt(4, "foreach (var k in __pendingKeys)");
+            code.AppendLineAt(4, "{");
             code.AppendLineAt(
                 5,
                 "var inBase = baseDict.TryGetValue(k, out var b); var inCurrent = currentDict.TryGetValue(k, out var c); var inDesired = desiredDict.TryGetValue(k, out var d);"
             );
+            code.AppendLineAt(5, "if (!inBase && !inCurrent && !inDesired) continue;");
             code.AppendLineAt(
                 5,
                 "bool baseEqCurrent = inBase == inCurrent && (!inBase || "
@@ -632,7 +641,7 @@ internal static class SparseDictionaryAlgebraEmitter
                     + runtime
                     + "Optional<object?>.Present((object?)c), \"The dictionary entry conflicts with a concurrent change.\"));"
             );
-            SparseKeyedCollectionEmitter.AppendPendingKeyLoopEnd(code);
+            code.AppendLineAt(4, "}");
         }
 
         code.AppendLineAt(4, "return new " + resultType + "(result, conflicts);");
