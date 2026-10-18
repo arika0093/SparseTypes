@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace SparseTypes.Tests;
 
 /// <summary>History lifecycle and failure paths.</summary>
@@ -462,6 +464,185 @@ public sealed class EditHistoryLifecycleTests
         model.Count.ShouldBe(1);
     }
 
+    [Test]
+    public void UndoRedoReusesDetachedNode()
+    {
+        string? applied = null;
+        using var history = CreateHistory(apply: changes => applied = changes);
+
+        history.OnTransition("one");
+        LinkedList<string> undo = GetUndoList(history);
+        LinkedListNode<string> original = undo.Last!;
+        original.List.ShouldBeSameAs(undo);
+
+        history.Undo();
+        applied.ShouldBe("one");
+
+        // Undo detaches the node instead of discarding it.
+        Stack<LinkedListNode<string>> redo = GetRedoStack(history);
+        redo.Peek().ShouldBeSameAs(original);
+        original.List.ShouldBeNull();
+
+        history.Redo();
+
+        // Redo reattaches the same node instead of allocating a replacement.
+        undo.Last.ShouldBeSameAs(original);
+        original.List.ShouldBeSameAs(undo);
+        redo.Count.ShouldBe(0);
+        history.UndoCount.ShouldBe(1);
+    }
+
+    [Test]
+    public void SteadyStateRedoAvoidsNodeAllocation()
+    {
+        using var history = CreateHistory();
+        history.OnTransition("one");
+
+        // Warms replay paths before measuring.
+        for (var index = 0; index < 100; index++)
+        {
+            history.Undo();
+            history.Redo();
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        const int cycles = 1_000;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var index = 0; index < cycles; index++)
+        {
+            history.Undo();
+            history.Redo();
+        }
+
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        // A fresh node per redo would allocate one node per cycle (roughly
+        // three references plus overhead each); reattachment stays far below.
+        allocated.ShouldBeLessThan(cycles * 16L);
+    }
+
+    [Test]
+    public void FailedRedoKeepsDetachedNodeForRetry()
+    {
+        var failRedo = false;
+        var hooks = new SparseEditHistoryHooks<string>
+        {
+            IsEmpty = static changes => changes.Length == 0,
+            Invert = static changes => changes,
+            Compose = static (first, second) => first + second,
+            TryApply = (string changes, out IReadOnlyList<SparseConflict>? conflicts) =>
+            {
+                if (failRedo)
+                {
+                    conflicts = new[]
+                    {
+                        new SparseConflict(
+                            SparsePath.Root<HistoryScalarModel>(),
+                            SparseConflictKind.Scalar,
+                            Optional<object?>.Missing,
+                            Optional<object?>.Missing,
+                            Optional<object?>.Missing,
+                            "conflict"
+                        ),
+                    };
+                    return false;
+                }
+
+                conflicts = null;
+                return true;
+            },
+            Subscribe = static handler => { },
+            Unsubscribe = static handler => { },
+        };
+        using var history = new SparseEditHistory<string>(
+            new EditHistoryOptions { MaxEntries = 4 },
+            hooks
+        );
+
+        history.OnTransition("one");
+        history.Undo();
+        history.RedoCount.ShouldBe(1);
+
+        failRedo = true;
+        history.TryRedo(out var conflicts).ShouldBeFalse();
+        conflicts.ShouldNotBeNull();
+
+        // Nothing was popped or reattached: the detached node stays on redo.
+        history.RedoCount.ShouldBe(1);
+        history.UndoCount.ShouldBe(0);
+        Should.Throw<InvalidOperationException>(() => history.Redo());
+
+        failRedo = false;
+        history.TryRedo(out _).ShouldBeTrue();
+        history.UndoCount.ShouldBe(1);
+        history.RedoCount.ShouldBe(0);
+    }
+
+    [Test]
+    public void ThrowingRedoLeavesNodeStackUntouched()
+    {
+        var fail = false;
+        var hooks = new SparseEditHistoryHooks<string>
+        {
+            IsEmpty = static changes => changes.Length == 0,
+            Invert = static changes => changes,
+            Compose = static (first, second) => first + second,
+            TryApply = (string changes, out IReadOnlyList<SparseConflict>? conflicts) =>
+            {
+                conflicts = null;
+                if (fail)
+                {
+                    throw new InvalidOperationException("setter failed");
+                }
+
+                return true;
+            },
+            Subscribe = static handler => { },
+            Unsubscribe = static handler => { },
+        };
+        using var history = new SparseEditHistory<string>(
+            new EditHistoryOptions { MaxEntries = 4 },
+            hooks
+        );
+
+        history.OnTransition("one");
+        history.Undo();
+        history.RedoCount.ShouldBe(1);
+
+        fail = true;
+        Should.Throw<InvalidOperationException>(() => history.Redo());
+        history.RedoCount.ShouldBe(1);
+        history.UndoCount.ShouldBe(0);
+
+        fail = false;
+        history.Redo();
+        history.UndoCount.ShouldBe(1);
+        history.RedoCount.ShouldBe(0);
+    }
+
+    [Test]
+    public void ReplayInsideGroupThrowsWithoutTouchingStacks()
+    {
+        using var history = CreateHistory();
+        history.OnTransition("one");
+        history.Undo();
+        history.RedoCount.ShouldBe(1);
+
+        using (history.BeginGroup())
+        {
+            Should.Throw<InvalidOperationException>(() => history.Undo());
+            Should.Throw<InvalidOperationException>(() => history.Redo());
+        }
+
+        history.RedoCount.ShouldBe(1);
+        history.UndoCount.ShouldBe(0);
+        history.Redo();
+        history.UndoCount.ShouldBe(1);
+    }
+
     private static SparseEditHistory<string> CreateHistory(Action<string>? apply = null)
     {
         return new SparseEditHistory<string>(
@@ -501,5 +682,21 @@ public sealed class EditHistoryLifecycleTests
                         | System.Reflection.BindingFlags.NonPublic
                 )
                 ?.GetValue(history);
+    }
+
+    private static LinkedList<string> GetUndoList(SparseEditHistory<string> history)
+    {
+        return (LinkedList<string>)
+            typeof(SparseEditHistory<string>)
+                .GetField("_undo", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(history)!;
+    }
+
+    private static Stack<LinkedListNode<string>> GetRedoStack(SparseEditHistory<string> history)
+    {
+        return (Stack<LinkedListNode<string>>)
+            typeof(SparseEditHistory<string>)
+                .GetField("_redo", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetValue(history)!;
     }
 }

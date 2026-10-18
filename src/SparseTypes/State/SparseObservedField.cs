@@ -225,44 +225,44 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
     {
         if (previous.IsChanged != next.IsChanged)
         {
-            OnPropertyChanged(nameof(IsChanged));
+            OnPropertyChanged(SparseObservedFieldEventArgs.IsChanged);
         }
 
         if (previous.Kind != next.Kind)
         {
-            OnPropertyChanged(nameof(Kind));
+            OnPropertyChanged(SparseObservedFieldEventArgs.Kind);
         }
 
         if (previous.HasAncestorChange != next.HasAncestorChange)
         {
-            OnPropertyChanged(nameof(HasAncestorChange));
+            OnPropertyChanged(SparseObservedFieldEventArgs.HasAncestorChange);
         }
 
         if (previous.HasDescendantChange != next.HasDescendantChange)
         {
-            OnPropertyChanged(nameof(HasDescendantChange));
+            OnPropertyChanged(SparseObservedFieldEventArgs.HasDescendantChange);
         }
 
         if (previous.HasChanges != next.HasChanges)
         {
-            OnPropertyChanged(nameof(HasChanges));
+            OnPropertyChanged(SparseObservedFieldEventArgs.HasChanges);
         }
 
         if (!previous.Before.Equals(next.Before))
         {
-            OnPropertyChanged(nameof(Before));
+            OnPropertyChanged(SparseObservedFieldEventArgs.Before);
         }
 
         if (!previous.After.Equals(next.After))
         {
-            OnPropertyChanged(nameof(After));
+            OnPropertyChanged(SparseObservedFieldEventArgs.After);
         }
 
-        OnPropertyChanged(nameof(Current));
+        OnPropertyChanged(SparseObservedFieldEventArgs.Current);
     }
 
-    private void OnPropertyChanged(string propertyName) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    private void OnPropertyChanged(PropertyChangedEventArgs args) =>
+        PropertyChanged?.Invoke(this, args);
 
     private void ThrowIfDisposed()
     {
@@ -271,4 +271,20 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
             throw new ObjectDisposedException(GetType().FullName);
         }
     }
+}
+
+// One immutable instance per notification name. The watcher vocabulary is
+// fixed, so steady-state delivery shares these across all closed types.
+internal static class SparseObservedFieldEventArgs
+{
+    internal static readonly PropertyChangedEventArgs IsChanged = new("IsChanged");
+    internal static readonly PropertyChangedEventArgs Kind = new("Kind");
+    internal static readonly PropertyChangedEventArgs HasAncestorChange = new("HasAncestorChange");
+    internal static readonly PropertyChangedEventArgs HasDescendantChange = new(
+        "HasDescendantChange"
+    );
+    internal static readonly PropertyChangedEventArgs HasChanges = new("HasChanges");
+    internal static readonly PropertyChangedEventArgs Before = new("Before");
+    internal static readonly PropertyChangedEventArgs After = new("After");
+    internal static readonly PropertyChangedEventArgs Current = new("Current");
 }

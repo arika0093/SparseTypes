@@ -420,4 +420,101 @@ public sealed class ObservedFieldTests
         // no remaining change for the acknowledged submission.
         member.HasChanges.ShouldBeFalse();
     }
+
+    [Test]
+    public void ScalarTransitionRaisesDocumentedOrderExactly()
+    {
+        var session = new Settings().CreateEditSession();
+        using var watcher = session.ObserveField(Settings.SparsePath.Label);
+        var order = new List<string>();
+        ((INotifyPropertyChanged)watcher).PropertyChanged += (_, args) =>
+            order.Add(args.PropertyName!);
+
+        session.Observable.Label = "dirty";
+
+        // Granular state first, the aggregate snapshot last.
+        order.ShouldBe(["IsChanged", "Kind", "HasChanges", "Before", "After", "Current"]);
+    }
+
+    [Test]
+    public void EventArgsInstancesAreReusedAcrossDispatches()
+    {
+        var session = new Settings().CreateEditSession();
+        using var watcher = session.ObserveField(Settings.SparsePath.Label);
+        var generations = new List<List<PropertyChangedEventArgs>> { new() };
+        ((INotifyPropertyChanged)watcher).PropertyChanged += (_, args) =>
+        {
+            generations[^1].Add(args);
+            if (args.PropertyName == nameof(SparseObservedField<string?>.Current))
+            {
+                generations.Add(new());
+            }
+        };
+
+        session.Observable.Label = "one";
+        session.Observable.Label = "two";
+
+        // The first transition reports the full vocabulary; the second only
+        // the moved endpoint plus the aggregate snapshot.
+        generations.Count.ShouldBe(3);
+        generations[^1].ShouldBeEmpty();
+        generations[0]
+            .Select(static args => args.PropertyName)
+            .ShouldBe(["IsChanged", "Kind", "HasChanges", "Before", "After", "Current"]);
+        generations[1].Select(static args => args.PropertyName).ShouldBe(["After", "Current"]);
+
+        // Repeated names reuse the identical immutable instance.
+        var first = generations[0].ToDictionary(static args => args.PropertyName!);
+        foreach (var args in generations[1])
+        {
+            ReferenceEquals(args, first[args.PropertyName!]).ShouldBeTrue();
+        }
+    }
+
+    [Test]
+    public void EventArgsInstancesAreSharedAcrossWatcherTypes()
+    {
+        var session = new Settings().CreateEditSession();
+        using var label = session.ObserveField(Settings.SparsePath.Label);
+        using var count = session.ObserveField(Settings.SparsePath.RetryCount);
+        PropertyChangedEventArgs? labelCurrent = null;
+        PropertyChangedEventArgs? labelIsChanged = null;
+        PropertyChangedEventArgs? countCurrent = null;
+        PropertyChangedEventArgs? countIsChanged = null;
+        ((INotifyPropertyChanged)label).PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(SparseObservedField<string?>.Current))
+            {
+                labelCurrent = args;
+            }
+
+            if (args.PropertyName == nameof(SparseObservedField<string?>.IsChanged))
+            {
+                labelIsChanged = args;
+            }
+        };
+        ((INotifyPropertyChanged)count).PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(SparseObservedField<int>.Current))
+            {
+                countCurrent = args;
+            }
+
+            if (args.PropertyName == nameof(SparseObservedField<int>.IsChanged))
+            {
+                countIsChanged = args;
+            }
+        };
+
+        session.Observable.Label = "dirty";
+        session.Observable.RetryCount = 7;
+
+        // Distinct closed watcher types deliver the same immutable instances.
+        labelCurrent.ShouldNotBeNull();
+        countCurrent.ShouldNotBeNull();
+        ReferenceEquals(labelCurrent, countCurrent).ShouldBeTrue();
+        labelIsChanged.ShouldNotBeNull();
+        countIsChanged.ShouldNotBeNull();
+        ReferenceEquals(labelIsChanged, countIsChanged).ShouldBeTrue();
+    }
 }

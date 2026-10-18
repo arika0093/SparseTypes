@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace SparseTypes.Tests;
 
 /// <summary>Models for opt-in edit history tests.</summary>
@@ -237,5 +239,155 @@ public sealed class EditHistoryTests
     public void InvalidMaxEntriesAreRejected()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => new EditHistoryOptions { MaxEntries = 0 });
+    }
+
+    [Test]
+    public void RedoReattachesDetachedUndoNode()
+    {
+        var model = new HistoryScalarModel { Name = "base" };
+        var session = model.CreateEditSession();
+        using var history = session.CreateHistory(new EditHistoryOptions { MaxEntries = 50 });
+
+        session.Observable.Name = "after";
+        history.Undo();
+        model.Name.ShouldBe("base");
+
+        // Undo detaches the node from the undo list and retains it on redo.
+        object redoNode = RedoPeekNode(history);
+        NodeList(redoNode).ShouldBeNull();
+
+        history.Redo();
+        model.Name.ShouldBe("after");
+
+        // Redo reattaches the same node instead of allocating a replacement.
+        object undoLast = UndoLastNode(history);
+        ReferenceEquals(redoNode, undoLast).ShouldBeTrue();
+        NodeList(undoLast).ShouldNotBeNull();
+        history.UndoCount.ShouldBe(1);
+        history.CanRedo.ShouldBeFalse();
+    }
+
+    [Test]
+    public void MultiEntryUndoRedoReusesNodesInOrder()
+    {
+        var model = new HistoryScalarModel { Name = "base" };
+        var session = model.CreateEditSession();
+        using var history = session.CreateHistory(new EditHistoryOptions { MaxEntries = 50 });
+
+        session.Observable.Name = "one";
+        session.Observable.Name = "two";
+        history.UndoCount.ShouldBe(2);
+
+        history.Undo();
+        model.Name.ShouldBe("one");
+        object twoNode = RedoPeekNode(history);
+        history.Undo();
+        model.Name.ShouldBe("base");
+        object oneNode = RedoPeekNode(history);
+        ReferenceEquals(oneNode, twoNode).ShouldBeFalse();
+
+        history.Redo();
+        model.Name.ShouldBe("one");
+        ReferenceEquals(oneNode, UndoLastNode(history)).ShouldBeTrue();
+        history.Redo();
+        model.Name.ShouldBe("two");
+        ReferenceEquals(twoNode, UndoLastNode(history)).ShouldBeTrue();
+        history.UndoCount.ShouldBe(2);
+        history.CanRedo.ShouldBeFalse();
+    }
+
+    [Test]
+    public void RedoAfterEvictionRestoresNewestEntries()
+    {
+        var model = new HistoryScalarModel { Count = 0 };
+        var session = model.CreateEditSession();
+        using var history = session.CreateHistory(new EditHistoryOptions { MaxEntries = 3 });
+
+        for (var index = 1; index <= 5; index++)
+        {
+            session.Observable.Count = index;
+        }
+
+        history.UndoCount.ShouldBe(3);
+
+        history.Undo();
+        model.Count.ShouldBe(4);
+        history.Undo();
+        model.Count.ShouldBe(3);
+        history.Undo();
+        model.Count.ShouldBe(2);
+        history.CanUndo.ShouldBeFalse();
+        history.RedoCount.ShouldBe(3);
+
+        history.Redo();
+        model.Count.ShouldBe(3);
+        history.Redo();
+        model.Count.ShouldBe(4);
+        history.Redo();
+        model.Count.ShouldBe(5);
+        history.CanRedo.ShouldBeFalse();
+        history.UndoCount.ShouldBe(3);
+    }
+
+    [Test]
+    public void BranchingAfterUndoDropsRedoNodes()
+    {
+        var model = new HistoryScalarModel { Name = "base" };
+        var session = model.CreateEditSession();
+        using var history = session.CreateHistory(new EditHistoryOptions { MaxEntries = 50 });
+
+        session.Observable.Name = "one";
+        history.Undo();
+        history.RedoCount.ShouldBe(1);
+
+        session.Observable.Name = "branched";
+        history.RedoCount.ShouldBe(0);
+        history.CanRedo.ShouldBeFalse();
+        history.UndoCount.ShouldBe(1);
+        Should.Throw<InvalidOperationException>(() => history.Redo());
+        model.Name.ShouldBe("branched");
+    }
+
+    [Test]
+    public void ClearReleasesRedoNodes()
+    {
+        var model = new HistoryScalarModel { Name = "base" };
+        var session = model.CreateEditSession();
+        using var history = session.CreateHistory(new EditHistoryOptions { MaxEntries = 50 });
+
+        session.Observable.Name = "after";
+        history.Undo();
+        history.RedoCount.ShouldBe(1);
+
+        history.Clear();
+        history.UndoCount.ShouldBe(0);
+        history.RedoCount.ShouldBe(0);
+        Should.Throw<InvalidOperationException>(() => history.Redo());
+        Should.Throw<InvalidOperationException>(() => history.Undo());
+    }
+
+    private static object HistoryField(object history, string name)
+    {
+        return history
+            .GetType()
+            .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(history)!;
+    }
+
+    private static object RedoPeekNode(object history)
+    {
+        object redo = HistoryField(history, "_redo");
+        return redo.GetType().GetMethod("Peek")!.Invoke(redo, null)!;
+    }
+
+    private static object UndoLastNode(object history)
+    {
+        object undo = HistoryField(history, "_undo");
+        return undo.GetType().GetProperty("Last")!.GetValue(undo)!;
+    }
+
+    private static object? NodeList(object node)
+    {
+        return node.GetType().GetProperty("List")!.GetValue(node);
     }
 }

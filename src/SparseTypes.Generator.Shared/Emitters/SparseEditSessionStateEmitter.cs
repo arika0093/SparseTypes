@@ -371,7 +371,13 @@ internal static class SparseEditSessionStateEmitter
     {
         var handlerList =
             "global::System.Collections.Generic.List<global::System.ComponentModel.PropertyChangedEventHandler>";
+        var handlerArray = "global::System.ComponentModel.PropertyChangedEventHandler[]";
         code.AppendLineAt(2, "private " + handlerList + "? __observationHandlers;");
+        // Lazily built snapshot of the subscriber list: stable membership
+        // reuses one array across dispatch generations instead of copying
+        // per generation, while subscribe/dispose during delivery stays safe
+        // by traversing the local array.
+        code.AppendLineAt(2, "private " + handlerArray + "? __observationHandlerSnapshot;");
         code.AppendLineAt(2, "private " + states.QueryViewType + "? __observationView;");
         code.AppendLineAt(2, "private bool __observationDispatching;");
         code.AppendLineAt(2, "private bool __observationPending;");
@@ -386,6 +392,7 @@ internal static class SparseEditSessionStateEmitter
         code.AppendLineAt(4, "PropertyChanged += __ObservationInvalidated;");
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "__observationHandlers.Add(handler);");
+        code.AppendLineAt(3, "__observationHandlerSnapshot = null;");
         code.AppendLineAt(2, "}");
         code.AppendLineAt(
             2,
@@ -396,11 +403,14 @@ internal static class SparseEditSessionStateEmitter
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "return;");
         code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "__observationHandlers.Remove(handler);");
-        code.AppendLineAt(3, "if (__observationHandlers.Count == 0)");
+        code.AppendLineAt(3, "if (__observationHandlers.Remove(handler))");
         code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "PropertyChanged -= __ObservationInvalidated;");
-        code.AppendLineAt(4, "__observationHandlers = null;");
+        code.AppendLineAt(4, "__observationHandlerSnapshot = null;");
+        code.AppendLineAt(4, "if (__observationHandlers.Count == 0)");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(5, "PropertyChanged -= __ObservationInvalidated;");
+        code.AppendLineAt(5, "__observationHandlers = null;");
+        code.AppendLineAt(4, "}");
         code.AppendLineAt(3, "}");
         code.AppendLineAt(2, "}");
         code.AppendLineAt(
@@ -438,10 +448,11 @@ internal static class SparseEditSessionStateEmitter
         code.AppendLineAt(5, "__observationView = view;");
         code.AppendLineAt(5, "try");
         code.AppendLineAt(5, "{");
-        // A fixed copy keeps subscribe/dispose during delivery safe; a
-        // watcher added mid-dispatch is already live and joins the next
-        // generation.
-        code.AppendLineAt(6, "foreach (var handler in handlers.ToArray())");
+        // The cached array is reused across generations with stable
+        // membership; membership changes invalidate it, so the local array
+        // stays fixed for this delivery while the next generation rebuilds.
+        code.AppendLineAt(6, "var dispatch = __observationHandlerSnapshot ??= handlers.ToArray();");
+        code.AppendLineAt(6, "foreach (var handler in dispatch)");
         code.AppendLineAt(6, "{");
         code.AppendLineAt(7, "handler(sender, e);");
         code.AppendLineAt(6, "}");

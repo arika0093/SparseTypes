@@ -60,7 +60,8 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
     private readonly Action<TChangeSet> _handler;
     private readonly int _maxEntries;
     private readonly LinkedList<TChangeSet> _undo = new LinkedList<TChangeSet>();
-    private readonly Stack<TChangeSet> _redo = new Stack<TChangeSet>();
+    private readonly Stack<LinkedListNode<TChangeSet>> _redo =
+        new Stack<LinkedListNode<TChangeSet>>();
     private List<TChangeSet>? _groupBuffer;
     private int _groupDepth;
     private bool _replaying;
@@ -300,8 +301,8 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
-        _undo.RemoveLast();
-        _redo.Push(entry);
+        _undo.Remove(node);
+        _redo.Push(node);
         RaiseStateChanged();
         return true;
     }
@@ -351,7 +352,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
-        TChangeSet entry = _redo.Peek();
+        TChangeSet entry = _redo.Peek().Value;
         bool applied;
         _replaying = true;
         try
@@ -368,8 +369,8 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
-        _redo.Pop();
-        PushUndo(entry);
+        LinkedListNode<TChangeSet> node = _redo.Pop();
+        ReattachUndo(node);
         RaiseStateChanged();
         return true;
     }
@@ -433,6 +434,20 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
 
     private void PushUndo(TChangeSet changes)
     {
+        EvictOldestIfFull();
+        _undo.AddLast(changes);
+    }
+
+    // Reattaches a node detached by Undo. A detached node belongs to no list,
+    // so AddLast reuses it instead of allocating a replacement.
+    private void ReattachUndo(LinkedListNode<TChangeSet> node)
+    {
+        EvictOldestIfFull();
+        _undo.AddLast(node);
+    }
+
+    private void EvictOldestIfFull()
+    {
         if (_undo.Count >= _maxEntries)
         {
             LinkedListNode<TChangeSet>? oldest = _undo.First;
@@ -441,8 +456,6 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
                 _undo.RemoveFirst();
             }
         }
-
-        _undo.AddLast(changes);
     }
 
     private void EndGroup()

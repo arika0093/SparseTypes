@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 
 namespace SparseTypes.Tests;
 
@@ -6,6 +7,27 @@ namespace SparseTypes.Tests;
 // captured snapshot across every watcher in a dispatch generation.
 public sealed class ObservedFieldDispatchTests
 {
+    private static PropertyChangedEventHandler[]? DispatchSnapshot(object session)
+    {
+        var field = session
+            .GetType()
+            .GetField(
+                "__observationHandlerSnapshot",
+                BindingFlags.Instance | BindingFlags.NonPublic
+            );
+        field.ShouldNotBeNull();
+        return (PropertyChangedEventHandler[]?)field!.GetValue(session);
+    }
+
+    private static object? HandlerList(object session)
+    {
+        var field = session
+            .GetType()
+            .GetField("__observationHandlers", BindingFlags.Instance | BindingFlags.NonPublic);
+        field.ShouldNotBeNull();
+        return field!.GetValue(session);
+    }
+
     private static KeyedServerHolder Holder(int rows)
     {
         var holder = new KeyedServerHolder();
@@ -227,6 +249,122 @@ public sealed class ObservedFieldDispatchTests
         session
             .FieldState(KeyedServerHolder.SparsePath.Items.Key("a").Name)
             .After.ShouldBe(Optional<string>.Present("edit-after-fix"));
+    }
+
+    [Test]
+    public void StableMembershipReusesOneDispatchArray()
+    {
+        var session = new Settings().CreateEditSession();
+        using var first = session.ObserveField(Settings.SparsePath.Label);
+        using var second = session.ObserveField(Settings.SparsePath.RetryCount);
+
+        // Lazily built: subscribing alone allocates no snapshot.
+        DispatchSnapshot(session).ShouldBeNull();
+
+        session.Observable.Label = "one";
+        var stable = DispatchSnapshot(session);
+        stable.ShouldNotBeNull();
+        stable!.Length.ShouldBe(2);
+
+        session.Observable.Label = "two";
+        DispatchSnapshot(session).ShouldBeSameAs(stable);
+    }
+
+    [Test]
+    public void MembershipChangeRebuildsDispatchArrayOnce()
+    {
+        var session = new Settings().CreateEditSession();
+        using var first = session.ObserveField(Settings.SparsePath.Label);
+        using var second = session.ObserveField(Settings.SparsePath.RetryCount);
+
+        session.Observable.Label = "one";
+        var stable = DispatchSnapshot(session);
+        stable.ShouldNotBeNull();
+
+        // Registering watchers only invalidates; the next dispatch rebuilds.
+        using var third = session.ObserveField(Settings.SparsePath.Label);
+        DispatchSnapshot(session).ShouldBeNull();
+
+        session.Observable.Label = "two";
+        var rebuilt = DispatchSnapshot(session);
+        rebuilt.ShouldNotBeNull();
+        rebuilt.ShouldNotBeSameAs(stable);
+        rebuilt!.Length.ShouldBe(3);
+
+        session.Observable.Label = "three";
+        DispatchSnapshot(session).ShouldBeSameAs(rebuilt);
+
+        third.Dispose();
+        DispatchSnapshot(session).ShouldBeNull();
+
+        session.Observable.Label = "four";
+        var afterRemove = DispatchSnapshot(session);
+        afterRemove.ShouldNotBeNull();
+        afterRemove.ShouldNotBeSameAs(rebuilt);
+        afterRemove!.Length.ShouldBe(2);
+    }
+
+    [Test]
+    public void SubscribeDuringDispatchKeepsLocalArrayWhileInvalidatingCache()
+    {
+        var session = new Settings().CreateEditSession();
+        using var first = session.ObserveField(Settings.SparsePath.Label);
+        using var second = session.ObserveField(Settings.SparsePath.RetryCount);
+
+        session.Observable.Label = "one";
+        var stable = DispatchSnapshot(session);
+        stable.ShouldNotBeNull();
+
+        SparseObservedField<int>? late = null;
+        ((INotifyPropertyChanged)first).PropertyChanged += (_, _) =>
+        {
+            late ??= session.ObserveField(Settings.SparsePath.RetryCount);
+        };
+
+        session.Observable.Label = "two";
+
+        // Delivery completed over the retained array while the mid-dispatch
+        // subscription invalidated the cache for the next generation.
+        first.After.ShouldBe(Optional<string?>.Present("two"));
+        late.ShouldNotBeNull();
+        DispatchSnapshot(session).ShouldBeNull();
+
+        session.Observable.Label = "three";
+        var rebuilt = DispatchSnapshot(session);
+        rebuilt.ShouldNotBeNull();
+        rebuilt.ShouldNotBeSameAs(stable);
+        rebuilt!.Length.ShouldBe(3);
+        late!.Dispose();
+
+        session.Observable.Label = "four";
+        var afterRemove = DispatchSnapshot(session);
+        afterRemove.ShouldNotBeNull();
+        afterRemove.ShouldNotBeSameAs(rebuilt);
+        afterRemove!.Length.ShouldBe(2);
+    }
+
+    [Test]
+    public void RemovingAllWatchersReleasesDispatchArray()
+    {
+        var session = new Settings().CreateEditSession();
+        var first = session.ObserveField(Settings.SparsePath.Label);
+        var second = session.ObserveField(Settings.SparsePath.RetryCount);
+
+        session.Observable.Label = "one";
+        DispatchSnapshot(session).ShouldNotBeNull();
+
+        first.Dispose();
+        second.Dispose();
+        DispatchSnapshot(session).ShouldBeNull();
+        HandlerList(session).ShouldBeNull();
+
+        // Resubscription rebuilds from the new list only.
+        using var late = session.ObserveField(Settings.SparsePath.Label);
+        session.Observable.Label = "two";
+        var rebuilt = DispatchSnapshot(session);
+        rebuilt.ShouldNotBeNull();
+        rebuilt!.Length.ShouldBe(1);
+        late.IsChanged.ShouldBeTrue();
     }
 
     private static KeyedServerHolder Holder(params (string Id, string Name)[] rows)
