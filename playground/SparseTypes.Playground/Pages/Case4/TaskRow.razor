@@ -40,9 +40,9 @@
         <div class="pg-roster-actions pg-task-actions">
             <span class="pg-drag sortable-grab" title="Drag to reorder">⠿</span>
             <FluentButton Appearance="ButtonAppearance.Default" Title="Move up"
-                Disabled="@(Index == 0)" @onclick="() => MoveTask(-1)">↑</FluentButton>
+                Disabled="@(!CanMoveUp)" @onclick="() => MoveTask(-1)">↑</FluentButton>
             <FluentButton Appearance="ButtonAppearance.Default" Title="Move down"
-                Disabled="@(Index == Session.Observable.Tasks.Count - 1)"
+                Disabled="@(!CanMoveDown)"
                 @onclick="() => MoveTask(1)">↓</FluentButton>
             <FluentButton Appearance="ButtonAppearance.Default" Title="Remove"
                 @onclick="RemoveTask">✕</FluentButton>
@@ -62,13 +62,22 @@
     [Parameter, EditorRequired]
     public SparseCollectionItemState RowState { get; set; }
 
+    /// <summary>Gets or sets whether the row can move up in the parent-captured order.</summary>
+    /// <remarks>Display only: callbacks resolve the live target by key.</remarks>
+    [Parameter]
+    public bool CanMoveUp { get; set; }
+
+    /// <summary>Gets or sets whether the row can move down in the parent-captured order.</summary>
+    /// <remarks>Display only: callbacks resolve the live target by key.</remarks>
+    [Parameter]
+    public bool CanMoveDown { get; set; }
+
     [Parameter]
     public EventCallback<string?> OnError { get; set; }
 
     private string _idDraft = string.Empty;
     private TaskObservable? _lastTask;
     private string? _lastBoundId;
-    private int Index => Session.Observable.Tasks.IndexOf(Task);
 
     // Row highlights reuse the canonical keyed semantics instead of a
     // hand-rolled baseline map.

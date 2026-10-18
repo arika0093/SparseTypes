@@ -11,12 +11,14 @@
 <SparseField Path="Session.Paths.Tasks" Context="tasks">
     @* One collection view per render, shared by all rows: capturing the
     snapshot here diffs once, and row lookups below only probe it. Unknown
-    keys report the empty state, so stale rows render clean. *@
-    @{ var roster = tasks.TryGetCollectionState(out var view) ? view : null; }
+    keys report the empty state, so stale rows render clean. Move boundaries
+    are captured once as well, so rows never scan the list per row. *@
+    @{ var roster = tasks.TryGetCollectionState(out var view) ? view : null;
+       var (firstTask, lastTask) = TaskBounds.Capture(Session.Observable.Tasks); }
     <SortableList @key="Session.Observable.Tasks.Count" Items="Session.Observable.Tasks" Handle=".pg-drag" Class="pg-roster-list"
         OnUpdate="OnSortableUpdate" Context="task">
         <SortableItemTemplate>
-            <TaskRow @key="task.Id" Task="task" Session="Session" RowState="roster?.GetItemState(task.Id) ?? default" OnError="SetTaskError" />
+            <TaskRow @key="task.Id" Task="task" Session="Session" RowState="roster?.GetItemState(task.Id) ?? default" CanMoveUp="TaskBounds.CanMoveUp(firstTask, task)" CanMoveDown="TaskBounds.CanMoveDown(lastTask, task)" OnError="SetTaskError" />
         </SortableItemTemplate>
     </SortableList>
 </SparseField>
