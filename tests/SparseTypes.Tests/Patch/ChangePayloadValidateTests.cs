@@ -450,4 +450,152 @@ public sealed class ChangePayloadValidateTests
         updated.ShouldBeNull();
         result.HasConflicts.ShouldBeTrue();
     }
+
+    [Test]
+    public void EndpointInvariantMatchesTheThrownMessageWithoutThrowing()
+    {
+        var messages = new[]
+        {
+            (ChangePayloadState.Missing, "A missing payload endpoint must not contain a value."),
+            (ChangePayloadState.Null, "A null payload endpoint must not contain a value."),
+            (ChangePayloadState.Redacted, "A redacted payload endpoint must not contain a value."),
+        };
+        foreach (var (state, expected) in messages)
+        {
+            var endpoint = new ChangePayloadEndpoint<string> { State = state, Value = "kept" };
+            endpoint.GetInvariantError().ShouldBe(expected);
+            var thrown = Should.Throw<InvalidOperationException>(() => endpoint.Validate());
+            thrown.Message.ShouldBe(expected);
+        }
+
+        // Default values stay allowed for value-free states and a value
+        // state has no invariant violation, on either path.
+        foreach (
+            var state in new[]
+            {
+                ChangePayloadState.Missing,
+                ChangePayloadState.Null,
+                ChangePayloadState.Redacted,
+            }
+        )
+        {
+            var scalar = new ChangePayloadEndpoint<int> { State = state };
+            scalar.GetInvariantError().ShouldBeNull();
+            scalar.Validate();
+        }
+        var valued = new ChangePayloadEndpoint<int> { State = ChangePayloadState.Value, Value = 3 };
+        valued.GetInvariantError().ShouldBeNull();
+
+        var nullEndpoint = new ChangePayloadEndpoint<string?>
+        {
+            State = ChangePayloadState.Missing,
+        };
+        nullEndpoint.GetInvariantError().ShouldBeNull();
+    }
+
+    [Test]
+    public void ItemEndpointErrorsKeepOrderAndShortCircuitItemChecks()
+    {
+        // Both endpoints of the same keyed item smuggle values: exactly two
+        // endpoint errors in before-then-after order, and the per-item redaction
+        // check disappears because the short-circuit already moved on.
+        var payload = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"edit","beforeIndex":0,"afterIndex":0,"before":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}},"after":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}]}"""
+        )!;
+
+        var result = payload.Validate();
+
+        result.IsValid.ShouldBeFalse();
+        result
+            .Errors.Select(static error => error.Kind)
+            .ShouldBe([ChangePayloadValidationKind.Endpoint, ChangePayloadValidationKind.Endpoint]);
+        result
+            .Errors.Select(static error => error.Message)
+            .ShouldBe([
+                "A redacted payload endpoint must not contain a value.",
+                "A redacted payload endpoint must not contain a value.",
+            ]);
+        result.Errors.ShouldAllBe(static error => error.Path == "Items");
+
+        // A null before-endpoint object skips the invariant exactly like the
+        // previous null-conditional Validate; the edit lifecycle still fails
+        // its item-shape check afterwards.
+        var nullBefore = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"edit","beforeIndex":0,"afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}]}"""
+        )!;
+        var nullBeforeResult = nullBefore.Validate();
+        nullBeforeResult.IsValid.ShouldBeFalse();
+        nullBeforeResult.Errors.ShouldContain(static error => error.Path == "Items[a]");
+        nullBeforeResult.Errors.ShouldContain(static error =>
+            error.Kind == ChangePayloadValidationKind.Item
+        );
+    }
+
+    [Test]
+    public void WholeRootEndpointErrorsKeepOrderAndShortCircuitConversion()
+    {
+        var payload = JsonSerializer.Deserialize<Nested.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}},"after":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}}}]}"""
+        )!;
+
+        var result = payload.Validate();
+
+        result.IsValid.ShouldBeFalse();
+        result
+            .Errors.Select(static error => error.Kind)
+            .ShouldBe([ChangePayloadValidationKind.Endpoint, ChangePayloadValidationKind.Endpoint]);
+        result.Errors.Select(static error => error.Path).ShouldBe(["$root", "$root"]);
+    }
+
+    [Test]
+    public void MalformedBatchValidationAllocatesFewerExceptionsThanThrown()
+    {
+        // A batch with many value-free violations must collect ordinary
+        // validation records without one throw/catch cycle per endpoint.
+        var changesJson = string.Join(
+                "",
+                Enumerable
+                    .Range(0, 64)
+                    .Select(static index =>
+                        """{"member":"Label","before":{"state":"redacted","value":"v"},"after":{"state":"value","value":"xN"}}""".Replace(
+                            "xN",
+                            "x" + index
+                        )
+                    )
+            )
+            .Replace("}{", "},{");
+        var payload = JsonSerializer.Deserialize<Settings.ChangePayload>(
+            """{"version":"0.1","changes":[""" + changesJson + """]}"""
+        )!;
+        payload.Validate().IsValid.ShouldBeFalse();
+
+        var baseline = MeasureAllocations(() =>
+        {
+            for (var i = 0; i < 64; i++)
+            {
+                try
+                {
+                    throw new InvalidOperationException();
+                }
+                catch (InvalidOperationException)
+                {
+                    // One exception storm per endpoint: the previous shape.
+                }
+            }
+        });
+        var validated = MeasureAllocations(() => payload.Validate());
+
+        validated.ShouldBeGreaterThan(0);
+        validated.ShouldBeLessThan(baseline);
+    }
+
+    private static long MeasureAllocations(System.Action action)
+    {
+        System.GC.Collect();
+        System.GC.WaitForPendingFinalizers();
+        System.GC.Collect();
+        var before = System.GC.GetAllocatedBytesForCurrentThread();
+        action();
+        return System.GC.GetAllocatedBytesForCurrentThread() - before;
+    }
 }

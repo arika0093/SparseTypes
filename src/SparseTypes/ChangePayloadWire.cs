@@ -52,6 +52,80 @@ public static class ChangePayloadWire
     /// <summary>The <c>reorder</c> item kind token.</summary>
     public const string ReorderKind = "reorder";
 
+    /// <summary>Returns the UTF-8 form of the endpoint state envelope name.</summary>
+    /// <remarks>
+    /// The string constants stay the single vocabulary source: this cached
+    /// byte form exists so generated reader dispatch can compare without
+    /// materializing name strings.
+    /// </remarks>
+    /// <returns>The lower-case state property name encoded as UTF-8.</returns>
+    public static System.ReadOnlySpan<byte> StatePropertyUtf8() => Utf8StateProperty;
+
+    /// <summary>Returns the UTF-8 form of the endpoint value envelope name.</summary>
+    /// <remarks>See <see cref="StatePropertyUtf8"/> for the single-source rule.</remarks>
+    /// <returns>The lower-case value property name encoded as UTF-8.</returns>
+    public static System.ReadOnlySpan<byte> ValuePropertyUtf8() => Utf8ValueProperty;
+
+    /// <summary>Returns the UTF-8 form of the wire token for an endpoint state.</summary>
+    /// <remarks>The candidate enumeration mirrors <see cref="TryParseState"/>.</remarks>
+    /// <param name="state">The endpoint state.</param>
+    /// <returns>The lower-case state token encoded as UTF-8.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">An undefined state value.</exception>
+    public static System.ReadOnlySpan<byte> StateTokenUtf8(ChangePayloadState state) =>
+        state switch
+        {
+            ChangePayloadState.Missing => Utf8MissingState,
+            ChangePayloadState.Null => Utf8NullState,
+            ChangePayloadState.Value => Utf8ValueState,
+            ChangePayloadState.Redacted => Utf8RedactedState,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(state), state, null),
+        };
+
+    /// <summary>Returns the UTF-8 form of the wire token for an item kind.</summary>
+    /// <remarks>The candidate enumeration mirrors <see cref="TryParseKind"/>.</remarks>
+    /// <param name="kind">The item kind.</param>
+    /// <returns>The lower-case kind token encoded as UTF-8.</returns>
+    /// <exception cref="System.ArgumentOutOfRangeException">An undefined kind value.</exception>
+    public static System.ReadOnlySpan<byte> KindTokenUtf8(ChangePayloadItemKind kind) =>
+        kind switch
+        {
+            ChangePayloadItemKind.Add => Utf8AddKind,
+            ChangePayloadItemKind.Remove => Utf8RemoveKind,
+            ChangePayloadItemKind.Edit => Utf8EditKind,
+            ChangePayloadItemKind.Reorder => Utf8ReorderKind,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
+        };
+
+    private static readonly byte[] Utf8StateProperty = System.Text.Encoding.UTF8.GetBytes(
+        StateProperty
+    );
+
+    private static readonly byte[] Utf8ValueProperty = System.Text.Encoding.UTF8.GetBytes(
+        ValueProperty
+    );
+
+    private static readonly byte[] Utf8MissingState = System.Text.Encoding.UTF8.GetBytes(
+        MissingState
+    );
+
+    private static readonly byte[] Utf8NullState = System.Text.Encoding.UTF8.GetBytes(NullState);
+
+    private static readonly byte[] Utf8ValueState = System.Text.Encoding.UTF8.GetBytes(ValueState);
+
+    private static readonly byte[] Utf8RedactedState = System.Text.Encoding.UTF8.GetBytes(
+        RedactedState
+    );
+
+    private static readonly byte[] Utf8AddKind = System.Text.Encoding.UTF8.GetBytes(AddKind);
+
+    private static readonly byte[] Utf8RemoveKind = System.Text.Encoding.UTF8.GetBytes(RemoveKind);
+
+    private static readonly byte[] Utf8EditKind = System.Text.Encoding.UTF8.GetBytes(EditKind);
+
+    private static readonly byte[] Utf8ReorderKind = System.Text.Encoding.UTF8.GetBytes(
+        ReorderKind
+    );
+
     /// <summary>Maps an endpoint state to its wire token.</summary>
     /// <param name="state">The state to map.</param>
     /// <returns>The lower-case wire token.</returns>

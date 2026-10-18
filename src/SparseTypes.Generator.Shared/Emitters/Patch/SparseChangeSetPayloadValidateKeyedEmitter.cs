@@ -52,7 +52,6 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             7,
             "item.Before",
             path,
-            runtime,
             error,
             kind,
             "errors",
@@ -63,7 +62,6 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             7,
             "item.After",
             path,
-            runtime,
             error,
             kind,
             "errors",
@@ -299,37 +297,43 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         // Value-free endpoints must not smuggle values; reuse the endpoint
         // check so validation and conversion cannot disagree.
         code.AppendLineAt(7, "bool __validateItemEndpointBad" + id + " = false;");
-        code.AppendLineAt(7, "try { changeItem.Before?.Validate(); }");
         code.AppendLineAt(
             7,
-            "catch (global::System.InvalidOperationException __validateItemBeforeEx"
+            "var __validateItemBeforeMsg" + id + " = changeItem.Before?.GetInvariantError();"
+        );
+        code.AppendLineAt(
+            7,
+            "if (__validateItemBeforeMsg"
                 + id
-                + ") { errors.Add(new "
+                + " is not null) { errors.Add(new "
                 + error
                 + " { Kind = "
                 + kind
                 + ".Endpoint, Path = "
                 + path
-                + ", Message = __validateItemBeforeEx"
+                + ", Message = __validateItemBeforeMsg"
                 + id
-                + ".Message }); __validateItemEndpointBad"
+                + " }); __validateItemEndpointBad"
                 + id
                 + " = true; }"
         );
-        code.AppendLineAt(7, "try { changeItem.After?.Validate(); }");
         code.AppendLineAt(
             7,
-            "catch (global::System.InvalidOperationException __validateItemAfterEx"
+            "var __validateItemAfterMsg" + id + " = changeItem.After?.GetInvariantError();"
+        );
+        code.AppendLineAt(
+            7,
+            "if (__validateItemAfterMsg"
                 + id
-                + ") { errors.Add(new "
+                + " is not null) { errors.Add(new "
                 + error
                 + " { Kind = "
                 + kind
                 + ".Endpoint, Path = "
                 + path
-                + ", Message = __validateItemAfterEx"
+                + ", Message = __validateItemAfterMsg"
                 + id
-                + ".Message }); __validateItemEndpointBad"
+                + " }); __validateItemEndpointBad"
                 + id
                 + " = true; }"
         );

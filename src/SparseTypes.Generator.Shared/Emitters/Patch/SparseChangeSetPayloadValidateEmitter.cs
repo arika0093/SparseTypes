@@ -176,7 +176,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
             4,
             "whole.Before",
             rootPath,
-            runtime,
             error,
             kind,
             "errors",
@@ -187,7 +186,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
             4,
             "whole.After",
             rootPath,
-            runtime,
             error,
             kind,
             "errors",
@@ -370,14 +368,13 @@ internal static class SparseChangeSetPayloadValidateEmitter
             code.AppendLineAt(6, "break;");
             return;
         }
-        AppendScalarValidate(code, member, path, runtime, error, kind);
+        AppendScalarValidate(code, member, path, error, kind);
     }
 
     private static void AppendScalarValidate(
         SharedIndentedBuilder code,
         SparseMemberModel member,
         string path,
-        string runtime,
         string error,
         string kind
     )
@@ -398,7 +395,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
             6,
             "item.Before",
             path,
-            runtime,
             error,
             kind,
             "errors",
@@ -409,7 +405,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
             6,
             "item.After",
             path,
-            runtime,
             error,
             kind,
             "errors",
@@ -474,21 +469,21 @@ internal static class SparseChangeSetPayloadValidateEmitter
         int indent,
         string target,
         string path,
-        string runtime,
         string error,
         string kind,
         string errorsVar,
         string badFlag
     )
     {
-        _ = runtime;
         code.AppendLineAt(indent, "bool " + badFlag + " = false;");
-        code.AppendLineAt(indent, "try { " + target + ".Validate(); }");
+        // The non-throwing endpoint invariant matches the throwing Validate
+        // without constructing an exception per malformed value-free endpoint.
+        code.AppendLineAt(indent, "var " + badFlag + "Msg = " + target + ".GetInvariantError();");
         code.AppendLineAt(
             indent,
-            "catch (global::System.InvalidOperationException "
+            "if ("
                 + badFlag
-                + "Ex) { "
+                + "Msg is not null) { "
                 + errorsVar
                 + ".Add(new "
                 + error
@@ -498,7 +493,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + path
                 + ", Message = "
                 + badFlag
-                + "Ex.Message }); "
+                + "Msg }); "
                 + badFlag
                 + " = true; }"
         );

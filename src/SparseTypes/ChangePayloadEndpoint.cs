@@ -43,6 +43,26 @@ public sealed class ChangePayloadEndpoint<T>
     /// </exception>
     public void Validate()
     {
+        var error = GetInvariantError();
+        if (error is not null)
+            throw new System.InvalidOperationException(error);
+    }
+
+    /// <summary>Returns the value-free invariant outcome without throwing.</summary>
+    /// <remarks>
+    /// The non-throwing core of <see cref="Validate"/>: invalid input is an
+    /// expected result for generated batch validation, so message strings are
+    /// built only on the failing path and stay byte-identical to the thrown
+    /// message. Default value-type values remain allowed for value-free
+    /// states; broader enum/state legality still lives with the aggregate
+    /// validation and conversion layers.
+    /// </remarks>
+    /// <returns>
+    /// The message <see cref="Validate"/> would throw for a value-free
+    /// endpoint that carries a value, or null when the endpoint is valid.
+    /// </returns>
+    public string? GetInvariantError()
+    {
         // Null for reference types and zero for value types, matching what
         // Redacted() and deserialization of a value-free envelope produce.
         if (
@@ -53,21 +73,17 @@ public sealed class ChangePayloadEndpoint<T>
             switch (State)
             {
                 case ChangePayloadState.Missing:
-                    throw new InvalidOperationException(
-                        "A missing payload endpoint must not contain a value."
-                    );
+                    return "A missing payload endpoint must not contain a value.";
                 case ChangePayloadState.Null:
-                    throw new InvalidOperationException(
-                        "A null payload endpoint must not contain a value."
-                    );
+                    return "A null payload endpoint must not contain a value.";
                 case ChangePayloadState.Redacted:
-                    throw new InvalidOperationException(
-                        "A redacted payload endpoint must not contain a value."
-                    );
+                    return "A redacted payload endpoint must not contain a value.";
                 default:
                     break;
             }
         }
+
+        return null;
     }
 
     /// <summary>Converts this endpoint to an optional value.</summary>

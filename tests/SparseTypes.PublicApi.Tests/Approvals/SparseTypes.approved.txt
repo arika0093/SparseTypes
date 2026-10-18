@@ -7,6 +7,7 @@ namespace SparseTypes
         public bool IsRedacted { get; }
         public SparseTypes.ChangePayloadState State { get; set; }
         public T Value { get; set; }
+        public string? GetInvariantError() { }
         public SparseTypes.Optional<T> ToOptional() { }
         public void Validate() { }
         public static SparseTypes.ChangePayloadEndpoint<T> FromOptional(SparseTypes.Optional<T> value) { }
@@ -75,10 +76,14 @@ namespace SparseTypes
         public const string ValueState = "value";
         public const string Version = "0.1";
         public const string VersionProperty = "version";
+        public static System.ReadOnlySpan<byte> KindTokenUtf8(SparseTypes.ChangePayloadItemKind kind) { }
+        public static System.ReadOnlySpan<byte> StatePropertyUtf8() { }
+        public static System.ReadOnlySpan<byte> StateTokenUtf8(SparseTypes.ChangePayloadState state) { }
         public static string ToToken(SparseTypes.ChangePayloadItemKind kind) { }
         public static string ToToken(SparseTypes.ChangePayloadState state) { }
         public static bool TryParseKind(string? token, out SparseTypes.ChangePayloadItemKind kind) { }
         public static bool TryParseState(string? token, out SparseTypes.ChangePayloadState state) { }
+        public static System.ReadOnlySpan<byte> ValuePropertyUtf8() { }
     }
     public sealed class EditHistoryOptions
     {
