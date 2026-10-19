@@ -412,6 +412,8 @@ public sealed class StjOptionalGenerationTests
     public void WithStj_EmitsVersion1Bridge()
     {
         var compilation = CreateCompilation(includeStj: true);
+        SparsePayloadJsonResolverCapabilityDetector.FindMissingApi(compilation).ShouldBeNull();
+        SparseStjCapabilityDetector.Probe(compilation).SupportsPayloadJsonResolver.ShouldBeTrue();
         var sources = Run(compilation);
         var merged = string.Concat(sources.Values);
 
@@ -419,6 +421,7 @@ public sealed class StjOptionalGenerationTests
         merged.ShouldContain("ChangePayloadItemKindJsonConverter");
         merged.ShouldContain("JsonPolymorphic");
         merged.ShouldContain("JsonUnmappedMemberHandling");
+        merged.ShouldContain("PayloadJsonConverter");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -435,11 +438,13 @@ public sealed class StjOptionalGenerationTests
                 includeTypeInfoLookup: true
             )
         );
+        SparseStjCapabilityDetector.Probe(compilation).SupportsPayloadJsonResolver.ShouldBeFalse();
         var sources = Run(compilation);
         var merged = string.Concat(sources.Values);
 
         merged.ShouldContain("ChangePayloadEndpointJsonConverter");
         merged.ShouldContain("ChangePayloadItemKindJsonConverter");
+        merged.ShouldNotContain("public sealed class PayloadJsonConverter");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }

@@ -12,7 +12,8 @@ internal readonly record struct SparseStjCapabilities(
     bool HasUnmappedMemberHandling,
     bool HasJsonConverter,
     bool HasUtf8JsonReaderWriter,
-    bool HasJsonTypeInfo
+    bool HasJsonTypeInfo,
+    bool HasPayloadJsonResolver
 )
 {
     /// <summary>Full surface: every probe succeeded.</summary>
@@ -27,7 +28,8 @@ internal readonly record struct SparseStjCapabilities(
             HasUnmappedMemberHandling: true,
             HasJsonConverter: true,
             HasUtf8JsonReaderWriter: true,
-            HasJsonTypeInfo: true
+            HasJsonTypeInfo: true,
+            HasPayloadJsonResolver: true
         );
 
     /// <summary>No surface: no System.Text.Json reference.</summary>
@@ -46,6 +48,9 @@ internal readonly record struct SparseStjCapabilities(
         && HasJsonConverter
         && HasUtf8JsonReaderWriter
         && HasJsonTypeInfo;
+
+    /// <summary>Whether the trim-safe per-model payload JSON resolver can be emitted.</summary>
+    public bool SupportsPayloadJsonResolver => SupportsV1Wire && HasPayloadJsonResolver;
 
     /// <summary>Names the v1-required surface missing from this snapshot.</summary>
     /// <remarks>Used for the actionable partial-surface diagnostic.</remarks>

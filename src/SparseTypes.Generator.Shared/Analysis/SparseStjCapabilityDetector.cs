@@ -66,11 +66,18 @@ internal static class SparseStjCapabilityDetector
             HasUnmappedMemberHandling: HasUnmappedMemberHandling(compilation),
             HasJsonConverter: HasJsonConverter(compilation, converter),
             HasUtf8JsonReaderWriter: HasUtf8Surface(compilation, reader, writer, options),
-            HasJsonTypeInfo: hasTypeInfo
+            HasJsonTypeInfo: hasTypeInfo,
+            HasPayloadJsonResolver: SparsePayloadJsonResolverCapabilityDetector.Probe(
+                compilation,
+                reader,
+                writer,
+                options,
+                genericTypeInfo
+            )
         );
     }
 
-    private static INamedTypeSymbol? SafeGet(Compilation compilation, string metadataName)
+    internal static INamedTypeSymbol? SafeGet(Compilation compilation, string metadataName)
     {
         try
         {
@@ -519,7 +526,7 @@ internal static class SparseStjCapabilityDetector
         return hasGenericDeserialize && hasGenericSerialize && hasDeserialize && hasSerialize;
     }
 
-    private static bool HasInstanceProperty(
+    internal static bool HasInstanceProperty(
         INamedTypeSymbol type,
         string name,
         ITypeSymbol propertyType,
@@ -534,6 +541,29 @@ internal static class SparseStjCapabilityDetector
                 && property.Parameters.Length == 0
                 && property.GetMethod is not null
                 && property.GetMethod.IsAccessibleTo(compilation)
+                && SymbolEqualityComparer.Default.Equals(property.Type, propertyType)
+            )
+                return true;
+        }
+
+        return false;
+    }
+
+    internal static bool HasWritableInstanceProperty(
+        INamedTypeSymbol type,
+        string name,
+        ITypeSymbol propertyType,
+        Compilation compilation
+    )
+    {
+        foreach (var member in type.GetMembers(name))
+        {
+            if (
+                member is IPropertySymbol property
+                && !property.IsStatic
+                && property.Parameters.Length == 0
+                && property.SetMethod is not null
+                && property.SetMethod.IsAccessibleTo(compilation)
                 && SymbolEqualityComparer.Default.Equals(property.Type, propertyType)
             )
                 return true;
@@ -565,7 +595,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool HasInstanceMethod(
+    internal static bool HasInstanceMethod(
         INamedTypeSymbol type,
         string name,
         ITypeSymbol returnType,
@@ -589,7 +619,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool HasConstructor(
+    internal static bool HasConstructor(
         INamedTypeSymbol type,
         Compilation compilation,
         ITypeSymbol[] parameterTypes
@@ -624,7 +654,7 @@ internal static class SparseStjCapabilityDetector
         return true;
     }
 
-    private static bool ParameterMatches(
+    internal static bool ParameterMatches(
         IParameterSymbol parameter,
         ITypeSymbol? type,
         RefKind refKind
@@ -633,7 +663,7 @@ internal static class SparseStjCapabilityDetector
         && parameter.RefKind == refKind
         && SymbolEqualityComparer.Default.Equals(parameter.Type, type);
 
-    private static bool IsUsableMethod(
+    internal static bool IsUsableMethod(
         IMethodSymbol method,
         Compilation compilation,
         bool isStatic,
@@ -666,7 +696,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool HasEnumMember(
+    internal static bool HasEnumMember(
         INamedTypeSymbol enumType,
         string name,
         Compilation compilation
@@ -696,7 +726,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool IsAccessibleTo(this ISymbol symbol, Compilation compilation)
+    internal static bool IsAccessibleTo(this ISymbol symbol, Compilation compilation)
     {
         try
         {

@@ -7,7 +7,7 @@ internal sealed record PayloadJsonEmissionContext(
     string ModelType,
     string? ImplementationNamespace,
     string Runtime,
-    string Container,
+    string ContainerAlias,
     string ConverterName,
     string ResolverName,
     string RootDiscriminator
@@ -21,12 +21,16 @@ internal sealed record PayloadJsonEmissionContext(
         string? implementationNamespace
     )
     {
-        if (!dialect.EmitJson || modelType is null)
+        if (
+            !dialect.EmitJson
+            || !dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
+            || modelType is null
+        )
             return null;
         var runtime = dialect.RuntimeNamespace;
-        var container = SparseGeneratedPlacement.QualifyPayloadContainer(
-            SparseChangeSetPayloadEmitter.RequirePayloadContainerName(dialect, modelType),
-            implementationNamespace
+        var containerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
+            dialect,
+            modelType
         );
         return new PayloadJsonEmissionContext(
             members,
@@ -34,7 +38,7 @@ internal sealed record PayloadJsonEmissionContext(
             modelType,
             implementationNamespace,
             runtime,
-            container,
+            containerAlias,
             "PayloadJsonConverter",
             "PayloadJson",
             RootDiscriminatorFor(members)
@@ -61,11 +65,13 @@ internal sealed record PayloadJsonEmissionContext(
 
     /// <summary>Qualified DTO type for the current model.</summary>
     public string Dto(string suffix) =>
-        Container + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
+        ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
 
     /// <summary>Qualified member DTO type for the current model.</summary>
     public string MemberDto(string suffix, int id) =>
-        Container + "." + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
+        ContainerAlias
+        + "."
+        + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
 
     /// <summary>Qualified child DTO type.</summary>
     public string ChildDto(string childModel, string suffix) =>
