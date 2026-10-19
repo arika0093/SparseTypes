@@ -280,6 +280,142 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeAddOnlyPreservesSequentialAdditionState()
+    {
+        var before = KF(Server("a"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Add(Server("b", "first"));
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("c", "second"));
+
+        var composed = first.Compose(next);
+        (composed.Items.__added ?? []).Select(static item => item.Id).ShouldBe(["b", "c"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
+    public void ComposeAddThenRemoveCancelsAssignedElement()
+    {
+        var before = KF(Server("a", "old-a"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Add(Server("b", "first-b"));
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("b");
+
+        var composed = first.Compose(next);
+        composed.IsEmpty.ShouldBeTrue();
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
+    public void ComposeRemoveThenAddOverlappingKeyAsReplacement()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("a");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("a", "new-a"));
+
+        var composed = first.Compose(next);
+        // The composed representation replaces the existing key in place; it
+        // has no baseline-wide order to encode an intermediate move to end.
+        KeyedModel(composed.Apply(before)).ShouldBe([("a", "new-a"), ("b", "old-b")]);
+    }
+
+    [Test]
+    public void ComposeMultipleRemoveThenAddOperationsAsReplacement()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"), Server("c", "old-c"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("a");
+        first.Items.Remove("b");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("a", "new-a"));
+        next.Items.Add(Server("d", "new-d"));
+
+        var composed = first.Compose(next);
+        KeyedModel(composed.Apply(before))
+            .ShouldBe([("a", "new-a"), ("c", "old-c"), ("d", "new-d")]);
+    }
+
+    [Test]
+    public void ComposeRemoveOnlyPreservesFirstOccurrenceOrder()
+    {
+        var before = KF(Server("a"), Server("b"), Server("c"), Server("d"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("b");
+        first.Items.Remove("a");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("a");
+        next.Items.Remove("c");
+
+        var composed = first.Compose(next);
+        (composed.Items.__removed ?? []).ShouldBe(["b", "a", "c"]);
+        KeyedModel(composed.Apply(before)).Select(static item => item.Id).ShouldBe(["d"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
+    public void ComposeOrderOnlyCopiesTheWinningOrder()
+    {
+        var before = KF(Server("a"), Server("b"), Server("c"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.SetOrder(["b", "a", "c"]);
+        var next = new KeyedServerHolder.Patch();
+        next.Items.SetOrder(["c", "b", "a"]);
+
+        var composed = first.Compose(next);
+        (composed.Items.__order ?? []).ShouldBe(["c", "b", "a"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+        composed.Items.__order![0] = "a";
+        (next.Items.__order ?? []).ShouldBe(["c", "b", "a"]);
+    }
+
+    [Test]
+    public void ComposeEditThenRemoveDropsTheEdit()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Edit("a").Name = "updated-a";
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("a");
+
+        var composed = first.Compose(next);
+        (composed.Items.__removed ?? []).ShouldBe(["a"]);
+        KeyedModel(composed.Apply(before)).Select(static item => item.Id).ShouldBe(["b"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
+    public void ComposeEditOnlyPreservesSequentialEdits()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Edit("a").Name = "first-a";
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Edit("a").Name = "next-a";
+        next.Items.Edit("b").Name = "next-b";
+
+        var composed = first.Compose(next);
+        KeyedModel(composed.Apply(before)).ShouldBe([("a", "next-a"), ("b", "next-b")]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
+    public void ComposeEditOfAddedElementPreservesSequentialState()
+    {
+        var before = KF(Server("a", "old-a"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Add(Server("b", "first-b"));
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Edit("b").Name = "next-b";
+
+        var composed = first.Compose(next);
+        KeyedModel(composed.Apply(before)).ShouldBe([("a", "old-a"), ("b", "next-b")]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeRemovalFilteringUsesDefaultKeyEquality()
     {
         // The configured key comparer is EqualityComparer<T>.Default at every

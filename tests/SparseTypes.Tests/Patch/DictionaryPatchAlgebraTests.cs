@@ -179,6 +179,40 @@ public sealed class DictionaryPatchAlgebraTests
     }
 
     [Test]
+    public void NestedCompose_OverlappingSetAndRemovalPreservesSequentialState()
+    {
+        var basis = StructuralMap(("web", "s1", "Old"));
+
+        var setFirst = new StructuralDictHolder.Patch.ServersPatch();
+        setFirst.SetEntry("web", new KeyedServer { Id = "s2", Name = "Replacement" });
+        var removeNext = new StructuralDictHolder.Patch.ServersPatch();
+        removeNext.RemoveEntry("web");
+        var setThenRemove = setFirst.Compose(removeNext);
+        var setThenRemoveResult = setThenRemove.Apply(basis).Value!;
+        setThenRemoveResult.Count.ShouldBe(0);
+        StructuralDictHolder
+            .Patch.ServersPatch.Between(
+                Optional<Dictionary<string, KeyedServer>>.Present(setThenRemoveResult),
+                removeNext.Apply(setFirst.Apply(basis))
+            )
+            .IsEmpty.ShouldBeTrue();
+
+        var removeFirst = new StructuralDictHolder.Patch.ServersPatch();
+        removeFirst.RemoveEntry("web");
+        var setNext = new StructuralDictHolder.Patch.ServersPatch();
+        setNext.SetEntry("web", new KeyedServer { Id = "s2", Name = "Replacement" });
+        var removeThenSet = removeFirst.Compose(setNext);
+        var removeThenSetResult = removeThenSet.Apply(basis).Value!;
+        removeThenSetResult["web"].Name.ShouldBe("Replacement");
+        StructuralDictHolder
+            .Patch.ServersPatch.Between(
+                Optional<Dictionary<string, KeyedServer>>.Present(removeThenSetResult),
+                setNext.Apply(removeFirst.Apply(basis))
+            )
+            .IsEmpty.ShouldBeTrue();
+    }
+
+    [Test]
     public void NestedCompose_FiltersFirstEditsAgainstFollowingRemovals()
     {
         var basis = StructuralMap(("web", "s1", "Old"), ("db", "s2", "Db"));

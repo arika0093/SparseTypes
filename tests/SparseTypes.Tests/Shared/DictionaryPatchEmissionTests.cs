@@ -119,7 +119,7 @@ public sealed class DictionaryPatchEmissionTests
     private static string EmitCompose(SparseMemberModel member, bool hasPatch)
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryAlgebraEmitter.EmitDictionaryCompose(
+        SparseDictionaryComposeEmitter.EmitDictionaryCompose(
             code,
             member,
             "ValuesPatch",
@@ -138,7 +138,7 @@ public sealed class DictionaryPatchEmissionTests
     private static string EmitRebase(SparseMemberModel member, bool hasPatch)
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryAlgebraEmitter.EmitDictionaryRebase(
+        SparseDictionaryRebaseEmitter.EmitDictionaryRebase(
             code,
             member,
             "ValuesPatch",
@@ -171,7 +171,7 @@ public sealed class DictionaryPatchEmissionTests
         );
         // Next removals still drop composed set entries.
         text.ShouldContain(
-            "if (next.__removed is not null) foreach (var k in next.__removed) set.Remove(k);"
+            "if (next.__removed is not null && set is not null) foreach (var k in next.__removed) set.Remove(k);"
         );
     }
 

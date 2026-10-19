@@ -101,9 +101,65 @@ internal static class SparseKeyedSequenceComposeEmitter
         code.AppendLineAt(5, "result.__whole = " + operation + ".Set(applied.Value!);");
         code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
+        code.AppendLineAt(
+            4,
+            "if (" + (split is null ? "this" : "self") + ".IsEmpty && next.IsEmpty) return result;"
+        );
         // Granular + granular: merge key operation logs preserving sequential
         // semantics. Added keys.
         var hasTempPatchCompose = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
+        if (!hasTempPatchCompose && !SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedAddThenRemoveCancellationFastPath(
+                code,
+                comparer,
+                member
+            );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedRemoveThenAddFastPath(
+                code,
+                keyType,
+                elementType
+            );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedOrderOnlyComposeFastPath(
+                code,
+                keyType
+            );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedEditThenRemoveFastPath(
+                code,
+                keyType,
+                comparer
+            );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedAddOnlyComposeFastPath(
+                code,
+                keyType,
+                elementType,
+                comparer,
+                member
+            );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedRemoveOnlyComposeFastPath(
+                code,
+                keyType,
+                comparer
+            );
+            if (hasPatch)
+            {
+                SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedAddedThenEditedComposeFastPath(
+                    code,
+                    keyType,
+                    elementType,
+                    comparer,
+                    member,
+                    runtime
+                );
+                SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedEditOnlyComposeFastPath(
+                    code,
+                    keyType,
+                    comparer,
+                    member
+                );
+            }
+        }
+
         if (hasTempPatchCompose)
         {
             SparseKeyedSequenceTempPatchMergeEmitter.AppendThisTempPartition(

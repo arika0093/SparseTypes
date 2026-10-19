@@ -72,12 +72,12 @@ internal static class SparsePayloadJsonConverterEmitter
             4,
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"version\"u8))");
+        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"version\"))");
         code.AppendLineAt(
             5,
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); }"
         );
-        code.AppendLineAt(4, "else if (reader.ValueTextEquals(\"changes\"u8))");
+        code.AppendLineAt(4, "else if (reader.ValueTextEquals(\"changes\"))");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
@@ -160,7 +160,7 @@ internal static class SparsePayloadJsonConverterEmitter
             4,
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed core.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"changes\"u8))");
+        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"changes\"))");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
@@ -246,7 +246,7 @@ internal static class SparsePayloadJsonConverterEmitter
             4,
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed root.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"members\"u8))");
+        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"members\"))");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
@@ -322,12 +322,41 @@ internal static class SparsePayloadJsonConverterEmitter
             3,
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A change must be an object.\");"
         );
+        code.AppendLineAt(3, "var lookahead = reader;");
+        code.AppendLineAt(3, "string? member = null;");
+        code.AppendLineAt(3, "var hasMember = false;");
+        code.AppendLineAt(3, "var hasEndObject = false;");
+        code.AppendLineAt(3, "while (lookahead.Read())");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(
+            4,
+            "if (lookahead.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { hasEndObject = true; break; }"
+        );
+        code.AppendLineAt(
+            4,
+            "if (lookahead.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { lookahead.Skip(); continue; }"
+        );
+        code.AppendLineAt(4, "var isMember = lookahead.ValueTextEquals(\"member\");");
+        code.AppendLineAt(4, "if (!lookahead.Read()) break;");
+        code.AppendLineAt(4, "if (isMember)");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(5, "hasMember = true;");
+        code.AppendLineAt(
+            5,
+            "member = lookahead.TokenType == global::System.Text.Json.JsonTokenType.String ? lookahead.GetString() : null;"
+        );
+        code.AppendLineAt(4, "}");
+        code.AppendLineAt(4, "lookahead.Skip();");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(
+            3,
+            "if (hasEndObject && hasMember) return ReadDispatchedChange(ref reader, options, member);"
+        );
         code.AppendLineAt(
             3,
             "using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);"
         );
         code.AppendLineAt(3, "var element = document.RootElement;");
-        code.AppendLineAt(3, "string? member = null;");
         code.AppendLineAt(
             3,
             "if (element.TryGetProperty(\"member\", out var discriminator) && discriminator.ValueKind == global::System.Text.Json.JsonValueKind.String) member = discriminator.GetString();"
@@ -338,11 +367,21 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLineAt(3, "var nested = new global::System.Text.Json.Utf8JsonReader(bytes);");
         code.AppendLineAt(3, "nested.Read();");
+        code.AppendLineAt(3, "return ReadDispatchedChange(ref nested, options, member);");
+        code.AppendLineAt(2, "}");
+        code.AppendLine();
+        code.AppendLineAt(
+            2,
+            "private static "
+                + change
+                + " ReadDispatchedChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? member)"
+        );
+        code.AppendLineAt(2, "{");
         code.AppendLineAt(
             3,
             "if (member == "
                 + Format(context.RootDiscriminator)
-                + ") return ReadRootChange(ref nested, options);"
+                + ") return ReadRootChange(ref reader, options);"
         );
         foreach (var member in members)
             code.AppendLineAt(
@@ -351,7 +390,7 @@ internal static class SparsePayloadJsonConverterEmitter
                     + Format(member.Property.Name)
                     + ") return ReadMember"
                     + member.Id
-                    + "(ref nested, options);"
+                    + "(ref reader, options);"
             );
         code.AppendLineAt(
             3,

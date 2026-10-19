@@ -101,9 +101,22 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns>A live-filtered snapshot of unresolved conflicts.</returns>
     public IReadOnlyList<SparseConflict> EnumerateUnresolvedConflicts()
     {
-        return Array.AsReadOnly(
-            Rebase.Conflicts.Where(conflict => _index.Nearest(conflict.Path) is null).ToArray()
-        );
+        List<SparseConflict>? unresolved = null;
+        var conflicts = Rebase.Conflicts;
+        for (var index = 0; index < conflicts.Count; index++)
+        {
+            var conflict = conflicts[index];
+            if (_index.Nearest(conflict.Path) is not null)
+            {
+                continue;
+            }
+
+            (unresolved ??= new List<SparseConflict>()).Add(conflict);
+        }
+
+        return unresolved is null
+            ? Array.Empty<SparseConflict>()
+            : Array.AsReadOnly(unresolved.ToArray());
     }
 
     /// <summary>Enumerates paths carrying an explicit decision.</summary>
@@ -302,15 +315,15 @@ public abstract class SparseRebaseResolution<TChange>
     /// <remarks>Non-mutating: neither the original change set, the input models, nor the session change.</remarks>
     public bool TryBuild(out TChange? resolved, out RebaseResolutionFailure? failure)
     {
-        var choices = new List<ResolvedChoice>();
-        var unresolved = new List<SparseConflict>();
+        List<ResolvedChoice>? choices = null;
+        List<SparseConflict>? unresolved = null;
         foreach (var conflict in Rebase.Conflicts)
         {
             var path = conflict.Path;
             var decision = _index.Nearest(path);
             if (decision is null)
             {
-                unresolved.Add(conflict);
+                (unresolved ??= new List<SparseConflict>()).Add(conflict);
                 continue;
             }
 
@@ -323,14 +336,16 @@ public abstract class SparseRebaseResolution<TChange>
                     continue;
                 }
 
-                unresolved.Add(conflict);
+                (unresolved ??= new List<SparseConflict>()).Add(conflict);
                 continue;
             }
 
-            choices.Add(new ResolvedChoice(conflict, DesiredFor(conflict, decision.Value)));
+            (choices ??= new List<ResolvedChoice>(Rebase.Conflicts.Count)).Add(
+                new ResolvedChoice(conflict, DesiredFor(conflict, decision.Value))
+            );
         }
 
-        if (unresolved.Count > 0)
+        if (unresolved is not null && unresolved.Count > 0)
         {
             resolved = default;
             failure = new RebaseResolutionFailure(
@@ -341,11 +356,14 @@ public abstract class SparseRebaseResolution<TChange>
             return false;
         }
 
-        if (!TryCreateResolved(choices, out resolved, out var failureReason))
+        IReadOnlyList<ResolvedChoice> resolvedChoices = choices is null
+            ? Array.Empty<ResolvedChoice>()
+            : choices;
+        if (!TryCreateResolved(resolvedChoices, out resolved, out var failureReason))
         {
             resolved = default;
-            var failed = new List<SparseConflict>(choices.Count);
-            foreach (var choice in choices)
+            var failed = new List<SparseConflict>(resolvedChoices.Count);
+            foreach (var choice in resolvedChoices)
             {
                 failed.Add(choice.Conflict);
             }

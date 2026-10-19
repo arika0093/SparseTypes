@@ -348,11 +348,11 @@ internal static class SparsePayloadJsonMemberEmitter
         );
         code.AppendLineAt(
             4,
-            "if (reader.ValueTextEquals(\"state\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
+            "if (reader.ValueTextEquals(\"state\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
         );
         code.AppendLineAt(
             4,
-            "else if (reader.ValueTextEquals(\"value\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) value = "
+            "else if (reader.ValueTextEquals(\"value\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) value = "
                 + childType
                 + ".PayloadJsonConverter.ReadRoot(ref reader, options); }"
         );
@@ -478,39 +478,39 @@ internal static class SparsePayloadJsonMemberEmitter
         );
         code.AppendLineAt(
             4,
-            "if (reader.ValueTextEquals(\"key\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Key = ReadKey<"
+            "if (reader.ValueTextEquals(\"key\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Key = ReadKey<"
                 + keyType
                 + ">(ref reader, options); }"
         );
         code.AppendLineAt(
             4,
-            "else if (reader.ValueTextEquals(\"kind\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Kind = ParseKind(reader.GetString()); }"
+            "else if (reader.ValueTextEquals(\"kind\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Kind = ParseKind(reader.GetString()); }"
         );
         if (isKeyed)
         {
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"beforeIndex\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.BeforeIndex = reader.GetInt32(); }"
+                "else if (reader.ValueTextEquals(\"beforeIndex\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.BeforeIndex = reader.GetInt32(); }"
             );
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"afterIndex\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.AfterIndex = reader.GetInt32(); }"
+                "else if (reader.ValueTextEquals(\"afterIndex\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.AfterIndex = reader.GetInt32(); }"
             );
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"isReordered\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.IsReordered = reader.TokenType != global::System.Text.Json.JsonTokenType.Null && reader.GetBoolean(); }"
+                "else if (reader.ValueTextEquals(\"isReordered\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.IsReordered = reader.TokenType != global::System.Text.Json.JsonTokenType.Null && reader.GetBoolean(); }"
             );
         }
 
         code.AppendLineAt(
             4,
-            "else if (reader.ValueTextEquals(\"before\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.Before = ReadEndpoint<"
+            "else if (reader.ValueTextEquals(\"before\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.Before = ReadEndpoint<"
                 + itemValueType
                 + ">(ref reader, options, null, null); }"
         );
         code.AppendLineAt(
             4,
-            "else if (reader.ValueTextEquals(\"after\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.After = ReadEndpoint<"
+            "else if (reader.ValueTextEquals(\"after\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.After = ReadEndpoint<"
                 + itemValueType
                 + ">(ref reader, options, null, null); }"
         );
@@ -527,7 +527,7 @@ internal static class SparsePayloadJsonMemberEmitter
             _ = editCore;
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"edit\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) item.Edit = null; else item.Edit = "
+                "else if (reader.ValueTextEquals(\"edit\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) item.Edit = null; else item.Edit = "
                     + editChild
                     + ".PayloadJsonConverter.ReadCore(ref reader, options); }"
             );
@@ -536,7 +536,7 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"edit\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }"
+                "else if (reader.ValueTextEquals(\"edit\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }"
             );
         }
 
@@ -544,7 +544,7 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             code.AppendLineAt(
                 4,
-                "else if (reader.ValueTextEquals(\"temporaryKey\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.TemporaryKey = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : (global::System.Guid?)reader.GetGuid(); }"
+                "else if (reader.ValueTextEquals(\"temporaryKey\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.TemporaryKey = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : (global::System.Guid?)reader.GetGuid(); }"
             );
         }
         code.AppendLineAt(

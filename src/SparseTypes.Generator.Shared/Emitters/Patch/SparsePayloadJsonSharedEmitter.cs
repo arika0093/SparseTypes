@@ -95,9 +95,9 @@ internal static class SparsePayloadJsonSharedEmitter
         );
         code.AppendLineAt(
             4,
-            "if (reader.ValueTextEquals(\"state\"u8)) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
+            "if (reader.ValueTextEquals(\"state\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
         );
-        code.AppendLineAt(4, "else if (reader.ValueTextEquals(\"value\"u8))");
+        code.AppendLineAt(4, "else if (reader.ValueTextEquals(\"value\"))");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,

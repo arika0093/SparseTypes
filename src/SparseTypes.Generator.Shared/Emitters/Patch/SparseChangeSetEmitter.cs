@@ -174,7 +174,8 @@ internal static class SparseChangeSetEmitter
             modelType,
             ignoredSettablePropertyNames,
             canApplyInPlace,
-            target
+            target,
+            modelIsReferenceType
         );
         // The emitted model-targeted ApplyInPlace checks the before-state
         // first.
