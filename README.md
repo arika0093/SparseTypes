@@ -170,31 +170,10 @@ Independent properties merge automatically without overwriting concurrent edits,
 ## Next Steps: Follow the Tutorial
 
 Ready to build your first change pipeline? Follow the hands-on tutorial:
+[**Tutorial: End-to-End Change Workflow**](docs/tutorial/first-sparse-edit.md).
 
-[**Tutorial: End-to-End Change Workflow**](docs/tutorial/first-sparse-edit.md)
-Walks step-by-step through reactive editing (`EditSession`), change inspection (`ChangeSet`), JSON wire transport (`ChangePayload`), concurrent reconciliation (`Rebase`), database persistence (`EF Core`), and low-level composition (`Fragment` and `Patch`).
-
-## How It Works: The Five Companion Types
-
-The source generator equips your model with companion types spanning the full change lifecycle:
-
-| Generated Type | Role | Typical Use |
-| --- | --- | --- |
-| `EditSession` | Reactive UI draft | Dirty tracking, Undo/Redo, batch editing in Blazor/Desktop |
-| `ChangeSet` | Before-to-after transition | Audit logs, undo/redo, conflict-aware rebase |
-| `ChangePayload` | Wire envelope | Versioned JSON transport across process boundaries |
-| `Fragment` | Sparse state snapshot | Default layers, overrides, partially supplied values |
-| `Patch` | Requested operations | Baseline-free commands, targeted API requests |
-
-> [!NOTE]
-> The `ChangePayload` version identifies the JSON wire format only. It does not identify or validate the sender and receiver model schemas, the library version, or concurrency revisions. Coordinating model changes remains the application's responsibility.
-
-Under the hood, `Fragment` and `Patch` use `Optional<T>` to distinguish unassigned (missing) fields from explicit `null` values. For details on presence semantics and algebraic operations, see [Fragments and patches](docs/explanation/fragments-and-patches.md). Helper methods such as `DeepClone()` and reflection-free `Descriptors` are also generated automatically.
 
 ## Documentation
-
-### Tutorials
-* [End-to-end change workflow](docs/tutorial/first-sparse-edit.md): Build a complete change pipeline from reactive UI draft to database persistence.
 
 ### How-to Guides
 * [Layered settings](docs/how-to/layered-settings.md): Compose multi-tier configuration and remove overrides.

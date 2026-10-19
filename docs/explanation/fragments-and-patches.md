@@ -2,7 +2,14 @@
 
 A `Fragment` is sparse state: for every model member it records missing, present, or explicitly null. A `Patch` is a set of operations over that sparse state (set a value, set an explicit null, remove a contribution, or leave it unchanged). A `ChangeSet` is the immutable before to after transition between two sparse states. A `ChangePayload` is the versioned JSON envelope that carries a `ChangeSet`, a `Patch`, or both member by member across a process boundary.
 
-The four answer different questions: a fragment says *what is specified*, a patch says *what to change* ("set these values"), a change set says *what changed* ("these values changed from X to Y"), and a change payload says *what travels* ("apply these transitions and commands"). The task table at the end maps each need to its API.
+The four answer different questions: 
+
+* Fragment says *what is specified*
+* Patch says *what to change* ("set these values")
+* ChangeSet says *what changed* ("these values changed from X to Y")
+* ChangePayload says *what travels* ("apply these transitions and commands").
+
+The task table at the end maps each need to its API.
 
 New to the library: start with the [first sparse edit tutorial](../tutorial/first-sparse-edit.md). Here to solve a task: [layered settings](../how-to/layered-settings.md), [partial updates](../how-to/partial-updates.md), or [Blazor edit form](../how-to/blazor-edit-form.md). This page stays the reference for the four types.
 
