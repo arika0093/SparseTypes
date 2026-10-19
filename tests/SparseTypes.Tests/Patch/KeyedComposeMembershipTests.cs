@@ -325,6 +325,22 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeOrderOnlyCopiesTheWinningOrder()
+    {
+        var before = KF(Server("a"), Server("b"), Server("c"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.SetOrder(["b", "a", "c"]);
+        var next = new KeyedServerHolder.Patch();
+        next.Items.SetOrder(["c", "b", "a"]);
+
+        var composed = first.Compose(next);
+        (composed.Items.__order ?? []).ShouldBe(["c", "b", "a"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+        composed.Items.__order![0] = "a";
+        (next.Items.__order ?? []).ShouldBe(["c", "b", "a"]);
+    }
+
+    [Test]
     public void ComposeEditOnlyPreservesSequentialEdits()
     {
         var before = KF(Server("a", "old-a"), Server("b", "old-b"));
