@@ -110,6 +110,7 @@ internal static class SparseKeyedSequenceComposeEmitter
         var hasTempPatchCompose = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         if (!hasTempPatchCompose && !SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
+            AppendAssignedAddThenRemoveCancellationFastPath(code, comparer, member);
             AppendAssignedAddOnlyComposeFastPath(code, keyType, elementType, comparer, member);
             AppendAssignedRemoveOnlyComposeFastPath(code, keyType, comparer);
             if (hasPatch)
@@ -595,6 +596,32 @@ internal static class SparseKeyedSequenceComposeEmitter
         );
         code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
+    }
+
+    private static void AppendAssignedAddThenRemoveCancellationFastPath(
+        SharedIndentedBuilder code,
+        string comparer,
+        SparseMemberModel member
+    )
+    {
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "__added is not null && __added.Count == 1");
+        code.AppendLineAt(5, "&& (next.__added is null || next.__added.Count == 0)");
+        code.AppendLineAt(5, "&& (__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "&& next.__removed is not null && next.__removed.Count == 1");
+        code.AppendLineAt(5, "&& (__edited is null || __edited.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__edited is null || next.__edited.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(
+            5,
+            "&& "
+                + comparer
+                + ".Equals("
+                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
+                + "(__added[0]), next.__removed[0])"
+        );
+        code.AppendLineAt(4, ") return result;");
     }
 
     private static void AppendAssignedRemoveOnlyComposeFastPath(

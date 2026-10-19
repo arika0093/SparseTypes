@@ -294,6 +294,20 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeAddThenRemoveCancelsAssignedElement()
+    {
+        var before = KF(Server("a", "old-a"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Add(Server("b", "first-b"));
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("b");
+
+        var composed = first.Compose(next);
+        composed.IsEmpty.ShouldBeTrue();
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeRemoveOnlyPreservesFirstOccurrenceOrder()
     {
         var before = KF(Server("a"), Server("b"), Server("c"), Server("d"));
