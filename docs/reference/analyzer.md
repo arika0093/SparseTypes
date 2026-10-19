@@ -5,6 +5,9 @@ Each diagnostic's `HelpLinkUri` points to the corresponding heading in this file
 IDs `SPF012`, `SPF015`, `SPF016`, `SPF018`, `SPF020`, and `SPF025` were retired
 when keys became property-only and are not reused.
 
+The generator assembly ships a C# code fix provider for the IDs marked
+with a `Code fix` entry below. Fixes apply through the IDE light bulb and Fix All.
+
 | ID | Title | Severity |
 | --- | --- | --- |
 | [SPF001](#spf001-sparse-model-must-be-partial) | Sparse model must be partial | Error |
@@ -43,6 +46,7 @@ when keys became property-only and are not reused.
 * Cause: A type annotated with `[SparseModel]` is not declared `partial`.
   The generator appends members such as `Fragment` / `Patch` to the same type, so `partial` is required.
 * Fix: Add `partial` to the type declaration.
+* Code fix: Add `partial` modifier.
 
 <!-- illustrative: error illustration; the first shape does not compile by design -->
 ```csharp
@@ -62,6 +66,7 @@ public partial class Settings { ... }
   (`ref` structs and `file`-local types are likewise unsupported).
 * Fix: Move the model to a top-level plain class/struct.
   If generics are needed, provide a materialized non-generic type instead.
+* Code fix: Remove `abstract` modifier (offered for abstract, non-static classes only).
 
 ## SPF003: Model needs a supported constructor
 
@@ -69,6 +74,7 @@ public partial class Settings { ... }
 * Cause: The generator found no constructor it can call: neither a parameterless
   constructor nor one whose parameters match the public readable properties by name and type.
 * Fix: Add a parameterless constructor, or provide a constructor that corresponds to the properties.
+* Code fix: Add parameterless constructor (with `SetsRequiredMembers` when the type has required members).
 
 <!-- illustrative: shape illustration; shown without surrounding file context and does not compile as written -->
 ```csharp
@@ -114,6 +120,7 @@ public partial class StrategySettings
   `Deep` needs a nested generated model, `Append` needs an ordered collection,
   `SetUnion` needs a collection, and numeric values outside `MergeMode` 0-5 are rejected.
 * Fix: Select a mode that matches the member kind. See [Merge strategies](../explanation/merge-strategies.md).
+* Code fix: Remove the `[SparseMerge]` attribute.
 
 <!-- illustrative: shape illustration; shown without surrounding file context and does not compile as written -->
 ```csharp
@@ -135,6 +142,7 @@ public partial class Settings
   and no constructor parameter matching it.
 * Fix: Give the member a `public` setter or a matching constructor parameter;
   otherwise drop `required`. See [Model shapes](model-shapes.md).
+* Code fix: Remove `required` modifier.
 
 ## SPF007: Unsupported structural member construction
 
@@ -145,6 +153,7 @@ public partial class Settings
   generator refuses to guess.
 * Fix: Declare the nested type `partial`, annotate it with `[SparseModel]`,
   or mark the member `[SparseMerge(MergeMode.Replace)]`. See [Model shapes](model-shapes.md).
+* Code fix: Add `[SparseMerge(MergeMode.Replace)]`.
 
 ## SPF008: Unsupported deep clone member
 
@@ -154,6 +163,7 @@ public partial class Settings
   the cloner cannot rebuild.
 * Fix: Switch to a supported structural type or collection, or mark the property
   `[SparseCloneReferenceSafe]`. See [Cloning and ownership](../explanation/cloning-and-ownership.md).
+* Code fix: Add `[SparseCloneReferenceSafe]`.
 
 <!-- illustrative: shape illustration; shown without surrounding file context and does not compile as written -->
 ```csharp
@@ -200,6 +210,7 @@ public partial class Settings
   strategy for whole-collection semantics. The implicit default `Replace` does
   not exempt unkeyed structural sequences.
   See [Keyed collections](../explanation/keyed-collections.md).
+* Code fix: Add `[SparseMerge(MergeMode.Replace)]`.
 
 ## SPF013: Multiple SparseKey properties
 
@@ -209,6 +220,7 @@ public partial class Settings
 * Fix: Keep one `[SparseKey]` property. Composite identity uses a single
   computed property whose type holds every component (see
   [Keyed collections](../explanation/keyed-collections.md#ordinary-scalar-keys-and-composite-keys)).
+* Code fix: Keep the first `[SparseKey]` and remove the rest.
 
 ## SPF014: Invalid SparseKey declaration
 
@@ -217,6 +229,7 @@ public partial class Settings
   appears on the type itself. The attribute targets properties only.
 * Fix: Use parameterless `[SparseKey]` on exactly one property per keyed
   element type.
+* Code fix: Remove the type-level `[SparseKey]` attribute, or strip its arguments on a property.
 
 ## SPF017: Inaccessible SparseKey property
 
@@ -224,6 +237,7 @@ public partial class Settings
 * Cause: The key property is static, an indexer, or not publicly readable, so
   generated code cannot reach it. Computed read-only properties are valid when public.
 * Fix: Expose the key through a publicly readable instance property.
+* Code fix: Make the property publicly readable.
 
 ## SPF019: Unsupported SparseKey shape
 
@@ -249,6 +263,7 @@ public partial class Settings
   available to generated collection operations. A `[SparseTemporaryKey]`
   property with `[SparseIgnore]` is likewise rejected, as an invalid
   temporary-identity declaration (see [SPF031](#spf031-invalid-sparsetemporarykey-declaration)).
+* Code fix: Remove `[SparseIgnore]`.
 
 ## SPF023: SparseIgnore on unsupported property
 
@@ -258,6 +273,7 @@ public partial class Settings
 * Fix: Make the property optional and settable, or keep it in the generated
 surface. Required, init-only, and non-defaulted constructor-bound properties
 cannot be excluded.
+* Code fix: Remove `[SparseIgnore]`.
 
 <!-- illustrative: error illustration; the shape does not compile by design -->
 ```csharp
@@ -282,6 +298,7 @@ public partial class Widget
   A null sentinel needs a nullable key type; a nullable key type without
   `Unassigned` already uses `null` as its sentinel.
   See [unassigned keys](../explanation/keyed-collections.md#unassigned-keys).
+* Code fix: Remove the `Unassigned` argument.
 
 ## SPF026: In-place submit is unavailable
 
@@ -368,6 +385,8 @@ public partial class PolicySettings
   keep it readable and settable, and give the element's `[SparseKey]` an
   unassigned state. Assign temporary values in constructors or object
   initializers instead of a property initializer (see SPF032).
+* Code fix: Remove `[SparseIgnore]`, strip arguments, remove the combined
+  `[SparseTemporaryKey]`, or keep the first declaration, depending on the message.
 
 ## SPF032: Temporary key property initializer
 
@@ -377,6 +396,7 @@ public partial class PolicySettings
   `= default`. Assignments in constructors or object initializers are unaffected.
 * Fix: Remove the initializer from the property declaration. This is a warning;
   generation continues.
+* Code fix: Remove the property initializer.
 
 ## SPF033: Incompatible entity default mapping
 
@@ -404,6 +424,7 @@ public partial class PolicySettings
   class XxxMapper` with an optional `private void Configure()` that uses the
   generated `Map` property, and remove any manual interface implementation or
   colliding members. A conventions-only mapping omits `Configure` entirely.
+* Code fix: Add `partial` to the mapper and any enclosing type (offered when the message names partial declarations).
 
 ## SPF035: Unsupported entity member shape
 
