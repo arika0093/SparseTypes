@@ -4,6 +4,8 @@
 # Set kind to `json-specimen` for serialized JSON samples.
 #
 # The registry covers README.md and docs/**/*.md so sample IDs stay centralized.
+docs/reference/blazor-api.md	blazor-reference-models	tests/fixtures/consumers/package-sparse-blazor/BlazorApiSamples.cs
+docs/reference/blazor-api.md	blazor-reference-binding	tests/fixtures/consumers/package-sparse-blazor/BlazorApiSamples.cs
 README.md	readme-quickstart	tests/fixtures/consumers/package-sparse-readme/Program.cs
 docs/explanation/fragments-and-patches.md	core-models	tests/fixtures/consumers/package-sparse-docs/VerifiedSamples.cs
 docs/explanation/fragments-and-patches.md	core-create	tests/fixtures/consumers/package-sparse-docs/VerifiedSamples.cs
@@ -61,6 +63,8 @@ docs/reference/change-payload.md	payload-invert	tests/fixtures/consumers/package
 docs/reference/change-payload.md	payload-version	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
 docs/reference/change-payload.md	payload-validate	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
 docs/reference/change-payload.md	payload-context	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
+docs/reference/change-payload.md	payload-native-aot-models	tests/SparseTypes.NativeAotSmoke/AotModels.cs
+docs/reference/change-payload.md	payload-native-aot	tests/SparseTypes.NativeAotSmoke/AotJsonTests.cs
 docs/reference/change-payload.md	payload-envelope	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
 docs/reference/change-payload.md	payload-scalar-add	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
 docs/reference/change-payload.md	payload-nested-json	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
@@ -118,3 +122,16 @@ docs/how-to/efcore-mapping.md	efcore-authoritative-reload	tests/SparseTypes.Enti
 docs/reference/edit-session-state.md	edit-session-field-state	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
 docs/reference/edit-session-state.md	edit-session-collection-state	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
 docs/reference/edit-session-state.md	edit-session-observe-field	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
+docs/reference/values-and-operations.md	reference-optional	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/attributes.md	reference-models	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-fragment.md	reference-fragment	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-patch.md	reference-patch	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-changeset.md	reference-changeset	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-payload.md	reference-payload	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-edit-session.md	reference-session	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/generated-views.md	reference-views	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/paths.md	reference-paths	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/collection-editors.md	reference-collection	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/rebase-api.md	reference-rebase	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/session-contracts.md	reference-group	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs
+docs/reference/validation.md	reference-validation	tests/fixtures/consumers/package-sparse-docs/ApiReferenceSamples.cs

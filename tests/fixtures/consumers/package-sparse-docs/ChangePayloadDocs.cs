@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using SparseTypes;
@@ -24,6 +25,9 @@ public static class ChangePayloadDocsSamples
         Validate();
     }
 
+    private static bool JsonMatches(string actual, string expected) =>
+        JsonNode.DeepEquals(JsonNode.Parse(actual), JsonNode.Parse(expected));
+
     private static void ScalarSet()
     {
         // sample: payload-scalar-set
@@ -36,15 +40,37 @@ public static class ChangePayloadDocsSamples
 
         var setPayload = WireSettings.ChangeSet.Between(setBefore, setAfter).ToPayload();
         var setJson = JsonSerializer.Serialize(setPayload);
-        // setJson == {"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}]}
+        // setJson == {
+        //   "version": "0.1",
+        //   "changes": [
+        //     {
+        //       "member": "Label",
+        //       "before": { "state": "value", "value": "before" },
+        //       "after": { "state": "value", "value": "after" }
+        //     }
+        //   ]
+        // }
         var setRestored = JsonSerializer
             .Deserialize<WireSettings.ChangePayload>(setJson)!
             .ToChangeSet();
         // setRestored.ToPatch().Apply(setBefore) replays setAfter
         // /sample
         DocsCheck.Require(
-            setJson
-                == """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}]}""",
+            JsonMatches(
+                setJson,
+                """
+                {
+                  "version": "0.1",
+                  "changes": [
+                    {
+                      "member": "Label",
+                      "before": { "state": "value", "value": "before" },
+                      "after": { "state": "value", "value": "after" }
+                    }
+                  ]
+                }
+                """
+            ),
             "scalar set emits the documented envelope"
         );
         DocsCheck.Require(
@@ -72,7 +98,8 @@ public static class ChangePayloadDocsSamples
             .Deserialize<WireSettings.ChangePayload>(setAddJson)!
             .ToChangeSet();
         DocsCheck.Require(
-            WireSettings.Patch.Between(setAddRestored.ToPatch().Apply(setAddBefore), setAddAfter)
+            WireSettings
+                .Patch.Between(setAddRestored.ToPatch().Apply(setAddBefore), setAddAfter)
                 .IsEmpty,
             "deserialized addition replays the transition"
         );
@@ -101,7 +128,9 @@ public static class ChangePayloadDocsSamples
             "generated payloads resolve downstream; same-assembly contexts cover value types only"
         );
         DocsCheck.Require(
-            WireSettings.Patch.Between(contextRestored.ToPatch().Apply(setBefore), setAfter).IsEmpty,
+            WireSettings
+                .Patch.Between(contextRestored.ToPatch().Apply(setBefore), setAfter)
+                .IsEmpty,
             "resolver-based serialization replays the transition"
         );
     }
@@ -118,15 +147,37 @@ public static class ChangePayloadDocsSamples
 
         var nullPayload = WireSettings.ChangeSet.Between(nullBefore, nullAfter).ToPayload();
         var nullJson = JsonSerializer.Serialize(nullPayload);
-        // nullJson == {"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"null","value":null}}]}
+        // nullJson == {
+        //   "version": "0.1",
+        //   "changes": [
+        //     {
+        //       "member": "Label",
+        //       "before": { "state": "value", "value": "before" },
+        //       "after": { "state": "null", "value": null }
+        //     }
+        //   ]
+        // }
         var nullRestored = JsonSerializer
             .Deserialize<WireSettings.ChangePayload>(nullJson)!
             .ToChangeSet();
         // nullRestored.ToPatch().Apply(nullBefore) replays nullAfter
         // /sample
         DocsCheck.Require(
-            nullJson
-                == """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"null","value":null}}]}""",
+            JsonMatches(
+                nullJson,
+                """
+                {
+                  "version": "0.1",
+                  "changes": [
+                    {
+                      "member": "Label",
+                      "before": { "state": "value", "value": "before" },
+                      "after": { "state": "null", "value": null }
+                    }
+                  ]
+                }
+                """
+            ),
             "explicit null emits the documented endpoint"
         );
         DocsCheck.Require(
@@ -147,15 +198,37 @@ public static class ChangePayloadDocsSamples
 
         var removePayload = WireSettings.ChangeSet.Between(removeBefore, removeAfter).ToPayload();
         var removeJson = JsonSerializer.Serialize(removePayload);
-        // removeJson == {"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"missing","value":null}}]}
+        // removeJson == {
+        //   "version": "0.1",
+        //   "changes": [
+        //     {
+        //       "member": "Label",
+        //       "before": { "state": "value", "value": "before" },
+        //       "after": { "state": "missing", "value": null }
+        //     }
+        //   ]
+        // }
         var removeRestored = JsonSerializer
             .Deserialize<WireSettings.ChangePayload>(removeJson)!
             .ToChangeSet();
         // !removeRestored.ToPatch().Apply(removeBefore).Value!.Label.IsPresent
         // /sample
         DocsCheck.Require(
-            removeJson
-                == """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"missing","value":null}}]}""",
+            JsonMatches(
+                removeJson,
+                """
+                {
+                  "version": "0.1",
+                  "changes": [
+                    {
+                      "member": "Label",
+                      "before": { "state": "value", "value": "before" },
+                      "after": { "state": "missing", "value": null }
+                    }
+                  ]
+                }
+                """
+            ),
             "removal emits the documented endpoint"
         );
         DocsCheck.Require(
@@ -169,12 +242,20 @@ public static class ChangePayloadDocsSamples
         // sample: payload-nested
         var nestedBefore = Optional<WireOrder.Fragment?>.Present(
             WireOrder.Fragment.From(
-                new WireOrder { Name = "a", Customer = new WireCustomer { Name = "Ann" } }
+                new WireOrder
+                {
+                    Name = "a",
+                    Customer = new WireCustomer { Name = "Ann" },
+                }
             )
         );
         var nestedAfter = Optional<WireOrder.Fragment?>.Present(
             WireOrder.Fragment.From(
-                new WireOrder { Name = "a", Customer = new WireCustomer { Name = "Bob" } }
+                new WireOrder
+                {
+                    Name = "a",
+                    Customer = new WireCustomer { Name = "Bob" },
+                }
             )
         );
 
@@ -231,8 +312,9 @@ public static class ChangePayloadDocsSamples
 
         var keyedPayload = WireFleet.ChangeSet.Between(keyedBefore, keyedAfter).ToPayload();
         var keyedJson = JsonSerializer.Serialize(keyedPayload);
-        // keyedJson carries one edit item, one add item, one remove item,
-        // plus beforeOrder ["a","b"] and afterOrder ["b","c"]
+        // keyedJson contains an edit that moves b and changes its Host,
+        // an addition of c at index 1, and a removal of a from index 0.
+        // beforeOrder is ["a","b"] and afterOrder is ["b","c"].
         var keyedRestored = JsonSerializer
             .Deserialize<WireFleet.ChangePayload>(keyedJson)!
             .ToChangeSet();
@@ -300,12 +382,18 @@ public static class ChangePayloadDocsSamples
     {
         var dictBefore = Optional<WireScores.Fragment?>.Present(
             WireScores.Fragment.From(
-                new WireScores { Scores = new() { ["a"] = 1, ["b"] = 2 } }
+                new WireScores
+                {
+                    Scores = new() { ["a"] = 1, ["b"] = 2 },
+                }
             )
         );
         var dictAfter = Optional<WireScores.Fragment?>.Present(
             WireScores.Fragment.From(
-                new WireScores { Scores = new() { ["b"] = 3, ["c"] = 4 } }
+                new WireScores
+                {
+                    Scores = new() { ["b"] = 3, ["c"] = 4 },
+                }
             )
         );
         var dictJson = JsonSerializer.Serialize(
@@ -341,8 +429,7 @@ public static class ChangePayloadDocsSamples
             .Deserialize<WireSettings.ChangePayload>(rootJson)!
             .ToChangeSet();
         DocsCheck.Require(
-            WireSettings.Patch.Between(rootRestored.ToPatch().Apply(rootBefore), rootAfter)
-                .IsEmpty,
+            WireSettings.Patch.Between(rootRestored.ToPatch().Apply(rootBefore), rootAfter).IsEmpty,
             "deserialized whole-root transition replays"
         );
     }
@@ -355,15 +442,37 @@ public static class ChangePayloadDocsSamples
         // A command needs no baseline: the envelope redacts what it never observed.
         var command = WireSecret.ChangePayload.FromPatch(rotation);
         var commandJson = JsonSerializer.Serialize(command);
-        // commandJson == {"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":null},"after":{"state":"value","value":"rotated-value"}}]}
+        // commandJson == {
+        //   "version": "0.1",
+        //   "changes": [
+        //     {
+        //       "member": "Password",
+        //       "before": { "state": "redacted", "value": null },
+        //       "after": { "state": "value", "value": "rotated-value" }
+        //     }
+        //   ]
+        // }
         var applied = WireSecret
             .Fragment.From(new WireSecret { DisplayName = "a", Password = "previous-placeholder" })
             .Apply(command.ToPatch());
         // applied.Password.Value == "rotated-value"
         // /sample
         DocsCheck.Require(
-            commandJson
-                == """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":null},"after":{"state":"value","value":"rotated-value"}}]}""",
+            JsonMatches(
+                commandJson,
+                """
+                {
+                  "version": "0.1",
+                  "changes": [
+                    {
+                      "member": "Password",
+                      "before": { "state": "redacted", "value": null },
+                      "after": { "state": "value", "value": "rotated-value" }
+                    }
+                  ]
+                }
+                """
+            ),
             "baseline-free command emits the documented envelope"
         );
         DocsCheck.Require(
@@ -421,17 +530,21 @@ public static class ChangePayloadDocsSamples
         // complete.ToPatch().Apply(convertBefore) replays convertAfter
         // /sample
         DocsCheck.Require(
-            WireSettings.Patch.Between(roundTripped.ToPatch().Apply(convertBefore), convertAfter)
+            WireSettings
+                .Patch.Between(roundTripped.ToPatch().Apply(convertBefore), convertAfter)
                 .IsEmpty,
             "envelope round trip preserves the transition"
         );
         DocsCheck.Require(
-            WireSettings.Patch.Between(reattached.ToPatch().Apply(convertBefore), convertAfter)
+            WireSettings
+                .Patch.Between(reattached.ToPatch().Apply(convertBefore), convertAfter)
                 .IsEmpty,
             "reattached baseline replays the transition"
         );
         DocsCheck.Require(
-            WireSettings.Patch.Between(complete.ToPatch().Apply(convertBefore), convertAfter).IsEmpty,
+            WireSettings
+                .Patch.Between(complete.ToPatch().Apply(convertBefore), convertAfter)
+                .IsEmpty,
             "FromPayload accepts complete envelopes"
         );
     }
@@ -440,13 +553,25 @@ public static class ChangePayloadDocsSamples
     {
         // sample: payload-mixed
         var mixed = JsonSerializer.Deserialize<WireSecret.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}},{"member":"Password","before":{"state":"redacted","value":null},"after":{"state":"value","value":"rotated-value"}}]}"""
+            """
+            {
+              "version": "0.1",
+              "changes": [
+                {
+                  "member": "DisplayName",
+                  "before": { "state": "value", "value": "a" },
+                  "after": { "state": "value", "value": "b" }
+                },
+                {
+                  "member": "Password",
+                  "before": { "state": "redacted", "value": null },
+                  "after": { "state": "value", "value": "rotated-value" }
+                }
+              ]
+            }
+            """
         )!;
-        var mixedCurrent = new WireSecret
-        {
-            DisplayName = "a",
-            Password = "current-placeholder",
-        };
+        var mixedCurrent = new WireSecret { DisplayName = "a", Password = "current-placeholder" };
         if (!mixed.TryApplyMixedTo(mixedCurrent, out var mixedUpdated, out var mixedOutcome))
         {
             throw new InvalidOperationException("The change conflicts with the current model.");
@@ -550,7 +675,9 @@ public static class ChangePayloadDocsSamples
             WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 })
         );
 
-        var validateEnvelope = WireSettings.ChangeSet.Between(validateBefore, validateAfter).ToPayload();
+        var validateEnvelope = WireSettings
+            .ChangeSet.Between(validateBefore, validateAfter)
+            .ToPayload();
         var validation = validateEnvelope.Validate();
         // validation.IsValid is true
         // validation.Errors is empty
@@ -641,6 +768,7 @@ public partial class WireSecret
     [SparseRedactBefore]
     public string? Password { get; set; }
 }
+
 // /sample
 
 [SparseModel]
@@ -654,30 +782,43 @@ public partial class WireScores
 public static class ChangePayloadJsonSpecimens
 {
     // json-specimen: payload-envelope
-    public const string Envelope = """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}]}""";
+    public const string Envelope =
+        """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-scalar-add
-    public const string ScalarAdd = """{"version":"0.1","changes":[{"member":"Label","before":{"state":"missing","value":null},"after":{"state":"value","value":"after"}}]}""";
+    public const string ScalarAdd =
+        """{"version":"0.1","changes":[{"member":"Label","before":{"state":"missing","value":null},"after":{"state":"value","value":"after"}}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-nested-json
-    public const string Nested = """{"version":"0.1","changes":[{"member":"Customer","nested":{"changes":[{"member":"Name","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}]}}]}""";
+    public const string Nested =
+        """{"version":"0.1","changes":[{"member":"Customer","nested":{"changes":[{"member":"Name","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}]}}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-keyed-json
-    public const string Keyed = """{"version":"0.1","changes":[{"member":"Servers","items":[{"key":"b","kind":"edit","beforeIndex":1,"afterIndex":0,"edit":{"changes":[{"member":"Host","before":{"state":"value","value":"B"},"after":{"state":"value","value":"B2"}}]}},{"key":"c","kind":"add","beforeIndex":-1,"afterIndex":1,"after":{"state":"value","value":{"Id":"c","Host":"C"}}},{"key":"a","kind":"remove","beforeIndex":0,"afterIndex":-1,"before":{"state":"value","value":{"Id":"a","Host":"A"}}}],"beforeOrder":["a","b"],"afterOrder":["b","c"]}]}""";
+    public const string Keyed =
+        """{"version":"0.1","changes":[{"member":"Servers","items":[{"key":"b","kind":"edit","beforeIndex":1,"afterIndex":0,"edit":{"changes":[{"member":"Host","before":{"state":"value","value":"B"},"after":{"state":"value","value":"B2"}}]}},{"key":"c","kind":"add","beforeIndex":-1,"afterIndex":1,"after":{"state":"value","value":{"Id":"c","Host":"C"}}},{"key":"a","kind":"remove","beforeIndex":0,"afterIndex":-1,"before":{"state":"value","value":{"Id":"a","Host":"A"}}}],"beforeOrder":["a","b"],"afterOrder":["b","c"]}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-reorder
-    public const string Reorder = """{"version":"0.1","changes":[{"member":"Servers","items":[{"key":"b","kind":"reorder","beforeIndex":1,"afterIndex":0,"isReordered":true},{"key":"a","kind":"reorder","beforeIndex":0,"afterIndex":1,"isReordered":true}],"beforeOrder":["a","b"],"afterOrder":["b","a"]}]}""";
+    public const string Reorder =
+        """{"version":"0.1","changes":[{"member":"Servers","items":[{"key":"b","kind":"reorder","beforeIndex":1,"afterIndex":0,"isReordered":true},{"key":"a","kind":"reorder","beforeIndex":0,"afterIndex":1,"isReordered":true}],"beforeOrder":["a","b"],"afterOrder":["b","a"]}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-dict
-    public const string Dictionary = """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"c","kind":"add","after":{"state":"value","value":4}},{"key":"a","kind":"remove","before":{"state":"value","value":1}},{"key":"b","kind":"edit","before":{"state":"value","value":2},"after":{"state":"value","value":3}}]}]}""";
+    public const string Dictionary =
+        """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"c","kind":"add","after":{"state":"value","value":4}},{"key":"a","kind":"remove","before":{"state":"value","value":1}},{"key":"b","kind":"edit","before":{"state":"value","value":2},"after":{"state":"value","value":3}}]}]}""";
+
     // /json-specimen
 
     // json-specimen: payload-root
-    public const string Root = """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing","value":null},"after":{"state":"value","value":{"members":[{"member":"Label","value":{"state":"value","value":"present"}},{"member":"RetryCount","value":{"state":"value","value":3}}]}}}]}""";
+    public const string Root =
+        """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing","value":null},"after":{"state":"value","value":{"members":[{"member":"Label","value":{"state":"value","value":"present"}},{"member":"RetryCount","value":{"state":"value","value":3}}]}}}]}""";
     // /json-specimen
 }

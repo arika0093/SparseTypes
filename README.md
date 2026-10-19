@@ -186,7 +186,8 @@ The [**SparseTypes Playground**](https://arika0093.github.io/SparseTypes/) runs 
 ## Reference and Architecture
 
 * **Explanation**: [Fragments and patches](docs/explanation/fragments-and-patches.md) | [Edit sessions and state boundaries](docs/explanation/edit-sessions.md) | [Keyed collections](docs/explanation/keyed-collections.md) | [Cloning and ownership](docs/explanation/cloning-and-ownership.md) | [UI frameworks](docs/explanation/ui-frameworks.md) | [Edit-session groups](docs/explanation/edit-session-groups.md)
-* **Reference**: [Model shapes](docs/reference/model-shapes.md) | [ChangePayload wire format](docs/reference/change-payload.md) | [Edit session state & observers](docs/reference/edit-session-state.md) | [Descriptors](docs/reference/descriptors.md) | [EF Core mapping reference](docs/reference/efcore-mapping.md) | [Diagnostics (`SPF001`-`SPF035`)](docs/reference/analyzer.md)
+* **API reference**: [Index](docs/reference/README.md) | [Package APIs](docs/reference/README.md#package-apis) | [Generated APIs](docs/reference/README.md#generated-apis)
+* **Specifications**: [Model shapes](docs/reference/model-shapes.md) | [ChangePayload wire format](docs/reference/change-payload.md) | [Edit session state & observers](docs/reference/edit-session-state.md) | [Descriptors](docs/reference/descriptors.md) | [EF Core mapping reference](docs/reference/efcore-mapping.md) | [Diagnostics (`SPF001`-`SPF035`)](docs/reference/analyzer.md)
 
 ## Packages and Compatibility
 

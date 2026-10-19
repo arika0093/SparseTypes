@@ -2,6 +2,8 @@
 
 Reference for point-in-time state queries (`FieldState`, `CollectionState`) and live subscriptions (`ObserveField`, `WatchField`) on generated edit sessions.
 
+Package and namespace: `SparseTypes`. See [generated EditSession](generated-edit-session.md) for the full session API and [paths](paths.md) for path construction.
+
 ## Overview
 
 | Capability | Scope | Lifetime & Cost |
@@ -64,7 +66,6 @@ var fromSnapshot = changeSet.FieldState(session.Paths.Child.Name);
 | `HasChanges` | `bool` | Aggregate flag: `IsChanged \|\| HasAncestorChange \|\| HasDescendantChange`. |
 | `Before` | `Optional<T>` | Presence-aware value before transition. `Missing` if unchanged. |
 | `After` | `Optional<T>` | Presence-aware value after transition. `Missing` if unchanged. |
-| `Current` | `Optional<T>` | Current live value at the queried path. |
 
 `Before` and `After` reflect exact transitions only. When `IsChanged` is false, both endpoints are `Optional<T>.Missing`, which indicates the absence of an exact transition rather than a missing member.
 
@@ -124,7 +125,7 @@ watcher.PropertyChanged += (_, _) => changeCount++;
 // Observable change notifies watcher synchronously
 session.Observable.Title = "next";
 // changeCount > 0
-// watcher.Current.Value == "next"
+// watcher.After.Value == "next"
 // watcher.IsChanged == true
 
 var lastCount = changeCount;
@@ -140,6 +141,8 @@ session.Observable.Title = "after-dispose";
 <!-- /sample -->
 
 ### Observer characteristics
+
+`SparseObservedField<T>` exposes Path, Current (`SparseFieldState<T>`), IsChanged, Kind, HasAncestorChange, HasDescendantChange, HasChanges, Before, After, and the PropertyChanged event. `Refresh()` explicitly re-queries the state; `Dispose()` detaches notifications. Current is the retained state snapshot, not an Optional current-model value.
 
 * **Notification filtering**: The watcher queries the session on invalidation. It raises `PropertyChanged` only when the refreshed state differs from the retained state. Redundant assignments raise no notifications.
 * **Synchronous dispatch**: Events fire synchronously on the mutating thread. No UI dispatching is performed.
@@ -161,6 +164,16 @@ notifications. For repeated queries over a known generation, the captured
 view avoids deriving and scanning a new change set for every field. The
 Blazor `SparseEditContext` shares such a snapshot across field components in
 one refresh generation when the session supports that capability.
+
+### Query view and collection members
+
+`new SparseChangeSetQueryView(ISparseChangeSet changes)` and `SparseChangeSetQueryView.Capture(changes)` create a fixed query view. Members are Changes, Records, ProjectionCount, EnsureIndexed(), FieldState(SparsePath), and typed FieldState<TModel,TValue>(path). ProjectionCount reports flattened projection work; EnsureIndexed eagerly initializes the otherwise lazy index.
+
+`SparseStateQueries` extensions expose CaptureQueryView() and typed/untyped FieldState on ISparseChangeSet. KeyedState(change, path) and DictionaryState(change, path), also available as static SparseChangeSetQueryView methods, project interface-level collection transitions.
+
+`SparseCollectionState` exposes Path, IsChanged, IsEmpty, OrderChanged, ChangedItems, GetItemState(object? key), and GetTemporaryState(Guid temporaryKey). `SparseCollectionItemState` exposes Key, TemporaryKey, BeforeIndex, AfterIndex, Before, After, IsAdded, IsRemoved, IsEdited, IsReordered, IsChanged, and IsEmpty.
+
+For display tables, `SparseChangeRowProjection.Project(changes, options = null)` accepts ISparseChangeSet or IReadOnlyList<SparseChangeRecord>. SparseChangeRow exposes init properties Path, PathText, Kind, Before, After, Operation, BeforeText, and AfterText. SparseChangeRowOptions supplies MissingText, optional FormatValue, FormatOperation, and FormatError delegates, plus GetValueText, GetOperation, and GetErrorText helpers. This is display formatting, not transition comparison.
 
 ## Edit history contract
 
@@ -197,4 +210,3 @@ Companion types are emitted as nested types on the `[SparseModel]` class, while 
 | `Model.Observable` (`Model.SparseObservable` if `Observable` collides), `Model.ReadOnlyView` | `<Container>FragmentJsonConverter` |
 
 If a model declares a member named `Observable` or `EditSession`, the generator renames the nested companion type to `SparseObservable` or `SparseEditSession`. Member names `Fragment`, `Patch`, `ChangeSet`, `ChangePayload`, or `SparsePath` report diagnostic [SPF009](analyzer.md#spf009-member-conflicts-with-generated-api).
-

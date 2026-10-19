@@ -1,0 +1,160 @@
+@using Microsoft.AspNetCore.Components.Forms
+@using SparseTypes
+@using SparseTypes.Blazor
+
+<SparseEdit Session="session" Context="edit">
+    <EditForm @key="session" EditContext="edit.EditContext">
+        <DataAnnotationsValidator />
+        <SparseField Path="edit.Path.Number" Context="number">
+            <InputText Value="@number.Value"
+                       ValueChanged="number.ValueChanged"
+                       ValueExpression="number.ValueExpression" />
+            <ValidationMessage For="number.ValueExpression" />
+            @if (number.IsChanged)
+            {
+                <span>Number changed</span>
+            }
+        </SparseField>
+        <p>@(edit.HasChanges ? "Changed" : "Clean")</p>
+        <button type="button" disabled="@(!edit.CanUndo)" @onclick="edit.Undo">Undo</button>
+        <button type="button" disabled="@(!edit.CanRedo)" @onclick="edit.Redo">Redo</button>
+    </EditForm>
+</SparseEdit>
+
+<SparseEdit Session="session" Context="edit">
+    <SparseField Path="edit.Path.Customer.Name" Context="name">
+        <input @bind="name.Value" disabled="name.IsReadOnly" />
+        @if (name.HasStateQueryError)
+        {
+            <p role="alert">@name.StateQueryError</p>
+        }
+        else if (name.IsChanged)
+        {
+            <span>Name changed</span>
+            @if (name.Before.IsPresent)
+            {
+                <span>Was: @name.Before.Value</span>
+            }
+        }
+    </SparseField>
+    <button type="button" disabled="@(!edit.CanUndo)" @onclick="edit.Undo">Undo</button>
+    <button type="button" disabled="@(!edit.CanRedo)" @onclick="edit.Redo">Redo</button>
+</SparseEdit>
+
+<SparseEdit Session="session" Context="edit">
+    <SparseCollection TModel="BlazorApiOrder" TElement="BlazorApiLine"
+                      Path="edit.Path.Lines" @ref="lines">
+        <RowTemplate Context="row">
+            <div @key="row.UiKey">
+                <span>@row.Item.Sku</span>
+                <SparseField Path="row.Select(item => item.Quantity)" Context="quantity">
+                    <input type="number" @bind="quantity.Value" />
+                    @if (quantity.IsChanged)
+                    {
+                        <span>Quantity changed</span>
+                    }
+                </SparseField>
+                <button type="button" @onclick="() => RemoveLine(row)">Remove</button>
+            </div>
+        </RowTemplate>
+        <EmptyContent><p>No lines.</p></EmptyContent>
+        <ErrorContent Context="error"><p role="alert">@error</p></ErrorContent>
+    </SparseCollection>
+    <button type="button" @onclick="AddLine">Add line</button>
+    @if (collectionError is not null)
+    {
+        <p role="alert">@collectionError</p>
+    }
+</SparseEdit>
+
+@if (PassThrough)
+{
+    <SparseSessionScope Session="session" Mode="SparseChildEditMode.PassThrough">
+        <SparseChildEditDefault Path="session.Paths.Customer" Context="customer">
+            <SparseField Path="customer.Path.Name" Context="name">
+                <input @bind="name.Value" />
+            </SparseField>
+            <span>@(customer.HasChanges ? "Customer changed" : "Customer clean")</span>
+            @if (customer.Conflicts is not null)
+            {
+                <p role="alert">The customer edit conflicts with its parent.</p>
+            }
+        </SparseChildEditDefault>
+        <p>Parent value: @session.Current.Customer.Name</p>
+    </SparseSessionScope>
+}
+else
+{
+    <SparseSessionScope Session="session" Mode="SparseChildEditMode.Draft">
+        <SparseChildEditDefault Path="session.Paths.Customer" Context="customer">
+            <EditForm @key="customer.Session" EditContext="customer.EditContext">
+                <SparseField Path="customer.Path.Name" Context="name">
+                    <InputText Value="@name.Value"
+                               ValueChanged="name.ValueChanged"
+                               ValueExpression="name.ValueExpression" />
+                    @if (name.IsChanged)
+                    {
+                        <span>Name changed</span>
+                    }
+                </SparseField>
+                <p>@(customer.HasChanges ? "Customer draft changed" : "Customer draft clean")</p>
+                <button type="button" disabled="@(!customer.CanUndo)" @onclick="customer.Undo">Undo</button>
+                <button type="button" disabled="@(!customer.CanRedo)" @onclick="customer.Redo">Redo</button>
+                <button type="button" @onclick="() => AcceptCustomer(customer)">Apply to parent</button>
+                <button type="button" @onclick="customer.DiscardChanges">Discard draft</button>
+            </EditForm>
+        </SparseChildEditDefault>
+        <p>Parent value: @session.Current.Customer.Name</p>
+        @if (childError is not null)
+        {
+            <p role="alert">@childError</p>
+        }
+    </SparseSessionScope>
+}
+
+@code {
+    [Parameter]
+    public bool PassThrough { get; set; }
+
+    private BlazorApiOrder.EditSession session = null!;
+
+    protected override void OnInitialized()
+    {
+        var order = new BlazorApiOrder
+        {
+            Number = "ORD-1",
+            Customer = new BlazorApiCustomer { Name = "Ada" },
+            Lines = new List<BlazorApiLine>
+            {
+                new() { Sku = "SKU-1", Quantity = 1 },
+            },
+        };
+        session = order.CreateEditSession();
+        session.EnableHistory();
+    }
+
+    private SparseCollection<BlazorApiOrder, BlazorApiLine> lines = null!;
+    private string? collectionError;
+
+    private void AddLine()
+    {
+        var item = new BlazorApiLine { Sku = Guid.NewGuid().ToString("N"), Quantity = 1 };
+        collectionError = lines.TryAdd(item, out var error) ? null : error.ToString();
+    }
+
+    private void RemoveLine(SparseCollectionRow<BlazorApiOrder, BlazorApiLine> row)
+    {
+        collectionError = row.TryRemove(out var error) ? null : error.ToString();
+    }
+
+    private string? childError;
+
+    private void AcceptCustomer(ISparseChildEditContext<BlazorApiCustomer, SparseConflict> child)
+    {
+        childError = child.TryAcceptChanges(out var conflicts)
+            ? null
+            : conflicts is null
+                ? "The child draft could not be accepted; its target may be unavailable."
+                : $"The child has {conflicts.Count} conflict(s).";
+    }
+}

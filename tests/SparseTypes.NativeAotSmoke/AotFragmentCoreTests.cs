@@ -1,3 +1,5 @@
+using SparseTypes.NativeAotFixtures;
+
 namespace SparseTypes.NativeAotSmoke;
 
 public sealed class AotFragmentCoreTests
@@ -41,7 +43,9 @@ public sealed class AotFragmentCoreTests
             }
         );
 
-        await Assert.That(defaults.Merge(new AotWidget.Fragment()).ToModel().Name).IsEqualTo("fallback");
+        await Assert
+            .That(defaults.Merge(new AotWidget.Fragment()).ToModel().Name)
+            .IsEqualTo("fallback");
     }
 
     [Test]
@@ -97,9 +101,11 @@ public sealed class AotFragmentCoreTests
 
         var updated = original.Apply(patch);
         await Assert.That(updated.Name.IsPresent && updated.Name.Value is null).IsTrue();
-        await Assert.That(
-            updated.Nested.Value!.Host.Value == "keep" && updated.Nested.Value.Port.Value == 9
-        ).IsTrue();
+        await Assert
+            .That(
+                updated.Nested.Value!.Host.Value == "keep" && updated.Nested.Value.Port.Value == 9
+            )
+            .IsTrue();
     }
 
     [Test]

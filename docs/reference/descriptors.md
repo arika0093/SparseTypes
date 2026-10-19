@@ -67,6 +67,29 @@ var rows = logSession.CreateChangeSet().EnumerateChanges().ToList();
 
 Handwritten per-member code should use the typed `Observable` surface instead. Descriptors back generic form builders, validation, and diagnostics.
 
+## Member index
+
+Package: `SparseTypes`; namespace: `SparseTypes.Generated`. These interfaces are obtained from `session.Descriptors`; application code need not construct descriptor delegate providers.
+
+| Interface | Complete member groups |
+| --- | --- |
+| `IDescriptorSet` | Members; TryGet(string name, out IDescriptor descriptor); Find(SparsePath path); ResolveModel(SparsePath path). |
+| `ISparseModelMetadata` | ModelType; Properties; TryGet(string name, out ISparsePropertyMetadata metadata). |
+| `ISparsePropertyMetadata` | Name, DeclaredType, ViewType, IsNullable, IsNullableOblivious, IsRequired, IsEditable, IsReadOnly, Attributes, Shape. |
+| `ISparseInstanceAccess` | GetValue(), GetModelValue(), TrySetValue(object? value), Child, Array, Dictionary, Set. |
+| `IDescriptor` | Name, Type, ViewType, Path, PathText, IsNullable, IsNullableOblivious, IsRequired, IsEditable, IsReadOnly, Attributes, Shape; the same access methods and structural accessors as ISparseInstanceAccess. |
+| `ISparseChangeInspector` | EnumerateChangeRecords(). |
+
+IDescriptor.Type corresponds to declared metadata; GetValue can return a generated view, while GetModelValue returns the underlying model value. Find returns null when a path does not resolve; TryGet reports false for an unknown CLR name.
+
+| Collection interface | Complete member groups |
+| --- | --- |
+| `IArrayDescriptor` | Count, ItemType, ItemViewType, IsItemNullable, IsKeyed, KeyType, KeyPropertyNames; CanAdd, CanInsert, CanMove, CanRemove, CanSetItem; GetItem(index), GetItemModel(index), GetItemDescriptors(index), GetItemKey(index), IndexOfKey(key), IndexOfTemporaryKey(guid), IsUnassignedKey(key); TryAdd(value), TryInsert(index, value), TryMove(oldIndex, newIndex), TryRemoveAt(index), TrySetItem(index, value). |
+| `IDictDescriptor` | Count, Keys, KeyType, ValueType, ValueViewType, IsValueNullable; CanAdd, CanRemove, CanSet; TryGetValue(key, out value), GetValueModel(key), GetValueDescriptors(key), TryAdd(key, value), TryRemove(key), TrySetValue(key, value). |
+| `ISetDescriptor` | Count, Items, ItemType, IsItemNullable, CanAdd, CanRemove, Contains(item), TryAdd(value), TryRemove(value). |
+
+Values and keys in the model-agnostic accessors are object-typed. Use the declared type and capability metadata before attempting generic edits. The tables below define lifetime and failure semantics.
+
 ## Static metadata
 
 `ISparseModelMetadata` describes one generated model: its CLR type and its property entries in declaration order, with lookup by CLR name. `ISparsePropertyMetadata` describes one declared property: its CLR name, declared and view types, nullability, required state, editability, declared attributes, and shape. Both are instance-independent. They can be inspected without creating an observable, and the per-model generated code owns a single cached instance whose invariant entries are shared, never rebuilt per access.

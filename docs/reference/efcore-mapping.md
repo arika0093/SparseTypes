@@ -2,6 +2,8 @@
 
 Technical reference for `SparseTypes.EntityFrameworkCore`, covering mapper configuration APIs, plan lifecycle, metadata handling, and execution constraints.
 
+Package and namespace: `SparseTypes.EntityFrameworkCore`. For the application-facing API index, see [API reference](README.md).
+
 ## Configuration APIs
 
 The mapper builder (`Map`) is available inside the synchronous `Configure` method of a `[SparseFragmentMapper<TEntity, TDto>]` class.
@@ -65,11 +67,19 @@ public sealed partial class OrderMapper
 |---|---|
 | `Map.Member(dto, entity)` | Maps a DTO property to an entity property (renamed or flattened). |
 | `Map.Member(dto, entity, converter)` | Applies a value converter during mapping. The converter runs during validation. |
+| `Map.Member(dto, entity, onMissing)` | Maps a member with an explicit missing policy. |
+| `Map.Member(dto, entity, converter, onMissing)` | Combines conversion and a missing policy. |
 | `Map.Read(dto, entity)` | Registers an explicit projection for non-invertible conversions. |
 | `Map.Write(dto, handler)` | Executes a custom write callback receiving the presence-aware `Optional<T>` after-state. |
 | `Map.Ignore(dto)` | Suppresses mapping for a DTO property. |
 | `Map.OnMissing(dto, policy)` | Sets the behavior when a DTO property changes to `Missing` (`Throw`, `Ignore`, `SetDefault`, `SetNull`). |
 | `Map.AllowWrite(dto)` | Permits writing to protected EF properties (primary keys, generated values, shadow properties). |
+| `Map.MissingDefault(policy)` | Sets the default missing policy. `DefaultMissing` exposes it on the builder. |
+| `Map.Collection(dto, entity)` | Declares collection mapping using generated/default element configuration. |
+| `Map.Collection(dto, entity, configure)` | Configures a keyed collection through its element builder. |
+| `Map.Object(dto, entity, configure, objectMissing = Throw)` | Configures a nested object and its missing policy. |
+
+The builder has a parameterless constructor and fluent methods return the same builder. DTO/entity selectors are expression trees; custom converters and writers are delegates. `DeclareCollection` and the two `DeclareCollectionElement` overloads register generated structural metadata and are intended for generator/adaptor integration rather than ordinary Configure methods.
 
 ### Keyed collections
 
@@ -77,11 +87,61 @@ public sealed partial class OrderMapper
 |---|---|
 | `lines.Key(dtoKey, entityKey)` | Defines composite, computed, or custom key projections between DTO and entity. |
 | `lines.Element(builder)` | Configures path-scoped element mappings and overrides. |
+| `lines.Create(factory)` | Supplies construction of an entity child from a DTO child. |
 | `lines.UnassignedKey(sentinel)` | Declares an explicit unassigned key sentinel (e.g., `0`). |
 | `lines.Delete()` | Marks removed entities as deleted (`EntityState.Deleted`). |
 | `lines.Detach()` | Unlinks removed entities from parent (optional foreign keys only). |
 | `lines.SoftDelete(callback)` | Invokes a callback to mark records deleted without removing the row. |
+| `lines.SoftDelete(callback, isDeleted)` | Also supplies a predicate for identifying deleted entities in memory. |
+| `lines.SoftDeleteFilter(expression)` | Supplies an expression-based deleted-row filter. |
+| `lines.Remove(callback)` | Supplies custom removal with DbContext and entity child. |
 | `lines.Order(callback)` | Enables explicit collection order synchronization. |
+| `lines.Order(expression)` | Selects an integer entity order property. |
+
+`SparseEntityCollectionBuilder<TEntityChild,TDtoChild>` has a parameterless constructor; methods return the builder. Delete, Detach, SoftDelete, and Remove select different removal policies, not additional save operations.
+
+## Mapper execution API
+
+`[SparseFragmentMapper<TEntity,TDto>]` has a parameterless constructor and read-only EntityType and DtoType. Its generated mapper offers `Create(IModel model)` and generated mapping defaults; Configure is synchronous. The runtime alternative implements `IEntityModelMapping<TEntity,TDto>.Configure(SparseEntityMapBuilder<TEntity,TDto> map)` and calls `SparseEntityMapper<TEntity,TDto>.Create(mapping, model)`.
+
+| Member on SparseEntityMapper<TEntity,TDto> | Contract |
+| --- | --- |
+| `Projection` | `Expression<Func<TEntity,TDto>>` for query projection. |
+| `ToDto(TEntity entity)` | Materializes a DTO from a loaded entity. |
+| `Apply(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes)` | Preflights and writes accepted transitions to tracked entities. Does not save or rebase. |
+| `ApplyWithResult(context, entity, changes)` | Same application with applied-path and created-entity correlation results. |
+| `AssignTemporaryKeys(context, result, baseline, authoritative)` | Copies generated key assignments into corresponding DTOs after persistence. |
+
+`ISparseEntityMapper<TEntity,TDto>` is the service contract for Apply, ApplyWithResult, AssignTemporaryKeys, and `ToDto(DbContext context, TEntity entity)`. Its ToDto signature differs from the concrete mapper's instance method.
+
+`query.IncludeFor(mapper, changes)` has ISparseChangeSet and typed ISparseChangeSet<TDto> overloads and returns IQueryable<TEntity>.
+
+`services.AddSparseEntityMappers(params Type[] mappingTypes)` registers mapping types. `serviceProvider.ValidateSparseEntityMappers<TContext>()` validates registered plans for a DbContext. GeneratedDefaultsRegistry in the Mapping namespace is the generated registration hook, not an application mapping builder.
+
+## Application results and errors
+
+`SparseEntityApplyResult` exposes AppliedPaths, CreatedByPath, and HasCreatedEntities. Lookup methods are `GetCreated(Guid temporaryKey)`, `GetCreated(string collectionPath)`, `GetCreated<TEntityChild>(string collectionPath)`, `GetCreated<TEntityChild,TDto>(collectionSelector)`, and `TryGetCreated<TEntityChild>` with either temporary key alone or collection path plus temporary key. Path-scoped lookup avoids ambiguity across different collections.
+
+Each `SparseEntityAppliedPath` records DtoPath, Operation, EntityType, EntityMember, EntityKey, and optional RemoveKind. Its constructor takes those values, with entity details optional. SparseEntityApplyOperationKind contains Set, SetNull, MissingIgnored, Created, Removed, Reordered, and CustomWrite. SparseEntityRemoveKind contains Delete, Detach, SoftDelete, and Custom.
+
+`SparseEntityMappingException` exposes Failure, DtoPath, Mapper, and Errors. Constructors take `(failure, message)` or `(failure, dtoPath, message, entityTarget = null, suggestedAction = null)`. Error entries expose Failure, DtoPath, Message, EntityTarget, and SuggestedAction, with a matching detailed constructor.
+
+SparseEntityMappingFailure values are Unknown, Duplicate, Unmapped, Ambiguous, Protected, CollectionNotSupported, MissingNotHandled, NullNotAllowed, MetadataMismatch, NestedNotCreatable, CollectionNotLoaded, CollectionKeyNotFound, and CollectionKeyConflict.
+
+## Save pipeline
+
+`SparseEntitySavePipeline.ExecuteAsync<TPreparation,TReadBack>(prepare, save, readBack, synchronize, cancellationToken = default)` runs application-supplied callbacks once, in that order. Callback signatures are:
+
+| Callback | Signature |
+| --- | --- |
+| prepare | `Func<CancellationToken,Task<TPreparation>>` |
+| save | `Func<TPreparation,CancellationToken,Task>` |
+| readBack | `Func<TPreparation,CancellationToken,Task<TReadBack>>` |
+| synchronize | `Func<TPreparation,TReadBack,CancellationToken,Task>` |
+
+The returned SparseEntitySaveResult exposes Stage, Preparation, ReadBack, and Error. Stage is Saved, PreparationFailed, ConcurrencyConflict, SaveOutcomeUnknown, ReadBackFailed, or ClientSynchronizationFailed.
+
+The pipeline neither retries nor rolls back. Callback cancellation is returned as an Error at the reached stage, not rethrown. A save-stage cancellation or unclassified exception means persistence outcome is unknown: query authoritative state before retrying. ReadBackFailed and ClientSynchronizationFailed mean persistence already completed.
 
 ## Execution lifecycle
 

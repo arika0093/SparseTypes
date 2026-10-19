@@ -134,7 +134,30 @@ EOF
 printf 'docs/guide.md\tpayload-wire\tfixture.cs\tjson-specimen\n' > "${root}/registry.tsv"
 expect_fail "e/mutated JSON specimen" "${root}"
 
-# (f) Illustrative control: sketches with a reason pass.
+# (f) JSONC comments are ignored without treating URL slashes as comments.
+root="${tmp_base}/jsonc-comments"
+mkdir -p "${root}/docs"
+cat > "${root}/docs/guide.md" <<'EOF'
+# Guide
+
+<!-- json-specimen: payload-wire -->
+```jsonc
+{
+  // Keep this note and URL in the documented example.
+  "url": "https://example.test/path"
+}
+```
+<!-- /json-specimen -->
+EOF
+cat > "${root}/fixture.cs" <<'EOF'
+// json-specimen: payload-wire
+public const string Wire = """{"url":"https://example.test/path"}""";
+// /json-specimen
+EOF
+printf 'docs/guide.md\tpayload-wire\tfixture.cs\tjson-specimen\n' > "${root}/registry.tsv"
+expect_pass "f/JSONC comments" "${root}"
+
+# (g) Illustrative control: sketches with a reason pass.
 root="${tmp_base}/illustrative"
 write_baseline "${root}"
 cat >> "${root}/docs/guide.md" <<'EOF'
@@ -145,9 +168,9 @@ cat >> "${root}/docs/guide.md" <<'EOF'
 var broken = undefinedName;
 ```
 EOF
-expect_pass "f/illustrative control" "${root}"
+expect_pass "g/illustrative control" "${root}"
 
-# (g) Duplicate sample id within one file fails.
+# (h) Duplicate sample id within one file fails.
 root="${tmp_base}/duplicate-id"
 write_baseline "${root}"
 cat >> "${root}/docs/guide.md" <<'EOF'
@@ -158,15 +181,15 @@ var value = 1;
 ```
 <!-- /sample -->
 EOF
-expect_fail "g/duplicate sample id" "${root}"
+expect_fail "h/duplicate sample id" "${root}"
 
-# (h) Unused registry entry fails.
+# (i) Unused registry entry fails.
 root="${tmp_base}/unused-entry"
 write_baseline "${root}"
 printf 'docs/guide.md\tprobe-stale\tfixture.cs\n' >> "${root}/registry.tsv"
-expect_fail "h/unused registry entry" "${root}"
+expect_fail "i/unused registry entry" "${root}"
 
-# (i) Unguarded runnable fence fails.
+# (j) Unguarded runnable fence fails.
 root="${tmp_base}/unguarded-fence"
 write_baseline "${root}"
 cat >> "${root}/docs/guide.md" <<'EOF'
@@ -175,9 +198,9 @@ cat >> "${root}/docs/guide.md" <<'EOF'
 var stray = session.CreateChangeSet();
 ```
 EOF
-expect_fail "i/unguarded runnable fence" "${root}"
+expect_fail "j/unguarded runnable fence" "${root}"
 
-# (j) Fixture region without an assertion body fails.
+# (k) Fixture region without an assertion body fails.
 root="${tmp_base}/no-assertion"
 mkdir -p "${root}/docs"
 cat > "${root}/docs/guide.md" <<'EOF'
@@ -197,9 +220,9 @@ var bare = 1;
 // /sample
 EOF
 printf 'docs/guide.md\tprobe-bare\tfixture.cs\n' > "${root}/registry.tsv"
-expect_fail "j/missing assertion body" "${root}"
+expect_fail "k/missing assertion body" "${root}"
 
-# (k) Empty illustrative reason fails.
+# (l) Empty illustrative reason fails.
 root="${tmp_base}/empty-reason"
 write_baseline "${root}"
 cat >> "${root}/docs/guide.md" <<'EOF'
@@ -209,9 +232,9 @@ cat >> "${root}/docs/guide.md" <<'EOF'
 var sketchy = 1;
 ```
 EOF
-expect_fail "k/empty illustrative reason" "${root}"
+expect_fail "l/empty illustrative reason" "${root}"
 
-# (l) Mutated JSON inside a C# raw-string wrapper fails deep comparison.
+# (m) Mutated JSON inside a C# raw-string wrapper fails deep comparison.
 root="${tmp_base}/json-wrapper"
 mkdir -p "${root}/docs"
 cat > "${root}/docs/guide.md" <<'EOF'
@@ -229,9 +252,9 @@ public const string Wire = """{ "label": { "after": "CHANGED" } }""";
 // /json-specimen
 EOF
 printf 'docs/guide.md\tpayload-wire\tfixture.cs\tjson-specimen\n' > "${root}/registry.tsv"
-expect_fail "l/mutated JSON in raw-string wrapper" "${root}"
+expect_fail "m/mutated JSON in raw-string wrapper" "${root}"
 
-# (m) Supporting-store shape passes without an assertion body.
+# (n) Supporting-store shape passes without an assertion body.
 root="${tmp_base}/store-shape"
 mkdir -p "${root}/docs"
 cat > "${root}/docs/guide.md" <<'EOF'
@@ -253,7 +276,7 @@ sealed class ProbeStore
 // /sample
 EOF
 printf 'docs/guide.md\tprobe-store\tfixture.cs\n' > "${root}/registry.tsv"
-expect_pass "m/store shape exemption" "${root}"
+expect_pass "n/store shape exemption" "${root}"
 
 echo "Probes: ${passed} passed, ${failed} failed."
 if [[ "${failed}" -ne 0 ]]; then

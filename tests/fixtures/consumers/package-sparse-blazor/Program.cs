@@ -110,6 +110,7 @@ DocsCheck.Require(!uiSession.HasChanges, "re-baselined");
 // /sample
 
 await UiDocSamples.RunAsync();
+await BlazorApiSamples.RunAsync();
 
 Console.WriteLine("SparseTypes Blazor consumer passed.");
 

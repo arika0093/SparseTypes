@@ -1,5 +1,7 @@
 # Model Shapes
 
+For attribute constructors and properties, see [model attributes](attributes.md). For the resulting member APIs, see the [generated API overview](generated-api.md).
+
 For the common case, add `[SparseModel]` to a top-level `partial` class or struct. Nested models should also be `partial` when you want SparseTypes to merge and patch their members independently.
 
 <!-- illustrative: shape illustration; shown without surrounding file context and does not compile as written -->

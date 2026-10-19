@@ -64,6 +64,7 @@ public sealed class AotJsonTests
     [Test]
     public async Task ChangePayloadRoundTripsWithSourceGenAndNormalizedJson()
     {
+        // sample: payload-native-aot
         Optional<PayloadRoot.Fragment?> WidgetState(string label, string name) =>
             Optional<PayloadRoot.Fragment?>.Present(
                 PayloadRoot.Fragment.From(
@@ -82,6 +83,7 @@ public sealed class AotJsonTests
             changes.ToPayload(),
             AotSerializerContext.Default.PayloadRootChangePayload
         );
+        // /sample
         using (var document = JsonDocument.Parse(json))
         {
             await Assert
@@ -117,6 +119,8 @@ public sealed class AotJsonTests
                 .IsTrue();
         }
         await Assert.That(json.Contains("\"state\":\"value\"")).IsTrue();
+
+        // sample: payload-native-aot
         var restored = JsonSerializer
             .Deserialize(json, AotSerializerContext.Default.PayloadRootChangePayload)!
             .ToChangeSet();
@@ -127,6 +131,7 @@ public sealed class AotJsonTests
                     .IsEmpty
             )
             .IsTrue();
+        // /sample
 
         Optional<PayloadCollection.Fragment?> ServerState(params PayloadItem[] items) =>
             Optional<PayloadCollection.Fragment?>.Present(
@@ -303,7 +308,8 @@ public sealed class AotJsonTests
             .ToChangeSet();
         await Assert
             .That(
-                PayloadRoot.Patch.Between(missingRestored.ToPatch().Apply(missingBefore), missingAfter)
+                PayloadRoot
+                    .Patch.Between(missingRestored.ToPatch().Apply(missingBefore), missingAfter)
                     .IsEmpty
             )
             .IsTrue();

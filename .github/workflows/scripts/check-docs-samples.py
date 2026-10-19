@@ -455,17 +455,56 @@ def compare_blocks(guide, fixture, sample_id, actual, expected):
     return notes
 
 
+def strip_jsonc_comments(text):
+    """Remove JSONC comments without changing strings or line boundaries."""
+    result = []
+    index = 0
+    in_string = False
+    escaped = False
+    while index < len(text):
+        character = text[index]
+        following = text[index + 1] if index + 1 < len(text) else ""
+        if in_string:
+            result.append(character)
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            index += 1
+        elif character == '"':
+            in_string = True
+            result.append(character)
+            index += 1
+        elif character == "/" and following == "/":
+            while index < len(text) and text[index] not in "\r\n":
+                result.append(" ")
+                index += 1
+        elif character == "/" and following == "*":
+            end = text.find("*/", index + 2)
+            if end == -1:
+                raise ValueError("unterminated block comment")
+            comment = text[index : end + 2]
+            result.extend("\n" if item in "\r\n" else " " for item in comment)
+            index = end + 2
+        else:
+            result.append(character)
+            index += 1
+    return "".join(result)
+
+
 def compare_json_specimen(guide, fixture, sample_id, md_lines, fixture_lines):
-    """Deep-compare one JSON specimen: Markdown fence vs fixture literal."""
+    """Deep-compare one JSONC Markdown specimen with its fixture JSON."""
     md_text = "\n".join(line for line in md_lines if line.strip())
     body = "\n".join(fixture_lines)
     literals = re.findall(r'"""(.*?)"""', body, flags=re.DOTALL)
     candidates = literals if literals else [body]
     try:
-        md_parsed = json.loads(md_text)
-    except json.JSONDecodeError as error:
+        md_parsed = json.loads(strip_jsonc_comments(md_text))
+    except ValueError as error:
         return [
-            "Docs JSON drift [json-specimen:%s]: guide '%s' fence is not valid JSON: %s"
+            "Docs JSON drift [json-specimen:%s]: guide '%s' fence is not valid JSONC: %s"
             % (sample_id, guide, error)
         ]
     fixture_parsed = []

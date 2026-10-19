@@ -14,6 +14,7 @@ LayeredSettingsSamples.Run();
 PartialUpdateSamples.Run();
 EditSessionGroupsDocsSamples.Run();
 EditSessionStateDocsSamples.Run();
+ApiReferenceSamples.Run();
 
 Console.WriteLine("SparseTypes docs consumer passed.");
 

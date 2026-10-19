@@ -99,7 +99,7 @@ public static class EditSessionStateDocsSamples
         // Observable change notifies watcher synchronously
         session.Observable.Title = "next";
         // changeCount > 0
-        // watcher.Current.Value == "next"
+        // watcher.After.Value == "next"
         // watcher.IsChanged == true
 
         var lastCount = changeCount;

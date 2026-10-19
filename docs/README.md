@@ -7,7 +7,7 @@ This index organizes the documentation into four categories:
 * **Tutorials**: Step-by-step runnable walkthroughs for first-time users.
 * **How-to Guides**: Task-focused recipes for specific application scenarios.
 * **Explanations**: Conceptual background and design trade-offs.
-* **Reference**: Technical contracts, wire formats, and analyzer diagnostics.
+* **Reference**: Package APIs, generated model APIs, technical contracts, wire formats, and analyzer diagnostics.
 
 ## Tutorials
 
@@ -44,7 +44,33 @@ Architecture and design concepts:
 
 ## Reference
 
-Detailed specifications and diagnostics:
+Start with the [API reference index](reference/README.md) for package types and generated model companions.
+
+### Package APIs
+
+* [Optional and fragment operations](reference/values-and-operations.md): Presence, null, member commands, conversions, and ref helpers.
+* [Model attributes](reference/attributes.md): Every model configuration attribute, its arguments, and declaration constraints.
+* [Merge, comparison, and rebase policies](reference/merge-and-policies.md): Built-in modes and custom strategy contracts.
+* [Rebase results and conflict resolution](reference/rebase-api.md): Result members, conflict values, options, and explicit decisions.
+* [Paths](reference/paths.md): Typed identity, segment construction, parsing, and path queries.
+* [Collection editors](reference/collection-editors.md): Positional, stable-key, and temporary-key editing with structured errors.
+* [Session contracts, history, and groups](reference/session-contracts.md): Framework capabilities, Undo/Redo, child sessions, and submission capture.
+* [Validation stores](reference/validation.md): Path/origin errors and conflict projection.
+* [Payload runtime APIs](reference/payload-api.md): Endpoint, validation, wire token, and mixed-operation types.
+* [Blazor API](reference/blazor-api.md): Component parameters, contexts, bindings, and EditContext extensions.
+
+### Generated APIs
+
+* [Generated API overview](reference/generated-api.md): Added model methods, extensions, placement, naming, and generation conditions.
+* [T.Fragment and its builder](reference/generated-fragment.md): Sparse snapshots, layering, conversion, origins, and mutable builders.
+* [T.Patch](reference/generated-patch.md): Commands, application, composition, inversion, and explicit-baseline rebase.
+* [T.ChangeSet](reference/generated-changeset.md): Typed transitions, inspection, baseline-aware application, and resolution.
+* [T.ChangePayload](reference/generated-payload.md): Transport factories, validation, conversion, and mixed application.
+* [T.EditSession](reference/generated-edit-session.md): Capture, acknowledgement, reconciliation, reload, branches, history, and children.
+* [T.Observable and T.ReadOnlyView](reference/generated-views.md): Write-through proxies, collection facades, and live read-only views.
+* [Generated paths and transitions](reference/generated-paths-and-transitions.md): Shape-specific navigation and collection member APIs.
+
+### Specifications and integration contracts
 
 * [Model shapes](reference/model-shapes.md): `[SparseModel]` requirements, nested model promotion, `[SparseKey]` constraints, `[SparseIgnore]` vs `[JsonIgnore]`, and C# language version requirements.
 * [Edit session state and observers](reference/edit-session-state.md): `FieldState`, `CollectionState`, `ObserveField`, `History` contract, notification batching, and generated type placement.
