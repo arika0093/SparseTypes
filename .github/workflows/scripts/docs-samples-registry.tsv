@@ -63,6 +63,7 @@ docs/reference/change-payload.md	payload-invert	tests/fixtures/consumers/package
 docs/reference/change-payload.md	payload-version	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
 docs/reference/change-payload.md	payload-validate	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
 docs/reference/change-payload.md	payload-context	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
+docs/reference/change-payload.md	payload-poco-leaf	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs
 docs/reference/change-payload.md	payload-native-aot-models	tests/SparseTypes.NativeAotFixtures/PayloadLeafContext.cs
 docs/reference/change-payload.md	payload-native-aot	tests/SparseTypes.NativeAotSmoke/AotJsonTests.cs
 docs/reference/change-payload.md	payload-envelope	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen

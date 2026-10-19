@@ -48,6 +48,7 @@ internal static class SparsePayloadJsonResolverEmitter
             4,
             "return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<ChangePayload>(options, Converter);"
         );
+        SparsePayloadJsonPocoEmitter.AppendResolverBranches(code, context);
         code.AppendLineAt(3, "return null;");
         code.AppendLineAt(2, "}");
         code.AppendLineAt(

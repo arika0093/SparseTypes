@@ -743,7 +743,7 @@ var contextRestored = JsonSerializer
 ```
 <!-- /sample -->
 
-`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape. Primitive, enum, and collection endpoint values use generated fast paths with canonical JSON encoding and need no extra registration; only custom value shapes resolve through `JsonSerializerOptions.GetTypeInfo`, so combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
+`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape. Primitive, enum, and collection endpoint values use generated fast paths with canonical JSON encoding and need no extra registration. Ordinary custom objects reachable from endpoints (endpoint values, key additions and removals, dictionary and list values, and nested custom objects) resolve through generated leaf codecs with the same default contract `System.Text.Json` would produce, so they need no application context either. Only shapes outside the generated contract resolve through `JsonSerializerOptions.GetTypeInfo`: combine the generated resolver with a source-generated context for those types, or add a `JsonConverter` for the type to the serializer options. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
 
 ## NativeAOT
 
@@ -758,9 +758,9 @@ NativeAOT and trimmed applications need serializer metadata at build time. Confi
 </PropertyGroup>
 ```
 
-Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes that travel in payloads. Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration. Fragment serialization uses the same fast paths for those shapes.
+Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes outside the generated leaf contract (polymorphic `object`/interface members, custom converters, extension data, and other [SPF036](analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata) shapes). Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration, and ordinary custom objects use the generated leaf codecs. Fragment serialization uses the same fast paths for those shapes.
 
-This context lives in the model project and registers only the custom leaf types used by the AOT examples:
+A source-generated context remains the opt-in for the unsupported shapes; it lives in the model project and registers only the custom leaf types used by the AOT examples:
 
 <!-- sample: payload-native-aot-models -->
 ```csharp
@@ -810,7 +810,57 @@ await Assert
 ```
 <!-- /sample -->
 
-Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are primitives or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
+Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are primitives, nested models, or ordinary custom objects; no application context is needed for those cases. Nested changes use the parent payload resolver; they do not need a separate registration. For shapes outside the generated contract, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own for the supported shapes. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
+
+### Custom leaf objects
+
+Ordinary custom endpoint value types, keyed additions and removals, dictionary and list values, and nested custom objects round-trip through `T.PayloadJson.Default` with no manual `JsonSerializerContext`:
+
+<!-- sample: payload-poco-leaf -->
+```csharp
+var pocoBefore = Optional<PocoWidget.Fragment?>.Present(
+    PocoWidget.Fragment.From(
+        new PocoWidget
+        {
+            Leaf = new PocoLeafDto
+            {
+                Name = "before",
+                Count = 1,
+                Label = "t",
+                Secret = "s",
+            },
+        }
+    )
+);
+var pocoAfter = Optional<PocoWidget.Fragment?>.Present(
+    PocoWidget.Fragment.From(
+        new PocoWidget
+        {
+            Leaf = new PocoLeafDto
+            {
+                Name = "after",
+                Count = 2,
+                Label = "t",
+                Secret = "s",
+            },
+        }
+    )
+);
+var pocoPayload = PocoWidget.ChangeSet.Between(pocoBefore, pocoAfter).ToPayload();
+var pocoJson = JsonSerializer.Serialize(
+    pocoPayload,
+    PocoWidget.PayloadJson.Default.ChangePayload
+);
+var pocoRestored = JsonSerializer
+    .Deserialize(pocoJson, PocoWidget.PayloadJson.Default.ChangePayload)!
+    .ToChangeSet();
+// pocoRestored.ToPatch().Apply(pocoBefore) replays pocoAfter
+```
+<!-- /sample -->
+
+The generator traverses the reachable custom types at build time (transitively, with cycle detection and deduplication) and emits trim-safe readers and writers for each supported shape. Supported shapes are public classes and structs with an accessible parameterless or property-bound constructor and public serializable properties, including nested custom objects, repeated shared leaf types, nullable values, collections, and arrays. The generated contract honors `[JsonPropertyName]`, `[JsonIgnore]` (including `WhenWritingNull`/`WhenWritingDefault`), naming policies, null and default omission, and case-insensitive reading, and matches the default `System.Text.Json` wire for those shapes. A `JsonConverter<T>` added to the serializer options takes precedence over the generated codec for its type.
+
+Shapes outside the contract keep the explicit fallback instead of a silent schema change: polymorphic `object`/interface members, custom `[JsonConverter]` and `[JsonPolymorphic]` declarations, `[JsonExtensionData]` and `[JsonInclude]` fields, `[JsonRequired]` members, types without an accessible constructor, and public fields under `IncludeFields` report [SPF036](analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata) or fail at serialization time with an explicit exception naming the opt-in. Combine the generated resolver with an external `JsonTypeInfoResolver` for those values; the caller-supplied resolver stays an advanced escape hatch, never the default requirement for normal objects.
 
 ## Choosing a conversion
 

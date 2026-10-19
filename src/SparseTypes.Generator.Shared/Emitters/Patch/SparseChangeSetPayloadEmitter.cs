@@ -18,7 +18,8 @@ internal static class SparseChangeSetPayloadEmitter
         bool emitContainers = true,
         bool emitFacade = true,
         string? implementationNamespace = null,
-        string containerAccessibility = "public"
+        string containerAccessibility = "public",
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         var runtime = dialect.RuntimeNamespace;
@@ -56,7 +57,8 @@ internal static class SparseChangeSetPayloadEmitter
                 members,
                 dialect,
                 modelType,
-                implementationNamespace
+                implementationNamespace,
+                payloadJsonPocos
             );
             if (payloadJson is not null)
             {

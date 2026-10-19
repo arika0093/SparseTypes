@@ -28,6 +28,10 @@ internal static class SparsePayloadJsonConverterEmitter
         AppendPayload(code, context);
         AppendCore(code, context);
         AppendRoot(code, context);
+        // Public-first order: the internal leaf-codec converter follows the
+        // public readers and precedes the private member codecs below.
+        if (SparsePayloadJsonPocoEmitter.HasPocos(context))
+            SparsePayloadJsonPocoEmitter.AppendPocos(code, context);
         AppendDispatch(code, context, members);
         foreach (var member in members)
             SparsePayloadJsonMemberEmitter.AppendMember(code, context, member);

@@ -95,6 +95,28 @@ internal static class SparseJsonCollectionShapes
             return true;
         }
 
+        // Whole-value dictionaries without granular item diffs (for example
+        // explicit Replace members) still travel structurally; only the merge
+        // path differs, never the wire contract.
+        if (
+            IsMapType(valueType)
+            && member.Collection.CloneKind == SparseCloneCollectionKind.Dictionary
+            && member.Collection.ValueType is { } wholeValue
+            && !string.IsNullOrEmpty(wholeValue.NonNullableName)
+        )
+        {
+            var wholeKeyName = NormalizePrimitive(member.Collection.ElementType.NonNullableName);
+            if (!IsSupportedKey(wholeKeyName))
+                return false;
+            model = new SparseJsonCollectionModel(
+                SparseJsonCollectionShape.Map,
+                NormalizePrimitive(wholeValue.NonNullableName),
+                SparseJsonPrimitiveNames.IsNullableValue(wholeValue, wholeValue.Name),
+                wholeKeyName
+            );
+            return true;
+        }
+
         return false;
     }
 

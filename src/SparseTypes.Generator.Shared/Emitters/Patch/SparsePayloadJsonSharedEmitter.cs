@@ -204,6 +204,12 @@ internal static class SparsePayloadJsonSharedEmitter
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueInfo<TValue>(global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.AppendLineAt(2, "{");
+        if (SparsePayloadJsonPocoEmitter.HasPocos(context))
+        {
+            code.AppendLineAt(3, "var poco = GetPocoInfo<TValue>(options);");
+            code.AppendLineAt(3, "if (poco is not null) return poco;");
+        }
+
         code.AppendLineAt(
             3,
             "try { return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue)); }"
@@ -212,7 +218,7 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLineAt(3, "{");
         code.AppendLineAt(
             4,
-            "throw new global::System.InvalidOperationException(\"The generated payload resolver requires JsonTypeInfo metadata for value type '\" + typeof(TValue) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types.\", exception);"
+            "throw new global::System.InvalidOperationException(\"The generated payload resolver requires JsonTypeInfo metadata for value type '\" + typeof(TValue) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception);"
         );
         code.AppendLineAt(3, "}");
         code.AppendLineAt(2, "}");

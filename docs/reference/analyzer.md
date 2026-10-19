@@ -1,4 +1,4 @@
-# SparseTypes Analyzer Diagnostics (SPF001-SPF035)
+# SparseTypes Analyzer Diagnostics (SPF001-SPF036)
 
 Diagnostics reported by the source generator `SparseTypes.Generator`.
 Each diagnostic's `HelpLinkUri` points to the corresponding heading in this file.
@@ -39,6 +39,7 @@ with a `Code fix` entry below. Fixes apply through the IDE light bulb and Fix Al
 | [SPF033](#spf033-incompatible-entity-default-mapping) | Incompatible entity default mapping | Error |
 | [SPF034](#spf034-invalid-entity-mapper-declaration) | Invalid entity mapper declaration | Error |
 | [SPF035](#spf035-unsupported-entity-member-shape) | Unsupported entity member shape | Error |
+| [SPF036](#spf036-custom-leaf-type-needs-external-json-metadata) | Custom leaf type needs external JSON metadata | Warning |
 
 ## SPF001: Sparse model must be partial
 
@@ -445,3 +446,19 @@ public partial class PolicySettings
   `Ignore` the member, in the mapper's parameterless `Configure()`. For temporary identities,
   prefer a public `{ get; set; }` `Guid?` property so generated defaults can
   assign identities after construction.
+
+## SPF036: Custom leaf type needs external JSON metadata
+
+* Message: `Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Default with a source-generated context for this type or simplify it to public properties with an accessible constructor`
+* Cause: A custom value type reachable from a payload endpoint has a shape the
+  generated trim-safe leaf codec does not cover: no accessible parameterless or
+  property-bound constructor, a custom `[JsonConverter]`, polymorphism
+  (`[JsonPolymorphic]`/`[JsonDerivedType]`), `[JsonExtensionData]`,
+  `[JsonInclude]` fields, `[JsonRequired]` members, duplicate wire names, or
+  required members the codec cannot construct. Generation continues; values of
+  that type fall back to external `JsonTypeInfo` metadata at runtime.
+* Fix: Combine `T.PayloadJson.Default` with a source-generated context that
+  registers the type (`JsonTypeInfoResolver.Combine`), add a `JsonConverter`
+  for the type to the serializer options, or simplify the type to public
+  properties with an accessible constructor. This is a warning; generation
+  continues.

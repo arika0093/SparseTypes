@@ -23,6 +23,7 @@ public static class ChangePayloadDocsSamples
         Invert();
         VersionGuard();
         Validate();
+        PocoLeaf();
     }
 
     private static bool JsonMatches(string actual, string expected) =>
@@ -221,6 +222,61 @@ public static class ChangePayloadDocsSamples
         DocsCheck.Require(
             !removeRestored.ToPatch().Apply(removeBefore).Value!.Label.IsPresent,
             "deserialized removal drops the contribution"
+        );
+    }
+
+    private static void PocoLeaf()
+    {
+        // sample: payload-poco-leaf
+        var pocoBefore = Optional<PocoWidget.Fragment?>.Present(
+            PocoWidget.Fragment.From(
+                new PocoWidget
+                {
+                    Leaf = new PocoLeafDto
+                    {
+                        Name = "before",
+                        Count = 1,
+                        Label = "t",
+                        Secret = "s",
+                    },
+                }
+            )
+        );
+        var pocoAfter = Optional<PocoWidget.Fragment?>.Present(
+            PocoWidget.Fragment.From(
+                new PocoWidget
+                {
+                    Leaf = new PocoLeafDto
+                    {
+                        Name = "after",
+                        Count = 2,
+                        Label = "t",
+                        Secret = "s",
+                    },
+                }
+            )
+        );
+        var pocoPayload = PocoWidget.ChangeSet.Between(pocoBefore, pocoAfter).ToPayload();
+        var pocoJson = JsonSerializer.Serialize(
+            pocoPayload,
+            PocoWidget.PayloadJson.Default.ChangePayload
+        );
+        var pocoRestored = JsonSerializer
+            .Deserialize(pocoJson, PocoWidget.PayloadJson.Default.ChangePayload)!
+            .ToChangeSet();
+        // pocoRestored.ToPatch().Apply(pocoBefore) replays pocoAfter
+        // /sample
+        DocsCheck.Require(
+            pocoJson.Contains("\"tag\":\"t\""),
+            "renamed leaf property travels without registration"
+        );
+        DocsCheck.Require(!pocoJson.Contains("Secret"), "ignored leaf property is omitted");
+        var pocoApplied = pocoRestored.ToPatch().Apply(pocoBefore).Value!;
+        DocsCheck.Require(pocoApplied.Leaf.Value!.Name == "after", "leaf after-state arrives");
+        DocsCheck.Require(pocoApplied.Leaf.Value!.Count == 2, "leaf count arrives");
+        DocsCheck.Require(
+            pocoApplied.Leaf.Value!.Secret is null,
+            "ignored leaf stays null like System.Text.Json defaults"
         );
     }
 
@@ -756,6 +812,26 @@ public partial class WireSecret
 public partial class WireScores
 {
     public Dictionary<string, int> Scores { get; set; } = new();
+}
+
+public class PocoLeafDto
+{
+    public string Name { get; set; } = string.Empty;
+
+    public int Count { get; set; }
+
+    [JsonPropertyName("tag")]
+    public string? Label { get; set; }
+
+    [JsonIgnore]
+    public string? Secret { get; set; }
+}
+
+[SparseModel]
+public partial class PocoWidget
+{
+    [SparseMerge(MergeMode.Replace)]
+    public PocoLeafDto? Leaf { get; set; }
 }
 
 // JSON specimens are compared deeply with the matching guide blocks.

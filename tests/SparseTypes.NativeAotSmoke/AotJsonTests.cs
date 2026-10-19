@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using SparseTypes.NativeAotFixtures;
 
@@ -8,10 +9,20 @@ namespace SparseTypes.NativeAotSmoke;
 public sealed class AotJsonTests
 {
     private static JsonSerializerOptions PayloadCollectionOptions() =>
-        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) };
+        new()
+        {
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(
+                PayloadCollection.PayloadJson.Default,
+                PayloadLeafContext.Default
+            ),
+        };
 
-    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(JsonSerializerOptions options) =>
-        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(
+        JsonSerializerOptions options
+    ) =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)
+            options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+
     private static JsonSerializerOptions AotOptions()
     {
         var options = new JsonSerializerOptions();
@@ -179,9 +190,7 @@ public sealed class AotJsonTests
                     .GetString()
             )
             .IsEqualTo("add");
-        var serverRestored = JsonSerializer
-            .Deserialize(serverJson, serverTypeInfo)!
-            .ToChangeSet();
+        var serverRestored = JsonSerializer.Deserialize(serverJson, serverTypeInfo)!.ToChangeSet();
         await Assert
             .That(
                 PayloadCollection
@@ -391,5 +400,441 @@ public sealed class AotJsonTests
         await Assert.That(model.Numbers.Count).IsEqualTo(2);
         await Assert.That(model.Scores["a"]).IsEqualTo(3);
         await Assert.That(notified).IsEqualTo(2);
+    }
+
+    private static PocoLeaf SampleLeaf(
+        string name,
+        int count,
+        bool withNote = false,
+        string? secret = null
+    ) =>
+        new()
+        {
+            Name = name,
+            Count = count,
+            Nickname = name + "-nick",
+            Child = new PocoLeafChild { Code = "c-" + name, Level = count },
+            Tags = new List<string> { "t1", "t2" },
+            Label = "label-" + name,
+            Secret = secret,
+            Note = withNote ? "note-" + name : null,
+        };
+
+    private static JsonTypeInfo<PocoCatalog.ChangePayload> PocoCatalogTypeInfo(
+        JsonSerializerOptions options
+    ) =>
+        (JsonTypeInfo<PocoCatalog.ChangePayload>)
+            options.GetTypeInfo(typeof(PocoCatalog.ChangePayload));
+
+    [Test]
+    public async Task PocoLeafRoundTripsThroughDefaultResolverAlone()
+    {
+        Optional<PocoCatalog.Fragment?> CatalogState(
+            PocoLeaf? leaf,
+            string suffix,
+            bool withSecond = true
+        ) =>
+            Optional<PocoCatalog.Fragment?>.Present(
+                PocoCatalog.Fragment.From(
+                    new PocoCatalog
+                    {
+                        Leaf = leaf,
+                        SharedA = SampleLeaf("shared", 1),
+                        SharedB = new PocoLeaf { Name = "sparse", Count = 0 },
+                        Leaves = withSecond
+                            ? new List<PocoLeaf>
+                            {
+                                SampleLeaf("first", 1),
+                                SampleLeaf("second", 2, withNote: true),
+                            }
+                            : new List<PocoLeaf> { SampleLeaf("first", 1) },
+                        Lookup = new Dictionary<string, PocoLeaf>
+                        {
+                            ["k" + suffix] = SampleLeaf("mapped", 3),
+                        },
+                    }
+                )
+            );
+
+        // Ignored members never travel: the secret round-trips as null, just
+        // like System.Text.Json source generation.
+        var before = CatalogState(SampleLeaf("old", 1, secret: "secret-old"), "old", false);
+        var after = CatalogState(SampleLeaf("new", 2, secret: "secret-new"), "new");
+        var json = JsonSerializer.Serialize(
+            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
+            PocoCatalog.PayloadJson.Default.ChangePayload
+        );
+
+        await Assert.That(json.Contains("\"tag\":\"label-")).IsTrue();
+        await Assert.That(!json.Contains("secret-")).IsTrue();
+        await Assert.That(!json.Contains("\"Secret\"")).IsTrue();
+
+        // The wire is stable through a second round-trip.
+        var restored = JsonSerializer.Deserialize(
+            json,
+            PocoCatalog.PayloadJson.Default.ChangePayload
+        )!;
+        var stable = JsonSerializer.Serialize(
+            restored,
+            PocoCatalog.PayloadJson.Default.ChangePayload
+        );
+        await Assert.That(stable).IsEqualTo(json);
+
+        // Before/after state arrives field-complete (custom leaves compare by
+        // reference in fragments, so state is asserted per field).
+        var applied = restored.ToPatch().Apply(before).Value!;
+        var leaf = applied.Leaf.Value!;
+        await Assert.That(leaf.Name).IsEqualTo("new");
+        await Assert.That(leaf.Count).IsEqualTo(2);
+        await Assert.That(leaf.Nickname).IsEqualTo("new-nick");
+        await Assert.That(leaf.Child!.Code).IsEqualTo("c-new");
+        await Assert.That(leaf.Child.Level).IsEqualTo(2);
+        await Assert.That(leaf.Tags.SequenceEqual(new[] { "t1", "t2" })).IsTrue();
+        await Assert.That(leaf.Label).IsEqualTo("label-new");
+        await Assert.That(leaf.Secret).IsNull();
+        await Assert.That(applied.SharedA.Value!.Name).IsEqualTo("shared");
+        await Assert.That(applied.SharedB.Value!.Name).IsEqualTo("sparse");
+        await Assert.That(applied.Leaves.Value!.Count).IsEqualTo(2);
+        await Assert.That(applied.Leaves.Value[1].Note).IsEqualTo("note-second");
+        await Assert.That(applied.Lookup.Value!.Count).IsEqualTo(1);
+        await Assert.That(applied.Lookup.Value["knew"].Name).IsEqualTo("mapped");
+    }
+
+    [Test]
+    public async Task PocoLeafWireMatchesSystemTextJsonDefaults()
+    {
+        var leaf = SampleLeaf("parity", 7, withNote: true);
+        var options = new JsonSerializerOptions
+        {
+            TypeInfoResolver = PocoCatalog.PayloadJson.Default,
+        };
+        var generated = JsonSerializer.Serialize(
+            leaf,
+            (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf))
+        );
+        var baseline = JsonSerializer.Serialize(leaf, PocoParityContext.Default.PocoLeaf);
+
+        await Assert.That(generated).IsEqualTo(baseline);
+
+        var roundTripped = JsonSerializer.Deserialize(
+            generated,
+            (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf))
+        )!;
+        await Assert.That(roundTripped.Name).IsEqualTo("parity");
+        await Assert.That(roundTripped.Count).IsEqualTo(7);
+        await Assert.That(roundTripped.Child!.Code).IsEqualTo("c-parity");
+        await Assert.That(roundTripped.Tags.SequenceEqual(new[] { "t1", "t2" })).IsTrue();
+        await Assert.That(roundTripped.Label).IsEqualTo("label-parity");
+        await Assert.That(roundTripped.Secret).IsNull();
+        await Assert.That(roundTripped.Note).IsEqualTo("note-parity");
+    }
+
+    [Test]
+    public async Task PocoKeyedAddRemoveEditRoundTripsWithoutLeafContext()
+    {
+        Optional<PocoKeyed.Fragment?> KeyedState(params PocoItem[] items) =>
+            Optional<PocoKeyed.Fragment?>.Present(
+                PocoKeyed.Fragment.From(new PocoKeyed { Items = items.ToList() })
+            );
+
+        var before = KeyedState(
+            new PocoItem
+            {
+                Id = "a",
+                Name = "A",
+                Detail = SampleLeaf("detail-a", 1),
+            },
+            new PocoItem { Id = "b", Name = "B" }
+        );
+        var after = KeyedState(
+            new PocoItem
+            {
+                Id = "a",
+                Name = "A2",
+                Detail = SampleLeaf("detail-a", 2),
+            },
+            new PocoItem { Id = "c", Name = "C" }
+        );
+        var json = JsonSerializer.Serialize(
+            PocoKeyed.ChangeSet.Between(before, after).ToPayload(),
+            PocoKeyed.PayloadJson.Default.ChangePayload
+        );
+
+        await Assert.That(json.Contains("\"kind\":\"add\"")).IsTrue();
+        await Assert.That(json.Contains("\"kind\":\"remove\"")).IsTrue();
+        await Assert.That(json.Contains("\"kind\":\"edit\"")).IsTrue();
+        await Assert.That(json.Contains("\"Display\":\"c:C\"")).IsTrue();
+        await Assert.That(json.Contains("\"tag\":\"label-detail-a\"")).IsTrue();
+
+        var restored = JsonSerializer.Deserialize(
+            json,
+            PocoKeyed.PayloadJson.Default.ChangePayload
+        )!;
+        var stable = JsonSerializer.Serialize(
+            restored,
+            PocoKeyed.PayloadJson.Default.ChangePayload
+        );
+        await Assert.That(stable).IsEqualTo(json);
+
+        var applied = restored.ToPatch().Apply(before).Value!;
+        await Assert.That(applied.Items.Value!.Count).IsEqualTo(2);
+        await Assert.That(applied.Items.Value[0].Id).IsEqualTo("a");
+        await Assert.That(applied.Items.Value[0].Name).IsEqualTo("A2");
+        await Assert.That(applied.Items.Value[0].Detail!.Count).IsEqualTo(2);
+        await Assert.That(applied.Items.Value[0].Detail!.Child!.Level).IsEqualTo(2);
+        await Assert.That(applied.Items.Value[0].Display).IsEqualTo("a:A2");
+        await Assert.That(applied.Items.Value[1].Id).IsEqualTo("c");
+        await Assert.That(applied.Items.Value[1].Detail).IsNull();
+        await Assert.That(applied.Items.Value[1].Display).IsEqualTo("c:C");
+    }
+
+    [Test]
+    public async Task PocoRootSnapshotRoundTripsThroughGeneratedCodec()
+    {
+        var fragment = PocoCatalog.Fragment.From(
+            new PocoCatalog
+            {
+                Leaf = SampleLeaf("root", 9),
+                Leaves = new List<PocoLeaf> { SampleLeaf("root-item", 1) },
+                Lookup = new Dictionary<string, PocoLeaf> { ["rk"] = SampleLeaf("root-mapped", 2) },
+            }
+        );
+        var root = global::SparseTypes.Generated.__Internal_8A3146FA.Root_8A3146FA.FromFragment(
+            fragment
+        );
+        var options = new JsonSerializerOptions
+        {
+            TypeInfoResolver = PocoCatalog.PayloadJson.Default,
+        };
+
+        string json;
+        using (var stream = new MemoryStream())
+        {
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                PocoCatalog.PayloadJsonConverter.WriteRoot(writer, root, options);
+            }
+
+            json = Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        await Assert.That(json.Contains("\"tag\":\"label-root\"")).IsTrue();
+
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(bytes);
+        reader.Read();
+        var restored = PocoCatalog.PayloadJsonConverter.ReadRoot(ref reader, options);
+        var restoredFragment = restored.ToFragment();
+        await Assert.That(restoredFragment.Leaf.Value!.Name).IsEqualTo("root");
+        await Assert.That(restoredFragment.Leaf.Value!.Child!.Level).IsEqualTo(9);
+        await Assert.That(restoredFragment.Leaves.Value!.Count).IsEqualTo(1);
+        await Assert.That(restoredFragment.Leaves.Value[0].Label).IsEqualTo("label-root-item");
+        await Assert.That(restoredFragment.Lookup.Value!["rk"].Count).IsEqualTo(2);
+
+        string stable;
+        using (var stream = new MemoryStream())
+        {
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                PocoCatalog.PayloadJsonConverter.WriteRoot(writer, restored, options);
+            }
+
+            stable = Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        await Assert.That(stable).IsEqualTo(json);
+    }
+
+    [Test]
+    public async Task PocoNamingPolicyAndCaseInsensitiveRoundTrip()
+    {
+        Optional<PocoCatalog.Fragment?> CatalogState(string name) =>
+            Optional<PocoCatalog.Fragment?>.Present(
+                PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 4) })
+            );
+
+        var before = CatalogState("old");
+        var after = CatalogState("new");
+        var options = new JsonSerializerOptions
+        {
+            TypeInfoResolver = PocoCatalog.PayloadJson.Default,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+        };
+        var typeInfo = PocoCatalogTypeInfo(options);
+        var json = JsonSerializer.Serialize(
+            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
+            typeInfo
+        );
+
+        await Assert.That(json.Contains("\"nickname\"")).IsTrue();
+        await Assert.That(json.Contains("\"tag\":\"label-new\"")).IsTrue();
+
+        var restored = JsonSerializer.Deserialize(json, typeInfo)!;
+        var stable = JsonSerializer.Serialize(restored, typeInfo);
+        await Assert.That(stable).IsEqualTo(json);
+
+        var applied = restored.ToPatch().Apply(before).Value!;
+        await Assert.That(applied.Leaf.Value!.Name).IsEqualTo("new");
+        await Assert.That(applied.Leaf.Value!.Nickname).IsEqualTo("new-nick");
+        await Assert.That(applied.Leaf.Value!.Child!.Level).IsEqualTo(4);
+
+        var upper = JsonSerializer.Deserialize(
+            json.Replace("\"nickname\"", "\"NICKNAME\""),
+            typeInfo
+        )!;
+        var upperApplied = upper.ToPatch().Apply(before).Value!;
+        await Assert.That(upperApplied.Leaf.Value!.Nickname).IsEqualTo("new-nick");
+    }
+
+    private sealed class PocoLeafMarkerConverter : JsonConverter<PocoLeaf>
+    {
+        public override PocoLeaf? Read(
+            ref Utf8JsonReader reader,
+            Type typeToConvert,
+            JsonSerializerOptions options
+        )
+        {
+            if (reader.TokenType == JsonTokenType.Null)
+                return null;
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException("A marker must be an object.");
+            string? marker = null;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    throw new JsonException("Malformed marker.");
+                if (reader.ValueTextEquals("marker"))
+                {
+                    if (!reader.Read())
+                        throw new JsonException("Malformed marker.");
+                    marker = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
+                }
+                else
+                {
+                    if (!reader.Read())
+                        throw new JsonException("Malformed marker.");
+                    reader.Skip();
+                }
+            }
+
+            return new PocoLeaf { Name = marker ?? string.Empty };
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer,
+            PocoLeaf? value,
+            JsonSerializerOptions options
+        )
+        {
+            if (value is null)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
+            writer.WriteStartObject();
+            writer.WriteString("marker", value.Name);
+            writer.WriteEndObject();
+        }
+    }
+
+    [Test]
+    public async Task PocoCustomConverterTakesPrecedence()
+    {
+        Optional<PocoCatalog.Fragment?> CatalogState(string name) =>
+            Optional<PocoCatalog.Fragment?>.Present(
+                PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 5) })
+            );
+
+        var before = CatalogState("old");
+        var after = CatalogState("new");
+        var options = new JsonSerializerOptions
+        {
+            TypeInfoResolver = PocoCatalog.PayloadJson.Default,
+        };
+        options.Converters.Add(new PocoLeafMarkerConverter());
+        var typeInfo = PocoCatalogTypeInfo(options);
+        var json = JsonSerializer.Serialize(
+            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
+            typeInfo
+        );
+
+        await Assert.That(json.Contains("\"marker\":\"new\"")).IsTrue();
+        await Assert.That(!json.Contains("\"Count\"")).IsTrue();
+
+        var restored = JsonSerializer.Deserialize(json, typeInfo)!.ToChangeSet();
+        var applied = restored.ToPatch().Apply(before);
+        await Assert.That(applied.Value!.Leaf.Value!.Name).IsEqualTo("new");
+    }
+
+    [Test]
+    public async Task PocoNullableStructRoundTripsThroughDefaultResolverAlone()
+    {
+        Optional<PocoWaypoint.Fragment?> WaypointState(
+            PocoPoint? location,
+            params PocoPoint[] trail
+        ) =>
+            Optional<PocoWaypoint.Fragment?>.Present(
+                PocoWaypoint.Fragment.From(
+                    new PocoWaypoint { Location = location, Trail = trail.ToList() }
+                )
+            );
+
+        var before = WaypointState(null);
+        var after = WaypointState(new PocoPoint { X = 1, Y = 2 }, new PocoPoint { X = 3, Y = 4 });
+        var json = JsonSerializer.Serialize(
+            PocoWaypoint.ChangeSet.Between(before, after).ToPayload(),
+            PocoWaypoint.PayloadJson.Default.ChangePayload
+        );
+
+        var restored = JsonSerializer.Deserialize(
+            json,
+            PocoWaypoint.PayloadJson.Default.ChangePayload
+        )!;
+        var stable = JsonSerializer.Serialize(
+            restored,
+            PocoWaypoint.PayloadJson.Default.ChangePayload
+        );
+        await Assert.That(stable).IsEqualTo(json);
+
+        var applied = restored.ToPatch().Apply(before).Value!;
+        await Assert.That(applied.Location.Value?.X).IsEqualTo(1);
+        await Assert.That(applied.Location.Value?.Y).IsEqualTo(2);
+        await Assert.That(applied.Trail.Value!.Count).IsEqualTo(1);
+        await Assert.That(applied.Trail.Value[0].X).IsEqualTo(3);
+        await Assert.That(applied.Trail.Value[0].Y).IsEqualTo(4);
+    }
+
+    [Test]
+    public async Task UnsupportedPolymorphicMemberReportsActionableError()
+    {
+        Optional<PocoPolyHolder.Fragment?> PolyState(object? value) =>
+            Optional<PocoPolyHolder.Fragment?>.Present(
+                PocoPolyHolder.Fragment.From(new PocoPolyHolder { Anything = value })
+            );
+
+        // Object-typed members keep the standard System.Text.Json failure
+        // pointing at source-generated registration; a combined resolver or a
+        // custom converter remains the opt-in for such shapes.
+        var rejected = false;
+        var message = string.Empty;
+        try
+        {
+            JsonSerializer.Serialize(
+                PocoPolyHolder.ChangeSet.Between(PolyState("a"), PolyState("b")).ToPayload(),
+                PocoPolyHolder.PayloadJson.Default.ChangePayload
+            );
+        }
+        catch (NotSupportedException exception)
+        {
+            rejected = true;
+            message = exception.Message;
+        }
+
+        await Assert.That(rejected).IsTrue();
+        await Assert.That(message.Contains("JsonSerializableAttribute")).IsTrue();
     }
 }

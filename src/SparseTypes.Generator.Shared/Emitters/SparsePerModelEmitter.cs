@@ -21,6 +21,7 @@ internal static class SparsePerModelEmitter
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="appendProductExtensions">Product surface callback.</param>
+    /// <param name="payloadJsonPocos">Generated payload JSON leaf codecs.</param>
     /// <returns>Per-model source; never a compilation-scoped helper.</returns>
     public static string BuildSurface(
         SparseModelInfo model,
@@ -36,7 +37,8 @@ internal static class SparsePerModelEmitter
             SharedIndentedBuilder,
             SparseModelInfo,
             ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null
+        >? appendProductExtensions = null,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     ) =>
         SparseFragmentEmitter.BuildSource(
             model,
@@ -48,7 +50,8 @@ internal static class SparsePerModelEmitter
             bclHashSetSupportsCapacity,
             cancellationToken,
             config,
-            appendProductExtensions
+            appendProductExtensions,
+            payloadJsonPocos
         );
 
     /// <summary>Builds model-nested UI and container implementation sources for one explicit root.</summary>
@@ -129,7 +132,8 @@ internal static class SparsePerModelEmitter
             SharedIndentedBuilder,
             SparseModelInfo,
             ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null
+        >? appendProductExtensions = null,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         var (surface, implementation) = SparseFragmentEmitter.BuildSplitSource(
@@ -142,7 +146,8 @@ internal static class SparsePerModelEmitter
             bclHashSetSupportsCapacity,
             cancellationToken,
             config,
-            appendProductExtensions
+            appendProductExtensions,
+            payloadJsonPocos
         );
         if (implementation is null)
             return (surface, null);

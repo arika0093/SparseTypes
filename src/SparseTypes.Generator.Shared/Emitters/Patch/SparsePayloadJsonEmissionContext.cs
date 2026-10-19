@@ -10,7 +10,8 @@ internal sealed record PayloadJsonEmissionContext(
     string ContainerAlias,
     string ConverterName,
     string ResolverName,
-    string RootDiscriminator
+    string RootDiscriminator,
+    System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> Pocos
 )
 {
     /// <summary>Creates the emission context for one model.</summary>
@@ -18,7 +19,8 @@ internal sealed record PayloadJsonEmissionContext(
         System.Collections.Immutable.ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string? modelType,
-        string? implementationNamespace
+        string? implementationNamespace,
+        System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
     )
     {
         if (
@@ -41,7 +43,10 @@ internal sealed record PayloadJsonEmissionContext(
             containerAlias,
             "PayloadJsonConverter",
             "PayloadJson",
-            RootDiscriminatorFor(members)
+            RootDiscriminatorFor(members),
+            pocos.IsDefault
+                ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty
+                : pocos
         );
     }
 

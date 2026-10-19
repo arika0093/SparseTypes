@@ -809,6 +809,7 @@ public sealed class SparseGeneratorDiagnosticTests
             ["SPF033"] = "#spf033-incompatible-entity-default-mapping",
             ["SPF034"] = "#spf034-invalid-entity-mapper-declaration",
             ["SPF035"] = "#spf035-unsupported-entity-member-shape",
+            ["SPF036"] = "#spf036-custom-leaf-type-needs-external-json-metadata",
         };
         var descriptors = typeof(SparseTypesGenerator)
             .GetFields(BindingFlags.NonPublic | BindingFlags.Static)
@@ -820,15 +821,14 @@ public sealed class SparseGeneratorDiagnosticTests
         {
             var descriptor = descriptors[id];
             descriptor.DefaultSeverity.ShouldBe(
-                id == "SPF026"
-                    ? DiagnosticSeverity.Info
-                    : id == "SPF032"
-                        ? DiagnosticSeverity.Warning
-                        : DiagnosticSeverity.Error
+                id == "SPF026" ? DiagnosticSeverity.Info
+                : id is "SPF032" or "SPF036" ? DiagnosticSeverity.Warning
+                : DiagnosticSeverity.Error
             );
             descriptor.Category.ShouldBe("SparseTypes");
             descriptor.HelpLinkUri.ShouldBe(
-                "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md" + anchor
+                "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md"
+                    + anchor
             );
             descriptor.MessageFormat.ToString().ShouldContain("{0}");
         }
@@ -877,6 +877,39 @@ public sealed class SparseGeneratorDiagnosticTests
             .Where(static field => field.FieldType == typeof(DiagnosticDescriptor))
             .Select(static field => (DiagnosticDescriptor)field.GetValue(null)!)
             .Single(descriptor => descriptor.Id == id);
+
+    [Test]
+    public void Spf036_UnsupportedLeafWarnsAndStillGenerates()
+    {
+        const string source = """
+            using SparseTypes;
+            using System.Collections.Generic;
+            public sealed class Spf036OpaqueLeaf
+            {
+                private Spf036OpaqueLeaf(string label) => Label = label;
+                public string Label { get; }
+                public static Spf036OpaqueLeaf Create(string label) => new(label);
+            }
+            [SparseModel]
+            public partial class Spf036Holder
+            {
+                [SparseMerge(MergeMode.Replace)]
+                [SparseCloneReferenceSafe]
+                public Spf036OpaqueLeaf? Leaf { get; set; }
+            }
+            """;
+        var (diagnostics, sources) = Run(source);
+
+        var matches = diagnostics.Where(d => d.Id == "SPF036").ToImmutableArray();
+        matches.Length.ShouldBe(1);
+        var warning = matches[0];
+        warning.Severity.ShouldBe(DiagnosticSeverity.Warning);
+        warning.GetMessage().ShouldContain("Spf036OpaqueLeaf");
+        warning.Descriptor.HelpLinkUri.ShouldBe(
+            "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata"
+        );
+        sources.ShouldNotBeEmpty();
+    }
 
     [Test]
     public void Spf010_SamePromotedSemanticsGenerateWithoutDiagnostics()
