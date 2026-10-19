@@ -35,6 +35,25 @@ public sealed class ChangeSetTests
     }
 
     [Test]
+    public void EmptyChangeSetBetweenTheSameModelReference()
+    {
+        var model = new Settings
+        {
+            Label = "same",
+            Plugins = ["a", "b", "c"],
+            Nested = new Nested { Host = "localhost", Port = 5432 },
+        };
+
+        Settings.ChangeSet.Between(model, model).IsEmpty.ShouldBeTrue();
+        Should
+            .Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(null!, model))
+            .ParamName.ShouldBe("value");
+        Should
+            .Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(model, null!))
+            .ParamName.ShouldBe("value");
+    }
+
+    [Test]
     public void ScalarSetRemoveAndNullTransitions()
     {
         var before = Present(MakeSettings("Alice", 1));

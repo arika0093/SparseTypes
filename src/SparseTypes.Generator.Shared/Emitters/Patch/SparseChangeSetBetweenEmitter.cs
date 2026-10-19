@@ -369,7 +369,12 @@ internal static class SparseChangeSetBetweenEmitter
                 optionalFragment
             );
         else
-            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(code, optionalFragment, 3);
+            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(
+                code,
+                optionalFragment,
+                3,
+                modelIsReferenceType
+            );
         code.AppendLineAt(2, "}");
     }
 }

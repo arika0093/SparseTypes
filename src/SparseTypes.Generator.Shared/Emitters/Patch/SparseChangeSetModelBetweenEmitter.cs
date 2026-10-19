@@ -87,8 +87,21 @@ internal static class SparseChangeSetModelBetweenEmitter
     internal static void AppendProjectedReturn(
         SharedIndentedBuilder code,
         string optionalFragment,
-        int indent
-    ) =>
+        int indent,
+        bool modelIsReferenceType
+    )
+    {
+        if (modelIsReferenceType)
+        {
+            code.AppendLineAt(
+                indent,
+                "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null)) throw new global::System.ArgumentNullException(\"value\");"
+            );
+            code.AppendLineAt(
+                indent,
+                "if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;"
+            );
+        }
         code.AppendLineAt(
             indent,
             "return Between("
@@ -97,4 +110,5 @@ internal static class SparseChangeSetModelBetweenEmitter
                 + optionalFragment
                 + ".Present(Fragment.From(after)));"
         );
+    }
 }
