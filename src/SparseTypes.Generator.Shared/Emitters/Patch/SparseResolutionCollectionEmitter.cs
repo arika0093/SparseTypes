@@ -128,7 +128,8 @@ internal static class SparseResolutionCollectionEmitter
             optional,
             valueType,
             name,
-            id
+            id,
+            rejectNull: false
         );
         body.AppendLineAt(4, "updated = builder.Build();");
         body.AppendLineAt(4, "return true;");

@@ -45,7 +45,8 @@ internal static class SparseResolutionDictEmitter
             optional,
             valueType,
             name,
-            id
+            id,
+            rejectNull: false
         );
         body.AppendLineAt(4, "updated = builder.Build();");
         body.AppendLineAt(4, "return true;");
@@ -231,7 +232,11 @@ internal static class SparseResolutionDictEmitter
         }
         else
         {
-            AppendDictScalarEntry(body, esc, optional, name, valueValueType, id);
+            var valueTypeModel = member.Collection.ValueType;
+            var rejectNull =
+                valueTypeModel is { IsReferenceType: false } scalarValue
+                && !scalarValue.Name.EndsWith("?", StringComparison.Ordinal);
+            AppendDictScalarEntry(body, esc, optional, name, valueValueType, id, rejectNull);
         }
     }
 
@@ -332,7 +337,8 @@ internal static class SparseResolutionDictEmitter
         string optional,
         string name,
         string valueValueType,
-        int id
+        int id,
+        bool rejectNull
     )
     {
         var checkValue = SparseResolutionApplyEmitter.NonNullable(valueValueType);
@@ -342,22 +348,18 @@ internal static class SparseResolutionDictEmitter
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, "else if (desired.Value is null)");
         body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "if (typeof("
-                + checkValue
-                + ").IsValueType && global::System.Nullable.GetUnderlyingType(typeof("
-                + checkValue
-                + ")) is null)"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "error = \"Member '" + name + "' does not accept null values.\";");
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
-            "editable" + id + "[dictKey" + id + "] = default(" + checkValue + ")!;"
-        );
+        if (rejectNull)
+        {
+            body.AppendLineAt(5, "error = \"Member '" + name + "' does not accept null values.\";");
+            body.AppendLineAt(5, "return false;");
+        }
+        else
+        {
+            body.AppendLineAt(
+                5,
+                "editable" + id + "[dictKey" + id + "] = default(" + valueValueType + ")!;"
+            );
+        }
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, "else if (desired.Value is " + checkValue + " entry" + id + ")");
         body.AppendLineAt(4, "{");

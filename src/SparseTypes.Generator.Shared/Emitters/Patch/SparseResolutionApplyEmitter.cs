@@ -235,7 +235,15 @@ internal static class SparseResolutionApplyEmitter
         body.AppendLineAt(5, "error = \"Member '" + name + "' has no nested paths.\";");
         body.AppendLineAt(5, "return false;");
         body.AppendLineAt(4, "}");
-        AppendCheckedSlot(body, "builder." + esc, optional, valueType, name, member.Id);
+        AppendCheckedSlot(
+            body,
+            "builder." + esc,
+            optional,
+            valueType,
+            name,
+            member.Id,
+            rejectNull: !member.Property.Type.IsReferenceType && !member.Property.IsNullable
+        );
         body.AppendLineAt(4, "updated = builder.Build();");
         body.AppendLineAt(4, "return true;");
     }
@@ -263,7 +271,15 @@ internal static class SparseResolutionApplyEmitter
         );
         body.AppendLineAt(5, "return false;");
         body.AppendLineAt(4, "}");
-        AppendCheckedSlot(body, "builder." + esc, optional, valueType, name, member.Id);
+        AppendCheckedSlot(
+            body,
+            "builder." + esc,
+            optional,
+            valueType,
+            name,
+            member.Id,
+            rejectNull: false
+        );
         body.AppendLineAt(4, "updated = builder.Build();");
         body.AppendLineAt(4, "return true;");
     }
@@ -274,7 +290,8 @@ internal static class SparseResolutionApplyEmitter
         string optional,
         string valueType,
         string name,
-        int id
+        int id,
+        bool rejectNull
     )
     {
         var checkType = NonNullable(valueType);
@@ -284,19 +301,18 @@ internal static class SparseResolutionApplyEmitter
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, "else if (desired.Value is null)");
         body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "if (typeof("
-                + checkType
-                + ").IsValueType && global::System.Nullable.GetUnderlyingType(typeof("
-                + checkType
-                + ")) is null)"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "error = \"Member '" + name + "' does not accept null.\";");
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, slot + " = " + optional + ".Present(default(" + checkType + ")!);");
+        if (rejectNull)
+        {
+            body.AppendLineAt(5, "error = \"Member '" + name + "' does not accept null.\";");
+            body.AppendLineAt(5, "return false;");
+        }
+        else
+        {
+            body.AppendLineAt(
+                5,
+                slot + " = " + optional + ".Present(default(" + valueType + ")!);"
+            );
+        }
         body.AppendLineAt(4, "}");
         body.AppendLineAt(4, "else if (desired.Value is " + checkType + " typed" + id + ")");
         body.AppendLineAt(4, "{");
