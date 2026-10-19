@@ -396,16 +396,20 @@ internal static class SparseRebaseResolutionEmitter
         );
         body.AppendLineAt(4, "return false;");
         body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "var applied = rebase.Rebased.ToPatch().Apply(current);");
-        body.AppendLineAt(3, "if (!applied.IsPresent || applied.Value is null)");
+        body.AppendLineAt(3, "var working = current.Value!;");
+        body.AppendLineAt(3, "if (!rebase.Rebased.IsEmpty)");
         body.AppendLineAt(3, "{");
+        body.AppendLineAt(4, "var applied = rebase.Rebased.ToPatch().Apply(current);");
+        body.AppendLineAt(4, "if (!applied.IsPresent || applied.Value is null)");
+        body.AppendLineAt(4, "{");
         body.AppendLineAt(
-            4,
+            5,
             "failureReason = \"The rebased change no longer applies to the current state.\";"
         );
-        body.AppendLineAt(4, "return false;");
+        body.AppendLineAt(5, "return false;");
+        body.AppendLineAt(4, "}");
+        body.AppendLineAt(4, "working = applied.Value;");
         body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "var working = applied.Value;");
         if (dialect.ResolutionWorkspaceType is not null)
         {
             body.AppendLineAt(3, "var workspace = new " + dialect.ResolutionWorkspaceType + "();");
