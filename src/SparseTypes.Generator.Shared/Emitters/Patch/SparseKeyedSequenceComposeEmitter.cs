@@ -115,6 +115,13 @@ internal static class SparseKeyedSequenceComposeEmitter
                 comparer,
                 member
             );
+            SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedRemoveThenAddFastPath(
+                code,
+                keyType,
+                elementType,
+                comparer,
+                member
+            );
             SparseKeyedSequenceComposeFastPathEmitter.AppendAssignedOrderOnlyComposeFastPath(
                 code,
                 keyType

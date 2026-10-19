@@ -308,6 +308,21 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeRemoveThenAddOverlappingKeyAsReplacement()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("a");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("a", "new-a"));
+
+        var composed = first.Compose(next);
+        // The composed representation replaces the existing key in place; it
+        // has no baseline-wide order to encode an intermediate move to end.
+        KeyedModel(composed.Apply(before)).ShouldBe([("a", "new-a"), ("b", "old-b")]);
+    }
+
+    [Test]
     public void ComposeRemoveOnlyPreservesFirstOccurrenceOrder()
     {
         var before = KF(Server("a"), Server("b"), Server("c"), Server("d"));
