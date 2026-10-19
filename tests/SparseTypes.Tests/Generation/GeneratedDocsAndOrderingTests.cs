@@ -67,6 +67,7 @@ public sealed class GeneratedDocsAndOrderingTests
                 public Dictionary<string, int> Scores { get; set; } = new();
                 public Dictionary<string, ProbeScalar> Details { get; set; } = new();
             }
+            /// <summary>Computed getter probe.</summary>
             [SparseModel]
             public partial class ProbeComputedGetter
             {
@@ -78,6 +79,7 @@ public sealed class GeneratedDocsAndOrderingTests
                     set => _details = value;
                 }
             }
+            /// <summary>Custom constructor probe.</summary>
             [SparseModel]
             public partial class ProbeCustomConstructor
             {
