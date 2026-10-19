@@ -272,6 +272,21 @@ namespace SparseTypes
         bool IsRemoved { get; }
         TKey Key { get; }
     }
+    public interface ISparseEditChildDraftHost<TSession, TConflict>
+        where TSession :  class
+        where TConflict :  class
+    {
+        void ConfirmChildDraft<TChild>(TSession fork, SparseTypes.SparsePath path, System.Action<TChild, TChild> writeModelValue)
+            where TChild :  class;
+        TSession ForkForChildDraft();
+        bool IsInSameLineage(TSession other);
+        void RefreshAfterChildDraftMutation();
+        object? ResolveChildDraftModel(SparseTypes.SparsePath path);
+        bool TryAcceptChildDraft<TChild>(TSession fork, SparseTypes.SparsePath path, System.Action<TChild, TChild> writeModelValue, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts)
+            where TChild :  class;
+        bool TryPreflightChildDraft<TChild>(TSession fork, SparseTypes.SparsePath path, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts)
+            where TChild :  class;
+    }
     public interface ISparseEditChildSession<TModel, TPaths, TConflict, TSession> : System.IDisposable
         where TModel :  class
         where TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
@@ -324,7 +339,7 @@ namespace SparseTypes
         System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> EnumerateChangedPaths(TChangeSet changes);
         bool IsEmpty(TChangeSet changes);
     }
-    public interface ISparseEditSessionWithChildStatus<TModel, TConflict> : SparseTypes.ISparseEditSessionWithChildren<TModel, TConflict>
+    public interface ISparseEditSessionWithChildStatus<TModel, TConflict> : SparseTypes.ISparseEditSessionWithChildren<TModel, TConflict>, SparseTypes.ISparseEditSessionWithPendingState<TModel, TConflict>
         where TModel :  class
         where TConflict :  class
     {
@@ -334,7 +349,6 @@ namespace SparseTypes
             where TChildPaths : SparseTypes.ISparseTypedPath<TChild, TChild>
             where TChildSession : SparseTypes.ISparseEditSessionWithPaths<TChild, TChildPaths>;
         object? ResolveChildModel(SparseTypes.SparsePath path);
-        bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
         bool TryPreflightChildSessions(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
     }
     public interface ISparseEditSessionWithChildren<TModel, TConflict>
@@ -376,6 +390,12 @@ namespace SparseTypes
         where out TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
     {
         TPaths Paths { get; }
+    }
+    public interface ISparseEditSessionWithPendingState<TModel, TConflict>
+        where TModel :  class
+        where TConflict :  class
+    {
+        bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
     }
     public interface ISparseEditSessionWithStateSnapshot
     {
@@ -715,6 +735,22 @@ namespace SparseTypes
         ResolvedUseCurrent = 3,
         ResolvedCustom = 4,
     }
+    public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : System.IDisposable
+        where TChild :  class
+        where TSession :  class
+        where TConflict :  class
+    {
+        public bool IsDetached { get; }
+        public bool IsTargetMissing { get; }
+        public TChild Model { get; }
+        public void ConfirmAccept() { }
+        public void Dispose() { }
+        public void RefreshParentDraft() { }
+        public bool TryAcceptIntoParent(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
+        public bool TryPreflightIntoParent(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
+        public static SparseTypes.SparseEditChildDraft<TChild, TSession, TConflict> Create<TParent>(TSession parent, SparseTypes.ISparseTypedPath<TParent, TChild> path)
+            where TParent :  class { }
+    }
     public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession> : SparseTypes.ISparseEditChildSession<TModel, TPaths, TConflict, TSession>, System.IDisposable
         where TModel :  class
         where TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
@@ -738,6 +774,13 @@ namespace SparseTypes
         public bool TryAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
         public bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
         public bool TryPreflightAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
+    }
+    public sealed class SparseEditHistoryCollection<TChangeSet>
+        where TChangeSet :  class
+    {
+        public SparseEditHistoryCollection() { }
+        public void Add(SparseTypes.SparseEditHistory<TChangeSet> history) { }
+        public void Clear() { }
     }
     public sealed class SparseEditHistoryHooks<TChangeSet>
         where TChangeSet :  class
@@ -922,6 +965,38 @@ namespace SparseTypes
         public static bool IsEmptyTransition(bool beforePresent, bool afterPresent, bool orderChanged) { }
         public static bool IsUnassignedKey<TKey>(TKey key, TKey unassigned, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null) { }
         public static bool TryComposePresence(bool firstBeforePresent, bool firstAfterPresent, bool secondAfterPresent, out bool resultBeforePresent, out bool resultAfterPresent) { }
+    }
+    public static class SparseOptionalBox
+    {
+        public static SparseTypes.Optional<object?> ToObject<T>(SparseTypes.Optional<T> value) { }
+    }
+    public static class SparseOptionalEquality
+    {
+        public static bool AreEqual<T>(SparseTypes.Optional<T> left, SparseTypes.Optional<T> right, System.Func<SparseTypes.Optional<T>, SparseTypes.Optional<T>, bool> valueEquals) { }
+    }
+    public static class SparseOptionalRebase
+    {
+        public static bool TryResolve<T, TMode>(SparseTypes.Optional<T> before, SparseTypes.Optional<T> desired, SparseTypes.Optional<T> current, TMode mode, TMode preferIncoming, TMode preferCurrent, System.Func<SparseTypes.Optional<T>, SparseTypes.Optional<T>, bool> areEqual, out SparseTypes.Optional<T> after, out bool hasConflict)
+            where TMode :  struct { }
+    }
+    public sealed class SparseOwnedEditHistory<TChangeSet> : SparseTypes.ISparseEditHistory
+        where TChangeSet :  class
+    {
+        public SparseOwnedEditHistory(SparseTypes.SparseEditHistory<TChangeSet> history) { }
+        public bool CanRedo { get; }
+        public bool CanUndo { get; }
+        public int MaxEntries { get; }
+        public int RedoCount { get; }
+        public int UndoCount { get; }
+        public event System.Action? StateChanged;
+        public System.IDisposable BeginGroup() { }
+        public void Clear() { }
+        public void DisposeOwned() { }
+        public void Group(System.Action action) { }
+        public void Redo() { }
+        public bool TryRedo(out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public bool TryUndo(out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public void Undo() { }
     }
     public readonly struct SparsePath : System.IEquatable<SparseTypes.SparsePath>
     {
@@ -1140,6 +1215,13 @@ namespace SparseTypes
         public void SetErrors(SparseTypes.SparsePath path, string origin, string message) { }
         public void SetErrors<TValue>(SparseTypes.SparsePath<TModel, TValue> path, string origin, System.Collections.Generic.IEnumerable<object?> errors) { }
         public void SetErrors<TValue>(SparseTypes.SparsePath<TModel, TValue> path, string origin, string message) { }
+    }
+    public readonly struct SparseValueTransition<T> : SparseTypes.ISparseValueChange<T>
+    {
+        public SparseValueTransition(SparseTypes.Optional<T> before, SparseTypes.Optional<T> after, bool isChanged) { }
+        public SparseTypes.Optional<T> After { get; }
+        public SparseTypes.Optional<T> Before { get; }
+        public bool IsChanged { get; }
     }
 }
 namespace SparseTypes.CompilerServices

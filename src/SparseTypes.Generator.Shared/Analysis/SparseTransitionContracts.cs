@@ -50,4 +50,13 @@ internal sealed record SparseTransitionContracts(
 
     /// <summary>Model-independent change-kind enum type.</summary>
     public string ChangeKindType { get; init; } = ChangeKindType;
+
+    /// <summary>Optional shared scalar-transition type (open generic, arity 1).</summary>
+    public string? ScalarTransitionType { get; init; }
+
+    /// <summary>Optional presence-aware scalar-rebase helper.</summary>
+    public string? ScalarRebaseType { get; init; }
+
+    /// <summary>Optional helper converting typed Optional endpoints to object-valued endpoints.</summary>
+    public string? OptionalBoxType { get; init; }
 }

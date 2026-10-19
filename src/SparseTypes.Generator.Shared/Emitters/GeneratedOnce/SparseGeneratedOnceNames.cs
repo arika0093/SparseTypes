@@ -3,7 +3,7 @@ using System.Threading;
 namespace SparseTypes.Generator.Shared;
 
 /// <summary>Stable names for compilation-scoped Generated-Once helpers.</summary>
-/// <remarks>Centralizes the shared helper identities used by the track-3 migrations ( read-only adapters.</remarks>
+/// <remarks>Centralizes names for helpers emitted once per compilation.</remarks>
 internal static class SparseGeneratedOnceNames
 {
     /// <summary>Simple name of the shared read-only list adapter.</summary>
@@ -20,6 +20,12 @@ internal static class SparseGeneratedOnceNames
 
     /// <summary>Simple name of the shared ordered removal-index helper.</summary>
     public const string RemovalIndex = "SparseRemovalIndex";
+
+    /// <summary>Simple name of the shared endpoint JSON converter.</summary>
+    public const string ChangePayloadEndpointJsonConverter = "ChangePayloadEndpointJsonConverter";
+
+    /// <summary>Simple name of the shared item-kind JSON converter.</summary>
+    public const string ChangePayloadItemKindJsonConverter = "ChangePayloadItemKindJsonConverter";
 
     /// <summary>Qualified name of the shared list adapter.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
@@ -51,6 +57,20 @@ internal static class SparseGeneratedOnceNames
     public static string QualifiedRemovalIndex(string implementationNamespace) =>
         "global::" + implementationNamespace + "." + RemovalIndex;
 
+    /// <summary>Qualified name of the shared ChangePayload endpoint converter.</summary>
+    /// <param name="implementationNamespace">Explicit generated namespace.</param>
+    /// <returns>Globally qualified type name.</returns>
+    public static string QualifiedChangePayloadEndpointJsonConverter(
+        string implementationNamespace
+    ) => "global::" + implementationNamespace + "." + ChangePayloadEndpointJsonConverter;
+
+    /// <summary>Qualified name of the shared ChangePayload item-kind converter.</summary>
+    /// <param name="implementationNamespace">Explicit generated namespace.</param>
+    /// <returns>Globally qualified type name.</returns>
+    public static string QualifiedChangePayloadItemKindJsonConverter(
+        string implementationNamespace
+    ) => "global::" + implementationNamespace + "." + ChangePayloadItemKindJsonConverter;
+
     /// <summary>Stable hint name for the shared read-only adapter source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
@@ -68,6 +88,12 @@ internal static class SparseGeneratedOnceNames
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
     public static string RemovalIndexHintName(string implementationNamespace) =>
         "Generated.RemovalIndex.g.cs";
+
+    /// <summary>Stable hint name for shared ChangePayload converter source.</summary>
+    /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
+    /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
+    public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) =>
+        "Generated.ChangePayloadJsonConverters.g.cs";
 
     /// <summary>Opens a block-scoped generated namespace compatible with C# 9.</summary>
     /// <param name="code">Target builder.</param>

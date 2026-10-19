@@ -297,14 +297,7 @@ internal static class SparseChangeSetContractEmitter
                 + ">();"
         );
         code.AppendLineAt(3, "foreach (var change in EnumerateChanges())");
-        code.AppendLineAt(
-            4,
-            "records.Add(new "
-                + contracts.ChangeRecordType
-                + "(change.Path, change.Before, change.After, ("
-                + contracts.ChangeKindType
-                + ")(int)change.Kind));"
-        );
+        code.AppendLineAt(4, "records.Add(change);");
         code.AppendLineAt(3, "return records.AsReadOnly();");
         code.AppendLineAt(2, "}");
         AppendTryGetNested(code, members, propNames, iface);
@@ -344,7 +337,6 @@ internal static class SparseChangeSetContractEmitter
                 + "? child)"
         );
         code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (memberName is null) { child = null; return false; }");
         foreach (var member in members)
         {
             if (!IsNested(member))

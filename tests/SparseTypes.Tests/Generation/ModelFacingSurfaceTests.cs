@@ -164,14 +164,15 @@ public sealed class ModelFacingSurfaceTests
             )
             .ShouldNotBeEmpty();
 
-        // The converter shell stays private inside Fragment and derives from
-        // the relocated implementation converter (stage 3, ).
+        // The public converter accessor is the Fragment serialization surface.
         var fragment = model.GetTypeMembers("Fragment").ShouldHaveSingleItem();
-        var shell = fragment.GetTypeMembers("FragmentJsonConverter").ShouldHaveSingleItem();
-        shell.DeclaredAccessibility.ShouldBe(Accessibility.Private);
-        shell
-            .BaseType!.ContainingNamespace.ToDisplayString()
-            .ShouldStartWith("SparseTypes.Generated");
+        var jsonConverter = fragment
+            .GetMembers("JsonConverter")
+            .OfType<IPropertySymbol>()
+            .ShouldHaveSingleItem();
+        jsonConverter.DeclaredAccessibility.ShouldBe(Accessibility.Public);
+        jsonConverter.IsStatic.ShouldBeTrue();
+        jsonConverter.Type.ToDisplayString().ShouldContain("JsonConverter");
 
         if (expectSessionFamily)
         {

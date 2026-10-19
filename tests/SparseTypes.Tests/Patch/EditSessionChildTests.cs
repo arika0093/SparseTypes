@@ -72,6 +72,8 @@ public sealed class EditSessionChildTests
 
         group.Dispose();
         session.GetChildSessionStatus(path).ShouldBe(SparseChildSessionStatus.NotOpen);
+        server.HasChanges.ShouldBeFalse();
+        session.HasPendingChildSessions.ShouldBeFalse();
     }
 
     [Test]

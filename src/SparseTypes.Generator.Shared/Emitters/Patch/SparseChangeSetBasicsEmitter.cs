@@ -45,6 +45,17 @@ internal static class SparseChangeSetBasicsEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     ) => dialect.ChildChangeSetName(m);
 
+    internal static string BoxExpression(
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string value
+    )
+    {
+        var boxType = dialect.OptionalBoxType ?? dialect.TransitionContracts?.OptionalBoxType;
+        return boxType is null
+            ? "__SparseBox(" + value + ")"
+            : boxType + ".ToObject(" + value + ")";
+    }
+
     internal static string BeforeField(SparseMemberModel m) => "__sparse_before_" + m.Id;
 
     internal static string AfterField(SparseMemberModel m) => "__sparse_after_" + m.Id;
@@ -94,8 +105,8 @@ internal static class SparseChangeSetBasicsEmitter
         // Canonical sparse storage is private; the nested ChangeSet.__Core
         // reads it directly.
         code.AppendLineAt(2, "private readonly bool __sparse_hasWhole;");
-        storage.AppendFields(code, "__sparse_wholeBefore", "Fragment?", true);
-        storage.AppendFields(code, "__sparse_wholeAfter", "Fragment?", true);
+        storage.AppendFields(code, "__sparse_wholeBefore", "Fragment?");
+        storage.AppendFields(code, "__sparse_wholeAfter", "Fragment?");
         ComputePublicNames(members, out _, out var transNames);
         foreach (var member in members)
         {
@@ -117,18 +128,8 @@ internal static class SparseChangeSetBasicsEmitter
                 var keyType = KeyTypeOf(member);
                 code.AppendLineAt(2, "private readonly bool " + HasField(member) + ";");
                 code.AppendLineAt(2, "private readonly bool " + KeyedWholeFlag(member) + ";");
-                storage.AppendFields(
-                    code,
-                    KeyedWholeBefore(member),
-                    FragmentValueType(member),
-                    member.Property.Type.IsReferenceType
-                );
-                storage.AppendFields(
-                    code,
-                    KeyedWholeAfter(member),
-                    FragmentValueType(member),
-                    member.Property.Type.IsReferenceType
-                );
+                storage.AppendFields(code, KeyedWholeBefore(member), FragmentValueType(member));
+                storage.AppendFields(code, KeyedWholeAfter(member), FragmentValueType(member));
                 code.AppendLineAt(
                     2,
                     "private readonly global::System.Collections.Generic.List<"
@@ -174,18 +175,8 @@ internal static class SparseChangeSetBasicsEmitter
             }
             else
             {
-                storage.AppendFields(
-                    code,
-                    BeforeField(member),
-                    FragmentValueType(member),
-                    member.Property.Type.IsReferenceType
-                );
-                storage.AppendFields(
-                    code,
-                    AfterField(member),
-                    FragmentValueType(member),
-                    member.Property.Type.IsReferenceType
-                );
+                storage.AppendFields(code, BeforeField(member), FragmentValueType(member));
+                storage.AppendFields(code, AfterField(member), FragmentValueType(member));
                 code.AppendLineAt(2, "private readonly bool " + HasField(member) + ";");
             }
         }
@@ -318,12 +309,18 @@ internal static class SparseChangeSetBasicsEmitter
     internal static void AppendSelfAliases(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        int indent = 3
+        int indent = 3,
+        bool includeMemberState = true
     )
     {
         code.AppendLineAt(indent, "var __sparse_hasWhole = self.__sparse_hasWhole;");
         code.AppendLineAt(indent, "var __sparse_wholeBefore = self.__sparse_wholeBefore;");
         code.AppendLineAt(indent, "var __sparse_wholeAfter = self.__sparse_wholeAfter;");
+        if (!includeMemberState)
+        {
+            return;
+        }
+
         foreach (var member in members)
         {
             if (IsNested(member))

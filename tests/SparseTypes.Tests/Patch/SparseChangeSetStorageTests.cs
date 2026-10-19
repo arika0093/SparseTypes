@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using SparseTypes;
 
@@ -39,6 +40,26 @@ public partial class ServerGroupHolder
 /// <remarks>Proves unchanged members are neither retained in state nor serialized.</remarks>
 public sealed class SparseChangeSetStorageTests
 {
+    [Test]
+    public void ChangeSetStoresOptionalValuesWithoutPresenceAndValueFields()
+    {
+        var fields = typeof(WideWidget.ChangeSet).GetFields(
+            BindingFlags.Instance | BindingFlags.NonPublic
+        );
+
+        fields
+            .Where(field =>
+                field.FieldType.IsGenericType
+                && field.FieldType.GetGenericTypeDefinition() == typeof(Optional<>)
+            )
+            .Count()
+            .ShouldBeGreaterThan(0);
+        fields.ShouldNotContain(field =>
+            field.Name.EndsWith("IsPresent", StringComparison.Ordinal)
+        );
+        fields.ShouldNotContain(field => field.Name.EndsWith("Value", StringComparison.Ordinal));
+    }
+
     private static Optional<WideWidget.Fragment?> WideState(
         string? alpha = "a",
         string? bravo = "b",
@@ -186,9 +207,7 @@ public sealed class SparseChangeSetStorageTests
 
         var json = JsonSerializer.Serialize(changes.ToPayload());
         json.ShouldContain("Values");
-        var back = JsonSerializer
-            .Deserialize<StrategySettings.ChangePayload>(json)!
-            .ToChangeSet();
+        var back = JsonSerializer.Deserialize<StrategySettings.ChangePayload>(json)!.ToChangeSet();
         back.Values.After.Value.ShouldBe([3, 4]);
         StrategySettings.Patch.Between(back.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
@@ -227,9 +246,7 @@ public sealed class SparseChangeSetStorageTests
         var json = JsonSerializer.Serialize(changes.ToPayload());
         json.ShouldNotContain("Title");
 
-        var back = JsonSerializer
-            .Deserialize<ServerGroupHolder.ChangePayload>(json)!
-            .ToChangeSet();
+        var back = JsonSerializer.Deserialize<ServerGroupHolder.ChangePayload>(json)!.ToChangeSet();
         back.Servers.Added.Select(e => e.Id).ShouldBe(["c"]);
         back.Servers.Removed.Select(e => e.Id).ShouldBe(["a"]);
         back.Servers.Edited["b"].Name.After.Value.ShouldBe("B2");
@@ -263,9 +280,7 @@ public sealed class SparseChangeSetStorageTests
         {
             var changes = Settings.ChangeSet.Between(b, a);
             var back = JsonSerializer
-                .Deserialize<Settings.ChangePayload>(
-                    JsonSerializer.Serialize(changes.ToPayload())
-                )!
+                .Deserialize<Settings.ChangePayload>(JsonSerializer.Serialize(changes.ToPayload()))!
                 .ToChangeSet();
             back.IsEmpty.ShouldBe(changes.IsEmpty);
             back.Invert().Invert().IsEmpty.ShouldBe(changes.IsEmpty);
@@ -323,9 +338,7 @@ public sealed class SparseChangeSetStorageTests
 
         Settings.ChangeSet RoundTrip(Settings.ChangeSet value) =>
             JsonSerializer
-                .Deserialize<Settings.ChangePayload>(
-                    JsonSerializer.Serialize(value.ToPayload())
-                )!
+                .Deserialize<Settings.ChangePayload>(JsonSerializer.Serialize(value.ToPayload()))!
                 .ToChangeSet();
 
         var c1 = RoundTrip(Settings.ChangeSet.Between(b0, b1));

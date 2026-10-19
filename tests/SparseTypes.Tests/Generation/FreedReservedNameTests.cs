@@ -161,7 +161,7 @@ public sealed class FreedReservedNameTests
         changes.Other.IsChanged.ShouldBeFalse();
 
         // Flattened helpers still resolve on the same renamed surface.
-        var flattened = new List<FreedEnumerateModel.ChangeSet.ChangeInfo>(
+        var flattened = new List<global::SparseTypes.Generated.SparseChangeRecord>(
             changes.EnumerateChanges()
         );
         flattened.Count.ShouldBe(1);

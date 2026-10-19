@@ -283,6 +283,9 @@ internal static class SparseFragmentPatchEmitter
         /// <remarks>Null keeps products without the runtime state types byte-identical.</remarks>
         public SparseStateContracts? StateContracts { get; init; }
 
+        /// <summary>Product-owned helper for boxing presence-aware endpoints.</summary>
+        public string? OptionalBoxType { get; init; }
+
         /// <summary>Configured member policies, or empty for full disclosure.</summary>
         public ImmutableArray<SparseMemberPolicy> EffectiveMemberPolicies =>
             MemberPolicies.IsDefault ? ImmutableArray<SparseMemberPolicy>.Empty : MemberPolicies;

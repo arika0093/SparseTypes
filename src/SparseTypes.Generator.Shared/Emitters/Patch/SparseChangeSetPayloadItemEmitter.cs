@@ -402,7 +402,8 @@ internal static class SparseChangeSetPayloadItemEmitter
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                 code,
                 2,
-                memberValueType
+                memberValueType,
+                implementationNamespace
             );
         code.AppendLineAt(
             2,
@@ -447,7 +448,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    valueType
+                    valueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(
                 2,
@@ -460,7 +462,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    valueType
+                    valueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(2, "public " + endpoint + "<" + valueType + ">? After { get; set; }");
             code.AppendLineAt(2, "/// <summary>Gets or sets the per-item changes.</summary>");
@@ -557,7 +560,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    valueType
+                    valueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(
                 2,
@@ -570,7 +574,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    valueType
+                    valueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(2, "public " + endpoint + "<" + valueType + ">? After { get; set; }");
         }
@@ -628,7 +633,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    itemValueType
+                    itemValueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(
                 2,
@@ -641,7 +647,8 @@ internal static class SparseChangeSetPayloadItemEmitter
                 SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                     code,
                     2,
-                    itemValueType
+                    itemValueType,
+                    implementationNamespace
                 );
             code.AppendLineAt(
                 2,
@@ -650,7 +657,11 @@ internal static class SparseChangeSetPayloadItemEmitter
             code.AppendLineAt(2, "/// <summary>Gets or sets the item change kind.</summary>");
             SparseChangeSetPayloadEmitter.AppendJsonProperty(code, 2, "Kind", 1, dialect.EmitJson);
             if (dialect.EmitJson)
-                SparseChangePayloadJsonBridgeEmitter.AppendItemKindConverterAttribute(code, 2);
+                SparseChangePayloadJsonBridgeEmitter.AppendItemKindConverterAttribute(
+                    code,
+                    2,
+                    implementationNamespace
+                );
             code.AppendLineAt(2, "public " + runtime + "ChangePayloadItemKind Kind { get; set; }");
             if (SparseChangeSetBasicsEmitter.IsKeyed(member))
             {

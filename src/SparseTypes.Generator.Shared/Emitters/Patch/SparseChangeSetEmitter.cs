@@ -42,7 +42,6 @@ internal static class SparseChangeSetEmitter
         var prefix = SparseNaming.PatchApiPrefix(
             members.Select(static member => member.Property.Name)
         );
-        var between = "Patch." + prefix + "Between";
         var rebase = "Patch." + prefix + "Rebase";
         code.AppendLineAt(
             1,
@@ -168,9 +167,7 @@ internal static class SparseChangeSetEmitter
             runtime,
             optionalFragment,
             rebaseResult,
-            prefix,
             rebase,
-            between,
             dialect,
             modelType,
             ignoredSettablePropertyNames,

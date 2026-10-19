@@ -66,11 +66,7 @@ public sealed class OptionalInvariantTests
     [Test]
     public void PresenceHasNoPublicMutator()
     {
-        foreach (var type in new[]
-        {
-            typeof(Optional<int>),
-            typeof(Optional<string?>),
-        })
+        foreach (var type in new[] { typeof(Optional<int>), typeof(Optional<string?>) })
         {
             var presence = type.GetProperty("IsPresent")!;
             presence.CanWrite.ShouldBeFalse();
@@ -78,8 +74,7 @@ public sealed class OptionalInvariantTests
 
             // No public instance constructor exists; construction goes through
             // Missing / Present(value) / implicit conversion only.
-            type.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
-                .ShouldBeEmpty();
+            type.GetConstructors(BindingFlags.Public | BindingFlags.Instance).ShouldBeEmpty();
         }
     }
 
@@ -111,7 +106,42 @@ public sealed class OptionalInvariantTests
         // Hash codes stay consistent with equality.
         Optional<int>.Missing.GetHashCode().ShouldBe(default(Optional<int>).GetHashCode());
         Optional<int>.Present(1).GetHashCode().ShouldBe(Optional<int>.Present(1).GetHashCode());
-        Optional<string?>.Present(null).GetHashCode()
+        Optional<string?>
+            .Present(null)
+            .GetHashCode()
             .ShouldBe(Optional<string?>.Present(null).GetHashCode());
+    }
+
+    [Test]
+    public void OptionalEqualityUsesCustomPresentValueComparer()
+    {
+        var comparerCalls = 0;
+        SparseOptionalEquality
+            .AreEqual(
+                Optional<string?>.Missing,
+                Optional<string?>.Missing,
+                (left, right) =>
+                {
+                    comparerCalls++;
+                    return left.Value == right.Value;
+                }
+            )
+            .ShouldBeTrue();
+        comparerCalls.ShouldBe(0);
+
+        SparseOptionalEquality
+            .AreEqual(
+                Optional<string?>.Present("a"),
+                Optional<string?>.Present("A"),
+                (left, right) => StringComparer.OrdinalIgnoreCase.Equals(left.Value, right.Value)
+            )
+            .ShouldBeTrue();
+        SparseOptionalEquality
+            .AreEqual(
+                Optional<string?>.Missing,
+                Optional<string?>.Present(null),
+                static (_, _) => true
+            )
+            .ShouldBeFalse();
     }
 }

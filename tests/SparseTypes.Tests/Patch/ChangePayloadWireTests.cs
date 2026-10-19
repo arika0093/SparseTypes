@@ -87,22 +87,14 @@ public sealed class ChangePayloadWireTests
     }
 
     [Test]
-    public void GeneratedPayloadContainerOwnsEndpointAndKindConverters()
+    public void GeneratedOnceBridgeConvertersServePayloadDtos()
     {
         var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var endpointConverter = container
-            .GetNestedTypes()
-            .SingleOrDefault(static type =>
-                type
-                    is {
-                        IsGenericTypeDefinition: true,
-                        Name: "ChangePayloadEndpointJsonConverter`1"
-                    }
-            );
-        endpointConverter.ShouldNotBeNull();
-        var kindConverter = container
-            .GetNestedTypes()
-            .SingleOrDefault(static type => type.Name == "ChangePayloadItemKindJsonConverter");
+        var endpointConverter =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>);
+        var kindConverter =
+            typeof(global::SparseTypes.Generated.ChangePayloadItemKindJsonConverter);
+        endpointConverter.IsGenericTypeDefinition.ShouldBeTrue();
         kindConverter.ShouldNotBeNull();
 
         // Every endpoint-typed DTO property routes through the bridge, so the
@@ -120,17 +112,18 @@ public sealed class ChangePayloadWireTests
         foreach (var property in endpointProperties)
             property
                 .GetCustomAttribute<JsonConverterAttribute>()
-                .ShouldNotBeNull(property.DeclaringType!.Name + "." + property.Name);
+                .ShouldNotBeNull(property.DeclaringType!.Name + "." + property.Name)
+                .ConverterType!.GetGenericTypeDefinition()
+                .ShouldBe(endpointConverter.GetGenericTypeDefinition());
     }
 
     [Test]
     public void BridgeRejectsUnknownStateTokens()
     {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var converterType = container
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadEndpointJsonConverter`1")
-            .MakeGenericType(typeof(string));
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
+                typeof(string)
+            );
         var options = new JsonSerializerOptions();
         options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
 
@@ -152,11 +145,10 @@ public sealed class ChangePayloadWireTests
     [Test]
     public void BridgeRoundTripsEveryEndpointState()
     {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var converterType = container
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadEndpointJsonConverter`1")
-            .MakeGenericType(typeof(string));
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
+                typeof(string)
+            );
         var options = new JsonSerializerOptions();
         options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
 
@@ -179,11 +171,10 @@ public sealed class ChangePayloadWireTests
     [Test]
     public void BridgeRequiresExplicitEndpointState()
     {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var converterType = container
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadEndpointJsonConverter`1")
-            .MakeGenericType(typeof(string));
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
+                typeof(string)
+            );
         var options = new JsonSerializerOptions();
         options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
 
@@ -215,11 +206,10 @@ public sealed class ChangePayloadWireTests
     [Test]
     public void BridgeIgnoresUnknownExtensionProperties()
     {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var converterType = container
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadEndpointJsonConverter`1")
-            .MakeGenericType(typeof(string));
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
+                typeof(string)
+            );
         var options = new JsonSerializerOptions();
         options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
 
@@ -281,10 +271,8 @@ public sealed class ChangePayloadWireTests
     [Test]
     public void BridgeRoundTripsEveryItemKindAndRejectsUnknownTokens()
     {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var converterType = container
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadItemKindJsonConverter");
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadItemKindJsonConverter);
         var options = new JsonSerializerOptions();
         options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
 
@@ -399,9 +387,8 @@ public sealed class ChangePayloadWireTests
         Should.Throw<InvalidOperationException>(() => ReadEndpoint("""{"state":true}"""));
 
         // Item kinds keep the same error taxonomy.
-        var kindConverterType = container()
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadItemKindJsonConverter");
+        var kindConverterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadItemKindJsonConverter);
         var kindConverter =
             (JsonConverter<ChangePayloadItemKind>)Activator.CreateInstance(kindConverterType)!;
         var options = new JsonSerializerOptions();
@@ -455,10 +442,10 @@ public sealed class ChangePayloadWireTests
 
     internal static JsonConverter<ChangePayloadEndpoint<TValue>> CreateEndpointConverter<TValue>()
     {
-        var converterType = container()
-            .GetNestedTypes()
-            .Single(static type => type.Name == "ChangePayloadEndpointJsonConverter`1")
-            .MakeGenericType(typeof(TValue));
+        var converterType =
+            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
+                typeof(TValue)
+            );
         return (JsonConverter<ChangePayloadEndpoint<TValue>>)
             Activator.CreateInstance(converterType)!;
     }
@@ -487,13 +474,6 @@ public sealed class ChangePayloadWireTests
         var reader = new Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes("5"));
         reader.Read().ShouldBeTrue();
         converter.Read(ref reader, typeof(ChangePayloadItemKind), new JsonSerializerOptions());
-    }
-
-    private static Type container()
-    {
-        var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        container.ShouldNotBeNull();
-        return container;
     }
 
     private sealed class TestSequenceSegment : System.Buffers.ReadOnlySequenceSegment<byte>

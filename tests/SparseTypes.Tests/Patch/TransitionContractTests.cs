@@ -210,9 +210,7 @@ public sealed class TransitionContractTests
                 (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
             )
             .Append(
-                MetadataReference.CreateFromFile(
-                    typeof(SparseModelAttribute).Assembly.Location
-                )
+                MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
             )
             .Append(MetadataReference.CreateFromFile(typeof(Settings).Assembly.Location));
         var compilation = CSharpCompilation.Create(
@@ -619,8 +617,10 @@ public sealed class TransitionContractTests
         var typed = Settings.ChangeSet.Between(before, after);
         ISparseChangeSet root = typed;
 
+        typed.Label.GetType().ShouldBe(typeof(SparseValueTransition<string>));
         var records = root.EnumerateChangeRecords();
         var expected = typed.EnumerateChanges().ToList();
+        expected[0].GetType().ShouldBe(typeof(SparseChangeRecord));
         records.Count.ShouldBe(expected.Count);
         for (var index = 0; index < expected.Count; index++)
         {

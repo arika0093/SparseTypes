@@ -313,7 +313,6 @@ internal static class SparseReadOnlyViewEmitter
         }
 
         var retentionNames = retention.Enter(member.Property.Name, adapterType);
-        AppendPropertySummary(code, member, indent);
         code.AppendLineAt(
             indent,
             "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources. The wrapper is retained while the backing source reference is unchanged; a captured wrapper keeps viewing the source it was created for.</remarks>"

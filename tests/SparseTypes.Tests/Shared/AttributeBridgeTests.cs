@@ -239,6 +239,12 @@ public sealed class AttributeBridgeTests
             config.RuntimeDialect!,
             config.PatchDialect!.Value
         );
+        var changePayloadConverters = SparseGeneratedOnceEmitter.RenderChangePayloadJsonConverters(
+            SparseGeneratedOnceEmitter.TryGetNamespace(config)!,
+            config.PatchDialect!.Value,
+            emitConverters: true,
+            CancellationToken.None
+        );
         const string stub = """
             namespace Ns
             {
@@ -254,6 +260,9 @@ public sealed class AttributeBridgeTests
             .Select(static source => CSharpSyntaxTree.ParseText(source.Source))
             .Prepend(CSharpSyntaxTree.ParseText(surface, path: "Surface.cs"))
             .Prepend(CSharpSyntaxTree.ParseText(splitImplementation!, path: "Implementation.cs"))
+            .Append(
+                CSharpSyntaxTree.ParseText(changePayloadConverters, path: "PayloadConverters.cs")
+            )
             .Append(CSharpSyntaxTree.ParseText(cores.Core, path: "EditSessionCore.cs"))
             .Append(
                 CSharpSyntaxTree.ParseText(cores.CurrentCore, path: "EditSessionWithCurrentCore.cs")

@@ -535,7 +535,8 @@ internal static class SparseChangeSetPayloadEmitter
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                 code,
                 2,
-                payloadRoot
+                payloadRoot,
+                implementationNamespace
             );
         code.AppendLineAt(2, "public " + endpoint + "<" + payloadRoot + ">? Before { get; set; }");
         code.AppendLineAt(2, "/// <summary>Gets or sets the after snapshot.</summary>");
@@ -545,7 +546,8 @@ internal static class SparseChangeSetPayloadEmitter
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                 code,
                 2,
-                payloadRoot
+                payloadRoot,
+                implementationNamespace
             );
         code.AppendLineAt(2, "public " + endpoint + "<" + payloadRoot + ">? After { get; set; }");
         code.AppendLineAt(1, "}");
@@ -565,7 +567,7 @@ internal static class SparseChangeSetPayloadEmitter
         }
         // The endpoint/kind bridge preserves the v1 wire shape once the runtime
         // stopped carrying serializer attributes.
-        if (dialect.EmitJson)
+        if (dialect.EmitJson && implementationNamespace is null)
             SparseChangePayloadJsonBridgeEmitter.AppendBridgeConverters(code, dialect);
         code.IndentOffset--;
         code.AppendLineAt(1, "}");

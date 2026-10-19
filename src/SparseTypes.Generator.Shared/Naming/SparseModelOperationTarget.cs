@@ -170,9 +170,15 @@ internal static class SparseModelOperationAliases
             aliases.Add(
                 new KeyValuePair<string, string>("ChangeKind", modelType + ".ChangeSet.ChangeKind")
             );
-            aliases.Add(
-                new KeyValuePair<string, string>("ChangeInfo", modelType + ".ChangeSet.ChangeInfo")
-            );
+            if (dialect.TransitionContracts is null)
+            {
+                aliases.Add(
+                    new KeyValuePair<string, string>(
+                        "ChangeInfo",
+                        modelType + ".ChangeSet.ChangeInfo"
+                    )
+                );
+            }
         }
         foreach (var member in members.Where(SparseKeyedCollectionEmitter.IsCollectionPatch))
         {
@@ -180,8 +186,17 @@ internal static class SparseModelOperationAliases
             aliases.Add(new KeyValuePair<string, string>(patch, modelType + ".Patch." + patch));
         }
         SparseChangeSetNaming.ComputePublicNames(members, out _, out var transNames);
-        foreach (var name in transNames.Select(static pair => pair.Value))
+        foreach (
+            var member in members.Where(member =>
+                !SparseChangeSetBasicsEmitter.IsNested(member)
+                && (
+                    !SparseChangeSetBasicsEmitter.IsScalar(member)
+                    || SparseChangeSetBasicsEmitter.IsSet(member)
+                )
+            )
+        )
         {
+            var name = transNames[member.Id];
             aliases.Add(new KeyValuePair<string, string>(name, modelType + ".ChangeSet." + name));
         }
         return aliases.ToImmutableArray();

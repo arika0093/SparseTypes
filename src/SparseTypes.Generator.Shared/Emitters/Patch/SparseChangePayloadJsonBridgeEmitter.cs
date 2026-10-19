@@ -10,7 +10,21 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <summary>Nested item-kind converter name within one payload container.</summary>
     internal const string ItemKindConverterName = "ChangePayloadItemKindJsonConverter";
 
-    /// <summary>Emits the bridge converter types into the payload container.</summary>
+    internal static string EndpointConverterType(string? implementationNamespace) =>
+        implementationNamespace is null
+            ? EndpointConverterName
+            : SparseGeneratedOnceNames.QualifiedChangePayloadEndpointJsonConverter(
+                implementationNamespace
+            );
+
+    internal static string ItemKindConverterType(string? implementationNamespace) =>
+        implementationNamespace is null
+            ? ItemKindConverterName
+            : SparseGeneratedOnceNames.QualifiedChangePayloadItemKindJsonConverter(
+                implementationNamespace
+            );
+
+    /// <summary>Emits bridge converter types into the current generated container.</summary>
     /// <param name="code">Container target builder (indented one level inside the container).</param>
     /// <param name="dialect">Owning patch dialect for runtime type names.</param>
     internal static void AppendBridgeConverters(
@@ -384,12 +398,13 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     internal static void AppendEndpointConverterAttribute(
         SharedIndentedBuilder code,
         int indent,
-        string valueType
+        string valueType,
+        string? implementationNamespace = null
     ) =>
         code.AppendLineAt(
             indent,
             "[global::System.Text.Json.Serialization.JsonConverter(typeof("
-                + EndpointConverterName
+                + EndpointConverterType(implementationNamespace)
                 + "<"
                 + valueType
                 + ">))]"
@@ -398,11 +413,15 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <summary>Emits the item-kind converter attribute for one kind property.</summary>
     /// <param name="code">DTO target builder.</param>
     /// <param name="indent">Member indent.</param>
-    internal static void AppendItemKindConverterAttribute(SharedIndentedBuilder code, int indent) =>
+    internal static void AppendItemKindConverterAttribute(
+        SharedIndentedBuilder code,
+        int indent,
+        string? implementationNamespace = null
+    ) =>
         code.AppendLineAt(
             indent,
             "[global::System.Text.Json.Serialization.JsonConverter(typeof("
-                + ItemKindConverterName
+                + ItemKindConverterType(implementationNamespace)
                 + "))]"
         );
 }

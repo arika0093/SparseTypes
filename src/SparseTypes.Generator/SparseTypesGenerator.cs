@@ -101,6 +101,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 {
                     CloneContextScopeFactory =
                         "global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentCloneContext",
+                    OptionalEqualityType = "global::SparseTypes.SparseOptionalEquality",
                 },
                 PatchDialect: new SparseFragmentPatchEmitter.SparsePatchDialect(
                     "global::SparseTypes.",
@@ -140,6 +141,9 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     )
                     {
                         TypedChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSet",
+                        ScalarTransitionType = "global::SparseTypes.SparseValueTransition",
+                        ScalarRebaseType = "global::SparseTypes.SparseOptionalRebase",
+                        OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
                     }
                 )
                 {
@@ -167,6 +171,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                         ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
                         QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
                     },
+                    OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
                 },
                 RebasePolicyAttributeMetadataName: RebasePolicyAttributeName,
                 RebasePolicyBaseMetadataName: RebasePolicyBaseName,
@@ -179,7 +184,9 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     HistoryType: "global::SparseTypes.SparseEditHistory",
                     HistoryOptionsType: "global::SparseTypes.EditHistoryOptions",
                     HistoryHooksType: "global::SparseTypes.SparseEditHistoryHooks",
-                    HistoryContractType: "global::SparseTypes.ISparseEditHistory"
+                    HistoryContractType: "global::SparseTypes.ISparseEditHistory",
+                    HistoryCollectionType: "global::SparseTypes.SparseEditHistoryCollection",
+                    OwnedHistoryViewType: "global::SparseTypes.SparseOwnedEditHistory"
                 ),
                 EditSessionModelAccessorInterfaceMetadataName: "SparseTypes.ISparseEditSessionModelAccessor",
                 EditSessionWithPathsInterfaceMetadataName: "SparseTypes.ISparseEditSessionWithPaths",
@@ -520,6 +527,50 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     );
             }
         );
+        var needsChangePayloadJsonConverters = hasModels
+            .Combine(stjCapabilities)
+            .Select(
+                static (input, _) =>
+                    (
+                        HasModels: input.Left,
+                        EmitConverters: input.Left
+                            && Configuration.EffectiveEmissionFeatures.EmitChangePayload
+                            && input.Right.SupportsV1Wire
+                    )
+            )
+            .WithComparer(EqualityComparer<(bool HasModels, bool EmitConverters)>.Default)
+            .WithTrackingName("SparseTypesGenerator.GeneratedOnceChangePayloadJsonConverters");
+        context.RegisterSourceOutput(
+            needsChangePayloadJsonConverters,
+            static (productionContext, emit) =>
+            {
+                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(
+                    Configuration
+                );
+                if (
+                    emit.HasModels
+                    && implementationNamespace is not null
+                    && Configuration.PatchDialect is { } patchDialect
+                )
+                {
+                    productionContext.AddSource(
+                        SparseGeneratedOnceEmitter.ChangePayloadJsonConvertersHintName(
+                            implementationNamespace
+                        ),
+                        SourceText.From(
+                            SparseGeneratedOnceEmitter.RenderChangePayloadJsonConverters(
+                                implementationNamespace,
+                                patchDialect,
+                                emit.EmitConverters,
+                                productionContext.CancellationToken
+                            ),
+                            Encoding.UTF8
+                        )
+                    );
+                }
+            }
+        );
+
         var shouldEmitIsExternalInit = context
             .CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider)
             .Combine(hasModels)

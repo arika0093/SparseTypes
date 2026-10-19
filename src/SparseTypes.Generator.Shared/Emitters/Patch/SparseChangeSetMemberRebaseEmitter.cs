@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using System.Linq;
 using static SparseTypes.Generator.Shared.SparseChangeSetBasicsEmitter;
 
 namespace SparseTypes.Generator.Shared;
@@ -5,6 +7,16 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Scalar and merge-collection member rebase for generated change sets.</summary>
 internal static class SparseChangeSetMemberRebaseEmitter
 {
+    internal static bool UsesDefaultMode(ImmutableArray<SparseMemberModel> members) =>
+        members.Any(member =>
+            !IsNested(member)
+            && !IsKeyed(member)
+            && !IsDict(member)
+            && member.MergeStrategyType is null
+            && member.MergeMode is not (SparseMergeModes.Append or SparseMergeModes.SetUnion)
+            && member.RebasePolicyType is null
+        );
+
     /// <summary>
     /// Emits a redacted-before guard for one member block.
     /// </summary>
@@ -71,9 +83,15 @@ internal static class SparseChangeSetMemberRebaseEmitter
         string areEqual,
         string reasonFallback,
         string conflict,
-        string conflictKind
+        string conflictKind,
+        string? optionalBoxType
     )
     {
+        string Box(string expression) =>
+            optionalBoxType is null
+                ? "__SparseBox(" + expression + ")"
+                : optionalBoxType + ".ToObject(" + expression + ")";
+
         code.AppendLineAt(
             4,
             "    if ("
@@ -121,13 +139,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + lit
                 + "), "
                 + conflictKind
-                + ".CustomStrategy, __SparseMember(__base"
-                + member.Id
-                + "), __SparseMember(__des"
-                + member.Id
-                + "), __SparseMember(__curM"
-                + member.Id
-                + "), __reason"
+                + ".CustomStrategy, "
+                + Box("__base" + member.Id)
+                + ", "
+                + Box("__des" + member.Id)
+                + ", "
+                + Box("__curM" + member.Id)
+                + ", __reason"
                 + member.Id
                 + " ?? \""
                 + reasonFallback
@@ -146,22 +164,71 @@ internal static class SparseChangeSetMemberRebaseEmitter
         string lit,
         string conflictKind,
         string conflict,
-        string modeType
+        string modeType,
+        string? scalarRebaseType,
+        string? optionalBoxType
     )
     {
         var id = member.Id;
-        code.AppendLineAt(
-            4,
-            "    var __mode"
-                + id
-                + " = options is null ? "
-                + modeType
-                + ".Default : options.DefaultRebaseMode;"
-        );
+        string Box(string expression) =>
+            optionalBoxType is null
+                ? "__SparseBox(" + expression + ")"
+                : optionalBoxType + ".ToObject(" + expression + ")";
+
+        if (scalarRebaseType is { Length: > 0 })
+        {
+            code.AppendLineAt(
+                4,
+                "    if ("
+                    + scalarRebaseType
+                    + ".TryResolve(__base"
+                    + id
+                    + ", __des"
+                    + id
+                    + ", __curM"
+                    + id
+                    + ", __mode, "
+                    + modeType
+                    + ".PreferIncoming, "
+                    + modeType
+                    + ".PreferCurrent, Fragment.__SparseEqual_"
+                    + id
+                    + ", out var __after"
+                    + id
+                    + ", out var __scalarConflict"
+                    + id
+                    + "))"
+            );
+            code.AppendLineAt(4, "    {");
+            code.AppendLineAt(5, "        __rh" + id + " = true;");
+            code.AppendLineAt(5, "        __rb" + id + " = __curM" + id + ";");
+            code.AppendLineAt(5, "        __ra" + id + " = __after" + id + ";");
+            code.AppendLineAt(4, "    }");
+            code.AppendLineAt(4, "    else if (__scalarConflict" + id + ")");
+            code.AppendLineAt(4, "    {");
+            code.AppendLineAt(
+                5,
+                "        __conflicts.Add(new "
+                    + conflict
+                    + "(__SparseRootPath.Member("
+                    + lit
+                    + "), "
+                    + conflictKind
+                    + ".Scalar, "
+                    + Box("__base" + id)
+                    + ", "
+                    + Box("__des" + id)
+                    + ", "
+                    + Box("__curM" + id)
+                    + ", \"The member conflicts with a concurrent change.\"));"
+            );
+            code.AppendLineAt(4, "    }");
+            return;
+        }
+
         code.AppendLineAt(
             4,
             "    if (__mode"
-                + id
                 + " == "
                 + modeType
                 + ".PreferIncoming && !Fragment.__SparseEqual_"
@@ -180,7 +247,6 @@ internal static class SparseChangeSetMemberRebaseEmitter
         code.AppendLineAt(
             4,
             "    else if (__mode"
-                + id
                 + " != "
                 + modeType
                 + ".PreferCurrent && Fragment.__SparseEqual_"
@@ -199,7 +265,6 @@ internal static class SparseChangeSetMemberRebaseEmitter
         code.AppendLineAt(
             4,
             "    else if (__mode"
-                + id
                 + " != "
                 + modeType
                 + ".PreferCurrent && !Fragment.__SparseEqual_"
@@ -219,13 +284,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + lit
                 + "), "
                 + conflictKind
-                + ".Scalar, __SparseMember(__base"
-                + id
-                + "), __SparseMember(__des"
-                + id
-                + "), __SparseMember(__curM"
-                + id
-                + "), \"The member conflicts with a concurrent change.\"));"
+                + ".Scalar, "
+                + Box("__base" + id)
+                + ", "
+                + Box("__des" + id)
+                + ", "
+                + Box("__curM" + id)
+                + ", \"The member conflicts with a concurrent change.\"));"
         );
         code.AppendLineAt(4, "    }");
     }
@@ -553,13 +618,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + lit
                 + "), "
                 + kind
-                + ", __SparseMember(__base"
-                + id
-                + "), __SparseMember(__des"
-                + id
-                + "), __SparseMember(__curM"
-                + id
-                + "), __reason"
+                + ", "
+                + BoxExpression(dialect, "__base" + id)
+                + ", "
+                + BoxExpression(dialect, "__des" + id)
+                + ", "
+                + BoxExpression(dialect, "__curM" + id)
+                + ", __reason"
                 + id
                 + " ?? \"The member conflicts with a concurrent change.\"));"
         );
@@ -578,13 +643,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + lit
                 + "), "
                 + kind
-                + ", __SparseMember(__base"
-                + id
-                + "), __SparseMember(__des"
-                + id
-                + "), __SparseMember(__curM"
-                + id
-                + "), \"The member conflicts with a concurrent change.\"));"
+                + ", "
+                + BoxExpression(dialect, "__base" + id)
+                + ", "
+                + BoxExpression(dialect, "__des" + id)
+                + ", "
+                + BoxExpression(dialect, "__curM" + id)
+                + ", \"The member conflicts with a concurrent change.\"));"
         );
         code.AppendLineAt(4, "    }");
         code.AppendLineAt(4, "}");

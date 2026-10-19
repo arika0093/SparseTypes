@@ -8,10 +8,7 @@ internal sealed class SparseChangeSetStorageLayout
 {
     private readonly string _runtime;
     private readonly HashSet<string> _usedNames;
-    private readonly Dictionary<
-        string,
-        (string Value, string IsPresent, string StorageType)
-    > _fields = new();
+    private readonly Dictionary<string, (string FieldName, string OptionalType)> _fields = new();
 
     internal SparseChangeSetStorageLayout(ImmutableArray<SparseMemberModel> members, string runtime)
     {
@@ -40,52 +37,28 @@ internal sealed class SparseChangeSetStorageLayout
         }
     }
 
-    internal void AppendFields(
-        SharedIndentedBuilder code,
-        string field,
-        string valueType,
-        bool isReferenceType
-    )
+    internal void AppendFields(SharedIndentedBuilder code, string field, string valueType)
     {
-        var names = (Value: Reserve(field + "Value"), IsPresent: Reserve(field + "IsPresent"));
-        var storageType =
-            isReferenceType && !valueType.EndsWith("?", System.StringComparison.Ordinal)
-                ? valueType + "?"
-                : valueType;
-        _fields.Add(field, (names.Value, names.IsPresent, storageType));
         var optional = _runtime + "Optional<" + valueType + ">";
-        // Separate fields let the CLR pack presence flags instead of padding
-        // every Optional.
-        code.AppendLineAt(
-            2,
-            "private "
-                + optional
-                + " "
-                + field
-                + " => "
-                + names.IsPresent
-                + " ? "
-                + optional
-                + ".Present("
-                + names.Value
-                + ") : default;"
-        );
+        var fieldName = Reserve(field + "Optional");
+        _fields.Add(field, (fieldName, optional));
+        code.AppendLineAt(2, "private " + optional + " " + field + " => " + fieldName + ";");
     }
 
     internal void AppendPrivateFields(SharedIndentedBuilder code)
     {
-        foreach (var names in _fields.Values)
+        foreach (var field in _fields.Values)
         {
-            code.AppendLineAt(2, "private readonly " + names.StorageType + " " + names.Value + ";");
-            code.AppendLineAt(2, "private readonly bool " + names.IsPresent + ";");
+            code.AppendLineAt(
+                2,
+                "private readonly " + field.OptionalType + " " + field.FieldName + ";"
+            );
         }
     }
 
     internal void AppendAssignment(SharedIndentedBuilder code, string field, string source)
     {
-        var names = _fields[field];
-        code.AppendLineAt(3, names.IsPresent + " = " + source + ".IsPresent;");
-        code.AppendLineAt(3, names.Value + " = " + source + ".GetValueOrDefault();");
+        code.AppendLineAt(3, _fields[field].FieldName + " = " + source + ";");
     }
 
     private string Reserve(string candidate)

@@ -103,13 +103,13 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + lit
                 + "), "
                 + conflictKind
-                + ".Nested, __SparseMember("
-                + KeyedWholeBefore(member)
-                + "), __SparseMember("
-                + KeyedWholeAfter(member)
-                + "), __SparseMember(__curM"
-                + id
-                + "), \"The member conflicts with a concurrent change.\")); }"
+                + ".Nested, "
+                + BoxExpression(dialect, KeyedWholeBefore(member))
+                + ", "
+                + BoxExpression(dialect, KeyedWholeAfter(member))
+                + ", "
+                + BoxExpression(dialect, "__curM" + id)
+                + ", \"The member conflicts with a concurrent change.\")); }"
         );
         code.AppendLineAt(4, "}");
         code.AppendLineAt(
@@ -129,9 +129,9 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + runtime
                 + "Optional<object?>.Missing, "
                 + runtime
-                + "Optional<object?>.Missing, __SparseMember(__curM"
-                + id
-                + "), \"The member conflicts with a concurrent change.\"));"
+                + "Optional<object?>.Missing, "
+                + BoxExpression(dialect, "__curM" + id)
+                + ", \"The member conflicts with a concurrent change.\"));"
         );
         code.AppendLineAt(4, "}");
         code.AppendLineAt(4, "else");

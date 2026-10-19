@@ -8,13 +8,17 @@ internal sealed record HistoryBinding
         string historyType,
         string historyOptionsType,
         string historyHooksType,
-        string historyContractType
+        string historyContractType,
+        string? historyCollectionType,
+        string? ownedHistoryViewType
     )
     {
         this.HistoryType = historyType;
         this.HistoryOptionsType = historyOptionsType;
         this.HistoryHooksType = historyHooksType;
         this.HistoryContractType = historyContractType;
+        this.HistoryCollectionType = historyCollectionType;
+        this.OwnedHistoryViewType = ownedHistoryViewType;
     }
 
     /// <summary>Reusable history type, such as the typed undo/redo core.</summary>
@@ -28,6 +32,10 @@ internal sealed record HistoryBinding
 
     /// <summary>Non-generic history control contract, or empty for the legacy factory only.</summary>
     public string HistoryContractType { get; init; }
+
+    public string? HistoryCollectionType { get; init; }
+
+    public string? OwnedHistoryViewType { get; init; }
 
     /// <summary>Whether the single-owned history surface is bound.</summary>
     public bool HasOwnedHistory => HistoryContractType.Length != 0;
@@ -57,7 +65,9 @@ internal static class SparseEditSessionHistoryEmitter
             dialect.HistoryType!,
             dialect.HistoryOptionsType!,
             dialect.HistoryHooksType!,
-            dialect.HistoryContractType ?? string.Empty
+            dialect.HistoryContractType ?? string.Empty,
+            dialect.HistoryCollectionType,
+            dialect.OwnedHistoryViewType
         );
         return true;
     }
@@ -310,16 +320,27 @@ internal static class SparseEditSessionHistoryEmitter
             "var hooks = " + HistoryHooksExpression(modelType, conflictType, history) + ";"
         );
         code.AppendLineAt(3, "var history = new " + historyType + "(options, hooks);");
-        code.AppendLineAt(3, "if (__histories is null)");
-        code.AppendLineAt(
-            4,
-            "__histories = new global::System.Collections.Generic.List<" + historyType + ">();"
-        );
-        code.AppendLineAt(3, "__histories.Add(history);");
-        code.AppendLineAt(
-            3,
-            "history.Disposed += () => { if (__histories is not null) __histories.Remove(history); };"
-        );
+        if (history.HistoryCollectionType is { Length: > 0 } collectionType)
+        {
+            code.AppendLineAt(
+                3,
+                "__histories ??= new " + collectionType + "<" + modelType + ".ChangeSet>();"
+            );
+            code.AppendLineAt(3, "__histories.Add(history);");
+        }
+        else
+        {
+            code.AppendLineAt(3, "if (__histories is null)");
+            code.AppendLineAt(
+                4,
+                "__histories = new global::System.Collections.Generic.List<" + historyType + ">();"
+            );
+            code.AppendLineAt(3, "__histories.Add(history);");
+            code.AppendLineAt(
+                3,
+                "history.Disposed += () => { if (__histories is not null) __histories.Remove(history); };"
+            );
+        }
         code.AppendLineAt(3, "return history;");
         code.AppendLineAt(2, "}");
     }
@@ -334,6 +355,9 @@ internal static class SparseEditSessionHistoryEmitter
     )
     {
         var historyType = history.HistoryType + "<" + modelType + ".ChangeSet>";
+        var ownedViewType = history.OwnedHistoryViewType is { Length: > 0 } ownedType
+            ? ownedType + "<" + modelType + ".ChangeSet>"
+            : "__OwnedHistoryView";
         code.AppendLineAt(
             2,
             "/// <summary>Gets the session-owned edit history, or null when history is not enabled.</summary>"
@@ -399,7 +423,7 @@ internal static class SparseEditSessionHistoryEmitter
             "var hooks = " + HistoryHooksExpression(modelType, conflictType, history) + ";"
         );
         code.AppendLineAt(3, "var history = new " + historyType + "(options, hooks);");
-        code.AppendLineAt(3, "var view = new __OwnedHistoryView(history);");
+        code.AppendLineAt(3, "var view = new " + ownedViewType + "(history);");
         code.AppendLineAt(3, "__ownedHistoryView = view;");
         code.AppendLineAt(3, "var historyChanged = HistoryChanged;");
         code.AppendLineAt(3, "if (historyChanged is not null)");
@@ -424,7 +448,12 @@ internal static class SparseEditSessionHistoryEmitter
         code.AppendLineAt(4, "return;");
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "__ownedHistoryView = null;");
-        code.AppendLineAt(3, "view.__SparseDispose();");
+        code.AppendLineAt(
+            3,
+            history.OwnedHistoryViewType is { Length: > 0 }
+                ? "view.DisposeOwned();"
+                : "view.__SparseDispose();"
+        );
         code.AppendLineAt(3, "var historyChanged = HistoryChanged;");
         code.AppendLineAt(3, "if (historyChanged is not null)");
         code.AppendLineAt(3, "{");
@@ -463,24 +492,47 @@ internal static class SparseEditSessionHistoryEmitter
         }
 
         var historyType = history.HistoryType + "<" + modelType + ".ChangeSet>";
-        code.AppendLineAt(
-            2,
-            "private global::System.Collections.Generic.List<" + historyType + ">? __histories;"
-        );
+        if (history.HistoryCollectionType is { Length: > 0 } collectionType)
+        {
+            code.AppendLineAt(
+                2,
+                "private " + collectionType + "<" + modelType + ".ChangeSet>? __histories;"
+            );
+        }
+        else
+        {
+            code.AppendLineAt(
+                2,
+                "private global::System.Collections.Generic.List<" + historyType + ">? __histories;"
+            );
+        }
         if (history.HasOwnedHistory)
         {
-            code.AppendLineAt(2, "private __OwnedHistoryView? __ownedHistoryView;");
-            AppendOwnedHistoryView(code, modelType, conflictType, history);
+            var ownedViewType = history.OwnedHistoryViewType is { Length: > 0 } ownedType
+                ? ownedType + "<" + modelType + ".ChangeSet>"
+                : "__OwnedHistoryView";
+            code.AppendLineAt(2, "private " + ownedViewType + "? __ownedHistoryView;");
+            if (history.OwnedHistoryViewType is null or { Length: 0 })
+            {
+                AppendOwnedHistoryView(code, modelType, conflictType, history);
+            }
         }
 
         code.AppendLineAt(2, "private void __SparseClearHistories()");
         code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var histories = __histories;");
-        code.AppendLineAt(3, "if (histories is not null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "for (var index = 0; index < histories.Count; index++)");
-        code.AppendLineAt(5, "histories[index].Clear();");
-        code.AppendLineAt(3, "}");
+        if (history.HistoryCollectionType is { Length: > 0 })
+        {
+            code.AppendLineAt(3, "__histories?.Clear();");
+        }
+        else
+        {
+            code.AppendLineAt(3, "var histories = __histories;");
+            code.AppendLineAt(3, "if (histories is not null)");
+            code.AppendLineAt(3, "{");
+            code.AppendLineAt(4, "for (var index = 0; index < histories.Count; index++)");
+            code.AppendLineAt(5, "histories[index].Clear();");
+            code.AppendLineAt(3, "}");
+        }
         if (history.HasOwnedHistory)
         {
             code.AppendLineAt(3, "__ownedHistoryView?.Clear();");

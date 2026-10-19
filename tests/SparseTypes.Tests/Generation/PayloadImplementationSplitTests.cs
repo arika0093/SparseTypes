@@ -89,17 +89,20 @@ public sealed class PayloadImplementationSplitTests
         // Facades stay model-facing.
         merged.ShouldContain("class ChangePayload");
         merged.ShouldContain("FragmentJsonConverter");
-        // Thin shell forwards to the implementation converter.
+        // The public Fragment accessor forwards directly to the implementation converter.
         merged.ShouldContain(
-            "private sealed class FragmentJsonConverter : global::SparseTypes.Generated."
+            "public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter"
         );
-        // DTO hierarchy and converter implementation share the merged file.
+        // The DTO hierarchy stays model-facing; converter bodies live in generated source.
         merged.ShouldContain("static partial class __Internal_");
         merged.ShouldContain("public class Core_");
         merged.ShouldContain("public sealed class Root_");
         merged.ShouldContain("JsonDerivedType");
-        merged.ShouldContain(": global::System.Text.Json.Serialization.JsonConverter<Fragment>");
-        merged.ShouldContain("public override Fragment Read(");
+        var allSources = string.Concat(sources.Values);
+        allSources.ShouldContain(
+            ": global::System.Text.Json.Serialization.JsonConverter<Fragment>"
+        );
+        allSources.ShouldContain("public override Fragment Read(");
         // Container references resolve through the shared file alias.
         merged.ShouldContain("using __Internal_");
     }

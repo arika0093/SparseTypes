@@ -536,6 +536,78 @@ internal static class SparseChangeSetTransitionEmitter
     )
     {
         var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
+        if (dialect?.TransitionContracts?.ScalarTransitionType is string sharedTransitionType)
+        {
+            var valueType = FragmentValueType(member);
+            var transitionType = sharedTransitionType + "<" + valueType + ">";
+            code.AppendLineAt(
+                2,
+                "/// <summary>Gets the typed transition for member '"
+                    + member.Property.Name
+                    + "'.</summary>"
+            );
+            SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(
+                code,
+                2,
+                dialect.Value.EmitJson
+            );
+            if (target is not null)
+            {
+                code.AppendLineAt(
+                    2,
+                    "public "
+                        + transitionType
+                        + " "
+                        + prop
+                        + " => "
+                        + target.ChangeSetOperationsType
+                        + ".__SparseGet_"
+                        + member.Id
+                        + "(this);"
+                );
+                var operations = target.ChangeSetOperations;
+                operations.AppendLineAt(
+                    2,
+                    "internal static "
+                        + transitionType
+                        + " __SparseGet_"
+                        + member.Id
+                        + "(ChangeSet self)"
+                );
+                operations.AppendLineAt(2, "{");
+                operations.AppendLineAt(3, "var __b = __SparseBefore_" + member.Id + "(self);");
+                operations.AppendLineAt(3, "var __a = __SparseAfter_" + member.Id + "(self);");
+                operations.AppendLineAt(
+                    3,
+                    "return new "
+                        + transitionType
+                        + "(__b, __a, !Fragment.__SparseEqual_"
+                        + member.Id
+                        + "(__b, __a));"
+                );
+                operations.AppendLineAt(2, "}");
+                return;
+            }
+
+            code.AppendLineAt(2, "public " + transitionType + " " + prop);
+            code.AppendLineAt(2, "{");
+            code.AppendLineAt(3, "get");
+            code.AppendLineAt(3, "{");
+            code.AppendLineAt(4, "var __b = __SparseBefore_" + member.Id + "();");
+            code.AppendLineAt(4, "var __a = __SparseAfter_" + member.Id + "();");
+            code.AppendLineAt(
+                4,
+                "return new "
+                    + transitionType
+                    + "(__b, __a, !Fragment.__SparseEqual_"
+                    + member.Id
+                    + "(__b, __a));"
+            );
+            code.AppendLineAt(3, "}");
+            code.AppendLineAt(2, "}");
+            return;
+        }
+
         code.AppendLineAt(
             2,
             "/// <summary>Typed transition for member '" + member.Property.Name + "'.</summary>"

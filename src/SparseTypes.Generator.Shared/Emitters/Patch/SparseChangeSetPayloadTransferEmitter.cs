@@ -466,33 +466,32 @@ internal static class SparseChangeSetPayloadTransferEmitter
         // blind instead of failing fragment conversion.
         var wholeBeforeRedacted = members.Any(static member =>
             !member.Property.IsJsonIgnored && member.RedactBefore
-        )
-            ? "true"
-            : "false";
-        code.AppendLineAt(
-            3,
-            "if (redactBefores || "
-                + wholeBeforeRedacted
-                + ") return "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + ">.Redacted();"
         );
-        code.AppendLineAt(
-            3,
-            "return "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + ">.FromOptional("
-                + runtime
-                + "Optional<"
-                + payloadRoot
-                + ">.Present("
-                + payloadRoot
-                + ".FromFragment(value.Value, redactBefores)));"
-        );
+        if (wholeBeforeRedacted)
+        {
+            code.AppendLineAt(3, "return " + endpoint + "<" + payloadRoot + ">.Redacted();");
+        }
+        else
+        {
+            code.AppendLineAt(
+                3,
+                "if (redactBefores) return " + endpoint + "<" + payloadRoot + ">.Redacted();"
+            );
+            code.AppendLineAt(
+                3,
+                "return "
+                    + endpoint
+                    + "<"
+                    + payloadRoot
+                    + ">.FromOptional("
+                    + runtime
+                    + "Optional<"
+                    + payloadRoot
+                    + ">.Present("
+                    + payloadRoot
+                    + ".FromFragment(value.Value, redactBefores)));"
+            );
+        }
         code.AppendLineAt(2, "}");
         code.AppendLine();
         code.AppendLineAt(
