@@ -168,40 +168,23 @@ var conflict = conflicts.Single();
 
 ## Structured Conflicts
 
-Each `SparseConflict` reports where the conflict occurred and the base/local/current values involved.
+Each `SparseConflict` reports where the conflict occurred (`Path` / `PathText`), what kind of member collided (`Kind`), and the three presence-aware values involved (`BaseValue`, `LocalValue`, `CurrentValue`):
 
 | Member | Meaning |
 | --- | --- |
-| `Path` | Typed path from the root contribution as `SparsePath` (e.g. `Nested.Host`) |
+| `Path` | Typed path from the root contribution as `SparsePath` (for example `Nested.Host`) |
 | `PathText` | Wire-compatible rendering of `Path` (`"Nested.Host"`; `"$root"` for the root contribution) |
-| `Kind` | What kind of member collided (see below) |
+| `Kind` | What kind of member collided (`Scalar`, `Nested`, `WholeContribution`, `CollectionAppend`, `CollectionSetUnion`, `CustomStrategy`, `RedactedBefore`, or `InPlaceWriteUnavailable`) |
 | `BaseValue` / `LocalValue` / `CurrentValue` | The three presence-aware values as `Optional<object?>` |
 | `Reason` | Optional human-readable explanation |
 
-`Path` carries member, typed-key, and index segments with stable identity: distinct roots, key types, and escaping-sensitive keys never share a path. `conflicts.Find(path)` locates the first conflict at exactly the given path (typed paths such as `Order.SparsePath.Items.Key(id).Price` are checked at compile time); ancestors and descendants never match. Keyed entries report key identity rather than positions, and order clashes report the collection path.
+`conflicts.Find(path)` locates the first conflict at the exact typed path (such as `Order.SparsePath.Items.Key(id).Price`). Nested conflicts expose the full member path so UI code can offer per-field resolution.
 
-Conflict kinds:
-
-| Kind | Meaning |
-| --- | --- |
-| `WholeContribution` | The whole contribution was changed concurrently |
-| `Nested` | A nested contribution was changed concurrently |
-| `Scalar` | A scalar member was changed concurrently |
-| `CollectionAppend` | An append-merged collection was changed concurrently |
-| `CollectionSetUnion` | A set-union member was changed concurrently |
-| `CustomStrategy` | A custom merge strategy reported a conflict |
-| `RedactedBefore` | A write-only member arrived with redacted before-state under strict validation |
-| `InPlaceWriteUnavailable` | A changed member cannot be written in place because the target model shape is immutable |
-
-`RedactedBefore` occurs when an application explicitly opts into strict rejection of write-only members; diagnostics carry member paths only, never secret values (see [Mixed requests](../reference/change-payload.md#mixed-requests)). `InPlaceWriteUnavailable` distinguishes target-shape write constraints from concurrent value divergence: in-place mutations (`ApplyInPlaceTo`) fail on init-only or constructor-only properties, whereas functional application (`ApplyTo`) constructs a new immutable instance cleanly.
-
-Nested conflicts expose the full member path: a local `Nested.Host = "b"` against a concurrent `Nested.Host = "c"` (from base `"a"`) reports `PathText == "Nested.Host"` with the three values attached, so UI code can offer per-field resolution.
-
-Clean paths may remain in the rebased ChangeSet while conflicts are reported separately. Applications commonly keep persistence atomic and decline to commit when any conflict remains. The detailed `TryApplyTo` overload returns `false` and exposes structured conflicts without returning a partially applied model.
+`RedactedBefore` occurs when an application explicitly opts into strict rejection of write-only members (`RejectChangesWithRedactedBeforeValuesDuringRebase = true`); diagnostics carry member paths only, never secret values. `InPlaceWriteUnavailable` indicates that `TryApplyInPlace` encountered a changed init-only or constructor-only property on an immutable target shape, where functional `TryApplyTo` constructs a new instance instead.
 
 ## Resolving conflicts by path
 
-`ChangeSet.BeginResolution` opens mutable, framework-neutral resolution state over one `RebaseResult`. The state owns the original result (including the clean `Rebased` contributions), the authoritative current-state snapshot, and one decision per canonical path. `TryBuild` then produces a baseline-aware `ChangeSet` holding the clean edits plus the chosen resolutions. The call never mutates the original `ChangeSet`, the input models, or the session, and it fails instead of dropping a conflict silently.
+`ChangeSet.BeginResolution` opens mutable, framework-neutral resolution state over a `RebaseResult` and the current model snapshot. Call `UseIncoming(path)`, `UseCurrent(path)`, or `SetValue(path, value)` for each conflict, then call `TryBuild(out resolved, out failure)` to produce a baseline-aware `ChangeSet` holding the clean edits plus the chosen resolutions:
 
 <!-- illustrative: resolution flow; compile-checked coverage lives in RebaseResolutionTests -->
 ```csharp
@@ -233,33 +216,19 @@ else
 }
 ```
 
-`EnumerateConflicts` returns every conflict in reported order; `EnumerateUnresolvedConflicts` returns the live-filtered subset. `FindConflict` matches exact paths only, while `HasConflictsUnder` reports descendants and `HasConflictsAffecting` covers the path itself plus its ancestors and descendants. `GetState` exposes the same status per path for generic consumers, so no per-model conflict members are generated.
-
-Decisions fan out deterministically. `UseIncoming` or `UseCurrent` at an ancestor path covers every conflict below it, and an exact decision always wins over an ancestor. Custom values require an exact conflict path, and paths with no conflict at or under them are rejected when decided. Keyed entries resolve at the member path (whole collection or order) or below a typed key (element replacement, removal, or element-leaf recursion), dictionary entries resolve at the member path or below a typed key, nested leaves resolve below their member, and set or append members resolve as a whole. A `RedactedBefore` conflict carries no plaintext, so only `UseCurrent` (keep) is accepted for it.
-
-Pass the same current snapshot used for `RebaseOnto`. When the state moved under the resolution, `TryBuild` fails instead of replaying clean edits against stale values; rebase onto the latest state and resolve again. The built `ChangeSet` stays baseline-aware, so it reapplies and rebases like any other change.
+`UseIncoming` or `UseCurrent` at an ancestor path covers every conflict below it, while an exact path decision overrides any ancestor decision. A `RedactedBefore` conflict carries no prior plaintext, so only `UseCurrent` is accepted for it.
 
 ## Collection and Structural Behavior
 
-* `Nested structural members` rebase member by member; only the colliding leaf conflicts while disjoint nested edits replay.
-* `Append-merged collections` treat an already-applied addition as a no-op (replaying `["a", "b"]` onto a current state that already contains `["a", "b"]` stays put) and report concurrent divergent growth as `CollectionAppend`.
-* `Set-union members` rebase against comparer-aware equality: same entries under the same comparer replay cleanly; entries that differ under the member's comparer conflict as `CollectionSetUnion`.
-* `Keyed structural collections` rebase element-wise where keys line up; per-key divergent edits conflict while disjoint key ranges (added, removed, or edited on different keys) replay.
-* `The whole contribution` participates too: `Set`-style root transitions and root presence changes (missing versus present-null versus present) rebase through the same machinery, with unresolvable root divergence reported as `WholeContribution`.
-* `An empty ChangeSet` rebases across root presence changes without conflicts because there is nothing to reconcile.
+* **Nested structural members** rebase member by member; only the colliding leaf conflicts while disjoint nested edits replay.
+* **Append-merged collections** treat an already-applied addition as a no-op and report concurrent divergent growth as `CollectionAppend`.
+* **Set-union members** rebase against comparer-aware equality: same entries under the same comparer replay cleanly; entries that differ under the member's comparer conflict as `CollectionSetUnion`.
+* **Keyed structural collections** rebase element-wise where keys line up; per-key divergent edits conflict while disjoint key operations (added, removed, or edited on different keys) replay.
+* **Whole-root transitions** (`Set` on `$root` or root presence changes between missing, present-null, and present) rebase through the same machinery and report unresolvable divergence as `WholeContribution`.
 
-## Custom Strategies
+## Custom Strategies and Rebase Policies
 
-A custom `FragmentMergeStrategy<T>` can override `TryRebase` to define its own three-way reconciliation for the member:
-
-* it receives `Optional<T>` for the edit base, the desired state, and the current state, with the missing and present distinction preserved end to end;
-* a present result maps to a `Set` patch operation, a missing result maps to `Remove`, and a result equal to the current state stays `Keep` (a semantic no-op);
-* the default implementation succeeds when the desired state still matches the edit base (unchanged local edit, so the current state wins) or when the current state matches the edit base or the desired state (clean replay or already applied), and reports a conflict otherwise;
-* returning `false` surfaces a `CustomStrategy` conflict carrying the member path and the three values.
-
-## Rebase Policies
-
-A member-level policy selects rebase behavior without requiring a custom merge strategy. The policy below merges divergent labels instead of conflicting:
+A custom `FragmentMergeStrategy<T>` can override `TryRebase` to define three-way reconciliation for its member. Alternatively, `[SparseRebasePolicy(typeof(...))]` attaches a `FragmentRebasePolicy<T>` to a scalar or whole-replace member without changing how `Merge` works:
 
 <!-- sample: rebase-policy-models -->
 ```csharp
@@ -332,15 +301,13 @@ if (!policyBase.CreateChangeSet(policyEdited).TryApplyTo(policyCurrent, out var 
 ```
 <!-- /sample -->
 
-Selection order for scalar and whole-replace members: an explicit `FragmentRebasePolicy<T>` first, then `FragmentMergeStrategy<T>.TryRebase`, then `ChangePayloadRebaseOptions.DefaultRebaseMode` when it is not `Default`, then the built-in three-way reconciliation. Merge still uses the merge strategy when a policy is present.
+Selection order for scalar and whole-replace members: an explicit `FragmentRebasePolicy<T>` first, then `FragmentMergeStrategy<T>.TryRebase`, then `ChangePayloadRebaseOptions.DefaultRebaseMode` when it is not `Default`, and finally built-in three-way reconciliation. `FragmentRebasePolicy<T>` includes `FailOnConflict()`, `PreferIncoming()`, and `PreferCurrent()` factories. Policies apply only to scalar and whole-replace members ([SPF027](../reference/analyzer.md#spf027-invalid-custom-rebase-policy)).
 
-Policies apply to scalar and whole-replace members only. Nested models, keyed sequences, dictionaries, and `Append`/`SetUnion` members reconcile member by member; a whole-member policy on those shapes fails with [SPF027](../reference/analyzer.md#spf027-invalid-custom-rebase-policy).
+## Redacted Before-States and Mixed Requests
 
-`FragmentRebasePolicy<T>` ships `FailOnConflict`, `PreferIncoming`, and `PreferCurrent` factories. The prefer modes overwrite on divergence and never report a conflict; they are last-write-wins shortcuts rather than reconciliations that found no conflict.
+A member whose before-state is redacted (such as a `[SparseRedactBefore]` secret or a baseline-free command entry) carries its desired after-state without disclosing the previous value. Because three-way rebase has no prior value to compare against `current`, redacted members pass through as explicit writes by default.
 
-## Redacted Before-States
-
-A redacted-before member carries its desired value but withholds its before-state, as with a write-only secret. By default it passes through as its explicit patch operation: no historical comparison, no invented baseline, and no automatic undo. Pass `RejectChangesWithRedactedBeforeValuesDuringRebase = true` to fail instead:
+Pass `RejectChangesWithRedactedBeforeValuesDuringRebase = true` on `ChangePayloadRebaseOptions` to reject redacted paths with a `SparseConflictKind.RedactedBefore` conflict instead:
 
 <!-- sample: rebase-redacted -->
 ```csharp
@@ -368,30 +335,7 @@ var redactedConflict = redactedConflicts.Single();
 ```
 <!-- /sample -->
 
-Strict failure is atomic for a mixed request: the redacted member is excluded from the rebased change and `TryApplyTo` returns `false` without a partially applied model. Reports carry path and kind but no secret plaintext: the `RedactedBefore` conflict attaches missing base, local, and current values. Redacted is not `Missing`: the desired value is present and only its history is withheld. Unconditional `Patch` application is a baseline-free overwrite rather than a historical rebase, so it never consults these options.
-
-Downstream generators formalize the same redaction as a transport policy: the in-memory `ChangeSet` stays complete and baseline-aware, while the payload omits the before-state and keeps the required after-state. A redacted payload cannot convert to a complete `ChangeSet`; project it with the payload `ToPatch()` instead, which applies the requested after-state without historical comparison, as for an explicit patch set. A strict rebase policy is available to downstream generators to refuse such projections. The wire version token stays `"0.1"`.
-
-## No Revision History Required
-
-Semantic rebase does not require SparseTypes to retain a Git-like revision history. Three things stay distinct:
-
-```text
-ChangeSet before-state
-    semantic information needed to reconcile a change
-
-current concurrency token / rowversion / version
-    persistence race protection
-
-historical snapshots
-    not required for ordinary ChangeSet rebase
-```
-
-The server in the disconnected-editing flow loads only the current state and still rebases correctly, because the incoming ChangeSet already carries the before-state its own transitions need. Persistence still needs its normal race protection (a concurrency token such as an EF `rowversion`, a `Version` column, an `UpdatedAt` marker, an ETag, or an operation id). Those tokens are application and envelope metadata, not members of the ChangeSet itself. SparseTypes prescribes neither the token type nor the persistence technology.
-
-## Mixed Requests With Redacted Members
-
-A member whose before-state arrives redacted is an explicit write-only operation: the sender could not disclose the previous value, often because the value is secret. The request still carries the requested after-state. Ordinary members in the same request keep ordinary baseline-aware validation and rebase.
+When a deserialized `ChangePayload` mixes ordinary baseline-aware transitions with redacted write-only members, call `payload.TryApplyMixedTo(currentModel, out updated, out outcome)`. Ordinary members rebase against `currentModel` and write-only members pass through; if any ordinary member conflicts, nothing is applied:
 
 <!-- sample: mixed-apply -->
 ```csharp
@@ -409,34 +353,16 @@ if (!payload.TryApplyMixedTo(currentModel, out var updated, out var outcome))
 ```
 <!-- /sample -->
 
-`TryApplyMixedTo` rebases the ordinary members onto the current model and passes the write-only members through without historical comparison. When any ordinary member conflicts, the call returns `false` and applies nothing: the write-only subset is never committed on its own, and the current model is left untouched. The outcome names the write-only paths in `WriteOnlyPaths` and carries the structured conflicts in `Conflicts`.
+For the complete wire rules and composition matrix for mixed envelopes, see [ChangePayload wire reference](../reference/change-payload.md#mixed-requests).
 
-Use `ChangePayload.ToPatch()` when the destination needs the desired operations without comparing historical before-values. It still validates the wire version and envelope structure. Use `InvertReversibleChanges(out var skipped)` when rolling back: write-only paths are excluded from the rollback and reported in `skipped`. `ChangeSet.FromPayload` accepts only fully baseline-aware envelopes and throws a typed error naming the redacted paths.
+## Rebase vs Persistence Concurrency Tokens
 
-## Mixed-Operation Rules
+Semantic rebase does not require storing historical snapshots on the server, and it does not replace database race protection:
 
-| First operation | Second operation | Merged operation | Value-level check still required |
-| --- | --- | --- | --- |
-| Transition | Transition | Transition from the first before-state to the second after-state | Yes, first after-state must equal second before-state |
-| Transition | Blind set | Transition from the first before-state to the second after-state | No |
-| Blind set | Transition | Blind set to the second after-state | Yes, first after-state must equal second before-state |
-| Blind set | Blind set | Blind set to the second after-state | No |
+1. **ChangeSet before-state** provides the semantic baseline needed to merge non-overlapping edits and detect field-level conflicts against the current row loaded in memory.
+2. **Database concurrency tokens** (such as an EF Core `rowversion`, `Version` column, or HTTP `ETag`) guard the window between reading the current row, running `TryApplyTo` / `RebaseOnto`, and committing the write.
 
-Disjoint paths merge without checks. A merged operation regains complete history only when one side supplied a real baseline; history is never inferred from a redacted endpoint.
-
-Rollback inverts transitions and skips write-only operations, which have no prior value to restore. A non-empty skipped list means the result is not a complete inverse. `ChangeSet.Invert()` on a complete change set stays a true inversion.
-
-`ChangeSet.ToPatch()` discards baseline information into a `Patch`, while `ChangePayload.ToPatch()` validates wire version and envelope structure before projecting. `FromPayload` and `ToChangeSet` fail on any redacted before-state. After-states must stay concrete (a value, an explicit null where valid, or a missing endpoint for removal); a redacted after-state is malformed. `Redacted` does not mean `Missing`: a redacted before-state paired with a missing after-state is a blind remove that validates against nothing.
-
-Diagnostics carry member paths and reasons only, never secret before, current, or after values. Per-item redacted endpoints in keyed and dictionary members are rejected with a typed error; send a whole-member blind set for those members. Blind whole-collection removal has no patch projection. Whole-root redacted operations are reported under the `$root` path.
-
-Strict rejection of redacted members is separate opt-in work and does not change the pass-through default.
-
-## Why Write-Only Operations Pass Through
-
-Three-way rebase compares the recorded before-state with the current state. A redacted before-state supplies nothing to compare, so the default applies the requested after-state directly, the same way an explicit patch set does. Passing a value through is not the same as reconciling concurrent edits to that member: revision checks, ETags, and authorization stay with the application, as described in No Revision History Required above. Atomicity holds at the request boundary, so a conflict in any ordinary member fails the whole request instead of persisting the write-only subset.
-
-An application request therefore wraps the ChangeSet in its own envelope:
+Wrap the `ChangePayload` in an application request envelope alongside your resource ID and concurrency token:
 
 <!-- illustrative: schematic envelope; uses undefined member names and does not compile as written -->
 ```csharp
@@ -447,7 +373,7 @@ sealed record UpdateOrderRequest(
     Order.ChangePayload Changes);
 ```
 
-The handler converts the payload with `ToChangeSet()`, loads only the current database state, calls `TryApplyTo(current, out updated, out conflicts)`, and, when there are no conflicts, saves under the normal concurrency token. When conflicts remain, it returns them instead of saving.
+See [Partial updates](../how-to/partial-updates.md) and [EF Core mapping](../how-to/efcore-mapping.md#guard-the-sqlite-write-race-with-an-application-managed-token) for endpoint implementation patterns.
 
 ## Reconciling database-assigned keys
 

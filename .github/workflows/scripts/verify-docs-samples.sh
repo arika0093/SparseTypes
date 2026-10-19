@@ -14,7 +14,7 @@ blazor_success_marker="SparseTypes Blazor consumer passed."
 tutorial_fixture_dir="tests/fixtures/consumers/package-sparse-tutorial"
 tutorial_fixture_csproj="${tutorial_fixture_dir}/PackageSparse.Tutorial.Consumer.csproj"
 tutorial_fixture_dll="PackageSparse.Tutorial.Consumer.dll"
-tutorial_success_marker="Rebased Theme: dark"
+tutorial_success_marker="After RevertChanges -> Theme: light, RefreshInterval: 60, HasChanges: False"
 
 if [[ -z "${package_directory}" ]]; then
     echo "Usage: $(basename "$0") <package-directory>" >&2

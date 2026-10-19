@@ -208,7 +208,7 @@ public partial class Settings
   element type. Multiple marks never form a composite key.
 * Fix: Keep one `[SparseKey]` property. Composite identity uses a single
   computed property whose type holds every component (see
-  [Keyed collections](../explanation/keyed-collections.md#composite-identity-in-one-computed-property)).
+  [Keyed collections](../explanation/keyed-collections.md#ordinary-scalar-keys-and-composite-keys)).
 
 ## SPF014: Invalid SparseKey declaration
 

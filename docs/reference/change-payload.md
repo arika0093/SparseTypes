@@ -358,6 +358,17 @@ var complete = WireSettings.ChangeSet.FromPayload(envelope);
 
 A member whose before-state arrives redacted is a write-only operation: the sender could not disclose the previous value. Ordinary members in the same request keep ordinary baseline-aware validation and rebase.
 
+When composing two payloads or operations on the same member path, endpoint states combine according to these rules:
+
+| First operation | Second operation | Merged operation | Value-level contiguity check |
+| --- | --- | --- | --- |
+| Transition (`before` -> `after`) | Transition (`before` -> `after`) | Transition from first `before` to second `after` | Required: first `after` must equal second `before` |
+| Transition (`before` -> `after`) | Blind set (`redacted` -> `after`) | Transition from first `before` to second `after` | Not required |
+| Blind set (`redacted` -> `after`) | Transition (`before` -> `after`) | Blind set (`redacted` to second `after`) | Required: first `after` must equal second `before` |
+| Blind set (`redacted` -> `after`) | Blind set (`redacted` -> `after`) | Blind set (`redacted` to second `after`) | Not required |
+
+Disjoint member paths merge without contiguity checks. A merged operation retains a complete baseline only when the first operation supplied an unredacted `before` endpoint.
+
 <!-- sample: payload-mixed -->
 ```csharp
 var mixed = JsonSerializer.Deserialize<WireSecret.ChangePayload>(

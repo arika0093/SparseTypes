@@ -41,7 +41,7 @@ network outcomes explicit: a failed request does not acknowledge the draft,
 and a successful response does not automatically determine whether the
 session should adopt normalized values, assigned IDs, or later local edits.
 Choose among accepting, reconciling, reloading, or replacing the session based
-on the response. The decision table in [Work with an edit session](../how-to/edit-session.md#submit-a-snapshot)
+on the response. The decision table in [Work with an edit session](../how-to/edit-session.md#submit-a-snapshot-and-acknowledge-the-response)
 describes those cases.
 
 `BatchEdit` defines a notification boundary. It coalesces observable writes

@@ -104,7 +104,18 @@ public Child Child { get; set; } = new(); // explicit atomic replacement
 * `Shared nested types must agree.` A nested type without its own explicit `[SparseModel]` root that is referenced from multiple roots with different member sets or merge settings is an error ([`SPF010`](analyzer.md#spf010-incompatible-promoted-fragment-model)): unify the definitions and settings, or annotate the nested type itself with `[SparseModel]` to promote it to an explicit root.
 * `Collection element types are discovered the same way.` A `List<T>` member whose `T` is a fragment model (or a reachable `partial` type) is patched element by element and needs key identity (see [Keyed collections](../explanation/keyed-collections.md)); otherwise the member needs `Append`, `SetUnion`, or a custom strategy.
 
-Element identity for element-patched collections is declared with exactly one property-level `[SparseKey]` per element type, including tuple and value-object keys through a single computed property. Declaration problems surface as `SPF011`, `SPF013`, `SPF014`, `SPF017`, `SPF019`, `SPF022`, or `SPF024`, and temporary-identity problems as `SPF031` or `SPF032` (see [the analyzer reference](analyzer.md#spf011-structural-sequence-without-usable-key) and [Keyed collections](../explanation/keyed-collections.md)).
+Element identity for element-patched collections is declared with `[SparseKey]`. See below for the complete declaration constraints.
+
+## Keyed Collection Identity Constraints
+
+Every element type in an element-patched structural collection must declare identity under the following rules (see [Keyed collections](../explanation/keyed-collections.md) for usage examples):
+
+* **Single property mark (`SPF011`, `SPF013`, `SPF014`)**: Mark exactly one property per element type with `[SparseKey]`. Marking multiple properties (`SPF013`) or placing `[SparseKey]` on a type or with positional constructor arguments (`SPF014`) is an error. Express composite keys as a single computed property returning a value tuple or `readonly record struct`.
+* **Publicly readable instance property (`SPF017`)**: The key property must be a non-static, non-indexer property with a `public` getter. Getter-only computed properties are supported.
+* **Non-collection key type (`SPF019`)**: Arrays, `List<T>`, dictionaries, and sets cannot be used as key types.
+* **Not ignored (`SPF022`)**: A `[SparseKey]` property cannot be marked with `[SparseIgnore]`.
+* **Unassigned key sentinel (`SPF024`)**: When `[SparseKey(Unassigned = ...)]` is specified, the sentinel must be a compile-time constant convertible to the key property type (or `null` on a nullable key type).
+* **Temporary key declaration (`SPF031`, `SPF032`)**: When `[SparseTemporaryKey]` is used alongside an unassigned `[SparseKey]`, it must mark a single `Guid?` property with a `public` getter and setter (`SPF031`), and the property declaration must not have an `= ...` initializer (`SPF032`).
 
 ## Constructors, Members, and Cycles
 

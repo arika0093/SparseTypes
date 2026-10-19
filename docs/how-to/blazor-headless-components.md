@@ -155,7 +155,7 @@ removal and movement through the row operations or its collection editor
 rather than mutating the list directly. This keeps mutations in the session's
 notification and history pipeline. The component exposes removed baseline
 items for a removal preview; ordinary row enumeration contains only current
-items. See [UI framework integration](../explanation/ui-frameworks.md#edit-one-collection-through-a-path-addressed-facade)
+items. See [UI framework integration](../explanation/ui-frameworks.md#navigating-typed-paths-and-editing-collections)
 for collection operation limits and [Case 5](https://arika0093.github.io/SparseTypes/case-5)
 for a complete keyed-list editor.
 

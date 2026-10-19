@@ -1,7 +1,5 @@
 # EF Core Mapping
 
-# Apply ChangeSets to EF Core entities
-
 This guide shows how to map and apply incoming DTO `ChangeSet` modifications directly to tracked Entity Framework Core entities.
 
 Only modified properties are written to the database. Untouched EF properties remain unmodified.
@@ -120,7 +118,7 @@ If editing is disabled during the request, replace the session with one created
 from the returned authoritative DTO instead. If the server persisted the
 submitted values unchanged and the live model should remain untouched,
 `AcceptChanges(submitted)` advances the baseline while preserving edits made
-after capture. The [edit-session save guide](edit-session.md#submit-a-snapshot)
+after capture. The [edit-session save guide](edit-session.md#submit-a-snapshot-and-acknowledge-the-response)
 compares these acknowledgement choices.
 
 ## Handle client-assigned temporary keys

@@ -18,22 +18,23 @@ var settings = new Settings
     Database = new() { Host = "db.local", Port = 5432 },
 };
 
-// 1. Start a reactive edit session
+// 1. Start an edit session (captures the initial baseline)
 var session = settings.CreateEditSession();
 
-// 2. Edit through the observable proxy
+// 2. Edit through the observable proxy (writes through to settings)
 session.Observable.Label = "production";
 session.Observable.Database!.Port = 7432;
 
 // 3. Inspect dirty state and typed transitions
 var changes = session.CreateChangeSet();
 
+Console.WriteLine(settings.Label); // production
 Console.WriteLine(session.HasChanges); // True
 Console.WriteLine(changes.Label.IsChanged); // True
 Console.WriteLine(changes.Database.Port.Before.Value); // 5432
 Console.WriteLine(changes.Database.Port.After.Value); // 7432
 
-// 4. Revert edits when needed
+// 4. Revert edits back to the session baseline
 session.RevertChanges();
 Console.WriteLine(session.HasChanges); // False
 Console.WriteLine(settings.Label); // default

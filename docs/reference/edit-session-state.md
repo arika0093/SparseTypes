@@ -161,3 +161,40 @@ notifications. For repeated queries over a known generation, the captured
 view avoids deriving and scanning a new change set for every field. The
 Blazor `SparseEditContext` shares such a snapshot across field components in
 one refresh generation when the session supports that capability.
+
+## Edit history contract
+
+`session.EnableHistory(options)` enables session-owned Undo and Redo and sets `session.History`. Before `EnableHistory` or after `session.DisableHistory()`, `session.History` is `null`.
+
+| Member | Description |
+| --- | --- |
+| `CanUndo` / `CanRedo` | `true` when at least one entry is available on the Undo or Redo stack |
+| `UndoCount` / `RedoCount` | Number of entries currently on the Undo or Redo stack |
+| `Undo()` / `Redo()` | Replays the top transition in place; throws `InvalidOperationException` if the stack is empty or if replay conflicts |
+| `TryUndo(out conflicts)` / `TryRedo(out conflicts)` | Attempts replay in place; returns `false` with structured `SparseConflict` entries on conflict |
+| `BeginGroup()` / `Group(Action)` | Combines multiple observable edits into a single Undo/Redo entry |
+| `Clear()` | Empties both Undo and Redo stacks |
+
+`EditHistoryOptions.MaxEntries` defaults to `50` (minimum `1`). When the Undo stack exceeds `MaxEntries`, the oldest entry is dropped. Successful baseline updates (`AcceptChanges`, `RevertChanges`, `Reload`, `TryReconcile`, and `TryReconcileAndApply`) clear both stacks automatically.
+
+## Notification and cache contract
+
+* **`INotifyPropertyChanged`**: Raised on the session (`PropertyName == nameof(HasChanges)`) after observable edits and baseline acknowledgements.
+* **`TransitionObserved`**: Raised after each observable edit (or at the outer boundary of `session.BatchEdit`) with the committed `ChangeSet` transition.
+* **`onChanged` callback**: Optional delegate passed to `CreateEditSession(onChanged: ...)` invoked synchronously after observable edits.
+* **Thread affinity**: All session and collection-view notifications (`INotifyCollectionChanged` and `INotifyPropertyChanged`) fire synchronously on the mutating thread without UI-thread marshaling.
+* **Change cache**: `HasChanges` is cached while mutations go exclusively through `session.Observable`. Accessing the raw model via `ISparseEditSession<TModel>` or reading unproxied mutable references through descriptors permanently disables the cache so direct mutations are still detected on subsequent `HasChanges` reads.
+
+## Generated type placement
+
+Companion types are emitted as nested types on the `[SparseModel]` class, while internal operation kernels and builders are emitted into a per-model container under `SparseTypes.Generated`:
+
+| Nested in `Model` | Emitted in `SparseTypes.Generated.<Container>` |
+| --- | --- |
+| `Model.Fragment` (and `Model.SparsePath`) | `<Container>.FragmentBuilder`, `<Container>.SparsePaths<TRoot>` |
+| `Model.Patch`, `Model.ChangeSet`, `Model.ChangePayload` | Wire DTOs (`__Internal_<hash>`) and operation kernels (`FragmentOperations`, `PatchOperations`, `ChangeSetOperations`) |
+| `Model.EditSession` (`Model.SparseEditSession` if `EditSession` collides) | `<Container>.DescriptorFactory` |
+| `Model.Observable` (`Model.SparseObservable` if `Observable` collides), `Model.ReadOnlyView` | `<Container>FragmentJsonConverter` |
+
+If a model declares a member named `Observable` or `EditSession`, the generator renames the nested companion type to `SparseObservable` or `SparseEditSession`. Member names `Fragment`, `Patch`, `ChangeSet`, `ChangePayload`, or `SparsePath` report diagnostic [SPF009](analyzer.md#spf009-member-conflicts-with-generated-api).
+

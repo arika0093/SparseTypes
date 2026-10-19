@@ -1,8 +1,8 @@
 # UI Framework Integration
 
-SparseTypes derives semantic changes by comparing a retained baseline with the current model. UI dirty flags and change notifications may drive binding, validation, or UI state, but they do not define the Patch itself.
+SparseTypes derives semantic changes by comparing a retained baseline with the current model. UI dirty flags and change notifications drive data binding, validation, and control state, while the session's `ChangeSet` compares the baseline snapshot against the live model values.
 
-This guide starts with the framework-neutral edit session lifecycle. Framework adapters come after: Blazor helpers bind an `EditContext` to the session model, and desktop frameworks bind the generated observable proxy. The session API is identical in both cases.
+This page explains how the framework-neutral `EditSession` integrates with UI frameworks: first the neutral observable and history model, then the `SparseTypes.Blazor` adapter, and finally desktop and mobile MVVM frameworks (WPF, WinForms, .NET MAUI, WinUI, and Avalonia). For procedural recipes on saving, acknowledging, reloading, forking, and opening child sessions, see [Work with an edit session](../how-to/edit-session.md). For generated type placement, notification contracts, and state query APIs, see [Edit session state and observers](../reference/edit-session-state.md).
 
 <!-- sample: ui-session-models -->
 ```csharp
@@ -29,38 +29,9 @@ public partial class UiOrderItem
 
 ## Framework-neutral edit sessions
 
-Reference-type models provide an edit session via `CreateEditSession()` without depending on any UI package. The session retains a baseline snapshot, tracks changes against the live model, and derives `ChangeSet` transitions on demand:
+Reference-type models create an edit session through `CreateEditSession()` without depending on any UI package. The session retains an isolated baseline snapshot (`Fragment.From`), holds a reference to the caller's live model instance, and computes `ChangeSet` transitions on demand.
 
-For callers that need an explicit type name, the session type is nested in the model: `Model.EditSession`. Prefer `var` and the `CreateEditSession()` extension; name the nested type only when a declaration requires it (see [Generated type placement](#generated-type-placement)). The session composes an implementation emitted into the consumer assembly, so callers do not need to name or depend on a generic runtime session type.
-
-<!-- illustrative: excerpt; continues the UiOrder flow in prose and does not compile as written -->
-```csharp
-var baseline = new UiOrder { Number = "ORD-1" };
-var current = new UiOrder { Number = "ORD-2" };
-var directChanges = baseline.CreateChangeSet(current);
-
-var session = baseline.CreateEditSession();
-var separateBaselineSession = baseline.CreateEditSession(current);
-
-session.Observable.Number = "ORD-2";
-var changes = session.CreateChangeSet();
-// changes.Number.Before == "ORD-1"; changes.Number.After == "ORD-2"
-
-session.AcceptChanges();
-// session.HasChanges == false
-```
-
-The single-argument overload `baseline.CreateEditSession()` captures that model as both the baseline source and the live instance to edit. The two-argument overload `baseline.CreateEditSession(current)` snapshots `baseline` separately and edits the `current` instance. Both overloads accept an optional `onChanged` callback raised after observable edits. You can also compare models directly without a session via `baseline.CreateChangeSet(current)`.
-
-The session is synchronous. It provides no async submit, transport, or conflict framework. The application sends the change set through its own transport.
-
-### Model ownership
-
-The caller owns the live model instance. The session keeps a private fragment snapshot as its baseline and a reference to the live model. It never replaces that instance: `RevertChanges`, `Reload`, and in-place apply write the merged result into the existing object, so bindings that hold the reference stay attached. The baseline snapshot is isolated from later mutations of the source model because it is captured through `Fragment.From`.
-
-### Edit through Observable, read through Current
-
-Bind controls to `session.Observable` and read display state from `session.Current`. The observable proxy edits the live model with notifications; the read-only view exposes the same live state without setters, so display code cannot change it by accident. `Current` is a live view over the same instance, not a snapshot: it shows reverted, reloaded, and accepted values immediately.
+Bind editable controls to `session.Observable` and read display state from `session.Current`. Assigning a property on `session.Observable` mutates the underlying model in place and raises `INotifyPropertyChanged` notifications. Reading `session.Current` exposes a read-only view over that same live model instance without setters, so display logic cannot mutate state accidentally.
 
 <!-- illustrative: excerpt; continues the UiOrder flow in prose and does not compile as written -->
 ```csharp
@@ -82,37 +53,69 @@ editSession.RevertChanges();
 // editSession.HasChanges == false
 ```
 
-### Change cache and raw access
+Because `RevertChanges()`, `Reload()`, and in-place apply write directly into the existing model instance rather than replacing the root object reference, UI bindings that hold a reference to the model or `session.Observable` stay connected.
 
-`HasChanges` and `CreateChangeSet()` always compare the retained baseline with the model's current state, so edit-then-restore is clean even if a UI control reported that a field was touched. While edits stay on the observable proxy, the session caches the `HasChanges` computation and only recomputes when something may have changed.
+### Change cache and notification boundaries
 
-Reading the live model through `ISparseEditSession<TModel>` disables that cache permanently, because a retained raw reference can change without observable notifications. Reads that expose raw mutable references through descriptors (arrays, unproxied objects, sets) invalidate the cache through the raw-access callback for the same reason, so a later in-place mutation is still observed. Primitive, string, proxy, and view reads stay cheap and do not invalidate. Framework helpers read the session model through trusted framework access, which keeps the cache intact: creating an `EditContext`, validating it, and resolving field paths do not by themselves disable cached `HasChanges` computation for observable-only edits. Edits made straight to `EditContext.Model` bypass observable notifications. Keep edits on the `Observable` proxy while the cache matters.
+`HasChanges`, `CreateChangeSet()`, and `CreatePatch()` compare the retained baseline against the live model's current state without advancing the baseline until you acknowledge a save with `AcceptChanges` or `TryReconcile`. Editing a field and restoring its original value leaves `HasChanges == false`, even if a UI control marks the input as touched. While all mutations go through `session.Observable`, the session caches `HasChanges` and recomputes only after an observable write. Exposing raw mutable references (such as reading the raw model via `ISparseEditSession<TModel>` or reading unproxied mutable objects through descriptors) disables that cache so subsequent in-place writes are still detected.
 
-When the live model holds duplicate keyed keys it cannot be diffed, so `HasChanges` reports `true` rather than throwing.
+Use `session.BatchEdit(() => { ... })` when a single user action modifies several properties. The outermost batch coalesces `PropertyChanged`, `TransitionObserved`, and the optional `onChanged` callback into a single notification at the end of the batch. `BatchEdit` is a notification boundary only; it does not roll back writes if the callback throws.
 
-### Notifications
+### Session-owned Undo and Redo history
 
-The session implements `INotifyPropertyChanged`: `HasChanges` is raised after accept operations and observable-proxy edits. Consumers re-read `HasChanges` instead of the session recomputing it for every model notification. `TransitionObserved` carries the committed transition for each observable edit. The optional `onChanged` callback runs after observable edits for save-button state and similar UI flags.
+Undo and Redo history is part of the framework-neutral session and works in any UI framework or console app. The session retains no history entries until you call `EnableHistory()`, and `session.History` remains `null` before `EnableHistory()` and after `DisableHistory()`:
 
-Notifications are synchronous and do not marshal to a UI thread. Collection views likewise raise `INotifyCollectionChanged` and `INotifyPropertyChanged` (`Count` and `Item[]`) on the editing thread. Callers are responsible for thread affinity.
+<!-- sample: ui-history -->
+```csharp
+var historyOrder = new UiOrder { Number = "ORD-1" };
+var historySession = historyOrder.CreateEditSession();
 
-### BatchEdit groups notifications, never rolls back
+// historySession.History == null
+var history = historySession.EnableHistory(new EditHistoryOptions { MaxEntries = 20 });
 
-Use `session.BatchEdit(() => { ... })` when one user action needs several observable mutations. The outermost batch raises one `TransitionObserved` event for the net transition; nested batches join it. `PropertyChanged` and the optional `onChanged` callback are also coalesced. The batch still publishes when its action throws. A batch does not roll back mutations if its action throws: batching coalesces notifications only. To discard edits, revert explicitly (see [Discard pending edits](#discard-pending-edits)).
+historySession.Observable.Number = "ORD-2";
+// history.CanUndo == true
 
-### Edit one collection through a path-addressed facade
+history.Undo();
+// historyOrder.Number == "ORD-1"
 
-`session.EditCollection<TElement>(Model.SparsePath.Items)` opens an editing facade for one collection member, and `session.EditCollection<TElement, TKey>` adds keyed operations where the element declares a stable key. Each facade call runs inside one batch, so one user action raises one transition notification. The facade resolves the live collection from the session descriptors on every operation. A collection that was replaced or assigned after the facade was created is picked up on the next call; there is no snapshot to refresh and nothing to re-create.
+history.Redo();
+// historyOrder.Number == "ORD-2"
 
-Reads return underlying models. `TryGetAt` and the keyed lookups hand back the element model, never an observable proxy. Bind controls to the session observable view; use the facade for the mutation and the typed ChangeSet for what changed.
+historySession.DisableHistory();
+// historySession.History == null
+```
+<!-- /sample -->
 
-Failures report a `SparseCollectionEditError` value: unknown member, member without sequence shape, null collection, immutable backing, out-of-range index, duplicate key, unknown key, unassigned sentinel used as identity, unknown temporary identity, or an item of the wrong element type. Rejected edits change nothing and raise no notification. Static misuse throws instead: a path that does not address one member, a keyed operation on an unkeyed collection, or a key type that does not match the declared key type.
+History boundaries are separate from notification boundaries. Use `history.Group(() => { ... })` or `history.BeginGroup()` to bundle multiple observable edits (such as dragging a slider or filling an address block) into a single Undo step, whereas `BatchEdit` only coalesces change notifications. Operations that advance or reset the session baseline (`AcceptChanges()`, `RevertChanges()`, `Reload()`, and `TryReconcile()`) automatically clear the Undo and Redo stacks when they succeed. See [Edit session state and observers](../reference/edit-session-state.md#edit-history-contract) for the full `History` member table.
 
-Keyed operations look the index up on every call, so rows keep their identity across reorder. Assigned keys compare by value. An unassigned sentinel never resolves, even when rows carry it: lookups report it as unassigned instead of returning the first sentinel row. Pending rows with a temporary Guid resolve through the temporary-identity operations. UI row keys come from `TryGetKeyAt` per position plus `IsUnassignedKey`; the pending row model itself carries its temporary Guid.
+### Navigating typed paths and editing collections
 
-Omitted on purpose: throwing variants of the Try operations (callers throw on the reported error where a throw fits), move-to-key helpers (compose `IndexOfKey` with `TryMove`), whole-collection clear and replace (no descriptor route exists; replace the member through the observable), dictionary and set members, and collections nested under list items (root members only, so resolution never depends on a positional index). Change-state reads stay out as well; the typed ChangeSet projections report what changed.
+Every generated edit session exposes `session.Paths`, which provides the same compile-time path builder as `Model.SparsePath`:
 
-A consumer edits through the typed path and reads state back from the typed change set:
+<!-- sample: ui-session-paths -->
+```csharp
+var orderModel = new UiOrder { Number = "ORD-1" };
+var orderSession = orderModel.CreateEditSession();
+
+SparsePath<UiOrder, string> numberPath = orderSession.Paths.Number;
+// numberPath.ToString() == "Number"
+
+var widgetModel = new UiWidget
+{
+    Title = "w",
+    Items = [new UiWidgetItem { Id = "a", Name = "first" }],
+};
+var widgetSession = widgetModel.CreateEditSession();
+SparsePath<UiWidget, string> itemNamePath = widgetSession.Paths.Items.Key("a").Name;
+// itemNamePath.ToString() == "Items[\"a\"].Name"
+
+var itemState = widgetSession.FieldState(widgetSession.Paths.Items.Key("a").Name);
+// itemState.HasChanges == false
+```
+<!-- /sample -->
+
+To add, move, replace, or remove items in a list member with automatic batching and key lookup, open a collection facade with `session.EditCollection<TElement, TKey>(path)`:
 
 <!-- sample: ui-collection-consumer -->
 ```csharp
@@ -138,380 +141,20 @@ shelf.TryRemoveByKey("b", out _);
 ```
 <!-- /sample -->
 
-The positional operations (`TryAdd`, `TryInsert`, `TryReplace`, `TryRemoveAt`, `TryMove`) forward to the same-named `IArrayDescriptor` operations with batching, live resolution, and deterministic errors included. Handwritten code that resolves the member descriptor, checks the index, and wraps the call in `BatchEdit` repeats the facade and should call it instead. The keyed operations (`TryGetByKey`, `TryRemoveByKey`, `TryReplaceByKey`, `TryMoveByKey`, `TryGetKeyAt`, `IndexOfKey`, `ContainsKey`, and the temporary-identity operations) have no single-call Descriptor equivalent: the descriptor mutates by index and only looks keys up, so hand-rolled lookup-then-mutate sequences belong on the facade, which pins identity per operation. Descriptors remain the route for member metadata and inspection, nested collection paths, dictionary and set members, and flattened change enumeration.
+Each facade operation resolves the live collection through the session descriptors, runs inside a single `BatchEdit`, and returns a `SparseCollectionEditError` on failure without mutating the collection or raising notifications.
 
-Blazor's `SparseCollection<TModel, TElement>` builds keyed rows over a
-single-member collection path and routes row removal and movement through the
-session editor. Each row carries a stable UI key, its typed path, and a
-point-in-time item state; removed baseline values are available through
-`RemovedItems`. Use `SparseField` with each row path for editing its members.
-The component is for session-backed UI; non-Blazor consumers can use
-`EditCollection` directly. Case 5 and Case 6 of the
-[playground](https://arika0093.github.io/SparseTypes/) show collection editing
-inside a save flow and nested child drafts.
+### Inspection and cross-framework validation
 
-The Case 3 roster editor keeps direct list mutation because it edits the raw model with a manual change callback and owns no session. The facade needs session descriptors plus the batch runner, so adopting it there would mean adopting a session first. That migration stays out of scope; Case 3 remains the session-less baseline.
+For generic UI builders, logs, and diagnostics, the session provides two reflection-free inspection seams:
 
-### Advanced inspection: Descriptors and flattened changes
+* `session.Descriptors` exposes per-member metadata, live get/set accessors, and source property attributes (see [Descriptors reference](../reference/descriptors.md)).
+* `ChangeSet.EnumerateChanges()` flattens a transition into `ChangeInfo` rows (`SparsePath`, before/after values, and `ChangeKind`), and `session.EnumerateChangedPaths()` lists modified paths.
 
-Ordinary editing needs only `Observable`, `Current`, and `CreateChangeSet()`. Two further seams exist for generic UI and diagnostics code:
+For cross-framework validation outside Blazor, `SparseValidationStore<TModel>` implements `INotifyDataErrorInfo` and records errors by typed `SparsePath` and origin, allowing server errors, rebase conflicts (`AddConflicts`), and local validation rules to coexist independently.
 
-* `session.Descriptors` exposes per-member metadata (path, type, nullability, editability), live get/set accessors, and the property attributes from the source model. It backs generic form builders and validation; handwritten per-member code should use the typed surface instead.
-* `ChangeSet.EnumerateChanges()` flattens a transition into `ChangeInfo` rows (`SparsePath` path, presence-aware before/after, `ChangeKind`), and `EnumerateChangedPaths()` lists the changed member paths. `ChangeSet.Find(path)` and `session.Descriptors.Find(path)` locate single rows and descriptors by exact path. They feed logs, lists, and tests; ordinary editing reads the typed member transitions instead (see [Observe typed member transitions](fragments-and-patches.md#observe-typed-member-transitions)).
+## Blazor integration
 
-Limitations: descriptors track the live model, so values read through them change as the model changes. Flattened enumeration describes one computed transition; it does not update when the model is edited further. See the [Descriptors reference](../reference/descriptors.md) for the full contract.
-
-For generic cross-framework validation, `SparseValidationStore<TModel>`
-implements `INotifyDataErrorInfo` and records errors against typed paths.
-Errors are grouped by origin, so a server response can replace its own messages
-without clearing local validation or rebase-conflict errors. `AddConflicts`
-projects structured conflicts into the store but does not resolve them. This
-store is separate from Blazor's `ValidationMessageStore`; use the latter when
-the errors must participate in an `EditContext`.
-
-Writable reference-type models also generate `Fragment.WriteTo(model)` and `Patch.ApplyInPlace(model)`. They update the existing model object; supported `List<T>` and `Dictionary<TKey,TValue>` properties retain their collection instance and have their contents replaced. Nested model values may be replaced. A model with init-only or constructor-only members keeps its normal edit-session APIs but cannot use in-place apply (see [SPF026](../reference/analyzer.md#spf026-in-place-submit-is-unavailable)).
-
-For bindings that need `INotifyPropertyChanged`, `Optional<T>.ToObservable()` maps `Optional<Model?>` to the generated, model-specific observable proxy while preserving missing, present-null, and present-value states. The proxy type is nested in the model (see [Generated type placement](#generated-type-placement)), so keep the call inferred with `var`:
-
-<!-- illustrative: excerpt; uses a session from the surrounding prose and does not compile as written -->
-```csharp
-var proxy = Optional<UiOrder?>.Present(session.GetModelForFrameworkAccess()).ToObservable();
-```
-
-The generated extension container is an implementation detail with a deterministic hash-based name; call the extensions rather than naming the container directly. Framework-specific packages can adapt the neutral session without adding framework references to its generated code. The same neutral `CreateEditSession()` extension is used whether or not a framework package is referenced.
-
-## Choosing how to acknowledge server state
-
-A save ends in exactly one of these. Pick by what the server returned.
-
-| Server result | Session call | Live model | Baseline |
-| --- | --- | --- | --- |
-| Persisted, editing stops and authoritative state is returned | New session from the persisted state | Replaced | Persisted state |
-| Persisted unchanged; editing continued during the request | `AcceptChanges(submitted)` | Untouched; later edits stay pending | Advanced by the submitted transition |
-| Persisted with assigned keys; keep editing and retain local values | `TryReconcile(submitted, persisted)` | Assigned keys written in place; later edits kept | Persisted state |
-| Persisted with normalized values; keep editing and adopt server values | `TryReconcileAndApply(submitted, persisted, out conflicts)` | Server values adopted; later edits rebased | Persisted state |
-| Persisted, current state is authoritative | `AcceptChanges()` | Untouched | Current state |
-| Fresh state arrived, keep editing | `Reload(serverState)` | Merged in place | Server state |
-| Fresh state arrived, resolve manually first | Manual `TryApplyTo` merge, then a new session | Caller owned | Caller owned |
-| Discard edits | `RevertChanges` / `TryRevertChanges` | Baseline restored | Unchanged |
-| Remote transition for a bound model | `TryApplyInPlace` / `ApplyInPlace` | Updated in place | Unchanged |
-
-### Recommended save workflow
-
-When editing is disabled during submission, the simplest workflow is:
-
-1. Disable UI editing while the save operation is in flight.
-2. Send the change payload (`session.CreateChangeSet().ToPayload()`).
-3. Receive the authoritative persisted state returned by the server (including any database-assigned IDs, normalization, or timestamps).
-4. Create a fresh edit session from the persisted state, and recreate UI-bound objects such as Blazor's `EditContext`:
-
-<!-- illustrative: excerpt; uses names from the surrounding workflow and does not compile as written -->
-```csharp
-// 1. Disable editing in UI
-isSaving = true;
-try
-{
-    var submitted = session.CreateChangeSet();
-    var response = await SendChangesAsync(submitted.ToPayload());
-    if (response.IsSuccess)
-    {
-        // 3. Receive authoritative server state
-        var persisted = response.PersistedModel;
-
-        // 4. Create fresh session from persisted state
-        session = persisted.CreateEditSession();
-        editContext = session.CreateEditContext();
-    }
-}
-finally
-{
-    isSaving = false;
-}
-```
-
-Starting a fresh session absorbs server-assigned keys, modified timestamps,
-and normalized values. When editing remains enabled, select an acknowledgement
-operation from the table instead. `TryReconcile` correlates temporary keys but
-does not replace other live property values; `TryReconcileAndApply` adopts the
-authoritative values and rebases edits made after submission:
-
-<!-- illustrative: excerpt; uses names from the surrounding workflow and does not compile as written -->
-```csharp
-var submitted = session.CreateChangeSet();
-var persisted = await api.UpdateAsync(submitted.ToPayload());
-if (!session.TryReconcile(submitted, persisted, out var reconcileError))
-{
-    // Surface reconcileError; the session is unchanged.
-}
-```
-
-When the server also normalizes values and the user kept editing, adopt those
-authoritative values while preserving later edits with
-`TryReconcileAndApply(submitted, persisted, out conflicts)`. A false result
-reports conflicts or a correlation failure and leaves the retained baseline
-unchanged. The final in-place writes still use ordinary model setters, so
-arbitrary setter exceptions are not transactional.
-
-See [Saving pending additions with Reconcile](keyed-collections.md#saving-pending-additions-with-reconcile) for temporary-key correlation and server mapping, and [Work with an edit session](../how-to/edit-session.md#submit-a-snapshot) for the full acknowledgement decision table.
-
-For forms that keep editing enabled during submission when the server makes no schema changes, key assignments, or normalization, `session.AcceptChanges(submitted)` advances the retained baseline without touching the live model:
-
-<!-- sample: ui-accept-flow -->
-```csharp
-var orderModel = new UiOrder { Number = "a" };
-var orderSession = orderModel.CreateEditSession();
-
-orderSession.Observable.Number = "b";
-var submitted = orderSession.CreateChangeSet();
-
-// The server persisted the submitted transition unchanged,
-// and the user kept typing while the save was in flight.
-orderSession.Observable.Number = "c";
-orderSession.AcceptChanges(submitted);
-// orderSession.HasChanges == true
-// orderSession.CreateChangeSet() carries only Number "b" -> "c"
-
-// When the server returns the authoritative state instead, start over from it.
-var persisted = new UiOrder { Number = "b" };
-var freshSession = persisted.CreateEditSession();
-// freshSession.HasChanges == false
-```
-<!-- /sample -->
-
-`AcceptChanges()` captures the current model as the next baseline. `AcceptChanges(submitted)` advances the retained baseline by that transition without touching the live model. The transition must match the retained baseline on every changed path; a stale or foreign change set is rejected with `InvalidOperationException` and the baseline stays unchanged. Send exceptions leave the baseline unchanged because acknowledgement never ran. The live model must be diffable when `AcceptChanges()` runs: unassigned keyed sentinels and duplicate stable keys fail fast instead of retaining an unusable baseline.
-
-`AcceptChanges` rejects transitions that would retain unassigned keyed sentinels (`[SparseKey(Unassigned = ...)]` without a temporary key), because future diffs cannot distinguish newly added rows sharing the same sentinel. In contrast, added elements with a valid, unique `[SparseTemporaryKey]` Guid can be acknowledged with `AcceptChanges` to advance the local temporary baseline. However, `AcceptChanges` does not assign persistent database keys; to adopt authoritative server-assigned keys while preserving in-flight edits, use `TryReconcile(submitted, persisted)` instead (see [Keyed forms and database-assigned IDs](#keyed-forms-and-database-assigned-ids)).
-
-### Reload with fresh server state
-
-`Reload(serverState)` rebases the pending local edits onto authoritative server state in one call. It returns a `RebaseResult<ChangeSet>`: the rebased transition plus structured conflicts. On success it writes the merged result into the existing live model instance and retains the server state as the new baseline, so pending edits survive the reload as changes against the new baseline.
-
-<!-- sample: ui-reload -->
-```csharp
-var reloadModel = new UiOrder { Number = "base" };
-var reloadSession = reloadModel.CreateEditSession();
-reloadSession.Observable.Number = "local";
-var serverState = new UiOrder
-{
-    Number = "base",
-    Items = [new UiOrderItem { Id = "line-1", Name = "First item" }],
-};
-
-var reload = reloadSession.Reload(serverState);
-// reload.HasConflicts == false
-// reloadSession.Current.Number == "local"
-// reloadSession.Current.Items.Count == 1
-// reloadSession.HasChanges == true
-```
-<!-- /sample -->
-
-Conflicts leave both the live model and the retained baseline untouched. Keep the current session and surface the conflicts instead of recreating anything:
-
-<!-- sample: ui-reload-conflict -->
-```csharp
-var conflictModel = new UiOrder { Number = "base" };
-var conflictSession = conflictModel.CreateEditSession();
-conflictSession.Observable.Number = "local";
-var conflictingServer = new UiOrder { Number = "server" };
-
-var conflicted = conflictSession.Reload(conflictingServer);
-// conflicted.HasConflicts == true
-// conflictSession.Current.Number == "local"
-// conflictSession.HasChanges == true
-```
-<!-- /sample -->
-
-A conflict-free reload whose merged result differs from the live model only in members that cannot be written in place (init-only or getter-only) reports those as conflicts rather than silently dropping them. Passing a null server state throws `ArgumentNullException`.
-
-When a form needs explicit control over the merge, for example to show a side-by-side resolution UI before committing, use the manual pattern: extract `session.CreateChangeSet()`, `TryApplyTo` it onto the new server state, and on success recreate the session with the two-argument overload so the new server state becomes the baseline and the merged model becomes the active instance. On conflict, keep the current session and surface `pending.RebaseOnto(newServerState).Conflicts`. `Reload` above performs these steps atomically; prefer it unless the UI must intervene mid-merge.
-
-### Branch speculative edits
-
-To preview edits without touching the current session, branch it with `Fork()` and reconcile the branch with `TryMergeFrom()`. The fork is the same session type with a private copy of the current model, and its baseline is the current state at fork time. Either side keeps editing independently. `TryMergeFrom()` rebases the fork changes onto the receiver's current state and returns a new session that keeps the receiver's baseline, so its change set spans both sides. The caller adopts the result explicitly; the call itself modifies neither input session.
-
-<!-- sample: ui-fork-merge -->
-```csharp
-var widget = new UiWidget
-{
-    Title = "a",
-    Child = new UiWidgetChild { Name = "m" },
-};
-var widgetSession = widget.CreateEditSession();
-var draft = widgetSession.Fork();
-
-draft.Observable.Title = "b";
-widgetSession.Observable.Child!.Name = "n";
-
-var didMerge = widgetSession.TryMergeFrom(
-    draft,
-    out var mergedSession,
-    out var mergeConflicts
-);
-// didMerge == true
-// mergeConflicts is null
-// mergedSession!.Current.Title == "b"
-// mergedSession!.Current.Child!.Name == "n"
-if (didMerge)
-{
-    widgetSession = mergedSession!;
-}
-// widgetSession.CreateChangeSet() carries Title "a" -> "b" and Child.Name "m" -> "n"
-```
-<!-- /sample -->
-
-When both sides edit the same member, the merge returns `false` with structured `SparseConflict` results and leaves both sessions unchanged:
-
-<!-- sample: ui-fork-conflict -->
-```csharp
-var clashing = new UiWidget { Title = "a" };
-var clashingSession = clashing.CreateEditSession();
-var clashingDraft = clashingSession.Fork();
-
-clashingSession.Observable.Title = "local";
-clashingDraft.Observable.Title = "remote";
-
-var didClashMerge = clashingSession.TryMergeFrom(
-    clashingDraft,
-    out var clashingMerged,
-    out var clashConflicts
-);
-// didClashMerge == false
-// clashingMerged is null
-// clashConflicts!.Single().PathText == "Title"
-// clashingSession.Current.Title == "local"
-// clashingDraft.Current.Title == "remote"
-```
-<!-- /sample -->
-
-Conflicts carry the same member paths as change-set rebase, so per-field resolution follows the [rebase](rebase.md) flow. The fork shares its origin session's lineage: merging an unrelated session throws `InvalidOperationException`, as does merging a session into itself. Branching differs from the neighboring calls. `BatchEdit` groups notifications for edits already in the session. `AcceptChanges` acknowledges a saved transition. `Reload` rebases pending edits onto authoritative server state in place. Branching stays in process: it assigns no temporary keys and performs no transport.
-
-### Edit child models in independent sessions
-
-Use `OpenChildSession` when a nested form needs its own paths, undo/redo history, or nested editing. The returned child handle exposes the generated child-model edit session through `Session`. Accepting merges the child edits into its parent and resets the child's history baseline; a conflict leaves the edits pending. Child sessions can open further child sessions with paths relative to their own model.
-
-For Blazor section editors, `SparseSessionScope` owns child contexts by typed
-path. `SparseChildEdit` and `SparseChildEditDefault` open or reuse a child
-context within that scope. The default `Draft` mode keeps edits separate until
-the child is accepted. `PassThrough` mode accepts each child edit into its
-parent and reports the parent state to the child fields. A scope retains child
-drafts when a target disappears; recover the target, explicitly discard the
-draft, or dispose the scope rather than assuming the draft was dropped.
-
-`HasChanges` includes pending child drafts. Use `HasOwnChanges` to inspect only
-the parent session, and `HasPendingChildSessions` to detect drafts that have
-not been accepted. `PreviewChangeSet()` excludes child drafts;
-`CreateChangeSet()` includes their child-aware projection without accepting
-them. Call `TryAcceptChildSessions(out conflicts)` when the parent model itself
-must absorb every child draft. A missing target or typed conflict leaves the
-drafts pending. The [EditSession explanation](edit-sessions.md#child-sessions)
-describes these ownership boundaries; [Case 6](https://arika0093.github.io/SparseTypes/case-6)
-shows the section-draft workflow.
-
-<!-- sample: ui-child-session -->
-```csharp
-var child = new UiWidgetChild { Name = "before" };
-var model = new UiWidget { Title = "before", Child = child };
-var session = model.CreateEditSession();
-using var childSession = session.OpenChildSession(UiWidget.SparsePath.Child);
-
-childSession.Session.Observable!.Name = "draft";
-session.Observable.Title = "parent edit";
-
-var accepted = childSession.TryAcceptChanges(out var conflicts);
-// accepted == true
-// conflicts is null
-// model.Title == "parent edit"
-// model.Child.Name == "draft"
-// ReferenceEquals(model.Child, child) == true
-```
-<!-- /sample -->
-
-`TryAcceptChanges` rebases the child session against the parent's current state. Disjoint parent edits are kept; overlapping edits return `false` with conflicts and leave the child session open. `AcceptChanges()` throws `InvalidOperationException` when the target is missing or the edits conflict. A keyed or temporary-key path continues to address its item after reordering. If the target no longer exists, acceptance fails with null conflicts and the draft stays open with its edits: restore the target and retry, call `DiscardChanges()` to restore its baseline while keeping it connected, or dispose the child handle to disconnect it. `GetChildSessionStatus` reports this as `TargetMissing`. Accepting a parent merges every pending child through one validated candidate commit; typed conflicts and missing targets fail without mutating any session, and only an explicit discard, accept, or dispose abandons a draft. `CreateChangeSet` and `TryCreateChangeSet` build the same child-aware projection as an immutable preview without accepting; merge first with `TryAcceptChildSessions` when the preview must reflect acknowledged state.
-
-### Navigate typed paths from the session
-
-Every generated edit session, including child sessions, exposes the same generated navigation as `Model.SparsePath` through `session.Paths`, so ordinary C#, MVVM, desktop UI, and Blazor code can write `session.Paths.Customer.Name` or `session.Paths.Items.Key(id).Title` without passing a separate root builder. The concrete builder type keeps compile-time root, value, and key typing; wrong types fail compilation. Generic consumers receive `ISparseEditSessionWithPaths<TModel, TPaths>` and read `Paths` without reflection, while `ISparseEditSession<TModel>` stays the minimal fallback. Reading `Paths` never reads the mutable model, invalidates the change cache, or subscribes to edit notifications.
-
-<!-- sample: ui-session-paths -->
-```csharp
-var orderModel = new UiOrder { Number = "ORD-1" };
-var orderSession = orderModel.CreateEditSession();
-
-SparsePath<UiOrder, string> numberPath = orderSession.Paths.Number;
-// numberPath.ToString() == "Number"
-
-var widgetModel = new UiWidget
-{
-    Title = "w",
-    Items = [new UiWidgetItem { Id = "a", Name = "first" }],
-};
-var widgetSession = widgetModel.CreateEditSession();
-SparsePath<UiWidget, string> itemNamePath = widgetSession.Paths.Items.Key("a").Name;
-// itemNamePath.ToString() == "Items[\"a\"].Name"
-
-var itemState = widgetSession.FieldState(widgetSession.Paths.Items.Key("a").Name);
-// itemState.HasChanges == false
-```
-<!-- /sample -->
-
-### Discard pending edits
-
-`RevertChanges()` writes the retained baseline back into the live model in place. It discards unsaved edits; it does not contact a server and does not advance the baseline. `Current` always reflects the live model, so it shows the reverted values immediately.
-
-<!-- sample: ui-revert -->
-```csharp
-var revertModel = new UiOrder { Number = "a" };
-var revertSession = revertModel.CreateEditSession();
-revertSession.Observable.Number = "b";
-
-var reverted = revertSession.TryRevertChanges(out var revertConflicts);
-// reverted == true
-// revertConflicts is null
-// revertModel.Number == "a"
-// revertSession.HasChanges == false
-```
-<!-- /sample -->
-
-`bool TryRevertChanges(out conflicts)` reports whether the revert completed: `true` with null conflicts when the model was restored, `false` with structured conflicts when the pending changes cannot be reverted in place. A `false` result leaves both the live model and the retained baseline untouched. Sessions whose baseline differs in members that cannot be written in place (init-only or getter-only) report those operations as conflicts; replace the session instead of expecting an in-place restore. When the live model holds temporarily invalid keyed state such as duplicate keys or unassigned sentinels, the revert restores the retained valid baseline directly instead of deriving a keyed diff from the invalid state. `RevertChanges()` is the throwing form: it throws `InvalidOperationException` where `TryRevertChanges` would return `false`.
-
-### Apply a remote transition to a bound model
-
-When the destination object is already bound to a UI, prefer the conflict-checked `session.TryApplyInPlace(changes, out conflicts)`. It validates the transition before-state against the live model and only then writes the result into the same instance, so an unrelated concurrent edit is preserved while a conflicting edit surfaces as a structured conflict. `ApplyInPlace(changes)` is the throwing form. When the change includes an init-only or constructor-only member, the in-place write cannot complete: `TryApplyInPlace` returns `false` with an in-place write conflict, and `ApplyInPlace` throws `InvalidOperationException`.
-
-The explicit blind form `changes.ToPatch().ApplyInPlace(model)` skips the before-state check. `ToPatch()` discards the before-state, so the result can no longer rebase or report conflicts. Use it only when the caller already owns conflict handling (see [ChangeSet rebase](rebase.md#in-place-application-for-bound-models)).
-
-Neither in-place form is a transaction. Conflicts are detected atomically and leave the model untouched, but once validation passes the write runs ordinary model setters and collection operations, which can throw after partially mutating the model. The session then resynchronizes its snapshots and notifications so later reads observe the partial state rather than stale state.
-
-### Keyed forms and database-assigned IDs
-
-When added rows lack temporary keys and carry only an unassigned sentinel key such as `0`, that transition cannot simply be accepted as the new baseline: `AcceptChanges` rejects transitions that would retain unassigned sentinels without a temporary key, because future diffs could not tell the new rows apart. In this sentinel-only flow, send the change set, let the server insert the rows and assign IDs, then replace the form state with the authoritative persisted state and start a fresh session. See [Unassigned keys](keyed-collections.md#unassigned-keys) for the full lifecycle.
-
-When added rows carry `[SparseTemporaryKey]` Guids, each pending addition possesses stable identity through its temporary Guid. Valid additions with unique temporary Guids can be acknowledged through `AcceptChanges` to advance the local temporary baseline. However, `AcceptChanges` does not correlate temporary Guids with persistent server keys. To write authoritative server-assigned keys into the live model in place, adopt the persisted state as the new baseline, and preserve edits made while the save was in flight, call `TryReconcile(submitted, persisted)`. Matching by position or value is never attempted. See [Temporary identity](keyed-collections.md#temporary-identity-for-pending-additions) and [Saving pending additions with Reconcile](keyed-collections.md#saving-pending-additions-with-reconcile).
-
-## Generated type placement
-
-`Model.Fragment`, `Model.Patch`, `Model.ChangeSet`, `Model.ChangePayload`, `Model.EditSession`, `Model.Observable` (`Model.SparseObservable` on collision), and `Model.ReadOnlyView` are nested in the annotated model, and the `CreateEditSession()`, `ToObservable()`, and `CreateChangeSet()` entry points are unchanged. Operation, transport, and builder machinery lives in a stable per-model container in `SparseTypes.Generated`:
-
-| Nested in the model | Per-model container (`<Container>`) |
-| --- | --- |
-| `Model.Fragment` (plus `Model.SparsePath` entry point) | `<Container>.FragmentBuilder`, `<Container>.SparsePaths<TRoot>` builders |
-| `Model.Patch`, `Model.ChangeSet`, `Model.ChangePayload` | Payload DTOs as `global::SparseTypes.Generated.__Internal_<hash>` |
-| `Model.EditSession` (`Model.SparseEditSession` on collision) | `<Container>.DescriptorFactory` (internal) |
-| `Model.Observable`, `Model.ReadOnlyView` | Fragment JSON converter body as `<Container>FragmentJsonConverter` (`Model.Fragment.FragmentJsonConverter` stays as a private shell) |
-| | Fragment/Patch/ChangeSet operation bodies as `<Container>FragmentOperations`, `<Container>.PatchOperations`, `<Container>.ChangeSetOperations` (internal, `file`-scoped when the consumer language allows it) |
-
-`<Container>` is the sanitized fully qualified model identity plus a stable hash, so same-short-name models in different namespaces get distinct containers. Each model is emitted into one file; only compilation-wide helpers keep separate `Generated.*` files (`Generated.CloneKernels.g.cs`, `Generated.ReadOnlyAdapters.g.cs`, `Generated.RemovalIndex.g.cs`, `Generated.EditSessionCore.g.cs`). The playground names a session directly:
-
-<!-- illustrative: playground-specific alias; resolves only inside the playground assembly -->
-```csharp
-using SettingsSession = global::SparseTypes.Playground.Models.PlaygroundSettings.EditSession;
-```
-
-There are no backwards-compatibility aliases: update explicit type references, or drop them in favor of `var` and the extension entry points. A model member named `Observable` or `EditSession` pushes the generated type behind a `Sparse` prefix instead of colliding; members named `ChangeSet` or `ChangePayload` are reported as SPF009 instead of failing with a raw compiler error (see [SPF009](../reference/analyzer.md#spf009-member-conflicts-with-generated-api)). A nested type named `EditSession` still collides with the generated session and fails compilation.
-
-## Blazor
-
-The `SparseTypes.Blazor` package (`net8.0` / `net10.0`) adds Blazor helpers for the framework-neutral edit session. The session retains a baseline and derives semantic changes by comparing it with the current model:
+The `SparseTypes.Blazor` package (`net8.0` and `net10.0`) connects the framework-neutral edit session to Blazor's `EditContext`, `EditForm`, and `ValidationMessageStore`:
 
 <!-- sample: ui-session -->
 ```csharp
@@ -529,52 +172,7 @@ uiSession.AcceptChanges();
 ```
 <!-- /sample -->
 
-Undo and redo use the session-owned history. The session retains nothing
-until `EnableHistory` runs; `History` stays null before that call and after
-`DisableHistory`:
-
-<!-- sample: ui-history -->
-```csharp
-var historyOrder = new UiOrder { Number = "ORD-1" };
-var historySession = historyOrder.CreateEditSession();
-
-// historySession.History == null
-var history = historySession.EnableHistory(new EditHistoryOptions { MaxEntries = 20 });
-
-historySession.Observable.Number = "ORD-2";
-// history.CanUndo == true
-
-history.Undo();
-// historyOrder.Number == "ORD-1"
-
-history.Redo();
-// historyOrder.Number == "ORD-2"
-
-historySession.DisableHistory();
-// historySession.History == null
-```
-<!-- /sample -->
-
-### Edit history lifecycle and grouping
-
-`EnableHistory` turns on session-owned undo/redo. Without it, the session retains no history entries. `DisableHistory` discards retained entries and releases the history manager.
-
-| Member | Purpose |
-| --- | --- |
-| `CanUndo` / `CanRedo` | Reports whether an entry exists on the respective stack |
-| `UndoCount` / `RedoCount` | Current entry counts |
-| `Undo()` / `Redo()` | Replays the transition, throwing `InvalidOperationException` on an empty stack or conflict |
-| `TryUndo(out conflicts)` / `TryRedo(out conflicts)` | Attempts replay, returning `false` with structured conflicts on conflict |
-| `BeginGroup()` / `Group(Action)` | Bundles multiple edits into a single undo/redo entry |
-| `Clear()` | Clears both undo and redo stacks |
-
-Grouping distinguishes history boundaries from notification boundaries: `BeginGroup()` or `Group()` collapses successive field edits (such as continuous slider dragging or multi-field operations) into one undo step, whereas `BatchEdit` only groups change notifications. Regular property assignments are not coalesced automatically.
-
-`EditHistoryOptions.MaxEntries` defaults to 50 (minimum 1). When the count exceeds `MaxEntries`, the oldest undo entry is evicted. `MaxEntries` bounds the number of transitions, not heap byte size.
-
-Successful baseline mutations—`AcceptChanges()`, `RevertChanges()`, `Reload()`, and `TryReconcile()`—automatically clear the undo and redo stacks because the baseline advances or resets. If an operation fails (for instance, `Reload` or `TryReconcile` encounters unresolved conflicts), the history stacks remain untouched.
-
-Create an `EditContext` with the Blazor extensions and pass it to the form:
+Call `uiSession.CreateEditContext()` to create an `EditContext` whose `Model` is the original `UiOrder` instance:
 
 <!-- illustrative: excerpt; continues the ui-session flow in prose and does not compile as written -->
 ```csharp
@@ -583,127 +181,47 @@ var editContext = uiSession.CreateEditContext();
 uiSession.AcceptChanges(editContext);
 ```
 
-Bind the created `EditContext` to an ordinary `EditForm`:
-
 ```razor
 <EditForm EditContext="@editContext">...</EditForm>
 ```
 
-`CreateEditContext()` binds the original editable model `T` to the `EditContext`. Do not use the generated observable proxy (the model-nested `Observable` type) as `EditContext.Model`. Blazor field tracking and validation run on `EditContext` and `FieldIdentifier` and model metadata, so `DataAnnotations` keep applying to `T`, while the semantic patch still comes from baseline and current `T`.
+`CreateEditContext()` binds the underlying model `T` rather than `session.Observable`. This keeps `DataAnnotations` validators and `FieldIdentifier` metadata working against `T`, while input writes go through `session.Observable` (or `session.Bind(...)`) so the session tracks changes and raises notifications.
 
-### Submit, conflict display, and refresh
-
-The completed form flow lives in [Blazor edit form](../how-to/blazor-edit-form.md):
-input bound through the `Observable` adapter with `EditContext` field
-tracking, a submit that sends exactly one change-set payload, a fresh
-session from the persisted row on success only, structured conflicts kept as
-field errors with an explicit refresh action, and transport retry without
-data loss. The short stays here: validation runs through the ordinary
-`EditContext` pipeline, submission sends the session change set through the
-application transport, and conflicts return to the form as validation
-messages addressed by member path.
-
-Blazor extension methods:
+### Blazor extension methods
 
 | Member | Purpose |
 | --- | --- |
-| `session.CreateEditContext()` | Creates a Blazor `EditContext` bound to the session model |
-| `session.AcceptChanges(editContext)` | Calls the framework-neutral `AcceptChanges()` and clears the supplied context's modified flags |
-| `session.AcceptChanges(editContext, changes)` | Advances the baseline by the submitted change set; clears the context only when the session is clean, so later edits stay marked modified |
-| `session.CreateValidationStore(editContext)` | Creates a `ValidationMessageStore` bound to the supplied context |
-| `session.Field(path)` | Resolves a `FieldIdentifier` from a canonical `SparsePath` or typed path |
-| `session.AddValidationError(store, field, message)` | Surfaces a message through the `ValidationMessageStore` |
-| `session.AddValidationError(store, fieldPath, message)` | Resolves a canonical `SparsePath` or typed path and surfaces a message |
-| `session.AddConflicts(conflictStore, editContext, conflicts, options)` | Surfaces structured conflicts as validation errors; resolves unresolvable paths via fallback (`NearestParent` or `Model`) |
-| `session.ClearConflicts(conflictStore, editContext)` | Clears the dedicated conflict message store without touching DataAnnotations stores |
-| `freshSession.ReplaceEditContext(staleContext)` | Creates a new `EditContext` bound to a fresh authoritative model after detaching old handlers |
+| `session.CreateEditContext()` | Creates a Blazor `EditContext` bound to the session's live model |
+| `session.AcceptChanges(editContext)` | Advances the baseline to the current model and clears `editContext` modified flags |
+| `session.AcceptChanges(editContext, changes)` | Advances the baseline by `changes` and clears `editContext` modified flags when no later edits remain |
+| `session.CreateValidationStore(editContext)` | Creates a `ValidationMessageStore` bound to `editContext` |
+| `session.Field(path)` | Resolves a `FieldIdentifier` from a `SparsePath` or generated typed path |
+| `session.AddValidationError(store, fieldOrPath, message)` | Adds a validation message to `store` for a field or `SparsePath` |
+| `session.AddConflicts(conflictStore, editContext, conflicts, options)` | Surfaces structured `SparseConflict` entries as validation errors |
+| `session.ClearConflicts(conflictStore, editContext)` | Clears the conflict message store without disturbing other validation stores |
+| `freshSession.ReplaceEditContext(staleContext)` | Creates a new `EditContext` bound to a fresh session's model after detaching old handlers |
 
-Dictionary members resolve through bracketed keys such as `Contacts["billing"].Name`. The canonical spelling quotes the key; an unquoted key is accepted when it needs no escaping. Non-string keys (numeric, enum, `Guid`) parse from the same spelling with invariant culture, and keys that do not parse fail as invalid paths. Resolution works for mutable dictionaries and for read-only `IReadOnlyDictionary<TKey, TValue>` models alike, including implementations that do not expose the legacy non-generic `IDictionary`.
+`session.Field(path)` resolves scalar properties, nested properties, dictionary entries (`Contacts["billing"].Name`), positional list items (`Lines[1].Quantity`), and keyed list items (`Lines["b"].Quantity` or `OrderDto.SparsePath.Lines.Key("b").Price`). Keyed paths continue to resolve to the matching item even after the list is reordered.
 
-List members resolve through numeric indexes such as `Lines[1].Quantity`, for mutable lists and read-only `IReadOnlyList<T>` models alike, including implementations without the legacy non-generic `IList`. Indexes resolve positionally through the indexer; out-of-range and non-numeric indexes fail as invalid paths.
+### Session scope and headless components
 
-Keyed collections (members whose element type declares a stable key) also resolve quoted stable keys such as `Lines["b"].Quantity`. These are the paths `EnumerateChanges()` emits, so a changed item's path can be passed to `session.Field` directly and keeps resolving after reorders. Quoted keys never act as positions, even when numeric: `Items["7"]` looks up key `7` while `Items[7]` is the eighth position. `session.Field` also accepts a canonical `SparsePath` (for example `OrderDto.SparsePath.Lines.Key("b").Price`); typed keys compare by value, so equal display text never merges distinct keys. Removed keys no longer resolve and fail as invalid paths.
+`SparseSessionScope` is a headless Blazor component that cascades the active session to child components and calls `StateHasChanged` automatically when the session raises `INotifyPropertyChanged`. Inside a scope:
 
-The neutral session members such as `Observable`, `Current`, `HasChanges`, `CreateChangeSet()`, `CreatePatch()`, and no-argument `AcceptChanges()` remain available independently of Blazor. Context-taking helpers require an `EditContext` whose `Model` is the same live-model instance the session edits.
+* `SparseField<TModel, TValue>` binds a typed path (`session.Paths.Number` or `session.Paths.Items.Key("a").Name`) and exposes the current value, a setter callback, an expression (for member-only paths), and point-in-time `FieldState`.
+* `SparseCollection<TModel, TElement>` renders keyed collection rows with stable UI keys, per-item state (`IsAdded`, `IsEdited`, `IsReordered`), and row move/remove helpers backed by `EditCollection`.
+* `SparseChildEdit` and `SparseChildEditDefault` manage independent child sessions in `Draft` mode (held until explicitly accepted) or `PassThrough` mode (accepted into the parent on each edit).
 
-Edit-then-restore yields no semantic change even though fields were touched:
-
-<!-- illustrative: excerpt; continues the ui-session flow in prose and does not compile as written -->
-```csharp
-uiSession.Observable.Number = "changed";
-uiSession.Observable.Number = "ORD-2";   // restored to the current baseline (ORD-2)
-
-// uiSession.HasChanges == false
-// uiSession.CreateChangeSet().IsEmpty == true
-```
-
-Validation flows through the ordinary `EditContext` pipeline. Continuing with the session above:
-
-<!-- illustrative: excerpt; continues the ui-session flow in prose and does not compile as written -->
-```csharp
-var store = uiSession.CreateValidationStore(editContext);
-editContext.OnValidationRequested += (sender, _) =>
-{
-    store.Clear();
-    if (string.IsNullOrEmpty(uiSession.Current.Number))
-    {
-        store.Add(uiSession.Field(UiOrder.SparsePath.Number), "Number is required.");
-    }
-};
-```
-
-Errors obtained elsewhere, such as structured rebase conflicts, can be passed as `SparsePath` values to `uiSession.AddValidationError(store, conflict.Path, message)`. Fields resolved from the session keep working when they point at nested members, list elements, or dictionary values: the error is accepted as long as the field model is still reachable from the session model. Fields built from another model graph stay rejected. The model type must be a reference type.
-
-The Blazor helpers accept `SparsePath` values and generated typed paths. To start from text, parse it explicitly with `SparsePath.Parse<UiOrder>("Customer.Name")`; there are no string-path overloads on `Field`, `Bind`, or `AddValidationError`.
-
-A session ChangeSet is sent through its generated `T.ChangePayload`: call `ToPayload()` before transport, then call `ToChangeSet()` on receipt before reconciling with `RebaseOnto` (see [ChangeSet rebase](rebase.md)). SparseTypes provides no transport abstraction. Transport configuration stays with the application.
-
-### Session scope and refresh
-
-The `SparseTypes.Blazor` package also provides `SparseSessionScope`, an
-appearance-free component that cascades the active session to its subtree and
-re-renders that subtree once per session notification. This replaces the
-manual `TransitionObserved` subscription plus `InvokeAsync(StateHasChanged)`
-pair that each form otherwise repeats, including its `Dispose` unhook. The
-scope subscribes through `INotifyPropertyChanged`, which every generated
-session implements, and marshals through the Blazor synchronization context.
-Replacing the cascaded session unsubscribes the old one first; disposing the
-scope unsubscribes entirely. Refresh stays session-level: group one user
-action with `BatchEdit` so it notifies once, and read field or collection
-state on demand where a subtree updates at high frequency and only needs part
-of the session. After the server returns authoritative state, adopt a fresh
-session and a fresh `EditContext` from the persisted model and key the
-`EditForm` so Blazor rebuilds the inputs against the new context.
-
-### Toolkit-neutral consumption in the playground
-
-The playground references `SparseTypes.Blazor` as an ordinary third-party
-package and keeps its existing Fluent UI controls. The library has no
-Fluent-specific integration and no dependency on Fluent, MudBlazor, or any
-other vendor component set; the same binding, state, and history members serve
-standard inputs and custom components alike. Its undo and redo demo builds on
-the session-owned history, the session scope, typed bindings, and the field
-and collection state queries, with no handwritten baseline maps or history
-stacks. The keyed-list and mapping demos read their added, removed, moved,
-and edited highlights from the same state queries. The mapping demo keeps its
-delayed submit, post-submit edits, and temporary-identity correlation, which
-the session acknowledgement paths do not replace.
+See [Blazor edit form](../how-to/blazor-edit-form.md) for the complete form save and conflict-handling workflow, and [Blazor headless components](../how-to/blazor-headless-components.md) for custom input wiring.
 
 ## WPF, WinForms, .NET MAUI, WinUI, and Avalonia
 
-These frameworks bind the generated observable wrapper (the model-nested `Observable` type). The wrapper writes through to the same underlying model and raises `INotifyPropertyChanged` notifications for binding.
+Desktop and mobile MVVM frameworks bind directly to `session.Observable`. The generated `Observable` proxy writes through to the underlying model and raises `INotifyPropertyChanged` on the mutating thread.
 
-Nested models surface as child proxies that propagate changes to the root callback.
+* **Nested models**: Promoted nested models are exposed as child `Observable` proxies whose property changes bubble up to the parent proxy and the session's `onChanged` callback.
+* **Collections**: Mutable list (`List<T>`, `IList<T>`, `Collection<T>`, `ObservableCollection<T>`) and dictionary (`Dictionary<TKey, TValue>`, `IDictionary<TKey, TValue>`) properties surface as notifying collection views implementing `INotifyCollectionChanged` and `INotifyPropertyChanged` (`Count` and `Item[]`).
+* **Adding and replacing items**: Add model instances through `AddModel` / `InsertModel` on the collection view, and replace an entire collection instance with the generated `Replace<PropertyName>(newCollection)` method on the observable proxy.
 
-Mutable indexable sequences (`List<T>`, `IList<T>`, `Collection<T>`, and `ObservableCollection<T>`) and mutable `Dictionary<TKey,TValue>` and `IDictionary<TKey,TValue>` members surface as notifying views over the original collection instances. List views implement generic and non-generic `IList` for WPF binding; dictionary collection events contain `KeyValuePair<TKey,TValue>` items. Edits through a view mutate the model collection in place, raise `INotifyCollectionChanged` and `INotifyPropertyChanged` (`Count` and `Item[]`), and notify the parent proxy and session callback. An underlying `ObservableCollection<T>` is forwarded rather than notified twice.
-
-For generated reference-model elements, list and dictionary views expose cached element `Observable` proxies. Add an element proxy created around a new model (or use `AddModel` / `InsertModel` on a list view and `AddModel` on a dictionary view). Replacing or removing elements, clearing a view, replacing the collection through the proxy, or disposing the view detaches stale element callbacks.
-
-`Observable.Items` is the generated view type so bindings can use it directly. Since C# properties cannot have a view getter and a model-collection setter of different types, replace a collection with the generated `ReplaceItems(modelCollection)` method; this rebuilds the view and raises the member notification.
-
-Mutations made directly to a plain model `List<T>` or `Dictionary<TKey,TValue>` update the model but bypass view notifications; changes to an underlying collection that itself implements `INotifyCollectionChanged` (such as `ObservableCollection<T>`) are forwarded. Arrays, `IReadOnlyList<T>`, `IEnumerable<T>`, immutable collections, and sets remain replace-only. Models using collection types the generator cannot deeply clone must continue to provide the applicable explicit clone policy.
-
-Create a neutral edit session and bind its observable proxy; the session tracks the same underlying model. The `onChanged` callback drives save-button state, while `Current` feeds read-only displays:
+Create a neutral edit session and assign `session.Observable` to your view's `DataContext` or binding source:
 
 <!-- sample: ui-wpf-session -->
 ```csharp
@@ -726,7 +244,7 @@ var stockChanges = stockSession.CreateChangeSet();
 ```
 <!-- /sample -->
 
-### WPF example
+### WPF binding example
 
 ```xml
 <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}" />
@@ -746,4 +264,3 @@ var session = model.CreateEditSession(
 DataContext = session.Observable;
 ```
 
-WinForms, .NET MAUI, WinUI, and Avalonia use the same `Observable` wrapper over the underlying model; only the framework-specific binding setup differs.
