@@ -152,6 +152,17 @@ internal static class SparseKeyedLookupIndex
                 return false;
             }
 
+            // A changed key before this slot can make another row the first
+            // match even when the indexed row itself is unchanged.
+            for (var preceding = 0; preceding < slot.Hint; preceding++)
+            {
+                var candidate = access.At(preceding);
+                if (candidate is not null && Equals(reader.GetKey(candidate), key))
+                {
+                    return false;
+                }
+            }
+
             element = current;
             return true;
         }
@@ -237,6 +248,15 @@ internal static class SparseKeyedLookupIndex
             )
             {
                 return false;
+            }
+
+            for (var preceding = 0; preceding < slot.Hint; preceding++)
+            {
+                var candidate = access.At(preceding);
+                if (candidate is not null && Equals(reader(candidate), temporaryKey))
+                {
+                    return false;
+                }
             }
 
             element = current;

@@ -92,7 +92,10 @@ internal static class SparseChangeSetPathEmitter
         code.AppendLineAt(4, "for (var i = 0; i < order.Length; i++)");
         code.AppendLineAt(5, "order[i] = i;");
         // String's natural comparison is ordinal and matches CompareOrdinal.
-        code.AppendLineAt(4, "global::System.Array.Sort(sortKeys, order);");
+        code.AppendLineAt(
+            4,
+            "global::System.Array.Sort(sortKeys, order, global::System.StringComparer.Ordinal);"
+        );
         code.AppendLineAt(
             4,
             "var sorted = new global::System.Collections.Generic.List<"

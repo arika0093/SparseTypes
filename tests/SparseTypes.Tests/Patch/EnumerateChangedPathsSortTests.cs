@@ -1,3 +1,4 @@
+using System.Globalization;
 using SparseTypes;
 
 namespace SparseTypes.Tests;
@@ -100,6 +101,44 @@ public sealed class EnumerateChangedPathsSortTests
             .EnumerateChangedPaths();
 
         paths.ShouldHaveSingleItem().ToString().ShouldBe("$root");
+    }
+
+    [Test]
+    public void ChangedPathsUseOrdinalOrderUnderNonOrdinalCurrentCulture()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            var before = SortState([], []);
+            var after = SortState(
+                [],
+                new Dictionary<string, int>
+                {
+                    ["z"] = 1,
+                    ["ä"] = 2,
+                    ["a"] = 3,
+                    ["A"] = 4,
+                }
+            );
+
+            var paths = PathSortHolder
+                .ChangeSet.Between(before, after)
+                .EnumerateChangedPaths()
+                .Select(static path => path.ToString())
+                .ToArray();
+
+            paths.ShouldBe([
+                "Numbers[\"A\"]",
+                "Numbers[\"a\"]",
+                "Numbers[\"z\"]",
+                "Numbers[\"ä\"]",
+            ]);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
     }
 
     private static Optional<PathSortHolder.Fragment?> SortState(

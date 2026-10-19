@@ -56,6 +56,7 @@ internal static class MixedSequenceComposer
             // wins and is consumed.
             if (secondIndex.FindOverlap(segments) is { } overlap)
             {
+                secondIndex.Remove(overlap.Path, overlap.Segments);
                 consumedSecond.Add(overlap.Path);
                 var resolution = ResolveAncestorOverlap(
                     entry.Value,

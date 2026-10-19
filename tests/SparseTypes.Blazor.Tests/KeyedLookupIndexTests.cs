@@ -530,6 +530,69 @@ public sealed class KeyedLookupIndexTests
     }
 
     [Test]
+    public void EarlierAssignedKeyMutationRestoresFirstMatchSemantics()
+    {
+        var session = new OrderDto
+        {
+            Number = "ORD-1",
+            Lines =
+            [
+                new OrderLine
+                {
+                    Sku = "a",
+                    Quantity = 1,
+                    Price = 10m,
+                },
+                new OrderLine
+                {
+                    Sku = "b",
+                    Quantity = 2,
+                    Price = 20m,
+                },
+            ],
+        }.CreateEditSession();
+        session.Field("Lines[\"b\"].Quantity");
+
+        Raw(session).Lines[0].Sku = "b";
+
+        var field = session.Field("Lines[\"b\"].Quantity");
+        ReferenceEquals(field.Model, Raw(session).Lines[0]).ShouldBeTrue();
+    }
+
+    [Test]
+    public void EarlierTemporaryKeyMutationRestoresFirstMatchSemantics()
+    {
+        var firstKey = Guid.NewGuid();
+        var secondKey = Guid.NewGuid();
+        var session = new BlazorDraftBoard
+        {
+            Name = "Board",
+            Drafts =
+            [
+                new BlazorDraftLine
+                {
+                    Id = 0,
+                    Title = "first",
+                    TemporaryId = firstKey,
+                },
+                new BlazorDraftLine
+                {
+                    Id = 0,
+                    Title = "second",
+                    TemporaryId = secondKey,
+                },
+            ],
+        }.CreateEditSession();
+        var path = BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(secondKey).Title;
+        session.Field(path);
+
+        Raw(session).Drafts[0].TemporaryId = secondKey;
+
+        var field = session.Field(path);
+        ReferenceEquals(field.Model, Raw(session).Drafts[0]).ShouldBeTrue();
+    }
+
+    [Test]
     public void UndoAndRedoFollowLiveRows()
     {
         var live = new OrderDto

@@ -112,6 +112,31 @@ public sealed class MixedComposeSequencesIndexTests
     }
 
     [Test]
+    public void ConsumedOverlapDoesNotMatchLaterFirstSideEntries()
+    {
+        var composed = MixedChangeAlgebra.ComposeSequences(
+            [Blind("A.X"), Blind("A.Y")],
+            [Blind("A")]
+        );
+
+        composed.Succeeded.ShouldBeTrue();
+        composed.Composed.Select(static operation => operation.Path).ShouldBe(["A", "A.Y"]);
+    }
+
+    [Test]
+    public void ConsumedOverlapDoesNotCreateLaterTransitionFailure()
+    {
+        var composed = MixedChangeAlgebra.ComposeSequences(
+            [Blind("A.X"), Transition("A.Y")],
+            [Blind("A")]
+        );
+
+        composed.Succeeded.ShouldBeTrue();
+        composed.Failures.ShouldBeEmpty();
+        composed.Composed.Select(static operation => operation.Path).ShouldBe(["A", "A.Y"]);
+    }
+
+    [Test]
     public void QuotedKeySegmentsStayAtomic()
     {
         // A dot inside a quoted bracket key is not a segment boundary.

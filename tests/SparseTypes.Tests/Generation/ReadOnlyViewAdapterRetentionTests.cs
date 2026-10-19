@@ -11,6 +11,8 @@ public partial class RetentionBook
     public List<RetentionRow> Rows { get; set; } = new();
 
     public Dictionary<string, int>? Counts { get; set; } = new();
+
+    public List<int> @class { get; set; } = new();
 }
 
 [SparseModel]
@@ -112,22 +114,23 @@ public sealed class ReadOnlyViewAdapterRetentionTests
     }
 
     [Test]
-    public void EmissionRetainsOneAdapterFieldPerCollectionMember()
+    public void EmissionUsesAtomicCacheHoldersAndEscapesKeywordProperties()
     {
         var perModel = GeneratedSources()
             .Where(static pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
             .Where(static source =>
-                source.Contains("__sparse_adapter_Rows", StringComparison.Ordinal)
+                source.Contains("__sparse_cache_Rows", StringComparison.Ordinal)
             )
             .ToArray();
         perModel.ShouldHaveSingleItem();
         var text = perModel[0];
-        text.ShouldContain("__sparse_adapter_Counts");
-        text.ShouldContain("__sparse_source_Rows");
-        text.ShouldContain("ReferenceEquals(__sparse_source_Rows");
-        text.ShouldContain("__sparse_source_Rows = null;");
-        text.ShouldContain("__sparse_adapter_Rows = null;");
+        text.ShouldContain("__sparse_cache_Counts");
+        text.ShouldContain("__SparseReadOnlyCache_Rows");
+        text.ShouldContain("ReferenceEquals(cached.Source, current)");
+        text.ShouldContain("cached.Adapter");
+        text.ShouldContain("__sparse_cache_class");
+        text.ShouldNotContain("__sparse_cache_@class");
     }
 
     private static Dictionary<string, string> GeneratedSources()
@@ -143,6 +146,7 @@ public sealed class ReadOnlyViewAdapterRetentionTests
                 {
                     public List<RetentionRow> Rows { get; set; } = new();
                     public Dictionary<string, int>? Counts { get; set; } = new();
+                    public List<int> @class { get; set; } = new();
                 }
                 [SparseModel]
                 public partial class RetentionRow

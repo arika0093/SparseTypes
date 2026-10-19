@@ -12,67 +12,78 @@ internal class SparseReadOnlyViewRetention(ImmutableArray<string> memberNames)
         memberNames,
         System.StringComparer.Ordinal
     );
-    private readonly System.Collections.Generic.List<(string Source, string Adapter)> _names = [];
-    private readonly System.Collections.Generic.List<string> _types = [];
+    private readonly System.Collections.Generic.List<(
+        string Cache,
+        string Holder,
+        string Adapter
+    )> _names = [];
 
-    /// <summary>Reserves field names for one cached source/adapter pair.</summary>
+    /// <summary>Reserves a cache field and holder type for one source/adapter pair.</summary>
     /// <param name="property">The view property the pair belongs to.</param>
     /// <param name="adapterType">The concrete adapter type to declare.</param>
     public AdapterFieldNames Enter(string property, string adapterType)
     {
-        var source = new System.Text.StringBuilder("__sparse_source_" + property);
-        while (!_taken.Add(source.ToString()))
+        var cache = new System.Text.StringBuilder("__sparse_cache_" + property);
+        while (!_taken.Add(cache.ToString()))
         {
-            source.Insert(0, '_');
+            cache.Insert(0, '_');
         }
 
-        var adapter = new System.Text.StringBuilder("__sparse_adapter_" + property);
-        while (!_taken.Add(adapter.ToString()))
+        var holder = new System.Text.StringBuilder("__SparseReadOnlyCache_" + property);
+        while (!_taken.Add(holder.ToString()))
         {
-            adapter.Insert(0, '_');
+            holder.Insert(0, '_');
         }
 
-        var sourceName = source.ToString();
-        var adapterName = adapter.ToString();
-        _names.Add((sourceName, adapterName));
-        _types.Add(adapterType);
-        return new AdapterFieldNames(sourceName, adapterName);
+        var cacheName = cache.ToString();
+        var holderName = holder.ToString();
+        _names.Add((cacheName, holderName, adapterType));
+        return new AdapterFieldNames(cacheName, holderName);
     }
 
-    /// <summary>Emits the collected backing-source/adapter field declarations.</summary>
+    /// <summary>Emits immutable cache holders and their atomically published references.</summary>
     /// <param name="code">The builder receiving the declarations.</param>
     /// <param name="indent">The member-level indent of the emitted type.</param>
     public void Flush(SharedIndentedBuilder code, int indent)
     {
         for (var index = 0; index < _names.Count; index++)
         {
-            code.AppendLineAt(indent, "private object? " + _names[index].Source + ";");
+            var (cache, holder, adapter) = _names[index];
+            code.AppendLineAt(indent, "private sealed class " + holder);
+            code.AppendLineAt(indent, "{");
             code.AppendLineAt(
-                indent,
-                "private " + _types[index] + "? " + _names[index].Adapter + ";"
+                indent + 1,
+                "public "
+                    + holder
+                    + "(object source, "
+                    + adapter
+                    + " adapter) { Source = source; Adapter = adapter; }"
             );
+            code.AppendLineAt(indent + 1, "public readonly object Source;");
+            code.AppendLineAt(indent + 1, "public readonly " + adapter + " Adapter;");
+            code.AppendLineAt(indent, "}");
+            code.AppendLineAt(indent, "private volatile " + holder + "? " + cache + ";");
         }
 
         _names.Clear();
-        _types.Clear();
     }
 
-    /// <summary>Field names of one cached source/adapter pair.</summary>
+    /// <summary>Field and holder names for one atomically published cache value.</summary>
     internal readonly record struct AdapterFieldNames
     {
-        /// <summary>Initializes the field-name pair.</summary>
-        /// <param name="source">The backing-source field name.</param>
-        /// <param name="adapter">The cached-adapter field name.</param>
-        public AdapterFieldNames(string source, string adapter)
+        /// <summary>Initializes the cache field and holder names.</summary>
+        /// <param name="cache">The cache field name.</param>
+        /// <param name="holder">The holder type name.</param>
+        public AdapterFieldNames(string cache, string holder)
         {
-            Source = source;
-            Adapter = adapter;
+            Cache = cache;
+            Holder = holder;
         }
 
-        /// <summary>Gets the backing-source field name.</summary>
-        public string Source { get; }
+        /// <summary>Gets the cache field name.</summary>
+        public string Cache { get; }
 
-        /// <summary>Gets the cached-adapter field name.</summary>
-        public string Adapter { get; }
+        /// <summary>Gets the holder type name.</summary>
+        public string Holder { get; }
     }
 }

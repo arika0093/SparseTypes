@@ -312,42 +312,43 @@ internal static class SparseReadOnlyViewEmitter
             return;
         }
 
-        var retentionNames = retention.Enter(property, adapterType);
+        var retentionNames = retention.Enter(member.Property.Name, adapterType);
         AppendPropertySummary(code, member, indent);
         code.AppendLineAt(
             indent,
-            "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources. The wrapper is retained while the backing source reference is unchanged; a captured wrapper keeps viewing the source it was created for. Concurrent readers may construct duplicates, but a returned wrapper always views the source it was created for.</remarks>"
+            "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources. The wrapper is retained while the backing source reference is unchanged; a captured wrapper keeps viewing the source it was created for.</remarks>"
         );
         code.AppendLineAt(indent, "public " + viewCollection + nullable + " " + property);
         code.AppendLineAt(indent, "{");
         code.AppendLineAt(indent + 1, "get");
         code.AppendLineAt(indent + 1, "{");
         code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(indent + 2, "if ((object?)current is null)");
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(indent + 3, "if (" + retentionNames.Adapter + " is not null)");
-        code.AppendLineAt(indent + 3, "{");
-        // Source-clear-on-null keeps the cache from pinning replaced sources.
-        code.AppendLineAt(indent + 4, retentionNames.Source + " = null;");
-        code.AppendLineAt(indent + 4, retentionNames.Adapter + " = null;");
-        code.AppendLineAt(indent + 3, "}");
-        code.AppendLineAt(indent + 3, "return null" + (member.Property.IsNullable ? ";" : "!;"));
-        code.AppendLineAt(indent + 2, "}");
-        // The adapter is captured once so a concurrent null-clear cannot
-        // turn the trailing return into a null for a non-nullable member.
-        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Adapter + ";");
         code.AppendLineAt(
             indent + 2,
-            "if (cached is null || !ReferenceEquals(" + retentionNames.Source + ", current))"
-        );
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(indent + 3, retentionNames.Source + " = current;");
-        code.AppendLineAt(
-            indent + 3,
-            "cached = " + retentionNames.Adapter + " = " + construction + ";"
+            "if ((object?)current is null) { "
+                + retentionNames.Cache
+                + " = null; return null"
+                + (member.Property.IsNullable ? ";" : "!;")
         );
         code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "return cached;");
+        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Cache + ";");
+        code.AppendLineAt(
+            indent + 2,
+            "if (cached is null || !ReferenceEquals(cached.Source, current))"
+        );
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(
+            indent + 3,
+            "cached = new "
+                + retentionNames.Holder
+                + "(current, "
+                + construction
+                + "); "
+                + retentionNames.Cache
+                + " = cached;"
+        );
+        code.AppendLineAt(indent + 2, "}");
+        code.AppendLineAt(indent + 2, "return cached.Adapter;");
         code.AppendLineAt(indent + 1, "}");
         code.AppendLineAt(indent, "}");
     }
@@ -429,36 +430,38 @@ internal static class SparseReadOnlyViewEmitter
             return;
         }
 
-        var retentionNames = retention.Enter(property, adapterType);
+        var retentionNames = retention.Enter(member.Property.Name, adapterType);
         code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
         code.AppendLineAt(indent, "{");
         code.AppendLineAt(indent + 1, "get");
         code.AppendLineAt(indent + 1, "{");
         code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(indent + 2, "if ((object?)current is null)");
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(indent + 3, "if (" + retentionNames.Adapter + " is not null)");
-        code.AppendLineAt(indent + 3, "{");
-        code.AppendLineAt(indent + 4, retentionNames.Source + " = null;");
-        code.AppendLineAt(indent + 4, retentionNames.Adapter + " = null;");
-        code.AppendLineAt(indent + 3, "}");
-        code.AppendLineAt(indent + 3, "return null" + (member.Property.IsNullable ? ";" : "!;"));
-        code.AppendLineAt(indent + 2, "}");
-        // The adapter is captured once so a concurrent null-clear cannot
-        // turn the trailing return into a null for a non-nullable member.
-        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Adapter + ";");
         code.AppendLineAt(
             indent + 2,
-            "if (cached is null || !ReferenceEquals(" + retentionNames.Source + ", current))"
-        );
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(indent + 3, retentionNames.Source + " = current;");
-        code.AppendLineAt(
-            indent + 3,
-            "cached = " + retentionNames.Adapter + " = " + construction + ";"
+            "if ((object?)current is null) { "
+                + retentionNames.Cache
+                + " = null; return null"
+                + (member.Property.IsNullable ? ";" : "!;")
         );
         code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "return cached;");
+        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Cache + ";");
+        code.AppendLineAt(
+            indent + 2,
+            "if (cached is null || !ReferenceEquals(cached.Source, current))"
+        );
+        code.AppendLineAt(indent + 2, "{");
+        code.AppendLineAt(
+            indent + 3,
+            "cached = new "
+                + retentionNames.Holder
+                + "(current, "
+                + construction
+                + "); "
+                + retentionNames.Cache
+                + " = cached;"
+        );
+        code.AppendLineAt(indent + 2, "}");
+        code.AppendLineAt(indent + 2, "return cached.Adapter;");
         code.AppendLineAt(indent + 1, "}");
         code.AppendLineAt(indent, "}");
     }
