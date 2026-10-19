@@ -568,5 +568,5 @@ internal static class SparseChangeSetPayloadTransferEmitter
         );
 
     // Wide sparse models lose time when every flag is counted before emission.
-    private const int MaxPrecountedMembers = 4;
+    private const int MaxPrecountedMembers = 5;
 }
