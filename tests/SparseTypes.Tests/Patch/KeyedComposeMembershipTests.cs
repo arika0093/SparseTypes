@@ -280,6 +280,20 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeAddOnlyPreservesSequentialAdditionState()
+    {
+        var before = KF(Server("a"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Add(Server("b", "first"));
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("c", "second"));
+
+        var composed = first.Compose(next);
+        (composed.Items.__added ?? []).Select(static item => item.Id).ShouldBe(["b", "c"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeRemovalFilteringUsesDefaultKeyEquality()
     {
         // The configured key comparer is EqualityComparer<T>.Default at every

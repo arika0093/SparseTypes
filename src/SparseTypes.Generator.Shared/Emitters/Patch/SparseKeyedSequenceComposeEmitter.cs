@@ -108,6 +108,11 @@ internal static class SparseKeyedSequenceComposeEmitter
         // Granular + granular: merge key operation logs preserving sequential
         // semantics. Added keys.
         var hasTempPatchCompose = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
+        if (!hasTempPatchCompose && !SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
+            AppendAssignedAddOnlyComposeFastPath(code, keyType, elementType, comparer, member);
+        }
+
         if (hasTempPatchCompose)
         {
             SparseKeyedSequenceTempPatchMergeEmitter.AppendThisTempPartition(
@@ -511,5 +516,71 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + " second) { if (first is null) throw new global::System.ArgumentNullException(nameof(first)); return first.Compose(second); }"
             );
         }
+    }
+
+    private static void AppendAssignedAddOnlyComposeFastPath(
+        SharedIndentedBuilder code,
+        string keyType,
+        string elementType,
+        string comparer,
+        SparseMemberModel member
+    )
+    {
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "(__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__removed is null || next.__removed.Count == 0)");
+        code.AppendLineAt(5, "&& (__edited is null || __edited.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__edited is null || next.__edited.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(4, ")");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(
+            5,
+            "global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementType
+                + ">? __simpleAdded = null;"
+        );
+        code.AppendLineAt(5, "if (__added is not null && __added.Count > 0)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "__simpleAdded = new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementType
+                + ">(__added.Count, "
+                + comparer
+                + ");"
+        );
+        code.AppendLineAt(
+            6,
+            "foreach (var item in __added) __simpleAdded["
+                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
+                + "(item)] = item;"
+        );
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(
+            5,
+            "var __simpleAddedCount = (__simpleAdded?.Count ?? 0) + (next.__added?.Count ?? 0);"
+        );
+        code.AppendLineAt(
+            5,
+            "if (__simpleAddedCount > 0) result.__added = new global::System.Collections.Generic.List<"
+                + elementType
+                + ">(__simpleAddedCount);"
+        );
+        code.AppendLineAt(
+            5,
+            "if (__simpleAdded is not null) foreach (var item in __simpleAdded.Values) result.__added!.Add(item);"
+        );
+        code.AppendLineAt(
+            5,
+            "if (next.__added is not null) result.__added!.AddRange(next.__added);"
+        );
+        code.AppendLineAt(5, "return result;");
+        code.AppendLineAt(4, "}");
     }
 }
