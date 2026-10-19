@@ -87,6 +87,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLineAt(2, "/// <returns>The serializable payload envelope.</returns>");
             code.AppendLineAt(2, "internal static ChangePayload ToPayload(ChangeSet self)");
             code.AppendLineAt(2, "{");
+            AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "self.IsEmpty");
             code.AppendLineAt(
                 3,
                 "return new ChangePayload { Version = "
@@ -104,6 +105,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLineAt(2, "/// <returns>The serializable payload envelope.</returns>");
             code.AppendLineAt(2, "public ChangePayload ToPayload()");
             code.AppendLineAt(2, "{");
+            AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "IsEmpty");
             code.AppendLineAt(
                 3,
                 "return new ChangePayload { Version = "
@@ -548,6 +550,26 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 + ".FromFragment(value.Value)));"
         );
         code.AppendLineAt(2, "}");
+    }
+
+    private static void AppendEmptyPayloadFastPath(
+        SharedIndentedBuilder code,
+        string payloadChange,
+        string versionLiteral,
+        string isEmptyExpression
+    )
+    {
+        code.AppendLineAt(3, "if (" + isEmptyExpression + ")");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(
+            4,
+            "return new ChangePayload { Version = "
+                + versionLiteral
+                + ", Changes = new global::System.Collections.Generic.List<"
+                + payloadChange
+                + ">() };"
+        );
+        code.AppendLineAt(3, "}");
     }
 
     private static string PayloadCapacity(ImmutableArray<SparseMemberModel> members) =>
