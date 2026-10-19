@@ -8,10 +8,20 @@ namespace SparseTypes.NativeAotSmoke;
 public sealed class AotJsonTests
 {
     private static JsonSerializerOptions PayloadCollectionOptions() =>
-        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) };
+        new()
+        {
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(
+                PayloadCollection.PayloadJson.Default,
+                PayloadLeafContext.Default
+            ),
+        };
 
-    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(JsonSerializerOptions options) =>
-        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(
+        JsonSerializerOptions options
+    ) =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)
+            options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+
     private static JsonSerializerOptions AotOptions()
     {
         var options = new JsonSerializerOptions();
@@ -179,9 +189,7 @@ public sealed class AotJsonTests
                     .GetString()
             )
             .IsEqualTo("add");
-        var serverRestored = JsonSerializer
-            .Deserialize(serverJson, serverTypeInfo)!
-            .ToChangeSet();
+        var serverRestored = JsonSerializer.Deserialize(serverJson, serverTypeInfo)!.ToChangeSet();
         await Assert
             .That(
                 PayloadCollection
@@ -237,7 +245,7 @@ public sealed class AotJsonTests
     [Test]
     public async Task EnumEndpointRoundTripsWithSourceGen()
     {
-        // Enum endpoint values resolve through GetTypeInfo metadata.
+        // Enum endpoint values travel as canonical numeric wire values.
         Optional<PayloadRoot.Fragment?> EnumState(AotOrderStatus status) =>
             Optional<PayloadRoot.Fragment?>.Present(
                 PayloadRoot.Fragment.From(

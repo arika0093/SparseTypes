@@ -88,7 +88,7 @@ The top-level object carries the format token and the member changes. Nested cha
 | `items` | Keyed or dictionary item operations for collection members. |
 | `beforeOrder` / `afterOrder` | Key sequences for keyed members. |
 
-Payload DTO property names use camel case, `kind` values are lowercase, and property order is explicit. Embedded custom values follow the application JSON metadata; primitives, enums, and collections use canonical wire encoding. Unused item fields stay omitted: an edit item carries only its nested `edit` payload, an addition carries only the endpoint needed to apply it, and a removal carries only the endpoint needed to apply it. Value-free endpoints still serialize an explicit `"value": null`, as the examples below show.
+Payload DTO property names use camel case, `kind` values are lowercase, and property order is explicit. Embedded custom values follow the application JSON metadata; covered scalar, enum, and collection values use canonical wire encoding. Unused item fields stay omitted: an edit item carries only its nested `edit` payload, an addition carries only the endpoint needed to apply it, and a removal carries only the endpoint needed to apply it. Value-free endpoints still serialize an explicit `"value": null`, as the examples below show.
 
 ## Endpoint states
 
@@ -726,7 +726,7 @@ Attempting to export a `ChangeSet` or `Patch` containing changes to a `[JsonIgno
 
 The base package does not depend on `System.Text.Json`. JSON attributes, converters, and the endpoint bridge are generated only when the consuming compilation references a compatible API set. `Fragment`, `Patch`, `ChangeSet`, and the `ChangePayload` CLR projections (`ToPayload`, `FromPatch`, `ToPatch`, `ToChangeSet`) work without it. A compilation with a partial API set gets the same omission plus a diagnostic that names the missing members.
 
-The 0.1 wire contract needs named and ordered properties, null and default omission, polymorphic discriminators, endpoint and kind converters, and the UTF-8 reader and writer with options and type metadata. The generator probes for `JsonSerializer` and `JsonConverter<T>` with overridable `Read` and `Write`, the `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`, `JsonPolymorphic`, `JsonDerivedType`, and `JsonConverter` attributes, `JsonIgnoreCondition`, `JsonUnmappedMemberHandling.Disallow`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonSerializerOptions.GetTypeInfo`, `JsonTypeInfo`, and `JsonException`. A reference that lacks any of these, such as an older `System.Text.Json` version, omits the JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with the missing names; a compilation with no reference at all stays silent and builds the serializer-independent core. Payload DTOs ignore unknown properties once emitted; generated fragment converters still honor `JsonSerializerOptions.UnmappedMemberHandling`.
+The 0.1 wire contract needs named and ordered properties, null and default omission, polymorphic discriminators, endpoint and kind converters, and the UTF-8 reader and writer with options and type metadata. The generator probes for `JsonSerializer` and `JsonConverter<T>` with overridable `Read` and `Write`, the `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`, `JsonPolymorphic`, `JsonDerivedType`, and `JsonConverter` attributes, `JsonIgnoreCondition`, `JsonUnmappedMemberHandling.Disallow`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonSerializerOptions.GetTypeInfo`, `JsonTypeInfo`, and `JsonException`, plus the scalar codec members the generated converters call directly (numeric, boolean, Guid, date/time, and string readers; the matching writers; and the `JsonException` message/inner-exception constructors). A reference that lacks any of these, such as an older `System.Text.Json` version, omits the JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with the missing names; a compilation with no reference at all stays silent and builds the serializer-independent core. Payload DTOs ignore unknown properties once emitted; generated fragment converters still honor `JsonSerializerOptions.UnmappedMemberHandling`.
 
 The scalar-set payload from the earlier section serializes through the generated resolver like this:
 
@@ -743,7 +743,7 @@ var contextRestored = JsonSerializer
 ```
 <!-- /sample -->
 
-`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape. Primitive, enum, and collection endpoint values use generated fast paths with canonical JSON encoding and need no extra registration; only custom value shapes resolve through `JsonSerializerOptions.GetTypeInfo`, so combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
+`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape. Endpoint values with a covered scalar or enum type use generated context-free codecs with canonical JSON encoding and need no extra registration; only custom value shapes resolve through `JsonSerializerOptions.GetTypeInfo`, so combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
 
 ## NativeAOT
 
@@ -758,7 +758,20 @@ NativeAOT and trimmed applications need serializer metadata at build time. Confi
 </PropertyGroup>
 ```
 
-Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes that travel in payloads. Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration. Fragment serialization uses the same fast paths for those shapes.
+Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes that travel in payloads. Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. The following endpoint, root-snapshot, key, and collection-element types round-trip with the generated resolver alone; fragment converters cover the same set, so `Fragment` JSON needs no registration for these shapes either.
+
+| Category | Covered types | Wire encoding |
+| --- | --- | --- |
+| Integers | `sbyte`, `byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, and their nullable counterparts | JSON number |
+| Floating point | `float`, `double`, `decimal`, and their nullable counterparts | JSON number |
+| Boolean | `bool` and `bool?` | JSON boolean |
+| Text | `string`, `char`, and their nullable counterparts | JSON string; a `char` is a single-character string |
+| Identifiers and time | `Guid`, `DateTime`, `DateTimeOffset`, and their nullable counterparts | JSON string in round-trip format |
+| Enums | Every CLR-valid underlying integral type, including `[Flags]` combinations, and their nullable counterparts | JSON number holding the underlying value |
+
+Covered scalar and enum values use this canonical 0.1 encoding deliberately: custom converters (including `JsonStringEnumConverter<T>`), `JsonNumberHandling`, and naming policies do not change them, so every receiver interprets the same bytes. A string token where a number belongs, a multi-character string for a `char`, or a quoted number where a strict number belongs fails with `JsonException`. Fragment property names still honor `JsonPropertyName`, naming policies, and case-insensitivity; non-scalar values resolve through options metadata and honor the registered converters and contexts.
+
+Structural collection containers need no metadata either: sequences, sets, and dictionaries use a generated container codec, and covered element types stay context-free while custom element types fall back to options metadata. Dictionary property-name keys cover `string`, `char`, `bool`, `Guid`, and the integer widths; keyed-collection item keys and key orders cover the full scalar and enum set above. Enum and custom dictionary keys resolve through options metadata instead.
 
 This context lives in the model project and registers only the custom leaf types used by the AOT examples:
 
@@ -810,7 +823,7 @@ await Assert
 ```
 <!-- /sample -->
 
-Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are primitives or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
+Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are covered scalars, enums, supported collections, or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
 
 ## Choosing a conversion
 

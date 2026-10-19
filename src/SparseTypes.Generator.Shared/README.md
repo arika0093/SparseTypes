@@ -290,6 +290,22 @@ mapping lives in generated per-model converters that read tokens from the
 runtime wire constants; the runtime endpoint and enum types carry no serializer
 attributes.
 
+Covered scalar and enum endpoint values never need options metadata.
+`SparseJsonScalarShapes` emits one shared set of context-free codecs into
+every fragment converter, payload converter, and standalone endpoint bridge:
+the common BCL scalars (`sbyte` through `ulong`, `float`, `double`,
+`decimal`, `bool`, `char`, `string`, `Guid`, `DateTime`, `DateTimeOffset`),
+their nullable counterparts, and enums with every CLR-valid underlying
+integral type. Fragment member values, payload endpoints, keys, and structural
+collection elements all reuse these helpers instead of maintaining divergent
+fast-path lists, and structural collection containers stay metadata-free while
+custom element types keep the options-metadata fallback. The codecs use
+canonical 0.1 wire encoding (numbers as numbers, enums as underlying numbers,
+temporal and identifier values as strings) and intentionally ignore custom
+converters and `JsonNumberHandling`; mismatched tokens fail with
+`JsonException`. Products configure nothing for this: the helpers name only
+`System` and `System.Text.Json` types, never product runtime names.
+
 ## Edit-session configuration
 
 `SparseEditSessionDialect` configures the namespace and hint names for the

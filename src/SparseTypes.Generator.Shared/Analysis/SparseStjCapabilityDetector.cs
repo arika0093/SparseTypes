@@ -408,6 +408,194 @@ internal static class SparseStjCapabilityDetector
                 exception,
                 compilation,
                 [compilation.GetSpecialType(SpecialType.System_String)]
+            )
+            && HasScalarCodecSurface(compilation, reader, writer, exception);
+    }
+
+    /// <summary>Whether the reader and writer expose the scalar codec members used by generated converters.</summary>
+    /// <remarks>Generated fragment, payload, and bridge converters read and write every covered scalar directly.</remarks>
+    private static bool HasScalarCodecSurface(
+        Compilation compilation,
+        INamedTypeSymbol reader,
+        INamedTypeSymbol writer,
+        INamedTypeSymbol exception
+    )
+    {
+        var guid = SafeGet(compilation, "System.Guid");
+        var dateTime = SafeGet(compilation, "System.DateTime");
+        var dateTimeOffset = SafeGet(compilation, "System.DateTimeOffset");
+        var systemException = SafeGet(compilation, "System.Exception");
+        if (
+            guid is null
+            || dateTime is null
+            || dateTimeOffset is null
+            || systemException is null
+            || !guid.IsAccessibleTo(compilation)
+            || !dateTime.IsAccessibleTo(compilation)
+            || !dateTimeOffset.IsAccessibleTo(compilation)
+        )
+            return false;
+        return HasInstanceMethod(
+                reader,
+                "GetBoolean",
+                compilation.GetSpecialType(SpecialType.System_Boolean),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetByte",
+                compilation.GetSpecialType(SpecialType.System_Byte),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetSByte",
+                compilation.GetSpecialType(SpecialType.System_SByte),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetInt16",
+                compilation.GetSpecialType(SpecialType.System_Int16),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetUInt16",
+                compilation.GetSpecialType(SpecialType.System_UInt16),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetInt32",
+                compilation.GetSpecialType(SpecialType.System_Int32),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetUInt32",
+                compilation.GetSpecialType(SpecialType.System_UInt32),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetInt64",
+                compilation.GetSpecialType(SpecialType.System_Int64),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetUInt64",
+                compilation.GetSpecialType(SpecialType.System_UInt64),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetSingle",
+                compilation.GetSpecialType(SpecialType.System_Single),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetDouble",
+                compilation.GetSpecialType(SpecialType.System_Double),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(
+                reader,
+                "GetDecimal",
+                compilation.GetSpecialType(SpecialType.System_Decimal),
+                compilation,
+                []
+            )
+            && HasInstanceMethod(reader, "GetGuid", guid, compilation, [])
+            && HasInstanceMethod(reader, "GetDateTime", dateTime, compilation, [])
+            && HasInstanceMethod(reader, "GetDateTimeOffset", dateTimeOffset, compilation, [])
+            && HasInstanceMethod(
+                writer,
+                "WriteBooleanValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Boolean)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Int32)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_UInt32)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Int64)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_UInt64)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Single)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Double)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteNumberValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_Decimal)]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteStringValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [dateTime]
+            )
+            && HasInstanceMethod(
+                writer,
+                "WriteStringValue",
+                compilation.GetSpecialType(SpecialType.System_Void),
+                compilation,
+                [dateTimeOffset]
+            )
+            && HasConstructor(
+                exception,
+                compilation,
+                [compilation.GetSpecialType(SpecialType.System_String), systemException]
             );
     }
 

@@ -34,6 +34,8 @@ internal static class SparseFragmentJsonFastPathEmitter
             );
         }
         AppendMemberValueHelpers(code);
+        SparseJsonScalarShapes.AppendScalarHelpers(code, 3, "TMember");
+        SparseJsonScalarShapes.AppendMapKeyHelpers(code, 3);
     }
 
     /// <summary>Emits fast-path fragment member readers and writers.</summary>
@@ -50,23 +52,7 @@ internal static class SparseFragmentJsonFastPathEmitter
         );
         code.AppendLineAt(
             4,
-            "if (typeof(TMember) == typeof(string)) return (TMember)(object)reader.GetString()!;"
-        );
-        code.AppendLineAt(
-            4,
-            "if (typeof(TMember) == typeof(int)) return (TMember)(object)reader.GetInt32();"
-        );
-        code.AppendLineAt(
-            4,
-            "if (typeof(TMember) == typeof(bool)) return (TMember)(object)reader.GetBoolean();"
-        );
-        code.AppendLineAt(
-            4,
-            "if (typeof(TMember) == typeof(global::System.Guid)) return (TMember)(object)reader.GetGuid();"
-        );
-        code.AppendLineAt(
-            4,
-            "if (typeof(TMember).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TMember)) == typeof(int)) return (TMember)global::System.Enum.ToObject(typeof(TMember), reader.GetInt32());"
+            "if (TryReadScalar<TMember>(ref reader, out var scalarMember)) return scalarMember;"
         );
         code.AppendLineAt(
             4,
@@ -82,27 +68,7 @@ internal static class SparseFragmentJsonFastPathEmitter
         code.AppendLineAt(4, "if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLineAt(
             4,
-            "if (typeof(TMember) == typeof(string)) writer.WriteStringValue((string)(object)value!);"
-        );
-        code.AppendLineAt(
-            4,
-            "else if (typeof(TMember) == typeof(int)) writer.WriteNumberValue((int)(object)value!);"
-        );
-        code.AppendLineAt(
-            4,
-            "else if (typeof(TMember) == typeof(bool)) writer.WriteBooleanValue((bool)(object)value!);"
-        );
-        code.AppendLineAt(
-            4,
-            "else if (typeof(TMember) == typeof(global::System.Guid)) writer.WriteStringValue(((global::System.Guid)(object)value!).ToString());"
-        );
-        code.AppendLineAt(
-            4,
-            "else if (typeof(TMember).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TMember)) == typeof(int)) writer.WriteNumberValue((int)(object)value!);"
-        );
-        code.AppendLineAt(
-            4,
-            "else global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetMemberTypeInfo<TMember>(options));"
+            "if (!TryWriteScalar(writer, value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetMemberTypeInfo<TMember>(options));"
         );
         code.AppendLineAt(3, "}");
         code.AppendLine();

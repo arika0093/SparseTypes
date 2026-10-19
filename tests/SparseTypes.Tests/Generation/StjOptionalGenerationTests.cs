@@ -185,6 +185,51 @@ public sealed class StjOptionalGenerationTests
             "        public string? GetString() => throw new System.NotImplementedException();"
         );
         stub.AppendLine(
+            "        public bool GetBoolean() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public byte GetByte() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public sbyte GetSByte() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public short GetInt16() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public ushort GetUInt16() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public int GetInt32() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public uint GetUInt32() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public long GetInt64() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public ulong GetUInt64() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public float GetSingle() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public double GetDouble() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public decimal GetDecimal() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public System.Guid GetGuid() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public System.DateTime GetDateTime() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public System.DateTimeOffset GetDateTimeOffset() => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
             "        public bool ValueTextEquals(System.ReadOnlySpan<byte> utf8Text) => throw new System.NotImplementedException();"
         );
         stub.AppendLine(
@@ -210,6 +255,36 @@ public sealed class StjOptionalGenerationTests
         );
         stub.AppendLine(
             "        public void WriteStringValue(string? value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteBooleanValue(bool value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(int value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(uint value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(long value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(ulong value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(float value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(double value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteNumberValue(decimal value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteStringValue(System.DateTime value) => throw new System.NotImplementedException();"
+        );
+        stub.AppendLine(
+            "        public void WriteStringValue(System.DateTimeOffset value) => throw new System.NotImplementedException();"
         );
         stub.AppendLine("    }");
         stub.AppendLine("    public enum JsonTokenType");
@@ -239,6 +314,9 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    {");
         stub.AppendLine("        public JsonException() { }");
         stub.AppendLine("        public JsonException(string? message) : base(message) { }");
+        stub.AppendLine(
+            "        public JsonException(string? message, System.Exception? innerException) : base(message, innerException) { }"
+        );
         stub.AppendLine("    }");
         stub.AppendLine("}");
         stub.AppendLine("namespace System.Text.Json.Serialization");

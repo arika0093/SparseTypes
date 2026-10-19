@@ -11,7 +11,7 @@ public partial class PayloadChild
 }
 
 /// <summary>Enum member shape for the source-generated endpoint codec.</summary>
-/// <remarks>Endpoint values travel through <c>JsonSerializerOptions.GetTypeInfo</c> metadata.</remarks>
+/// <remarks>Covered enum endpoint values travel as canonical numeric wire values.</remarks>
 public enum AotOrderStatus
 {
     Unknown,

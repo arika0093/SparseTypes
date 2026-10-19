@@ -83,6 +83,19 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
         var intType = compilation.GetSpecialType(SpecialType.System_Int32);
         var voidType = compilation.GetSpecialType(SpecialType.System_Void);
         var guidType = SparseStjCapabilityDetector.SafeGet(compilation, "System.Guid");
+        var dateTimeType = SparseStjCapabilityDetector.SafeGet(compilation, "System.DateTime");
+        var dateTimeOffsetType = SparseStjCapabilityDetector.SafeGet(
+            compilation,
+            "System.DateTimeOffset"
+        );
+        var exceptionType = SparseStjCapabilityDetector.SafeGet(
+            compilation,
+            "System.Text.Json.JsonException"
+        );
+        var systemExceptionType = SparseStjCapabilityDetector.SafeGet(
+            compilation,
+            "System.Exception"
+        );
         if (
             reader is null
             || writer is null
@@ -97,6 +110,10 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
             || converter is null
             || readOnlySpan is null
             || guidType is null
+            || dateTimeType is null
+            || dateTimeOffsetType is null
+            || exceptionType is null
+            || systemExceptionType is null
             || !document.IsAccessibleTo(compilation)
             || !element.IsAccessibleTo(compilation)
             || !valueKind.IsAccessibleTo(compilation)
@@ -255,6 +272,126 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
                 )
             )
             ?? Check(
+                "Utf8JsonReader.GetByte",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetByte",
+                    compilation.GetSpecialType(SpecialType.System_Byte),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetSByte",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetSByte",
+                    compilation.GetSpecialType(SpecialType.System_SByte),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetInt16",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetInt16",
+                    compilation.GetSpecialType(SpecialType.System_Int16),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetUInt16",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetUInt16",
+                    compilation.GetSpecialType(SpecialType.System_UInt16),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetUInt32",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetUInt32",
+                    compilation.GetSpecialType(SpecialType.System_UInt32),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetInt64",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetInt64",
+                    compilation.GetSpecialType(SpecialType.System_Int64),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetUInt64",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetUInt64",
+                    compilation.GetSpecialType(SpecialType.System_UInt64),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetSingle",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetSingle",
+                    compilation.GetSpecialType(SpecialType.System_Single),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetDouble",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetDouble",
+                    compilation.GetSpecialType(SpecialType.System_Double),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetDecimal",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetDecimal",
+                    compilation.GetSpecialType(SpecialType.System_Decimal),
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetDateTime",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetDateTime",
+                    dateTimeType,
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
+                "Utf8JsonReader.GetDateTimeOffset",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    reader,
+                    "GetDateTimeOffset",
+                    dateTimeOffsetType,
+                    compilation,
+                    []
+                )
+            )
+            ?? Check(
                 "Utf8JsonReader(ReadOnlySpan<byte>)",
                 SparseStjConstructorCapabilityProbe.HasAccessibleConstructorWithOptionalSuffix(
                     reader,
@@ -298,6 +435,94 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
                     voidType,
                     compilation,
                     [intType]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(uint)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_UInt32)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(long)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_Int64)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(ulong)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_UInt64)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(float)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_Single)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(double)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_Double)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteNumberValue(decimal)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteNumberValue",
+                    voidType,
+                    compilation,
+                    [compilation.GetSpecialType(SpecialType.System_Decimal)]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteStringValue(DateTime)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteStringValue",
+                    voidType,
+                    compilation,
+                    [dateTimeType]
+                )
+            )
+            ?? Check(
+                "Utf8JsonWriter.WriteStringValue(DateTimeOffset)",
+                SparseStjCapabilityDetector.HasInstanceMethod(
+                    writer,
+                    "WriteStringValue",
+                    voidType,
+                    compilation,
+                    [dateTimeOffsetType]
+                )
+            )
+            ?? Check(
+                "JsonException(string, Exception)",
+                SparseStjCapabilityDetector.HasConstructor(
+                    exceptionType,
+                    compilation,
+                    [stringType, systemExceptionType]
                 )
             )
             ?? Check(

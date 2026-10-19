@@ -111,7 +111,15 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         // runtime vocabulary.
         code.AppendLineAt(
             5,
-            "value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));"
+            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;"
+        );
+        code.AppendLineAt(
+            5,
+            "else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;"
+        );
+        code.AppendLineAt(
+            5,
+            "else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));"
         );
         code.AppendLineAt(4, "}");
         code.AppendLineAt(4, "else");
@@ -157,10 +165,11 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.AppendLineAt(3, "if (value.Value is null) writer.WriteNullValue();");
         code.AppendLineAt(
             3,
-            "else global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueTypeTypeInfo(options));"
+            "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueTypeTypeInfo(options));"
         );
         code.AppendLineAt(3, "writer.WriteEndObject();");
         code.AppendLineAt(2, "}");
+        SparseJsonScalarShapes.AppendScalarHelpers(code, 2, "TScalar");
         AppendValueTypeTypeInfo(code);
         code.AppendLineAt(1, "}");
         code.AppendLine();
