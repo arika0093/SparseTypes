@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SparseTypes.Generator;
 
 namespace SparseTypes.Tests.Generation;
@@ -209,6 +210,110 @@ public sealed class GeneratedOnceDriverTests
     }
 
     [Test]
+    public void ScalarModelBetweenComparesWithoutFragmentProjection()
+    {
+        var probe = Run(
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }
+        );
+        var methods = probe
+            .Sources()
+            .Values.SelectMany(source =>
+                CSharpSyntaxTree
+                    .ParseText(source)
+                    .GetRoot()
+                    .DescendantNodes()
+                    .OfType<MethodDeclarationSyntax>()
+            )
+            .Where(declaration =>
+                declaration.Identifier.ValueText == "Between"
+                && declaration.ParameterList.Parameters.Count == 2
+                && declaration.ParameterList.Parameters.All(parameter =>
+                    parameter.Type?.ToString().EndsWith("ScalarModel", StringComparison.Ordinal)
+                        is true
+                )
+            )
+            .Where(declaration =>
+                declaration.Body is not null
+                && declaration.Body.ToString().Contains("before.Label", StringComparison.Ordinal)
+            )
+            .ToArray();
+        methods.ShouldNotBeEmpty();
+        foreach (var method in methods)
+        {
+            var body = method.Body!.ToString();
+            body.ShouldContain("after.Label");
+            body.ShouldNotContain("Fragment.From");
+        }
+    }
+
+    [Test]
+    public void SetTraversalAndChildAcceptanceReuseGeneratedTransitions()
+    {
+        var probe = Run(
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["Transitions.cs"] = """
+                using SparseTypes;
+                using System.Collections.Generic;
+                namespace OnceProbe
+                {
+                    [SparseModel]
+                    public partial class LabelsModel
+                    {
+                        [SparseMerge(MergeMode.SetUnion)]
+                        public ISet<string> Labels { get; set; } = new HashSet<string>();
+                    }
+
+                    [SparseModel]
+                    public partial class ChildModel
+                    {
+                        public string Name { get; set; } = "";
+                    }
+
+                    [SparseModel]
+                    public partial class ParentModel
+                    {
+                        public ChildModel Child { get; set; } = new();
+                    }
+                }
+                """,
+            }
+        );
+        probe.SpfDiagnostics().ShouldBeEmpty();
+        var sources = probe.Sources();
+        var traversalSource = sources.Values.Single(source =>
+            source.Contains("__SparseCollectInto", StringComparison.Ordinal)
+            && source.Contains("__sparse_set_transition_", StringComparison.Ordinal)
+        );
+        traversalSource.ShouldContain("var __sparse_set_transition_0 = Labels;");
+        traversalSource.ShouldContain("if (__sparse_set_transition_0.IsChanged)");
+        traversalSource.ShouldNotContain("if (Labels.IsChanged)");
+
+        var childSources = sources.Values.Where(source =>
+            source.Contains(".TryAcceptChildDraft<TChild>(", StringComparison.Ordinal)
+        );
+        childSources.ShouldNotBeEmpty();
+        foreach (var childSource in childSources)
+        {
+            var acceptStart = childSource.IndexOf(
+                ".TryAcceptChildDraft<TChild>(",
+                StringComparison.Ordinal
+            );
+            var preflightStart = childSource.IndexOf(
+                ".TryPreflightChildDraft<TChild>(",
+                acceptStart,
+                StringComparison.Ordinal
+            );
+            acceptStart.ShouldBeGreaterThanOrEqualTo(0);
+            preflightStart.ShouldBeGreaterThan(acceptStart);
+            childSource
+                .Substring(acceptStart, preflightStart - acceptStart)
+                .Split("fork.CreateChangeSet()", StringSplitOptions.None)
+                .Length.ShouldBe(2);
+        }
+    }
+
+    [Test]
     public void ManyModelsShareExactlyOneDefinitionPerHelper()
     {
         var probe = Run(
@@ -230,6 +335,8 @@ public sealed class GeneratedOnceDriverTests
         CountTypeDefinitions(sources, "class SparseReadOnlyDictionaryAdapter<").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseReadOnlyDictionaryEntriesAdapter").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseRemovalIndex<").ShouldBe(1);
+        CountTypeDefinitions(sources, "class ChangePayloadEndpointJsonConverter<").ShouldBe(1);
+        CountTypeDefinitions(sources, "class ChangePayloadItemKindJsonConverter").ShouldBe(1);
         CountTypeDefinitions(sources, "class EditSessionCore<").ShouldBe(2);
         sources
             .Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal))
@@ -514,9 +621,7 @@ public sealed class GeneratedOnceDriverTests
         consumer.GetType("ConsumerNs.Order+ChangeSet").ShouldNotBeNull();
         // Generated-Once implementations never escape through public API.
         consumer.GetType("SparseTypes.Generated.SparseCloneKernels").ShouldNotBeNull();
-        consumer
-            .GetType("SparseTypes.Generated.SparseCloneKernels")!
-            .IsNotPublic.ShouldBeTrue();
+        consumer.GetType("SparseTypes.Generated.SparseCloneKernels")!.IsNotPublic.ShouldBeTrue();
         consumer
             .GetExportedTypes()
             .Where(static type =>

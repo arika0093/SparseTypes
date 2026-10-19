@@ -40,7 +40,9 @@ internal static class SparseChangeSetTraversalEmitter
         SharedIndentedBuilder code,
         string rootModel,
         SparsePathTraversalContracts traversal,
-        SparseOperationTarget? target
+        SparseOperationTarget? target,
+        string recordType,
+        string kindType
     )
     {
         var scratch = ScratchListType(traversal);
@@ -49,9 +51,13 @@ internal static class SparseChangeSetTraversalEmitter
         code.AppendLineAt(
             3,
             self
-                + "__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => changes.Add(new ChangeInfo("
+                + "__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => changes.Add(new "
+                + recordType
+                + "("
                 + traversal.PathFromSegments("typeof(" + rootModel + ")", "__sparse_scratch")
-                + ", __sparse_before, __sparse_after, (ChangeKind)__sparse_kind)), __sparse_scratch);"
+                + ", __sparse_before, __sparse_after, ("
+                + kindType
+                + ")__sparse_kind)), __sparse_scratch);"
         );
     }
 
@@ -109,11 +115,19 @@ internal static class SparseChangeSetTraversalEmitter
         foreach (var member in members)
         {
             var property = SparseNaming.EscapeIdentifier(propertyNames[member.Id]);
+            var setTransition = "__sparse_set_transition_" + member.Id;
             var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
                 member.Property.Name,
                 true
             );
-            var changed = IsNested(member) ? "!" + property + ".IsEmpty" : property + ".IsChanged";
+            var changed = property + ".IsChanged";
+            if (IsNested(member))
+                changed = "!" + property + ".IsEmpty";
+            if (IsSet(member))
+            {
+                changed = setTransition + ".IsChanged";
+                code.AppendLineAt(3, "var " + setTransition + " = " + property + ";");
+            }
             code.AppendLineAt(3, "if (" + changed + ")");
             code.AppendLineAt(3, "{");
             code.IndentOffset++;
@@ -131,7 +145,7 @@ internal static class SparseChangeSetTraversalEmitter
             }
             else if (IsSet(member))
             {
-                AppendSetCollect(code, member, property, literal, optionalObject, traversal);
+                AppendSetCollect(code, member, setTransition, literal, optionalObject, traversal);
             }
             else
             {
@@ -470,7 +484,7 @@ internal static class SparseChangeSetTraversalEmitter
     private static void AppendSetCollect(
         SharedIndentedBuilder code,
         SparseMemberModel member,
-        string property,
+        string transition,
         string literal,
         string optionalObject,
         SparsePathTraversalContracts traversal
@@ -478,13 +492,8 @@ internal static class SparseChangeSetTraversalEmitter
     {
         // Set-element membership deltas at audit granularity, matching the
         // legacy enumeration.
-        var transition = "__sparse_set_transition_" + member.Id;
         var added = "__sparse_set_added_" + member.Id;
         var removed = "__sparse_set_removed_" + member.Id;
-        code.AppendLineAt(3, "var " + transition + " = " + property + ";");
-        code.AppendLineAt(3, "if (" + transition + ".IsChanged)");
-        code.AppendLineAt(3, "{");
-        code.IndentOffset++;
         code.AppendLineAt(
             3,
             "if (!"
@@ -541,8 +550,6 @@ internal static class SparseChangeSetTraversalEmitter
         code.IndentOffset--;
         code.AppendLineAt(3, "}");
         AppendPop(code);
-        code.IndentOffset--;
-        code.AppendLineAt(3, "}");
         code.IndentOffset--;
         code.AppendLineAt(3, "}");
     }
