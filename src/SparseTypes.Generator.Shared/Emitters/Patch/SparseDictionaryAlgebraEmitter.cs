@@ -102,6 +102,10 @@ internal static class SparseDictionaryAlgebraEmitter
         code.AppendLineAt(4, "}");
         code.AppendLineAt(
             4,
+            "if (" + (split is null ? "this" : "self") + ".IsEmpty && next.IsEmpty) return result;"
+        );
+        code.AppendLineAt(
+            4,
             "var removed = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
