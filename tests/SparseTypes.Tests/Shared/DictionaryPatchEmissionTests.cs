@@ -171,7 +171,7 @@ public sealed class DictionaryPatchEmissionTests
         );
         // Next removals still drop composed set entries.
         text.ShouldContain(
-            "if (next.__removed is not null) foreach (var k in next.__removed) set.Remove(k);"
+            "if (next.__removed is not null && set is not null) foreach (var k in next.__removed) set.Remove(k);"
         );
     }
 

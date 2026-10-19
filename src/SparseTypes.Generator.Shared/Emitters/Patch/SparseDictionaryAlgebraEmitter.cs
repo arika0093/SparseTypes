@@ -106,46 +106,56 @@ internal static class SparseDictionaryAlgebraEmitter
         );
         code.AppendLineAt(
             4,
-            "var removed = new global::System.Collections.Generic.HashSet<"
+            "global::System.Collections.Generic.HashSet<" + keyType + ">? removed = null;"
+        );
+        code.AppendLineAt(
+            4,
+            "if (__removed is not null && __removed.Count > 0) removed = new global::System.Collections.Generic.HashSet<"
                 + keyType
-                + ">("
+                + ">(__removed, "
                 + comparer
                 + ");"
         );
         code.AppendLineAt(
             4,
-            "if (__removed is not null) foreach (var k in __removed) removed.Add(k);"
+            "if (next.__removed is not null && next.__removed.Count > 0) { removed ??= new global::System.Collections.Generic.HashSet<"
+                + keyType
+                + ">("
+                + comparer
+                + "); foreach (var k in next.__removed) removed.Add(k); }"
         );
         code.AppendLineAt(
             4,
-            "if (next.__removed is not null) foreach (var k in next.__removed) removed.Add(k);"
+            "global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + valueType
+                + ">? set = null;"
         );
         code.AppendLineAt(
             4,
-            "var set = new global::System.Collections.Generic.Dictionary<"
+            "if (__set is not null && __set.Count > 0) set = new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + valueType
+                + ">(__set, "
+                + comparer
+                + ");"
+        );
+        code.AppendLineAt(
+            4,
+            "if (next.__set is not null && next.__set.Count > 0) { set ??= new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
                 + valueType
                 + ">("
                 + comparer
-                + ");"
-        );
-        code.AppendLineAt(
-            4,
-            "if (__set is not null) foreach (var kv in __set) set[kv.Key] = kv.Value;"
-        );
-        // Set overrides Remove under the shared comparer: the loop below
-        // already drops every next-set key from the removal set, so no second
-        // scan of first.__removed is needed. The removal set, the merged set,
-        // and next.__set are all built with the same comparer expression.
-        code.AppendLineAt(
-            4,
-            "if (next.__set is not null) foreach (var kv in next.__set) { set[kv.Key] = kv.Value; removed.Remove(kv.Key); }"
+                + "); foreach (var kv in next.__set) { set[kv.Key] = kv.Value; removed?.Remove(kv.Key); } }"
         );
         // Drop keys added by this patch when the next patch removes them.
         code.AppendLineAt(
             4,
-            "if (next.__removed is not null) foreach (var k in next.__removed) set.Remove(k);"
+            "if (next.__removed is not null && set is not null) foreach (var k in next.__removed) set.Remove(k);"
         );
         if (hasPatch)
         {
@@ -184,7 +194,7 @@ internal static class SparseDictionaryAlgebraEmitter
             );
             code.AppendLineAt(
                 4,
-                "if (next.__edited is not null) foreach (var kv in next.__edited) { if (kv.Value.__SparseIsEmpty()) continue; if (set.TryGetValue(kv.Key, out var setBase)) { var __folded = kv.Value.Apply("
+                "if (next.__edited is not null) foreach (var kv in next.__edited) { if (kv.Value.__SparseIsEmpty()) continue; if (set is not null && set.TryGetValue(kv.Key, out var setBase)) { var __folded = kv.Value.Apply("
                     + runtime
                     + "Optional<"
                     + SparseKeyedCollectionEmitter.ValueFragmentType(member)
@@ -207,34 +217,53 @@ internal static class SparseDictionaryAlgebraEmitter
         {
             code.AppendLineAt(
                 4,
-                "var edited = new global::System.Collections.Generic.Dictionary<"
+                "global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
                     + valueType
-                    + ">("
+                    + ">? edited = null;"
+            );
+            code.AppendLineAt(
+                4,
+                "if (__edited is not null && __edited.Count > 0) edited = new global::System.Collections.Generic.Dictionary<"
+                    + keyType
+                    + ", "
+                    + valueType
+                    + ">(__edited, "
                     + comparer
                     + ");"
             );
             code.AppendLineAt(
                 4,
-                "if (__edited is not null) foreach (var kv in __edited) edited[kv.Key] = kv.Value;"
+                "if (next.__edited is not null && next.__edited.Count > 0) { edited ??= new global::System.Collections.Generic.Dictionary<"
+                    + keyType
+                    + ", "
+                    + valueType
+                    + ">("
+                    + comparer
+                    + "); foreach (var kv in next.__edited) edited[kv.Key] = kv.Value; }"
             );
             code.AppendLineAt(
                 4,
-                "if (next.__edited is not null) foreach (var kv in next.__edited) edited[kv.Key] = kv.Value;"
+                "if (removed is not null) foreach (var k in removed) { edited?.Remove(k); set?.Remove(k); }"
             );
-            code.AppendLineAt(4, "foreach (var k in removed) { edited.Remove(k); set.Remove(k); }");
-            code.AppendLineAt(4, "foreach (var k in set.Keys) edited.Remove(k);");
-            code.AppendLineAt(4, "if (edited.Count > 0) result.__edited = edited;");
+            code.AppendLineAt(
+                4,
+                "if (set is not null && edited is not null) foreach (var k in set.Keys) edited.Remove(k);"
+            );
+            code.AppendLineAt(
+                4,
+                "if (edited is not null && edited.Count > 0) result.__edited = edited;"
+            );
         }
 
         code.AppendLineAt(
             4,
-            "if (removed.Count > 0) result.__removed = new global::System.Collections.Generic.List<"
+            "if (removed is not null && removed.Count > 0) result.__removed = new global::System.Collections.Generic.List<"
                 + keyType
                 + ">(removed);"
         );
-        code.AppendLineAt(4, "if (set.Count > 0) result.__set = set;");
+        code.AppendLineAt(4, "if (set is not null && set.Count > 0) result.__set = set;");
         code.AppendLineAt(4, "return result;");
         code.AppendLineAt(3, "}");
         if (split is null)
