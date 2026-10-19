@@ -9,12 +9,25 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetModelBetweenEmitter
 {
     internal static bool CanCompareDirectly(ImmutableArray<SparseMemberModel> members) =>
-        members.All(static member =>
-            IsScalar(member)
-            && !IsSet(member)
-            && !SparseChangeSetTransitionEmitter.NeedsSnapshot(member)
-            && member.Property.Type.PocoCloneHelperName is null
-        );
+        members.All(CanCompareMemberDirectly);
+
+    private static bool CanCompareMemberDirectly(SparseMemberModel member)
+    {
+        if (member.Property.Type.PocoCloneHelperName is not null)
+        {
+            return false;
+        }
+
+        if (IsSet(member) || member.Collection.IsScalarSequence)
+        {
+            return member.ChildModel is null
+                && member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported
+                && !member.Collection.ElementType.IsFragmentModel
+                && member.Collection.ElementType.PocoCloneHelperName is null;
+        }
+
+        return IsScalar(member) && !SparseChangeSetTransitionEmitter.NeedsSnapshot(member);
+    }
 
     internal static void AppendBody(
         SharedIndentedBuilder code,
@@ -31,6 +44,10 @@ internal static class SparseChangeSetModelBetweenEmitter
                 "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))"
             );
             code.AppendLineAt(4, "throw new global::System.ArgumentNullException(\"value\");");
+            code.AppendLineAt(
+                3,
+                "if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;"
+            );
         }
         foreach (var side in new[] { "before", "after" })
         {
@@ -55,8 +72,9 @@ internal static class SparseChangeSetModelBetweenEmitter
         }
         var conditions = new List<string>();
         var args = new List<string> { "false", "default", "default" };
-        foreach (var id in members.Select(static member => member.Id))
+        foreach (var member in members)
         {
+            var id = member.Id;
             code.AppendLineAt(
                 3,
                 "bool __h"
@@ -70,8 +88,15 @@ internal static class SparseChangeSetModelBetweenEmitter
                     + ");"
             );
             conditions.Add("!__h" + id);
-            args.Add("__h" + id + " ? __before" + id + " : default");
-            args.Add("__h" + id + " ? __after" + id + " : default");
+            var beforeValue = "__before" + id;
+            var afterValue = "__after" + id;
+            if (SparseChangeSetTransitionEmitter.NeedsSnapshot(member))
+            {
+                beforeValue = "__SparseSnapshot_" + id + "(" + beforeValue + ")";
+                afterValue = "__SparseSnapshot_" + id + "(" + afterValue + ")";
+            }
+            args.Add("__h" + id + " ? " + beforeValue + " : default");
+            args.Add("__h" + id + " ? " + afterValue + " : default");
             args.Add("__h" + id);
         }
         if (conditions.Count > 0)

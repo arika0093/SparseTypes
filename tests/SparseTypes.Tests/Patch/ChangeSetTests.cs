@@ -54,6 +54,35 @@ public sealed class ChangeSetTests
     }
 
     [Test]
+    public void ModelChangeSetSnapshotsOnlyChangedCollectionMembers()
+    {
+        var beforeValues = new HashSet<string>(["a"], StringComparer.Ordinal);
+        var afterValues = new HashSet<string>(["a", "b"], StringComparer.Ordinal);
+        var changes = SetSettings.ChangeSet.Between(
+            new SetSettings { Values = beforeValues },
+            new SetSettings { Values = afterValues }
+        );
+
+        beforeValues.Add("changed later");
+        afterValues.Add("changed later");
+
+        changes.Values.Before.Value!.SetEquals(["a"]).ShouldBeTrue();
+        changes.Values.After.Value!.SetEquals(["a", "b"]).ShouldBeTrue();
+
+        var beforeSequence = new List<int> { 1, 2 };
+        var afterSequence = new List<int> { 3, 4 };
+        var sequenceChanges = StrategySettings.ChangeSet.Between(
+            new StrategySettings { Values = beforeSequence },
+            new StrategySettings { Values = afterSequence }
+        );
+        beforeSequence.Add(9);
+        afterSequence.Add(9);
+
+        sequenceChanges.Values.Before.Value.ShouldBe([1, 2]);
+        sequenceChanges.Values.After.Value.ShouldBe([3, 4]);
+    }
+
+    [Test]
     public void ScalarSetRemoveAndNullTransitions()
     {
         var before = Present(MakeSettings("Alice", 1));
