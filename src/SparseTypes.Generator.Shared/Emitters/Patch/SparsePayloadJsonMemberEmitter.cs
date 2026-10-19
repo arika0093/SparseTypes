@@ -15,6 +15,22 @@ internal static class SparsePayloadJsonMemberEmitter
         var isNested = SparseChangeSetBasicsEmitter.IsNested(member);
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
         var isDict = SparseChangeSetBasicsEmitter.IsDict(member);
+        var valueType = SparseChangeSetBasicsEmitter.FragmentValueType(member);
+        SparseJsonCollectionModel? valueCollection = null;
+        var isValueCollection = false;
+        if (!isNested)
+        {
+            isValueCollection = SparseJsonCollectionShapes.TryResolve(
+                member,
+                valueType,
+                out valueCollection
+            );
+            isValueCollection = isValueCollection && valueCollection is not null;
+        }
+        var readCodec = isValueCollection
+            ? ", ReadCollection" + member.Id + ", WriteCollection" + member.Id
+            : ", null, null";
+        var writeCodec = isValueCollection ? ", WriteCollection" + member.Id : ", null";
         code.AppendLineAt(
             2,
             "private static "
@@ -71,24 +87,29 @@ internal static class SparsePayloadJsonMemberEmitter
         }
         else if (isKeyed || isDict)
         {
-            var valueType = SparseChangeSetBasicsEmitter.FragmentValueType(member);
             code.AppendLineAt(
                 4,
                 "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 4,
                 "else if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 4,
                 "else if (name == \"after\") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 4,
@@ -128,24 +149,29 @@ internal static class SparsePayloadJsonMemberEmitter
         }
         else
         {
-            var valueType = SparseChangeSetBasicsEmitter.FragmentValueType(member);
             code.AppendLineAt(
                 4,
                 "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 4,
                 "else if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 4,
                 "else if (name == \"after\") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<"
                     + valueType
-                    + ">(ref reader, options, null, null); }"
+                    + ">(ref reader, options"
+                    + readCodec
+                    + "); }"
             );
             code.AppendLineAt(4, "else reader.Skip();");
         }
@@ -187,15 +213,21 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             code.AppendLineAt(
                 3,
-                "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options, null); }"
+                "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options"
+                    + writeCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 3,
-                "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options, null); }"
+                "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options"
+                    + writeCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 3,
-                "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options, null); }"
+                "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options"
+                    + writeCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 3,
@@ -235,15 +267,21 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             code.AppendLineAt(
                 3,
-                "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options, null); }"
+                "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options"
+                    + writeCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 3,
-                "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options, null); }"
+                "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options"
+                    + writeCodec
+                    + "); }"
             );
             code.AppendLineAt(
                 3,
-                "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options, null); }"
+                "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options"
+                    + writeCodec
+                    + "); }"
             );
         }
 
@@ -251,6 +289,15 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine();
         if (isNested)
             AppendChildEndpoint(code, context, member);
+        if (isValueCollection && valueCollection is not null)
+            SparseJsonCollectionShapes.AppendCollectionCodec(
+                code,
+                valueType,
+                valueCollection,
+                "ReadCollection" + member.Id,
+                "WriteCollection" + member.Id,
+                "GetValueInfo"
+            );
         if (isKeyed || isDict)
             AppendItems(code, context, member);
     }

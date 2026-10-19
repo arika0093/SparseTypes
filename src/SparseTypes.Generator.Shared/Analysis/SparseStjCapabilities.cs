@@ -49,7 +49,8 @@ internal readonly record struct SparseStjCapabilities(
         && HasUtf8JsonReaderWriter
         && HasJsonTypeInfo;
 
-    /// <summary>Whether the trim-safe per-model payload JSON resolver can be emitted.</summary>
+    /// <summary>Whether trim-safe handwritten JSON codecs can be emitted.</summary>
+    /// <remarks>Covers the per-model payload resolver and the fragment fast paths.</remarks>
     public bool SupportsPayloadJsonResolver => SupportsV1Wire && HasPayloadJsonResolver;
 
     /// <summary>Names the v1-required surface missing from this snapshot.</summary>

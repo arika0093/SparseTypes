@@ -1392,6 +1392,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch.ScoresPatch op_Implicit(System.Collections.Generic.Dictionary<string, int> value) { }
             }
         }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_14E9C38F.Core_14E9C38F ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_14E9C38F.Root_14E9C38F ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_14E9C38F.Core_14E9C38F? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_14E9C38F.Root_14E9C38F? value, System.Text.Json.JsonSerializerOptions options) { }
+        }
         public sealed class ReadOnlyView
         {
             public ReadOnlyView(SparseTypes.GeneratedApiFixtures.CatalogDictionaries model) { }
@@ -1581,6 +1598,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public bool Succeeded { get; }
                 public System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }
             }
+        }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_F16D2821.Core_F16D2821 ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_F16D2821.Root_F16D2821 ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_F16D2821.Core_F16D2821? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_F16D2821.Root_F16D2821? value, System.Text.Json.JsonSerializerOptions options) { }
         }
         public sealed class ReadOnlyView
         {
@@ -1774,6 +1808,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public bool Succeeded { get; }
                 public System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }
             }
+        }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_3E1875D0.Core_3E1875D0 ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_3E1875D0.Root_3E1875D0 ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_3E1875D0.Core_3E1875D0? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_3E1875D0.Root_3E1875D0? value, System.Text.Json.JsonSerializerOptions options) { }
         }
         public sealed class ReadOnlyView
         {
@@ -2023,6 +2074,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch.ItemsPatch op_Implicit(System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> value) { }
             }
         }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_1D892D2C.Core_1D892D2C ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_1D892D2C.Root_1D892D2C ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_1D892D2C.Core_1D892D2C? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_1D892D2C.Root_1D892D2C? value, System.Text.Json.JsonSerializerOptions options) { }
+        }
         public sealed class ReadOnlyView
         {
             public ReadOnlyView(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster model) { }
@@ -2255,6 +2323,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }
             }
         }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_2459EB7C.Core_2459EB7C ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_2459EB7C.Root_2459EB7C ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_2459EB7C.Core_2459EB7C? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_2459EB7C.Root_2459EB7C? value, System.Text.Json.JsonSerializerOptions options) { }
+        }
         public sealed class ReadOnlyView
         {
             public ReadOnlyView(SparseTypes.GeneratedApiFixtures.CatalogNested model) { }
@@ -2466,6 +2551,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public bool Succeeded { get; }
                 public System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }
             }
+        }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_C060E532.Core_C060E532 ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_C060E532.Root_C060E532 ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_C060E532.Core_C060E532? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_C060E532.Root_C060E532? value, System.Text.Json.JsonSerializerOptions options) { }
         }
         public sealed class ReadOnlyView
         {
@@ -2680,6 +2782,23 @@ namespace SparseTypes.GeneratedApiFixtures
                 public bool Succeeded { get; }
                 public System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }
             }
+        }
+        public sealed class PayloadJson : System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+        {
+            public PayloadJson() { }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo<SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload> ChangePayload { get; }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.PayloadJson Default { get; }
+            public System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type, System.Text.Json.JsonSerializerOptions options) { }
+        }
+        public sealed class PayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload>
+        {
+            public PayloadJsonConverter() { }
+            public override SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+            public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_FC484E03.Core_FC484E03 ReadCore(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static SparseTypes.Generated.@__Internal_FC484E03.Root_FC484E03 ReadRoot(ref System.Text.Json.Utf8JsonReader reader, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteCore(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_FC484E03.Core_FC484E03? value, System.Text.Json.JsonSerializerOptions options) { }
+            public static void WriteRoot(System.Text.Json.Utf8JsonWriter writer, SparseTypes.Generated.@__Internal_FC484E03.Root_FC484E03? value, System.Text.Json.JsonSerializerOptions options) { }
         }
         public sealed class ReadOnlyView
         {

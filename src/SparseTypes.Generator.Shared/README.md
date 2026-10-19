@@ -129,9 +129,11 @@ simple names across models.
 Each model with JSON enabled also emits a nested `PayloadJson` resolver and a
 `PayloadJsonConverter`. The resolver supplies trim-safe `JsonTypeInfo` metadata
 for the payload envelope without a source-generated context, so primitive
-endpoint values need no extra registration. Custom value types still resolve
+endpoint values need no extra registration. Custom value shapes still resolve
 through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver
-with a source-generated context for those types.
+with a source-generated context declared next to the models for those types. Only
+custom shapes need entries; primitives, enums, and collections are covered by
+generated fast paths.
 
 `SparseFragmentEmitter` retains the standalone `Fragment`/`Patch` API vocabulary.
 It does not add product-specific model extension APIs unless the caller supplies

@@ -8,19 +8,13 @@ namespace SparseTypes.NativeAotSmoke;
 public sealed class AotJsonTests
 {
     private static JsonSerializerOptions PayloadCollectionOptions() =>
-        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, AotSerializerContext.Default) };
-
-    private static JsonSerializerOptions PayloadRootEnumOptions() =>
-        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadRoot.PayloadJson.Default, AotSerializerContext.Default) };
+        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) };
 
     private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(JsonSerializerOptions options) =>
         (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
-
-    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadRoot.ChangePayload> PayloadRootTypeInfo(JsonSerializerOptions options) =>
-        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadRoot.ChangePayload>)options.GetTypeInfo(typeof(PayloadRoot.ChangePayload));
     private static JsonSerializerOptions AotOptions()
     {
-        var options = new JsonSerializerOptions { TypeInfoResolver = AotSerializerContext.Default };
+        var options = new JsonSerializerOptions();
         options.Converters.Add(AotWidget.Fragment.JsonConverter);
         return options;
     }
@@ -262,14 +256,12 @@ public sealed class AotJsonTests
 
         var before = EnumState(AotOrderStatus.Open);
         var after = EnumState(AotOrderStatus.Closed);
-        var enumOptions = PayloadRootEnumOptions();
-        var enumTypeInfo = PayloadRootTypeInfo(enumOptions);
         var json = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(before, after).ToPayload(),
-            enumTypeInfo
+            PayloadRoot.PayloadJson.Default.ChangePayload
         );
         var restored = JsonSerializer
-            .Deserialize(json, enumTypeInfo)!
+            .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
             .ToChangeSet();
         await Assert
             .That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty)

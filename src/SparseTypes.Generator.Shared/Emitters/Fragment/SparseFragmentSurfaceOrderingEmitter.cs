@@ -73,7 +73,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     isStandalone: true,
                     converterClassName: jsonConverterSimpleName,
                     converterAccessibility: "internal",
-                    sealedConverter: false
+                    sealedConverter: false,
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
                 );
                 implementationBuilder.AppendLine();
             }
@@ -82,7 +83,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 SparseFragmentJsonEmitter.AppendStandaloneFragmentJson(
                     code,
                     members,
-                    runtime.OptionalType
+                    runtime.OptionalType,
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
                 );
             }
         }
@@ -149,7 +151,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     isStandalone: true,
                     converterClassName: jsonConverterSimpleName,
                     converterAccessibility: "internal",
-                    sealedConverter: false
+                    sealedConverter: false,
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
                 );
                 implementationBuilder.AppendLine();
             }
@@ -158,7 +161,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 SparseFragmentJsonEmitter.AppendStandaloneFragmentJson(
                     code,
                     members,
-                    runtime.OptionalType
+                    runtime.OptionalType,
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
                 );
             }
         }

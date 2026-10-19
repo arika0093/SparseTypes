@@ -17,7 +17,8 @@ internal static class SparseFragmentJsonEmitter
     public static void AppendStandaloneFragmentJson(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        string optional
+        string optional,
+        bool emitFastPaths = false
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
@@ -30,7 +31,7 @@ internal static class SparseFragmentJsonEmitter
             "public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter { get; } = new FragmentJsonConverter();"
         );
         code.AppendLine();
-        AppendConverter(code, members, optional, isStandalone: true);
+        AppendConverter(code, members, optional, isStandalone: true, emitFastPaths: emitFastPaths);
         code.AppendLine();
     }
 
@@ -76,7 +77,8 @@ internal static class SparseFragmentJsonEmitter
         bool isStandalone,
         string converterClassName = "FragmentJsonConverter",
         string converterAccessibility = "private",
-        bool sealedConverter = true
+        bool sealedConverter = true,
+        bool emitFastPaths = false
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
@@ -214,16 +216,33 @@ internal static class SparseFragmentJsonEmitter
                 }
                 if (member.ChildModel is null)
                 {
+                    var memberValueType = FragmentValueType(member);
+                    var readExpression =
+                        "global::System.Text.Json.JsonSerializer.Deserialize(ref reader, GetMemberTypeInfo<"
+                        + memberValueType
+                        + ">(options))";
+                    if (emitFastPaths)
+                    {
+                        SparseJsonCollectionModel? memberCollection = null;
+                        if (
+                            SparseJsonCollectionShapes.TryResolve(
+                                member,
+                                memberValueType,
+                                out memberCollection
+                            ) && memberCollection is not null
+                        )
+                            readExpression = "ReadCollection" + member.Id + "(ref reader, options)";
+                        else
+                            readExpression =
+                                "ReadMemberValue<" + memberValueType + ">(ref reader, options)";
+                    }
+
                     code.AppendIndent(indexedDispatch ? 8 : 6)
                         .Append("builder.")
                         .Append(property)
                         .Append(" = " + optional + "<")
-                        .Append(FragmentValueType(member))
-                        .Append(
-                            ">.Present(global::System.Text.Json.JsonSerializer.Deserialize(ref reader, GetMemberTypeInfo<"
-                        )
-                        .Append(FragmentValueType(member))
-                        .AppendLine(">(options)));");
+                        .Append(memberValueType)
+                        .AppendLine(">.Present(" + readExpression + ");");
                 }
                 else
                 {
@@ -359,14 +378,45 @@ internal static class SparseFragmentJsonEmitter
 
             if (member.ChildModel is null)
             {
-                code.AppendIndent(conditionalIndent)
-                    .Append("global::System.Text.Json.JsonSerializer.Serialize<")
-                    .Append(FragmentValueType(member))
-                    .Append(">(writer, value.")
-                    .Append(property)
-                    .Append(".Value!, GetMemberTypeInfo<")
-                    .Append(FragmentValueType(member))
-                    .AppendLine(">(options));");
+                var writeValueType = FragmentValueType(member);
+                SparseJsonCollectionModel? writeCollection = null;
+                var isWriteCollection =
+                    emitFastPaths
+                    && SparseJsonCollectionShapes.TryResolve(
+                        member,
+                        writeValueType,
+                        out writeCollection
+                    )
+                    && writeCollection is not null;
+                if (isWriteCollection)
+                {
+                    code.AppendIndent(conditionalIndent)
+                        .Append("WriteCollection")
+                        .Append(member.Id.ToString())
+                        .Append("(writer, value.")
+                        .Append(property)
+                        .AppendLine(".Value!, options);");
+                }
+                else if (emitFastPaths)
+                {
+                    code.AppendIndent(conditionalIndent)
+                        .Append("WriteMemberValue<")
+                        .Append(writeValueType)
+                        .Append(">(writer, value.")
+                        .Append(property)
+                        .AppendLine(".Value!, options);");
+                }
+                else
+                {
+                    code.AppendIndent(conditionalIndent)
+                        .Append("global::System.Text.Json.JsonSerializer.Serialize<")
+                        .Append(writeValueType)
+                        .Append(">(writer, value.")
+                        .Append(property)
+                        .Append(".Value!, GetMemberTypeInfo<")
+                        .Append(writeValueType)
+                        .AppendLine(">(options));");
+                }
             }
             else
             {
@@ -395,6 +445,8 @@ internal static class SparseFragmentJsonEmitter
         code.AppendLineAt(4, "writer.WriteEndObject();");
         code.AppendLineAt(3, "}");
         code.AppendLine();
+        if (emitFastPaths)
+            SparseFragmentJsonFastPathEmitter.AppendFastPaths(code, members);
         code.AppendLineAt(
             3,
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember> GetMemberTypeInfo<TMember>(global::System.Text.Json.JsonSerializerOptions options)"
