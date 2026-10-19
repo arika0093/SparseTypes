@@ -389,8 +389,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 .Append(optionalType)
                 .Append("<")
                 .Append(valueType)
-                .AppendLine("> right)");
-            code.AppendLineAt(2, "{");
+                .Append("> right) => ");
             string equality;
             if (member.Property.IsTemporaryKey)
             {
@@ -435,23 +434,19 @@ internal static class SparseFragmentSurfaceOrderingEmitter
 
             if (optionalEqualityType is null)
             {
-                code.AppendLineAt(3, "if (!left.IsPresent) return !right.IsPresent;");
-                code.AppendLineAt(3, "if (!right.IsPresent) return false;");
-                code.AppendLineAt(3, "return " + equality + ";");
+                code.AppendLine(
+                    "!left.IsPresent ? !right.IsPresent : right.IsPresent && (" + equality + ");"
+                );
             }
             else
             {
-                code.AppendLineAt(
-                    3,
-                    "return "
-                        + optionalEqualityType
+                code.AppendLine(
+                    optionalEqualityType
                         + ".AreEqual(left, right, static (__left, __right) => "
                         + equality
                         + ");"
                 );
             }
-
-            code.AppendLineAt(2, "}");
         }
 
         code.AppendLine();

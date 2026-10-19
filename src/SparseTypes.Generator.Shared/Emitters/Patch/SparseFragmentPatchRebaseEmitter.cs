@@ -752,6 +752,70 @@ internal static class SparseFragmentPatchRebaseEmitter
             code.AppendLineAt(7, "result." + field + " = local." + field + ";");
             code.AppendLineAt(6, "}");
             code.AppendLineAt(5, "}");
+            var scalarRebaseType = dialect.TransitionContracts?.ScalarRebaseType;
+            if (scalarRebaseType is { Length: > 0 })
+            {
+                // Shared three-way decision; the trailing no-op guard preserves
+                // the historical rule that a value-identical local Set reports
+                // no conflict.
+                code.AppendLineAt(
+                    5,
+                    "else if ("
+                        + scalarRebaseType
+                        + ".TryResolve("
+                        + baseMember
+                        + ", "
+                        + desiredMember
+                        + ", "
+                        + currentMember
+                        + ", __mode"
+                        + member.Id
+                        + ", "
+                        + modeType
+                        + ".PreferIncoming, "
+                        + modeType
+                        + ".PreferCurrent, "
+                        + equality
+                        + ", out _, out var __scalarConflict"
+                        + member.Id
+                        + "))"
+                );
+                code.AppendLineAt(5, "{");
+                code.AppendLineAt(6, "result." + field + " = local." + field + ";");
+                code.AppendLineAt(5, "}");
+                code.AppendLineAt(
+                    5,
+                    "else if (__scalarConflict"
+                        + member.Id
+                        + " && !"
+                        + equality
+                        + "("
+                        + desiredMember
+                        + ", "
+                        + baseMember
+                        + "))"
+                );
+                code.AppendLineAt(5, "{");
+                code.AppendLineAt(
+                    6,
+                    "conflicts.Add(new "
+                        + conflict
+                        + "(__SparseRootPath.Member("
+                        + plainPathLit
+                        + "), "
+                        + scalarKind
+                        + ", __SparseMember("
+                        + baseMember
+                        + "), __SparseMember("
+                        + desiredMember
+                        + "), __SparseMember("
+                        + currentMember
+                        + "), \"The member conflicts with a concurrent change.\"));"
+                );
+                code.AppendLineAt(5, "}");
+                code.AppendLineAt(4, "}");
+                return;
+            }
             code.AppendLineAt(
                 5,
                 "else if (__mode"
