@@ -50,16 +50,19 @@ Console.WriteLine(changes.Theme.After.Value);  // dark
 * **Editable forms and dashboards**: Track touched fields (`IsChanged`), provide Undo/Redo, and drag-and-drop reorder collection items without writing bespoke ViewModel plumbing.
 * **Web APIs and partial updates**: Distinguish between "set to null" and "omitted from request" with compile-time type safety.
 * **Layered configuration**: Merge system defaults, environment overrides, and tenant settings without default values clobbering lower layers.
-* **Concurrent editing and collaboration**: Rebase client edits onto current server state. Non-conflicting fields merge automatically, and only identical-property clashes raise conflicts.
+* **Concurrent editing and collaboration**: Rebase client edits onto current server state. Disjoint changes merge automatically; overlapping scalar, keyed-collection, or whole-value changes can surface as structured conflicts. Merge strategies and rebase policies can resolve some overlaps automatically.
 * **Targeted persistence**: Apply only modified properties directly to EF Core tracked entities or SQL stores instead of full entity replacements.
 
 ### Why SparseTypes?
 
 * **One model produces everything**: Annotate a standard C# model once. The generator emits partial fragments, patch commands, diff transitions, JSON payloads, and reactive edit sessions without manual DTO variants.
 * **100% type-safe**: Normal C# property assignment replaces error-prone string paths and runtime reflection.
-* **Zero reflection**: All core algebra, diff, patch, rebase, and descriptor inspection code is emitted at compile time, trims cleanly, and runs under Native AOT.
+* **Zero reflection**: Core algebra, diff, patch, rebase, and generated descriptor inspection use compile-time emitted code, trim cleanly, and run under Native AOT.
 * **Collection tracking**: Marking collection items with `[SparseKey]` tracks additions, removals, edits, and reorders by ID rather than fragile array positions.
 * **Git-style three-way rebase**: Resolves concurrent changes cleanly instead of discarding work with blunt last-write-wins or total concurrency errors.
+
+> [!NOTE]
+> Generated comparisons use the declared collection type. `SparseFragmentRuntime.AreEqual(object?, object?)` recognizes non-generic `IDictionary` and `IList`; other enumerable values are compared in order because an erased `object` does not expose its generic collection shape. Comparer identity is preserved for built-in collection types whose comparers are available through typed members.
 
 ### Try it live
 
@@ -182,6 +185,9 @@ The source generator equips your model with companion types spanning the full ch
 | `ChangePayload` | Wire envelope | Versioned JSON transport across process boundaries |
 | `Fragment` | Sparse state snapshot | Default layers, overrides, partially supplied values |
 | `Patch` | Requested operations | Baseline-free commands, targeted API requests |
+
+> [!NOTE]
+> The `ChangePayload` version identifies the JSON wire format only. It does not identify or validate the sender and receiver model schemas, the library version, or concurrency revisions. Coordinating model changes remains the application's responsibility.
 
 Under the hood, `Fragment` and `Patch` use `Optional<T>` to distinguish unassigned (missing) fields from explicit `null` values. For details on presence semantics and algebraic operations, see [Fragments and patches](docs/explanation/fragments-and-patches.md). Helper methods such as `DeepClone()` and reflection-free `Descriptors` are also generated automatically.
 
