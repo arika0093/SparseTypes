@@ -1116,6 +1116,14 @@ a, .btn-link {
     height: 100%;
 }
 
+.pg-monaco-loading {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 1rem;
+    color: var(--colorNeutralForeground3, #868e96);
+}
+
 /* Fluent tabs: keep the tab strip scroll inside the card, never the page.
    (Fluent renders the strip in shadow DOM; these light-DOM guards constrain
    the host elements while html overflow-x: clip prevents horizontal overflow.) */

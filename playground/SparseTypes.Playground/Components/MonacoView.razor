@@ -1,19 +1,34 @@
 @using BlazorMonaco.Editor
 @using SparseTypes.Playground.Models
+@inject IJSRuntime JS
 @inject MonacoThemeCoordinator ThemeCoordinator
+@implements IDisposable
 
-<div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
-    <StandaloneCodeEditor @ref="_editor"
-        Id="@EditorId"
-        ConstructionOptions="GetOptions"
-        OnDidInit="HandleInit"
-        CssClass="pg-monaco-editor" />
-</div>
+@if (_loadError is not null) {
+    <div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
+        <div class="pg-monaco-loading" role="alert">The code viewer could not load: @_loadError</div>
+    </div>
+} else if (!_ready) {
+    <div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
+        <div class="pg-monaco-loading" role="status">Loading code viewer…</div>
+    </div>
+} else {
+    <div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
+        <StandaloneCodeEditor @ref="_editor"
+            Id="@EditorId"
+            ConstructionOptions="GetOptions"
+            OnDidInit="HandleInit"
+            CssClass="pg-monaco-editor" />
+    </div>
+}
 
 @code {
     private StandaloneCodeEditor? _editor;
     private string? _lastValue;
     private bool _initialized;
+    private bool _ready;
+    private string? _loadError;
+    private bool _disposed;
 
     [Parameter, EditorRequired]
     public string Content { get; set; } = string.Empty;
@@ -35,6 +50,23 @@
     private string MonacoLanguage => Language == "csharp" ? "playground-csharp" : Language;
 
     private string WrapperStyle => Fill ? "height: 100%; min-height: 220px;" : $"height: {Height};";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Blazor can render before Monaco's asynchronous module execution
+        // finishes; creating the editor earlier fails permanently.
+        if (firstRender)
+        {
+            _loadError = await MonacoReadiness.WaitForMonacoAsync(JS);
+            if (!_disposed)
+            {
+                _ready = _loadError is null;
+                StateHasChanged();
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
     private StandaloneEditorConstructionOptions GetOptions(StandaloneCodeEditor editor)
     {
@@ -77,5 +109,10 @@
         }
         _lastValue = Content;
         await _editor.SetValue(Content);
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
     }
 }

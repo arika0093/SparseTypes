@@ -1,4 +1,17 @@
 (() => {
+    // Resolved once the Monaco AMD module is loaded and the playground
+    // language plus themes are registered. Editor components await this
+    // before constructing editors: Blazor can render before Monaco's
+    // asynchronous module execution finishes, and creating an editor while
+    // window.monaco is undefined fails permanently for that instance.
+    let resolveReady;
+    let rejectReady;
+    const ready = new Promise((resolve, reject) => {
+        resolveReady = resolve;
+        rejectReady = reject;
+    });
+    let settled = false;
+
     const configure = monaco => {
         const languageId = "playground-csharp";
         if (!monaco.languages.getLanguages().some(language => language.id === languageId)) {
@@ -128,23 +141,33 @@
         const monaco = window.monaco;
         if (monaco?.languages && monaco.editor) {
             configure(monaco);
+            if (!settled) {
+                settled = true;
+                resolveReady();
+            }
             return;
         }
-        if (attempts++ >= 400) {
-            throw new Error("Monaco did not become available for playground language setup.");
+        if (attempts++ >= 1200) {
+            if (!settled) {
+                settled = true;
+                rejectReady(new Error("Monaco did not become available for playground language setup."));
+            }
+            return;
         }
         window.setTimeout(configureWhenReady, 25);
     };
 
     configureWhenReady();
-})();
 
-// Detaches the models owned by a playground diff editor before the .NET side
-// disposes them. Monaco reports disposing an attached model through
-// onUnexpectedError, so the detach has to happen first.
-window.pgMonaco = {
-    detachDiff: id => {
-        const holder = window.blazorMonaco?.editors.find(editor => editor.id === id);
-        holder?.editor?.setModel(null);
-    }
-};
+    // Detaches the models owned by a playground diff editor before the .NET side
+    // disposes them. Monaco reports disposing an attached model through
+    // onUnexpectedError, so the detach has to happen first.
+    window.pgMonaco = {
+        // Awaited by editor components before creating any editor instance.
+        whenReady: () => ready,
+        detachDiff: id => {
+            const holder = window.blazorMonaco?.editors.find(editor => editor.id === id);
+            holder?.editor?.setModel(null);
+        }
+    };
+})();

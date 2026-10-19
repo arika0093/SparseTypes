@@ -7,11 +7,17 @@
 @implements IDisposable
 
 <div class="pg-monaco notranslate" translate="no" style="@WrapperStyle">
-    <StandaloneDiffEditor @ref="_editor"
-        Id="@EditorId"
-        ConstructionOptions="GetOptions"
-        OnDidInit="HandleInit"
-        CssClass="pg-monaco-editor" />
+    @if (_loadError is not null) {
+        <div class="pg-monaco-loading" role="alert">The diff viewer could not load: @_loadError</div>
+    } else if (!_ready) {
+        <div class="pg-monaco-loading" role="status">Loading diff viewer…</div>
+    } else {
+        <StandaloneDiffEditor @ref="_editor"
+            Id="@EditorId"
+            ConstructionOptions="GetOptions"
+            OnDidInit="HandleInit"
+            CssClass="pg-monaco-editor" />
+    }
 </div>
 
 @code {
@@ -21,6 +27,8 @@
     private string? _lastOriginal;
     private string? _lastModified;
     private bool _initialized;
+    private bool _ready;
+    private string? _loadError;
     private bool _disposed;
 
     [Parameter, EditorRequired]
@@ -46,6 +54,23 @@
     private string MonacoLanguage => Language == "csharp" ? "playground-csharp" : Language;
 
     private string WrapperStyle => Fill ? "height: 100%; min-height: 220px;" : $"height: {Height};";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Blazor can render before Monaco's asynchronous module execution
+        // finishes; creating the editor earlier fails permanently.
+        if (firstRender)
+        {
+            _loadError = await MonacoReadiness.WaitForMonacoAsync(JS);
+            if (!_disposed)
+            {
+                _ready = _loadError is null;
+                StateHasChanged();
+            }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 
     private StandaloneDiffEditorConstructionOptions GetOptions(StandaloneDiffEditor editor)
     {

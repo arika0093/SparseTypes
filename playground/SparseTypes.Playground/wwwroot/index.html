@@ -38,6 +38,15 @@
     <script src="_content/BlazorMonaco/jsInterop.js"></script>
     <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"></script>
     <script src="_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"></script>
+    <script>
+        // Request the Monaco AMD module explicitly: its factory runs
+        // asynchronously, and Blazor can render before eager execution
+        // finishes. Editor components await pgMonaco.whenReady() instead of
+        // assuming window.monaco already exists.
+        if (typeof require === "function") {
+            require(["vs/editor/editor.main"], function () {});
+        }
+    </script>
     <script src="js/monaco-playground.js"></script>
     <script src="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js" type="module" async></script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
