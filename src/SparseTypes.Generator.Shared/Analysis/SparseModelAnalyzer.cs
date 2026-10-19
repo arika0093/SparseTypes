@@ -127,6 +127,28 @@ internal static class SparseModelAnalyzer
             );
         }
 
+        // The top-level ModelJson helper lives in the model's namespace, so a
+        // same-named namespace member would collide with the emitted entry
+        // point. Report it here instead of surfacing a duplicate-type error
+        // from the generated file.
+        if (config.EffectiveEmissionFeatures.EmitChangePayload)
+        {
+            var helperName = model.Name + "Json";
+            var helperCollision = model
+                .ContainingNamespace.GetTypeMembers(helperName)
+                .FirstOrDefault(static type => type.Arity == 0);
+            if (helperCollision is not null)
+            {
+                diagnostics.Add(
+                    new SparseGeneratorDiagnostic(
+                        config.EffectiveDiagnosticIds.GeneratedNameCollision,
+                        null,
+                        helperName
+                    )
+                );
+            }
+        }
+
         // Statically provable duplicate JSON wire names fail here instead of
         // surfacing as runtime converter errors in generated code.
         foreach (var duplicate in SparseShapeValidation.FindDuplicateWireNames(memberModels))

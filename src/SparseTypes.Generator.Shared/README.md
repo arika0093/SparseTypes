@@ -126,14 +126,25 @@ appends a stable model hash to that prefix. The container and DTOs are marked
 `System.Text.Json` source generation can collide on nested types with identical
 simple names across models.
 
-Each model with JSON enabled also emits a nested `PayloadJson` resolver and a
-`PayloadJsonConverter`. The resolver supplies trim-safe `JsonTypeInfo` metadata
+Each model with JSON enabled also emits a top-level `ModelJson` helper in the
+model's namespace alongside the nested `PayloadJson` resolver and
+`PayloadJsonConverter`. The helper exposes the shared
+`JsonTypeInfo<Model.ChangePayload>` as `Default` and the underlying resolver
+as `Resolver`, so normal call sites pass `ModelJson.Default` directly to the
+`JsonSerializer` overloads while advanced call sites compose
+`ModelJson.Resolver` with a source-generated context through
+caller-provided `JsonSerializerOptions`. The helper reuses the nested
+resolver instead of emitting a second wire codec, and it carries no
+`EditorBrowsable` hiding while the nested resolver, converter, and DTO
+container stay hidden. The resolver supplies trim-safe `JsonTypeInfo` metadata
 for the payload envelope without a source-generated context, so primitive
 endpoint values need no extra registration. Custom value shapes still resolve
 through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver
 with a source-generated context declared next to the models for those types. Only
 custom shapes need entries; primitives, enums, and collections are covered by
-generated fast paths.
+generated fast paths. A namespace member already named `ModelJson` fails the
+model with the configured `GeneratedNameCollision` diagnostic instead of
+emitting a duplicate type.
 
 `SparseFragmentEmitter` retains the standalone `Fragment`/`Patch` API vocabulary.
 It does not add product-specific model extension APIs unless the caller supplies

@@ -8,10 +8,20 @@ namespace SparseTypes.NativeAotSmoke;
 public sealed class AotJsonTests
 {
     private static JsonSerializerOptions PayloadCollectionOptions() =>
-        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) };
+        new()
+        {
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(
+                PayloadCollectionJson.Resolver,
+                PayloadLeafContext.Default
+            ),
+        };
 
-    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(JsonSerializerOptions options) =>
-        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(
+        JsonSerializerOptions options
+    ) =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)
+            options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+
     private static JsonSerializerOptions AotOptions()
     {
         var options = new JsonSerializerOptions();
@@ -85,10 +95,7 @@ public sealed class AotJsonTests
         var widgetBefore = WidgetState("old", "h1");
         var widgetAfter = WidgetState("new", "h2");
         var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
-        var json = JsonSerializer.Serialize(
-            changes.ToPayload(),
-            PayloadRoot.PayloadJson.Default.ChangePayload
-        );
+        var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRootJson.Default);
         // /sample
         using (var document = JsonDocument.Parse(json))
         {
@@ -127,9 +134,7 @@ public sealed class AotJsonTests
         await Assert.That(json.Contains("\"state\":\"value\"")).IsTrue();
 
         // sample: payload-native-aot
-        var restored = JsonSerializer
-            .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
-            .ToChangeSet();
+        var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
         await Assert
             .That(
                 PayloadRoot
@@ -179,9 +184,7 @@ public sealed class AotJsonTests
                     .GetString()
             )
             .IsEqualTo("add");
-        var serverRestored = JsonSerializer
-            .Deserialize(serverJson, serverTypeInfo)!
-            .ToChangeSet();
+        var serverRestored = JsonSerializer.Deserialize(serverJson, serverTypeInfo)!.ToChangeSet();
         await Assert
             .That(
                 PayloadCollection
@@ -203,24 +206,19 @@ public sealed class AotJsonTests
         var after = SecretState("after", "after-token");
         var json = JsonSerializer.Serialize(
             PayloadSecret.ChangeSet.Between(before, after).ToPayload(),
-            PayloadSecret.PayloadJson.Default.ChangePayload
+            PayloadSecretJson.Default
         );
 
         await Assert.That(json.Contains("\"version\":\"0.1\"")).IsTrue();
         await Assert.That(json.Contains("\"state\":\"redacted\"")).IsTrue();
         await Assert.That(json.Contains("before-token")).IsFalse();
 
-        var restored = JsonSerializer
-            .Deserialize(json, PayloadSecret.PayloadJson.Default.ChangePayload)!
-            .ToPatch();
+        var restored = JsonSerializer.Deserialize(json, PayloadSecretJson.Default)!.ToPatch();
         await Assert
             .That(PayloadSecret.Patch.Between(restored.Apply(before), after).IsEmpty)
             .IsTrue();
 
-        var incomplete = JsonSerializer.Deserialize(
-            json,
-            PayloadSecret.PayloadJson.Default.ChangePayload
-        )!;
+        var incomplete = JsonSerializer.Deserialize(json, PayloadSecretJson.Default)!;
         var rejected = false;
         try
         {
@@ -258,11 +256,9 @@ public sealed class AotJsonTests
         var after = EnumState(AotOrderStatus.Closed);
         var json = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(before, after).ToPayload(),
-            PayloadRoot.PayloadJson.Default.ChangePayload
+            PayloadRootJson.Default
         );
-        var restored = JsonSerializer
-            .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
-            .ToChangeSet();
+        var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
         await Assert
             .That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty)
             .IsTrue();
@@ -307,11 +303,11 @@ public sealed class AotJsonTests
         var missingAfter = Optional<PayloadRoot.Fragment?>.Present(new PayloadRoot.Fragment());
         var missingJson = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(missingBefore, missingAfter).ToPayload(),
-            PayloadRoot.PayloadJson.Default.ChangePayload
+            PayloadRootJson.Default
         );
         await Assert.That(missingJson.Contains("\"state\":\"missing\"")).IsTrue();
         var missingRestored = JsonSerializer
-            .Deserialize(missingJson, PayloadRoot.PayloadJson.Default.ChangePayload)!
+            .Deserialize(missingJson, PayloadRootJson.Default)!
             .ToChangeSet();
         await Assert
             .That(

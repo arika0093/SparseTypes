@@ -353,6 +353,7 @@ public sealed class StjOptionalGenerationTests
         var generated = string.Concat(sources.Values);
         generated.ShouldContain("Fragment");
         generated.ShouldContain("ChangePayload");
+        generated.ShouldNotContain("StjProbeModelJson");
         foreach (var source in sources.Values)
             source.ShouldNotContain("System.Text.Json");
 
@@ -400,6 +401,7 @@ public sealed class StjOptionalGenerationTests
         var merged = string.Concat(sources.Values);
         merged.ShouldContain("ChangePayload");
         merged.ShouldContain("ToPayload");
+        merged.ShouldNotContain("StjProbeModelJson");
 
         // No JSON surface anywhere.
         foreach (var pair in sources)
@@ -422,6 +424,7 @@ public sealed class StjOptionalGenerationTests
         merged.ShouldContain("JsonPolymorphic");
         merged.ShouldContain("JsonUnmappedMemberHandling");
         merged.ShouldContain("PayloadJsonConverter");
+        merged.ShouldContain("public static class StjProbeModelJson");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
