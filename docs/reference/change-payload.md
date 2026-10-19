@@ -732,18 +732,17 @@ The scalar-set payload from the earlier section serializes through the generated
 
 <!-- sample: payload-context -->
 ```csharp
-var contextJson = JsonSerializer.Serialize(
-    setPayload,
-    WireSettings.PayloadJson.Default.ChangePayload
-);
+var contextJson = JsonSerializer.Serialize(setPayload, WireSettingsJson.Default);
 var contextRestored = JsonSerializer
-    .Deserialize(contextJson, WireSettings.PayloadJson.Default.ChangePayload)!
+    .Deserialize(contextJson, WireSettingsJson.Default)!
     .ToChangeSet();
 // contextRestored.ToPatch().Apply(setBefore) replays setAfter
 ```
 <!-- /sample -->
 
-`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape. Primitive, enum, and collection endpoint values use generated fast paths with canonical JSON encoding and need no extra registration; only custom value shapes resolve through `JsonSerializerOptions.GetTypeInfo`, so combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
+`WireSettingsJson.Default` is the shared `JsonTypeInfo<WireSettings.ChangePayload>` for the generated payload shape. Primitive, enum, and collection endpoint values use generated fast paths with canonical JSON encoding and need no extra registration; only custom value shapes resolve through `JsonSerializerOptions.GetTypeInfo`, so combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
+
+Each model also keeps its nested `T.PayloadJson.Default` resolver. It is the same instance the `TJson.Resolver` property returns, hidden from routine IntelliSense. Existing call sites using `T.PayloadJson.Default.ChangePayload` keep compiling; new code uses `TJson.Default`.
 
 ## NativeAOT
 
@@ -758,7 +757,7 @@ NativeAOT and trimmed applications need serializer metadata at build time. Confi
 </PropertyGroup>
 ```
 
-Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes that travel in payloads. Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration. Fragment serialization uses the same fast paths for those shapes.
+Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes that travel in payloads. Payload shapes resolve through the generated `TJson.Default` entry point, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration. Fragment serialization uses the same fast paths for those shapes.
 
 This context lives in the model project and registers only the custom leaf types used by the AOT examples:
 
@@ -793,13 +792,8 @@ Optional<PayloadRoot.Fragment?> WidgetState(string label, string name) =>
 var widgetBefore = WidgetState("old", "h1");
 var widgetAfter = WidgetState("new", "h2");
 var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
-var json = JsonSerializer.Serialize(
-    changes.ToPayload(),
-    PayloadRoot.PayloadJson.Default.ChangePayload
-);
-var restored = JsonSerializer
-    .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
-    .ToChangeSet();
+var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRootJson.Default);
+var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
 await Assert
     .That(
         PayloadRoot
@@ -810,7 +804,7 @@ await Assert
 ```
 <!-- /sample -->
 
-Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are primitives or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
+Use `TJson.Default` for models whose endpoints are primitives or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollectionJson.Resolver, PayloadLeafContext.Default) }`. The application project holds no serializer context of its own. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
 
 ## Choosing a conversion
 

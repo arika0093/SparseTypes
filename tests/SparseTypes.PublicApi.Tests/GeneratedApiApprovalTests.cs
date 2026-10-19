@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using SparseTypes.Blazor;
 using SparseTypes.GeneratedApiFixtures;
 
@@ -404,6 +405,39 @@ public sealed class GeneratedApiApprovalTests
         restored.ShouldNotBeNull();
         restored!.Changes.ShouldHaveSingleItem();
         restored.ToChangeSet().IsEmpty.ShouldBeFalse();
+    }
+
+    [Test]
+    public void TopLevelPayloadJsonHelpersExposeDefaultAndResolver()
+    {
+        // Each model namespace carries one ModelJson entry point whose
+        // Default is the shared JsonTypeInfo and whose Resolver composes
+        // with caller-provided options. The nested resolver stays hidden
+        // plumbing behind the same instance.
+        foreach (var model in FixtureModels)
+        {
+            var helper = model.Assembly.GetType(model.Namespace + "." + model.Name + "Json");
+            helper.ShouldNotBeNull($"Expected top-level {model.Name}Json helper.");
+            helper!.IsPublic.ShouldBeTrue();
+            helper
+                .GetCustomAttribute<EditorBrowsableAttribute>()
+                .ShouldBeNull($"Expected {helper.Name} to stay discoverable.");
+            var changePayload = model.GetNestedType("ChangePayload");
+            changePayload.ShouldNotBeNull();
+            helper
+                .GetProperty("Default")!
+                .PropertyType.ShouldBe(typeof(JsonTypeInfo<>).MakeGenericType(changePayload!));
+            helper.GetProperty("Resolver")!.PropertyType.ShouldBe(typeof(IJsonTypeInfoResolver));
+            var nested = model.GetNestedType("PayloadJson");
+            nested.ShouldNotBeNull();
+            nested!
+                .GetCustomAttribute<EditorBrowsableAttribute>()!
+                .State.ShouldBe(EditorBrowsableState.Never);
+            var shared = nested
+                .GetProperty("ChangePayload")!
+                .GetValue(nested.GetProperty("Default")!.GetValue(null));
+            helper.GetProperty("Default")!.GetValue(null).ShouldBe(shared);
+        }
     }
 
     [Test]

@@ -699,6 +699,19 @@ internal static class SparseFragmentEmitter
         }
 
         code.AppendLine("}");
+        if (features.EmitChangePayload)
+        {
+            // The top-level ModelJson helper reuses the nested payload
+            // resolver, so it shares the emission gate with the facade.
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(
+                members,
+                patchDialect,
+                modelType,
+                implementationNamespace
+            );
+            if (payloadJson is not null)
+                SparsePayloadJsonHelperEmitter.AppendHelper(code, model, payloadJson);
+        }
         appendProductExtensions?.Invoke(code, model, members);
         if (!model.IsGlobalNamespace)
         {

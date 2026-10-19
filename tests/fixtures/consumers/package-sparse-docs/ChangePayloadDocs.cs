@@ -105,12 +105,9 @@ public static class ChangePayloadDocsSamples
         );
 
         // sample: payload-context
-        var contextJson = JsonSerializer.Serialize(
-            setPayload,
-            WireSettings.PayloadJson.Default.ChangePayload
-        );
+        var contextJson = JsonSerializer.Serialize(setPayload, WireSettingsJson.Default);
         var contextRestored = JsonSerializer
-            .Deserialize(contextJson, WireSettings.PayloadJson.Default.ChangePayload)!
+            .Deserialize(contextJson, WireSettingsJson.Default)!
             .ToChangeSet();
         // contextRestored.ToPatch().Apply(setBefore) replays setAfter
         // /sample
