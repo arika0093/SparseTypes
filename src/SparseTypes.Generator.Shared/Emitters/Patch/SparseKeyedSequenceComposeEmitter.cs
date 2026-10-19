@@ -112,6 +112,10 @@ internal static class SparseKeyedSequenceComposeEmitter
         {
             AppendAssignedAddOnlyComposeFastPath(code, keyType, elementType, comparer, member);
             AppendAssignedRemoveOnlyComposeFastPath(code, keyType, comparer);
+            if (hasPatch)
+            {
+                AppendAssignedEditOnlyComposeFastPath(code, keyType, comparer, member);
+            }
         }
 
         if (hasTempPatchCompose)
@@ -643,6 +647,95 @@ internal static class SparseKeyedSequenceComposeEmitter
         );
         code.AppendLineAt(6, "result.__removed = __simpleRemoved;");
         code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "return result;");
+        code.AppendLineAt(4, "}");
+    }
+
+    private static void AppendAssignedEditOnlyComposeFastPath(
+        SharedIndentedBuilder code,
+        string keyType,
+        string comparer,
+        SparseMemberModel member
+    )
+    {
+        var elementPatchType = SparseKeyedCollectionEmitter.ElementPatchType(member);
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "(__added is null || __added.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__added is null || next.__added.Count == 0)");
+        code.AppendLineAt(5, "&& (__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__removed is null || next.__removed.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(4, ")");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(
+            5,
+            "global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementPatchType
+                + ">? __simpleEdited = null;"
+        );
+        code.AppendLineAt(5, "if (__edited is not null) foreach (var kv in __edited)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "if (next.__edited is not null && next.__edited.TryGetValue(kv.Key, out var __nextEdit) && !__nextEdit.__SparseIsEmpty())"
+        );
+        code.AppendLineAt(6, "{");
+        code.AppendLineAt(7, "var __composedEdit = kv.Value.Compose(__nextEdit);");
+        code.AppendLineAt(
+            7,
+            "if (__composedEdit.__SparseIsEmpty()) __simpleEdited?.Remove(kv.Key);"
+        );
+        code.AppendLineAt(
+            7,
+            "else (__simpleEdited ??= new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementPatchType
+                + ">("
+                + comparer
+                + "))[kv.Key] = __composedEdit;"
+        );
+        code.AppendLineAt(6, "}");
+        code.AppendLineAt(
+            6,
+            "else if ((next.__edited is null || !next.__edited.ContainsKey(kv.Key)) && !kv.Value.__SparseIsEmpty())"
+        );
+        code.AppendLineAt(
+            7,
+            "(__simpleEdited ??= new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementPatchType
+                + ">("
+                + comparer
+                + "))[kv.Key] = kv.Value;"
+        );
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "if (next.__edited is not null) foreach (var kv in next.__edited)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "if (kv.Value.__SparseIsEmpty()) continue;");
+        code.AppendLineAt(
+            6,
+            "if (__simpleEdited is not null && __simpleEdited.ContainsKey(kv.Key)) continue;"
+        );
+        code.AppendLineAt(
+            6,
+            "(__simpleEdited ??= new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementPatchType
+                + ">("
+                + comparer
+                + "))[kv.Key] = kv.Value;"
+        );
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(
+            5,
+            "if (__simpleEdited is not null && __simpleEdited.Count > 0) result.__edited = __simpleEdited;"
+        );
         code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
     }

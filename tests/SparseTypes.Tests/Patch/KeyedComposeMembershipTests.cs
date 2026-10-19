@@ -311,6 +311,21 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeEditOnlyPreservesSequentialEdits()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Edit("a").Name = "first-a";
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Edit("a").Name = "next-a";
+        next.Items.Edit("b").Name = "next-b";
+
+        var composed = first.Compose(next);
+        KeyedModel(composed.Apply(before)).ShouldBe([("a", "next-a"), ("b", "next-b")]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeRemovalFilteringUsesDefaultKeyEquality()
     {
         // The configured key comparer is EqualityComparer<T>.Default at every
