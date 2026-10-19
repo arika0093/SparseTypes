@@ -70,10 +70,6 @@ internal static class SparseFragmentPatchEmitter
             );
             code.AppendLineAt(2, "public void WriteTo(" + modelType + " model)");
             code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
-                "if (model is null) throw new global::System.ArgumentNullException(nameof(model));"
-            );
             code.AppendLineAt(3, "__SparseWriteWritableTo(model);");
             code.AppendLineAt(2, "}");
         }
@@ -411,7 +407,8 @@ internal static class SparseFragmentPatchEmitter
         string? implementationNamespace = null,
         SharedIndentedBuilder? implementationBuilder = null,
         SparseOperationTarget? target = null,
-        bool canApplyChangeSetInPlace = false
+        bool canApplyChangeSetInPlace = false,
+        bool modelIsReferenceType = true
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -538,7 +535,8 @@ internal static class SparseFragmentPatchEmitter
                 accessibility,
                 implementationNamespace,
                 implementationBuilder,
-                target
+                target,
+                modelIsReferenceType
             );
         }
     }

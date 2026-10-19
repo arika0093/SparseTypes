@@ -285,6 +285,7 @@ internal static class SparseChangeSetBetweenEmitter
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         string modelType,
+        bool modelIsReferenceType,
         string optionalFragment,
         string runtime,
         SparseOperationTarget? target = null
@@ -363,7 +364,7 @@ internal static class SparseChangeSetBetweenEmitter
             SparseChangeSetModelBetweenEmitter.AppendBody(
                 code,
                 members,
-                modelType,
+                modelIsReferenceType,
                 runtime,
                 optionalFragment
             );

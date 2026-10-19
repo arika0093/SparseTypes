@@ -19,19 +19,19 @@ internal static class SparseChangeSetModelBetweenEmitter
     internal static void AppendBody(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        string modelType,
+        bool modelIsReferenceType,
         string runtime,
         string optionalFragment
     )
     {
-        // Preserve From's null validation without boxing value-type models.
-        code.AppendLineAt(
-            3,
-            "if (!typeof("
-                + modelType
-                + ").IsValueType && (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null)))"
-        );
-        code.AppendLineAt(4, "throw new global::System.ArgumentNullException(\"value\");");
+        if (modelIsReferenceType)
+        {
+            code.AppendLineAt(
+                3,
+                "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))"
+            );
+            code.AppendLineAt(4, "throw new global::System.ArgumentNullException(\"value\");");
+        }
         foreach (var side in new[] { "before", "after" })
         {
             foreach (var member in members)

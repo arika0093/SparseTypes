@@ -986,7 +986,8 @@ internal static class SparseFragmentEmitter
             implementationNamespace,
             implementationBuilder,
             operationTarget,
-            canApplyChangeSetInPlace
+            canApplyChangeSetInPlace,
+            modelIsReferenceType
         );
         if (features.EmitChangeSet)
         {

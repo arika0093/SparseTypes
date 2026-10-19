@@ -32,7 +32,8 @@ internal static class SparseChangeSetEmitter
         string accessibility = "public",
         string? implementationNamespace = null,
         SharedIndentedBuilder? implementationBuilder = null,
-        SparseOperationTarget? target = null
+        SparseOperationTarget? target = null,
+        bool modelIsReferenceType = true
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -103,6 +104,7 @@ internal static class SparseChangeSetEmitter
                 code,
                 members,
                 modelType,
+                modelIsReferenceType,
                 optionalFragment,
                 runtime,
                 target
