@@ -97,15 +97,13 @@ internal static class SparseKeyedSequenceComposeFastPathEmitter
     internal static void AppendAssignedRemoveThenAddFastPath(
         SharedIndentedBuilder code,
         string keyType,
-        string elementType,
-        string comparer,
-        SparseMemberModel member
+        string elementType
     )
     {
         code.AppendLineAt(4, "if (");
         code.AppendLineAt(5, "(__added is null || __added.Count == 0)");
-        code.AppendLineAt(5, "&& next.__added is not null && next.__added.Count == 1");
-        code.AppendLineAt(5, "&& __removed is not null && __removed.Count == 1");
+        code.AppendLineAt(5, "&& next.__added is not null && next.__added.Count > 0");
+        code.AppendLineAt(5, "&& __removed is not null && __removed.Count > 0");
         code.AppendLineAt(5, "&& (next.__removed is null || next.__removed.Count == 0)");
         code.AppendLineAt(5, "&& (__edited is null || __edited.Count == 0)");
         code.AppendLineAt(5, "&& (next.__edited is null || next.__edited.Count == 0)");
@@ -115,27 +113,17 @@ internal static class SparseKeyedSequenceComposeFastPathEmitter
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
             5,
-            "if ("
-                + comparer
-                + ".Equals(__removed[0], "
-                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
-                + "(next.__added[0])))"
-        );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
             "result.__removed = new global::System.Collections.Generic.List<"
                 + keyType
                 + ">(__removed);"
         );
         code.AppendLineAt(
-            6,
+            5,
             "result.__added = new global::System.Collections.Generic.List<"
                 + elementType
                 + ">(next.__added);"
         );
-        code.AppendLineAt(6, "return result;");
-        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
     }
 

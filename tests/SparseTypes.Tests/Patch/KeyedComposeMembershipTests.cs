@@ -323,6 +323,22 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeMultipleRemoveThenAddOperationsAsReplacement()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"), Server("c", "old-c"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("a");
+        first.Items.Remove("b");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Add(Server("a", "new-a"));
+        next.Items.Add(Server("d", "new-d"));
+
+        var composed = first.Compose(next);
+        KeyedModel(composed.Apply(before))
+            .ShouldBe([("a", "new-a"), ("c", "old-c"), ("d", "new-d")]);
+    }
+
+    [Test]
     public void ComposeRemoveOnlyPreservesFirstOccurrenceOrder()
     {
         var before = KF(Server("a"), Server("b"), Server("c"), Server("d"));
