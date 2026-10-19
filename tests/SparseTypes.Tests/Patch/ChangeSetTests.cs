@@ -54,6 +54,26 @@ public sealed class ChangeSetTests
     }
 
     [Test]
+    public void EmptyModelChangeSetRebasesWithoutProjectingCurrentModel()
+    {
+        var model = new Settings
+        {
+            Label = "same",
+            Plugins = ["a", "b", "c"],
+            Nested = new Nested { Host = "localhost", Port = 5432 },
+        };
+        var empty = Settings.ChangeSet.Between(model, model);
+
+        var rebased = empty.RebaseOnto(model);
+
+        rebased.HasConflicts.ShouldBeFalse();
+        rebased.Rebased.IsEmpty.ShouldBeTrue();
+        Should
+            .Throw<ArgumentNullException>(() => empty.RebaseOnto((Settings)null!))
+            .ParamName.ShouldBe("value");
+    }
+
+    [Test]
     public void ModelChangeSetSnapshotsOnlyChangedCollectionMembers()
     {
         var beforeValues = new HashSet<string>(["a"], StringComparer.Ordinal);

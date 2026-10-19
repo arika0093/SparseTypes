@@ -11,7 +11,8 @@ internal static class SparseChangeSetModelRebaseEmitter
         string optionalFragment,
         string rebaseResult,
         string optionsType,
-        SparseOperationTarget? target
+        SparseOperationTarget? target,
+        bool modelIsReferenceType
     )
     {
         if (target is not null)
@@ -44,6 +45,14 @@ internal static class SparseChangeSetModelRebaseEmitter
                     + "? options = null)"
             );
             code.AppendLineAt(2, "{");
+            code.AppendLineAt(3, "if (self.IsEmpty)");
+            code.AppendLineAt(3, "{");
+            AppendNullGuard(code, modelIsReferenceType, 4);
+            code.AppendLineAt(
+                4,
+                "return RebaseOnto(self, default(" + optionalFragment + "), options);"
+            );
+            code.AppendLineAt(3, "}");
             code.AppendLineAt(
                 3,
                 "return RebaseOnto(self, "
@@ -62,9 +71,35 @@ internal static class SparseChangeSetModelRebaseEmitter
                 + modelType
                 + " current, "
                 + optionsType
-                + "? options = null) => RebaseOnto("
-                + optionalFragment
-                + ".Present(Fragment.From(current)), options);"
+                + "? options = null)"
+        );
+        code.AppendLineAt(2, "{");
+        code.AppendLineAt(3, "if (this.IsEmpty)");
+        code.AppendLineAt(3, "{");
+        AppendNullGuard(code, modelIsReferenceType, 4);
+        code.AppendLineAt(4, "return RebaseOnto(default(" + optionalFragment + "), options);");
+        code.AppendLineAt(3, "}");
+        code.AppendLineAt(
+            3,
+            "return RebaseOnto(" + optionalFragment + ".Present(Fragment.From(current)), options);"
+        );
+        code.AppendLineAt(2, "}");
+    }
+
+    private static void AppendNullGuard(
+        SharedIndentedBuilder code,
+        bool modelIsReferenceType,
+        int indent
+    )
+    {
+        if (!modelIsReferenceType)
+        {
+            return;
+        }
+
+        code.AppendLineAt(
+            indent,
+            "if (global::System.Object.ReferenceEquals(current, null)) throw new global::System.ArgumentNullException(\"value\");"
         );
     }
 }

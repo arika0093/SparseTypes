@@ -32,7 +32,8 @@ internal static class SparseChangeSetRebaseEmitter
         string? modelType,
         ImmutableArray<string> ignoredSettablePropertyNames = default,
         bool canApplyInPlace = false,
-        SparseOperationTarget? target = null
+        SparseOperationTarget? target = null,
+        bool modelIsReferenceType = true
     )
     {
         var shell = code;
@@ -540,7 +541,8 @@ internal static class SparseChangeSetRebaseEmitter
                 optionalFragment,
                 rebaseResult,
                 optionsType,
-                target
+                target,
+                modelIsReferenceType
             );
             AppendModelTryApply(
                 shell,
