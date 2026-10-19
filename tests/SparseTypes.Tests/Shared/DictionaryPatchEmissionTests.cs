@@ -119,7 +119,7 @@ public sealed class DictionaryPatchEmissionTests
     private static string EmitCompose(SparseMemberModel member, bool hasPatch)
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryAlgebraEmitter.EmitDictionaryCompose(
+        SparseDictionaryComposeEmitter.EmitDictionaryCompose(
             code,
             member,
             "ValuesPatch",
@@ -138,7 +138,7 @@ public sealed class DictionaryPatchEmissionTests
     private static string EmitRebase(SparseMemberModel member, bool hasPatch)
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryAlgebraEmitter.EmitDictionaryRebase(
+        SparseDictionaryRebaseEmitter.EmitDictionaryRebase(
             code,
             member,
             "ValuesPatch",

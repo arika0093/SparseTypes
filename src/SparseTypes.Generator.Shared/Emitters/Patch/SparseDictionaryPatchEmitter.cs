@@ -109,7 +109,7 @@ internal static class SparseDictionaryPatchEmitter
             hasPatch,
             split
         );
-        SparseDictionaryAlgebraEmitter.EmitDictionaryCompose(
+        SparseDictionaryComposeEmitter.EmitDictionaryCompose(
             operations,
             member,
             patchName,
@@ -168,7 +168,7 @@ internal static class SparseDictionaryPatchEmitter
                     + " baseline) => Between(Apply(baseline), baseline);"
             );
         }
-        SparseDictionaryAlgebraEmitter.EmitDictionaryRebase(
+        SparseDictionaryRebaseEmitter.EmitDictionaryRebase(
             operations,
             member,
             patchName,
