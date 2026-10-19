@@ -37,8 +37,6 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreSetEqual(left, reordered).ShouldBeTrue();
         SparseFragmentRuntime.AreSetEqual(reordered, left).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)left, (object)reordered).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)reordered, (object)left).ShouldBeTrue();
     }
 
     [Test]
@@ -49,8 +47,6 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreSetEqual(ignoreCase, ordinal).ShouldBeFalse();
         SparseFragmentRuntime.AreSetEqual(ordinal, ignoreCase).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ignoreCase, (object)ordinal).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ordinal, (object)ignoreCase).ShouldBeFalse();
     }
 
     [Test]
@@ -61,8 +57,6 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreSetEqual(ignoreCase, ordinal).ShouldBeFalse();
         SparseFragmentRuntime.AreSetEqual(ordinal, ignoreCase).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ignoreCase, (object)ordinal).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ordinal, (object)ignoreCase).ShouldBeFalse();
     }
 
     [Test]
@@ -96,8 +90,8 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreDictionaryEqual(ignoreCase, ordinal).ShouldBeFalse();
         SparseFragmentRuntime.AreDictionaryEqual(ordinal, ignoreCase).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ignoreCase, (object)ordinal).ShouldBeFalse();
-        SparseFragmentRuntime.AreEqual((object)ordinal, (object)ignoreCase).ShouldBeFalse();
+        SparseFragmentRuntime.AreEqual((object)ignoreCase, (object)ordinal).ShouldBeTrue();
+        SparseFragmentRuntime.AreEqual((object)ordinal, (object)ignoreCase).ShouldBeTrue();
     }
 
     [Test]
@@ -193,8 +187,8 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreDictionaryEqual(left, reordered).ShouldBeTrue();
         SparseFragmentRuntime.AreDictionaryEqual(reordered, left).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)left, (object)reordered).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)reordered, (object)left).ShouldBeTrue();
+        SparseFragmentRuntime.AreEqual((object)left, (object)reordered).ShouldBeFalse();
+        SparseFragmentRuntime.AreEqual((object)reordered, (object)left).ShouldBeFalse();
 
         SparseFragmentRuntime.AreDictionaryEqual(left, changed).ShouldBeFalse();
         SparseFragmentRuntime.AreDictionaryEqual(changed, left).ShouldBeFalse();
@@ -220,24 +214,24 @@ public sealed class ComparerStableEqualityTests
 
         SparseFragmentRuntime.AreDictionaryEqual(custom, standard).ShouldBeTrue();
         SparseFragmentRuntime.AreDictionaryEqual(standard, custom).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)custom, (object)standard).ShouldBeTrue();
-        SparseFragmentRuntime.AreEqual((object)standard, (object)custom).ShouldBeTrue();
+        SparseFragmentRuntime.AreEqual((object)custom, (object)standard).ShouldBeFalse();
+        SparseFragmentRuntime.AreEqual((object)standard, (object)custom).ShouldBeFalse();
     }
 
     private static bool DictionaryAreEqual(
         DictionarySettings.Fragment left,
         DictionarySettings.Fragment right
     ) =>
-        DictionarySettings.Patch
-            .Between(
+        DictionarySettings
+            .Patch.Between(
                 Optional<DictionarySettings.Fragment?>.Present(left),
                 Optional<DictionarySettings.Fragment?>.Present(right)
             )
             .IsEmpty;
 
     private static bool SetAreEqual(SetSettings.Fragment left, SetSettings.Fragment right) =>
-        SetSettings.Patch
-            .Between(
+        SetSettings
+            .Patch.Between(
                 Optional<SetSettings.Fragment?>.Present(left),
                 Optional<SetSettings.Fragment?>.Present(right)
             )

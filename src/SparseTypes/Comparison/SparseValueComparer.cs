@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace SparseTypes;
 
@@ -435,73 +434,25 @@ internal static class SparseValueComparer
         }
     }
 
-    private static object? TryGetSetComparer<T>(IEnumerable<T> value)
-    {
-        switch (value)
+    private static object? TryGetSetComparer<T>(IEnumerable<T> value) =>
+        value switch
         {
-            case HashSet<T> hashSet:
-                return hashSet.Comparer;
-            case SortedSet<T> sortedSet:
-                return sortedSet.Comparer;
-            default:
-                return GetDeclaredComparer(value);
-        }
-    }
+            HashSet<T> hashSet => hashSet.Comparer,
+            SortedSet<T> sortedSet => sortedSet.Comparer,
+            _ => null,
+        };
 
     private static object? TryGetDictionaryComparer<TKey, TValue>(
         IEnumerable<KeyValuePair<TKey, TValue>> value
     )
     {
-        switch (value)
+        return value switch
         {
-            case Dictionary<TKey, TValue> dictionary:
-                return dictionary.Comparer;
-            case SortedDictionary<TKey, TValue> sortedDictionary:
-                return sortedDictionary.Comparer;
-            case SortedList<TKey, TValue> sortedList:
-                return sortedList.Comparer;
-            default:
-                return GetDeclaredComparer(value);
-        }
-    }
-
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2072",
-        Justification = "Only reads an optional public Comparer property; a trimmed property is treated as an undiscoverable comparer with a symmetric bidirectional fallback."
-    )]
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2075",
-        Justification = "Only reads an optional public Comparer property via object.GetType(); a trimmed property is treated as an undiscoverable comparer with a symmetric bidirectional fallback."
-    )]
-    private static object? GetDeclaredComparer(object value)
-    {
-        PropertyInfo? property;
-        try
-        {
-            property = value
-                .GetType()
-                .GetProperty("Comparer", BindingFlags.Public | BindingFlags.Instance);
-        }
-        catch (AmbiguousMatchException)
-        {
-            return null;
-        }
-
-        if (property is null || !property.CanRead || property.GetIndexParameters().Length != 0)
-        {
-            return null;
-        }
-
-        try
-        {
-            return property.GetValue(value, null);
-        }
-        catch (TargetInvocationException)
-        {
-            return null;
-        }
+            Dictionary<TKey, TValue> dictionary => dictionary.Comparer,
+            SortedDictionary<TKey, TValue> sortedDictionary => sortedDictionary.Comparer,
+            SortedList<TKey, TValue> sortedList => sortedList.Comparer,
+            _ => null,
+        };
     }
 
     private static bool PairSequenceEquals<TKey, TValue>(

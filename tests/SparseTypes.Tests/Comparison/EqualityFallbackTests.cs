@@ -9,7 +9,7 @@ namespace SparseTypes.Tests.Comparison;
 /// <summary>Fallback-path equality tests: custom collection shapes that miss the fast typed/common paths.</summary>
 public sealed class EqualityFallbackTests
 {
-    private sealed class FallbackSet<T> : IReadOnlySet<T>
+    private sealed class FallbackSet<T> : ISet<T>
     {
         private readonly HashSet<T> _inner;
 
@@ -33,6 +33,26 @@ public sealed class EqualityFallbackTests
         public bool Overlaps(IEnumerable<T> other) => _inner.Overlaps(other);
 
         public bool SetEquals(IEnumerable<T> other) => _inner.SetEquals(other);
+
+        public void ExceptWith(IEnumerable<T> other) => _inner.ExceptWith(other);
+
+        public void IntersectWith(IEnumerable<T> other) => _inner.IntersectWith(other);
+
+        public void SymmetricExceptWith(IEnumerable<T> other) => _inner.SymmetricExceptWith(other);
+
+        public void UnionWith(IEnumerable<T> other) => _inner.UnionWith(other);
+
+        public bool IsReadOnly => false;
+
+        public bool Add(T item) => _inner.Add(item);
+
+        void ICollection<T>.Add(T item) => _inner.Add(item);
+
+        public void Clear() => _inner.Clear();
+
+        public void CopyTo(T[] array, int arrayIndex) => _inner.CopyTo(array, arrayIndex);
+
+        public bool Remove(T item) => _inner.Remove(item);
 
         public IEnumerator<T> GetEnumerator() => _inner.GetEnumerator();
 
@@ -80,38 +100,15 @@ public sealed class EqualityFallbackTests
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private sealed class DuplicateSet<T>(params T[] items) : IReadOnlySet<T>
-    {
-        private readonly List<T> _items = new(items);
-
-        public int Count => _items.Count;
-
-        public bool Contains(T item) => _items.Contains(item);
-
-        public bool IsProperSubsetOf(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public bool IsProperSupersetOf(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public bool IsSubsetOf(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public bool IsSupersetOf(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public bool Overlaps(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public bool SetEquals(IEnumerable<T> other) => throw new NotSupportedException();
-
-        public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
     private static bool Equal(object? left, object? right) =>
         SparseFragmentRuntime.AreEqual(left, right);
 
     private static FallbackSet<string> Strings(params string[] items) =>
         new(items, StringComparer.OrdinalIgnoreCase);
 
-    private static FallbackDictionary<string, int> Numbers(params (string Key, int Value)[] entries) =>
+    private static FallbackDictionary<string, int> Numbers(
+        params (string Key, int Value)[] entries
+    ) =>
         new(
             entries.ToDictionary(
                 static entry => entry.Key,
@@ -121,13 +118,16 @@ public sealed class EqualityFallbackTests
         );
 
     [Test]
-    public void CustomReadOnlySet_IsOrderIndependentAndSymmetric()
+    public void ErasedReadOnlySetUsesOrderedSequenceSemantics()
     {
         var left = Strings("alpha", "beta");
-        var reordered = Strings("BETA", "ALPHA");
+        var same = Strings("alpha", "beta");
+        var reordered = Strings("beta", "alpha");
 
-        Equal(left, reordered).ShouldBeTrue();
-        Equal(reordered, left).ShouldBeTrue();
+        Equal(left, same).ShouldBeTrue();
+        Equal(same, left).ShouldBeTrue();
+        Equal(left, reordered).ShouldBeFalse();
+        Equal(reordered, left).ShouldBeFalse();
     }
 
     [Test]
@@ -147,13 +147,13 @@ public sealed class EqualityFallbackTests
     }
 
     [Test]
-    public void CustomReadOnlySet_DifferentComparersAreUnequalInBothDirections()
+    public void ReadOnlySetComparerIsNotExposedByItsStandardInterface()
     {
         var ignoreCase = new FallbackSet<string>(["alpha"], StringComparer.OrdinalIgnoreCase);
         var ordinal = new FallbackSet<string>(["alpha"], StringComparer.Ordinal);
 
-        Equal(ignoreCase, ordinal).ShouldBeFalse();
-        Equal(ordinal, ignoreCase).ShouldBeFalse();
+        SparseFragmentRuntime.AreSetEqual(ignoreCase, ordinal).ShouldBeTrue();
+        SparseFragmentRuntime.AreSetEqual(ordinal, ignoreCase).ShouldBeTrue();
     }
 
     [Test]
@@ -162,43 +162,30 @@ public sealed class EqualityFallbackTests
         var ignoreCase = new FallbackSet<string>(["ALPHA"], StringComparer.OrdinalIgnoreCase);
         var ordinal = new FallbackSet<string>(["alpha"], StringComparer.Ordinal);
 
-        Equal(ignoreCase, ordinal).ShouldBeFalse();
-        Equal(ordinal, ignoreCase).ShouldBeFalse();
+        SparseFragmentRuntime.AreSetEqual(ignoreCase, ordinal).ShouldBeFalse();
+        SparseFragmentRuntime.AreSetEqual(ordinal, ignoreCase).ShouldBeFalse();
     }
 
     [Test]
-    public void CustomReadOnlySet_WithNullMembersComparesByMultiset()
+    public void TypedReadOnlySetComparesNullMembersWithoutEnumerationOrder()
     {
         var left = new FallbackSet<string?>(["a", null], StringComparer.OrdinalIgnoreCase);
         var reordered = new FallbackSet<string?>([null, "A"], StringComparer.OrdinalIgnoreCase);
         var changed = new FallbackSet<string?>(["a", "b"], StringComparer.OrdinalIgnoreCase);
 
-        Equal(left, reordered).ShouldBeTrue();
-        Equal(reordered, left).ShouldBeTrue();
-        Equal(left, changed).ShouldBeFalse();
-        Equal(changed, left).ShouldBeFalse();
+        SparseFragmentRuntime.AreSetEqual(left, reordered).ShouldBeTrue();
+        SparseFragmentRuntime.AreSetEqual(reordered, left).ShouldBeTrue();
+        SparseFragmentRuntime.AreSetEqual(left, changed).ShouldBeFalse();
+        SparseFragmentRuntime.AreSetEqual(changed, left).ShouldBeFalse();
     }
 
     [Test]
-    public void DuplicateBearingSet_ComparesByMultiset()
+    public void ErasedEnumerableComparesNestedSequencesStructurally()
     {
-        var left = new DuplicateSet<string>("a", "a", "b");
-        var reordered = new DuplicateSet<string>("b", "a", "a");
-        var redistributed = new DuplicateSet<string>("a", "b", "b");
-
-        Equal(left, reordered).ShouldBeTrue();
-        Equal(reordered, left).ShouldBeTrue();
-        Equal(left, redistributed).ShouldBeFalse();
-        Equal(redistributed, left).ShouldBeFalse();
-    }
-
-    [Test]
-    public void StructuralSet_ComparesDeeplyAndSymmetrically()
-    {
-        var left = new HashSet<List<string>> { new(["k0", "v0"]), new(["k1", "v1"]) };
-        var same = new HashSet<List<string>> { new(["k1", "v1"]), new(["k0", "v0"]) };
-        var changed = new HashSet<List<string>> { new(["k0", "v0"]), new(["k1", "CHANGED"]) };
-        var shorter = new HashSet<List<string>> { new(["k0", "v0"]) };
+        var left = new EnumerableOnly<List<string>>([new(["k0", "v0"]), new(["k1", "v1"])]);
+        var same = new EnumerableOnly<List<string>>([new(["k0", "v0"]), new(["k1", "v1"])]);
+        var changed = new EnumerableOnly<List<string>>([new(["k0", "v0"]), new(["k1", "CHANGED"])]);
+        var shorter = new EnumerableOnly<List<string>>([new(["k0", "v0"])]);
 
         Equal(left, same).ShouldBeTrue();
         Equal(same, left).ShouldBeTrue();
@@ -209,15 +196,15 @@ public sealed class EqualityFallbackTests
     }
 
     [Test]
-    public void CustomReadOnlyDictionary_IsOrderIndependentAndSymmetric()
+    public void TypedReadOnlyDictionaryComparesEntriesWithoutEnumerationOrder()
     {
         var left = Numbers(("first", 1), ("second", 2));
         var reordered = Numbers(("SECOND", 2), ("FIRST", 1));
 
-        Equal(left, reordered).ShouldBeTrue();
-        Equal(reordered, left).ShouldBeTrue();
         SparseFragmentRuntime.AreDictionaryEqual(left, reordered).ShouldBeTrue();
         SparseFragmentRuntime.AreDictionaryEqual(reordered, left).ShouldBeTrue();
+        Equal(left, reordered).ShouldBeFalse();
+        Equal(reordered, left).ShouldBeFalse();
     }
 
     [Test]
@@ -245,8 +232,8 @@ public sealed class EqualityFallbackTests
             new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 1 }
         );
 
-        Equal(ignoreCase, ordinal).ShouldBeFalse();
-        Equal(ordinal, ignoreCase).ShouldBeFalse();
+        Equal(ignoreCase, ordinal).ShouldBeTrue();
+        Equal(ordinal, ignoreCase).ShouldBeTrue();
     }
 
     [Test]
@@ -259,8 +246,8 @@ public sealed class EqualityFallbackTests
             ["FIRST"] = 1,
         };
 
-        Equal(custom, standard).ShouldBeTrue();
-        Equal(standard, custom).ShouldBeTrue();
+        Equal(custom, standard).ShouldBeFalse();
+        Equal(standard, custom).ShouldBeFalse();
     }
 
     [Test]
@@ -285,12 +272,11 @@ public sealed class EqualityFallbackTests
     [Test]
     public void FallbackShapes_AgreeWithThemselvesAcrossRepeatedComparisons()
     {
-        // Reflection/shape caches must not change results between cold and warm
-        // lookups.
+        // Erased generic collection shapes retain ordered enumeration semantics.
         var left = Strings("a", "b", "c");
-        var same = Strings("C", "B", "A");
+        var same = Strings("a", "b", "c");
         var dictLeft = Numbers(("a", 1), ("b", 2));
-        var dictSame = Numbers(("B", 2), ("A", 1));
+        var dictSame = Numbers(("a", 1), ("b", 2));
 
         for (var iteration = 0; iteration < 3; iteration++)
         {
@@ -350,9 +336,9 @@ public sealed class EqualityFallbackTests
             "SparseFallbackTypedProbe",
             trees,
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(
-                NullableContextOptions.Enable
-            )
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary
+            ).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 }

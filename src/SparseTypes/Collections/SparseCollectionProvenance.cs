@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 
 namespace SparseTypes;
 
@@ -646,52 +645,6 @@ internal static class SparseCollectionProvenance
     /// <summary>Discovers the comparer carried by a set-shaped value, if any.</summary>
     /// <remarks>Shared with live origin attribution so set-union membership and set-union attribution agree on equality.</remarks>
     /// <param name="value">The set-shaped value.</param>
-    internal static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value)
-    {
-        if (value is HashSet<T> hashSet)
-        {
-            return hashSet.Comparer;
-        }
-
-        return GetDeclaredComparer<T>(value);
-    }
-
-    [UnconditionalSuppressMessage(
-        "Trimming",
-        "IL2072",
-        Justification = "Only reads an optional public Comparer property; a trimmed property is treated as an undiscoverable comparer with a symmetric bidirectional fallback."
-    )]
-    private static IEqualityComparer<T>? GetDeclaredComparer<T>(object value)
-    {
-        PropertyInfo? property;
-        try
-        {
-            property = value
-                .GetType()
-                .GetProperty("Comparer", BindingFlags.Public | BindingFlags.Instance);
-        }
-        catch (AmbiguousMatchException)
-        {
-            return null;
-        }
-
-        if (
-            property is null
-            || !property.CanRead
-            || property.GetIndexParameters().Length != 0
-            || !typeof(IEqualityComparer<T>).IsAssignableFrom(property.PropertyType)
-        )
-        {
-            return null;
-        }
-
-        try
-        {
-            return (IEqualityComparer<T>?)property.GetValue(value, null);
-        }
-        catch (TargetInvocationException)
-        {
-            return null;
-        }
-    }
+    internal static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) =>
+        value is HashSet<T> hashSet ? hashSet.Comparer : null;
 }
