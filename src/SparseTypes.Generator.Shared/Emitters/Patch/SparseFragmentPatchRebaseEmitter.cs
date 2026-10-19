@@ -65,9 +65,9 @@ internal static class SparseFragmentPatchRebaseEmitter
         );
         into.AppendLineAt(
             2,
-            "internal static "
+            "internal static readonly "
                 + pathType
-                + " __SparseRootPath => "
+                + " __SparseRootPath = "
                 + pathType
                 + ".Root(typeof("
                 + (string.IsNullOrEmpty(modelType) ? "global::System.Object" : modelType)

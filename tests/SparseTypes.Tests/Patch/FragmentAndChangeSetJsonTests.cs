@@ -96,7 +96,7 @@ public sealed class FragmentAndChangeSetJsonTests
         namingPolicy.ResetCount();
         var nextReader = new System.Text.Json.Utf8JsonReader(
             System.Text.Encoding.UTF8.GetBytes(
-                """{"Alpha_2":8,"Bravo_2":9,"Charlie_2":10,"Delta_2":11,"Echo_2":12,"fixedName":13,"Hidden_2":14}"""
+                """{"Alpha_1":8,"Bravo_1":9,"Charlie_1":10,"Delta_1":11,"Echo_1":12,"fixedName":13,"Hidden_1":14}"""
             )
         );
         nextReader.Read().ShouldBeTrue();
@@ -107,10 +107,56 @@ public sealed class FragmentAndChangeSetJsonTests
             options
         )!;
 
-        namingPolicy.ConversionCount.ShouldBe(6);
+        namingPolicy.ConversionCount.ShouldBe(0);
         next.Alpha.Value.ShouldBe(8);
         next.Explicit.Value.ShouldBe(13);
         next.Hidden.IsPresent.ShouldBeFalse();
+    }
+
+    [Test]
+    public void CustomNamingPolicyResultsAreCachedPerOptionsInstance()
+    {
+        var namingPolicy = new CountingSuffixNamingPolicy();
+        var firstOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = namingPolicy,
+            TypeInfoResolver =
+                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+        };
+        firstOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
+        firstOptions.MakeReadOnly();
+
+        ReadWideFragment("""{"Alpha_1":1}""", firstOptions).Alpha.Value.ShouldBe(1);
+        namingPolicy.ConversionCount.ShouldBe(6);
+
+        namingPolicy.Suffix = "_2";
+        ReadWideFragment("""{"Bravo_1":2}""", firstOptions).Bravo.Value.ShouldBe(2);
+        ReadWideFragment("""{"Bravo_2":3}""", firstOptions).Bravo.IsPresent.ShouldBeFalse();
+        namingPolicy.ConversionCount.ShouldBe(6);
+
+        var secondOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = namingPolicy,
+            TypeInfoResolver =
+                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+        };
+        secondOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
+        secondOptions.MakeReadOnly();
+        ReadWideFragment("""{"Bravo_2":4}""", secondOptions).Bravo.Value.ShouldBe(4);
+        namingPolicy.ConversionCount.ShouldBe(12);
+
+        var fragment = new WideDispatchWidget.Fragment
+        {
+            Alpha = Optional<int>.Present(3),
+            Explicit = Optional<int>.Present(4),
+        };
+        var firstJson = JsonSerializer.Serialize(fragment, firstOptions);
+        var secondJson = JsonSerializer.Serialize(fragment, secondOptions);
+
+        firstJson.ShouldContain("\"Alpha_1\"");
+        firstJson.ShouldContain("\"fixedName\"");
+        secondJson.ShouldContain("\"Alpha_2\"");
+        namingPolicy.ConversionCount.ShouldBe(12);
     }
 
     [Test]
@@ -123,6 +169,23 @@ public sealed class FragmentAndChangeSetJsonTests
                 new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         Should.Throw<JsonException>(() => ReadWideFragment("{}", collisionOptions));
+
+        var duplicateWriteOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = new DuplicateNameNamingPolicy(),
+            TypeInfoResolver =
+                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+        };
+        duplicateWriteOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
+        var duplicateJson = JsonSerializer.Serialize(
+            new WideDispatchWidget.Fragment
+            {
+                Alpha = Optional<int>.Present(1),
+                Bravo = Optional<int>.Present(2),
+            },
+            duplicateWriteOptions
+        );
+        duplicateJson.Split("\"duplicate\"", StringSplitOptions.None).Length.ShouldBe(3);
 
         var strictOptions = new JsonSerializerOptions
         {
@@ -219,9 +282,8 @@ public sealed class FragmentAndChangeSetJsonTests
     [Test]
     public void CachedIndexDoesNotGoStaleWhenSharedOptionsAreMutated()
     {
-        // The cache key covers the policy reference and case handling rather
-        // than the options identity, so mutating shared options between
-        // direct converter calls must never reuse a stale member mapping.
+        // Each options instance owns its snapshot, and a mutable options
+        // instance changing policies must rebuild before it is locked.
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -313,37 +375,34 @@ public sealed class FragmentAndChangeSetJsonTests
             """{"alpha":1,"bravo":2,"charlie":3,"delta":4,"echo":5,"fixedName":6}""";
         for (var i = 0; i < 10; i++)
             ReadWideFragment(cachedPayload, cachedOptions);
-        var cachedBytes = MeasureWideReadBytes(cachedPayload, cachedOptions, 200);
+        var cachedOptionsPerRead = Enumerable.Repeat(cachedOptions, 200).ToArray();
+        var cachedBytes = MeasureWideReadBytes(cachedPayload, cachedOptionsPerRead);
 
-        // Custom policies may retain mutable state, so their indexes are
-        // rebuilt on every read: the per-read allocation baseline.
-        var uncachedOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = new CountingSuffixNamingPolicy(),
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
+        var namingPolicy = new CountingSuffixNamingPolicy();
+        var uncachedOptionsPerRead = Enumerable
+            .Range(0, 200)
+            .Select(_ => new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = namingPolicy,
+                TypeInfoResolver =
+                    new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            })
+            .ToArray();
         const string uncachedPayload =
             """{"Alpha_1":1,"Bravo_1":2,"Charlie_1":3,"Delta_1":4,"Echo_1":5,"fixedName":6}""";
-        for (var i = 0; i < 10; i++)
-            ReadWideFragment(uncachedPayload, uncachedOptions);
-        var uncachedBytes = MeasureWideReadBytes(uncachedPayload, uncachedOptions, 200);
+        var uncachedBytes = MeasureWideReadBytes(uncachedPayload, uncachedOptionsPerRead);
 
         cachedBytes.ShouldBeLessThan(uncachedBytes);
     }
 
-    private static long MeasureWideReadBytes(
-        string json,
-        JsonSerializerOptions options,
-        int iterations
-    )
+    private static long MeasureWideReadBytes(string json, JsonSerializerOptions[] optionsPerRead)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);
         System.GC.Collect();
         System.GC.WaitForPendingFinalizers();
         System.GC.Collect();
         var before = System.GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < iterations; i++)
+        foreach (var options in optionsPerRead)
             ReadWideFragment(bytes, options);
         return System.GC.GetAllocatedBytesForCurrentThread() - before;
     }

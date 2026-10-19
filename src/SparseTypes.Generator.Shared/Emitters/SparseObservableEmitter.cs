@@ -191,10 +191,32 @@ internal static class SparseObservableEmitter
             );
         }
         code.AppendLineAt(2, "}");
+        code.AppendLineAt(2, "internal void __Raise(string propertyName)");
+        code.AppendLineAt(2, "{");
+        code.AppendLineAt(3, "var args = propertyName switch");
+        code.AppendLineAt(3, "{");
+        foreach (var member in members)
+        {
+            if (member.Property.Name == "PropertyChanged")
+            {
+                continue;
+            }
+
+            code.AppendLineAt(
+                4,
+                SymbolDisplay.FormatLiteral(member.Property.Name, true)
+                    + " => __propertyChangedEventArgs"
+                    + member.Id
+                    + ","
+            );
+        }
         code.AppendLineAt(
-            2,
-            "internal void __Raise(string propertyName) => PropertyChanged?.Invoke(this, new global::System.ComponentModel.PropertyChangedEventArgs(propertyName));"
+            4,
+            "_ => new global::System.ComponentModel.PropertyChangedEventArgs(propertyName),"
         );
+        code.AppendLineAt(3, "};");
+        code.AppendLineAt(3, "PropertyChanged?.Invoke(this, args);");
+        code.AppendLineAt(2, "}");
         foreach (var member in members)
         {
             if (
@@ -238,6 +260,23 @@ internal static class SparseObservableEmitter
                         + ";"
                 );
             }
+        }
+
+        foreach (var member in members)
+        {
+            if (member.Property.Name == "PropertyChanged")
+            {
+                continue;
+            }
+
+            code.AppendLineAt(
+                2,
+                "private static readonly global::System.ComponentModel.PropertyChangedEventArgs __propertyChangedEventArgs"
+                    + member.Id
+                    + " = new global::System.ComponentModel.PropertyChangedEventArgs("
+                    + SymbolDisplay.FormatLiteral(member.Property.Name, true)
+                    + ");"
+            );
         }
 
         code.AppendLineAt(1, "}");

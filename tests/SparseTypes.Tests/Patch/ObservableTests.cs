@@ -152,6 +152,33 @@ public sealed class ObservableTests
     }
 
     [Test]
+    public void PropertyChangedEventArgsAreReusedPerMember()
+    {
+        var proxy = new HolderObservable(new ObservableHolder { Title = "a" });
+        var titleArgs = new List<PropertyChangedEventArgs>();
+        proxy.PropertyChanged += (_, args) => titleArgs.Add(args);
+
+        proxy.Title = "b";
+        proxy.Title = "c";
+
+        titleArgs.Count.ShouldBe(2);
+        ReferenceEquals(titleArgs[0], titleArgs[1]).ShouldBeTrue();
+
+        PropertyChangedEventArgs? noteArgs = null;
+        proxy.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ObservableHolder.Note))
+            {
+                noteArgs = args;
+            }
+        };
+        proxy.Note = "changed";
+
+        noteArgs.ShouldNotBeNull();
+        ReferenceEquals(titleArgs[0], noteArgs).ShouldBeFalse();
+    }
+
+    [Test]
     public void EqualitySuppression()
     {
         var model = new ObservableHolder { Title = "a" };
