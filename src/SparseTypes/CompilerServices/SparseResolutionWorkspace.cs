@@ -16,7 +16,7 @@ namespace SparseTypes;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public sealed class SparseResolutionWorkspace
 {
-    private readonly Dictionary<SparsePath, object?> _staged = new();
+    private Dictionary<SparsePath, object?>? _staged;
 
     /// <summary>Builds the canonical staging key for a member path prefix.</summary>
     /// <param name="path">The resolution path being applied.</param>
@@ -43,8 +43,16 @@ public sealed class SparseResolutionWorkspace
     /// <param name="key">The staging key of the member.</param>
     /// <param name="staged">The staged buffer, or null when absent.</param>
     /// <returns><see langword="true"/> when the member was staged.</returns>
-    public bool TryGetStaged(SparsePath key, out object? staged) =>
-        _staged.TryGetValue(key, out staged);
+    public bool TryGetStaged(SparsePath key, out object? staged)
+    {
+        if (_staged is not null && _staged.TryGetValue(key, out staged))
+        {
+            return true;
+        }
+
+        staged = null;
+        return false;
+    }
 
     /// <summary>Publishes the staged buffer for the member path.</summary>
     /// <param name="key">The staging key of the member.</param>
@@ -52,6 +60,6 @@ public sealed class SparseResolutionWorkspace
     public void StoreStaged(SparsePath key, object staged)
     {
         ArgumentNullException.ThrowIfNull(staged);
-        _staged[key] = staged;
+        (_staged ??= new Dictionary<SparsePath, object?>())[key] = staged;
     }
 }
