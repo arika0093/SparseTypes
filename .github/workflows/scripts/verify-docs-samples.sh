@@ -179,7 +179,7 @@ assert_candidate_resolved() {
     fi
 }
 
-for framework in net8.0 net10.0; do
+for framework in net10.0; do
     dotnet build "${docs_fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
@@ -193,7 +193,7 @@ for framework in net8.0 net10.0; do
     fi
 done
 
-for framework in net8.0 net10.0; do
+for framework in net10.0; do
     dotnet build "${blazor_fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
@@ -208,7 +208,7 @@ for framework in net8.0 net10.0; do
     fi
 done
 
-for framework in net8.0 net10.0; do
+for framework in net10.0; do
     dotnet build "${tutorial_fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \

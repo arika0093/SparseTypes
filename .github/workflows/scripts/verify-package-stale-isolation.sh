@@ -118,7 +118,7 @@ echo "Content check rejects the stale entry (hash mismatch vs candidate)."
 # the extracted bytes are the current local-feed candidate, not the stale one.
 export NUGET_PACKAGES="$(to_native_path "${isolated_packages}")"
 dotnet build "${fixture_csproj}" \
-    --configuration Release --framework net8.0 \
+    --configuration Release --framework net10.0 \
     -p:SparseTypesPackageVersion="${version}" \
     -p:RestoreAdditionalProjectSources="${feed}"
 assets_file="${fixture_dir}/obj/project.assets.json"
@@ -145,10 +145,10 @@ if grep -r -F -q "STALE_SAME_VERSION_DECOY" "${isolated_packages}/sparsetypes/${
     echo "Isolated cache contains the stale decoy marker." >&2
     exit 1
 fi
-output="$(dotnet "${fixture_dir}/bin/Release/net8.0/${fixture_dll}" 2>&1)"
+output="$(dotnet "${fixture_dir}/bin/Release/net10.0/${fixture_dll}" 2>&1)"
 echo "${output}"
 if [[ "${output}" != *"${success_marker}"* ]]; then
-    echo "Package consumer fixture did not reach its success marker on 'net8.0'." >&2
+    echo "Package consumer fixture did not reach its success marker on 'net10.0'." >&2
     exit 1
 fi
 

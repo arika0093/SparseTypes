@@ -69,7 +69,7 @@ assert_candidate_resolved() {
     fi
 }
 
-for framework in netstandard2.0 net48 net8.0 net10.0; do
+for framework in netstandard2.0 net48 net10.0; do
     dotnet build "${fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
@@ -77,7 +77,7 @@ for framework in netstandard2.0 net48 net8.0 net10.0; do
     assert_candidate_resolved "${fixture_dir}/obj/project.assets.json"
 done
 
-for framework in net8.0 net10.0; do
+for framework in net10.0; do
     output="$(dotnet "${fixture_dir}/bin/Release/${framework}/PackageSparse.LangVersion.Consumer.dll" 2>&1)"
     echo "${output}"
     if [[ "${output}" != *"${success_marker}"* ]]; then
@@ -106,7 +106,7 @@ esac
 # language version 9.0.
 set +e
 negative_output="$(dotnet build "${fixture_csproj}" \
-    --configuration Release --framework net8.0 \
+    --configuration Release --framework net10.0 \
     -p:SparseTypesPackageVersion="${version}" \
     -p:RestoreAdditionalProjectSources="${feed}" \
     -p:LangVersion=8.0 2>&1)"

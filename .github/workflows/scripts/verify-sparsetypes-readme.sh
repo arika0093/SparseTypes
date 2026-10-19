@@ -86,30 +86,29 @@ else
 fi
 lower_version="$(printf '%s' "${version}" | tr '[:upper:]' '[:lower:]')"
 
-for framework in net8.0 net10.0; do
-    dotnet build "${fixture_csproj}" \
-        --configuration Release --framework "${framework}" \
-        -p:SparseTypesPackageVersion="${version}" \
-        -p:RestoreAdditionalProjectSources="${feed}"
-    assets_file="${fixture_dir}/obj/project.assets.json"
-    if [[ ! -f "${assets_file}" ]]; then
-        echo "Restore did not produce '${assets_file}'." >&2
-        exit 1
-    fi
-    if ! grep -F -q "SparseTypes/${version}" "${assets_file}"; then
-        echo "Isolated restore did not resolve 'SparseTypes/${version}' (see '${assets_file}')." >&2
-        exit 1
-    fi
-    if [[ ! -d "${isolated_packages}/sparsetypes/${lower_version}" ]]; then
-        echo "Isolated global-packages has no 'sparsetypes/${lower_version}': restore did not extract the candidate nupkg." >&2
-        exit 1
-    fi
-    output="$(dotnet "${fixture_dir}/bin/Release/${framework}/PackageSparse.Readme.Consumer.dll" 2>&1)"
-    echo "${output}"
-    if [[ "${output}" != *"SparseTypes README consumer passed."* ]]; then
-        echo "SparseTypes README fixture did not reach its success marker on '${framework}'." >&2
-        exit 1
-    fi
-done
+framework="net10.0"
+dotnet build "${fixture_csproj}" \
+    --configuration Release --framework "${framework}" \
+    -p:SparseTypesPackageVersion="${version}" \
+    -p:RestoreAdditionalProjectSources="${feed}"
+assets_file="${fixture_dir}/obj/project.assets.json"
+if [[ ! -f "${assets_file}" ]]; then
+    echo "Restore did not produce '${assets_file}'." >&2
+    exit 1
+fi
+if ! grep -F -q "SparseTypes/${version}" "${assets_file}"; then
+    echo "Isolated restore did not resolve 'SparseTypes/${version}' (see '${assets_file}')." >&2
+    exit 1
+fi
+if [[ ! -d "${isolated_packages}/sparsetypes/${lower_version}" ]]; then
+    echo "Isolated global-packages has no 'sparsetypes/${lower_version}': restore did not extract the candidate nupkg." >&2
+    exit 1
+fi
+output="$(dotnet "${fixture_dir}/bin/Release/${framework}/PackageSparse.Readme.Consumer.dll" 2>&1)"
+echo "${output}"
+if [[ "${output}" != *"SparseTypes README consumer passed."* ]]; then
+    echo "SparseTypes README fixture did not reach its success marker on '${framework}'." >&2
+    exit 1
+fi
 
 echo "SparseTypes README samples verified (SparseTypes ${version})."

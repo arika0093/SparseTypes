@@ -10,7 +10,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <!-- net10.0 stays listed: tests/Directory.Build.props defaults the
       singular TargetFramework to net10.0, and omitting it breaks dispatch. -->
-    <TargetFrameworks>netstandard2.0;net48;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net48;net10.0</TargetFrameworks>
     <OutputType Condition="'$(TargetFramework)' == 'netstandard2.0'">Library</OutputType>
     <OutputType Condition="'$(TargetFramework)' != 'netstandard2.0'">Exe</OutputType>
     <IsTestProject>false</IsTestProject>

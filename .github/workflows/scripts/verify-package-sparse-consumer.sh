@@ -57,7 +57,7 @@ assert_candidate_resolved() {
     fi
 }
 
-for framework in net8.0 net10.0; do
+for framework in net10.0; do
     dotnet build "${fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
