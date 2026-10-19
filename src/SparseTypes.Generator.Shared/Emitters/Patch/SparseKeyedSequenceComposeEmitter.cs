@@ -111,6 +111,7 @@ internal static class SparseKeyedSequenceComposeEmitter
         if (!hasTempPatchCompose && !SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             AppendAssignedAddOnlyComposeFastPath(code, keyType, elementType, comparer, member);
+            AppendAssignedRemoveOnlyComposeFastPath(code, keyType, comparer);
         }
 
         if (hasTempPatchCompose)
@@ -580,6 +581,68 @@ internal static class SparseKeyedSequenceComposeEmitter
             5,
             "if (next.__added is not null) result.__added!.AddRange(next.__added);"
         );
+        code.AppendLineAt(5, "return result;");
+        code.AppendLineAt(4, "}");
+    }
+
+    private static void AppendAssignedRemoveOnlyComposeFastPath(
+        SharedIndentedBuilder code,
+        string keyType,
+        string comparer
+    )
+    {
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "(__added is null || __added.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__added is null || next.__added.Count == 0)");
+        code.AppendLineAt(5, "&& (__edited is null || __edited.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__edited is null || next.__edited.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(4, ")");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(5, "if (__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(6, "if (next.__removed is not null && next.__removed.Count > 0)");
+        code.AppendLineAt(
+            7,
+            "result.__removed = new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(next.__removed);"
+        );
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "else if (next.__removed is null || next.__removed.Count == 0)");
+        code.AppendLineAt(
+            6,
+            "result.__removed = new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(__removed);"
+        );
+        code.AppendLineAt(5, "else");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "var __simpleRemovedSeen = new global::System.Collections.Generic.HashSet<"
+                + keyType
+                + ">("
+                + comparer
+                + ");"
+        );
+        code.AppendLineAt(
+            6,
+            "var __simpleRemoved = new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(__removed.Count + next.__removed.Count);"
+        );
+        code.AppendLineAt(
+            6,
+            "foreach (var key in __removed) if (__simpleRemovedSeen.Add(key)) __simpleRemoved.Add(key);"
+        );
+        code.AppendLineAt(
+            6,
+            "foreach (var key in next.__removed) if (__simpleRemovedSeen.Add(key)) __simpleRemoved.Add(key);"
+        );
+        code.AppendLineAt(6, "result.__removed = __simpleRemoved;");
+        code.AppendLineAt(5, "}");
         code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
     }

@@ -294,6 +294,23 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeRemoveOnlyPreservesFirstOccurrenceOrder()
+    {
+        var before = KF(Server("a"), Server("b"), Server("c"), Server("d"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Remove("b");
+        first.Items.Remove("a");
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("a");
+        next.Items.Remove("c");
+
+        var composed = first.Compose(next);
+        (composed.Items.__removed ?? []).ShouldBe(["b", "a", "c"]);
+        KeyedModel(composed.Apply(before)).Select(static item => item.Id).ShouldBe(["d"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeRemovalFilteringUsesDefaultKeyEquality()
     {
         // The configured key comparer is EqualityComparer<T>.Default at every
