@@ -198,6 +198,7 @@ Under the hood, `Fragment` and `Patch` use `Optional<T>` to distinguish unassign
 
 ### How-to Guides
 * [Layered settings](docs/how-to/layered-settings.md): Compose multi-tier configuration and remove overrides.
+* [Work with an edit session](docs/how-to/edit-session.md): Edit a live model, submit a captured snapshot, and choose how to acknowledge the response.
 * [Partial updates](docs/how-to/partial-updates.md): Accept patch commands or baseline-aware changes in Web APIs.
 * [Blazor edit form](docs/how-to/blazor-edit-form.md): Save form edits without losing draft state.
 * [Blazor headless components](docs/how-to/blazor-headless-components.md): Build custom UI inputs over session paths.
@@ -209,6 +210,7 @@ Under the hood, `Fragment` and `Patch` use `Optional<T>` to distinguish unassign
 * [ChangeSet rebase](docs/explanation/rebase.md): Three-way reconciliation, conflict detection, and server save flows.
 * [Keyed collections](docs/explanation/keyed-collections.md): Identity-based list operations vs. index-based mutation.
 * [Cloning and ownership](docs/explanation/cloning-and-ownership.md): Instance isolation and memory safety guarantees.
+* [Edit sessions and state boundaries](docs/explanation/edit-sessions.md): Baselines, acknowledgements, child drafts, and observation.
 * [Merge strategies](docs/explanation/merge-strategies.md): Deep merge, collection append, set union, and custom rules.
 * [UI frameworks & Edit sessions](docs/explanation/ui-frameworks.md): Framework-neutral editing model for Blazor, WPF, WinForms, MAUI, and Avalonia.
 * [Edit-session groups](docs/explanation/edit-session-groups.md): Coordinating multiple edit sessions across distinct models.

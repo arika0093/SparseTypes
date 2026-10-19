@@ -147,4 +147,16 @@ Use `Select` to navigate into child models, and `Key` or `At` to navigate into c
 
 When switching the active `Session` instance, key the `<EditForm>` by session or generation (e.g. `@key="session"`) so inputs recreate against the updated context.
 
+For keyed collection rows, use `SparseCollection<TModel, TElement>` with a
+single-member collection path. Its row template receives the element model,
+stable UI key, root-preserving typed path, and the item's current semantic
+state. Bind row fields with `SparseField` using `row.Select(...)`; route
+removal and movement through the row operations or its collection editor
+rather than mutating the list directly. This keeps mutations in the session's
+notification and history pipeline. The component exposes removed baseline
+items for a removal preview; ordinary row enumeration contains only current
+items. See [UI framework integration](../explanation/ui-frameworks.md#edit-one-collection-through-a-path-addressed-facade)
+for collection operation limits and [Case 5](https://arika0093.github.io/SparseTypes/case-5)
+for a complete keyed-list editor.
+
 For detailed session observer specifications, see [Edit session state and observers reference](../reference/edit-session-state.md).

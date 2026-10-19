@@ -145,3 +145,19 @@ session.Observable.Title = "after-dispose";
 * **Synchronous dispatch**: Events fire synchronously on the mutating thread. No UI dispatching is performed.
 * **Raw model writes**: Direct assignments to `session.Model` bypass notification pipelines and will not trigger watcher events. Use `session.Observable` for mutations.
 * **Disposal**: Observers subscribe to session events. Always call `Dispose()` to release references when the watcher is no longer needed.
+
+## Reusing a state snapshot
+
+Generated sessions that expose `CaptureStateSnapshot()` create a
+`SparseChangeSetQueryView` over one captured change set. Reuse that view when
+many fields need state from the same render or inspection pass; it flattens
+and indexes the transition lazily, then answers path queries from that fixed
+snapshot. The view does not refresh after later model edits. Capture a new
+snapshot after session notifications or other changes to the draft.
+
+Use the session's `FieldState(path)` for a one-off query that must reflect the
+current live model, including mutations that did not raise session
+notifications. For repeated queries over a known generation, the captured
+view avoids deriving and scanning a new change set for every field. The
+Blazor `SparseEditContext` shares such a snapshot across field components in
+one refresh generation when the session supports that capability.

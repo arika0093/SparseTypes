@@ -110,8 +110,8 @@ public static class PartialUpdateSamples
         var replayed = incoming.ToPatch().ApplyTo(secretBase);
         // replayed.Phone == "new-phone"
 
-        // It cannot become a baseline-aware ChangeSet again: the before-state
-        // is gone, so there is no reversible history to reconstruct.
+        // The received payload cannot become a complete ChangeSet:
+        // its redacted before-state is not available to reconstruct.
         var rejected = false;
         try
         {

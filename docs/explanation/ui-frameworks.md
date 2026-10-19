@@ -140,6 +140,16 @@ shelf.TryRemoveByKey("b", out _);
 
 The positional operations (`TryAdd`, `TryInsert`, `TryReplace`, `TryRemoveAt`, `TryMove`) forward to the same-named `IArrayDescriptor` operations with batching, live resolution, and deterministic errors included. Handwritten code that resolves the member descriptor, checks the index, and wraps the call in `BatchEdit` repeats the facade and should call it instead. The keyed operations (`TryGetByKey`, `TryRemoveByKey`, `TryReplaceByKey`, `TryMoveByKey`, `TryGetKeyAt`, `IndexOfKey`, `ContainsKey`, and the temporary-identity operations) have no single-call Descriptor equivalent: the descriptor mutates by index and only looks keys up, so hand-rolled lookup-then-mutate sequences belong on the facade, which pins identity per operation. Descriptors remain the route for member metadata and inspection, nested collection paths, dictionary and set members, and flattened change enumeration.
 
+Blazor's `SparseCollection<TModel, TElement>` builds keyed rows over a
+single-member collection path and routes row removal and movement through the
+session editor. Each row carries a stable UI key, its typed path, and a
+point-in-time item state; removed baseline values are available through
+`RemovedItems`. Use `SparseField` with each row path for editing its members.
+The component is for session-backed UI; non-Blazor consumers can use
+`EditCollection` directly. Case 5 and Case 6 of the
+[playground](https://arika0093.github.io/SparseTypes/) show collection editing
+inside a save flow and nested child drafts.
+
 The Case 3 roster editor keeps direct list mutation because it edits the raw model with a manual change callback and owns no session. The facade needs session descriptors plus the batch runner, so adopting it there would mean adopting a session first. That migration stays out of scope; Case 3 remains the session-less baseline.
 
 ### Advanced inspection: Descriptors and flattened changes
@@ -150,6 +160,14 @@ Ordinary editing needs only `Observable`, `Current`, and `CreateChangeSet()`. Tw
 * `ChangeSet.EnumerateChanges()` flattens a transition into `ChangeInfo` rows (`SparsePath` path, presence-aware before/after, `ChangeKind`), and `EnumerateChangedPaths()` lists the changed member paths. `ChangeSet.Find(path)` and `session.Descriptors.Find(path)` locate single rows and descriptors by exact path. They feed logs, lists, and tests; ordinary editing reads the typed member transitions instead (see [Observe typed member transitions](fragments-and-patches.md#observe-typed-member-transitions)).
 
 Limitations: descriptors track the live model, so values read through them change as the model changes. Flattened enumeration describes one computed transition; it does not update when the model is edited further. See the [Descriptors reference](../reference/descriptors.md) for the full contract.
+
+For generic cross-framework validation, `SparseValidationStore<TModel>`
+implements `INotifyDataErrorInfo` and records errors against typed paths.
+Errors are grouped by origin, so a server response can replace its own messages
+without clearing local validation or rebase-conflict errors. `AddConflicts`
+projects structured conflicts into the store but does not resolve them. This
+store is separate from Blazor's `ValidationMessageStore`; use the latter when
+the errors must participate in an `EditContext`.
 
 Writable reference-type models also generate `Fragment.WriteTo(model)` and `Patch.ApplyInPlace(model)`. They update the existing model object; supported `List<T>` and `Dictionary<TKey,TValue>` properties retain their collection instance and have their contents replaced. Nested model values may be replaced. A model with init-only or constructor-only members keeps its normal edit-session APIs but cannot use in-place apply (see [SPF026](../reference/analyzer.md#spf026-in-place-submit-is-unavailable)).
 
@@ -168,9 +186,10 @@ A save ends in exactly one of these. Pick by what the server returned.
 
 | Server result | Session call | Live model | Baseline |
 | --- | --- | --- | --- |
-| Persisted, state returned (IDs, timestamps, normalization) | New session from the persisted state | Replaced | Persisted state |
-| Persisted with assigned keys for pending rows, keep editing | `TryReconcile(submitted, persisted)` | Assigned keys written in place, later edits kept | Persisted state |
-| Persisted, submitted transition unchanged | `AcceptChanges(submitted)` | Untouched, later edits stay pending | Advanced by the transition |
+| Persisted, editing stops and authoritative state is returned | New session from the persisted state | Replaced | Persisted state |
+| Persisted unchanged; editing continued during the request | `AcceptChanges(submitted)` | Untouched; later edits stay pending | Advanced by the submitted transition |
+| Persisted with assigned keys; keep editing and retain local values | `TryReconcile(submitted, persisted)` | Assigned keys written in place; later edits kept | Persisted state |
+| Persisted with normalized values; keep editing and adopt server values | `TryReconcileAndApply(submitted, persisted, out conflicts)` | Server values adopted; later edits rebased | Persisted state |
 | Persisted, current state is authoritative | `AcceptChanges()` | Untouched | Current state |
 | Fresh state arrived, keep editing | `Reload(serverState)` | Merged in place | Server state |
 | Fresh state arrived, resolve manually first | Manual `TryApplyTo` merge, then a new session | Caller owned | Caller owned |
@@ -179,7 +198,7 @@ A save ends in exactly one of these. Pick by what the server returned.
 
 ### Recommended save workflow
 
-The standard and recommended workflow is:
+When editing is disabled during submission, the simplest workflow is:
 
 1. Disable UI editing while the save operation is in flight.
 2. Send the change payload (`session.CreateChangeSet().ToPayload()`).
@@ -210,7 +229,11 @@ finally
 }
 ```
 
-This pattern cleanly absorbs server-assigned keys, modified timestamps, and value normalization without requiring partial-state reconciliation. When pending keyed rows carry `[SparseTemporaryKey]` Guids and editing continues during the save, reconcile instead so assigned keys land in the live model and later edits stay pending:
+Starting a fresh session absorbs server-assigned keys, modified timestamps,
+and normalized values. When editing remains enabled, select an acknowledgement
+operation from the table instead. `TryReconcile` correlates temporary keys but
+does not replace other live property values; `TryReconcileAndApply` adopts the
+authoritative values and rebases edits made after submission:
 
 <!-- illustrative: excerpt; uses names from the surrounding workflow and does not compile as written -->
 ```csharp
@@ -222,7 +245,14 @@ if (!session.TryReconcile(submitted, persisted, out var reconcileError))
 }
 ```
 
-See [Saving pending additions with Reconcile](keyed-collections.md#saving-pending-additions-with-reconcile) for the full workflow, including failure behavior and the server mapping.
+When the server also normalizes values and the user kept editing, adopt those
+authoritative values while preserving later edits with
+`TryReconcileAndApply(submitted, persisted, out conflicts)`. A false result
+reports conflicts or a correlation failure and leaves the retained baseline
+unchanged. The final in-place writes still use ordinary model setters, so
+arbitrary setter exceptions are not transactional.
+
+See [Saving pending additions with Reconcile](keyed-collections.md#saving-pending-additions-with-reconcile) for temporary-key correlation and server mapping, and [Work with an edit session](../how-to/edit-session.md#submit-a-snapshot) for the full acknowledgement decision table.
 
 For forms that keep editing enabled during submission when the server makes no schema changes, key assignments, or normalization, `session.AcceptChanges(submitted)` advances the retained baseline without touching the live model:
 
@@ -358,6 +388,24 @@ Conflicts carry the same member paths as change-set rebase, so per-field resolut
 ### Edit child models in independent sessions
 
 Use `OpenChildSession` when a nested form needs its own paths, undo/redo history, or nested editing. The returned child handle exposes the generated child-model edit session through `Session`. Accepting merges the child edits into its parent and resets the child's history baseline; a conflict leaves the edits pending. Child sessions can open further child sessions with paths relative to their own model.
+
+For Blazor section editors, `SparseSessionScope` owns child contexts by typed
+path. `SparseChildEdit` and `SparseChildEditDefault` open or reuse a child
+context within that scope. The default `Draft` mode keeps edits separate until
+the child is accepted. `PassThrough` mode accepts each child edit into its
+parent and reports the parent state to the child fields. A scope retains child
+drafts when a target disappears; recover the target, explicitly discard the
+draft, or dispose the scope rather than assuming the draft was dropped.
+
+`HasChanges` includes pending child drafts. Use `HasOwnChanges` to inspect only
+the parent session, and `HasPendingChildSessions` to detect drafts that have
+not been accepted. `PreviewChangeSet()` excludes child drafts;
+`CreateChangeSet()` includes their child-aware projection without accepting
+them. Call `TryAcceptChildSessions(out conflicts)` when the parent model itself
+must absorb every child draft. A missing target or typed conflict leaves the
+drafts pending. The [EditSession explanation](edit-sessions.md#child-sessions)
+describes these ownership boundaries; [Case 6](https://arika0093.github.io/SparseTypes/case-6)
+shows the section-draft workflow.
 
 <!-- sample: ui-child-session -->
 ```csharp

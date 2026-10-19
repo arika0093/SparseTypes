@@ -411,7 +411,7 @@ if (!payload.TryApplyMixedTo(currentModel, out var updated, out var outcome))
 
 `TryApplyMixedTo` rebases the ordinary members onto the current model and passes the write-only members through without historical comparison. When any ordinary member conflicts, the call returns `false` and applies nothing: the write-only subset is never committed on its own, and the current model is left untouched. The outcome names the write-only paths in `WriteOnlyPaths` and carries the structured conflicts in `Conflicts`.
 
-Use `ChangePayload.ToPatch()` when the destination only needs the desired operations without validation, and `InvertReversibleChanges(out var skipped)` when rolling back: write-only paths are excluded from the rollback and reported in `skipped`. `ChangeSet.FromPayload` accepts only fully baseline-aware envelopes and throws a typed error naming the redacted paths.
+Use `ChangePayload.ToPatch()` when the destination needs the desired operations without comparing historical before-values. It still validates the wire version and envelope structure. Use `InvertReversibleChanges(out var skipped)` when rolling back: write-only paths are excluded from the rollback and reported in `skipped`. `ChangeSet.FromPayload` accepts only fully baseline-aware envelopes and throws a typed error naming the redacted paths.
 
 ## Mixed-Operation Rules
 

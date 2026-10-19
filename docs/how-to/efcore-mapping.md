@@ -116,6 +116,13 @@ Choose the reconciliation method based on which values the client must adopt. `T
 
 `TryReconcileAndApply` adopts the authoritative model and rebases edits made after the submitted snapshot onto it. Use it when persistence can normalize values or when editing remains enabled while a save is in flight. A planning, correlation, or rebase conflict returns `false` without changing the live model or retained baseline. These conflict guarantees do not make arbitrary setters, property notifications, or callbacks transactional if they throw during the final in-place write.
 
+If editing is disabled during the request, replace the session with one created
+from the returned authoritative DTO instead. If the server persisted the
+submitted values unchanged and the live model should remain untouched,
+`AcceptChanges(submitted)` advances the baseline while preserving edits made
+after capture. The [edit-session save guide](edit-session.md#submit-a-snapshot)
+compares these acknowledgement choices.
+
 ## Handle client-assigned temporary keys
 
 When clients create new child collection items before database primary keys exist, use `ApplyWithResult` and `AssignTemporaryKeys` to correlate client IDs with newly generated database keys:

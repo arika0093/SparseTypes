@@ -518,7 +518,8 @@ Pick the acknowledgement call by what the server returned:
 
 | Server result | Session call | Effect |
 | --- | --- | --- |
-| Persisted with assigned keys or normalization, ordinary DTO returned | `TryReconcile(submitted, persisted)` | Assigned keys land in the live model; persisted state becomes the baseline; post-submit edits stay pending |
+| Persisted with assigned keys only, ordinary DTO returned | `TryReconcile(submitted, persisted)` | Assigned keys land in the live model; persisted state becomes the baseline; post-submit edits stay pending |
+| Persisted with assigned keys or normalized values that the client must adopt | `TryReconcileAndApply(submitted, persisted, out conflicts)` | Authoritative values become live; post-submit edits are rebased and remain pending when conflict-free |
 | Persisted exactly the submitted transition, no key or value changes | `AcceptChanges(submitted)` | The retained baseline advances by the transition; the live model is untouched |
 | Current state is authoritative, keep editing from it | `Reload(serverState)` | Pending edits rebase onto the server state in place with structured conflicts on overlap |
 | Persisted state returned and no post-submit edits must be kept | New session from the persisted state | Clean baseline on the authoritative model |
