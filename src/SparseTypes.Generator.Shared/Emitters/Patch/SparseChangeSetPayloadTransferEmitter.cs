@@ -92,7 +92,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 3,
                 "return new ChangePayload { Version = "
                     + versionLiteral
-                    + ", Changes = ToPayloadCore(self, false).Changes };"
+                    + ", Changes = ToPayloadChanges(self, false) };"
             );
             code.AppendLineAt(2, "}");
         }
@@ -110,13 +110,13 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 3,
                 "return new ChangePayload { Version = "
                     + versionLiteral
-                    + ", Changes = ToPayloadCore(false).Changes };"
+                    + ", Changes = ToPayloadChanges(false) };"
             );
             code.AppendLineAt(2, "}");
         }
         code.AppendLineAt(
             2,
-            "/// <summary>Builds the transport core for this change set.</summary>"
+            "/// <summary>Builds the transport changes for this change set.</summary>"
         );
         code.AppendLineAt(
             2,
@@ -128,12 +128,13 @@ internal static class SparseChangeSetPayloadTransferEmitter
             2,
             "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The transport core.</returns>");
+        code.AppendLineAt(2, "/// <returns>The transport changes.</returns>");
         code.AppendLineAt(
             2,
             (target is null ? "internal " : "internal static ")
-                + payloadCore
-                + " ToPayloadCore("
+                + "global::System.Collections.Generic.List<"
+                + payloadChange
+                + "> ToPayloadChanges("
                 + (target is null ? string.Empty : "ChangeSet self, ")
                 + "bool redactBefores)"
         );
@@ -174,7 +175,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     + rootChange
                     + " { Before = __SparsePayloadRoot(__sparse_wholeBefore, redactBefores), After = __SparsePayloadRootAfter(__sparse_wholeAfter) });"
             );
-            code.AppendLineAt(4, "return new " + payloadCore + " { Changes = changes };");
+            code.AppendLineAt(4, "return changes;");
         }
         code.AppendLineAt(3, "}");
 
@@ -426,8 +427,32 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 code.AppendLineAt(3, "}");
             }
         }
-        code.AppendLineAt(3, "return new " + payloadCore + " { Changes = changes };");
+        code.AppendLineAt(3, "return changes;");
         code.AppendLineAt(2, "}");
+        code.AppendLine();
+        code.AppendLineAt(
+            2,
+            "/// <summary>Builds the transport core for this change set.</summary>"
+        );
+        if (target is not null)
+            code.AppendLineAt(2, "/// <param name=\"self\">The change set to convert.</param>");
+        code.AppendLineAt(
+            2,
+            "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
+        );
+        code.AppendLineAt(2, "/// <returns>The transport core.</returns>");
+        code.AppendLineAt(
+            2,
+            (target is null ? "internal " : "internal static ")
+                + payloadCore
+                + " ToPayloadCore("
+                + (target is null ? string.Empty : "ChangeSet self, ")
+                + "bool redactBefores) => new "
+                + payloadCore
+                + " { Changes = ToPayloadChanges("
+                + (target is null ? string.Empty : "self, ")
+                + "redactBefores) };"
+        );
         code.AppendLine();
         code.AppendLineAt(
             2,
