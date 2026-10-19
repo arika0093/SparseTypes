@@ -52,6 +52,17 @@ internal static class SparseChangeSetPayloadEmitter
         if (emitFacade)
         {
             AppendChangePayloadFacadeBlock(code, members, dialect, modelType);
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(
+                members,
+                dialect,
+                modelType,
+                implementationNamespace
+            );
+            if (payloadJson is not null)
+            {
+                SparsePayloadJsonConverterEmitter.AppendConverter(code, payloadJson);
+                SparsePayloadJsonResolverEmitter.AppendResolver(code, payloadJson);
+            }
         }
 
         if (emitContainers)

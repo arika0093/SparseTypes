@@ -728,28 +728,22 @@ The base package does not depend on `System.Text.Json`. JSON attributes, convert
 
 The 0.1 wire contract needs named and ordered properties, null and default omission, polymorphic discriminators, endpoint and kind converters, and the UTF-8 reader and writer with options and type metadata. The generator probes for `JsonSerializer` and `JsonConverter<T>` with overridable `Read` and `Write`, the `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`, `JsonPolymorphic`, `JsonDerivedType`, and `JsonConverter` attributes, `JsonIgnoreCondition`, `JsonUnmappedMemberHandling.Disallow`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonSerializerOptions.GetTypeInfo`, `JsonTypeInfo`, and `JsonException`. A reference that lacks any of these, such as an older `System.Text.Json` version, omits the JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with the missing names; a compilation with no reference at all stays silent and builds the serializer-independent core. Payload DTOs ignore unknown properties once emitted; generated fragment converters still honor `JsonSerializerOptions.UnmappedMemberHandling`.
 
-The scalar-set payload from the earlier section serializes through resolver options like this:
+The scalar-set payload from the earlier section serializes through the generated resolver like this:
 
 <!-- sample: payload-context -->
 ```csharp
-var contextOptions = new JsonSerializerOptions
-{
-    TypeInfoResolver = JsonTypeInfoResolver.Combine(
-        WirePayloadContext.Default,
-        new DefaultJsonTypeInfoResolver()
-    ),
-};
-var contextJson = JsonSerializer.Serialize(setPayload, contextOptions);
+var contextJson = JsonSerializer.Serialize(
+    setPayload,
+    WireSettings.PayloadJson.Default.ChangePayload
+);
 var contextRestored = JsonSerializer
-    .Deserialize<WireSettings.ChangePayload>(contextJson, contextOptions)!
+    .Deserialize(contextJson, WireSettings.PayloadJson.Default.ChangePayload)!
     .ToChangeSet();
 // contextRestored.ToPatch().Apply(setBefore) replays setAfter
 ```
 <!-- /sample -->
 
-Register every endpoint value type on the context and combine it with the default reflection resolver. The generated converters resolve values through `JsonSerializerOptions.GetTypeInfo`, so registered value types avoid reflection while the generated payload shape still uses it. A context declared next to the models cannot cover the generated payload DTOs themselves, because those DTOs do not exist until generation runs. A fully trimmed build declares the context in a project that references the models instead, which is how the NativeAOT smoke project registers its fixtures payloads.
-
-The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
+`PayloadJson.Default` supplies trim-safe metadata for the generated payload shape, so primitive endpoint values need no extra registration. Custom value types still resolve through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver with a source-generated context for those types. The endpoint and item-kind mapping lives in generated per-model converters. They write state before value, always include an explicit value, and use the lower-case tokens defined by `ChangePayloadWire`. Serializing `ChangePayloadEndpoint` or the state and kind enums directly no longer produces those tokens on its own; serialize the `ChangePayload` DTOs, which reference the converters, or register a generated endpoint converter for standalone use.
 
 ## NativeAOT
 
@@ -764,9 +758,9 @@ NativeAOT and trimmed applications need serializer metadata at build time. Confi
 </PropertyGroup>
 ```
 
-Declare a source-generated `JsonSerializerContext` in the application that references the model assembly. The context needs metadata for each endpoint value type the generated converters can pass to `JsonSerializerOptions.GetTypeInfo`, including primitive, enum, and collection types, and for each `T.ChangePayload` serialized as a top-level value. The payload DTO is generated with the model, so putting the context in the same compilation as the model does not let the System.Text.Json source generator see that DTO. A downstream application project can reference the generated DTO and register it.
+Declare a source-generated `JsonSerializerContext` for custom endpoint value types only. Payload shapes resolve through the generated `T.PayloadJson.Default` resolver, so the context never registers `T.ChangePayload`. Primitive values use the generated fast paths and need no registration.
 
-This context registers the endpoint value types and payload DTOs used by the AOT examples:
+This context registers the custom value types used by the AOT examples:
 
 <!-- sample: payload-native-aot-models -->
 ```csharp
@@ -782,23 +776,13 @@ using SparseTypes.NativeAotSmoke;
 [JsonSerializable(typeof(IReadOnlyList<string>))]
 [JsonSerializable(typeof(AotServer))]
 [JsonSerializable(typeof(List<AotServer>))]
-[JsonSerializable(
-    typeof(PayloadRoot.ChangePayload),
-    TypeInfoPropertyName = "PayloadRootChangePayload"
-)]
-[JsonSerializable(
-    typeof(PayloadCollection.ChangePayload),
-    TypeInfoPropertyName = "PayloadCollectionChangePayload"
-)]
-[JsonSerializable(
-    typeof(PayloadSecret.ChangePayload),
-    TypeInfoPropertyName = "PayloadSecretChangePayload"
-)]
+[JsonSerializable(typeof(PayloadItem))]
+[JsonSerializable(typeof(List<PayloadItem>))]
 internal sealed partial class AotSerializerContext : JsonSerializerContext { }
 ```
 <!-- /sample -->
 
-Pass the context's generated `JsonTypeInfo<T>` to the `JsonSerializer` overloads. This avoids asking the serializer to discover metadata at runtime:
+Pass the generated `JsonTypeInfo<T>` to the `JsonSerializer` overloads. This avoids asking the serializer to discover metadata at runtime:
 
 <!-- sample: payload-native-aot -->
 ```csharp
@@ -821,10 +805,10 @@ var widgetAfter = WidgetState("new", "h2");
 var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
 var json = JsonSerializer.Serialize(
     changes.ToPayload(),
-    AotSerializerContext.Default.PayloadRootChangePayload
+    PayloadRoot.PayloadJson.Default.ChangePayload
 );
 var restored = JsonSerializer
-    .Deserialize(json, AotSerializerContext.Default.PayloadRootChangePayload)!
+    .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
     .ToChangeSet();
 await Assert
     .That(
@@ -836,7 +820,7 @@ await Assert
 ```
 <!-- /sample -->
 
-The context property name comes from `TypeInfoPropertyName`. Register a payload DTO for each model whose payload is a serialization root, and include every endpoint value type used by those models. Nested changes use the parent payload DTO's metadata; they do not need a separate `ChangePayload` registration. Use the same context for serialization and deserialization, and verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
+Use `T.PayloadJson.Default.ChangePayload` for models whose endpoints are primitives or nested models. For custom endpoint values, combine the generated resolver with the leaf context and use the resulting `JsonTypeInfo`: `new JsonSerializerOptions { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, AotSerializerContext.Default) }`. Nested changes use the parent payload resolver; they do not need a separate registration. Verify the path with `JsonSerializerIsReflectionEnabledByDefault` disabled before publishing.
 
 ## Choosing a conversion
 
