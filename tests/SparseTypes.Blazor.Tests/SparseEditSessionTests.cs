@@ -117,7 +117,7 @@ public sealed class SparseEditSessionTests
             store.Clear();
             if (string.IsNullOrEmpty(Raw(session).Number))
             {
-                store.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+                store.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         };
 
@@ -134,11 +134,11 @@ public sealed class SparseEditSessionTests
     {
         var session = Order().CreateEditSession();
 
-        var nestedField = session.Field("Customer.Name");
+        var nestedField = session.Field(OrderDto.SparsePath.Customer.Name);
         ReferenceEquals(nestedField.Model, Raw(session).Customer).ShouldBeTrue();
         nestedField.FieldName.ShouldBe(nameof(OrderCustomer.Name));
 
-        var itemField = session.Field("Lines[1].Quantity");
+        var itemField = session.Field(OrderDto.SparsePath.Lines.At(1).Quantity);
         ReferenceEquals(itemField.Model, Raw(session).Lines[1]).ShouldBeTrue();
         itemField.FieldName.ShouldBe(nameof(OrderLine.Quantity));
 
@@ -160,8 +160,12 @@ public sealed class SparseEditSessionTests
             )
             .ShouldBeTrue();
 
-        Should.Throw<ArgumentException>(() => session.Field("Customer.Unknown"));
-        Should.Throw<ArgumentException>(() => session.Field("Lines[10].Quantity"));
+        Should.Throw<ArgumentException>(() =>
+            session.Field(SparsePath.Parse<OrderDto>("Customer.Unknown"))
+        );
+        Should.Throw<ArgumentException>(() =>
+            session.Field(SparsePath.Parse<OrderDto>("Lines[10].Quantity"))
+        );
     }
 
     [Test]
@@ -630,7 +634,7 @@ public sealed class SparseEditSessionTests
 
         session.AddValidationError(
             store,
-            session.Field(nameof(OrderDto.Number)),
+            session.Field(OrderDto.SparsePath.Number),
             "Server rejected the order number."
         );
 

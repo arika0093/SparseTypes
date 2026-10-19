@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Reflection;
 using Microsoft.AspNetCore.Components.Forms;
 using SparseTypes;
+using SparseTypes.Generated;
 
 namespace SparseTypes.Blazor;
 
@@ -30,30 +31,19 @@ internal readonly record struct SparseFieldResolution
 /// </remarks>
 internal static class SparseFieldPathResolver
 {
-    /// <summary>Resolves a wire-compatible field path, throwing when the path does not resolve.</summary>
-    /// <remarks>String paths parse to <see cref="SparsePath"/> once, then resolve through the typed walk. Failure messages keep the caller's spelling.</remarks>
-    internal static FieldIdentifier Resolve(object model, string fieldName)
-    {
-        ArgumentNullException.ThrowIfNull(model);
-        ArgumentException.ThrowIfNullOrEmpty(fieldName);
-        if (!SparsePath.TryParse(model.GetType(), fieldName, out var path))
-        {
-            throw InvalidFieldPath(fieldName);
-        }
-
-        var resolution = ResolveNearest(model, path);
-        if (!resolution.Resolved)
-        {
-            throw InvalidFieldPath(fieldName);
-        }
-
-        return resolution.Field;
-    }
-
     /// <summary>Resolves a canonical typed path, throwing when the path does not resolve.</summary>
-    internal static FieldIdentifier Resolve(object model, SparsePath path)
+    internal static FieldIdentifier Resolve(
+        object model,
+        SparsePath path,
+        IDescriptorSet? descriptors = null
+    )
     {
         ArgumentNullException.ThrowIfNull(model);
+        if (descriptors is not null)
+        {
+            return ResolveWithDescriptors(model, path, descriptors);
+        }
+
         var resolution = ResolveNearest(model, path);
         if (!resolution.Resolved)
         {
@@ -61,6 +51,152 @@ internal static class SparseFieldPathResolver
         }
 
         return resolution.Field;
+    }
+
+    private static FieldIdentifier ResolveWithDescriptors(
+        object model,
+        SparsePath path,
+        IDescriptorSet descriptors
+    )
+    {
+        try
+        {
+            _ = descriptors.ResolveModel(path);
+        }
+        catch (ArgumentException)
+        {
+            throw InvalidFieldPath(path.ToString());
+        }
+
+        object? current = model;
+        object? fieldOwner = null;
+        string? fieldName = null;
+        IDescriptorSet? scope = descriptors;
+        IDescriptor? descriptor = null;
+        foreach (var segment in path.Segments)
+        {
+            switch (segment.Kind)
+            {
+                case SparsePathSegmentKind.Member:
+                    if (
+                        current is null
+                        || scope is null
+                        || !scope.TryGet(segment.Name, out descriptor)
+                    )
+                    {
+                        throw InvalidFieldPath(path.ToString());
+                    }
+
+                    fieldOwner = current;
+                    fieldName = segment.Name;
+                    current = descriptor.GetModelValue();
+                    scope = descriptor.Child;
+                    break;
+                case SparsePathSegmentKind.Key:
+                    if (descriptor?.Dictionary is { } dictionary)
+                    {
+                        if (
+                            dictionary.KeyType is not { } keyType
+                            || segment.Key is null
+                            || !TryConvertDictionaryKeyText(keyType, segment.Key, out var key)
+                            || !dictionary.TryGetValue(key, out _)
+                        )
+                        {
+                            throw InvalidFieldPath(path.ToString());
+                        }
+
+                        current = dictionary.GetValueModel(key);
+                        scope = dictionary.GetValueDescriptors(key);
+                    }
+                    else if (descriptor?.Array is { IsKeyed: true } array)
+                    {
+                        if (
+                            array.KeyType is not { } keyType
+                            || segment.Key is null
+                            || !TryConvertDictionaryKeyText(keyType, segment.Key, out var key)
+                        )
+                        {
+                            throw InvalidFieldPath(path.ToString());
+                        }
+
+                        var index = array.IndexOfKey(key);
+                        if (index < 0)
+                        {
+                            throw InvalidFieldPath(path.ToString());
+                        }
+
+                        current = array.GetItemModel(index);
+                        scope = array.GetItemDescriptors(index);
+                    }
+                    else
+                    {
+                        throw InvalidFieldPath(path.ToString());
+                    }
+                    descriptor = null;
+                    break;
+                case SparsePathSegmentKind.TemporaryKey:
+                    var temporaryArray = descriptor?.Array;
+                    if (temporaryArray is null)
+                    {
+                        throw InvalidFieldPath(path.ToString());
+                    }
+
+                    var temporaryIndex = temporaryArray.IndexOfTemporaryKey(
+                        segment.TemporaryKey!.Value
+                    );
+                    if (temporaryIndex < 0)
+                    {
+                        throw InvalidFieldPath(path.ToString());
+                    }
+
+                    current = temporaryArray.GetItemModel(temporaryIndex);
+                    scope = temporaryArray.GetItemDescriptors(temporaryIndex);
+                    descriptor = null;
+                    break;
+                case SparsePathSegmentKind.Index:
+                    if (descriptor?.Dictionary is { } indexedDictionary)
+                    {
+                        if (
+                            !TryConvertKeyTextOrInvalidPath(
+                                indexedDictionary.KeyType,
+                                segment.Index.ToString(CultureInfo.InvariantCulture),
+                                out var key
+                            ) || !indexedDictionary.TryGetValue(key, out _)
+                        )
+                        {
+                            throw InvalidFieldPath(path.ToString());
+                        }
+
+                        current = indexedDictionary.GetValueModel(key);
+                        scope = indexedDictionary.GetValueDescriptors(key);
+                    }
+                    else if (descriptor?.Array is { } indexedArray)
+                    {
+                        if ((uint)segment.Index >= (uint)indexedArray.Count)
+                        {
+                            throw InvalidFieldPath(path.ToString());
+                        }
+
+                        current = indexedArray.GetItemModel(segment.Index);
+                        scope = indexedArray.GetItemDescriptors(segment.Index);
+                    }
+                    else
+                    {
+                        throw InvalidFieldPath(path.ToString());
+                    }
+                    descriptor = null;
+                    break;
+                default:
+                    throw InvalidFieldPath(path.ToString());
+            }
+        }
+
+        if (fieldOwner is null || fieldName is null)
+        {
+            throw InvalidFieldPath(path.ToString());
+        }
+
+        return new FieldIdentifier(fieldOwner, fieldName);
     }
 
     /// <summary>Walks once and returns the exact field or the nearest surviving parent field.</summary>

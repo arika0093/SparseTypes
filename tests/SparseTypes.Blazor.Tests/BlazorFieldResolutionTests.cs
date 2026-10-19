@@ -8,6 +8,12 @@ public sealed class BlazorFieldResolutionTests
     private static T Raw<T>(SparseTypes.ISparseEditSession<T> session)
         where T : class => session.Model;
 
+    private static FieldIdentifier ParsedField<TModel>(
+        SparseTypes.ISparseEditSession<TModel> session,
+        string path
+    )
+        where TModel : class => session.Field(SparsePath.Parse<TModel>(path));
+
     private static GuidDirectory Directory() =>
         new()
         {
@@ -27,11 +33,11 @@ public sealed class BlazorFieldResolutionTests
         var session = Directory().CreateEditSession();
         const string id = "3d6f3c1e-1a2b-4c5d-9e8f-0123456789ab";
 
-        var quoted = session.Field($"ById[\"{id}\"].Name");
+        var quoted = ParsedField(session, $"ById[\"{id}\"].Name");
         ReferenceEquals(quoted.Model, Raw(session).ById[Guid.Parse(id)]).ShouldBeTrue();
         quoted.FieldName.ShouldBe(nameof(GuidContact.Name));
 
-        var unquoted = session.Field($"ById[{id}].Name");
+        var unquoted = ParsedField(session, $"ById[{id}].Name");
         ReferenceEquals(unquoted.Model, Raw(session).ById[Guid.Parse(id)]).ShouldBeTrue();
     }
 
@@ -40,10 +46,10 @@ public sealed class BlazorFieldResolutionTests
     {
         var session = Directory().CreateEditSession();
 
-        Should.Throw<ArgumentException>(() => session.Field("ById[\"not-a-guid\"].Name"));
-        Should.Throw<ArgumentException>(() => session.Field("ById[not-a-guid].Name"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "ById[\"not-a-guid\"].Name"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "ById[not-a-guid].Name"));
         Should.Throw<ArgumentException>(() =>
-            session.Field("ById[\"00000000-0000-0000-0000-000000000000\"].Name")
+            ParsedField(session, "ById[\"00000000-0000-0000-0000-000000000000\"].Name")
         );
     }
 
@@ -67,7 +73,7 @@ public sealed class BlazorFieldResolutionTests
         var session = ContactBook().CreateEditSession();
         (Raw(session).ByName is System.Collections.IDictionary).ShouldBeFalse();
 
-        var field = session.Field("ByName[\"billing\"].Name");
+        var field = ParsedField(session, "ByName[\"billing\"].Name");
         ReferenceEquals(field.Model, Raw(session).ByName["billing"]).ShouldBeTrue();
         field.FieldName.ShouldBe(nameof(OrderCustomer.Name));
     }
@@ -78,10 +84,10 @@ public sealed class BlazorFieldResolutionTests
         var session = ContactBook().CreateEditSession();
         (Raw(session).ByNumber is System.Collections.IDictionary).ShouldBeFalse();
 
-        var quoted = session.Field("ByNumber[\"7\"].Name");
+        var quoted = ParsedField(session, "ByNumber[\"7\"].Name");
         ReferenceEquals(quoted.Model, Raw(session).ByNumber[7]).ShouldBeTrue();
 
-        var unquoted = session.Field("ByNumber[7].Name");
+        var unquoted = ParsedField(session, "ByNumber[7].Name");
         ReferenceEquals(unquoted.Model, Raw(session).ByNumber[7]).ShouldBeTrue();
     }
 
@@ -90,9 +96,11 @@ public sealed class BlazorFieldResolutionTests
     {
         var session = ContactBook().CreateEditSession();
 
-        Should.Throw<ArgumentException>(() => session.Field("ByName[\"missing\"].Name"));
-        Should.Throw<ArgumentException>(() => session.Field("ByNumber[\"not-a-number\"].Name"));
-        Should.Throw<ArgumentException>(() => session.Field("ByNumber[8].Name"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "ByName[\"missing\"].Name"));
+        Should.Throw<ArgumentException>(() =>
+            ParsedField(session, "ByNumber[\"not-a-number\"].Name")
+        );
+        Should.Throw<ArgumentException>(() => ParsedField(session, "ByNumber[8].Name"));
     }
 
     [Test]
@@ -102,11 +110,10 @@ public sealed class BlazorFieldResolutionTests
         var editContext = session.CreateEditContext();
         var store = session.CreateValidationStore(editContext);
 
-        session.AddValidationError(store, session.Field("ByName[\"billing\"].Name"), "Required.");
+        var path = SparsePath.Parse<ReadOnlyContactBook>("ByName[\"billing\"].Name");
+        session.AddValidationError(store, session.Field(path), "Required.");
 
-        editContext
-            .GetValidationMessages(session.Field("ByName[\"billing\"].Name"))
-            .ShouldContain("Required.");
+        editContext.GetValidationMessages(session.Field(path)).ShouldContain("Required.");
     }
 
     private static ReadOnlyLineSheet LineSheet() =>
@@ -137,7 +144,7 @@ public sealed class BlazorFieldResolutionTests
         var session = LineSheet().CreateEditSession();
         (Raw(session).Lines is System.Collections.IList).ShouldBeFalse();
 
-        var field = session.Field("Lines[1].Quantity");
+        var field = ParsedField(session, "Lines[1].Quantity");
         ReferenceEquals(field.Model, Raw(session).Lines[1]).ShouldBeTrue();
         field.FieldName.ShouldBe(nameof(OrderLine.Quantity));
     }
@@ -147,9 +154,9 @@ public sealed class BlazorFieldResolutionTests
     {
         var session = LineSheet().CreateEditSession();
 
-        Should.Throw<ArgumentException>(() => session.Field("Lines[10].Quantity"));
-        Should.Throw<ArgumentException>(() => session.Field("Lines[abc].Quantity"));
-        Should.Throw<ArgumentException>(() => session.Field("Lines[].Quantity"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Lines[10].Quantity"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Lines[abc].Quantity"));
+        Should.Throw<FormatException>(() => ParsedField(session, "Lines[].Quantity"));
     }
 
     private static OrderDto KeyedOrder() =>
@@ -188,7 +195,7 @@ public sealed class BlazorFieldResolutionTests
             .Single(path => path.StartsWith("Lines[", StringComparison.Ordinal));
         itemPath.ShouldBe("Lines[\"b\"].Quantity");
 
-        var field = session.Field(itemPath);
+        var field = ParsedField(session, itemPath);
         ReferenceEquals(field.Model, Raw(session).Lines.Single(line => line.Sku == "b"))
             .ShouldBeTrue();
         field.FieldName.ShouldBe(nameof(OrderLine.Quantity));
@@ -202,7 +209,7 @@ public sealed class BlazorFieldResolutionTests
         Raw(session).Lines.Single(line => line.Sku == "b").Quantity = 9;
 
         Raw(session).Lines[0].Sku.ShouldBe("b");
-        var field = session.Field("Lines[\"b\"].Quantity");
+        var field = ParsedField(session, "Lines[\"b\"].Quantity");
         ReferenceEquals(field.Model, Raw(session).Lines.Single(line => line.Sku == "b"))
             .ShouldBeTrue();
     }
@@ -234,8 +241,8 @@ public sealed class BlazorFieldResolutionTests
         var session = KeyedOrder().CreateEditSession();
         Raw(session).Lines.RemoveAll(line => line.Sku == "a");
 
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"a\"].Quantity"));
-        var survivor = session.Field("Lines[\"b\"].Quantity");
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Lines[\"a\"].Quantity"));
+        var survivor = ParsedField(session, "Lines[\"b\"].Quantity");
         ReferenceEquals(survivor.Model, Raw(session).Lines.Single(line => line.Sku == "b"))
             .ShouldBeTrue();
     }
@@ -252,12 +259,12 @@ public sealed class BlazorFieldResolutionTests
             },
         }.CreateEditSession();
 
-        var byKey = session.Field("Items[\"7\"].Name");
+        var byKey = ParsedField(session, "Items[\"7\"].Name");
         ReferenceEquals(byKey.Model, Raw(session).Items.Single(item => item.Id == 7))
             .ShouldBeTrue();
 
-        Should.Throw<ArgumentException>(() => session.Field("Items[7].Name"));
-        var byPosition = session.Field("Items[0].Name");
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Items[7].Name"));
+        var byPosition = ParsedField(session, "Items[0].Name");
         ReferenceEquals(byPosition.Model, Raw(session).Items[0]).ShouldBeTrue();
     }
 
@@ -266,7 +273,7 @@ public sealed class BlazorFieldResolutionTests
     {
         var session = KeyedOrder().CreateEditSession();
 
-        Should.Throw<ArgumentException>(() => session.Field("Tags[\"fragile\"].Length"));
-        Should.Throw<ArgumentException>(() => session.Field("Tags[\"0\"]"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Tags[\"fragile\"].Length"));
+        Should.Throw<ArgumentException>(() => ParsedField(session, "Tags[\"0\"]"));
     }
 }

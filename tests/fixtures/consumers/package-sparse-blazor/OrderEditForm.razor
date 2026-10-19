@@ -73,14 +73,17 @@
         store.Clear();
         if (string.IsNullOrWhiteSpace(session.Current.Number))
         {
-            store.Add(session.Field(nameof(BlazorEditFormOrder.Number)), "Number is required.");
+            store.Add(
+                session.Field(BlazorEditFormOrder.SparsePath.Number),
+                "Number is required."
+            );
         }
     }
 
     private void OnNumberChanged(string value)
     {
         session.Observable.Number = value;
-        editContext.NotifyFieldChanged(session.Field(nameof(BlazorEditFormOrder.Number)));
+        editContext.NotifyFieldChanged(session.Field(BlazorEditFormOrder.SparsePath.Number));
     }
 
     private async Task HandleValidSubmit()
@@ -123,7 +126,7 @@
                 {
                     foreach (var conflict in conflicts)
                     {
-                        session.AddValidationError(store, conflict.PathText, "Server kept a newer value.");
+                        session.AddValidationError(store, conflict.Path, "Server kept a newer value.");
                     }
                     conflictNotice =
                         "Server kept a newer value. Keep editing, or use the server value to discard your change.";

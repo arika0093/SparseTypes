@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.AspNetCore.Components.Forms;
 using SparseTypes;
+using SparseTypes.Generated;
 
 namespace SparseTypes.Blazor;
 
@@ -60,19 +61,6 @@ public static class SparseEditSessionExtensions
         return new ValidationMessageStore(editContext);
     }
 
-    /// <summary>Resolves a Blazor field identifier for a member of the session model.</summary>
-    /// <remarks>Path resolution reads through trusted framework access and does not by itself disable the session's observable-change cache.</remarks>
-    public static FieldIdentifier Field<TModel>(
-        this ISparseEditSession<TModel> session,
-        string fieldName
-    )
-        where TModel : class
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentException.ThrowIfNullOrEmpty(fieldName);
-        return SparseFieldPathResolver.Resolve(GetSessionModel(session), fieldName);
-    }
-
     /// <summary>Resolves a Blazor field identifier from a canonical typed path.</summary>
     /// <remarks>The typed walk carries actual key values, so distinct keys with identical display text never merge.</remarks>
     public static FieldIdentifier Field<TModel>(
@@ -82,7 +70,11 @@ public static class SparseEditSessionExtensions
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
-        return SparseFieldPathResolver.Resolve(GetSessionModel(session), path);
+        return SparseFieldPathResolver.Resolve(
+            GetSessionModel(session),
+            path,
+            GetDescriptors(session)
+        );
     }
 
     /// <summary>Resolves a Blazor field identifier from a compile-time typed path.</summary>
@@ -97,7 +89,11 @@ public static class SparseEditSessionExtensions
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
-        return SparseFieldPathResolver.Resolve(GetSessionModel(session), path.Path);
+        return SparseFieldPathResolver.Resolve(
+            GetSessionModel(session),
+            path.Path,
+            GetDescriptors(session)
+        );
     }
 
     /// <summary>Surfaces a validation message for a field belonging to this session's model.</summary>
@@ -122,24 +118,6 @@ public static class SparseEditSessionExtensions
         }
 
         store.Add(field, message);
-    }
-
-    /// <summary>Surfaces a validation message for a session model member path.</summary>
-    /// <remarks>The path uses the same spelling as the string-based field lookup.</remarks>
-    public static void AddValidationError<TModel>(
-        this ISparseEditSession<TModel> session,
-        ValidationMessageStore store,
-        string fieldPath,
-        string message
-    )
-        where TModel : class
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentNullException.ThrowIfNull(store);
-        ArgumentException.ThrowIfNullOrEmpty(fieldPath);
-        ArgumentNullException.ThrowIfNull(message);
-
-        store.Add(session.Field(fieldPath), message);
     }
 
     /// <summary>Surfaces a validation message for a canonical typed path.</summary>
@@ -209,8 +187,6 @@ public static class SparseEditSessionExtensions
             throw new ArgumentException("The path must address a model member.", nameof(path));
         }
 
-        ValidateBindPath(typeof(TModel), path.Path, nameof(path));
-
         return new SparseFieldBinding<TModel, TValue>(session, editContext, path, options);
     }
 
@@ -245,48 +221,6 @@ public static class SparseEditSessionExtensions
         }
 
         ValidateBindPath(typeof(TModel), path, nameof(path));
-
-        return new SparseFieldBinding<TModel, object?>(session, editContext, path, options);
-    }
-
-    /// <summary>Creates a model-agnostic binding from a wire-compatible field path.</summary>
-    /// <remarks>String paths parse once; prefer the typed overload for the trim-friendly path.</remarks>
-    /// <param name="session">The edit session.</param>
-    /// <param name="fieldPath">The field path text.</param>
-    /// <param name="editContext">The original-model edit context.</param>
-    /// <param name="options">Optional batching and disabled state.</param>
-    /// <typeparam name="TModel">The session model type.</typeparam>
-    public static SparseFieldBinding<TModel, object?> Bind<TModel>(
-        this ISparseEditSession<TModel> session,
-        string fieldPath,
-        EditContext editContext,
-        SparseFieldBindingOptions? options = null
-    )
-        where TModel : class
-    {
-        ArgumentNullException.ThrowIfNull(session);
-        ArgumentException.ThrowIfNullOrEmpty(fieldPath);
-        ArgumentNullException.ThrowIfNull(editContext);
-        ValidateEditContext(session, editContext);
-        if (!SparsePath.TryParse(typeof(TModel), fieldPath, out var path))
-        {
-            throw new ArgumentException(
-                $"The field path '{fieldPath}' does not resolve to a public model member.",
-                nameof(fieldPath)
-            );
-        }
-
-        try
-        {
-            ValidateBindPath(typeof(TModel), path, nameof(fieldPath));
-        }
-        catch (ArgumentException exception) when (exception.ParamName == "path")
-        {
-            throw new ArgumentException(
-                $"The field path '{fieldPath}' does not resolve to a public model member.",
-                nameof(fieldPath)
-            );
-        }
 
         return new SparseFieldBinding<TModel, object?>(session, editContext, path, options);
     }
@@ -435,6 +369,9 @@ public static class SparseEditSessionExtensions
         session is ISparseEditSessionModelAccessor<TModel> accessor
             ? accessor.GetModelForFrameworkAccess()
             : session.Model;
+
+    private static IDescriptorSet? GetDescriptors<TModel>(ISparseEditSession<TModel> session)
+        where TModel : class => (session as ISparseEditSessionWithDescriptors)?.Descriptors;
 
     private static bool TryGetReadOnlyDictionaryValues(object collection, out IEnumerable? values)
     {

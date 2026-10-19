@@ -109,6 +109,18 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var literal = SymbolDisplay.FormatLiteral(member.Property.Name, true);
         var element = member.Collection.ElementType;
         var itemType = element.NonNullableName;
+        var names = SparseObservableEmitter.CollectionNames(member) with
+        {
+            HasElementProxy = false,
+        };
+        var keyed = KeyedSequenceMetadata(
+            member,
+            property,
+            names,
+            dialect,
+            context,
+            collectionExpression: "items"
+        );
         var hasProxy = element.IsFragmentModel && element.IsReferenceType;
         var viewType = hasProxy
             ? itemType + "." + (element.ObservableTypeName ?? "Observable")
@@ -177,9 +189,12 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + wrap
             + "); }"
             + descriptors
+            + (keyed.Resolvers.Length == 0 ? string.Empty : ", " + keyed.Resolvers)
             + " }, typeof("
             + viewType
-            + ")), () => global::System.Object.ReferenceEquals("
+            + ")"
+            + keyed.ConstructorArgs
+            + "), () => global::System.Object.ReferenceEquals("
             + context.Member(property)
             + ", __sparse_captured)); }";
     }
@@ -366,7 +381,8 @@ internal static class SparseObservableSequenceDescriptorEmitter
         string property,
         SparseObservableEmitter.CollectionProxyNames names,
         SparseDescriptorDialect dialect,
-        SparseDescriptorEmissionContext context
+        SparseDescriptorEmissionContext context,
+        string? collectionExpression = null
     )
     {
         var keyTypeName = member.Collection.KeyTypeName;
@@ -378,14 +394,15 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var keyCast = dialect.DescriptorValueType + ".TryGet<" + keyTypeName + ">";
         var comparer =
             "global::System.Collections.Generic.EqualityComparer<" + keyTypeName + ">.Default";
+        var collection = collectionExpression ?? context.Member(property) + "!";
         string KeyOf(string modeller) => KeyOfObjectExpression(member, modeller);
         // Views hold proxies for reference fragments; keys always read the
         // model.
         string Unwrap(string view) => UnwrapModelExpression(names, view);
         var resolvers =
             "GetItemKey = index => { var rawKeyedItem = "
-            + context.Member(property)
-            + "![index]; var keyedModel = "
+            + collection
+            + "[index]; var keyedModel = "
             + Unwrap("rawKeyedItem")
             + "; if (keyedModel is null) return null; return (object?)("
             + KeyOf("keyedModel")
@@ -393,8 +410,8 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + "IndexOfKey = key => { if (!"
             + keyCast
             + "(key, out var typedKey)) return -1; var keyedList = "
-            + context.Member(property)
-            + "!; for (var keyedIndex = 0; keyedIndex < keyedList.Count; keyedIndex++) { var keyedModel = "
+            + collection
+            + "; for (var keyedIndex = 0; keyedIndex < keyedList.Count; keyedIndex++) { var keyedModel = "
             + Unwrap("keyedList[keyedIndex]")
             + "; if (keyedModel is null) continue; if ("
             + comparer
@@ -412,8 +429,8 @@ internal static class SparseObservableSequenceDescriptorEmitter
             var temporaryProperty = SparseNaming.EscapeIdentifier(temporaryKeyProperty);
             temporaryResolver =
                 "IndexOfTemporaryKey = temporaryKey => { var temporaryList = "
-                + context.Member(property)
-                + "!; for (var temporaryIndex = 0; temporaryIndex < temporaryList.Count; temporaryIndex++) { var temporaryModel = "
+                + collection
+                + "; for (var temporaryIndex = 0; temporaryIndex < temporaryList.Count; temporaryIndex++) { var temporaryModel = "
                 + Unwrap("temporaryList[temporaryIndex]")
                 + "; if (temporaryModel is "
                 + member.Collection.ElementType.NonNullableName

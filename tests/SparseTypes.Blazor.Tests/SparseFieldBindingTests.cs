@@ -251,20 +251,22 @@ public sealed class SparseFieldBindingTests
     }
 
     [Test]
-    public void StringAndUntypedOverloadsBindTheSamePath()
+    public void TypedAndUntypedOverloadsBindTheSamePath()
     {
         var session = Order().CreateEditSession();
         var context = session.CreateEditContext();
 
-        var fromString = session.Bind(nameof(OrderDto.Number), context);
-        fromString.Value.ShouldBe("ORD-1");
-        fromString.TrySet("ORD-2", out _).ShouldBeTrue();
+        var fromTyped = session.Bind(OrderDto.SparsePath.Number, context);
+        fromTyped.Value.ShouldBe("ORD-1");
+        fromTyped.TrySet("ORD-2", out _).ShouldBeTrue();
 
         SparsePath untyped = OrderDto.SparsePath.Number;
         var fromUntyped = session.Bind(untyped, context);
         fromUntyped.Value.ShouldBe("ORD-2");
 
-        Should.Throw<ArgumentException>(() => session.Bind("Customer.Unknown", context));
+        Should.Throw<ArgumentException>(() =>
+            session.Bind(SparsePath.Parse<OrderDto>("Customer.Unknown"), context)
+        );
         Should.Throw<ArgumentException>(() => session.Bind(SparsePath.Root<OrderDto>(), context));
     }
 

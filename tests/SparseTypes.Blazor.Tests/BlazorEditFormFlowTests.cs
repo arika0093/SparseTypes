@@ -62,13 +62,13 @@ public sealed class BlazorEditFormFlowTests
             store.Clear();
             if (string.IsNullOrWhiteSpace(session.Current.Number))
             {
-                store.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+                store.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         };
         void Edit(string value)
         {
             session.Observable.Number = value;
-            context.NotifyFieldChanged(session.Field(nameof(OrderDto.Number)));
+            context.NotifyFieldChanged(session.Field(OrderDto.SparsePath.Number));
         }
 
         Edit("ORD-2");
@@ -91,7 +91,7 @@ public sealed class BlazorEditFormFlowTests
             store.Clear();
             if (string.IsNullOrWhiteSpace(session.Current.Number))
             {
-                store.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+                store.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         }
         context.OnValidationRequested += Validate;
@@ -108,7 +108,7 @@ public sealed class BlazorEditFormFlowTests
         };
 
         session.Observable.Number = "ord-2";
-        context.NotifyFieldChanged(session.Field(nameof(OrderDto.Number)));
+        context.NotifyFieldChanged(session.Field(OrderDto.SparsePath.Number));
         context.Validate().ShouldBeTrue();
 
         var isSaving = true;
@@ -144,14 +144,14 @@ public sealed class BlazorEditFormFlowTests
             store.Clear();
             if (string.IsNullOrWhiteSpace(session.Current.Number))
             {
-                store.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+                store.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         };
         var serverState = Order();
         serverState.Number = "SERVER";
 
         session.Observable.Number = "ORD-2";
-        context.NotifyFieldChanged(session.Field(nameof(OrderDto.Number)));
+        context.NotifyFieldChanged(session.Field(OrderDto.SparsePath.Number));
         var submitted = session.CreateChangeSet();
         if (submitted.TryApplyTo(serverState, out _, out var conflicts))
         {
@@ -160,7 +160,7 @@ public sealed class BlazorEditFormFlowTests
 
         foreach (var conflict in conflicts)
         {
-            session.AddValidationError(store, conflict.PathText, "Server kept a newer value.");
+            session.AddValidationError(store, conflict.Path, "Server kept a newer value.");
         }
 
         conflicts.Single().PathText.ShouldBe(nameof(OrderDto.Number));
@@ -173,7 +173,7 @@ public sealed class BlazorEditFormFlowTests
         session.HasChanges.ShouldBeTrue();
 
         session.Observable.Number = "SERVER";
-        context.NotifyFieldChanged(session.Field(nameof(OrderDto.Number)));
+        context.NotifyFieldChanged(session.Field(OrderDto.SparsePath.Number));
         var resolved = session.Reload(serverState);
         resolved.HasConflicts.ShouldBeFalse();
         session.HasChanges.ShouldBeFalse();
@@ -190,13 +190,13 @@ public sealed class BlazorEditFormFlowTests
             store.Clear();
             if (string.IsNullOrWhiteSpace(session.Current.Number))
             {
-                store.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+                store.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         };
         var service = new FakeSaveService { ThrowTransportError = true };
 
         session.Observable.Number = "ORD-2";
-        context.NotifyFieldChanged(session.Field(nameof(OrderDto.Number)));
+        context.NotifyFieldChanged(session.Field(OrderDto.SparsePath.Number));
 
         var isSaving = true;
         var transportFailed = false;

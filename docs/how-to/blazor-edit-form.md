@@ -107,7 +107,7 @@ Write input changes through `session.Observable` and notify the `EditContext` vi
     private void OnNumberChanged(string value)
     {
         session.Observable.Number = value;
-        editContext.NotifyFieldChanged(session.Field(nameof(BlazorEditFormOrder.Number)));
+        editContext.NotifyFieldChanged(session.Field(BlazorEditFormOrder.SparsePath.Number));
     }
 }
 ```
@@ -124,7 +124,7 @@ inputContext.OnValidationRequested += (_, _) =>
     if (string.IsNullOrWhiteSpace(inputSession.Current.Number))
     {
         inputStore.Add(
-            inputSession.Field(nameof(BlazorEditFormOrder.Number)),
+            inputSession.Field(BlazorEditFormOrder.SparsePath.Number),
             "Number is required."
         );
     }
@@ -134,12 +134,12 @@ inputContext.OnValidationRequested += (_, _) =>
 // EditContext which field changed. EditContext.Model stays the
 // original model, so never bind an InputText expression to the proxy.
 inputSession.Observable.Number = "ORD-2";
-inputContext.NotifyFieldChanged(inputSession.Field(nameof(BlazorEditFormOrder.Number)));
+inputContext.NotifyFieldChanged(inputSession.Field(BlazorEditFormOrder.SparsePath.Number));
 // inputContext.IsModified() == true
 // inputContext.Validate() == true
 
 inputSession.Observable.Number = string.Empty;
-inputContext.NotifyFieldChanged(inputSession.Field(nameof(BlazorEditFormOrder.Number)));
+inputContext.NotifyFieldChanged(inputSession.Field(BlazorEditFormOrder.SparsePath.Number));
 // inputContext.Validate() == false
 ```
 <!-- /sample -->
@@ -165,7 +165,7 @@ void ValidateSave(object? sender, ValidationRequestedEventArgs args)
     if (string.IsNullOrWhiteSpace(saveSession.Current.Number))
     {
         saveStore.Add(
-            saveSession.Field(nameof(BlazorEditFormOrder.Number)),
+            saveSession.Field(BlazorEditFormOrder.SparsePath.Number),
             "Number is required."
         );
     }
@@ -183,7 +183,7 @@ var saveService = new FakeOrderSaveService
 };
 
 saveSession.Observable.Number = "ord-2";
-saveContext.NotifyFieldChanged(saveSession.Field(nameof(BlazorEditFormOrder.Number)));
+saveContext.NotifyFieldChanged(saveSession.Field(BlazorEditFormOrder.SparsePath.Number));
 
 var isSaving = true;
 try
@@ -239,7 +239,7 @@ conflictContext.OnValidationRequested += (_, _) =>
     if (string.IsNullOrWhiteSpace(conflictSession.Current.Number))
     {
         conflictStore.Add(
-            conflictSession.Field(nameof(BlazorEditFormOrder.Number)),
+            conflictSession.Field(BlazorEditFormOrder.SparsePath.Number),
             "Number is required."
         );
     }
@@ -252,7 +252,7 @@ var conflictService = new FakeOrderSaveService
 
 conflictSession.Observable.Number = "ORD-2";
 conflictContext.NotifyFieldChanged(
-    conflictSession.Field(nameof(BlazorEditFormOrder.Number))
+    conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
 );
 var submitted = conflictSession.CreateChangeSet();
 var serverState = conflictService.ServerState;
@@ -264,7 +264,7 @@ foreach (var conflict in surfacingConflicts)
 {
     conflictSession.AddValidationError(
         conflictStore,
-        conflict.PathText,
+        conflict.Path,
         "Server kept a newer value."
     );
 }
@@ -281,7 +281,7 @@ var reload = conflictSession.Reload(serverState);
 // The user takes the server value, then the pending change is gone.
 conflictSession.Observable.Number = "SERVER";
 conflictContext.NotifyFieldChanged(
-    conflictSession.Field(nameof(BlazorEditFormOrder.Number))
+    conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
 );
 var resolved = conflictSession.Reload(serverState);
 // resolved.HasConflicts == false
@@ -320,7 +320,7 @@ retryContext.OnValidationRequested += (_, _) =>
     if (string.IsNullOrWhiteSpace(retrySession.Current.Number))
     {
         retryStore.Add(
-            retrySession.Field(nameof(BlazorEditFormOrder.Number)),
+            retrySession.Field(BlazorEditFormOrder.SparsePath.Number),
             "Number is required."
         );
     }
@@ -332,7 +332,7 @@ var retryService = new FakeOrderSaveService
 };
 
 retrySession.Observable.Number = "ORD-2";
-retryContext.NotifyFieldChanged(retrySession.Field(nameof(BlazorEditFormOrder.Number)));
+retryContext.NotifyFieldChanged(retrySession.Field(BlazorEditFormOrder.SparsePath.Number));
 
 var isSaving = true;
 var transportFailed = false;

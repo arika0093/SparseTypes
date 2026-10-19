@@ -28,11 +28,10 @@ public sealed class BlazorValidationErrorTests
         var editContext = session.CreateEditContext();
         var store = session.CreateValidationStore(editContext);
 
-        session.AddValidationError(store, session.Field("Customer.Name"), "Required.");
+        var namePath = OrderDto.SparsePath.Customer.Name;
+        session.AddValidationError(store, session.Field(namePath), "Required.");
 
-        editContext
-            .GetValidationMessages(session.Field("Customer.Name"))
-            .ShouldContain("Required.");
+        editContext.GetValidationMessages(session.Field(namePath)).ShouldContain("Required.");
     }
 
     [Test]
@@ -42,31 +41,34 @@ public sealed class BlazorValidationErrorTests
         var editContext = session.CreateEditContext();
         var store = session.CreateValidationStore(editContext);
 
-        session.AddValidationError(store, session.Field("Lines[0].Quantity"), "Must be positive.");
-        session.AddValidationError(store, session.Field("Contacts[\"billing\"].Name"), "Required.");
+        var quantityPath = OrderDto.SparsePath.Lines.At(0).Quantity;
+        var contactPath = OrderDto.SparsePath.Contacts.Key("billing").Name;
+        session.AddValidationError(store, session.Field(quantityPath), "Must be positive.");
+        session.AddValidationError(store, session.Field(contactPath), "Required.");
 
         editContext
-            .GetValidationMessages(session.Field("Lines[0].Quantity"))
+            .GetValidationMessages(session.Field(quantityPath))
             .ShouldContain("Must be positive.");
-        editContext
-            .GetValidationMessages(session.Field("Contacts[\"billing\"].Name"))
-            .ShouldContain("Required.");
+        editContext.GetValidationMessages(session.Field(contactPath)).ShouldContain("Required.");
     }
 
     [Test]
-    public void PathBasedOverloadResolvesSessionFields()
+    public void TypedPathOverloadResolvesSessionFields()
     {
         var session = Order().CreateEditSession();
         var editContext = session.CreateEditContext();
         var store = session.CreateValidationStore(editContext);
+        var namePath = OrderDto.SparsePath.Customer.Name;
 
-        session.AddValidationError(store, "Customer.Name", "Required.");
+        session.AddValidationError(store, namePath, "Required.");
 
-        editContext
-            .GetValidationMessages(session.Field("Customer.Name"))
-            .ShouldContain("Required.");
+        editContext.GetValidationMessages(session.Field(namePath)).ShouldContain("Required.");
         Should.Throw<ArgumentException>(() =>
-            session.AddValidationError(store, "Customer.Unknown", "No such member.")
+            session.AddValidationError(
+                store,
+                SparsePath.Parse<OrderDto>("Customer.Unknown"),
+                "No such member."
+            )
         );
     }
 
@@ -79,7 +81,11 @@ public sealed class BlazorValidationErrorTests
         var sibling = Order().CreateEditSession();
 
         var thrown = Should.Throw<ArgumentException>(() =>
-            session.AddValidationError(store, sibling.Field("Customer.Name"), "Wrong graph.")
+            session.AddValidationError(
+                store,
+                sibling.Field(OrderDto.SparsePath.Customer.Name),
+                "Wrong graph."
+            )
         );
         thrown.ParamName.ShouldBe("field");
         editContext.GetValidationMessages().ShouldBeEmpty();

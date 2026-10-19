@@ -89,7 +89,7 @@ public sealed class KeyedLookupIndexTests
         public void RemoveAt(int index) => _inner.RemoveAt(index);
     }
 
-    private static CountedOrder CountedOrder(int size)
+    private static CountedOrder CreateCountedOrder(int size)
     {
         var order = new CountedOrder { Number = "ORD-1" };
         var lines = new CountingList<OrderLine>();
@@ -114,7 +114,7 @@ public sealed class KeyedLookupIndexTests
     {
         foreach (var size in new[] { 10, 100, 1000, 10000 })
         {
-            var order = CountedOrder(size);
+            var order = CreateCountedOrder(size);
             var session = order.CreateEditSession();
             var lines = (CountingList<OrderLine>)Raw(session).Lines;
             var expected = lines.ToDictionary(static line => line.Sku);
@@ -123,7 +123,7 @@ public sealed class KeyedLookupIndexTests
             for (var i = 0; i < size; i++)
             {
                 var sku = $"k-{i:00000}";
-                var field = session.Field($"Lines[\"{sku}\"].Quantity");
+                var field = session.Field(CountedOrder.SparsePath.Lines.Key(sku).Quantity);
                 ReferenceEquals(field.Model, expected[sku]).ShouldBeTrue();
                 field.FieldName.ShouldBe(nameof(OrderLine.Quantity));
             }
@@ -135,7 +135,7 @@ public sealed class KeyedLookupIndexTests
             var steady = lines.Enumerations;
             for (var i = 0; i < size; i++)
             {
-                session.Field($"Lines[\"k-{i:00000}\"].Quantity");
+                session.Field(CountedOrder.SparsePath.Lines.Key($"k-{i:00000}").Quantity);
             }
 
             (lines.Enumerations - steady).ShouldBe(0);
@@ -201,7 +201,7 @@ public sealed class KeyedLookupIndexTests
                 },
             },
         }.CreateEditSession();
-        var stringField = stringSession.Field("Lines[\"a\"].Quantity");
+        var stringField = stringSession.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(stringField.Model, Raw(stringSession).Lines[0]).ShouldBeTrue();
 
         var numericSession = new BlazorUnassignedOrder
@@ -300,13 +300,13 @@ public sealed class KeyedLookupIndexTests
             },
         }.CreateEditSession();
 
-        var first = session.Field("Teams[\"t1\"].Members[\"m1\"].Id");
+        var first = session.Field(OrgDto.SparsePath.Teams.Key("t1").Members.Key("m1").Id);
         ReferenceEquals(first.Model, Raw(session).Teams[0].Members[0]).ShouldBeTrue();
         var second = session.Field(OrgDto.SparsePath.Teams.Key("t1").Members.Key("m2").Id);
         ReferenceEquals(second.Model, Raw(session).Teams[0].Members[1]).ShouldBeTrue();
 
         Raw(session).Teams[0].Members.Reverse();
-        var moved = session.Field("Teams[\"t1\"].Members[\"m1\"].Id");
+        var moved = session.Field(OrgDto.SparsePath.Teams.Key("t1").Members.Key("m1").Id);
         ReferenceEquals(moved.Model, Raw(session).Teams[0].Members[1]).ShouldBeTrue();
     }
 
@@ -318,7 +318,7 @@ public sealed class KeyedLookupIndexTests
             Number = "ORD-1",
             Contacts = new() { ["billing"] = new OrderCustomer { Name = "Ada" } },
         }.CreateEditSession();
-        var contact = order.Field("Contacts[\"billing\"].Name");
+        var contact = order.Field(OrderDto.SparsePath.Contacts.Key("billing").Name);
         ReferenceEquals(contact.Model, Raw(order).Contacts["billing"]).ShouldBeTrue();
 
         var book = new ReadOnlyContactBook
@@ -330,7 +330,7 @@ public sealed class KeyedLookupIndexTests
                 }
             ),
         }.CreateEditSession();
-        var readOnlyContact = book.Field("ByName[\"billing\"].Name");
+        var readOnlyContact = book.Field(ReadOnlyContactBook.SparsePath.ByName.Key("billing").Name);
         ReferenceEquals(readOnlyContact.Model, Raw(book).ByName["billing"]).ShouldBeTrue();
 
         var sheet = new ReadOnlyLineSheet
@@ -353,7 +353,7 @@ public sealed class KeyedLookupIndexTests
                 }
             ),
         }.CreateEditSession();
-        var readOnlyLine = sheet.Field("Lines[\"b\"].Quantity");
+        var readOnlyLine = sheet.Field(ReadOnlyLineSheet.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(readOnlyLine.Model, Raw(sheet).Lines[1]).ShouldBeTrue();
 
         Raw(sheet).Lines = new ReadOnlyListStub<OrderLine>(
@@ -367,7 +367,7 @@ public sealed class KeyedLookupIndexTests
                 },
             }
         );
-        var replaced = sheet.Field("Lines[\"b\"].Quantity");
+        var replaced = sheet.Field(ReadOnlyLineSheet.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(replaced.Model, Raw(sheet).Lines[0]).ShouldBeTrue();
         ((OrderLine)replaced.Model).Quantity.ShouldBe(3);
     }
@@ -395,11 +395,11 @@ public sealed class KeyedLookupIndexTests
             },
         }.CreateEditSession();
 
-        var first = session.Field("Lines[\"dup\"].Quantity");
+        var first = session.Field(OrderDto.SparsePath.Lines.Key("dup").Quantity);
         ReferenceEquals(first.Model, Raw(session).Lines[0]).ShouldBeTrue();
 
         Raw(session).Lines.RemoveAt(0);
-        var second = session.Field("Lines[\"dup\"].Quantity");
+        var second = session.Field(OrderDto.SparsePath.Lines.Key("dup").Quantity);
         ReferenceEquals(second.Model, Raw(session).Lines[0]).ShouldBeTrue();
         ((OrderLine)second.Model).Quantity.ShouldBe(2);
     }
@@ -421,11 +421,15 @@ public sealed class KeyedLookupIndexTests
             },
         }.CreateEditSession();
 
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"missing\"].Quantity"));
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity)
+        );
 
-        var survivor = session.Field("Lines[\"a\"].Quantity");
+        var survivor = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(survivor.Model, Raw(session).Lines[0]).ShouldBeTrue();
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"missing\"].Quantity"));
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity)
+        );
     }
 
     [Test]
@@ -450,8 +454,8 @@ public sealed class KeyedLookupIndexTests
                 },
             },
         }.CreateEditSession();
-        session.Field("Lines[\"a\"].Quantity");
-        session.Field("Lines[\"b\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
+        session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
 
         var replacement = new OrderLine
         {
@@ -461,17 +465,19 @@ public sealed class KeyedLookupIndexTests
         };
         var orphan = Raw(session).Lines[0];
         Raw(session).Lines[0] = replacement;
-        var replaced = session.Field("Lines[\"a\"].Quantity");
+        var replaced = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(replaced.Model, replacement).ShouldBeTrue();
         ReferenceEquals(replaced.Model, orphan).ShouldBeFalse();
 
         Raw(session).Lines = Raw(session).Lines.AsEnumerable().Reverse().ToList();
-        var reordered = session.Field("Lines[\"a\"].Quantity");
+        var reordered = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(reordered.Model, replacement).ShouldBeTrue();
 
         Raw(session).Lines.RemoveAll(line => line.Sku == "a");
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"a\"].Quantity"));
-        var survivor = session.Field("Lines[\"b\"].Quantity");
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
+        );
+        var survivor = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(survivor.Model, Raw(session).Lines.Single(line => line.Sku == "b"))
             .ShouldBeTrue();
     }
@@ -492,7 +498,7 @@ public sealed class KeyedLookupIndexTests
                 },
             },
         }.CreateEditSession();
-        session.Field("Lines[\"a\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
 
         var fresh = new OrderLine
         {
@@ -501,7 +507,7 @@ public sealed class KeyedLookupIndexTests
             Price = 70m,
         };
         Raw(session).Lines = new List<OrderLine> { fresh };
-        var field = session.Field("Lines[\"a\"].Quantity");
+        var field = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(field.Model, fresh).ShouldBeTrue();
     }
 
@@ -521,11 +527,13 @@ public sealed class KeyedLookupIndexTests
                 },
             },
         }.CreateEditSession();
-        session.Field("Lines[\"a\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
 
         Raw(session).Lines[0].Sku = "a2";
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"a\"].Quantity"));
-        var moved = session.Field("Lines[\"a2\"].Quantity");
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
+        );
+        var moved = session.Field(OrderDto.SparsePath.Lines.Key("a2").Quantity);
         ReferenceEquals(moved.Model, Raw(session).Lines[0]).ShouldBeTrue();
     }
 
@@ -551,11 +559,11 @@ public sealed class KeyedLookupIndexTests
                 },
             ],
         }.CreateEditSession();
-        session.Field("Lines[\"b\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
 
         Raw(session).Lines[0].Sku = "b";
 
-        var field = session.Field("Lines[\"b\"].Quantity");
+        var field = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(field.Model, Raw(session).Lines[0]).ShouldBeTrue();
     }
 
@@ -616,18 +624,22 @@ public sealed class KeyedLookupIndexTests
         };
         var session = live.CreateEditSession();
         var history = session.EnableHistory();
-        session.Field("Lines[\"a\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
 
         session.Observable.Lines.RemoveAt(0);
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"a\"].Quantity"));
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
+        );
 
         history.Undo();
-        var restored = session.Field("Lines[\"a\"].Quantity");
+        var restored = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(restored.Model, live.Lines.Single(line => line.Sku == "a")).ShouldBeTrue();
 
         history.Redo();
-        Should.Throw<ArgumentException>(() => session.Field("Lines[\"a\"].Quantity"));
-        var survivor = session.Field("Lines[\"b\"].Quantity");
+        Should.Throw<ArgumentException>(() =>
+            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
+        );
+        var survivor = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(survivor.Model, live.Lines.Single(line => line.Sku == "b")).ShouldBeTrue();
     }
 
@@ -636,7 +648,7 @@ public sealed class KeyedLookupIndexTests
     {
         var live = OrderBaseline();
         var session = live.CreateEditSession();
-        session.Field("Lines[\"a\"].Quantity");
+        session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         session.Observable.Lines.Move(0, 1);
 
         var submitted = session.CreateChangeSet();
@@ -647,7 +659,7 @@ public sealed class KeyedLookupIndexTests
         session.TryReconcile(submitted, persisted!, out var error).ShouldBeTrue();
         error.ShouldBeNull();
 
-        var moved = session.Field("Lines[\"a\"].Quantity");
+        var moved = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(moved.Model, live.Lines.Single(line => line.Sku == "a")).ShouldBeTrue();
     }
 

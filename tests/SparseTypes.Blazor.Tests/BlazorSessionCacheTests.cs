@@ -67,10 +67,11 @@ public sealed class BlazorSessionCacheTests
         var session = new AccessorSession(Order());
 
         var editContext = session.CreateEditContext();
-        var field = session.Field("Customer.Name");
+        var namePath = OrderDto.SparsePath.Customer.Name;
+        var field = session.Field(namePath);
         var store = session.CreateValidationStore(editContext);
         session.AddValidationError(store, field, "Required.");
-        session.AddValidationError(store, "Customer.Name", "Required.");
+        session.AddValidationError(store, namePath, "Required.");
         session.AcceptChanges(editContext);
 
         session.RawAccessCount.ShouldBe(0);
@@ -84,7 +85,9 @@ public sealed class BlazorSessionCacheTests
         var session = new LegacySession(Order());
 
         var editContext = session.CreateEditContext();
-        session.Field("Customer.Name").FieldName.ShouldBe(nameof(OrderCustomer.Name));
+        session
+            .Field(OrderDto.SparsePath.Customer.Name)
+            .FieldName.ShouldBe(nameof(OrderCustomer.Name));
         session.CreateValidationStore(editContext).ShouldNotBeNull();
 
         session.RawAccessCount.ShouldBeGreaterThan(0);
@@ -99,7 +102,7 @@ public sealed class BlazorSessionCacheTests
         CacheState(session).ShouldBe((Caching: true, Valid: true));
 
         var editContext = session.CreateEditContext();
-        session.Field("Customer.Name");
+        session.Field(OrderDto.SparsePath.Customer.Name);
         session.CreateValidationStore(editContext);
 
         // The helpers above must not have disabled the observable-change cache.

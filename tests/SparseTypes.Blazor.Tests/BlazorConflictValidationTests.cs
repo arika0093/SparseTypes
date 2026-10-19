@@ -61,7 +61,7 @@ public sealed class BlazorConflictValidationTests
         var added = session.AddConflicts(store, context, reload.Conflicts);
         added.ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(OrderDto.Number)))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Number))
             .Single()
             .ShouldContain("Conflict at 'Number'");
         context.GetValidationMessages().ShouldNotBeEmpty();
@@ -98,15 +98,15 @@ public sealed class BlazorConflictValidationTests
         added.ShouldBe(3);
 
         context
-            .GetValidationMessages(session.Field("Customer.Name"))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Customer.Name))
             .Single()
             .ShouldContain("Customer.Name");
         context
-            .GetValidationMessages(session.Field("Lines[\"b\"].Quantity"))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity))
             .Single()
             .ShouldContain("Lines[\"b\"].Quantity");
         context
-            .GetValidationMessages(session.Field("Contacts[\"billing\"].Name"))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Contacts.Key("billing").Name))
             .Single()
             .ShouldContain("Contacts[\"billing\"].Name");
     }
@@ -129,7 +129,7 @@ public sealed class BlazorConflictValidationTests
         var added = session.AddConflicts(store, context, [Conflict(removed)]);
         added.ShouldBe(1);
         context.GetValidationMessages().ShouldNotBeEmpty();
-        context.GetValidationMessages(session.Field(nameof(OrderDto.Lines))).ShouldNotBeEmpty();
+        context.GetValidationMessages(session.Field(OrderDto.SparsePath.Lines)).ShouldNotBeEmpty();
     }
 
     [Test]
@@ -170,7 +170,9 @@ public sealed class BlazorConflictValidationTests
         Should.Throw<ArgumentException>(() => session.Field(nested));
 
         session.AddConflicts(store, context, [Conflict(nested)]).ShouldBe(1);
-        context.GetValidationMessages(session.Field(nameof(OrderDto.Customer))).ShouldNotBeEmpty();
+        context
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Customer))
+            .ShouldNotBeEmpty();
     }
 
     [Test]
@@ -223,17 +225,17 @@ public sealed class BlazorConflictValidationTests
             [Conflict(SparsePath.Root<OrderDto>().Member(nameof(OrderDto.Number)))],
             options
         );
-        manualStore.Add(session.Field(nameof(OrderDto.Number)), "Number is required.");
+        manualStore.Add(session.Field(OrderDto.SparsePath.Number), "Number is required.");
 
         context
-            .GetValidationMessages(session.Field(nameof(OrderDto.Number)))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Number))
             .ShouldContain("CONFLICT:Number");
         context
-            .GetValidationMessages(session.Field(nameof(OrderDto.Number)))
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Number))
             .ShouldContain("Number is required.");
 
         session.ClearConflicts(conflictStore, context);
-        var remaining = context.GetValidationMessages(session.Field(nameof(OrderDto.Number)));
+        var remaining = context.GetValidationMessages(session.Field(OrderDto.SparsePath.Number));
         remaining.ShouldContain("Number is required.");
         remaining.ShouldNotContain("CONFLICT:Number");
     }
@@ -326,7 +328,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddValidationError(
             store,
-            session.Field(nameof(OrderDto.Number)),
+            session.Field(OrderDto.SparsePath.Number),
             "Server rejected the order number."
         );
         session
@@ -337,7 +339,7 @@ public sealed class BlazorConflictValidationTests
             )
             .ShouldBe(1);
 
-        var messages = context.GetValidationMessages(session.Field(nameof(OrderDto.Number)));
+        var messages = context.GetValidationMessages(session.Field(OrderDto.SparsePath.Number));
         messages.ShouldContain("Server rejected the order number.");
         messages.ShouldContain(m => m.Contains("Conflict at 'Number'"));
     }
@@ -380,7 +382,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(missingTier)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .GetValidationMessages(session.Field(Case6Catalog.SparsePath.Section.Tiers))
             .ShouldNotBeEmpty();
         context.GetValidationMessages().ShouldNotBeEmpty();
     }
@@ -413,10 +415,8 @@ public sealed class BlazorConflictValidationTests
             if (
                 e.Exception is ArgumentException argument
                 && argument.Message.Contains("does not resolve", StringComparison.Ordinal)
-                && argument.StackTrace?.Contains(
-                    "ResolveConflictField",
-                    StringComparison.Ordinal
-                ) == true
+                && argument.StackTrace?.Contains("ResolveConflictField", StringComparison.Ordinal)
+                    == true
             )
             {
                 Interlocked.Increment(ref projectionThrows);
@@ -457,7 +457,9 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(innerMissing)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field("Section.Tiers[\"t1\"].Bands"))
+            .GetValidationMessages(
+                session.Field(Case6Catalog.SparsePath.Section.Tiers.Key("t1").Bands)
+            )
             .ShouldNotBeEmpty();
     }
 
@@ -476,7 +478,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(trailingKey)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .GetValidationMessages(session.Field(Case6Catalog.SparsePath.Section.Tiers))
             .ShouldNotBeEmpty();
     }
 
@@ -497,7 +499,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(deep)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section)))
+            .GetValidationMessages(session.Field(Case6Catalog.SparsePath.Section))
             .ShouldNotBeEmpty();
     }
 
@@ -541,7 +543,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(outOfRange)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(Case6Catalog.Section) + ".Tiers"))
+            .GetValidationMessages(session.Field(Case6Catalog.SparsePath.Section.Tiers))
             .ShouldNotBeEmpty();
     }
 
@@ -563,7 +565,7 @@ public sealed class BlazorConflictValidationTests
 
         session.AddConflicts(store, context, [Conflict(temporary)]).ShouldBe(1);
         context
-            .GetValidationMessages(session.Field(nameof(BlazorDraftBoard.Drafts)))
+            .GetValidationMessages(session.Field(BlazorDraftBoard.SparsePath.Drafts))
             .ShouldNotBeEmpty();
     }
 
@@ -581,7 +583,9 @@ public sealed class BlazorConflictValidationTests
             .Member(nameof(OrderCustomer.Email));
 
         session.AddConflicts(store, context, [Conflict(missingKey)]).ShouldBe(1);
-        context.GetValidationMessages(session.Field(nameof(OrderDto.Contacts))).ShouldNotBeEmpty();
+        context
+            .GetValidationMessages(session.Field(OrderDto.SparsePath.Contacts))
+            .ShouldNotBeEmpty();
     }
 
     [Test]
@@ -597,7 +601,7 @@ public sealed class BlazorConflictValidationTests
         var resolved = SparsePath.Root<OrderDto>().Member(nameof(OrderDto.Number));
 
         session.AddConflicts(store, context, [Conflict(resolved)], options).ShouldBe(1);
-        context.GetValidationMessages(session.Field(nameof(OrderDto.Number))).ShouldNotBeEmpty();
+        context.GetValidationMessages(session.Field(OrderDto.SparsePath.Number)).ShouldNotBeEmpty();
     }
 
     [Test]

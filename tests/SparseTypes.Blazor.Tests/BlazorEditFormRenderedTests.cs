@@ -90,7 +90,7 @@ public sealed class BlazorEditFormRenderedTests
         public void OnNumberChanged(string value)
         {
             Session.Observable.Number = value;
-            Context.NotifyFieldChanged(Session.Field(nameof(OrderDto.Number)));
+            Context.NotifyFieldChanged(Session.Field(OrderDto.SparsePath.Number));
         }
 
         public async Task SubmitAsync()
@@ -135,7 +135,7 @@ public sealed class BlazorEditFormRenderedTests
                         {
                             Session.AddValidationError(
                                 Store,
-                                conflict.PathText,
+                                conflict.Path,
                                 "Server kept a newer value."
                             );
                         }
@@ -184,7 +184,7 @@ public sealed class BlazorEditFormRenderedTests
             Store.Clear();
             if (string.IsNullOrWhiteSpace(Session.Current.Number))
             {
-                Store.Add(Session.Field(nameof(OrderDto.Number)), "Number is required.");
+                Store.Add(Session.Field(OrderDto.SparsePath.Number), "Number is required.");
             }
         }
     }
@@ -548,7 +548,7 @@ public sealed class BlazorEditFormRenderedTests
         var failure = await renderer.TryRenderAsync(componentId, ViewParameters(view, driver));
         failure.ShouldBeNull();
 
-        driver.Store.Add(driver.Session.Field(nameof(OrderDto.Number)), "Probe survives.");
+        driver.Store.Add(driver.Session.Field(OrderDto.SparsePath.Number), "Probe survives.");
         oldContext.Validate();
         driver.Context.GetValidationMessages().ShouldContain("Probe survives.");
     }

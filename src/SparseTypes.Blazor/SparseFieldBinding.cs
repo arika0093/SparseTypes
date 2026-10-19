@@ -193,7 +193,11 @@ public sealed class SparseFieldBinding<TModel, TValue>
 
         try
         {
-            fieldId = SparseFieldPathResolver.Resolve(GetSessionModel(_session), _path);
+            fieldId = SparseFieldPathResolver.Resolve(
+                GetSessionModel(_session),
+                _path,
+                _descriptors
+            );
             error = null;
             return true;
         }

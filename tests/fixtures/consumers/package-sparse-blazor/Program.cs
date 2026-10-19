@@ -63,13 +63,13 @@ editContext.OnValidationRequested += (sender, _) =>
     store.Clear();
     if (string.IsNullOrEmpty(session.Current.Number))
     {
-        store.Add(session.Field(nameof(BlazorDocsOrder.Number)), "Number is required.");
+        store.Add(session.Field(BlazorDocsOrder.SparsePath.Number), "Number is required.");
     }
 };
 Require(editContext.Model is BlazorDocsOrder, "EditContext uses the raw model");
 Require(editContext.Validate(), "valid model passes validation");
 session.Observable.Number = string.Empty;
-editContext.NotifyFieldChanged(session.Field(nameof(BlazorDocsOrder.Number)));
+editContext.NotifyFieldChanged(session.Field(BlazorDocsOrder.SparsePath.Number));
 Require(!editContext.Validate(), "empty number fails validation");
 Require(
     editContext.GetValidationMessages().Contains("Number is required."),
@@ -80,7 +80,7 @@ Require(
 // the same way without taking a dependency on HTTP transport.
 session.AddValidationError(
     store,
-    session.Field(nameof(BlazorDocsOrder.Number)),
+    session.Field(BlazorDocsOrder.SparsePath.Number),
     "Server rejected the order number."
 );
 Require(
@@ -186,7 +186,7 @@ public static class UiDocSamples
             if (string.IsNullOrWhiteSpace(inputSession.Current.Number))
             {
                 inputStore.Add(
-                    inputSession.Field(nameof(BlazorEditFormOrder.Number)),
+                    inputSession.Field(BlazorEditFormOrder.SparsePath.Number),
                     "Number is required."
                 );
             }
@@ -196,14 +196,14 @@ public static class UiDocSamples
         // EditContext which field changed. EditContext.Model stays the
         // original model, so never bind an InputText expression to the proxy.
         inputSession.Observable.Number = "ORD-2";
-        inputContext.NotifyFieldChanged(inputSession.Field(nameof(BlazorEditFormOrder.Number)));
+        inputContext.NotifyFieldChanged(inputSession.Field(BlazorEditFormOrder.SparsePath.Number));
         // inputContext.IsModified() == true
         // inputContext.Validate() == true
         DocsCheck.Require(inputContext.IsModified(), "observable edit marks the field modified");
         DocsCheck.Require(inputContext.Validate(), "filled number passes validation");
 
         inputSession.Observable.Number = string.Empty;
-        inputContext.NotifyFieldChanged(inputSession.Field(nameof(BlazorEditFormOrder.Number)));
+        inputContext.NotifyFieldChanged(inputSession.Field(BlazorEditFormOrder.SparsePath.Number));
         // inputContext.Validate() == false
         // /sample
         DocsCheck.Require(!inputContext.Validate(), "empty number fails validation");
@@ -231,7 +231,7 @@ public static class UiDocSamples
             if (string.IsNullOrWhiteSpace(saveSession.Current.Number))
             {
                 saveStore.Add(
-                    saveSession.Field(nameof(BlazorEditFormOrder.Number)),
+                    saveSession.Field(BlazorEditFormOrder.SparsePath.Number),
                     "Number is required."
                 );
             }
@@ -249,7 +249,7 @@ public static class UiDocSamples
         };
 
         saveSession.Observable.Number = "ord-2";
-        saveContext.NotifyFieldChanged(saveSession.Field(nameof(BlazorEditFormOrder.Number)));
+        saveContext.NotifyFieldChanged(saveSession.Field(BlazorEditFormOrder.SparsePath.Number));
 
         var isSaving = true;
         try
@@ -311,7 +311,7 @@ public static class UiDocSamples
             if (string.IsNullOrWhiteSpace(conflictSession.Current.Number))
             {
                 conflictStore.Add(
-                    conflictSession.Field(nameof(BlazorEditFormOrder.Number)),
+                    conflictSession.Field(BlazorEditFormOrder.SparsePath.Number),
                     "Number is required."
                 );
             }
@@ -324,7 +324,7 @@ public static class UiDocSamples
 
         conflictSession.Observable.Number = "ORD-2";
         conflictContext.NotifyFieldChanged(
-            conflictSession.Field(nameof(BlazorEditFormOrder.Number))
+            conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
         );
         var submitted = conflictSession.CreateChangeSet();
         var serverState = conflictService.ServerState;
@@ -336,7 +336,7 @@ public static class UiDocSamples
         {
             conflictSession.AddValidationError(
                 conflictStore,
-                conflict.PathText,
+                conflict.Path,
                 "Server kept a newer value."
             );
         }
@@ -367,7 +367,7 @@ public static class UiDocSamples
         // The user takes the server value, then the pending change is gone.
         conflictSession.Observable.Number = "SERVER";
         conflictContext.NotifyFieldChanged(
-            conflictSession.Field(nameof(BlazorEditFormOrder.Number))
+            conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
         );
         var resolved = conflictSession.Reload(serverState);
         // resolved.HasConflicts == false
@@ -390,7 +390,7 @@ public static class UiDocSamples
             if (string.IsNullOrWhiteSpace(retrySession.Current.Number))
             {
                 retryStore.Add(
-                    retrySession.Field(nameof(BlazorEditFormOrder.Number)),
+                    retrySession.Field(BlazorEditFormOrder.SparsePath.Number),
                     "Number is required."
                 );
             }
@@ -402,7 +402,7 @@ public static class UiDocSamples
         };
 
         retrySession.Observable.Number = "ORD-2";
-        retryContext.NotifyFieldChanged(retrySession.Field(nameof(BlazorEditFormOrder.Number)));
+        retryContext.NotifyFieldChanged(retrySession.Field(BlazorEditFormOrder.SparsePath.Number));
 
         var isSaving = true;
         var transportFailed = false;

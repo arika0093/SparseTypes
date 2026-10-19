@@ -34,7 +34,7 @@ if (response.IsSuccess)
 var store = session.CreateValidationStore(editContext);
 session.AddValidationError(
     store,
-    session.Field(nameof(Order.Number)),
+    session.Field(Order.SparsePath.Number),
     "Server rejected the order number.");
 ```
 

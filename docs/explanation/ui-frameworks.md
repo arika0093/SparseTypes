@@ -563,10 +563,9 @@ Blazor extension methods:
 | `session.AcceptChanges(editContext)` | Calls the framework-neutral `AcceptChanges()` and clears the supplied context's modified flags |
 | `session.AcceptChanges(editContext, changes)` | Advances the baseline by the submitted change set; clears the context only when the session is clean, so later edits stay marked modified |
 | `session.CreateValidationStore(editContext)` | Creates a `ValidationMessageStore` bound to the supplied context |
-| `session.Field(name)` | Resolves a Blazor `FieldIdentifier` for a model member name |
 | `session.Field(path)` | Resolves a `FieldIdentifier` from a canonical `SparsePath` or typed path |
 | `session.AddValidationError(store, field, message)` | Surfaces a message through the `ValidationMessageStore` |
-| `session.AddValidationError(store, fieldPath, message)` | Resolves `fieldPath` with `session.Field` and surfaces a message |
+| `session.AddValidationError(store, fieldPath, message)` | Resolves a canonical `SparsePath` or typed path and surfaces a message |
 | `session.AddConflicts(conflictStore, editContext, conflicts, options)` | Surfaces structured conflicts as validation errors; resolves unresolvable paths via fallback (`NearestParent` or `Model`) |
 | `session.ClearConflicts(conflictStore, editContext)` | Clears the dedicated conflict message store without touching DataAnnotations stores |
 | `freshSession.ReplaceEditContext(staleContext)` | Creates a new `EditContext` bound to a fresh authoritative model after detaching old handlers |
@@ -600,12 +599,14 @@ editContext.OnValidationRequested += (sender, _) =>
     store.Clear();
     if (string.IsNullOrEmpty(uiSession.Current.Number))
     {
-        store.Add(uiSession.Field(nameof(UiOrder.Number)), "Number is required.");
+        store.Add(uiSession.Field(UiOrder.SparsePath.Number), "Number is required.");
     }
 };
 ```
 
-Errors obtained elsewhere (for example structured rebase conflicts) surface the same way with `uiSession.AddValidationError(store, uiSession.Field(nameof(UiOrder.Number)), message)`. Fields resolved from the session keep working when they point at nested members, list elements, or dictionary values: the error is accepted as long as the field model is still reachable from the session model. Fields built from another model graph stay rejected. The `fieldPath` overload covers the same paths without passing a `FieldIdentifier` between graphs. The model type must be a reference type.
+Errors obtained elsewhere, such as structured rebase conflicts, can be passed as `SparsePath` values to `uiSession.AddValidationError(store, conflict.Path, message)`. Fields resolved from the session keep working when they point at nested members, list elements, or dictionary values: the error is accepted as long as the field model is still reachable from the session model. Fields built from another model graph stay rejected. The model type must be a reference type.
+
+The Blazor helpers accept `SparsePath` values and generated typed paths. To start from text, parse it explicitly with `SparsePath.Parse<UiOrder>("Customer.Name")`; there are no string-path overloads on `Field`, `Bind`, or `AddValidationError`.
 
 A session ChangeSet is sent through its generated `T.ChangePayload`: call `ToPayload()` before transport, then call `ToChangeSet()` on receipt before reconciling with `RebaseOnto` (see [ChangeSet rebase](rebase.md)). SparseTypes provides no transport abstraction. Transport configuration stays with the application.
 
