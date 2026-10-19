@@ -1,11 +1,23 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using SparseTypes.NativeAotFixtures;
 
 namespace SparseTypes.NativeAotSmoke;
 
 public sealed class AotJsonTests
 {
+    private static JsonSerializerOptions PayloadCollectionOptions() =>
+        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Default, AotSerializerContext.Default) };
+
+    private static JsonSerializerOptions PayloadRootEnumOptions() =>
+        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadRoot.PayloadJson.Default, AotSerializerContext.Default) };
+
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(JsonSerializerOptions options) =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload>)options.GetTypeInfo(typeof(PayloadCollection.ChangePayload));
+
+    private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadRoot.ChangePayload> PayloadRootTypeInfo(JsonSerializerOptions options) =>
+        (System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadRoot.ChangePayload>)options.GetTypeInfo(typeof(PayloadRoot.ChangePayload));
     private static JsonSerializerOptions AotOptions()
     {
         var options = new JsonSerializerOptions { TypeInfoResolver = AotSerializerContext.Default };
@@ -81,7 +93,7 @@ public sealed class AotJsonTests
         var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
         var json = JsonSerializer.Serialize(
             changes.ToPayload(),
-            AotSerializerContext.Default.PayloadRootChangePayload
+            PayloadRoot.PayloadJson.Default.ChangePayload
         );
         // /sample
         using (var document = JsonDocument.Parse(json))
@@ -122,7 +134,7 @@ public sealed class AotJsonTests
 
         // sample: payload-native-aot
         var restored = JsonSerializer
-            .Deserialize(json, AotSerializerContext.Default.PayloadRootChangePayload)!
+            .Deserialize(json, PayloadRoot.PayloadJson.Default.ChangePayload)!
             .ToChangeSet();
         await Assert
             .That(
@@ -143,10 +155,9 @@ public sealed class AotJsonTests
             new PayloadItem { Id = "b", Name = "B" }
         );
         var serverChanges = PayloadCollection.ChangeSet.Between(serverBefore, serverAfter);
-        var serverJson = JsonSerializer.Serialize(
-            serverChanges.ToPayload(),
-            AotSerializerContext.Default.PayloadCollectionChangePayload
-        );
+        var serverOptions = PayloadCollectionOptions();
+        var serverTypeInfo = PayloadCollectionTypeInfo(serverOptions);
+        var serverJson = JsonSerializer.Serialize(serverChanges.ToPayload(), serverTypeInfo);
         using var serverDocument = JsonDocument.Parse(serverJson);
         var serverItems = serverDocument
             .RootElement.GetProperty("changes")
@@ -175,7 +186,7 @@ public sealed class AotJsonTests
             )
             .IsEqualTo("add");
         var serverRestored = JsonSerializer
-            .Deserialize(serverJson, AotSerializerContext.Default.PayloadCollectionChangePayload)!
+            .Deserialize(serverJson, serverTypeInfo)!
             .ToChangeSet();
         await Assert
             .That(
@@ -198,7 +209,7 @@ public sealed class AotJsonTests
         var after = SecretState("after", "after-token");
         var json = JsonSerializer.Serialize(
             PayloadSecret.ChangeSet.Between(before, after).ToPayload(),
-            AotSerializerContext.Default.PayloadSecretChangePayload
+            PayloadSecret.PayloadJson.Default.ChangePayload
         );
 
         await Assert.That(json.Contains("\"version\":\"0.1\"")).IsTrue();
@@ -206,7 +217,7 @@ public sealed class AotJsonTests
         await Assert.That(json.Contains("before-token")).IsFalse();
 
         var restored = JsonSerializer
-            .Deserialize(json, AotSerializerContext.Default.PayloadSecretChangePayload)!
+            .Deserialize(json, PayloadSecret.PayloadJson.Default.ChangePayload)!
             .ToPatch();
         await Assert
             .That(PayloadSecret.Patch.Between(restored.Apply(before), after).IsEmpty)
@@ -214,7 +225,7 @@ public sealed class AotJsonTests
 
         var incomplete = JsonSerializer.Deserialize(
             json,
-            AotSerializerContext.Default.PayloadSecretChangePayload
+            PayloadSecret.PayloadJson.Default.ChangePayload
         )!;
         var rejected = false;
         try
@@ -251,12 +262,14 @@ public sealed class AotJsonTests
 
         var before = EnumState(AotOrderStatus.Open);
         var after = EnumState(AotOrderStatus.Closed);
+        var enumOptions = PayloadRootEnumOptions();
+        var enumTypeInfo = PayloadRootTypeInfo(enumOptions);
         var json = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(before, after).ToPayload(),
-            AotSerializerContext.Default.PayloadRootChangePayload
+            enumTypeInfo
         );
         var restored = JsonSerializer
-            .Deserialize(json, AotSerializerContext.Default.PayloadRootChangePayload)!
+            .Deserialize(json, enumTypeInfo)!
             .ToChangeSet();
         await Assert
             .That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty)
@@ -276,13 +289,15 @@ public sealed class AotJsonTests
             new PayloadItem { Id = "b", Name = "B" }
         );
         var removed = ServerState(new PayloadItem { Id = "a", Name = "A" });
+        var collectionOptions = PayloadCollectionOptions();
+        var collectionTypeInfo = PayloadCollectionTypeInfo(collectionOptions);
         var removeJson = JsonSerializer.Serialize(
             PayloadCollection.ChangeSet.Between(before, removed).ToPayload(),
-            AotSerializerContext.Default.PayloadCollectionChangePayload
+            collectionTypeInfo
         );
         await Assert.That(removeJson.Contains("\"kind\":\"remove\"")).IsTrue();
         var removeRestored = JsonSerializer
-            .Deserialize(removeJson, AotSerializerContext.Default.PayloadCollectionChangePayload)!
+            .Deserialize(removeJson, collectionTypeInfo)!
             .ToChangeSet();
         await Assert
             .That(
@@ -300,11 +315,11 @@ public sealed class AotJsonTests
         var missingAfter = Optional<PayloadRoot.Fragment?>.Present(new PayloadRoot.Fragment());
         var missingJson = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(missingBefore, missingAfter).ToPayload(),
-            AotSerializerContext.Default.PayloadRootChangePayload
+            PayloadRoot.PayloadJson.Default.ChangePayload
         );
         await Assert.That(missingJson.Contains("\"state\":\"missing\"")).IsTrue();
         var missingRestored = JsonSerializer
-            .Deserialize(missingJson, AotSerializerContext.Default.PayloadRootChangePayload)!
+            .Deserialize(missingJson, PayloadRoot.PayloadJson.Default.ChangePayload)!
             .ToChangeSet();
         await Assert
             .That(
@@ -320,11 +335,11 @@ public sealed class AotJsonTests
         );
         var reorderJson = JsonSerializer.Serialize(
             PayloadCollection.ChangeSet.Between(before, reordered).ToPayload(),
-            AotSerializerContext.Default.PayloadCollectionChangePayload
+            collectionTypeInfo
         );
         await Assert.That(reorderJson.Contains("\"kind\":\"reorder\"")).IsTrue();
         var reorderRestored = JsonSerializer
-            .Deserialize(reorderJson, AotSerializerContext.Default.PayloadCollectionChangePayload)!
+            .Deserialize(reorderJson, collectionTypeInfo)!
             .ToChangeSet();
         await Assert
             .That(
@@ -345,9 +360,11 @@ public sealed class AotJsonTests
 
         var before = ServerState(new PayloadItem { Id = "a", Name = "A" });
         var after = ServerState(new PayloadItem { Id = "a", Name = "A2" });
+        var kindOptions = PayloadCollectionOptions();
+        var kindTypeInfo = PayloadCollectionTypeInfo(kindOptions);
         var json = JsonSerializer.Serialize(
             PayloadCollection.ChangeSet.Between(before, after).ToPayload(),
-            AotSerializerContext.Default.PayloadCollectionChangePayload
+            kindTypeInfo
         );
         await Assert.That(json.Contains("\"kind\":\"edit\"")).IsTrue();
 
@@ -356,7 +373,7 @@ public sealed class AotJsonTests
         {
             JsonSerializer.Deserialize(
                 json.Replace("\"kind\":\"edit\"", "\"kind\":\"bogus\""),
-                AotSerializerContext.Default.PayloadCollectionChangePayload
+                kindTypeInfo
             );
         }
         catch (JsonException)

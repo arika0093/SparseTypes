@@ -298,7 +298,8 @@ internal static class SparseChangeSetEmitter
                     modelType,
                     ignoredSettablePropertyNames,
                     emitContainers: false,
-                    emitFacade: true
+                    emitFacade: true,
+                    implementationNamespace: implementationNamespace
                 );
                 SparseChangeSetPayloadEmitter.AppendPayload(
                     implementationBuilder,

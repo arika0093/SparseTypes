@@ -105,28 +105,15 @@ public static class ChangePayloadDocsSamples
         );
 
         // sample: payload-context
-        var contextOptions = new JsonSerializerOptions
-        {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(
-                WirePayloadContext.Default,
-                new DefaultJsonTypeInfoResolver()
-            ),
-        };
-        var contextJson = JsonSerializer.Serialize(setPayload, contextOptions);
+        var contextJson = JsonSerializer.Serialize(
+            setPayload,
+            WireSettings.PayloadJson.Default.ChangePayload
+        );
         var contextRestored = JsonSerializer
-            .Deserialize<WireSettings.ChangePayload>(contextJson, contextOptions)!
+            .Deserialize(contextJson, WireSettings.PayloadJson.Default.ChangePayload)!
             .ToChangeSet();
         // contextRestored.ToPatch().Apply(setBefore) replays setAfter
         // /sample
-        DocsCheck.Require(
-            WirePayloadContext.Default.GetTypeInfo(typeof(string)) is not null
-                && WirePayloadContext.Default.GetTypeInfo(typeof(int)) is not null,
-            "endpoint value types resolve through context metadata"
-        );
-        DocsCheck.Require(
-            WirePayloadContext.Default.GetTypeInfo(typeof(WireSettings.ChangePayload)) is null,
-            "generated payloads resolve downstream; same-assembly contexts cover value types only"
-        );
         DocsCheck.Require(
             WireSettings
                 .Patch.Between(contextRestored.ToPatch().Apply(setBefore), setAfter)
@@ -717,12 +704,6 @@ public static class ChangePayloadDocsSamples
         );
     }
 }
-
-// Source-generated metadata for the context sample: the endpoint value types
-// the payload carries.
-[JsonSerializable(typeof(string))]
-[JsonSerializable(typeof(int))]
-internal sealed partial class WirePayloadContext : JsonSerializerContext { }
 
 // sample: payload-models
 [SparseModel]

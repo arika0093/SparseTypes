@@ -124,8 +124,14 @@ comes from `SparsePatchDialect.PayloadImplementationContainerPrefix`. Shared
 appends a stable model hash to that prefix. The container and DTOs are marked
 `EditorBrowsable(Never)`. Their names include a stable model hash because
 `System.Text.Json` source generation can collide on nested types with identical
-simple names across models. The DTOs remain public so a source-generated context
-in another assembly can access the registered polymorphic types.
+simple names across models.
+
+Each model with JSON enabled also emits a nested `PayloadJson` resolver and a
+`PayloadJsonConverter`. The resolver supplies trim-safe `JsonTypeInfo` metadata
+for the payload envelope without a source-generated context, so primitive
+endpoint values need no extra registration. Custom value types still resolve
+through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver
+with a source-generated context for those types.
 
 `SparseFragmentEmitter` retains the standalone `Fragment`/`Patch` API vocabulary.
 It does not add product-specific model extension APIs unless the caller supplies

@@ -234,6 +234,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     "SparsePaths",
                     "JsonConverter",
                     "FragmentJsonConverter",
+                    "PayloadJson",
+                    "PayloadJsonConverter",
                     "ApplyTo",
                     "TryApplyTo",
                     "WriteTo",

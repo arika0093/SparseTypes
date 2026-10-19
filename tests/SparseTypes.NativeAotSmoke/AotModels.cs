@@ -12,17 +12,7 @@ namespace SparseTypes.NativeAotSmoke;
 [JsonSerializable(typeof(IReadOnlyList<string>))]
 [JsonSerializable(typeof(AotServer))]
 [JsonSerializable(typeof(List<AotServer>))]
-[JsonSerializable(
-    typeof(PayloadRoot.ChangePayload),
-    TypeInfoPropertyName = "PayloadRootChangePayload"
-)]
-[JsonSerializable(
-    typeof(PayloadCollection.ChangePayload),
-    TypeInfoPropertyName = "PayloadCollectionChangePayload"
-)]
-[JsonSerializable(
-    typeof(PayloadSecret.ChangePayload),
-    TypeInfoPropertyName = "PayloadSecretChangePayload"
-)]
+[JsonSerializable(typeof(PayloadItem))]
+[JsonSerializable(typeof(List<PayloadItem>))]
 internal sealed partial class AotSerializerContext : JsonSerializerContext { }
 // /sample
