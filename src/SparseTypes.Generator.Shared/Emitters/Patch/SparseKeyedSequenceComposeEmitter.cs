@@ -101,6 +101,10 @@ internal static class SparseKeyedSequenceComposeEmitter
         code.AppendLineAt(5, "result.__whole = " + operation + ".Set(applied.Value!);");
         code.AppendLineAt(5, "return result;");
         code.AppendLineAt(4, "}");
+        code.AppendLineAt(
+            4,
+            "if (" + (split is null ? "this" : "self") + ".IsEmpty && next.IsEmpty) return result;"
+        );
         // Granular + granular: merge key operation logs preserving sequential
         // semantics. Added keys.
         var hasTempPatchCompose = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
