@@ -567,10 +567,25 @@ internal static class SparseModelDiscovery
         }
 
         var result = ImmutableArray.CreateBuilder<SparseMemberModel>(members.Length);
+        var identityEqualityAnalyzer = new SparseModelIdentityEqualityAnalyzer(
+            config,
+            cancellationToken
+        );
+        var canUseSharedReferenceEqualityFastPath =
+            containingModel is not null
+            && identityEqualityAnalyzer.ModelClonePreservesEquality(containingModel);
         foreach (var member in members)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            result.Add(CreateMemberModel(member, config, cancellationToken, temporaryKeyProperty));
+            result.Add(
+                CreateMemberModel(
+                    member,
+                    config,
+                    cancellationToken,
+                    canUseSharedReferenceEqualityFastPath,
+                    temporaryKeyProperty
+                )
+            );
         }
 
         return result.ToImmutable();
@@ -580,6 +595,7 @@ internal static class SparseModelDiscovery
         SparseSymbolMemberModel member,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken,
+        bool canUseSharedReferenceEqualityFastPath,
         string? temporaryKeyProperty = null
     )
     {
@@ -676,7 +692,8 @@ internal static class SparseModelDiscovery
             RebasePolicyType: rebasePolicyType,
             ComparisonComparerType: comparisonComparerType,
             ChildRequiresFromCycleContext: childRequiresFromCycleContext,
-            ChildRequiresDiffCycleContext: childRequiresDiffCycleContext
+            ChildRequiresDiffCycleContext: childRequiresDiffCycleContext,
+            CanUseSharedReferenceEqualityFastPath: canUseSharedReferenceEqualityFastPath
         );
     }
 

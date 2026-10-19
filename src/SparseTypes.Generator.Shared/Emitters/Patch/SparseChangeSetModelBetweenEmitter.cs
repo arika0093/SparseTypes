@@ -8,6 +8,14 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Compares model members that need no projection or cloning.</summary>
 internal static class SparseChangeSetModelBetweenEmitter
 {
+    internal static bool CanUseSharedReferenceEqualityFastPath(
+        ImmutableArray<SparseMemberModel> members
+    ) =>
+        !members.IsDefaultOrEmpty
+        && members.All(static member =>
+            member.Property.Type.IsReferenceType && member.CanUseSharedReferenceEqualityFastPath
+        );
+
     internal static bool CanCompareDirectly(ImmutableArray<SparseMemberModel> members) =>
         members.All(CanCompareMemberDirectly);
 
@@ -113,7 +121,8 @@ internal static class SparseChangeSetModelBetweenEmitter
         SharedIndentedBuilder code,
         string optionalFragment,
         int indent,
-        bool modelIsReferenceType
+        bool modelIsReferenceType,
+        ImmutableArray<SparseMemberModel> members
     )
     {
         if (modelIsReferenceType)
@@ -126,6 +135,20 @@ internal static class SparseChangeSetModelBetweenEmitter
                 indent,
                 "if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;"
             );
+            if (CanUseSharedReferenceEqualityFastPath(members))
+            {
+                var sharedMembers = members.Select(member =>
+                    "global::System.Object.ReferenceEquals(before."
+                    + SparseNaming.EscapeIdentifier(member.Property.Name)
+                    + ", after."
+                    + SparseNaming.EscapeIdentifier(member.Property.Name)
+                    + ")"
+                );
+                code.AppendLineAt(
+                    indent,
+                    "if (" + string.Join(" && ", sharedMembers) + ") return __sparse_empty;"
+                );
+            }
         }
         code.AppendLineAt(
             indent,

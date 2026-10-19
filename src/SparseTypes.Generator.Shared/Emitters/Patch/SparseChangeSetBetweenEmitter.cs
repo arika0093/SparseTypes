@@ -373,7 +373,8 @@ internal static class SparseChangeSetBetweenEmitter
                 code,
                 optionalFragment,
                 3,
-                modelIsReferenceType
+                modelIsReferenceType,
+                members
             );
         code.AppendLineAt(2, "}");
     }

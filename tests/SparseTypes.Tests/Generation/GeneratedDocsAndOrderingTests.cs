@@ -67,6 +67,24 @@ public sealed class GeneratedDocsAndOrderingTests
                 public Dictionary<string, int> Scores { get; set; } = new();
                 public Dictionary<string, ProbeScalar> Details { get; set; } = new();
             }
+            [SparseModel]
+            public partial class ProbeComputedGetter
+            {
+                public ProbeScalar Child { get; set; } = new();
+                private Dictionary<string, ProbeScalar> _details = new();
+                public Dictionary<string, ProbeScalar> Details
+                {
+                    get => _details;
+                    set => _details = value;
+                }
+            }
+            [SparseModel]
+            public partial class ProbeCustomConstructor
+            {
+                public ProbeCustomConstructor() { }
+                public ProbeScalar Child { get; set; } = new();
+                public Dictionary<string, ProbeScalar> Details { get; set; } = new();
+            }
             /// <summary>Immutable probe.</summary>
             [SparseModel]
             public partial class ProbeImmutable
@@ -139,13 +157,15 @@ public sealed class GeneratedDocsAndOrderingTests
     private static Compilation WithDocDiagnostics(Compilation compilation)
     {
         var options = new CSharpParseOptions(documentationMode: DocumentationMode.Diagnose);
-        return compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(
-            compilation.SyntaxTrees.Select(tree =>
-                tree.FilePath.EndsWith(".g.cs")
-                    ? CSharpSyntaxTree.ParseText(tree.GetText(), options, path: tree.FilePath)
-                    : tree
-            )
-        );
+        return compilation
+            .RemoveAllSyntaxTrees()
+            .AddSyntaxTrees(
+                compilation.SyntaxTrees.Select(tree =>
+                    tree.FilePath.EndsWith(".g.cs")
+                        ? CSharpSyntaxTree.ParseText(tree.GetText(), options, path: tree.FilePath)
+                        : tree
+                )
+            );
     }
 
     private static string Report(IReadOnlyList<string> violations) =>
@@ -156,8 +176,7 @@ public sealed class GeneratedDocsAndOrderingTests
         member switch
         {
             MethodDeclarationSyntax method => method.ExplicitInterfaceSpecifier is not null,
-            PropertyDeclarationSyntax property =>
-                property.ExplicitInterfaceSpecifier is not null,
+            PropertyDeclarationSyntax property => property.ExplicitInterfaceSpecifier is not null,
             _ => false,
         };
 
@@ -219,11 +238,10 @@ public sealed class GeneratedDocsAndOrderingTests
             PropertyDeclarationSyntax property => property.Identifier.Text,
             IndexerDeclarationSyntax => "this",
             EventDeclarationSyntax evt => evt.Identifier.Text,
-            BaseFieldDeclarationSyntax field =>
-                string.Join(
-                    ",",
-                    field.Declaration.Variables.Select(static v => v.Identifier.Text)
-                ),
+            BaseFieldDeclarationSyntax field => string.Join(
+                ",",
+                field.Declaration.Variables.Select(static v => v.Identifier.Text)
+            ),
             TypeDeclarationSyntax type => type.Identifier.Text,
             DelegateDeclarationSyntax del => del.Identifier.Text,
             _ => member.Kind().ToString(),
@@ -271,8 +289,7 @@ public sealed class GeneratedDocsAndOrderingTests
         foreach (var tree in GeneratedTrees(Probe.Value))
         {
             foreach (
-                var member in tree
-                    .GetRoot()
+                var member in tree.GetRoot()
                     .DescendantNodes()
                     .OfType<TypeDeclarationSyntax>()
                     .SelectMany(static type => type.Members)
@@ -325,9 +342,7 @@ public sealed class GeneratedDocsAndOrderingTests
         var violations = new List<string>();
         foreach (var tree in GeneratedTrees(Probe.Value))
         {
-            foreach (
-                var type in tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>()
-            )
+            foreach (var type in tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>())
             {
                 var members = type.Members.ToArray();
                 for (var i = 1; i < members.Length; i++)
@@ -356,5 +371,37 @@ public sealed class GeneratedDocsAndOrderingTests
         }
 
         violations.ShouldBeEmpty(Report(violations));
+    }
+
+    [Test]
+    public void ModelBetweenUsesSharedReferencesOnlyForCloneStableGraphs()
+    {
+        var dictionarySource = GeneratedTrees(Probe.Value)
+            .Single(tree => tree.FilePath.Contains("ProbeDictionaries", StringComparison.Ordinal))
+            .GetText()
+            .ToString();
+        dictionarySource.ShouldContain(
+            "if (global::System.Object.ReferenceEquals(before.Details, after.Details) && global::System.Object.ReferenceEquals(before.Scores, after.Scores)) return __sparse_empty;"
+        );
+
+        var nestedSource = GeneratedTrees(Probe.Value)
+            .Single(tree => tree.FilePath.Contains("ProbeNested", StringComparison.Ordinal))
+            .GetText()
+            .ToString();
+        nestedSource.ShouldNotContain("ReferenceEquals(before.Child, after.Child)");
+
+        var computedGetterSource = GeneratedTrees(Probe.Value)
+            .Single(tree => tree.FilePath.Contains("ProbeComputedGetter", StringComparison.Ordinal))
+            .GetText()
+            .ToString();
+        computedGetterSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");
+
+        var customConstructorSource = GeneratedTrees(Probe.Value)
+            .Single(tree =>
+                tree.FilePath.Contains("ProbeCustomConstructor", StringComparison.Ordinal)
+            )
+            .GetText()
+            .ToString();
+        customConstructorSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");
     }
 }
