@@ -114,6 +114,14 @@ internal static class SparseKeyedSequenceComposeEmitter
             AppendAssignedRemoveOnlyComposeFastPath(code, keyType, comparer);
             if (hasPatch)
             {
+                AppendAssignedAddedThenEditedComposeFastPath(
+                    code,
+                    keyType,
+                    elementType,
+                    comparer,
+                    member,
+                    runtime
+                );
                 AppendAssignedEditOnlyComposeFastPath(code, keyType, comparer, member);
             }
         }
@@ -737,6 +745,87 @@ internal static class SparseKeyedSequenceComposeEmitter
             "if (__simpleEdited is not null && __simpleEdited.Count > 0) result.__edited = __simpleEdited;"
         );
         code.AppendLineAt(5, "return result;");
+        code.AppendLineAt(4, "}");
+    }
+
+    private static void AppendAssignedAddedThenEditedComposeFastPath(
+        SharedIndentedBuilder code,
+        string keyType,
+        string elementType,
+        string comparer,
+        SparseMemberModel member,
+        string runtime
+    )
+    {
+        var elementFragment = SparseKeyedCollectionEmitter.ElementFragmentType(member);
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "(__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__removed is null || next.__removed.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(5, "&& __added is not null && __added.Count > 0");
+        code.AppendLineAt(5, "&& (next.__added is null || next.__added.Count == 0)");
+        code.AppendLineAt(5, "&& (__edited is null || __edited.Count == 0)");
+        code.AppendLineAt(5, "&& next.__edited is not null && next.__edited.Count > 0");
+        code.AppendLineAt(4, ")");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(
+            5,
+            "var __simpleAdded = new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementType
+                + ">("
+                + comparer
+                + ");"
+        );
+        code.AppendLineAt(
+            5,
+            "foreach (var item in __added) __simpleAdded["
+                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
+                + "(item)] = item;"
+        );
+        code.AppendLineAt(5, "var __simpleMatchesAdded = true;");
+        code.AppendLineAt(5, "foreach (var kv in next.__edited)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "if (!__simpleAdded.TryGetValue(kv.Key, out var __addedItem)) { __simpleMatchesAdded = false; break; }"
+        );
+        code.AppendLineAt(
+            6,
+            "var __appliedEdit = kv.Value.Apply("
+                + runtime
+                + "Optional<"
+                + elementFragment
+                + "?>.Present("
+                + elementFragment
+                + ".From(__addedItem)));"
+        );
+        code.AppendLineAt(
+            6,
+            "if (!__appliedEdit.IsPresent || __appliedEdit.Value is null) throw new global::System.InvalidOperationException(\"Element edit removed the element. Use Remove instead.\");"
+        );
+        code.AppendLineAt(
+            6,
+            "if (!"
+                + comparer
+                + ".Equals("
+                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
+                + "(__appliedEdit.Value!.ToModel()), kv.Key)) throw new global::System.InvalidOperationException(\"Changing an element's identity through an edit is not allowed. Use remove-old + add-new instead.\");"
+        );
+        code.AppendLineAt(6, "__simpleAdded[kv.Key] = __appliedEdit.Value!.ToModel();");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(5, "if (__simpleMatchesAdded)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "result.__added = new global::System.Collections.Generic.List<"
+                + elementType
+                + ">(__simpleAdded.Values);"
+        );
+        code.AppendLineAt(6, "return result;");
+        code.AppendLineAt(5, "}");
         code.AppendLineAt(4, "}");
     }
 }
