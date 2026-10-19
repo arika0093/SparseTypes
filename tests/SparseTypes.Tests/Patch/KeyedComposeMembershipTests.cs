@@ -341,6 +341,21 @@ public sealed class KeyedComposeMembershipTests
     }
 
     [Test]
+    public void ComposeEditThenRemoveDropsTheEdit()
+    {
+        var before = KF(Server("a", "old-a"), Server("b", "old-b"));
+        var first = new KeyedServerHolder.Patch();
+        first.Items.Edit("a").Name = "updated-a";
+        var next = new KeyedServerHolder.Patch();
+        next.Items.Remove("a");
+
+        var composed = first.Compose(next);
+        (composed.Items.__removed ?? []).ShouldBe(["a"]);
+        KeyedModel(composed.Apply(before)).Select(static item => item.Id).ShouldBe(["b"]);
+        ShouldMatchSequentialKeyed(before, first, next);
+    }
+
+    [Test]
     public void ComposeEditOnlyPreservesSequentialEdits()
     {
         var before = KF(Server("a", "old-a"), Server("b", "old-b"));

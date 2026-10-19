@@ -126,6 +126,40 @@ internal static class SparseKeyedSequenceComposeFastPathEmitter
         code.AppendLineAt(4, "}");
     }
 
+    internal static void AppendAssignedEditThenRemoveFastPath(
+        SharedIndentedBuilder code,
+        string keyType,
+        string comparer
+    )
+    {
+        code.AppendLineAt(4, "if (");
+        code.AppendLineAt(5, "(__added is null || __added.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__added is null || next.__added.Count == 0)");
+        code.AppendLineAt(5, "&& (__removed is null || __removed.Count == 0)");
+        code.AppendLineAt(5, "&& next.__removed is not null && next.__removed.Count == 1");
+        code.AppendLineAt(5, "&& __edited is not null && __edited.Count == 1");
+        code.AppendLineAt(5, "&& (next.__edited is null || next.__edited.Count == 0)");
+        code.AppendLineAt(5, "&& (__order is null || __order.Count == 0)");
+        code.AppendLineAt(5, "&& (next.__order is null || next.__order.Count == 0)");
+        code.AppendLineAt(4, ")");
+        code.AppendLineAt(4, "{");
+        code.AppendLineAt(5, "foreach (var __simpleEditKey in __edited.Keys)");
+        code.AppendLineAt(5, "{");
+        code.AppendLineAt(
+            6,
+            "if (!" + comparer + ".Equals(__simpleEditKey, next.__removed[0])) continue;"
+        );
+        code.AppendLineAt(
+            6,
+            "result.__removed = new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(next.__removed);"
+        );
+        code.AppendLineAt(6, "return result;");
+        code.AppendLineAt(5, "}");
+        code.AppendLineAt(4, "}");
+    }
+
     internal static void AppendAssignedRemoveOnlyComposeFastPath(
         SharedIndentedBuilder code,
         string keyType,
