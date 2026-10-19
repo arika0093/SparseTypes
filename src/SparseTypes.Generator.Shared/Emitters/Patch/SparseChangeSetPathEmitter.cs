@@ -66,6 +66,10 @@ internal static class SparseChangeSetPathEmitter
         }
         code.AppendLineAt(2, "{");
         var enumerate = target is null ? "EnumerateChanges()" : "EnumerateChanges(self)";
+        code.AppendLineAt(3, target is null ? "if (IsEmpty)" : "if (self.IsEmpty)");
+        code.AppendLineAt(3, "{");
+        code.AppendLineAt(4, "return global::System.Array.Empty<" + pathType + ">();");
+        code.AppendLineAt(3, "}");
         code.AppendLineAt(
             3,
             "var paths = new global::System.Collections.Generic.List<" + pathType + ">();"
