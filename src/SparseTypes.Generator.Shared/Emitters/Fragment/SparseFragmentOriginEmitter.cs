@@ -104,7 +104,6 @@ internal sealed class SparseFragmentOriginEmitter(
     public void AppendOriginSurface(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        string modelType,
         string? operationsType = null
     )
     {
@@ -114,15 +113,14 @@ internal sealed class SparseFragmentOriginEmitter(
             return;
         }
 
-        AppendQueryBodies(code, members, modelType, isStatic: false, receiver: "this.");
+        AppendQueryBodies(code, members, isStatic: false, receiver: "this.");
     }
 
     /// <summary>Emits the origin query implementations for the per-model operations class.</summary>
     public void AppendOriginOperations(
         SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        string modelType
-    ) => AppendQueryBodies(code, members, modelType, isStatic: true, receiver: "self.");
+        ImmutableArray<SparseMemberModel> members
+    ) => AppendQueryBodies(code, members, isStatic: true, receiver: "self.");
 
     /// <summary>Builds the merged member-origin expression for <c>Merge</c>.</summary>
     /// <remarks>Higher-priority presence wins; a value merged from both sides stays member-level Unknown.</remarks>
@@ -386,7 +384,7 @@ internal sealed class SparseFragmentOriginEmitter(
             + "])";
     }
 
-    private static string Literal(string value) =>
+    internal static string Literal(string value) =>
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     private void AppendQueryFacades(SharedIndentedBuilder code, string operationsType)
@@ -455,17 +453,30 @@ internal sealed class SparseFragmentOriginEmitter(
     private void AppendQueryBodies(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        string modelType,
         bool isStatic,
         string receiver
     )
     {
         AppendGetOrigin(code, isStatic);
         AppendTryGetOrigin(code, isStatic);
-        AppendEnumerateOrigins(code, members, modelType, isStatic, receiver);
+        AppendEnumerateOrigins(code, isStatic);
         AppendGetByOrigin(code, members, isStatic, receiver);
         AppendSplitByOrigin(code, isStatic);
     }
+
+    /// <summary>Emits cached root and member paths after the generated public surface.</summary>
+    public void AppendOriginPathCacheFields(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        string modelType
+    ) => SparseFragmentOriginPathCacheEmitter.Append(code, members, modelType, SparsePathType);
+
+    internal void AppendOriginEnumerationIterator(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        bool isStatic,
+        string receiver
+    ) => AppendEnumerateOriginsIterator(code, members, isStatic, receiver);
 
     private void AppendGetOrigin(SharedIndentedBuilder code, bool isStatic)
     {
@@ -517,13 +528,11 @@ internal sealed class SparseFragmentOriginEmitter(
             SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
         }
 
-        // One source of truth: a path resolves exactly when enumeration yields
-        // it.
         code.AppendLineAt(3, "origin = null;");
         code.AppendLineAt(
             3,
             "foreach (var __sparse_entry in "
-                + (isStatic ? "EnumerateOrigins(self)" : "EnumerateOrigins()")
+                + (isStatic ? "__SparseEnumerateOrigins(self)" : "__SparseEnumerateOrigins()")
                 + ")"
         );
         code.AppendLineAt(3, "{");
@@ -537,15 +546,8 @@ internal sealed class SparseFragmentOriginEmitter(
         code.AppendLine();
     }
 
-    private void AppendEnumerateOrigins(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        string modelType,
-        bool isStatic,
-        string receiver
-    )
+    private void AppendEnumerateOrigins(SharedIndentedBuilder code, bool isStatic)
     {
-        var self = receiver.TrimEnd('.');
         code.AppendLineAt(
             2,
             "/// <summary>Enumerates the effective values attributed to their origins for inspection.</summary>"
@@ -571,195 +573,52 @@ internal sealed class SparseFragmentOriginEmitter(
                 + OriginEntryType
                 + ">();"
         );
-        for (var position = 0; position < members.Length; position++)
-        {
-            AppendEnumerateMember(code, members[position], position, self, modelType);
-        }
-
+        code.AppendLineAt(
+            3,
+            "foreach (var __sparse_entry in "
+                + (isStatic ? "__SparseEnumerateOrigins(self)" : "__SparseEnumerateOrigins()")
+                + ") __sparse_entries.Add(__sparse_entry);"
+        );
         code.AppendLineAt(3, "return __sparse_entries;");
         code.AppendLineAt(2, "}");
         code.AppendLine();
     }
 
-    private void AppendEnumerateMember(
+    private void AppendEnumerateOriginsIterator(
         SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int position,
-        string self,
-        string modelType
+        ImmutableArray<SparseMemberModel> members,
+        bool isStatic,
+        string receiver
     )
     {
-        var name = SparseNaming.EscapeIdentifier(member.Property.Name);
-        var prefix =
-            SparsePathType
-            + ".Root(typeof("
-            + modelType
-            + ")).Member("
-            + Literal(member.Property.Name)
-            + ")";
-        var attribution = MemberAttribution(self + ".", position, null);
-        code.AppendLineAt(3, "if (" + self + "." + name + ".IsPresent)");
-        code.AppendLineAt(3, "{");
-        if (IsFragmentDeep(member))
+        var self = receiver.TrimEnd('.');
+        code.AppendIndent(2)
+            .Append(
+                isStatic
+                    ? "private static global::System.Collections.Generic.IEnumerable<"
+                    : "private global::System.Collections.Generic.IEnumerable<"
+            )
+            .Append(OriginEntryType)
+            .Append(
+                isStatic
+                    ? "> __SparseEnumerateOrigins(Fragment self)"
+                    : "> __SparseEnumerateOrigins()"
+            )
+            .AppendLine("");
+        code.AppendLineAt(2, "{");
+        for (var position = 0; position < members.Length; position++)
         {
-            code.AppendLineAt(4, "if ((object?)" + self + "." + name + ".Value is null)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = "
-                    + prefix
-                    + ", Origin = "
-                    + attribution
-                    + " });"
-            );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
-                "foreach (var __sparse_child_"
-                    + member.Id
-                    + " in "
-                    + self
-                    + "."
-                    + name
-                    + ".Value!.EnumerateOrigins())"
-            );
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = "
-                    + prefix
-                    + ".Append(__sparse_child_"
-                    + member.Id
-                    + ".Path), Origin = __sparse_child_"
-                    + member.Id
-                    + ".Origin });"
-            );
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(4, "}");
-        }
-        else if (HasElementOrigins(member))
-        {
-            code.AppendLineAt(4, "if ((object?)" + self + "." + name + ".Value is null)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = "
-                    + prefix
-                    + ", Origin = "
-                    + attribution
-                    + " });"
-            );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
-                "var __sparse_values_"
-                    + member.Id
-                    + " = global::System.Linq.Enumerable.ToArray("
-                    + self
-                    + "."
-                    + name
-                    + ".Value!);"
-            );
-            code.AppendLineAt(
-                5,
-                "var __sparse_elements_"
-                    + member.Id
-                    + " = "
-                    + self
-                    + ".__SparseElementOrigins is null ? null : "
-                    + self
-                    + ".__SparseElementOrigins["
-                    + position
-                    + "];"
-            );
-            code.AppendLineAt(5, "if (__sparse_elements_" + member.Id + " is null)");
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = "
-                    + prefix
-                    + ", Origin = "
-                    + attribution
-                    + " });"
-            );
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(5, "else");
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(6, "var __sparse_element_prefix_" + member.Id + " = " + prefix + ";");
-            code.AppendLineAt(
-                6,
-                "for (var __sparse_position_"
-                    + member.Id
-                    + " = 0; __sparse_position_"
-                    + member.Id
-                    + " < __sparse_values_"
-                    + member.Id
-                    + ".Length; __sparse_position_"
-                    + member.Id
-                    + "++)"
-            );
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(
-                7,
-                "var __sparse_element_origin_"
-                    + member.Id
-                    + " = (__sparse_position_"
-                    + member.Id
-                    + " >= __sparse_elements_"
-                    + member.Id
-                    + ".Length) ? "
-                    + attribution
-                    + " : (__sparse_elements_"
-                    + member.Id
-                    + "[__sparse_position_"
-                    + member.Id
-                    + "] ?? "
-                    + attribution
-                    + ");"
-            );
-            code.AppendLineAt(
-                7,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = __sparse_element_prefix_"
-                    + member.Id
-                    + ".At(__sparse_position_"
-                    + member.Id
-                    + "), Origin = __sparse_element_origin_"
-                    + member.Id
-                    + " });"
-            );
-            code.AppendLineAt(6, "}");
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(4, "}");
-        }
-        else
-        {
-            code.AppendLineAt(
-                4,
-                "__sparse_entries.Add(new "
-                    + OriginEntryType
-                    + " { Path = "
-                    + prefix
-                    + ", Origin = "
-                    + attribution
-                    + " });"
+            SparseFragmentOriginEnumerationEmitter.AppendMember(
+                code,
+                members[position],
+                position,
+                self,
+                OriginEntryType
             );
         }
 
-        code.AppendLineAt(3, "}");
+        code.AppendLineAt(2, "}");
+        code.AppendLine();
     }
 
     private void AppendGetByOrigin(
@@ -1028,6 +887,10 @@ internal sealed class SparseFragmentOriginEmitter(
         );
         code.AppendLineAt(
             3,
+            "var __sparse_seen = new global::System.Collections.Generic.HashSet<string?>(global::System.StringComparer.Ordinal);"
+        );
+        code.AppendLineAt(
+            3,
             "foreach (var __sparse_entry in "
                 + (isStatic ? "EnumerateOrigins(self)" : "EnumerateOrigins()")
                 + ")"
@@ -1035,7 +898,7 @@ internal sealed class SparseFragmentOriginEmitter(
         code.AppendLineAt(3, "{");
         code.AppendLineAt(
             4,
-            "if (!__sparse_order.Contains(__sparse_entry.Origin)) __sparse_order.Add(__sparse_entry.Origin);"
+            "if (__sparse_seen.Add(__sparse_entry.Origin)) __sparse_order.Add(__sparse_entry.Origin);"
         );
         code.AppendLineAt(3, "}");
         code.AppendLineAt(

@@ -175,14 +175,14 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(current);
-        if (Session is not ISparseEditSessionWithChildStatus<TModel, TConflict> childStatus)
+        if (Session is not ISparseEditSessionWithPendingState<TModel, TConflict> pendingState)
         {
             throw new InvalidOperationException(
                 "The child edit session does not support pending-state projection."
             );
         }
 
-        return childStatus.TryApplyPendingState(current, out updated, out conflicts);
+        return pendingState.TryApplyPendingState(current, out updated, out conflicts);
     }
 
     /// <summary>Checks whether this child and its descendants can be merged into their parents.</summary>

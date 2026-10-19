@@ -606,10 +606,19 @@ internal static class SparseModelDiscovery
         string? childFragmentType = null;
         var childIsStructural = false;
         var childIsReferenceType = true;
+        var childRequiresFromCycleContext = false;
+        var childRequiresDiffCycleContext = false;
         if (member.ChildModel is not null)
         {
             childModel = CreateTypeModel(member.ChildModel, config, cancellationToken);
             childIsReferenceType = member.ChildModel.IsReferenceType;
+            var childMembers = GetMembers(member.ChildModel, config, cancellationToken).ToArray();
+            childRequiresFromCycleContext = childMembers.Any(static childMember =>
+                childMember.ChildModel is not null
+            );
+            childRequiresDiffCycleContext = childMembers.Any(static childMember =>
+                childMember.ChildModel is not null && childMember.MergeStrategyType is null
+            );
             var isPromoted = SparsePromotedDiscovery.IsPromotablePartial(
                 member.ChildModel,
                 config,
@@ -665,7 +674,9 @@ internal static class SparseModelDiscovery
             HasExplicitMergeMode: member.HasExplicitMergeMode,
             RedactBefore: IsRedactBefore(member.Property, config),
             RebasePolicyType: rebasePolicyType,
-            ComparisonComparerType: comparisonComparerType
+            ComparisonComparerType: comparisonComparerType,
+            ChildRequiresFromCycleContext: childRequiresFromCycleContext,
+            ChildRequiresDiffCycleContext: childRequiresDiffCycleContext
         );
     }
 

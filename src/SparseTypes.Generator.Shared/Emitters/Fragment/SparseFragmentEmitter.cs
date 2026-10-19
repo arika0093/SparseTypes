@@ -898,7 +898,7 @@ internal static class SparseFragmentEmitter
         core.AppendApplyChanges(code, members, operationsType: operationsType);
         // Origin queries are public surface; facades precede Diff so the
         // public-first order holds when origins are enabled.
-        originEmitter?.AppendOriginSurface(code, members, modelType, operationsType);
+        originEmitter?.AppendOriginSurface(code, members, operationsType);
         if (operationsType is not null)
         {
             SparseFragmentSurfaceOrderingEmitter.AppendFragmentSplitSurface(
@@ -937,6 +937,12 @@ internal static class SparseFragmentEmitter
                 jsonConverterSimpleName,
                 generatedAccessibility
             );
+            originEmitter?.AppendOriginEnumerationIterator(
+                code,
+                members,
+                isStatic: false,
+                receiver: "this."
+            );
             // Internal helpers trail the public surface
             // (ToBuilder/JsonConverter).
             core.AppendOriginStorage(code);
@@ -944,6 +950,7 @@ internal static class SparseFragmentEmitter
                 code,
                 members,
                 runtime.OptionalType,
+                runtime.OptionalEqualityType,
                 expressions,
                 core
             );
@@ -960,6 +967,7 @@ internal static class SparseFragmentEmitter
                     writableMembersLegacy
                 );
             }
+            originEmitter?.AppendOriginPathCacheFields(code, members, modelType);
         }
         code.AppendLineAt(1, "}");
         // Relocated builders live in the per-model implementation container;

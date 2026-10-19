@@ -171,13 +171,9 @@ namespace SparseTypes.Blazor
             where TModel :  class { }
         public static void AddValidationError<TModel>(this SparseTypes.ISparseEditSession<TModel> session, Microsoft.AspNetCore.Components.Forms.ValidationMessageStore store, SparseTypes.SparsePath fieldPath, string message)
             where TModel :  class { }
-        public static void AddValidationError<TModel>(this SparseTypes.ISparseEditSession<TModel> session, Microsoft.AspNetCore.Components.Forms.ValidationMessageStore store, string fieldPath, string message)
-            where TModel :  class { }
         public static void AddValidationError<TModel, TValue>(this SparseTypes.ISparseEditSession<TModel> session, Microsoft.AspNetCore.Components.Forms.ValidationMessageStore store, SparseTypes.SparsePath<TModel, TValue> fieldPath, string message)
             where TModel :  class { }
         public static SparseTypes.Blazor.SparseFieldBinding<TModel, object?> Bind<TModel>(this SparseTypes.ISparseEditSession<TModel> session, SparseTypes.SparsePath path, Microsoft.AspNetCore.Components.Forms.EditContext editContext, SparseTypes.Blazor.SparseFieldBindingOptions? options = null)
-            where TModel :  class { }
-        public static SparseTypes.Blazor.SparseFieldBinding<TModel, object?> Bind<TModel>(this SparseTypes.ISparseEditSession<TModel> session, string fieldPath, Microsoft.AspNetCore.Components.Forms.EditContext editContext, SparseTypes.Blazor.SparseFieldBindingOptions? options = null)
             where TModel :  class { }
         public static SparseTypes.Blazor.SparseFieldBinding<TModel, TValue> Bind<TModel, TValue>(this SparseTypes.ISparseEditSession<TModel> session, SparseTypes.SparsePath<TModel, TValue> path, Microsoft.AspNetCore.Components.Forms.EditContext editContext, SparseTypes.Blazor.SparseFieldBindingOptions? options = null)
             where TModel :  class { }
@@ -186,8 +182,6 @@ namespace SparseTypes.Blazor
         public static Microsoft.AspNetCore.Components.Forms.ValidationMessageStore CreateValidationStore<TModel>(this SparseTypes.ISparseEditSession<TModel> session, Microsoft.AspNetCore.Components.Forms.EditContext editContext)
             where TModel :  class { }
         public static Microsoft.AspNetCore.Components.Forms.FieldIdentifier Field<TModel>(this SparseTypes.ISparseEditSession<TModel> session, SparseTypes.SparsePath path)
-            where TModel :  class { }
-        public static Microsoft.AspNetCore.Components.Forms.FieldIdentifier Field<TModel>(this SparseTypes.ISparseEditSession<TModel> session, string fieldName)
             where TModel :  class { }
         public static Microsoft.AspNetCore.Components.Forms.FieldIdentifier Field<TModel, TValue>(this SparseTypes.ISparseEditSession<TModel> session, SparseTypes.SparsePath<TModel, TValue> path)
             where TModel :  class { }

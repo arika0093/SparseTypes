@@ -72,7 +72,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     runtime.OptionalType,
                     isStandalone: true,
                     converterClassName: jsonConverterSimpleName,
-                    converterAccessibility: generatedAccessibility,
+                    converterAccessibility: "internal",
                     sealedConverter: false
                 );
                 implementationBuilder.AppendLine();
@@ -138,14 +138,17 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 && jsonConverterSimpleName is not null
             )
             {
-                SparseFragmentJsonEmitter.AppendStandaloneFragmentJsonAccessor(code);
+                SparseFragmentJsonEmitter.AppendStandaloneFragmentJsonAccessor(
+                    code,
+                    jsonConverterQualifiedName
+                );
                 SparseFragmentJsonEmitter.AppendConverter(
                     implementationBuilder,
                     members,
                     runtime.OptionalType,
                     isStandalone: true,
                     converterClassName: jsonConverterSimpleName,
-                    converterAccessibility: generatedAccessibility,
+                    converterAccessibility: "internal",
                     sealedConverter: false
                 );
                 implementationBuilder.AppendLine();
@@ -170,10 +173,29 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         );
         core.AppendOriginStorage(code);
         core.AppendOriginFallbackFacades(code, operationsType);
-        SparseFragmentCoreEmitter.AppendFromModelInternalFacade(code, modelType, operationsType);
-        SparseFragmentCoreEmitter.AppendDiffInternalFacade(code, modelType, operationsType);
+        SparseFragmentCoreEmitter.AppendFromModelInternalFacade(
+            code,
+            modelType,
+            operationsType,
+            members.Any(static member => member.ChildModel is not null)
+        );
+        SparseFragmentCoreEmitter.AppendDiffInternalFacade(
+            code,
+            modelType,
+            operationsType,
+            members.Any(static member =>
+                member.ChildModel is not null && member.MergeStrategyType is null
+            )
+        );
         core.AppendFragmentCloneInternalMethod(code);
-        AppendFragmentEquality(code, members, runtime.OptionalType, expressions, core);
+        AppendFragmentEquality(
+            code,
+            members,
+            runtime.OptionalType,
+            runtime.OptionalEqualityType,
+            expressions,
+            core
+        );
         var writableMembersSplit = members
             .Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly)
             .ToImmutableArray();
@@ -184,21 +206,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             AppendWritableMemberWriter(code, modelType, writableMembersSplit);
         }
 
-        // Private group trails internal helpers: projection constructor then
-        // JSON shell.
+        // Private group trails internal helpers with the projection constructor.
         core.AppendFragmentClonePrivateCtor(code, members);
-        if (
-            features.EmitJsonConverters
-            && patchDialect.EmitJson
-            && implementationBuilder is not null
-            && jsonConverterQualifiedName is not null
-        )
-        {
-            SparseFragmentJsonEmitter.AppendStandaloneFragmentJsonShell(
-                code,
-                jsonConverterQualifiedName
-            );
-        }
     }
 
     internal static void AppendWritableMemberWriter(
@@ -312,6 +321,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         string optionalType,
+        string? optionalEqualityType,
         SparseFragmentExpressions expressions,
         SparseFragmentCoreEmitter core
     )
@@ -364,6 +374,10 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         foreach (var member in members)
         {
             var valueType = SparseFragmentEmitHelpers.FragmentValueType(member);
+            var leftOptional = optionalEqualityType is null ? "left" : "__left";
+            var rightOptional = optionalEqualityType is null ? "right" : "__right";
+            var leftValue = leftOptional + ".Value";
+            var rightValue = rightOptional + ".Value";
             code.AppendIndent(2)
                 .Append("internal static bool __SparseEqual_")
                 .Append(member.Id)
@@ -377,8 +391,6 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 .Append(valueType)
                 .AppendLine("> right)");
             code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "if (!left.IsPresent) return !right.IsPresent;");
-            code.AppendLineAt(3, "if (!right.IsPresent) return false;");
             string equality;
             if (member.Property.IsTemporaryKey)
             {
@@ -388,24 +400,57 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             }
             else if (member.ChildModel is not null)
             {
-                equality = member.ChildFragmentType + ".__SparseAreEqual(left, right)";
+                equality =
+                    member.ChildFragmentType
+                    + ".__SparseAreEqual("
+                    + leftOptional
+                    + ", "
+                    + rightOptional
+                    + ")";
             }
             else if (member.MergeStrategyType is not null)
             {
-                equality = core.MergeStrategyField(member) + ".AreEqual(left.Value, right.Value)";
+                equality =
+                    core.MergeStrategyField(member)
+                    + ".AreEqual("
+                    + leftValue
+                    + ", "
+                    + rightValue
+                    + ")";
             }
             else if (member.ComparisonComparerType is not null)
             {
                 equality =
                     SparseFragmentEmitHelpers.ComparisonComparerField(member)
-                    + ".Equals(left.Value, right.Value)";
+                    + ".Equals("
+                    + leftValue
+                    + ", "
+                    + rightValue
+                    + ")";
             }
             else
             {
-                equality = expressions.ValueEqualityExpression(member, "left.Value", "right.Value");
+                equality = expressions.ValueEqualityExpression(member, leftValue, rightValue);
             }
 
-            code.AppendLineAt(3, "return " + equality + ";");
+            if (optionalEqualityType is null)
+            {
+                code.AppendLineAt(3, "if (!left.IsPresent) return !right.IsPresent;");
+                code.AppendLineAt(3, "if (!right.IsPresent) return false;");
+                code.AppendLineAt(3, "return " + equality + ";");
+            }
+            else
+            {
+                code.AppendLineAt(
+                    3,
+                    "return "
+                        + optionalEqualityType
+                        + ".AreEqual(left, right, static (__left, __right) => "
+                        + equality
+                        + ");"
+                );
+            }
+
             code.AppendLineAt(2, "}");
         }
 

@@ -174,16 +174,23 @@ internal sealed class SparseFragmentExpressions(
         if (cloneHelperName is not null)
         {
             var qualified = pocoHelperQualifier + cloneHelperName;
-            return member.Property.Type.IsReferenceType
+            return member.Property.Type.IsReferenceType && NeedsCloneNullGuard(member)
                 ? $"{access} is null ? null! : {qualified}({access}, {CloneContext})"
                 : $"{qualified}({access}, {CloneContext})";
         }
 
         var cloned = CloneCollectionExpression(member, access);
-        return member.Property.Type.IsReferenceType
+        return member.Property.Type.IsReferenceType && NeedsCloneNullGuard(member)
             ? $"{access} is null ? null! : {cloned}"
             : cloned;
     }
+
+    private static bool NeedsCloneNullGuard(SparseMemberModel member) =>
+        !(
+            member.Property.Type.UsesDefaultScalarEquality
+            && !member.Property.IsNullable
+            && !member.Property.IsNullableOblivious
+        );
 
     public string CloneFragmentExpression(SparseMemberModel member, string access)
     {

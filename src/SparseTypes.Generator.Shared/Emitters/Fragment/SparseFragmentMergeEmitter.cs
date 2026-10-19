@@ -528,12 +528,19 @@ internal sealed class SparseFragmentMergeEmitter
         }
         const string diffContextType =
             "global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>>";
+        var requiresDiffContext = members.Any(static member =>
+            member.ChildModel is not null && member.MergeStrategyType is null
+        );
         // Public-first ordering: buffer the per-member private helpers and
         // append them after the public/internal overloads below.
         using var memberHelpers = new SharedIndentedBuilder(code.CancellationToken);
         var surface = code;
         code = memberHelpers;
-        foreach (var member in members.Where(static member => member.ChildModel is not null))
+        foreach (
+            var member in members.Where(member =>
+                requiresDiffContext && member.ChildModel is not null
+            )
+        )
         {
             var type = member.ChildModel!.Value.NonNullableName;
             var fragment = member.ChildFragmentType!;
@@ -547,12 +554,14 @@ internal sealed class SparseFragmentMergeEmitter
                 .Append('(');
             if (!member.ChildIsReferenceType)
             {
-                code.Append(type)
-                    .Append(" before, ")
-                    .Append(type)
-                    .Append(" after, ")
-                    .Append(diffContextType)
-                    .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+                code.Append(type).Append(" before, ").Append(type).Append(" after");
+                if (member.ChildRequiresDiffCycleContext)
+                {
+                    code.Append(", ")
+                        .Append(diffContextType)
+                        .Append(" __sparse_diff_context, string __sparse_diff_path");
+                }
+                code.AppendLine(")");
                 code.AppendLineAt(2, "{");
                 code.AppendIndent(3)
                     .Append("if (global::System.Collections.Generic.EqualityComparer<")
@@ -566,18 +575,22 @@ internal sealed class SparseFragmentMergeEmitter
                     .Append(">.Present(")
                     .Append(fragment)
                     .AppendLine(
-                        ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
+                        member.ChildRequiresDiffCycleContext
+                            ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
+                            : ".Diff(before, after));"
                     );
                 code.AppendLineAt(2, "}");
                 continue;
             }
 
-            code.Append(type)
-                .Append("? before, ")
-                .Append(type)
-                .Append("? after, ")
-                .Append(diffContextType)
-                .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+            code.Append(type).Append("? before, ").Append(type).Append("? after");
+            if (member.ChildRequiresDiffCycleContext)
+            {
+                code.Append(", ")
+                    .Append(diffContextType)
+                    .Append(" __sparse_diff_context, string __sparse_diff_path");
+            }
+            code.AppendLine(")");
             code.AppendLineAt(2, "{");
             code.AppendLineAt(
                 3,
@@ -594,7 +607,11 @@ internal sealed class SparseFragmentMergeEmitter
             code.AppendIndent(3)
                 .Append("var difference = ")
                 .Append(fragment)
-                .AppendLine(".Diff(before, after, __sparse_diff_context, __sparse_diff_path);");
+                .AppendLine(
+                    member.ChildRequiresDiffCycleContext
+                        ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path);"
+                        : ".Diff(before, after);"
+                );
             code.AppendIndent(3)
                 .Append("return difference.IsEmpty ? default : ")
                 .Append(Optional)
@@ -629,9 +646,6 @@ internal sealed class SparseFragmentMergeEmitter
             );
         }
 
-        var requiresDiffContext = members.Any(static member =>
-            member.ChildModel is not null && member.MergeStrategyType is null
-        );
         if (requiresDiffContext)
         {
             code.AppendLineAt(
@@ -645,20 +659,24 @@ internal sealed class SparseFragmentMergeEmitter
         }
         else
         {
-            // Internal calls retain their ancestor guard even for leaf
-            // projections.
             AppendDiffBody(code, members, 3);
         }
         code.AppendLineAt(2, "}");
         code.AppendLine();
+        if (!requiresDiffContext)
+        {
+            return;
+        }
         code.AppendIndent(2)
             .Append("internal static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")
             .Append(modelType)
-            .Append(" after, ")
+            .Append(" after")
+            .Append(", ")
             .Append(diffContextType)
-            .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+            .Append(" __sparse_diff_context, string __sparse_diff_path");
+        code.AppendLine(")");
         code.AppendLineAt(2, "{");
         if (modelIsReferenceType)
         {
@@ -782,9 +800,14 @@ internal sealed class SparseFragmentMergeEmitter
     public static void AppendDiffInternalBody(
         SharedIndentedBuilder code,
         string modelType,
-        bool modelIsReferenceType
+        bool modelIsReferenceType,
+        bool requiresDiffContext
     )
     {
+        if (!requiresDiffContext)
+        {
+            return;
+        }
         const string diffContextType =
             "global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>>";
         code.AppendIndent(2)
@@ -792,9 +815,11 @@ internal sealed class SparseFragmentMergeEmitter
             .Append(modelType)
             .Append(" before, ")
             .Append(modelType)
-            .Append(" after, ")
+            .Append(" after")
+            .Append(", ")
             .Append(diffContextType)
-            .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+            .Append(" __sparse_diff_context, string __sparse_diff_path");
+        code.AppendLine(")");
         code.AppendLineAt(2, "{");
         if (modelIsReferenceType)
         {
@@ -826,6 +851,14 @@ internal sealed class SparseFragmentMergeEmitter
         bool modelIsReferenceType
     )
     {
+        if (
+            !members.Any(static member =>
+                member.ChildModel is not null && member.MergeStrategyType is null
+            )
+        )
+        {
+            return;
+        }
         const string diffContextType =
             "global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>>";
         foreach (var member in members.Where(static member => member.ChildModel is not null))
@@ -842,12 +875,14 @@ internal sealed class SparseFragmentMergeEmitter
                 .Append('(');
             if (!member.ChildIsReferenceType)
             {
-                code.Append(type)
-                    .Append(" before, ")
-                    .Append(type)
-                    .Append(" after, ")
-                    .Append(diffContextType)
-                    .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+                code.Append(type).Append(" before, ").Append(type).Append(" after");
+                if (member.ChildRequiresDiffCycleContext)
+                {
+                    code.Append(", ")
+                        .Append(diffContextType)
+                        .Append(" __sparse_diff_context, string __sparse_diff_path");
+                }
+                code.AppendLine(")");
                 code.AppendLineAt(2, "{");
                 code.AppendIndent(3)
                     .Append("if (global::System.Collections.Generic.EqualityComparer<")
@@ -861,18 +896,22 @@ internal sealed class SparseFragmentMergeEmitter
                     .Append(">.Present(")
                     .Append(fragment)
                     .AppendLine(
-                        ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
+                        member.ChildRequiresDiffCycleContext
+                            ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
+                            : ".Diff(before, after));"
                     );
                 code.AppendLineAt(2, "}");
                 continue;
             }
 
-            code.Append(type)
-                .Append("? before, ")
-                .Append(type)
-                .Append("? after, ")
-                .Append(diffContextType)
-                .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
+            code.Append(type).Append("? before, ").Append(type).Append("? after");
+            if (member.ChildRequiresDiffCycleContext)
+            {
+                code.Append(", ")
+                    .Append(diffContextType)
+                    .Append(" __sparse_diff_context, string __sparse_diff_path");
+            }
+            code.AppendLine(")");
             code.AppendLineAt(2, "{");
             code.AppendLineAt(
                 3,
@@ -889,7 +928,11 @@ internal sealed class SparseFragmentMergeEmitter
             code.AppendIndent(3)
                 .Append("var difference = ")
                 .Append(fragment)
-                .AppendLine(".Diff(before, after, __sparse_diff_context, __sparse_diff_path);");
+                .AppendLine(
+                    member.ChildRequiresDiffCycleContext
+                        ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path);"
+                        : ".Diff(before, after);"
+                );
             code.AppendIndent(3)
                 .Append("return difference.IsEmpty ? default : ")
                 .Append(Optional)
@@ -966,8 +1009,9 @@ internal sealed class SparseFragmentMergeEmitter
             }
             else
             {
-                condition =
-                    $"__Diff_{member.Id}({before}, {after}, __sparse_diff_context, {DiffMemberPath(member)})";
+                condition = member.ChildRequiresDiffCycleContext
+                    ? $"__Diff_{member.Id}({before}, {after}, __sparse_diff_context, {DiffMemberPath(member)})"
+                    : $"__Diff_{member.Id}({before}, {after})";
             }
 
             code.AppendIndent(indent + 1)
@@ -997,9 +1041,14 @@ internal sealed class SparseFragmentMergeEmitter
     public static void AppendDiffInternalFacade(
         SharedIndentedBuilder code,
         string modelType,
-        string operationsType
+        string operationsType,
+        bool requiresDiffContext
     )
     {
+        if (!requiresDiffContext)
+        {
+            return;
+        }
         code.AppendIndent(2)
             .Append("internal static Fragment Diff(")
             .Append(modelType)

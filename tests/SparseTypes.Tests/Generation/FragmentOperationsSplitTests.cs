@@ -155,4 +155,59 @@ public sealed class FragmentOperationsSplitTests
         // so the same-file-only operations class narrows to file-scoped.
         sources[mergedHint].ShouldContain("file static class ");
     }
+
+    [Test]
+    public void LeafModelsOmitCycleTrackingWhileNestedModelsRetainIt()
+    {
+        var sources = Sources();
+        var child = sources
+            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
+            .Select(static pair => pair.Value)
+            .Single(static source =>
+                source.Contains("public static Fragment From(", StringComparison.Ordinal)
+            );
+        child.ShouldNotContain("CreateFromCycleContext");
+        child.ShouldNotContain("CreateDiffCycleContext");
+        child.ShouldNotContain("Cyclic reference detected during From");
+        child.ShouldNotContain("Cyclic reference detected during Diff");
+        child.ShouldContain("Dictionary<object, object> __sparse_clone_context)");
+        child.ShouldNotContain("HashSet<object> __sparse_from_context");
+        child.ShouldNotContain(
+            "HashSet<global::System.Collections.Generic.KeyValuePair<object, object>> __sparse_diff_context"
+        );
+        child.ShouldNotContain("__sparse_from_path");
+        child.ShouldNotContain("__sparse_diff_path");
+
+        var parent = sources
+            .Where(pair => pair.Key.Contains("OpsParent", StringComparison.Ordinal))
+            .Select(static pair => pair.Value)
+            .Single(static source =>
+                source.Contains("public static Fragment From(", StringComparison.Ordinal)
+            );
+        parent.ShouldContain("CreateFromCycleContext");
+        parent.ShouldContain("CreateDiffCycleContext");
+        parent.ShouldContain("Cyclic reference detected during From");
+        parent.ShouldContain("Cyclic reference detected during Diff");
+        parent.ShouldContain(".From(value.Child, __sparse_clone_context)");
+        parent.ShouldContain("__Diff_0(before.Child, after.Child)");
+        parent.ShouldNotContain(
+            ".From(value.Child, __sparse_clone_context, __sparse_from_context,"
+        );
+        parent.ShouldNotContain("__Diff_0(before.Child, after.Child, __sparse_diff_context,");
+    }
+
+    [Test]
+    public void CloneCopiesNonNullableImmutableMembersWithoutNullConditionals()
+    {
+        var sources = Sources();
+        var child = sources
+            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
+            .Select(static pair => pair.Value)
+            .Single(static source =>
+                source.Contains("public static Fragment From(", StringComparison.Ordinal)
+            );
+
+        child.ShouldContain("Count = source.Count");
+        child.ShouldNotContain("source.Count is null");
+    }
 }

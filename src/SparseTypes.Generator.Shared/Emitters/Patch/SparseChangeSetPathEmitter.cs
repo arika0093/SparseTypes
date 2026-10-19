@@ -80,31 +80,10 @@ internal static class SparseChangeSetPathEmitter
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "if (paths.Count > 1)");
         code.AppendLineAt(3, "{");
-        // Sort once over per-call formatted keys instead of re-rendering both
-        // operands on every comparison; structured equality/dedup is the
-        // HashSet above, so display-equal paths all survive as distinct
-        // entries and their relative order stays unspecified, like the
-        // previous comparator returning zero.
-        code.AppendLineAt(4, "var sortKeys = new string[paths.Count];");
-        code.AppendLineAt(4, "for (var i = 0; i < sortKeys.Length; i++)");
-        code.AppendLineAt(5, "sortKeys[i] = paths[i].ToString();");
-        code.AppendLineAt(4, "var order = new int[paths.Count];");
-        code.AppendLineAt(4, "for (var i = 0; i < order.Length; i++)");
-        code.AppendLineAt(5, "order[i] = i;");
-        // String's natural comparison is ordinal and matches CompareOrdinal.
         code.AppendLineAt(
             4,
-            "global::System.Array.Sort(sortKeys, order, global::System.StringComparer.Ordinal);"
+            "paths.Sort(static (left, right) => global::System.StringComparer.Ordinal.Compare(left.ToString(), right.ToString()));"
         );
-        code.AppendLineAt(
-            4,
-            "var sorted = new global::System.Collections.Generic.List<"
-                + pathType
-                + ">(paths.Count);"
-        );
-        code.AppendLineAt(4, "for (var i = 0; i < order.Length; i++)");
-        code.AppendLineAt(5, "sorted.Add(paths[order[i]]);");
-        code.AppendLineAt(4, "paths = sorted;");
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "return paths.AsReadOnly();");
         code.AppendLineAt(2, "}");

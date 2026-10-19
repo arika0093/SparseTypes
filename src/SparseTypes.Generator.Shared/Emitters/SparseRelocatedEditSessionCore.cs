@@ -52,6 +52,12 @@ internal static class SparseRelocatedEditSessionCore
         var patchDialect =
             config.PatchDialect
             ?? throw new ArgumentException("A patch dialect is required.", nameof(config));
+        var hasChildModelMembers = SparseEditSessionEmitter.HasChildModelMembers(members);
+        var hasChildSessionSurface = SparseEditSessionEmitter.HasChildSessionSurface(
+            config,
+            patchDialect,
+            hasChildModelMembers
+        );
         var sessionInterface = "global::" + sessionInterfaceMetadataName;
         var core =
             "global::"
@@ -117,11 +123,39 @@ internal static class SparseRelocatedEditSessionCore
             sessionBases +=
                 ", global::" + modelAccessorInterfaceMetadataName + "<" + modelType + ">";
         }
-        if (SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect))
+        if (hasChildSessionSurface)
         {
             sessionBases +=
                 ", global::"
                 + config.EditSessionWithChildStatusInterfaceMetadataName
+                + "<"
+                + modelType
+                + ", "
+                + patchDialect.ConflictType
+                + ">";
+            if (
+                config.EditChildDraftHostInterfaceMetadataName is
+                { Length: > 0 } childDraftHostInterface
+            )
+            {
+                sessionBases +=
+                    ", global::"
+                    + childDraftHostInterface
+                    + "<"
+                    + sessionSimple
+                    + ", "
+                    + patchDialect.ConflictType
+                    + ">";
+            }
+        }
+        else if (
+            config.EditSessionWithPendingStateInterfaceMetadataName is
+            { Length: > 0 } pendingStateInterface
+        )
+        {
+            sessionBases +=
+                ", global::"
+                + pendingStateInterface
                 + "<"
                 + modelType
                 + ", "
@@ -225,24 +259,30 @@ internal static class SparseRelocatedEditSessionCore
         code.AppendLineAt(
             2,
             "/// <summary>Gets whether "
-                + (
-                    SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect)
-                        ? "this session or any child session"
-                        : "the session"
-                )
+                + (hasChildSessionSurface ? "this session or any child session" : "the session")
                 + " has pending changes.</summary>"
         );
         code.AppendLineAt(
             2,
             "public bool HasChanges => _session.HasChanges"
                 + (
-                    SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect)
+                    SparseEditSessionEmitter.HasChildSessionSurface(
+                        config,
+                        patchDialect,
+                        hasChildModelMembers
+                    )
                         ? " || HasPendingChildSessions"
                         : string.Empty
                 )
                 + ";"
         );
-        if (SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect))
+        if (
+            SparseEditSessionEmitter.HasChildSessionSurface(
+                config,
+                patchDialect,
+                hasChildModelMembers
+            )
+        )
         {
             code.AppendLineAt(
                 2,
@@ -288,7 +328,13 @@ internal static class SparseRelocatedEditSessionCore
                 + modelType
                 + ".ChangeSet>? TransitionObserved { add => _session.TransitionObserved += value; remove => _session.TransitionObserved -= value; }"
         );
-        SparseEditSessionChangeSetEmitter.AppendMembers(code, modelType, config, patchDialect);
+        SparseEditSessionChangeSetEmitter.AppendMembers(
+            code,
+            modelType,
+            config,
+            patchDialect,
+            hasChildModelMembers
+        );
         code.AppendLineAt(
             2,
             "/// <summary>Creates a patch describing the pending changes.</summary>"
@@ -348,27 +394,58 @@ internal static class SparseRelocatedEditSessionCore
             rebaseResultType,
             historyBinding,
             patchDialect.ReconcileConflictExpression?.Invoke(modelType, "error"),
-            SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect)
+            SparseEditSessionEmitter.HasChildSessionSurface(
+                config,
+                patchDialect,
+                hasChildModelMembers
+            )
         );
         // Raw model access bypasses the change cache.
         code.AppendLineAt(
             2,
             modelType + " " + sessionInterface + "<" + modelType + ">.Model => _session.Model;"
         );
-        SparseEditSessionChildEmitter.AppendChildSessionApiMembers(
-            code,
-            modelType,
-            sessionSimple,
-            patchDialect,
-            config.EffectiveEmissionFeatures.EmitObservable ? config.DescriptorDialect : null,
-            config
-        );
+        if (hasChildSessionSurface)
+        {
+            SparseEditSessionChildEmitter.AppendChildSessionApiMembers(
+                code,
+                modelType,
+                sessionSimple,
+                patchDialect,
+                config.EffectiveEmissionFeatures.EmitObservable ? config.DescriptorDialect : null,
+                config
+            );
+        }
+        else if (
+            config.EditSessionWithPendingStateInterfaceMetadataName is
+            { Length: > 0 } pendingStateInterface
+        )
+        {
+            SparseEditSessionChildEmitter.AppendPendingStateProjection(
+                code,
+                modelType,
+                conflictType,
+                pendingStateInterface
+            );
+        }
         SparseEditSessionChildEmitter.AppendForkMergeMembers(
             code,
             core,
             conflictType,
             sessionSimple
         );
+        if (hasChildSessionSurface)
+        {
+            SparseEditSessionChildEmitter.AppendChildDraftMembers(
+                code,
+                modelType,
+                sessionSimple,
+                patchDialect,
+                config.EffectiveEmissionFeatures.EmitObservable ? config.DescriptorDialect : null,
+                config
+            );
+        }
+        SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
         code.AppendLineAt(
             2,
             "internal "
@@ -389,16 +466,16 @@ internal static class SparseRelocatedEditSessionCore
                 + core
                 + ".Create(baseline, current, __configuration, onChanged); }"
         );
-        SparseEditSessionChildEmitter.AppendChildDraftMembers(
-            code,
-            modelType,
-            sessionSimple,
-            patchDialect,
-            config.EffectiveEmissionFeatures.EmitObservable ? config.DescriptorDialect : null,
-            config
-        );
-        if (SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect))
+        if (hasChildSessionSurface)
         {
+            SparseEditSessionChildEmitter.AppendChildDraftPrivateMembers(
+                code,
+                modelType,
+                sessionSimple,
+                patchDialect,
+                config.EffectiveEmissionFeatures.EmitObservable ? config.DescriptorDialect : null,
+                config
+            );
             // Private candidate projection trails every public member.
             SparseEditSessionChildEmitter.AppendCandidateBuilder(
                 code,

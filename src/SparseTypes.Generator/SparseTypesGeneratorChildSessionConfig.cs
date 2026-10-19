@@ -10,11 +10,15 @@ internal static class SparseTypesGeneratorChildSessionConfig
             EditChildPathInterfaceMetadataName = "SparseTypes.ISparseChildEditPath",
             EditChildSessionInterfaceMetadataName = "SparseTypes.ISparseEditChildSession",
             EditChildSessionImplementationType = "global::SparseTypes.SparseEditChildSession",
+            EditChildDraftHostInterfaceMetadataName = "SparseTypes.ISparseEditChildDraftHost",
+            EditChildDraftImplementationType = "global::SparseTypes.SparseEditChildDraft",
             EditChildSessionStatusType = "global::SparseTypes.SparseChildSessionStatus",
             EditSessionWithChildrenInterfaceMetadataName =
                 "SparseTypes.ISparseEditSessionWithChildren",
             EditSessionWithChildStatusInterfaceMetadataName =
                 "SparseTypes.ISparseEditSessionWithChildStatus",
+            EditSessionWithPendingStateInterfaceMetadataName =
+                "SparseTypes.ISparseEditSessionWithPendingState",
             EditSessionWithChangeSetInterfaceMetadataName =
                 "SparseTypes.ISparseEditSessionWithChangeSet",
             EditSessionWithBaselineRevisionInterfaceMetadataName =

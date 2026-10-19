@@ -45,7 +45,10 @@ internal sealed record SparseGeneratorConfig
         string? EditSessionWithChildStatusInterfaceMetadataName = null,
         string? EditSessionWithChangeSetInterfaceMetadataName = null,
         SparseSessionCapabilityContracts? SessionCapabilityContracts = null,
-        string? EditSessionWithBaselineRevisionInterfaceMetadataName = null
+        string? EditSessionWithBaselineRevisionInterfaceMetadataName = null,
+        string? EditSessionWithPendingStateInterfaceMetadataName = null,
+        string? EditChildDraftHostInterfaceMetadataName = null,
+        string? EditChildDraftImplementationType = null
     )
     {
         this.ModelAttributeMetadataName = ModelAttributeMetadataName;
@@ -89,10 +92,14 @@ internal sealed record SparseGeneratorConfig
         this.EditChildSessionStatusType = EditChildSessionStatusType;
         this.EditSessionWithChildStatusInterfaceMetadataName =
             EditSessionWithChildStatusInterfaceMetadataName;
+        this.EditSessionWithPendingStateInterfaceMetadataName =
+            EditSessionWithPendingStateInterfaceMetadataName;
         this.EditSessionWithChangeSetInterfaceMetadataName =
             EditSessionWithChangeSetInterfaceMetadataName;
         this.EditSessionWithBaselineRevisionInterfaceMetadataName =
             EditSessionWithBaselineRevisionInterfaceMetadataName;
+        this.EditChildDraftHostInterfaceMetadataName = EditChildDraftHostInterfaceMetadataName;
+        this.EditChildDraftImplementationType = EditChildDraftImplementationType;
         this.SessionCapabilityContracts = SessionCapabilityContracts;
     }
 
@@ -174,11 +181,20 @@ internal sealed record SparseGeneratorConfig
     /// <summary>Extended child-session contract with typed state and preflight operations.</summary>
     public string? EditSessionWithChildStatusInterfaceMetadataName { get; init; }
 
+    /// <summary>Optional interface for applying pending changes to a separate candidate.</summary>
+    public string? EditSessionWithPendingStateInterfaceMetadataName { get; init; }
+
     /// <summary>Optional generic session-and-change-set adapter interface, or null when disabled.</summary>
     public string? EditSessionWithChangeSetInterfaceMetadataName { get; init; }
 
     /// <summary>Optional interface implemented by generated sessions that expose baseline revisions.</summary>
     public string? EditSessionWithBaselineRevisionInterfaceMetadataName { get; init; }
+
+    /// <summary>Runtime child-draft host interface implemented by generated edit sessions.</summary>
+    public string? EditChildDraftHostInterfaceMetadataName { get; init; }
+
+    /// <summary>Runtime child-draft coordinator type, or null when child drafts are disabled.</summary>
+    public string? EditChildDraftImplementationType { get; init; }
 
     /// <summary>Product-owned session capability contracts implemented by generated sessions, or null when disabled.</summary>
     /// <remarks>Null keeps output byte-identical for downstream products without these contracts.</remarks>
@@ -394,6 +410,9 @@ internal sealed record SparseRuntimeDialect
     /// <summary>Optional parameterless factory for a disposable scope exposing a reference-identity Dictionary&lt.</summary>
     public string? CloneContextScopeFactory { get; init; }
 
+    /// <summary>Optional runtime helper for presence-aware value equality.</summary>
+    public string? OptionalEqualityType { get; init; }
+
     public string ValueComparer { get; init; }
 
     public string CollectionMerger { get; init; }
@@ -415,7 +434,9 @@ internal sealed record SparseEditSessionDialect
         string? HistoryType = null,
         string? HistoryOptionsType = null,
         string? HistoryHooksType = null,
-        string? HistoryContractType = null
+        string? HistoryContractType = null,
+        string? HistoryCollectionType = null,
+        string? OwnedHistoryViewType = null
     )
     {
         this.Namespace = Namespace;
@@ -425,6 +446,8 @@ internal sealed record SparseEditSessionDialect
         this.HistoryOptionsType = HistoryOptionsType;
         this.HistoryHooksType = HistoryHooksType;
         this.HistoryContractType = HistoryContractType;
+        this.HistoryCollectionType = HistoryCollectionType;
+        this.OwnedHistoryViewType = OwnedHistoryViewType;
     }
 
     /// <summary>Namespace containing the generated edit-session helper types.</summary>
@@ -449,6 +472,12 @@ internal sealed record SparseEditSessionDialect
     /// <summary>Optional non-generic history control contract, or null for the legacy factory only.</summary>
     /// <remarks>Product-owned framework-neutral contract (for example <c>global::SparseTypes.ISparseEditHistory</c>).</remarks>
     public string? HistoryContractType { get; init; }
+
+    /// <summary>Optional runtime collection tracking disposable histories.</summary>
+    public string? HistoryCollectionType { get; init; }
+
+    /// <summary>Optional runtime wrapper for session-owned history control.</summary>
+    public string? OwnedHistoryViewType { get; init; }
 
     /// <summary>Whether the dialect carries a complete history binding.</summary>
     public bool HasHistory =>

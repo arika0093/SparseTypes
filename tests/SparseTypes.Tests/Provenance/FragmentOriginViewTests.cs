@@ -77,6 +77,24 @@ public sealed class FragmentOriginViewTests
     }
 
     [Test]
+    public void TryGetOriginFindsNestedAndElementAttributions()
+    {
+        var effective = Layered();
+
+        effective
+            .TryGetOrigin(OriginSettings.SparsePath.Child.Host, out var hostOrigin)
+            .ShouldBeTrue();
+        hostOrigin.ShouldBe("defaults");
+        effective
+            .TryGetOrigin(
+                SparsePath.Root<OriginSettings>().Member(nameof(OriginSettings.Plugins)).At(1),
+                out var pluginOrigin
+            )
+            .ShouldBeTrue();
+        pluginOrigin.ShouldBe("tenant");
+    }
+
+    [Test]
     public void GetByOrigin_ProjectsReadOnlyEffectiveValues()
     {
         var tenant = Layered().GetByOrigin("tenant");

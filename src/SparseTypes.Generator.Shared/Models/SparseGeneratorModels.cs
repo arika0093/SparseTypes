@@ -150,7 +150,9 @@ internal readonly record struct SparseMemberModel(
     bool HasExplicitMergeMode = false,
     bool RedactBefore = false,
     SparseTypeModel? RebasePolicyType = null,
-    SparseTypeModel? ComparisonComparerType = null
+    SparseTypeModel? ComparisonComparerType = null,
+    bool ChildRequiresFromCycleContext = false,
+    bool ChildRequiresDiffCycleContext = false
 );
 
 internal readonly record struct SparseModelInfo(

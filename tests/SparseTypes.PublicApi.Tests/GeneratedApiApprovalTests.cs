@@ -112,7 +112,10 @@ public sealed class GeneratedApiApprovalTests
         var dictionaryChanges = AssertNested(typeof(CatalogDictionaries), "ChangeSet");
         AssertNested(dictionaryChanges, "ScoresTransition");
         AssertNested(dictionaryChanges, "DetailsTransition");
-        AssertNested(AssertNested(typeof(CatalogKeyedItem), "ChangeSet"), "IdTransition");
+        var keyedItemChanges = AssertNested(typeof(CatalogKeyedItem), "ChangeSet");
+        keyedItemChanges
+            .GetProperty("Id")!
+            .PropertyType.ShouldBe(typeof(SparseTypes.SparseValueTransition<string>));
 
         var nestedReadOnlyView = new CatalogNested().CreateEditSession().Current.GetType();
         var metadataViewType = Nullable.GetUnderlyingType(
@@ -168,18 +171,31 @@ public sealed class GeneratedApiApprovalTests
                     nameof(SparseTypes.ISparseEditSessionWithBaselineRevision.BaselineRevision)
                 )
                 .ShouldNotBeNull();
-            var withChildStatus =
-                typeof(SparseTypes.ISparseEditSessionWithChildStatus<,>).MakeGenericType(
-                    model,
-                    typeof(SparseTypes.SparseConflict)
-                );
-            session
-                .GetInterfaces()
-                .ShouldContain(
-                    withChildStatus,
-                    $"{model.Name}.EditSession must expose {withChildStatus}."
-                );
         }
+
+        var withChildStatus =
+            typeof(SparseTypes.ISparseEditSessionWithChildStatus<,>).MakeGenericType(
+                typeof(CatalogNested),
+                typeof(SparseTypes.SparseConflict)
+            );
+        typeof(CatalogNested.EditSession).GetInterfaces().ShouldContain(withChildStatus);
+        typeof(CatalogScalar.EditSession)
+            .GetInterfaces()
+            .ShouldNotContain(
+                typeof(SparseTypes.ISparseEditSessionWithChildStatus<
+                    CatalogScalar,
+                    SparseTypes.SparseConflict
+                >)
+            );
+        typeof(CatalogScalar.EditSession)
+            .GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance)
+            .ShouldBeNull();
+        typeof(CatalogScalar.EditSession)
+            .GetMethod("ResolveChildModel", BindingFlags.Public | BindingFlags.Instance)
+            .ShouldBeNull();
+        typeof(CatalogNested.EditSession)
+            .GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance)
+            .ShouldNotBeNull();
 
         foreach (
             var definition in new[]
@@ -350,23 +366,23 @@ public sealed class GeneratedApiApprovalTests
     [Test]
     public void FragmentJsonConverterShellForwardsToImplementation()
     {
-        // Stage 3: the model keeps a thin private shell; bodies live in
-        // the per-model implementation converter it derives from.
-        var shell = typeof(CatalogScalar.Fragment)
-            .GetNestedType("FragmentJsonConverter", BindingFlags.Public | BindingFlags.NonPublic)
-            .ShouldNotBeNull();
-        shell.IsNestedPrivate.ShouldBeTrue();
-        shell.BaseType.ShouldNotBeNull().Namespace.ShouldBe("SparseTypes.Generated");
-        shell.BaseType!.Name.ShouldContain("FragmentJsonConverter");
+        var converter = typeof(CatalogScalar.Fragment)
+            .GetProperty("JsonConverter", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!
+            .GetType();
+        converter.Namespace.ShouldBe("SparseTypes.Generated");
+        converter.IsNotPublic.ShouldBeTrue();
+        converter.Name.ShouldContain("FragmentJsonConverter");
     }
 
     [Test]
     public void FragmentJsonConverterIsPrivateImplementationDetail()
     {
-        typeof(CatalogScalar.Fragment)
-            .GetNestedType("FragmentJsonConverter", BindingFlags.Public | BindingFlags.NonPublic)
-            .ShouldNotBeNull()
-            .IsNestedPrivate.ShouldBeTrue();
+        var converter = typeof(CatalogScalar.Fragment)
+            .GetProperty("JsonConverter", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!
+            .GetType();
+        converter.IsPublic.ShouldBeFalse();
     }
 
     [Test]

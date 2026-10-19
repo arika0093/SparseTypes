@@ -6,7 +6,8 @@ internal static class SparseEditSessionChangeSetEmitter
         SharedIndentedBuilder code,
         string modelType,
         SparseGeneratorConfig config,
-        SparseFragmentPatchEmitter.SparsePatchDialect patchDialect
+        SparseFragmentPatchEmitter.SparsePatchDialect patchDialect,
+        bool hasChildModelMembers = true
     )
     {
         code.AppendLineAt(
@@ -19,7 +20,13 @@ internal static class SparseEditSessionChangeSetEmitter
             "public void BatchEdit(global::System.Action edit) => _session.BatchEdit(edit);"
         );
 
-        if (SparseEditSessionEmitter.HasChildSessionSurface(config, patchDialect))
+        if (
+            SparseEditSessionEmitter.HasChildSessionSurface(
+                config,
+                patchDialect,
+                hasChildModelMembers
+            )
+        )
         {
             AppendChildSessionChangeSetMembers(code, modelType, patchDialect);
         }

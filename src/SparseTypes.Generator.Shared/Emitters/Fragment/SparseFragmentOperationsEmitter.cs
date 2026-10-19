@@ -62,7 +62,7 @@ internal static class SparseFragmentOperationsEmitter
         operationsCore.AppendMerge(code, members, receiver: "self.");
         operationsCore.AppendApplyChanges(code, members, receiver: "self.");
         // Origin queries are public surface.
-        operationsCore.AppendOriginOperations(code, members, modelType);
+        operationsCore.AppendOriginOperations(code, members);
         operationsCore.AppendDiffPublicBody(code, modelType, members, modelIsReferenceType);
         operationsCore.AppendDeepCloneOperationsPublic(
             code,
@@ -72,7 +72,14 @@ internal static class SparseFragmentOperationsEmitter
             modelIsReferenceType
         );
         operationsCore.AppendFromModelInternalBody(code, modelType, members, modelIsReferenceType);
-        SparseFragmentCoreEmitter.AppendDiffInternalBody(code, modelType, modelIsReferenceType);
+        SparseFragmentCoreEmitter.AppendDiffInternalBody(
+            code,
+            modelType,
+            modelIsReferenceType,
+            members.Any(static member =>
+                member.ChildModel is not null && member.MergeStrategyType is null
+            )
+        );
         operationsCore.AppendDeepCloneOperationsInternal(
             code,
             modelType,
@@ -90,6 +97,14 @@ internal static class SparseFragmentOperationsEmitter
                 helperAccessibility: "internal"
             );
         operationsCore.AppendDiffPrivateBodies(code, modelType, members, modelIsReferenceType);
+        operationsCore.AppendOriginPathCacheFields(code, members, modelType);
+
+        operationsCore.AppendOriginEnumerationIterator(
+            code,
+            members,
+            isStatic: true,
+            receiver: "self."
+        );
         code.AppendLineAt(1, "}");
     }
 }

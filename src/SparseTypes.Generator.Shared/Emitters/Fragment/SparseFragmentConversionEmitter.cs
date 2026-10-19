@@ -93,14 +93,23 @@ internal sealed class SparseFragmentConversionEmitter
         if (requiresContext)
         {
             Expressions.AppendCloneContext(code, 3, ReferenceComparer);
-            code.AppendLineAt(
-                3,
-                "var __sparse_from_context = " + ReferenceComparer + ".CreateFromCycleContext();"
-            );
-            code.AppendLineAt(
-                3,
-                "return From(value, " + CloneContext + ", __sparse_from_context, \"\");"
-            );
+            if (members.Any(static member => member.ChildModel is not null))
+            {
+                code.AppendLineAt(
+                    3,
+                    "var __sparse_from_context = "
+                        + ReferenceComparer
+                        + ".CreateFromCycleContext();"
+                );
+                code.AppendLineAt(
+                    3,
+                    "return From(value, " + CloneContext + ", __sparse_from_context, \"\");"
+                );
+            }
+            else
+            {
+                code.AppendLineAt(3, "return From(value, " + CloneContext + ");");
+            }
         }
         else
         {
@@ -122,21 +131,25 @@ internal sealed class SparseFragmentConversionEmitter
         bool modelIsReferenceType
     )
     {
+        var requiresFromCycleContext = members.Any(static member => member.ChildModel is not null);
         code.AppendIndent(2)
             .Append("internal static Fragment From(")
             .Append(modelType)
             .Append(" value, global::System.Collections.Generic.Dictionary<object, object> ")
-            .Append(CloneContext)
-            .Append(
-                ", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path)"
-            )
-            .AppendLine("");
+            .Append(CloneContext);
+        if (requiresFromCycleContext)
+        {
+            code.Append(
+                ", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path"
+            );
+        }
+        code.AppendLine(")");
         code.AppendLineAt(2, "{");
         if (modelIsReferenceType)
         {
             SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "value");
         }
-        if (modelIsReferenceType)
+        if (modelIsReferenceType && members.Any(static member => member.ChildModel is not null))
         {
             code.AppendLineAt(3, "if (!__sparse_from_context.Add(value))");
             code.AppendLineAt(3, "{");
@@ -169,18 +182,28 @@ internal sealed class SparseFragmentConversionEmitter
     public static void AppendFromModelInternalFacade(
         SharedIndentedBuilder code,
         string modelType,
-        string operationsType
+        string operationsType,
+        bool requiresFromCycleContext
     )
     {
         code.AppendIndent(2)
             .Append("internal static Fragment From(")
             .Append(modelType)
             .Append(
-                " value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context, global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path) => "
-            )
+                " value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context"
+            );
+        if (requiresFromCycleContext)
+        {
+            code.Append(
+                ", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path"
+            );
+        }
+        code.Append(") => ")
             .Append(operationsType)
             .AppendLine(
-                ".From(value, __sparse_clone_context, __sparse_from_context, __sparse_from_path);"
+                requiresFromCycleContext
+                    ? ".From(value, __sparse_clone_context, __sparse_from_context, __sparse_from_path);"
+                    : ".From(value, __sparse_clone_context);"
             );
     }
 
@@ -202,13 +225,15 @@ internal sealed class SparseFragmentConversionEmitter
             }
             else if (!member.ChildIsReferenceType)
             {
-                value =
-                    $"{member.ChildFragmentType}.From({access}, {CloneContext}, __sparse_from_context, {FromMemberPath(member)})";
+                value = member.ChildRequiresFromCycleContext
+                    ? $"{member.ChildFragmentType}.From({access}, {CloneContext}, __sparse_from_context, {FromMemberPath(member)})"
+                    : $"{member.ChildFragmentType}.From({access}, {CloneContext})";
             }
             else
             {
-                value =
-                    $"({access} is null ? null : {member.ChildFragmentType}.From({access}, {CloneContext}, __sparse_from_context, {FromMemberPath(member)}))";
+                value = member.ChildRequiresFromCycleContext
+                    ? $"({access} is null ? null : {member.ChildFragmentType}.From({access}, {CloneContext}, __sparse_from_context, {FromMemberPath(member)}))"
+                    : $"({access} is null ? null : {member.ChildFragmentType}.From({access}, {CloneContext}))";
             }
 
             code.AppendIndent(indent + 1)

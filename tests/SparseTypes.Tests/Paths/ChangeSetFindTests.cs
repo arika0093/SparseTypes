@@ -7,6 +7,12 @@ public partial class FindReservedMembers
     public int EnumerateChanges { get; set; }
 }
 
+[SparseModel]
+public partial class FindSetMember
+{
+    public ISet<string> Labels { get; set; } = new HashSet<string>();
+}
+
 public sealed class ChangeSetFindTests
 {
     [Test]
@@ -63,6 +69,23 @@ public sealed class ChangeSetFindTests
         retry.Before.IsPresent.ShouldBeFalse();
         retry.After.Value.ShouldBe(4);
         retry.Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
+    }
+
+    [Test]
+    public void SetFindKeepsElementLevelSemantics()
+    {
+        var changes = FindSetMember.ChangeSet.Between(
+            new FindSetMember { Labels = new HashSet<string> { "before" } },
+            new FindSetMember { Labels = new HashSet<string> { "after" } }
+        );
+
+        changes.Find(FindSetMember.SparsePath.Labels).ShouldBeNull();
+        var added = changes
+            .Find(
+                SparsePath.Root<FindSetMember>().Member(nameof(FindSetMember.Labels)).Key("after")
+            )
+            .ShouldNotBeNull();
+        added.Kind.ShouldBe(FindSetMember.ChangeSet.ChangeKind.Added);
     }
 
     [Test]

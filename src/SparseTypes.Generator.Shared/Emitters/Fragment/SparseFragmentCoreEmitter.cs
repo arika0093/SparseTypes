@@ -193,12 +193,14 @@ internal sealed class SparseFragmentCoreEmitter
     public static void AppendFromModelInternalFacade(
         SharedIndentedBuilder code,
         string modelType,
-        string operationsType
+        string operationsType,
+        bool requiresFromCycleContext
     ) =>
         SparseFragmentConversionEmitter.AppendFromModelInternalFacade(
             code,
             modelType,
-            operationsType
+            operationsType,
+            requiresFromCycleContext
         );
 
     public void AppendFromModelPublicBody(
@@ -282,8 +284,15 @@ internal sealed class SparseFragmentCoreEmitter
     public static void AppendDiffInternalFacade(
         SharedIndentedBuilder code,
         string modelType,
-        string operationsType
-    ) => SparseFragmentMergeEmitter.AppendDiffInternalFacade(code, modelType, operationsType);
+        string operationsType,
+        bool requiresDiffContext
+    ) =>
+        SparseFragmentMergeEmitter.AppendDiffInternalFacade(
+            code,
+            modelType,
+            operationsType,
+            requiresDiffContext
+        );
 
     public void AppendDiffPublicBody(
         SharedIndentedBuilder code,
@@ -295,8 +304,15 @@ internal sealed class SparseFragmentCoreEmitter
     public static void AppendDiffInternalBody(
         SharedIndentedBuilder code,
         string modelType,
-        bool modelIsReferenceType
-    ) => SparseFragmentMergeEmitter.AppendDiffInternalBody(code, modelType, modelIsReferenceType);
+        bool modelIsReferenceType,
+        bool requiresDiffContext
+    ) =>
+        SparseFragmentMergeEmitter.AppendDiffInternalBody(
+            code,
+            modelType,
+            modelIsReferenceType,
+            requiresDiffContext
+        );
 
     public void AppendDiffPrivateBodies(
         SharedIndentedBuilder code,
@@ -362,9 +378,21 @@ internal sealed class SparseFragmentCoreEmitter
 
     public void AppendOriginOperations(
         SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members
+    ) => _origins?.AppendOriginOperations(code, members);
+
+    public void AppendOriginPathCacheFields(
+        SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         string modelType
-    ) => _origins?.AppendOriginOperations(code, members, modelType);
+    ) => _origins?.AppendOriginPathCacheFields(code, members, modelType);
+
+    public void AppendOriginEnumerationIterator(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        bool isStatic,
+        string receiver
+    ) => _origins?.AppendOriginEnumerationIterator(code, members, isStatic, receiver);
 
     public void AppendOriginStorage(SharedIndentedBuilder code)
     {

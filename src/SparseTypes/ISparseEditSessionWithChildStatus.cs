@@ -8,7 +8,8 @@ namespace SparseTypes;
 /// <typeparam name="TConflict">The product's structured conflict type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public interface ISparseEditSessionWithChildStatus<TModel, TConflict>
-    : ISparseEditSessionWithChildren<TModel, TConflict>
+    : ISparseEditSessionWithChildren<TModel, TConflict>,
+        ISparseEditSessionWithPendingState<TModel, TConflict>
     where TModel : class
     where TConflict : class
 {
@@ -45,15 +46,4 @@ public interface ISparseEditSessionWithChildStatus<TModel, TConflict>
     /// <param name="conflicts">Structured conflicts when a child merge cannot be prepared.</param>
     /// <returns>True when all pending merges are conflict-free; otherwise false.</returns>
     bool TryPreflightChildSessions(out IReadOnlyList<TConflict>? conflicts);
-
-    /// <summary>Applies this session and its pending child sessions to a separate model candidate.</summary>
-    /// <param name="current">The model state to rebase the pending changes onto.</param>
-    /// <param name="updated">The candidate model on success; otherwise null.</param>
-    /// <param name="conflicts">Structured conflicts when the pending changes cannot be applied.</param>
-    /// <returns>True when the candidate includes all pending changes; otherwise false.</returns>
-    bool TryApplyPendingState(
-        TModel current,
-        out TModel? updated,
-        out IReadOnlyList<TConflict>? conflicts
-    );
 }
