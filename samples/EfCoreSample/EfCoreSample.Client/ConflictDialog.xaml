@@ -1,0 +1,71 @@
+<Window
+  x:Class="EfCoreSample.Client.ConflictDialog"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:EfCoreSample.Client"
+  Title="Resolve conflicts"
+  Width="720"
+  Height="460"
+  FontSize="14"
+  WindowStartupLocation="CenterOwner"
+>
+  <Window.Resources>
+    <local:ConflictChoiceConverter x:Key="ChoiceConverter" />
+    <local:BusyVisibilityConverter x:Key="VisibleWhenTrue" />
+  </Window.Resources>
+  <DockPanel Margin="12">
+    <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" Text="{Binding Summary}" TextWrapping="Wrap" />
+    <TextBlock
+      DockPanel.Dock="Bottom"
+      Margin="0,8,0,8"
+      Foreground="DarkRed"
+      Text="{Binding ErrorText}"
+      TextWrapping="Wrap"
+      Visibility="{Binding HasError, Converter={StaticResource VisibleWhenTrue}}"
+    />
+    <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Right" Orientation="Horizontal">
+      <Button
+        MinWidth="96"
+        Margin="0,0,8,0"
+        Padding="12,4"
+        Click="OnApplyClick"
+        Content="Apply"
+        IsDefault="True"
+        IsEnabled="{Binding CanApply}"
+      />
+      <Button MinWidth="96" Padding="12,4" Click="OnCancelClick" Content="Cancel" IsCancel="True" />
+    </StackPanel>
+    <DataGrid
+      AutoGenerateColumns="False"
+      CanUserAddRows="False"
+      CanUserDeleteRows="False"
+      IsReadOnly="True"
+      ItemsSource="{Binding Rows}"
+    >
+      <DataGrid.Columns>
+        <DataGridTextColumn Binding="{Binding PathText}" Header="Field" />
+        <DataGridTextColumn Binding="{Binding MineText}" Header="My edit" />
+        <DataGridTextColumn Binding="{Binding ServerText}" Header="Server value" />
+        <DataGridTemplateColumn Header="Keep">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal">
+                <RadioButton
+                  Content="Mine"
+                  GroupName="{Binding PathText}"
+                  IsChecked="{Binding UseMine, Converter={StaticResource ChoiceConverter}, ConverterParameter=True}"
+                />
+                <RadioButton
+                  Margin="8,0,0,0"
+                  Content="Server"
+                  GroupName="{Binding PathText}"
+                  IsChecked="{Binding UseMine, Converter={StaticResource ChoiceConverter}, ConverterParameter=False}"
+                />
+              </StackPanel>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
+        </DataGridTemplateColumn>
+      </DataGrid.Columns>
+    </DataGrid>
+  </DockPanel>
+</Window>

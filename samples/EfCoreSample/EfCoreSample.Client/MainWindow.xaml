@@ -2,214 +2,260 @@
   x:Class="EfCoreSample.Client.MainWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:EfCoreSample.Client"
   Title="EfCoreSample Order Editor"
-  Width="880"
-  Height="660"
+  Width="980"
+  Height="720"
+  FontSize="14"
 >
+  <Window.Resources>
+    <local:BusyVisibilityConverter x:Key="VisibleWhenBusy" />
+  </Window.Resources>
+  <Window.CommandBindings>
+    <CommandBinding
+      Command="ApplicationCommands.Undo"
+      CanExecute="OnUndoCanExecute"
+      Executed="OnUndoExecuted"
+    />
+    <CommandBinding
+      Command="ApplicationCommands.Redo"
+      CanExecute="OnRedoCanExecute"
+      Executed="OnRedoExecuted"
+    />
+    <CommandBinding
+      Command="{x:Static local:MainWindow.SaveCommand}"
+      CanExecute="OnSaveCanExecute"
+      Executed="OnSaveExecuted"
+    />
+    <CommandBinding
+      Command="{x:Static local:MainWindow.RefreshCommand}"
+      CanExecute="OnRefreshCanExecute"
+      Executed="OnRefreshExecuted"
+    />
+  </Window.CommandBindings>
+  <Window.InputBindings>
+    <KeyBinding Command="ApplicationCommands.Undo" Modifiers="Control" Key="Z" />
+    <KeyBinding Command="ApplicationCommands.Redo" Modifiers="Control" Key="Y" />
+    <KeyBinding Command="{x:Static local:MainWindow.SaveCommand}" Modifiers="Control" Key="S" />
+    <KeyBinding Command="{x:Static local:MainWindow.RefreshCommand}" Key="F5" />
+  </Window.InputBindings>
   <DockPanel Margin="12">
     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8" Orientation="Horizontal">
-      <TextBlock VerticalAlignment="Center" Text="Order Id:" />
+      <TextBlock VerticalAlignment="Center" Text="Order:" />
       <TextBox
-        Width="60"
-        Margin="4,0,0,0"
+        Width="70"
+        Margin="6,0,0,0"
         VerticalAlignment="Center"
         Text="{Binding OrderIdText, UpdateSourceTrigger=PropertyChanged}"
       />
       <Button
         Margin="8,0,0,0"
-        Padding="12,2"
+        Padding="12,3"
         Click="OnLoadClick"
         Content="Load"
         IsEnabled="{Binding IsIdle}"
       />
       <Button
         Margin="8,0,0,0"
-        Padding="12,2"
-        Click="OnSaveClick"
-        Content="Save"
-        IsEnabled="{Binding CanSave}"
+        Padding="12,3"
+        Command="{x:Static local:MainWindow.RefreshCommand}"
+        Content="Refresh (F5)"
       />
+      <Separator Margin="12,0" Opacity="0" />
+      <Button Margin="0,0,8,0" Padding="12,3" Command="ApplicationCommands.Undo" Content="Undo" />
+      <Button Margin="0,0,8,0" Padding="12,3" Command="ApplicationCommands.Redo" Content="Redo" />
+      <Separator Margin="4,0,12,0" Opacity="0" />
       <Button
-        Margin="8,0,0,0"
-        Padding="12,2"
-        Click="OnAddLineClick"
-        Content="Add line"
-        IsEnabled="{Binding HasSession}"
+        Margin="0,0,8,0"
+        Padding="12,3"
+        Command="{x:Static local:MainWindow.SaveCommand}"
+        Content="Save (Ctrl+S)"
       />
-      <Button
-        Margin="8,0,0,0"
-        Padding="12,2"
-        Click="OnRemoveLineClick"
-        Content="Remove line"
-        IsEnabled="{Binding CanRemoveLine}"
+      <Button Padding="12,3" Click="OnResetClick" Content="Reset" IsEnabled="{Binding CanReset}" />
+      <ProgressBar
+        Width="120"
+        Margin="12,0,0,0"
+        IsIndeterminate="True"
+        Visibility="{Binding IsBusy, Converter={StaticResource VisibleWhenBusy}}"
       />
     </StackPanel>
 
-    <TextBlock
-      DockPanel.Dock="Bottom"
-      Margin="0,8,0,0"
-      Text="{Binding Status}"
-      TextWrapping="Wrap"
-    />
+    <StatusBar DockPanel.Dock="Bottom" Margin="0,8,0,0">
+      <StatusBarItem>
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+      </StatusBarItem>
+      <StatusBarItem HorizontalAlignment="Right">
+        <TextBlock FontWeight="Bold" Text="{Binding ChangeSummary}" />
+      </StatusBarItem>
+    </StatusBar>
 
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
-        <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
 
-      <Grid Grid.Row="0" Margin="0,0,0,8">
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-          <ColumnDefinition Width="Auto" />
-          <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-          <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+      <GroupBox Grid.Row="0" Margin="0,0,0,8" Header="Order">
+        <Grid Margin="4">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
 
-        <TextBlock
-          Grid.Row="0"
-          Grid.Column="0"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Name:"
-        />
-        <TextBox
-          Grid.Row="0"
-          Grid.Column="1"
-          Margin="0,2,12,2"
-          Text="{Binding Session.Observable.Name, UpdateSourceTrigger=PropertyChanged}"
-        />
-        <TextBlock
-          Grid.Row="0"
-          Grid.Column="2"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Code:"
-        />
-        <TextBox
-          Grid.Row="0"
-          Grid.Column="3"
-          Margin="0,2,0,2"
-          Text="{Binding Session.Observable.Code, UpdateSourceTrigger=PropertyChanged}"
-        />
-
-        <TextBlock
-          Grid.Row="1"
-          Grid.Column="0"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Notes:"
-        />
-        <TextBox
-          Grid.Row="1"
-          Grid.Column="1"
-          Margin="0,2,12,2"
-          Text="{Binding Session.Observable.Notes, UpdateSourceTrigger=PropertyChanged}"
-        />
-        <TextBlock
-          Grid.Row="1"
-          Grid.Column="2"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Ship city:"
-        />
-        <TextBox
-          Grid.Row="1"
-          Grid.Column="3"
-          Margin="0,2,0,2"
-          Text="{Binding Session.Observable.ShipCity, UpdateSourceTrigger=PropertyChanged}"
-        />
-
-        <TextBlock
-          Grid.Row="2"
-          Grid.Column="0"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Street:"
-        />
-        <TextBox
-          Grid.Row="2"
-          Grid.Column="1"
-          Margin="0,2,12,2"
-          Text="{Binding Session.Observable.Address.Street, UpdateSourceTrigger=PropertyChanged}"
-        />
-        <TextBlock
-          Grid.Row="2"
-          Grid.Column="2"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="City:"
-        />
-        <TextBox
-          Grid.Row="2"
-          Grid.Column="3"
-          Margin="0,2,0,2"
-          Text="{Binding Session.Observable.Address.City, UpdateSourceTrigger=PropertyChanged}"
-        />
-
-        <TextBlock
-          Grid.Row="3"
-          Grid.Column="0"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Total:"
-        />
-        <TextBox
-          Grid.Row="3"
-          Grid.Column="1"
-          Margin="0,2,12,2"
-          IsReadOnly="True"
-          Text="{Binding Session.Observable.DisplayTotal, Mode=OneWay}"
-        />
-        <TextBlock
-          Grid.Row="3"
-          Grid.Column="2"
-          Margin="0,2,8,2"
-          VerticalAlignment="Center"
-          Text="Version:"
-        />
-        <TextBox
-          Grid.Row="3"
-          Grid.Column="3"
-          Margin="0,2,0,2"
-          IsReadOnly="True"
-          Text="{Binding Session.Observable.Version, Mode=OneWay}"
-        />
-      </Grid>
-
-      <DataGrid
-        Grid.Row="1"
-        AutoGenerateColumns="False"
-        CanUserAddRows="False"
-        IsReadOnly="False"
-        ItemsSource="{Binding Session.Observable.Lines}"
-        SelectedIndex="{Binding SelectedLineIndex}"
-      >
-        <DataGrid.Columns>
-          <DataGridTextColumn Binding="{Binding Id, Mode=OneWay}" Header="Id" IsReadOnly="True" />
-          <DataGridTextColumn Binding="{Binding Quantity}" Header="Quantity" />
-          <DataGridTextColumn Binding="{Binding UnitPrice}" Header="Unit price" />
-          <DataGridTextColumn
-            Binding="{Binding Subtotal, Mode=OneWay}"
-            Header="Subtotal"
-            IsReadOnly="True"
+          <TextBlock
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="Name:"
           />
-          <DataGridTextColumn
-            Binding="{Binding TemporaryId, Mode=OneWay}"
-            Header="Temporary id"
-            IsReadOnly="True"
+          <TextBox
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="0,4,12,4"
+            Background="{Binding NameBrush}"
+            Text="{Binding Session.Observable.Name, UpdateSourceTrigger=PropertyChanged}"
           />
-        </DataGrid.Columns>
-      </DataGrid>
+          <TextBlock
+            Grid.Row="0"
+            Grid.Column="2"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="Code:"
+          />
+          <TextBox
+            Grid.Row="0"
+            Grid.Column="3"
+            Margin="0,4,0,4"
+            Background="{Binding CodeBrush}"
+            Text="{Binding Session.Observable.Code, UpdateSourceTrigger=PropertyChanged}"
+          />
 
-      <TextBlock Grid.Row="2" Margin="0,8,0,0" Text="{Binding ConflictsText}" TextWrapping="Wrap" />
+          <TextBlock
+            Grid.Row="1"
+            Grid.Column="0"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="Notes:"
+          />
+          <TextBox
+            Grid.Row="1"
+            Grid.Column="1"
+            Margin="0,4,12,4"
+            Background="{Binding NotesBrush}"
+            Text="{Binding Session.Observable.Notes, UpdateSourceTrigger=PropertyChanged}"
+          />
+          <TextBlock
+            Grid.Row="1"
+            Grid.Column="2"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="Ship city:"
+          />
+          <TextBox
+            Grid.Row="1"
+            Grid.Column="3"
+            Margin="0,4,0,4"
+            Background="{Binding ShipCityBrush}"
+            Text="{Binding Session.Observable.ShipCity, UpdateSourceTrigger=PropertyChanged}"
+          />
+
+          <TextBlock
+            Grid.Row="2"
+            Grid.Column="0"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="Street:"
+          />
+          <TextBox
+            Grid.Row="2"
+            Grid.Column="1"
+            Margin="0,4,12,4"
+            Background="{Binding StreetBrush}"
+            Text="{Binding Session.Observable.Address.Street, UpdateSourceTrigger=PropertyChanged}"
+          />
+          <TextBlock
+            Grid.Row="2"
+            Grid.Column="2"
+            Margin="0,4,8,4"
+            VerticalAlignment="Center"
+            Text="City:"
+          />
+          <TextBox
+            Grid.Row="2"
+            Grid.Column="3"
+            Margin="0,4,0,4"
+            Background="{Binding CityBrush}"
+            Text="{Binding Session.Observable.Address.City, UpdateSourceTrigger=PropertyChanged}"
+          />
+        </Grid>
+      </GroupBox>
+
+      <GroupBox Grid.Row="1" Header="{Binding LinesHeader}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6" Orientation="Horizontal">
+            <Button
+              Margin="0,0,8,0"
+              Padding="12,3"
+              Click="OnAddLineClick"
+              Content="Add line"
+              IsEnabled="{Binding HasSession}"
+            />
+            <Button
+              Padding="12,3"
+              Click="OnRemoveLineClick"
+              Content="Remove selected"
+              IsEnabled="{Binding CanRemoveLine}"
+            />
+            <TextBlock Margin="12,0,0,0" VerticalAlignment="Center">
+              <Run Text="■" Foreground="#A5D6A7" />
+              <Run Text="added" />
+              <Run Text="  ■" Foreground="#FFECB3" />
+              <Run Text="edited" />
+            </TextBlock>
+          </StackPanel>
+          <DataGrid
+            x:Name="LinesGrid"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False"
+            IsReadOnly="False"
+            ItemsSource="{Binding Session.Observable.Lines}"
+            SelectedIndex="{Binding SelectedLineIndex}"
+          >
+            <DataGrid.Columns>
+              <DataGridTextColumn Binding="{Binding Id, Mode=OneWay}" Header="Id" IsReadOnly="True">
+                <DataGridTextColumn.CellStyle>
+                  <Style TargetType="DataGridCell">
+                    <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}" />
+                    <Setter Property="Foreground" Value="{x:Static SystemColors.GrayTextBrush}" />
+                  </Style>
+                </DataGridTextColumn.CellStyle>
+              </DataGridTextColumn>
+              <DataGridTextColumn Binding="{Binding Quantity}" Header="Quantity" />
+              <DataGridTextColumn Binding="{Binding UnitPrice}" Header="Unit price" />
+              <DataGridTextColumn
+                Binding="{Binding Subtotal, Mode=OneWay}"
+                Header="Subtotal"
+                IsReadOnly="True"
+              >
+                <DataGridTextColumn.CellStyle>
+                  <Style TargetType="DataGridCell">
+                    <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}" />
+                    <Setter Property="Foreground" Value="{x:Static SystemColors.GrayTextBrush}" />
+                  </Style>
+                </DataGridTextColumn.CellStyle>
+              </DataGridTextColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </DockPanel>
+      </GroupBox>
     </Grid>
   </DockPanel>
 </Window>

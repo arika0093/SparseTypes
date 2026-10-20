@@ -12,8 +12,12 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 - EfCoreSample.Server: Minimal API plus the mapper and the PostgreSQL context.
   The OpenAPI document includes the generated change payload schemas via
   `SparseTypes.OpenApi.AspNetCore`, and `/` serves the Swagger UI.
-- EfCoreSample.Client: WPF order editor. The form binds to the live edit
-  session's observable proxy; save ships a sparse change payload.
+- EfCoreSample.Client: WPF order editor and edit-session showcase. The form
+  binds to the live edit session's observable proxy with changed-field
+  highlighting and read-only gray cells; toolbar commands cover load,
+  server refresh, undo/redo with history, save, and reset. Save ships a
+  sparse change payload, and overlapping edits open a conflict dialog
+  that resolves each path to the submitted or the server value.
 - EfCoreSample.AppHost: Aspire host wiring PostgreSQL (with pgweb), the
   server, and the client.
 
