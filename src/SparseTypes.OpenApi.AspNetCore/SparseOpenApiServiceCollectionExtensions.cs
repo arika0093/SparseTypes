@@ -32,6 +32,7 @@ public static class SparseOpenApiServiceCollectionExtensions
             {
                 options.CreateSchemaReferenceId = type => registry.GetName(type.Type);
                 options.AddDocumentTransformer<SparsePayloadDocumentTransformer>();
+                options.AddSchemaTransformer(SparsePayloadEnumSchemas.TransformAsync);
             });
         }
         registry.Add(schemas);

@@ -1,7 +1,9 @@
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi;
 using SparseTypes.OpenApi.Swashbuckle;
 using Swashbuckle.AspNetCore.Swagger;
 
@@ -77,5 +79,56 @@ public sealed class SparsePayloadSchemaTests
         );
 
         await app.StopAsync();
+    }
+
+    [Test]
+    public void StateAndKindUseWireStringEnums()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddSparseOpenApi<OpenApiShipment.ChangePayload>();
+        builder.Services.AddSparseOpenApi<OpenApiBasket.ChangePayload>();
+        builder.Services.AddSparseOpenApi<OpenApiBasketItem.ChangePayload>();
+        using var app = builder.Build();
+        app.MapPost("/shipments", (OpenApiShipment.ChangePayload payload) => Results.Ok(payload));
+
+        var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+        var state = ResolveComponent(
+            document,
+            SparseTypes.SparsePayloadSchemaNames.GetName(typeof(SparseTypes.ChangePayloadState))
+        );
+        state.Type.ShouldBe(JsonSchemaType.String);
+        string.Join(",", state.Enum!.Select(static node => node.GetValue<string>()))
+            .ShouldBe("missing,null,value,redacted");
+
+        var kind = ResolveComponent(
+            document,
+            SparseTypes.SparsePayloadSchemaNames.GetName(typeof(SparseTypes.ChangePayloadItemKind))
+        );
+        kind.Type.ShouldBe(JsonSchemaType.String);
+        string.Join(",", kind.Enum!.Select(static node => node.GetValue<string>()))
+            .ShouldBe("add,remove,edit,reorder");
+
+        // User domain enums stay numeric.
+        var userEnum = ResolveComponent(
+            document,
+            SparseTypes.SparsePayloadSchemaNames.GetName(typeof(OpenApiShipmentState))
+        );
+        userEnum.Type.ShouldBe(JsonSchemaType.Integer);
+    }
+
+    private static OpenApiSchema ResolveComponent(OpenApiDocument document, string name)
+    {
+        IOpenApiSchema schema = document.Components!.Schemas![name];
+        var guard = 0;
+        while (schema is OpenApiSchemaReference reference && guard++ < 8)
+        {
+            if (reference.Target is not IOpenApiSchema target)
+                break;
+            schema = target;
+        }
+        return (OpenApiSchema)schema;
     }
 }

@@ -45,6 +45,9 @@ internal sealed class SparsePayloadDocumentTransformer(
             // so the document stays consistent with the registered metadata.
             document.Components.Schemas[name] = openApiSchema;
         }
+        // Reflection reports the wire string enums (state/kind) as integers.
+        // Rewrite them to string enums so the document matches the JSON bytes.
+        SparsePayloadEnumSchemas.FixDocument(document);
     }
 
     private static OpenApiSchema ParseSchema(string jsonSchema, OpenApiDocument document)
