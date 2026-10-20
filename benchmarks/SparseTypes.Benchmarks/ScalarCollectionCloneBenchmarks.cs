@@ -34,14 +34,17 @@ public class ScalarCollectionCloneBenchmarks
         };
         var clone = ModelClone();
         var fragment = FragmentFrom();
+        var fragmentItems =
+            fragment.Items.Value
+            ?? throw new InvalidOperationException("Fragment snapshots must preserve Items.");
         values[0] = "mutated";
         if (
             ReferenceEquals(clone.Items, _model.Items)
-            || ReferenceEquals(fragment.Items.Value, _model.Items)
+            || ReferenceEquals(fragmentItems, _model.Items)
             || clone.Items.Count != Size
-            || fragment.Items.Value.Count != Size
+            || fragmentItems.Count != Size
             || clone.Items[0] != "0"
-            || fragment.Items.Value[0] != "0"
+            || fragmentItems[0] != "0"
         )
         {
             throw new InvalidOperationException(
