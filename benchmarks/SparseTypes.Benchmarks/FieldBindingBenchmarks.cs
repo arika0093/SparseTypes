@@ -68,6 +68,8 @@ public class FieldBindingBenchmarks
     private SparseFieldBinding<BenchFieldStateRoot, int> _dictionary = null!;
     private SparseFieldBinding<BenchReadOnlySheet, string> _readOnlyList = null!;
     private BenchReadOnlySheet.EditSession _readOnlySession = null!;
+    private SparsePath _readOnlyListPath;
+    private SparsePath _readOnlyDictionaryPath;
 
     [GlobalSetup]
     public void Setup()
@@ -121,6 +123,8 @@ public class FieldBindingBenchmarks
         }.CreateEditSession();
         var readOnlyContext = readOnlySession.CreateEditContext();
         _readOnlySession = readOnlySession;
+        _readOnlyListPath = SparsePath.Parse<BenchReadOnlySheet>("Lines[0].Name");
+        _readOnlyDictionaryPath = SparsePath.Parse<BenchReadOnlySheet>("Map[\"a\"]");
         _readOnlyList = readOnlySession.Bind(
             BenchReadOnlySheet.SparsePath.Lines.At(0).Name,
             readOnlyContext
@@ -129,8 +133,8 @@ public class FieldBindingBenchmarks
         if (
             _readOnlyList.Field.FieldName != "Name"
             || _readOnlyList.Value != "n-1"
-            || readOnlySession.Field("Lines[0].Name").FieldName != "Name"
-            || readOnlySession.Field("Map[\"a\"]").FieldName != "Map"
+            || readOnlySession.Field(_readOnlyListPath).FieldName != "Name"
+            || readOnlySession.Field(_readOnlyDictionaryPath).FieldName != "Map"
         )
         {
             throw new InvalidOperationException("Read-only binding fixtures must resolve.");
@@ -171,10 +175,11 @@ public class FieldBindingBenchmarks
     public string Field_ReadOnlyList() => _readOnlyList.Field.FieldName;
 
     [Benchmark(Description = "Resolve read-only list entry")]
-    public string Resolve_ReadOnlyList() => _readOnlySession.Field("Lines[0].Name").FieldName;
+    public string Resolve_ReadOnlyList() => _readOnlySession.Field(_readOnlyListPath).FieldName;
 
     [Benchmark(Description = "Resolve read-only dictionary entry")]
-    public string Resolve_ReadOnlyDictionary() => _readOnlySession.Field("Map[\"a\"]").FieldName;
+    public string Resolve_ReadOnlyDictionary() =>
+        _readOnlySession.Field(_readOnlyDictionaryPath).FieldName;
 
     [Benchmark(Description = "Value scalar")]
     public string Value_Scalar() => _scalar.Value;

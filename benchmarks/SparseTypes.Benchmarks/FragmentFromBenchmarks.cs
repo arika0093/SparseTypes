@@ -55,12 +55,12 @@ public class FragmentFromBenchmarks
         }
 
         var active = SparseFragmentRuntime.CreateFromCycleContext();
-        active.Add(_leaf);
+        active.Add(_nested);
         var rejectedActiveAncestor = false;
         try
         {
-            BenchKeyedServer.Fragment.From(
-                _leaf,
+            BenchWidgetNested.Fragment.From(
+                _nested,
                 SparseFragmentRuntime.CreateCloneContext(),
                 active,
                 "Leaf"

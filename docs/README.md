@@ -57,6 +57,7 @@ Start with the [API reference index](reference/README.md) for package types and 
 * [Session contracts, history, and groups](reference/session-contracts.md): Framework capabilities, Undo/Redo, child sessions, and submission capture.
 * [Validation stores](reference/validation.md): Path/origin errors and conflict projection.
 * [Payload runtime APIs](reference/payload-api.md): Endpoint, validation, wire token, and mixed-operation types.
+* [OpenAPI integration](reference/openapi.md): Register generated `ChangePayload` schemas with ASP.NET Core OpenAPI or Swashbuckle.
 * [Blazor API](reference/blazor-api.md): Component parameters, contexts, bindings, and EditContext extensions.
 
 ### Generated APIs

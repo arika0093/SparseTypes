@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using SparseTypes;
+using SparseTypes.Generated;
 
 [SparseModel]
 public partial class BenchPathLeaf
@@ -482,48 +483,40 @@ public class SparsePathTraversalBenchmarks
     public SparsePath Parse_Escaped() => SparsePath.Parse<BenchPathRoot>(_escapedText);
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (typed, cached)")]
-    public BenchPathSingle.ChangeSet.ChangeInfo? ChangeSet_Find_Sparse_Hit_Cached() =>
-        _sparseChange.Find(_scalar);
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Cached() => _sparseChange.Find(_scalar);
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (typed, cold)")]
-    public BenchPathSingle.ChangeSet.ChangeInfo? ChangeSet_Find_Sparse_Hit_Cold() =>
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Cold() =>
         _sparseChange.Find(BenchPathSingle.SparsePath.Title);
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (parsed baseline)")]
-    public BenchPathSingle.ChangeSet.ChangeInfo? ChangeSet_Find_Sparse_Hit_Parsed() =>
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Parsed() =>
         _sparseChange.Find(SparsePath.Parse<BenchPathSingle>(_scalarText));
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (untyped, cached)")]
-    public BenchPathSingle.ChangeSet.ChangeInfo? ChangeSet_Find_Sparse_Untyped_Cached() =>
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Untyped_Cached() =>
         _sparseChange.Find(_scalarUntyped);
 
     [Benchmark(Description = "ChangeSet Find wide 16-prop hit (typed, cached)")]
-    public BenchPathWide.ChangeSet.ChangeInfo? ChangeSet_Find_Wide_Hit_Cached() =>
-        _wideChange.Find(_wideLast);
+    public SparseChangeRecord? ChangeSet_Find_Wide_Hit_Cached() => _wideChange.Find(_wideLast);
 
     [Benchmark(Description = "ChangeSet Find wide 16-prop miss (cached)")]
-    public BenchPathWide.ChangeSet.ChangeInfo? ChangeSet_Find_Wide_Miss_Cached() =>
-        _wideChange.Find(_wideMissing);
+    public SparseChangeRecord? ChangeSet_Find_Wide_Miss_Cached() => _wideChange.Find(_wideMissing);
 
     [Benchmark(Description = "ChangeSet Find keyed 1-change hit")]
-    public BenchPathRoot.ChangeSet.ChangeInfo? ChangeSet_Find_Keyed_One_Hit() =>
-        _keyedOne.Find(_keyed);
+    public SparseChangeRecord? ChangeSet_Find_Keyed_One_Hit() => _keyedOne.Find(_keyed);
 
     [Benchmark(Description = "ChangeSet Find keyed 16-change hit")]
-    public BenchPathRoot.ChangeSet.ChangeInfo? ChangeSet_Find_Keyed_Many_Hit() =>
-        _keyedMany.Find(_keyed);
+    public SparseChangeRecord? ChangeSet_Find_Keyed_Many_Hit() => _keyedMany.Find(_keyed);
 
     [Benchmark(Description = "ChangeSet Find deep 5-segment hit")]
-    public BenchPathCluster.ChangeSet.ChangeInfo? ChangeSet_Find_Deep5_Hit() =>
-        _clusterChange.Find(_deep5a);
+    public SparseChangeRecord? ChangeSet_Find_Deep5_Hit() => _clusterChange.Find(_deep5a);
 
     [Benchmark(Description = "ChangeSet Find escaped-key hit")]
-    public BenchPathRoot.ChangeSet.ChangeInfo? ChangeSet_Find_Escaped_Hit() =>
-        _escapedChange.Find(_escaped);
+    public SparseChangeRecord? ChangeSet_Find_Escaped_Hit() => _escapedChange.Find(_escaped);
 
     [Benchmark(Description = "ChangeSet Find composite-key hit")]
-    public BenchPathCompositeHolder.ChangeSet.ChangeInfo? ChangeSet_Find_Composite_Hit() =>
-        _compositeChange.Find(_composite);
+    public SparseChangeRecord? ChangeSet_Find_Composite_Hit() => _compositeChange.Find(_composite);
 
     [Benchmark(Description = "Descriptor Find nested (cached)")]
     public SparseTypes.Generated.IDescriptor? Descriptor_Find_Nested_Cached() =>

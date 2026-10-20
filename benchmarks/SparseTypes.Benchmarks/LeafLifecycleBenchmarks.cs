@@ -101,13 +101,13 @@ public class LeafDiffBenchmarks
             );
         }
 
-        var other = new BenchKeyedServer { Id = "other" };
+        var other = new BenchWidgetNested { Host = "other" };
         var active = SparseFragmentRuntime.CreateDiffCycleContext();
-        active.Add(new KeyValuePair<object, object>(_before, other));
+        active.Add(new KeyValuePair<object, object>(_nestedBefore, other));
         var rejectedAncestor = false;
         try
         {
-            BenchKeyedServer.Fragment.Diff(_before, other, active, "Leaf");
+            BenchWidgetNested.Fragment.Diff(_nestedBefore, other, active, "Leaf");
         }
         catch (NotSupportedException)
         {

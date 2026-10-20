@@ -18,6 +18,7 @@ Unless stated otherwise, these types belong to the `SparseTypes` package and nam
 | State, observers, and validation | [Edit session state](edit-session-state.md), [validation stores](validation.md) |
 | Dynamic metadata and access | [Descriptors](descriptors.md) |
 | Wire endpoint and validation types | [Payload runtime APIs](payload-api.md), [wire specification](change-payload.md) |
+| OpenAPI document integration | [ASP.NET Core OpenAPI and Swashbuckle](openapi.md) |
 | Blazor components and bindings | [Blazor API](blazor-api.md) |
 | EF Core configuration and execution | [EF Core mapping](efcore-mapping.md) |
 
