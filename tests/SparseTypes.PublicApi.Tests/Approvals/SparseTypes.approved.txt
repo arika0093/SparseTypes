@@ -1109,6 +1109,7 @@ namespace SparseTypes
     public static class SparsePayloadSchemaNames
     {
         public static string GetName(System.Type type) { }
+        public static string GetName(System.Type type, System.Func<System.Type, string?>? resolve) { }
     }
     public enum SparseRebaseMode
     {

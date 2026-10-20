@@ -32,11 +32,17 @@ internal sealed class SparsePayloadDocumentFilter(
                     $"SparseTypes schema name collision for '{type}'."
                 );
             }
-            if (swaggerDoc.Components.Schemas.ContainsKey(name))
-                throw new InvalidOperationException(
-                    $"OpenAPI component '{name}' is already registered."
-                );
             names.Add(name, type);
+            // Reserve the curated name so later generator passes resolve the
+            // same component instead of registering a duplicate entry.
+            if (!context.SchemaRepository.TryLookupByType(type, out _))
+            {
+                context.SchemaRepository.RegisterType(type, name);
+            }
+
+            // Endpoints that take a ChangePayload register the same stable
+            // component during document generation. The curated schema wins
+            // so the document stays consistent with the registered metadata.
             swaggerDoc.Components.Schemas[name] = generated;
         }
     }

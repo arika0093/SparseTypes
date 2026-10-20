@@ -47,9 +47,33 @@ public static class SparsePayloadSchemaNames
     /// <summary>Gets a stable component name for a CLR type.</summary>
     /// <param name="type">The type to name.</param>
     /// <returns>A deterministic name derived from the type and its containing types.</returns>
-    public static string GetName(Type type)
+    public static string GetName(Type type) => GetName(type, resolve: null);
+
+    /// <summary>
+    /// Gets a stable component name for a CLR type, preferring caller-supplied names.
+    /// </summary>
+    /// <param name="type">The type to name.</param>
+    /// <param name="resolve">
+    /// An optional lookup consulted before the default naming rules. The lookup
+    /// receives the exact type (including generic arguments as declared) and
+    /// returns the preferred name, or <see langword="null"/> to fall back to
+    /// the default rules. The lookup is consulted recursively for generic
+    /// arguments so registered element types keep their preferred names.
+    /// </param>
+    /// <returns>
+    /// The resolved name when <paramref name="resolve"/> supplies one;
+    /// otherwise a deterministic name derived from the type and its
+    /// containing types.
+    /// </returns>
+    public static string GetName(Type type, Func<Type, string?>? resolve)
     {
         ArgumentNullException.ThrowIfNull(type);
+        var resolved = resolve?.Invoke(type);
+        if (resolved is { Length: > 0 })
+        {
+            return resolved;
+        }
+
         var names = new Stack<string>();
         for (var current = type; current is not null; current = current.DeclaringType)
         {
@@ -72,7 +96,7 @@ public static class SparsePayloadSchemaNames
 
         var builder = new System.Text.StringBuilder(result);
         foreach (var argument in arguments)
-            builder.Append('_').Append(GetName(argument));
+            builder.Append('_').Append(GetName(argument, resolve));
         return builder.ToString();
     }
 

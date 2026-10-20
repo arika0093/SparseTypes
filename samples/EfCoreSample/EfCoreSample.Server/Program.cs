@@ -15,7 +15,11 @@ builder.Services.AddDbContext<SampleDbContext>(options =>
 );
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
 builder.Services.AddOpenApi();
+// Register every payload whose types can appear in the document: the lines
+// reference OrderLineDto members through the keyed item wrapper.
 builder.Services.AddSparseOpenApi<OrderDto.ChangePayload>();
+builder.Services.AddSparseOpenApi<OrderLineDto.ChangePayload>();
+builder.Services.AddSparseOpenApi<AddressDto.ChangePayload>();
 var app = builder.Build();
 app.Services.ValidateSparseEntityMappers<SampleDbContext>();
 
