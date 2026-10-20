@@ -82,7 +82,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     SparseTypesDiagnosticIds.InvalidRebasePolicy,
                     SparseTypesDiagnosticIds.InvalidEmissionPlan,
                     SparseTypesDiagnosticIds.UnknownProductMember,
-                    SparseTypesDiagnosticIds.InvalidComparisonStrategy
+                    SparseTypesDiagnosticIds.InvalidComparisonStrategy,
+                    UnsupportedPayloadJsonPoco: SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco
                 ),
                 HintNameSuffix: ".SparseTypes.g.cs",
                 PromotedHintNameSuffix: ".SparsePromoted.g.cs",
@@ -717,7 +718,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             cancellationToken,
             configuration,
             (code, generatedModel, members) =>
-                SparseModelExtensionsEmitter.Append(code, generatedModel, members, configuration)
+                SparseModelExtensionsEmitter.Append(code, generatedModel, members, configuration),
+            analysis.PayloadJsonPocos
         );
         var additional = SparsePerModelEmitter.BuildImplementationSources(
             model,
@@ -772,6 +774,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             SparseTypesDiagnosticIds.InvalidEntityMapperDeclaration =>
                 InvalidEntityMapperDeclaration,
             SparseTypesDiagnosticIds.UnsupportedEntityMemberShape => UnsupportedEntityMemberShape,
+            SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco => UnsupportedPayloadJsonPoco,
             _ => throw new global::System.ArgumentOutOfRangeException(nameof(id), id, null),
         };
 

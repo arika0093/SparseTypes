@@ -279,4 +279,13 @@ public sealed partial class SparseTypesGenerator
         true,
         helpLinkUri: "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf029-unknown-product-member"
     );
+    private static readonly DiagnosticDescriptor UnsupportedPayloadJsonPoco = new(
+        SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco,
+        "Custom leaf type needs external JSON metadata",
+        "Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Default with a source-generated context for this type or simplify it to public properties with an accessible constructor",
+        "SparseTypes",
+        DiagnosticSeverity.Warning,
+        true,
+        helpLinkUri: "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata"
+    );
 }

@@ -145,6 +145,9 @@ public partial class NeutralSessionUnconstructablePocoModel
     public object? Opaque { get; set; }
 }
 
+// SPF036 is expected here: this model deliberately exercises opaque,
+// reference-safe shapes whose payload JSON needs external metadata.
+#pragma warning disable SPF036
 public sealed class NeutralSessionUnconstructablePoco
 {
     private NeutralSessionUnconstructablePoco(
@@ -165,6 +168,7 @@ public sealed class NeutralSessionUnconstructablePoco
         NeutralSessionUnconstructablePoco? nested = null
     ) => new(label, nested);
 }
+#pragma warning restore SPF036
 
 [SparseModel]
 public partial class ImmutableSessionModel

@@ -240,6 +240,37 @@ internal sealed record SparsePocoCloneModel(
         );
 }
 
+/// <summary>Trim-safe JSON codec model for one ordinary custom leaf type.</summary>
+/// <remarks>Carries the serializable member graph the payload JSON emitter turns into closed readers and writers.</remarks>
+internal sealed record SparsePayloadJsonPocoModel(
+    string RuntimeName,
+    ModelConstructorBinding? Constructor,
+    ImmutableArray<SparseMemberModel> Members,
+    ImmutableArray<SparsePropertyModel> ReadOnly,
+    bool HasPublicInstanceFields,
+    bool IsValueType
+)
+{
+    public bool Equals(SparsePayloadJsonPocoModel? other) =>
+        other is not null
+        && RuntimeName == other.RuntimeName
+        && Equals(Constructor, other.Constructor)
+        && SparseSequence.Equal(Members, other.Members)
+        && SparseSequence.Equal(ReadOnly, other.ReadOnly)
+        && HasPublicInstanceFields == other.HasPublicInstanceFields
+        && IsValueType == other.IsValueType;
+
+    public override int GetHashCode()
+    {
+        var hash = RuntimeName.GetHashCode();
+        hash = unchecked(hash * 31 + (Constructor?.GetHashCode() ?? 0));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(Members));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(ReadOnly));
+        hash = unchecked(hash * 31 + (HasPublicInstanceFields ? 1 : 0));
+        return unchecked(hash * 31 + (IsValueType ? 1 : 0));
+    }
+}
+
 internal sealed record SparseReadOnlyViewModel(
     string Key,
     string Name,
@@ -274,7 +305,8 @@ internal sealed record SparsePromotedModel(
     ImmutableArray<SparseMemberModel> Members,
     ImmutableArray<SparsePocoCloneModel> PocoCloneModels,
     ImmutableArray<SparseStructuralModel> StructuralModels,
-    ImmutableArray<SparseReadOnlyViewModel> ReadOnlyViewModels = default
+    ImmutableArray<SparseReadOnlyViewModel> ReadOnlyViewModels = default,
+    ImmutableArray<SparsePayloadJsonPocoModel> PayloadJsonPocos = default
 )
 {
     public bool Equals(SparsePromotedModel? other) =>
@@ -283,7 +315,8 @@ internal sealed record SparsePromotedModel(
         && SparseSequence.Equal(Members, other.Members)
         && SparseSequence.Equal(PocoCloneModels, other.PocoCloneModels)
         && SparseSequence.Equal(StructuralModels, other.StructuralModels)
-        && SparseSequence.Equal(ReadOnlyViewModels, other.ReadOnlyViewModels);
+        && SparseSequence.Equal(ReadOnlyViewModels, other.ReadOnlyViewModels)
+        && SparseSequence.Equal(PayloadJsonPocos, other.PayloadJsonPocos);
 
     public override int GetHashCode()
     {
@@ -291,7 +324,8 @@ internal sealed record SparsePromotedModel(
         hash = unchecked(hash * 31 + SparseSequence.Hash(Members));
         hash = unchecked(hash * 31 + SparseSequence.Hash(PocoCloneModels));
         hash = unchecked(hash * 31 + SparseSequence.Hash(StructuralModels));
-        return unchecked(hash * 31 + SparseSequence.Hash(ReadOnlyViewModels));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(ReadOnlyViewModels));
+        return unchecked(hash * 31 + SparseSequence.Hash(PayloadJsonPocos));
     }
 }
 
@@ -302,7 +336,8 @@ internal sealed record SparseGenerationAnalysis(
     ImmutableArray<SparseStructuralModel> StructuralModels,
     ImmutableArray<SparseGeneratorDiagnostic> Diagnostics,
     ImmutableArray<SparsePromotedModel> PromotedModels = default,
-    ImmutableArray<SparseReadOnlyViewModel> ReadOnlyViewModels = default
+    ImmutableArray<SparseReadOnlyViewModel> ReadOnlyViewModels = default,
+    ImmutableArray<SparsePayloadJsonPocoModel> PayloadJsonPocos = default
 )
 {
     public bool Equals(SparseGenerationAnalysis? other) =>
@@ -313,7 +348,8 @@ internal sealed record SparseGenerationAnalysis(
         && SparseSequence.Equal(StructuralModels, other.StructuralModels)
         && SparseSequence.Equal(Diagnostics, other.Diagnostics)
         && SparseSequence.Equal(PromotedModels, other.PromotedModels)
-        && SparseSequence.Equal(ReadOnlyViewModels, other.ReadOnlyViewModels);
+        && SparseSequence.Equal(ReadOnlyViewModels, other.ReadOnlyViewModels)
+        && SparseSequence.Equal(PayloadJsonPocos, other.PayloadJsonPocos);
 
     public override int GetHashCode()
     {
@@ -323,7 +359,8 @@ internal sealed record SparseGenerationAnalysis(
         hash = unchecked(hash * 31 + SparseSequence.Hash(StructuralModels));
         hash = unchecked(hash * 31 + SparseSequence.Hash(Diagnostics));
         hash = unchecked(hash * 31 + SparseSequence.Hash(PromotedModels));
-        return unchecked(hash * 31 + SparseSequence.Hash(ReadOnlyViewModels));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(ReadOnlyViewModels));
+        return unchecked(hash * 31 + SparseSequence.Hash(PayloadJsonPocos));
     }
 }
 

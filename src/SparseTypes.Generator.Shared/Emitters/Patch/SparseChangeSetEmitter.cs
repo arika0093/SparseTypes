@@ -33,7 +33,8 @@ internal static class SparseChangeSetEmitter
         string? implementationNamespace = null,
         SharedIndentedBuilder? implementationBuilder = null,
         SparseOperationTarget? target = null,
-        bool modelIsReferenceType = true
+        bool modelIsReferenceType = true,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -300,7 +301,8 @@ internal static class SparseChangeSetEmitter
                     ignoredSettablePropertyNames,
                     emitContainers: false,
                     emitFacade: true,
-                    implementationNamespace: implementationNamespace
+                    implementationNamespace: implementationNamespace,
+                    payloadJsonPocos: payloadJsonPocos
                 );
                 SparseChangeSetPayloadEmitter.AppendPayload(
                     implementationBuilder,
@@ -321,7 +323,8 @@ internal static class SparseChangeSetEmitter
                     members,
                     dialect,
                     modelType,
-                    ignoredSettablePropertyNames
+                    ignoredSettablePropertyNames,
+                    payloadJsonPocos: payloadJsonPocos
                 );
             }
         }

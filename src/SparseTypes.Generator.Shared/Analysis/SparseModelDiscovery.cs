@@ -1025,17 +1025,35 @@ internal static class SparseModelDiscovery
                 config,
                 cancellationToken
             );
+            var payloadJsonPocos = CollectPromotedPayloadJsonPocos(
+                promotedMembers,
+                config,
+                cancellationToken
+            );
             result.Add(
                 new SparsePromotedModel(
                     CreateModelInfo(promoted, string.Empty, config, cancellationToken),
                     memberModels,
                     pocoCloneModels,
                     structuralModels,
-                    readOnlyViewModels
+                    readOnlyViewModels,
+                    payloadJsonPocos
                 )
             );
         }
 
         return result.ToImmutable();
+    }
+
+    private static ImmutableArray<SparsePayloadJsonPocoModel> CollectPromotedPayloadJsonPocos(
+        ImmutableArray<SparseSymbolMemberModel> members,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!SparsePayloadJsonPocoDiscovery.IsEnabledFor(config))
+            return ImmutableArray<SparsePayloadJsonPocoModel>.Empty;
+        var (pocos, _) = SparsePayloadJsonPocoDiscovery.Collect(members, config, cancellationToken);
+        return pocos;
     }
 }

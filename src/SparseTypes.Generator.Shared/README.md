@@ -138,11 +138,24 @@ resolver instead of emitting a second wire codec, and it carries no
 `EditorBrowsable` hiding while the nested resolver, converter, and DTO
 container stay hidden. The resolver supplies trim-safe `JsonTypeInfo` metadata
 for the payload envelope without a source-generated context, so primitive
-endpoint values need no extra registration. Custom value shapes still resolve
-through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver
-with a source-generated context declared next to the models for those types. Only
+for the payload envelope without a source-generated context, so primitive
+endpoint values need no extra registration. Ordinary custom value types
+reachable from endpoints additionally get generated trim-safe leaf codecs
+(public classes and structs with an accessible constructor and public
+serializable properties, including nested objects, collections, and arrays),
+so they need no registration either. Only shapes outside the leaf contract
+(polymorphic members, custom converters, extension data, and other
+`UnsupportedPayloadJsonPoco` shapes) still resolve through
+`JsonSerializerOptions.GetTypeInfo`; combine the generated resolver with a
+source-generated context declared next to the models for those types. Only
 custom shapes need entries; primitives, enums, and collections are covered by
-generated fast paths. A namespace member already named `ModelJson` fails the
+generated fast paths. The leaf-codec models travel through
+`SparseGenerationAnalysis.PayloadJsonPocos`
+(`SparsePromotedModel.PayloadJsonPocos` for promoted models); pass them from
+analysis into `SparsePerModelEmitter.BuildSurface`/`BuildSplitSurface` (or
+`SparseFragmentEmitter.BuildSource`/`BuildSplitSource`) so payload emission can
+use them. The parameters default to empty, keeping products that ignore them
+byte-identical. A namespace member already named `ModelJson` fails the
 model with the configured `GeneratedNameCollision` diagnostic instead of
 emitting a duplicate type.
 

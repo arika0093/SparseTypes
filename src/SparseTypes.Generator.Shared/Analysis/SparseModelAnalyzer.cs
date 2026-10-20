@@ -218,6 +218,12 @@ internal static class SparseModelAnalyzer
             config,
             cancellationToken
         );
+        var (payloadJsonPocos, payloadJsonPocoDiagnostics) = CollectPayloadJsonPocos(
+            members,
+            config,
+            cancellationToken
+        );
+        diagnostics.AddRange(payloadJsonPocoDiagnostics);
         var capabilityDiagnostics = ImmutableArray<SparseGeneratorDiagnostic>.Empty;
         if (
             !model.IsValueType
@@ -245,8 +251,28 @@ internal static class SparseModelAnalyzer
             // diagnostic is advisory: warnings still report while generating.
             diagnostics.ToImmutable().AddRange(capabilityDiagnostics),
             promotedModels,
-            readOnlyViewModels
+            readOnlyViewModels,
+            payloadJsonPocos
         );
+    }
+
+    private static (
+        ImmutableArray<SparsePayloadJsonPocoModel> Pocos,
+        ImmutableArray<SparseGeneratorDiagnostic> Diagnostics
+    ) CollectPayloadJsonPocos(
+        ImmutableArray<SparseSymbolMemberModel> members,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        // Non-JSON products skip the traversal entirely: no codecs, no
+        // diagnostics, byte-identical output.
+        if (!SparsePayloadJsonPocoDiscovery.IsEnabledFor(config))
+            return (
+                ImmutableArray<SparsePayloadJsonPocoModel>.Empty,
+                ImmutableArray<SparseGeneratorDiagnostic>.Empty
+            );
+        return SparsePayloadJsonPocoDiscovery.Collect(members, config, cancellationToken);
     }
 
     private static SparseGenerationAnalysis Failure(

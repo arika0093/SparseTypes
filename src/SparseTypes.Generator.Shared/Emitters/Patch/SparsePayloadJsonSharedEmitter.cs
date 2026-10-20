@@ -168,6 +168,12 @@ internal static class SparsePayloadJsonSharedEmitter
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueInfo<TValue>(global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.AppendLineAt(2, "{");
+        if (SparsePayloadJsonPocoEmitter.HasPocos(context))
+        {
+            code.AppendLineAt(3, "var poco = GetPocoInfo<TValue>(options);");
+            code.AppendLineAt(3, "if (poco is not null) return poco;");
+        }
+
         code.AppendLineAt(
             3,
             "try { return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue)); }"
@@ -177,8 +183,8 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLineAt(
             4,
             "throw new global::System.InvalidOperationException(\"The generated payload resolver requires JsonTypeInfo metadata for value type '\" + typeof(TValue) + \"'. Combine "
-                + HelperResolverReference(context)
-                + " with a source-generated context for custom value types.\", exception);"
+                + context.ResolverReference
+                + " with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception);"
         );
         code.AppendLineAt(3, "}");
         code.AppendLineAt(2, "}");
@@ -291,16 +297,5 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine();
         SparseJsonScalarShapes.AppendScalarHelpers(code, 2, "TValue");
         SparseJsonScalarShapes.AppendMapKeyHelpers(code, 2);
-    }
-
-    private static string HelperResolverReference(PayloadJsonEmissionContext context)
-    {
-        // The top-level ModelJson helper is the documented composition entry
-        // point; point custom-type failures at it instead of the nested
-        // resolver instance it delegates to.
-        var qualified = context.ModelType;
-        var dot = qualified.LastIndexOf('.');
-        var simple = dot >= 0 ? qualified.Substring(dot + 1) : qualified;
-        return simple + "Json.Resolver";
     }
 }

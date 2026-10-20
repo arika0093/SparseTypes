@@ -290,7 +290,8 @@ internal sealed record SparseDiagnosticIdMap
         string UnknownProductMember = "SPF029",
         string InvalidComparisonStrategy = "SPF030",
         string InvalidTemporaryKeyShape = "SPF031",
-        string TemporaryKeyInitializer = "SPF032"
+        string TemporaryKeyInitializer = "SPF032",
+        string UnsupportedPayloadJsonPoco = "SPF036"
     )
     {
         this.MustBePartial = MustBePartial;
@@ -317,6 +318,7 @@ internal sealed record SparseDiagnosticIdMap
         this.InvalidComparisonStrategy = InvalidComparisonStrategy;
         this.InvalidTemporaryKeyShape = InvalidTemporaryKeyShape;
         this.TemporaryKeyInitializer = TemporaryKeyInitializer;
+        this.UnsupportedPayloadJsonPoco = UnsupportedPayloadJsonPoco;
     }
 
     public string MustBePartial { get; init; }
@@ -372,6 +374,9 @@ internal sealed record SparseDiagnosticIdMap
 
     /// <summary>Diagnostic ID for an explicit initializer on a temporary-identity property.</summary>
     public string TemporaryKeyInitializer { get; init; }
+
+    /// <summary>Diagnostic ID for a custom leaf type without generated payload JSON metadata.</summary>
+    public string UnsupportedPayloadJsonPoco { get; init; }
 }
 
 internal sealed record SparseRuntimeDialect

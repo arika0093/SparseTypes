@@ -408,7 +408,8 @@ internal static class SparseFragmentPatchEmitter
         SharedIndentedBuilder? implementationBuilder = null,
         SparseOperationTarget? target = null,
         bool canApplyChangeSetInPlace = false,
-        bool modelIsReferenceType = true
+        bool modelIsReferenceType = true,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -536,7 +537,8 @@ internal static class SparseFragmentPatchEmitter
                 implementationNamespace,
                 implementationBuilder,
                 target,
-                modelIsReferenceType
+                modelIsReferenceType,
+                payloadJsonPocos
             );
         }
     }

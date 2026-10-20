@@ -25,7 +25,8 @@ internal static class SparseFragmentEmitter
             SharedIndentedBuilder,
             SparseModelInfo,
             ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null
+        >? appendProductExtensions = null,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         return BuildSplitSource(
@@ -38,7 +39,8 @@ internal static class SparseFragmentEmitter
             bclHashSetSupportsCapacity,
             cancellationToken,
             config,
-            appendProductExtensions
+            appendProductExtensions,
+            payloadJsonPocos
         ).Surface;
     }
 
@@ -58,7 +60,8 @@ internal static class SparseFragmentEmitter
             SharedIndentedBuilder,
             SparseModelInfo,
             ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null
+        >? appendProductExtensions = null,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         return BuildSourceInternal(
@@ -71,7 +74,8 @@ internal static class SparseFragmentEmitter
             bclHashSetSupportsCapacity,
             cancellationToken,
             config,
-            appendProductExtensions
+            appendProductExtensions,
+            payloadJsonPocos
         );
     }
 
@@ -112,7 +116,8 @@ internal static class SparseFragmentEmitter
             bclHashSetSupportsCapacity,
             cancellationToken,
             config,
-            appendProductExtensions: null
+            appendProductExtensions: null,
+            payloadJsonPocos: promoted.PayloadJsonPocos
         );
     }
 
@@ -231,7 +236,8 @@ internal static class SparseFragmentEmitter
             SharedIndentedBuilder,
             SparseModelInfo,
             ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions
+        >? appendProductExtensions,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -623,7 +629,8 @@ internal static class SparseFragmentEmitter
                 originEmitter: originEmitter,
                 builderContainer: operationContainer,
                 model: model,
-                config: config
+                config: config,
+                payloadJsonPocos: payloadJsonPocos
             );
             // Stage 4: moved algorithms live in the operations class in the
             // Keep each model's hint distinct while using the same source file.
@@ -865,7 +872,8 @@ internal static class SparseFragmentEmitter
         SparseFragmentOriginEmitter? originEmitter = null,
         string? builderContainer = null,
         SparseModelInfo? model = null,
-        SparseGeneratorConfig? config = null
+        SparseGeneratorConfig? config = null,
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         SparseFragmentCoreEmitter.AppendDeclaration(
@@ -1000,7 +1008,8 @@ internal static class SparseFragmentEmitter
             implementationBuilder,
             operationTarget,
             canApplyChangeSetInPlace,
-            modelIsReferenceType
+            modelIsReferenceType,
+            payloadJsonPocos
         );
         if (features.EmitChangeSet)
         {
