@@ -15,6 +15,7 @@ builder.Services.AddDbContext<SampleDbContext>(options =>
 );
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
 builder.Services.AddOpenApi();
+
 // Register every payload whose types can appear in the document: the lines
 // reference OrderLineDto members through the keyed item wrapper.
 builder.Services.AddSparseOpenApi<OrderDto.ChangePayload>();
@@ -58,6 +59,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.MapGet("/orders/{id:int}", GetOrderAsync);
+app.MapPost("/orders", CreateOrderAsync);
 app.MapPut("/orders/{id:int}", UpdateOrderAsync);
 app.MapGet("/health", () => Results.Ok());
 app.MapOpenApi();
@@ -67,6 +69,38 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = string.Empty;
 });
 app.Run();
+
+/// <summary>Creates a new order with placeholder values.</summary>
+static async Task<IResult> CreateOrderAsync(
+    SampleDbContext db,
+    ISparseEntityMapper<OrderEntity, OrderDto> mapper,
+    ILogger<Program> logger,
+    CancellationToken cancellationToken
+)
+{
+    logger.LogInformation("Creating a new order with placeholder values");
+    var entity = new OrderEntity
+    {
+        CustomerName = "New customer",
+        Notes = null,
+        Code = "new",
+        Address = new AddressEntity { Street = string.Empty, City = string.Empty },
+        Lines =
+        [
+            new OrderLineEntity
+            {
+                Quantity = 1,
+                UnitPrice = 100m,
+                SortOrder = 0,
+            },
+        ],
+    };
+    db.Orders.Add(entity);
+    await db.SaveChangesAsync(cancellationToken);
+
+    logger.LogInformation("Created order {OrderId}", entity.Id);
+    return Results.Created($"/orders/{entity.Id}", mapper.ToDto(db, entity));
+}
 
 static async Task<IResult> GetOrderAsync(
     int id,

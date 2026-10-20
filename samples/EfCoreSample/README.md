@@ -15,9 +15,10 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 - EfCoreSample.Client: WPF order editor and edit-session showcase. The form
   binds to the live edit session's observable proxy with changed-field
   highlighting and read-only gray cells; toolbar commands cover load,
-  server refresh, undo/redo with history, save, and reset. Save ships a
-  sparse change payload, and overlapping edits open a conflict dialog
-  that resolves each path to the submitted or the server value.
+  create, server refresh, undo/redo with history, save, payload preview,
+  and reset. Save ships a sparse change payload, and overlapping edits
+  open a conflict dialog that resolves each path to the submitted or the
+  server value. The change count opens a path/before/after table.
 - EfCoreSample.AppHost: Aspire host wiring PostgreSQL (with pgweb), the
   server, and the client.
 
@@ -45,7 +46,9 @@ defaults shown above.
 
 ## Update contract
 
-`PUT /orders/{id}` takes a change payload body and requires the version
+`POST /orders` creates an order with placeholder values and returns `201`
+with the persisted order and its `Location`. `PUT /orders/{id}` takes a
+change payload body and requires the version
 observed by the client as the `If-Match` header:
 
 ```text

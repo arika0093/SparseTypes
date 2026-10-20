@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using EfCoreSample.Contracts;
@@ -90,8 +89,8 @@ public partial class ConflictDialog : Window, INotifyPropertyChanged
             Path = conflict.Path;
             PathText = conflict.PathText;
             KindText = conflict.Kind.ToString();
-            MineText = FormatValue(conflict.LocalValue);
-            ServerText = FormatValue(conflict.CurrentValue);
+            MineText = ChangeValueText.Format(conflict.LocalValue);
+            ServerText = ChangeValueText.Format(conflict.CurrentValue);
         }
 
         /// <summary>Gets the typed path used for the resolution decision.</summary>
@@ -125,26 +124,6 @@ public partial class ConflictDialog : Window, INotifyPropertyChanged
 
         private void OnPropertyChanged([CallerMemberName] string? name = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-        private static string FormatValue(Optional<object?> optional)
-        {
-            if (!optional.IsPresent)
-            {
-                return "(no value)";
-            }
-
-            return optional.Value switch
-            {
-                null => "(empty)",
-                string text => text.Length == 0 ? "(empty)" : text,
-                Guid guid => guid.ToString(),
-                int number => number.ToString(CultureInfo.InvariantCulture),
-                decimal number => number.ToString(CultureInfo.InvariantCulture),
-                OrderLineDto line =>
-                    $"Id={line.Id} Qty={line.Quantity} @ {line.UnitPrice.ToString(CultureInfo.InvariantCulture)}",
-                var other => other.ToString() ?? "(empty)",
-            };
-        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? name = null) =>

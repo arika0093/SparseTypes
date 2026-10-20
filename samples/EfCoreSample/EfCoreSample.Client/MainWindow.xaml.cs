@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -126,6 +128,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsIdle));
                 OnPropertyChanged(nameof(CanReset));
                 OnPropertyChanged(nameof(CanRemoveLine));
+                OnPropertyChanged(nameof(CanInspectChanges));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -133,6 +136,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>Gets whether pending edits can be discarded.</summary>
     public bool CanReset => HasSession && IsIdle && (Session?.HasChanges == true);
+
+    /// <summary>Gets whether the pending payload and change table can be viewed.</summary>
+    public bool CanInspectChanges => HasSession && IsIdle && (Session?.HasChanges == true);
 
     /// <summary>Gets whether the selected line can be removed right now.</summary>
     public bool CanRemoveLine => HasSession && IsIdle && SelectedLineIndex >= 0;
@@ -300,6 +306,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LinesHeader = session is null ? "Lines" : $"Lines ({session.Observable.Lines.Count})";
         OnPropertyChanged(nameof(CanReset));
         OnPropertyChanged(nameof(CanRemoveLine));
+        OnPropertyChanged(nameof(CanInspectChanges));
         CommandManager.InvalidateRequerySuggested();
     }
 
@@ -439,6 +446,95 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Status = "Pending edits discarded.";
         RefreshChangeState();
         OnHistoryStateChanged();
+    }
+
+    private async void OnNewClick(object sender, RoutedEventArgs e)
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        Status = "Creating a new order.";
+        try
+        {
+            var created = await PostOrderAsync();
+            if (created is not null)
+            {
+                AdoptOrder(created, $"Created order {OrderIdText.Trim()} with placeholder values.");
+            }
+        }
+        catch (HttpRequestException exception)
+        {
+            Status = $"Could not reach the server: {exception.Message}";
+        }
+        catch (InvalidOperationException exception)
+        {
+            Status = exception.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async void OnPayloadClick(object sender, RoutedEventArgs e)
+    {
+        var session = Session;
+        if (session is null || IsBusy)
+        {
+            return;
+        }
+
+        var submitted = session.CreateChangeSet();
+        if (submitted.IsEmpty)
+        {
+            Status = "No changes to show.";
+            return;
+        }
+
+        string wire;
+        using (var content = JsonContent.Create(submitted.ToPayload()))
+        {
+            wire = await content.ReadAsStringAsync();
+        }
+
+        var pretty = JsonSerializer.Serialize(
+            JsonDocument.Parse(wire),
+            new JsonSerializerOptions { WriteIndented = true }
+        );
+        new PayloadDialog(pretty) { Owner = this }.ShowDialog();
+    }
+
+    private void OnShowChangesClick(object sender, RoutedEventArgs e)
+    {
+        var session = Session;
+        if (session is null || IsBusy)
+        {
+            return;
+        }
+
+        var rows = SparseChangeRowProjection.Project(
+            session.CreateChangeSet(),
+            new SparseChangeRowOptions
+            {
+                FormatValue = static value => ChangeValueText.Format(value),
+            }
+        );
+        if (rows.Count == 0)
+        {
+            Status = "No changes to show.";
+            return;
+        }
+
+        new ChangesDialog(
+            $"Pending edits for order {OrderIdText.Trim()} ({rows.Count} rows).",
+            rows
+        )
+        {
+            Owner = this,
+        }.ShowDialog();
     }
 
     private void OnAddLineClick(object sender, RoutedEventArgs e)
@@ -718,6 +814,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Status = $"Could not load order {orderId}: {exception.Message}";
             return null;
         }
+    }
+
+    private async Task<OrderDto?> PostOrderAsync()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "orders");
+        using var response = await _client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var created =
+            await response.Content.ReadFromJsonAsync<OrderDto>()
+            ?? throw new InvalidOperationException("The server returned no order.");
+        // The DTO carries no identity; the route id comes from the 201 location.
+        var segment = response.Headers.Location?.OriginalString.Split('/').LastOrDefault();
+        if (segment is null || !int.TryParse(segment, out var createdId))
+        {
+            throw new InvalidOperationException("The server did not return the new order id.");
+        }
+
+        OrderIdText = createdId.ToString(CultureInfo.InvariantCulture);
+        return created;
     }
 
     private async Task<HttpResponseMessage> PutAsync(OrderDto.ChangePayload payload, Guid version)

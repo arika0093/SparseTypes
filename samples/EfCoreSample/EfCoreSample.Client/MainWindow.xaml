@@ -4,8 +4,8 @@
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="clr-namespace:EfCoreSample.Client"
   Title="EfCoreSample Order Editor"
-  Width="980"
-  Height="720"
+  Width="880"
+  Height="620"
   FontSize="14"
 >
   <Window.Resources>
@@ -46,7 +46,7 @@
         Width="70"
         Margin="6,0,0,0"
         VerticalAlignment="Center"
-        Text="{Binding OrderIdText, UpdateSourceTrigger=PropertyChanged}"
+        Text="{Binding OrderIdText, UpdateSourceTrigger=LostFocus}"
       />
       <Button
         Margin="8,0,0,0"
@@ -72,6 +72,20 @@
         Content="Save (Ctrl+S)"
       />
       <Button Padding="12,3" Click="OnResetClick" Content="Reset" IsEnabled="{Binding CanReset}" />
+      <Button
+        Margin="8,0,0,0"
+        Padding="12,3"
+        Click="OnNewClick"
+        Content="New"
+        IsEnabled="{Binding IsIdle}"
+      />
+      <Button
+        Margin="8,0,0,0"
+        Padding="12,3"
+        Click="OnPayloadClick"
+        Content="Payload"
+        IsEnabled="{Binding CanInspectChanges}"
+      />
       <ProgressBar
         Width="120"
         Margin="12,0,0,0"
@@ -85,7 +99,16 @@
         <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
       </StatusBarItem>
       <StatusBarItem HorizontalAlignment="Right">
-        <TextBlock FontWeight="Bold" Text="{Binding ChangeSummary}" />
+        <Button
+          Background="Transparent"
+          BorderThickness="0"
+          Click="OnShowChangesClick"
+          Content="{Binding ChangeSummary}"
+          Cursor="Hand"
+          FontWeight="Bold"
+          Foreground="DarkBlue"
+          IsEnabled="{Binding CanInspectChanges}"
+        />
       </StatusBarItem>
     </StatusBar>
 
@@ -121,7 +144,7 @@
             Grid.Column="1"
             Margin="0,4,12,4"
             Background="{Binding NameBrush}"
-            Text="{Binding Session.Observable.Name, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.Name, UpdateSourceTrigger=LostFocus}"
           />
           <TextBlock
             Grid.Row="0"
@@ -135,7 +158,7 @@
             Grid.Column="3"
             Margin="0,4,0,4"
             Background="{Binding CodeBrush}"
-            Text="{Binding Session.Observable.Code, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.Code, UpdateSourceTrigger=LostFocus}"
           />
 
           <TextBlock
@@ -150,7 +173,7 @@
             Grid.Column="1"
             Margin="0,4,12,4"
             Background="{Binding NotesBrush}"
-            Text="{Binding Session.Observable.Notes, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.Notes, UpdateSourceTrigger=LostFocus}"
           />
           <TextBlock
             Grid.Row="1"
@@ -164,7 +187,7 @@
             Grid.Column="3"
             Margin="0,4,0,4"
             Background="{Binding ShipCityBrush}"
-            Text="{Binding Session.Observable.ShipCity, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.ShipCity, UpdateSourceTrigger=LostFocus}"
           />
 
           <TextBlock
@@ -179,7 +202,7 @@
             Grid.Column="1"
             Margin="0,4,12,4"
             Background="{Binding StreetBrush}"
-            Text="{Binding Session.Observable.Address.Street, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.Address.Street, UpdateSourceTrigger=LostFocus}"
           />
           <TextBlock
             Grid.Row="2"
@@ -193,7 +216,7 @@
             Grid.Column="3"
             Margin="0,4,0,4"
             Background="{Binding CityBrush}"
-            Text="{Binding Session.Observable.Address.City, UpdateSourceTrigger=PropertyChanged}"
+            Text="{Binding Session.Observable.Address.City, UpdateSourceTrigger=LostFocus}"
           />
         </Grid>
       </GroupBox>
