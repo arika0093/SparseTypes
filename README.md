@@ -10,7 +10,10 @@ SparseTypes generates change-tracking, diffing, patching, and merging companion 
 
 ## Overview
 
-When you assign `settings.Theme = "dark"` on an ordinary C# object, the object holds only the latest value. You cannot tell which properties were modified, what the previous value was, whether a `null` value was set intentionally or left out of a request, or how to merge that edit when another user updates `settings.DisplayName` at the same time.
+When you assign `settings.Theme = "dark"` on an ordinary C# object, the object holds only the latest value.
+You cannot tell which properties were modified, what the previous value was,
+whether a `null` value was set intentionally or left out of a request,
+or how to merge that edit when another user updates `settings.DisplayName` at the same time.
 
 Adding `[SparseModel]` to a `partial` class generates companion types that record and apply those changes without reflection or manual DTO copies:
 
@@ -47,21 +50,6 @@ Console.WriteLine(changes.Theme.Before.Value); // light
 Console.WriteLine(changes.Theme.After.Value);  // dark
 ```
 
-You can adopt only the parts you need. Use `EditSession` in a desktop or Blazor form without changing your API, use `ChangePayload` and `RebaseOnto` in a Web API without UI sessions, or use `Fragment` and `Patch` for layered configuration in a console service.
-
-### Generated types and roles
-
-Each `[SparseModel]` type `T` gets companion types tailored to a specific role in the change lifecycle:
-
-| Type | Role | Typical use case |
-| --- | --- | --- |
-| `T` | Ordinary C# model holding current values | Application domain logic, UI display, and database entities |
-| `EditSession` (`T.CreateEditSession()`) | Tracks live mutations against an in-memory baseline | Form dirty state, `RevertChanges()`, and opt-in Undo/Redo (`EnableHistory()`) |
-| `T.ChangeSet` | Immutable before-to-after transition (`Before` and `After`) | Diff inspection, `Invert()`, three-way `RebaseOnto()`, and audit logs |
-| `T.ChangePayload` | Serializable wire envelope for `System.Text.Json` | Sending a `ChangeSet` or `Patch` across HTTP or message queues |
-| `T.Fragment` | Partial snapshot where each property is `Present(value)`, `Present(null)`, or `Missing` | Layered configuration (`lower.Merge(higher)`) and partial state snapshots |
-| `T.Patch` | Baseline-free update command (`Set(value)`, `Set(null)`, `Remove()`, or untouched) | Applying blind updates (`ApplyTo`) or clearing overrides without prior state |
-
 ## Install
 
 ```shell
@@ -71,10 +59,10 @@ dotnet add package SparseTypes
 The package bundles the Roslyn source generator, so building the project generates all companion types automatically.
 
 ## Quick Start
+### Simple example
 
-With the .NET 10 SDK or later, you can run a complete single-file program with `dotnet run --file`. On the .NET 8 SDK, place the same code in `Program.cs` inside a standard console project (`dotnet new console`).
-
-`CreateEditSession()` retains a snapshot of the initial values as its baseline while `session.Observable` writes directly to the `settings` instance.
+With the .NET 10 SDK or later, you can run a complete single-file program.
+Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`. 
 
 <!-- sample: readme-quickstart -->
 ```csharp
@@ -124,13 +112,29 @@ public partial class DatabaseSettings
 ```
 <!-- /sample -->
 
-Save the file as `quickstart.cs` and run it:
+### What happened?
 
-```shell
-dotnet run --file quickstart.cs
-```
+Let's walk through it step by step.
 
-Calling `session.RevertChanges()` restores the baseline values into `settings`. Calling `session.AcceptChanges()` advances the in-memory baseline to the current values without performing network or database I/O. If you need an isolated copy before editing, call `settings.DeepClone()` or `session.Fork()` (see [Work with an edit session](docs/how-to/edit-session.md)).
+1. Start an edit session with `CreateEditSession`.
+    * The starting values are captured internally at this point.
+1. Update values through `session.Observable`.
+    * Editing through this object raises `INotifyPropertyChanged` notifications.
+    * This makes it work as-is with UI frameworks such as WPF.
+1. Collect the differences with `CreateChangeSet`.
+    * For each value you can check whether it changed (`changes.X.IsChanged`) and, if so, get the before/after values (`changes.X.Before|After.Value`).
+    * You can also collect all changed locations as an array (`changes.EnumerateChanges`).
+1. Revert changes with `RevertChanges`.
+    * This rolls back to the values at the start (step 1).
+    * You can also accept changes (`AcceptChanges`).
+
+Of course, there is much more that didn't fit here! For example...
+
+* [Undo/redo](docs/how-to/edit-session.md#record-undo-and-redo-history) user changes.
+* [Create a fork](docs/how-to/edit-session.md#branch-speculative-edits-with-fork) for tentative changes. Once done, merge it or discard it.
+* [Reload from the latest server state](docs/how-to/edit-session.md#reload-with-fresh-server-state) (without discarding changes!)
+* Automatically apply these changes to EF Core [entities](docs/how-to/efcore-mapping.md).
+* By [declaring key columns in advance](docs/explanation/keyed-collections.md), even complex cases like arrays of arrays of classes work without issues.
 
 ### Wire transport and concurrent rebase
 
@@ -146,56 +150,12 @@ var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChang
 var rebased = incoming.RebaseOnto(updated);
 ```
 
-`RebaseOnto` compares the client's `Before` values against the server's current state. Edits to different properties merge automatically, while competing edits to the same property return structured conflict descriptions instead of silently overwriting data.
+`RebaseOnto` works like `git rebase`: it reports conflicts where they occur and merges everything else automatically.
+With [`ChangePayload`](docs/reference/change-payload.md) and [`Rebase`](docs/explanation/rebase.md), partial changes fit naturally even in environments where the client and server are separated.
 
-## Choose Your Path
+## Learn more
 
-Start with the step-by-step tutorials or jump directly to the guide that matches your task. See the [Documentation Index](docs/README.md) for the full map.
-
-### Step-by-step tutorials
-1. [**Tutorial 1: First edit and diff**](docs/tutorial/first-sparse-edit.md): Track live edits with `EditSession`, inspect `ChangeSet` transitions, and revert changes.
-2. [**Tutorial 2: Send changes and check conflicts**](docs/tutorial/send-and-rebase-changes.md): Serialize `ChangePayload` over JSON, merge concurrent edits, and detect conflicts with `RebaseOnto`.
-3. [**Tutorial 3: Layer settings and remove overrides**](docs/tutorial/layer-and-reset-settings.md): Merge configuration layers with `Fragment` and clear overrides with `Patch`.
-
-### By use case
-* **UI forms and draft tracking**:
-  * [Work with an edit session](docs/how-to/edit-session.md): Capture snapshots before saving, acknowledge persisted changes, and use `Reload`, `Fork`, or child sessions.
-  * [Blazor edit form](docs/how-to/blazor-edit-form.md) and [Blazor headless components](docs/how-to/blazor-headless-components.md): Bind inputs, validate fields, and display conflicts in Blazor.
-  * [Coordinate multi-session submissions](docs/how-to/edit-session-groups.md): Submit and acknowledge changes across multiple models together.
-* **Web APIs, partial updates, and persistence**:
-  * [Accept partial updates](docs/how-to/partial-updates.md): Handle baseline-free `Patch` commands and baseline-aware `ChangeSet` payloads in HTTP endpoints.
-  * [EF Core mapping](docs/how-to/efcore-mapping.md): Apply `ChangeSet` transitions to tracked EF Core entities and configure concurrency tokens.
-  * [ChangeSet rebase](docs/explanation/rebase.md): Understand three-way comparison outcomes and persistence concurrency control.
-* **Layered configuration**:
-  * [Layer settings](docs/how-to/layered-settings.md): Combine default, environment, and user fragments and materialize the effective model.
-  * [Merge strategies](docs/explanation/merge-strategies.md): Configure deep merge, collection append, set union, and custom equality comparers.
-
-## Try It in the Browser
-
-The [**SparseTypes Playground**](https://arika0093.github.io/SparseTypes/) runs interactive examples in WebAssembly.
-
-* **Start here (Core concepts)**:
-  * [Case 1: Layer merge](https://arika0093.github.io/SparseTypes/case-1): Verify how missing properties fall through lower configuration layers while explicit `null` overrides them.
-  * [Case 2: Typed patch](https://arika0093.github.io/SparseTypes/case-2): Verify how `Set`, `Set(null)`, and `Remove()` update individual fields without a baseline.
-  * [Case 4: Edit session and Undo/Redo](https://arika0093.github.io/SparseTypes/case-4): Verify live dirty tracking, revert, and opt-in Undo/Redo history on a form.
-* **Advanced scenarios (Collections, concurrency, and multi-section forms)**:
-  * [Case 3: Keyed list](https://arika0093.github.io/SparseTypes/case-3): Verify identity-based list reordering, insertion, and item editing with `[SparseKey]`.
-  * [Case 5: EF Core mapping and Rebase](https://arika0093.github.io/SparseTypes/case-5): Verify three-way rebase and conflict reporting when another user saves while your edit is in flight.
-  * [Case 6: Enterprise master editing](https://arika0093.github.io/SparseTypes/case-6): Verify independent section save scopes and sortable work steps on a complex record.
-
-## Reference and Architecture
-
-* **Explanation**: [Fragments and patches](docs/explanation/fragments-and-patches.md) | [Edit sessions and state boundaries](docs/explanation/edit-sessions.md) | [Keyed collections](docs/explanation/keyed-collections.md) | [Cloning and ownership](docs/explanation/cloning-and-ownership.md) | [UI frameworks](docs/explanation/ui-frameworks.md) | [Edit-session groups](docs/explanation/edit-session-groups.md)
-* **API reference**: [Index](docs/reference/README.md) | [Package APIs](docs/reference/README.md#package-apis) | [Generated APIs](docs/reference/README.md#generated-apis)
-* **Specifications**: [Model shapes](docs/reference/model-shapes.md) | [ChangePayload wire format](docs/reference/change-payload.md) | [Edit session state & observers](docs/reference/edit-session-state.md) | [Descriptors](docs/reference/descriptors.md) | [EF Core mapping reference](docs/reference/efcore-mapping.md) | [Diagnostics (`SPF001`-`SPF035`)](docs/reference/analyzer.md)
-
-## Packages and Compatibility
-
-| Package | Target frameworks | Description |
-| --- | --- | --- |
-| `SparseTypes` | `netstandard2.0` (.NET 6+, .NET 8+, .NET 10+, .NET Framework 4.7.2+) | Core runtime and Roslyn source generator (requires Roslyn 4.3.1+ and C# 9.0+). Reflection-free and Native AOT verified. Emits `System.Text.Json` payload support when `System.Text.Json` is referenced. |
-| `SparseTypes.Blazor` | `net8.0`, `net10.0` | `EditContext` integration, validation stores, and headless field/collection components for Blazor. |
-| `SparseTypes.EntityFrameworkCore` | `net10.0` | `ChangeSet` to EF Core `DbContext` entity mapping and navigation synchronization. |
+See the [Documentation Index](docs/README.md) for the full map.
 
 ## License
 

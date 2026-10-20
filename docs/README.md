@@ -17,6 +17,21 @@ Start here to learn SparseTypes step by step in a console application:
 2. [Send changes as JSON and rebase concurrent edits](tutorial/send-and-rebase-changes.md): Serialize a `ChangePayload` over the wire, merge non-overlapping concurrent edits, and inspect structured conflicts.
 3. [Layer settings and reset overrides with Fragment and Patch](tutorial/layer-and-reset-settings.md): Merge multi-layer configuration fragments and use `Patch.Remove()` to fall back to lower layers.
 
+## By use case
+### UI forms and draft tracking
+* [Work with an edit session](docs/how-to/edit-session.md): Capture snapshots before saving, acknowledge persisted changes, and use `Reload`, `Fork`, or child sessions.
+* [Blazor edit form](docs/how-to/blazor-edit-form.md) and [Blazor headless components](docs/how-to/blazor-headless-components.md): Bind inputs, validate fields, and display conflicts in Blazor.
+* [Coordinate multi-session submissions](docs/how-to/edit-session-groups.md): Submit and acknowledge changes across multiple models together. 
+
+### Web APIs, partial updates, and persistence
+* [Accept partial updates](docs/how-to/partial-updates.md): Handle baseline-free `Patch` commands and baseline-aware `ChangeSet` payloads in HTTP endpoints.
+* [EF Core mapping](docs/how-to/efcore-mapping.md): Apply `ChangeSet` transitions to tracked EF Core entities and configure concurrency tokens.
+* [ChangeSet rebase](docs/explanation/rebase.md): Understand three-way comparison outcomes and persistence concurrency control.
+
+### Layered configuration
+* [Layer settings](docs/how-to/layered-settings.md): Combine default, environment, and user fragments and materialize the effective model.
+* [Merge strategies](docs/explanation/merge-strategies.md): Configure deep merge, collection append, set union, and custom equality comparers.
+
 ## How-to Guides
 
 Task-oriented guides for UI binding, API endpoints, and persistence:
