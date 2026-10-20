@@ -41,19 +41,29 @@ It is a **source-only package** compiled into the consuming generator, and downs
 - Update `src/SparseTypes.Generator.Shared/README.md` when consumer-facing requirements change.
 
 ## Writing documentation
+### Common rules
 
 - Before writing or editing any documentation or prose (README, `docs/`, XML docs, issue/PR text), you **MUST** read the writing guideline first.
   - https://github.com/blader/humanizer/blob/main/SKILL.md (remove AI writing patterns)
-  - https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d (Japanese technical writing norms)
+  - https://gist.githubusercontent.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d/raw/8f2d57610a73efc97d743c9b0b0ecb1002e09fa4/SKILL.md (Japanese technical writing norms)
   - https://github.com/effector/patronum/blob/main/.cursor/.agents/skills/writing-documentation-with-diataxis/SKILL.md (Diátaxis framework)
   - Do not paraphrase it into this file; follow the original.
 - Apply it to every documentation, apply the same principles.
 - Existing docs are English. Keep the language of the file you edit.
-- Code samples in `README.md` and `docs/*.md` are guarded by `verify-docs-samples.sh` and `verify-sparsetypes-readme.sh` against compile-checked fixtures in `tests/fixtures/consumers/package-sparse-*/`. The single mapping lives in `.github/workflows/scripts/docs-samples-registry.tsv`; discovery covers `README.md` and every `docs/**/*.md`, so a new guide needs no shell edit.
-  - To add a checked sample: 1. wrap the fenced block in `<!-- sample: name -->` ... `<!-- /sample -->`; 2. add the matching `// sample: name` ... `// /sample` region to the canonical fixture and execute it from `Run()` with a `DocsCheck.Require` assertion, so the documented result runs instead of only compiling; 3. add one registry row (`<markdown> TAB <name> TAB <fixture>`). Ids ending in `-model`/`-models` declare shapes and ids ending in `-store` declare supporting stores; both are exercised through the constructing or consuming samples, so every other region needs its own assertion body. JSON wire specimens use `<!-- json-specimen: id -->` ... `<!-- /json-specimen -->` with `// json-specimen: id` regions holding the serializer output in `"""..."""` literals plus a fourth `json-specimen` registry column; they compare as deep JSON (array order significant).
-  - When changing a sample, update the matching fixture too. Unregistered markers, missing fixture regions, unused registry rows, duplicate ids in one file, and changed code all fail the build.
-  - Every ```csharp fence needs a guard: a registered sample marker, or a preceding `<!-- illustrative: reason -->` with a non-empty reason (one marker covers the next runnable fence only). Use the illustrative marker for snippets that must not compile: error illustrations, ellipsized shapes, and excerpts using names defined elsewhere.
-  - `test-check-docs-samples.sh` holds the maintained negative probes for this enforcement; run it after changing the checker or the registry.
+
+### Code samples and checked fixtures
+
+Code samples are paired with compile-checked fixtures to ensure the documentation remains accurate.
+When adding or editing sample code, you must follow these steps:
+
+1. Wrap the sample code in a fenced code block and mark it in the form `<!-- sample: name -->` ... `<!-- /sample -->`.
+2. Add the corresponding code to the matching fixture in the form `// sample: name` ... `// /sample`.
+3. Execute it using `DocsCheck.Require` assertions within the `Run()` method.
+4. Register it in `.github/workflows/scripts/docs-samples-registry.tsv` in the form `<markdown> TAB <name> TAB <fixture>`.
+   - If the ID ends with `-model` or `-models`, declare a Shape.
+   - If the ID ends with `-store`, declare a supported store.
+   - For JSON wire samples, mark them as `<!-- json-specimen: id -->` ... `<!-- /json-specimen -->` and add the serializer output to the corresponding fixture as `// json-specimen: id`.
+5. If you change a sample, you must also update the corresponding fixture.
 
 ## Contributing
 ### Commit Rules
