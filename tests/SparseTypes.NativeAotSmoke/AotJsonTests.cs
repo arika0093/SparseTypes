@@ -235,7 +235,7 @@ public sealed class AotJsonTests
     [Test]
     public async Task EnumEndpointRoundTripsWithSourceGen()
     {
-        // Enum endpoint values resolve through GetTypeInfo metadata.
+        // Enum endpoint values travel as canonical numeric wire values.
         Optional<PayloadRoot.Fragment?> EnumState(AotOrderStatus status) =>
             Optional<PayloadRoot.Fragment?>.Present(
                 PayloadRoot.Fragment.From(

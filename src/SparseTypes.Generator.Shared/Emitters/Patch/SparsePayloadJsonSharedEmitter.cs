@@ -113,23 +113,7 @@ internal static class SparsePayloadJsonSharedEmitter
         );
         code.AppendLineAt(
             5,
-            "else if (typeof(TValue) == typeof(string)) value = (TValue)(object)reader.GetString()!;"
-        );
-        code.AppendLineAt(
-            5,
-            "else if (typeof(TValue) == typeof(int)) value = (TValue)(object)reader.GetInt32();"
-        );
-        code.AppendLineAt(
-            5,
-            "else if (typeof(TValue) == typeof(bool)) value = (TValue)(object)reader.GetBoolean();"
-        );
-        code.AppendLineAt(
-            5,
-            "else if (typeof(TValue) == typeof(global::System.Guid)) value = (TValue)(object)reader.GetGuid();"
-        );
-        code.AppendLineAt(
-            5,
-            "else if (typeof(TValue).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TValue)) == typeof(int)) value = (TValue)global::System.Enum.ToObject(typeof(TValue), reader.GetInt32());"
+            "else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;"
         );
         code.AppendLineAt(
             5,
@@ -174,27 +158,7 @@ internal static class SparsePayloadJsonSharedEmitter
         );
         code.AppendLineAt(
             3,
-            "else if (typeof(TValue) == typeof(string)) writer.WriteStringValue((string)(object)value.Value!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TValue) == typeof(int)) writer.WriteNumberValue((int)(object)value.Value!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TValue) == typeof(bool)) writer.WriteBooleanValue((bool)(object)value.Value!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TValue) == typeof(global::System.Guid)) writer.WriteStringValue(((global::System.Guid)(object)value.Value!).ToString());"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TValue).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TValue)) == typeof(int)) writer.WriteNumberValue((int)(object)value.Value!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueInfo<TValue>(options));"
+            "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueInfo<TValue>(options));"
         );
         code.AppendLineAt(3, "writer.WriteEndObject();");
         code.AppendLineAt(2, "}");
@@ -226,19 +190,11 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLineAt(2, "{");
         code.AppendLineAt(
             3,
-            "if (typeof(TKey) == typeof(string)) return (TKey)(object)reader.GetString()!;"
+            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException(\"Malformed key.\");"
         );
         code.AppendLineAt(
             3,
-            "if (typeof(TKey) == typeof(int)) return (TKey)(object)reader.GetInt32();"
-        );
-        code.AppendLineAt(
-            3,
-            "if (typeof(TKey) == typeof(global::System.Guid)) return (TKey)(object)reader.GetGuid();"
-        );
-        code.AppendLineAt(
-            3,
-            "if (typeof(TKey).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TKey)) == typeof(int)) return (TKey)global::System.Enum.ToObject(typeof(TKey), reader.GetInt32());"
+            "if (TryReadScalar<TKey>(ref reader, out var scalarKey)) return scalarKey!;"
         );
         code.AppendLineAt(
             3,
@@ -253,23 +209,7 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLineAt(2, "{");
         code.AppendLineAt(
             3,
-            "if (typeof(TKey) == typeof(string)) writer.WriteStringValue((string)(object)key!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TKey) == typeof(int)) writer.WriteNumberValue((int)(object)key!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TKey) == typeof(global::System.Guid)) writer.WriteStringValue(((global::System.Guid)(object)key!).ToString());"
-        );
-        code.AppendLineAt(
-            3,
-            "else if (typeof(TKey).IsEnum && global::System.Enum.GetUnderlyingType(typeof(TKey)) == typeof(int)) writer.WriteNumberValue((int)(object)key!);"
-        );
-        code.AppendLineAt(
-            3,
-            "else global::System.Text.Json.JsonSerializer.Serialize(writer, key!, GetValueInfo<TKey>(options));"
+            "if (!TryWriteScalar(writer, key!)) global::System.Text.Json.JsonSerializer.Serialize(writer, key!, GetValueInfo<TKey>(options));"
         );
         code.AppendLineAt(2, "}");
         code.AppendLine();
@@ -349,6 +289,8 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLineAt(3, "writer.WriteEndArray();");
         code.AppendLineAt(2, "}");
         code.AppendLine();
+        SparseJsonScalarShapes.AppendScalarHelpers(code, 2, "TValue");
+        SparseJsonScalarShapes.AppendMapKeyHelpers(code, 2);
     }
 
     private static string HelperResolverReference(PayloadJsonEmissionContext context)

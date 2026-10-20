@@ -143,8 +143,16 @@ internal static class SparseJsonCollectionShapes
         keyName switch
         {
             "global::System.String" => true,
-            "global::System.Int32" => true,
+            "global::System.Char" => true,
             "global::System.Boolean" => true,
+            "global::System.SByte" => true,
+            "global::System.Byte" => true,
+            "global::System.Int16" => true,
+            "global::System.UInt16" => true,
+            "global::System.Int32" => true,
+            "global::System.UInt32" => true,
+            "global::System.Int64" => true,
+            "global::System.UInt64" => true,
             "global::System.Guid" => true,
             _ => false,
         };
@@ -163,6 +171,12 @@ internal static class SparseJsonCollectionShapes
         var element = collection.ElementName;
         var elementNullable = collection.ElementNullable;
         var keyTypeName = collection.KeyName;
+        // Nullable value-type elements need a nullable concrete container so
+        // explicit nulls survive the round-trip instead of defaulting.
+        var storageElement =
+            elementNullable && !element.EndsWith("?", System.StringComparison.Ordinal)
+                ? element + "?"
+                : element;
         code.AppendLineAt(
             2,
             "private static "
@@ -187,7 +201,7 @@ internal static class SparseJsonCollectionShapes
                 "var map = new global::System.Collections.Generic.Dictionary<"
                     + keyTypeName
                     + ", "
-                    + element
+                    + storageElement
                     + ">();"
             );
             code.AppendLineAt(3, "while (reader.Read())");
@@ -211,7 +225,9 @@ internal static class SparseJsonCollectionShapes
             code.AppendLineAt(
                 4,
                 "map.Add("
-                    + KeyFromNameExpression(keyTypeName)
+                    + "ParseMapKey<"
+                    + keyTypeName
+                    + ">(name)"
                     + ", "
                     + ValueReadExpression(element, elementNullable, typeInfoHelper)
                     + ");"
@@ -223,8 +239,8 @@ internal static class SparseJsonCollectionShapes
         {
             var concrete =
                 collection.Shape == SparseJsonCollectionShape.Set
-                    ? "global::System.Collections.Generic.HashSet<" + element + ">"
-                    : "global::System.Collections.Generic.List<" + element + ">";
+                    ? "global::System.Collections.Generic.HashSet<" + storageElement + ">"
+                    : "global::System.Collections.Generic.List<" + storageElement + ">";
             code.AppendLineAt(
                 3,
                 "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;"
@@ -268,7 +284,7 @@ internal static class SparseJsonCollectionShapes
             code.AppendLineAt(3, "{");
             code.AppendLineAt(
                 4,
-                "writer.WritePropertyName(" + KeyToNameExpression(keyTypeName, "entry.Key") + ");"
+                "writer.WritePropertyName(FormatMapKey<" + keyTypeName + ">(entry.Key));"
             );
             code.AppendLineAt(
                 4,
@@ -296,24 +312,13 @@ internal static class SparseJsonCollectionShapes
 
     private static string ValueReadExpression(string element, bool nullable, string typeInfoHelper)
     {
-        var direct = DirectReadExpression(element);
-        if (direct is not null)
-            return nullable
-                ? "reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : "
-                    + direct
-                : "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? throw new global::System.Text.Json.JsonException(\"Malformed collection value.\") : "
-                    + direct
-                    + ")";
-        var boxed =
-            "(typeof("
+        // One shared scalar table serves every collection element: covered
+        // scalars and enums read context-free, anything else resolves through
+        // the converter's options metadata fallback.
+        var scalarOrMetadata =
+            "(TryReadScalar<"
             + element
-            + ").IsEnum && global::System.Enum.GetUnderlyingType(typeof("
-            + element
-            + ")) == typeof(int) ? ("
-            + element
-            + ")global::System.Enum.ToObject(typeof("
-            + element
-            + "), reader.GetInt32()) : global::System.Text.Json.JsonSerializer.Deserialize<"
+            + ">(ref reader, out var scalarElementValue) ? scalarElementValue! : global::System.Text.Json.JsonSerializer.Deserialize<"
             + element
             + ">(ref reader, "
             + typeInfoHelper
@@ -322,10 +327,10 @@ internal static class SparseJsonCollectionShapes
             + ">(options))!)";
         return nullable
             ? "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : "
-                + boxed
+                + scalarOrMetadata
                 + ")"
             : "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? throw new global::System.Text.Json.JsonException(\"Malformed collection value.\") : "
-                + boxed
+                + scalarOrMetadata
                 + ")";
     }
 
@@ -336,19 +341,10 @@ internal static class SparseJsonCollectionShapes
         bool nullable
     )
     {
-        var direct = DirectWriteExpression(element, source);
-        if (direct is not null)
-            return nullable
-                ? "if (" + source + " is null) writer.WriteNullValue(); else " + direct
-                : direct;
-        var boxed =
-            "if (typeof("
-            + element
-            + ").IsEnum && global::System.Enum.GetUnderlyingType(typeof("
-            + element
-            + ")) == typeof(int)) writer.WriteNumberValue((int)(object)"
+        var scalarOrMetadata =
+            "if (!TryWriteScalar(writer, "
             + source
-            + "!); else global::System.Text.Json.JsonSerializer.Serialize(writer, "
+            + "!)) global::System.Text.Json.JsonSerializer.Serialize(writer, "
             + source
             + "!, "
             + typeInfoHelper
@@ -356,54 +352,7 @@ internal static class SparseJsonCollectionShapes
             + element
             + ">(options));";
         return nullable
-            ? "if (" + source + " is null) writer.WriteNullValue(); else " + boxed
-            : boxed;
+            ? "if (" + source + " is null) writer.WriteNullValue(); else " + scalarOrMetadata
+            : scalarOrMetadata;
     }
-
-    private static string? DirectReadExpression(string element) =>
-        element switch
-        {
-            "global::System.String" => "reader.GetString()!",
-            "global::System.Int32" => "reader.GetInt32()",
-            "global::System.Boolean" => "reader.GetBoolean()",
-            "global::System.Guid" => "reader.GetGuid()",
-            _ => null,
-        };
-
-    private static string? DirectWriteExpression(string element, string source) =>
-        element switch
-        {
-            "global::System.String" => "writer.WriteStringValue((string)(object)" + source + "!);",
-            "global::System.Int32" => "writer.WriteNumberValue((int)(object)" + source + "!);",
-            "global::System.Boolean" => "writer.WriteBooleanValue((bool)(object)" + source + "!);",
-            "global::System.Guid" => "writer.WriteStringValue(((global::System.Guid)(object)"
-                + source
-                + "!)"
-                + ".ToString());",
-            _ => null,
-        };
-
-    private static string KeyFromNameExpression(string keyType) =>
-        keyType switch
-        {
-            "global::System.String" => "name",
-            "global::System.Int32" =>
-                "int.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture)",
-            "global::System.Boolean" => "bool.Parse(name)",
-            "global::System.Guid" => "new global::System.Guid(name)",
-            _ =>
-                "throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\")",
-        };
-
-    private static string KeyToNameExpression(string keyType, string source) =>
-        keyType switch
-        {
-            "global::System.String" => source,
-            "global::System.Int32" => source
-                + ".ToString(global::System.Globalization.CultureInfo.InvariantCulture)",
-            "global::System.Boolean" => source + ".ToString()",
-            "global::System.Guid" => source + ".ToString()",
-            _ =>
-                "throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\")",
-        };
 }
