@@ -172,6 +172,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                         ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
                         QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
                     },
+                    PayloadSchemaProviderType = "global::SparseTypes.ISparsePayloadSchemaProvider",
+                    PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
                     OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
                 },
                 RebasePolicyAttributeMetadataName: RebasePolicyAttributeName,

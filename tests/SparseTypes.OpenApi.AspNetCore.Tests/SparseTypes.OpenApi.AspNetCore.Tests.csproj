@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>SparseTypes.OpenApi.AspNetCore.Tests</RootNamespace>
+    <AssemblyName>SparseTypes.OpenApi.AspNetCore.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <ProjectReference Include="../../src/SparseTypes/SparseTypes.csproj" />
+    <ProjectReference
+      Include="../../src/SparseTypes.Generator/SparseTypes.Generator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
+    <ProjectReference Include="../../src/SparseTypes.OpenApi.AspNetCore/SparseTypes.OpenApi.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

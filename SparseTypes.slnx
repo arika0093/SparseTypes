@@ -5,6 +5,8 @@
     <Project Path="src/SparseTypes.Generator/SparseTypes.Generator.csproj" />
     <Project Path="src/SparseTypes.Generator.Shared/SparseTypes.Generator.Shared.csproj" />
     <Project Path="src/SparseTypes.EntityFrameworkCore/SparseTypes.EntityFrameworkCore.csproj" />
+    <Project Path="src/SparseTypes.OpenApi.AspNetCore/SparseTypes.OpenApi.AspNetCore.csproj" />
+    <Project Path="src/SparseTypes.OpenApi.Swashbuckle/SparseTypes.OpenApi.Swashbuckle.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SparseTypes.Tests/SparseTypes.Tests.csproj" />
@@ -14,6 +16,7 @@
     <Project Path="tests/SparseTypes.NativeAotSmoke/SparseTypes.NativeAotSmoke.csproj" />
     <Project Path="tests/SparseTypes.NativeAotFixtures/SparseTypes.NativeAotFixtures.csproj" />
     <Project Path="tests/SparseTypes.PublicApi.Tests/SparseTypes.PublicApi.Tests.csproj" />
+    <Project Path="tests/SparseTypes.OpenApi.AspNetCore.Tests/SparseTypes.OpenApi.AspNetCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.GeneratedApiFixtures/SparseTypes.GeneratedApiFixtures.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">

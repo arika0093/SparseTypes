@@ -235,7 +235,9 @@ internal static class SparseFragmentPatchEmitter
         SparseTransitionContracts? TransitionContracts = null,
         bool PathIsValueType = false,
         string? TypedPathInterfaceType = null,
-        SparseStjCapabilities? StjCapabilities = null
+        SparseStjCapabilities? StjCapabilities = null,
+        string? PayloadSchemaProviderType = null,
+        string? PayloadSchemaDescriptorType = null
     )
     {
         /// <summary>Optional factory for a validation scope.</summary>

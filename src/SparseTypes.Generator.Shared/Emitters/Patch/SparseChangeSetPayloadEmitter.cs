@@ -207,9 +207,117 @@ internal static class SparseChangeSetPayloadEmitter
         );
         code.AppendLineAt(
             1,
-            "public sealed class ChangePayload : " + PayloadTypeName(dialect, modelType, "Core")
+            "public sealed class ChangePayload : "
+                + PayloadTypeName(dialect, modelType, "Core")
+                + (
+                    dialect.PayloadSchemaProviderType is null
+                        ? string.Empty
+                        : ", " + dialect.PayloadSchemaProviderType
+                )
         );
         code.AppendLineAt(1, "{");
+        if (
+            dialect.PayloadSchemaProviderType is not null
+            && dialect.PayloadSchemaDescriptorType is not null
+            && modelType is not null
+        )
+        {
+            code.AppendLineAt(2, "/// <inheritdoc />");
+            code.AppendLineAt(
+                2,
+                "global::System.Collections.Generic.IReadOnlyList<"
+                    + dialect.PayloadSchemaDescriptorType
+                    + "> "
+                    + dialect.PayloadSchemaProviderType
+                    + ".GetSparsePayloadSchemas() => new "
+                    + dialect.PayloadSchemaDescriptorType
+                    + "[]"
+            );
+            code.AppendLineAt(2, "{");
+            code.AppendLineAt(
+                3,
+                "new(typeof(ChangePayload), "
+                    + SymbolDisplay.FormatLiteral(
+                        SparseSchemaBaseName(modelType) + "_ChangePayload",
+                        true
+                    )
+                    + ", "
+                    + SymbolDisplay.FormatLiteral(PayloadSchema(modelType), true)
+                    + "),"
+            );
+            code.AppendLineAt(
+                3,
+                "new(typeof("
+                    + PayloadTypeName(dialect, modelType, "Change")
+                    + "), "
+                    + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_Change", true)
+                    + ", "
+                    + SymbolDisplay.FormatLiteral(ChangeUnionSchema(members, modelType), true)
+                    + "),"
+            );
+            code.AppendLineAt(
+                3,
+                "new(typeof("
+                    + PayloadTypeName(dialect, modelType, "RootChange")
+                    + "), "
+                    + SymbolDisplay.FormatLiteral(
+                        SparseSchemaBaseName(modelType) + "_RootChange",
+                        true
+                    )
+                    + ", \"{}\"),"
+            );
+            code.AppendLineAt(
+                3,
+                "new(typeof("
+                    + PayloadTypeName(dialect, modelType, "Core")
+                    + "), "
+                    + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_Core", true)
+                    + ", \"{}\"),"
+            );
+            code.AppendLineAt(
+                3,
+                "new(typeof("
+                    + PayloadTypeName(dialect, modelType, "Root")
+                    + "), "
+                    + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_Root", true)
+                    + ", \"{}\"),"
+            );
+            foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+                code.AppendLineAt(
+                    3,
+                    "new(typeof("
+                        + PayloadMemberTypeName(dialect, modelType, "Change", member.Id)
+                        + "), "
+                        + SymbolDisplay.FormatLiteral(
+                            SparseSchemaMemberName(modelType, member.Property.Name),
+                            true
+                        )
+                        + ", \"{}\"),"
+                );
+            foreach (
+                var member in members.Where(static member =>
+                    !member.Property.IsJsonIgnored
+                    && (
+                        SparseChangeSetBasicsEmitter.IsKeyed(member)
+                        || SparseChangeSetBasicsEmitter.IsDict(member)
+                    )
+                )
+            )
+                code.AppendLineAt(
+                    3,
+                    "new(typeof("
+                        + PayloadMemberTypeName(dialect, modelType, "Item", member.Id)
+                        + "), "
+                        + SymbolDisplay.FormatLiteral(
+                            SparseSchemaBaseName(modelType)
+                                + "_Item_"
+                                + SchemaNamePart(member.Property.Name),
+                            true
+                        )
+                        + ", \"{}\"),"
+                );
+            code.AppendLineAt(2, "};");
+        }
         code.AppendLineAt(
             2,
             "/// <summary>Gets or sets the provisional wire version token.</summary>"
@@ -295,6 +403,127 @@ internal static class SparseChangeSetPayloadEmitter
         }
         code.AppendLineAt(1, "}");
         code.AppendLine();
+    }
+
+    private static string SparseSchemaBaseName(string modelType)
+    {
+        var identity = modelType.Replace("global::", string.Empty);
+        var genericStart = identity.IndexOf('<');
+        var genericArguments = string.Empty;
+        if (genericStart >= 0)
+        {
+            genericArguments = "_" + SchemaNamePart(identity[(genericStart + 1)..^1]);
+            identity = identity[..genericStart];
+        }
+        return identity.Replace('.', '_').Replace('+', '_') + genericArguments;
+    }
+
+    private static string SparseSchemaMemberName(string modelType, string memberName) =>
+        SparseSchemaBaseName(modelType) + "_Change_" + SchemaNamePart(memberName);
+
+    private static string SchemaNamePart(string name)
+    {
+        var builder = new System.Text.StringBuilder(name.Length);
+        foreach (var character in name)
+        {
+            if (char.IsLetterOrDigit(character))
+                builder.Append(character);
+            else if (character == '_')
+                builder.Append("__");
+            else
+                builder.Append("_x").Append(((int)character).ToString("X4")).Append('_');
+        }
+        return builder.ToString();
+    }
+
+    private static string PayloadSchema(string modelType) =>
+        "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\"},\"changes\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/"
+        + SparseSchemaBaseName(modelType)
+        + "_Change\"}}}}";
+
+    private static string ChangeUnionSchema(
+        ImmutableArray<SparseMemberModel> members,
+        string modelType
+    )
+    {
+        var baseName = SparseSchemaBaseName(modelType);
+        var rootDiscriminator = new System.Text.StringBuilder("$root");
+        while (
+            members.Any(member =>
+                !member.Property.IsJsonIgnored
+                && member.Property.Name == rootDiscriminator.ToString()
+            )
+        )
+            rootDiscriminator.Append('$');
+        var result = new System.Text.StringBuilder("{\"oneOf\":[{\"$ref\":\"#/components/schemas/")
+            .Append(baseName)
+            .Append("_RootChange\"}");
+        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+            result
+                .Append(",{\"$ref\":\"#/components/schemas/")
+                .Append(baseName)
+                .Append("_Change_")
+                .Append(SchemaNamePart(member.Property.Name))
+                .Append("\"}");
+        result
+            .Append("],\"discriminator\":{\"propertyName\":\"member\",\"mapping\":{\"")
+            .Append(rootDiscriminator)
+            .Append("\":\"#/components/schemas/")
+            .Append(baseName)
+            .Append("_RootChange\"");
+        foreach (
+            var property in members
+                .Where(static member => !member.Property.IsJsonIgnored)
+                .Select(static member => member.Property.Name)
+        )
+            result
+                .Append(",\"")
+                .Append(JsonStringContent(property))
+                .Append("\":\"#/components/schemas/")
+                .Append(baseName)
+                .Append("_Change_")
+                .Append(SchemaNamePart(property))
+                .Append("\"");
+        return result.Append("}}}").ToString();
+    }
+
+    private static string JsonStringContent(string value)
+    {
+        var builder = new System.Text.StringBuilder(value.Length);
+        foreach (var character in value)
+        {
+            switch (character)
+            {
+                case '"':
+                    builder.Append("\\\"");
+                    break;
+                case '\\':
+                    builder.Append("\\\\");
+                    break;
+                case '\b':
+                    builder.Append("\\b");
+                    break;
+                case '\f':
+                    builder.Append("\\f");
+                    break;
+                case '\n':
+                    builder.Append("\\n");
+                    break;
+                case '\r':
+                    builder.Append("\\r");
+                    break;
+                case '\t':
+                    builder.Append("\\t");
+                    break;
+                default:
+                    if (character < 0x20)
+                        builder.Append("\\u").Append(((int)character).ToString("x4"));
+                    else
+                        builder.Append(character);
+                    break;
+            }
+        }
+        return builder.ToString();
     }
 
     private static void AppendPayloadVariantContainers(

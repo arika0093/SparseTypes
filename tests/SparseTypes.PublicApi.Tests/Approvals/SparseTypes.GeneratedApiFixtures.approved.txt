@@ -1129,7 +1129,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.Dictionary<string, int> Scores { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogDictionaries> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogDictionaries DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_14E9C38F.Core_14E9C38F
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_14E9C38F.Core_14E9C38F, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -1439,7 +1439,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public int[]? Tags { get; init; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CC.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogImmutable> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogImmutable DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_F16D2821.Core_F16D2821
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_F16D2821.Core_F16D2821, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -1653,7 +1653,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public string Title { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FD.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_3E1875D0.Core_3E1875D0
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_3E1875D0.Core_3E1875D0, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -1865,7 +1865,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> Items { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_1D892D2C.Core_1D892D2C
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_1D892D2C.Core_1D892D2C, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -2142,7 +2142,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogPoco?> MetadataItems { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CB.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogNested> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogNested DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_2459EB7C.Core_2459EB7C
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_2459EB7C.Core_2459EB7C, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -2406,7 +2406,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public string EnumerateChanges { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EB.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_C060E532.Core_C060E532
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_C060E532.Core_C060E532, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]
@@ -2628,7 +2628,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public int? Retry { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0C.SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogScalar> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogScalar DeepClone() { }
-        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_FC484E03.Core_FC484E03
+        public sealed class ChangePayload : SparseTypes.Generated.@__Internal_FC484E03.Core_FC484E03, SparseTypes.ISparsePayloadSchemaProvider
         {
             public ChangePayload() { }
             [System.Text.Json.Serialization.JsonPropertyName("version")]

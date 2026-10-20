@@ -443,6 +443,10 @@ namespace SparseTypes
         TKey Key { get; }
         System.Guid? TemporaryKey { get; }
     }
+    public interface ISparsePayloadSchemaProvider
+    {
+        System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> GetSparsePayloadSchemas();
+    }
     public interface ISparseStructuralDictionaryItemChange<TKey, TValue, TEdit> : SparseTypes.ISparseDictionaryItemChange<TKey, TValue>
     {
         TEdit Edit { get; }
@@ -1094,6 +1098,17 @@ namespace SparseTypes
         public static SparseTypes.SparsePath op_Implicit(SparseTypes.SparsePath<TModel, TValue> path) { }
         public static bool operator !=(SparseTypes.SparsePath<TModel, TValue> left, SparseTypes.SparsePath<TModel, TValue> right) { }
         public static bool operator ==(SparseTypes.SparsePath<TModel, TValue> left, SparseTypes.SparsePath<TModel, TValue> right) { }
+    }
+    public sealed class SparsePayloadSchema
+    {
+        public SparsePayloadSchema(System.Type type, string name, string jsonSchema) { }
+        public string JsonSchema { get; }
+        public string Name { get; }
+        public System.Type Type { get; }
+    }
+    public static class SparsePayloadSchemaNames
+    {
+        public static string GetName(System.Type type) { }
     }
     public enum SparseRebaseMode
     {
