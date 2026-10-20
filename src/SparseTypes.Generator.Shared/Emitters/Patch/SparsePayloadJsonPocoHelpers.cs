@@ -49,7 +49,7 @@ internal static class SparsePayloadJsonPocoHelpers
         );
         code.AppendLineAt(
             3,
-            "if (condition == 3 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault) { if (global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value, default)) return true; }"
+            "if (condition == 3 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault) { if (global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)) return true; }"
         );
         code.AppendLineAt(3, "return false;");
         code.AppendLineAt(2, "}");
