@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using EfCoreSample.Contracts;
 using SparseTypes;
@@ -28,6 +29,44 @@ internal static class ChangeValueText
             decimal number => number.ToString(CultureInfo.InvariantCulture),
             OrderLineDto line =>
                 $"Id={line.Id} Qty={line.Quantity} @ {line.UnitPrice.ToString(CultureInfo.InvariantCulture)}",
+            System.Collections.IEnumerable items => FormatSequence(items),
+            var other when TryFormatEndpoint(other, out var endpointText) => endpointText,
             var other => other.ToString() ?? "(empty)",
         };
+
+    private static string FormatSequence(System.Collections.IEnumerable items)
+    {
+        var parts = new List<string>();
+        foreach (var item in items)
+        {
+            parts.Add(FormatCore(item));
+        }
+
+        return $"[{string.Join(", ", parts)}]";
+    }
+
+    private static bool TryFormatEndpoint(object value, [NotNullWhen(true)] out string? text)
+    {
+        text = null;
+        var type = value.GetType();
+        if (
+            !type.IsGenericType
+            || type.GetGenericTypeDefinition() != typeof(SparseTypes.ChangePayloadEndpoint<>)
+        )
+        {
+            return false;
+        }
+
+        var state = type.GetProperty("State")?.GetValue(value);
+        text = state switch
+        {
+            SparseTypes.ChangePayloadState.Value => FormatCore(
+                type.GetProperty("Value")?.GetValue(value)
+            ),
+            SparseTypes.ChangePayloadState.Null => "(empty)",
+            SparseTypes.ChangePayloadState.Redacted => "(redacted)",
+            _ => "(no value)",
+        };
+        return true;
+    }
 }

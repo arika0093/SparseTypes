@@ -58,6 +58,13 @@
       <Button
         Margin="8,0,0,0"
         Padding="12,3"
+        Click="OnNewClick"
+        Content="New"
+        IsEnabled="{Binding IsIdle}"
+      />
+      <Button
+        Margin="8,0,0,0"
+        Padding="12,3"
         Command="{x:Static local:MainWindow.RefreshCommand}"
         Content="Refresh (F5)"
       />
@@ -72,13 +79,6 @@
         Content="Save (Ctrl+S)"
       />
       <Button Padding="12,3" Click="OnResetClick" Content="Reset" IsEnabled="{Binding CanReset}" />
-      <Button
-        Margin="8,0,0,0"
-        Padding="12,3"
-        Click="OnNewClick"
-        Content="New"
-        IsEnabled="{Binding IsIdle}"
-      />
       <Button
         Margin="8,0,0,0"
         Padding="12,3"
