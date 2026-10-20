@@ -1,34 +1,43 @@
 # EfCoreSample
 
-Aspire sample showing one disconnected-edit round trip: the client reads an
-order, edits a draft through an edit session, and submits a change payload.
+Aspire sample showing one disconnected-edit round trip: the WPF client reads
+an order, edits a draft through an edit session, and submits a change payload.
 The server rebases the payload onto current state, applies it with a sparse
-entity mapper, and persists it with Entity Framework Core over SQLite.
+entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 
 ## Projects
 
 - EfCoreSample.Contracts: DTOs shared by client and server. The DTOs know
   nothing about EF Core.
-- EfCoreSample.Server: Minimal API plus the mapper and the SQLite context.
-- EfCoreSample.Client: Console client performing one read, edit, and update.
-- EfCoreSample.AppHost: Aspire host wiring the server and the client.
+- EfCoreSample.Server: Minimal API plus the mapper and the PostgreSQL context.
+  The OpenAPI document includes the generated change payload schemas via
+  `SparseTypes.OpenApi.AspNetCore`, and `/` serves the Swagger UI.
+- EfCoreSample.Client: WPF order editor. The form binds to the live edit
+  session's observable proxy; save ships a sparse change payload.
+- EfCoreSample.AppHost: Aspire host wiring PostgreSQL (with pgweb), the
+  server, and the client.
 
 ## Run
 
-Start the server and the client through Aspire:
+Start PostgreSQL, pgweb, the server, and the client through Aspire:
 
 ```bash
 dotnet run --project samples/EfCoreSample/EfCoreSample.AppHost
 ```
 
-The server alone also runs standalone with a local SQLite file:
+The client starts on demand from the Aspire dashboard. The server listens on
+`http://localhost:5000`, so `/` opens the Swagger UI and
+`GET http://localhost:5000/orders/1` returns the seeded order, including its
+concurrency token.
+
+The server alone also runs standalone against any reachable PostgreSQL:
 
 ```bash
-dotnet run --project samples/EfCoreSample/EfCoreSample.Server
+ConnectionStrings__orders="Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=orders" dotnet run --project samples/EfCoreSample/EfCoreSample.Server
 ```
 
-Then `GET http://localhost:5000/orders/1` returns the seeded order,
-including its concurrency token.
+Without `ConnectionStrings__orders` the server falls back to the local
+defaults shown above.
 
 ## Update contract
 
@@ -60,9 +69,8 @@ The authoritative response carries the new version. Use it as the next
 
 ## Concurrency token
 
-SQLite cannot store-generate a SQL Server style rowversion, so the token
-is application-managed: `OrderEntity.Version` is a `Guid` marked with
-`IsConcurrencyToken`, and `SampleDbContext` assigns a new value on every
+The token is application-managed: `OrderEntity.Version` is a `Guid` marked
+with `IsConcurrencyToken`, and `SampleDbContext` assigns a new value on every
 save that changes the order, its owned address, or its lines. EF can leave
 the order unchanged when only an address or line changes, so the override
 bumps the owning order explicitly. This makes the order row's concurrency

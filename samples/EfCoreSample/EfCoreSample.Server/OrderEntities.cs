@@ -32,9 +32,10 @@ public sealed class OrderEntity
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the application-managed concurrency token. SQLite cannot
-    /// store-generate a rowversion, so the context assigns a new value on
-    /// every order, owned-address, or order-line write (see <see cref="SampleDbContext"/>).
+    /// Gets or sets the application-managed concurrency token. The context
+    /// assigns a new value on every order, owned-address, or order-line
+    /// write (see <see cref="SampleDbContext"/>), while EF guards the update
+    /// with it.
     /// </summary>
     public Guid Version { get; set; }
 

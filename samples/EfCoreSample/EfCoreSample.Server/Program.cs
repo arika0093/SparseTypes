@@ -3,15 +3,19 @@ using EfCoreSample.Server;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SparseTypes.EntityFrameworkCore;
+using SparseTypes.OpenApi.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 builder.Services.AddDbContext<SampleDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("orders") ?? "Data Source=orders.db"
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("orders")
+            ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=orders"
     )
 );
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
+builder.Services.AddOpenApi();
+builder.Services.AddSparseOpenApi<OrderDto.ChangePayload>();
 var app = builder.Build();
 app.Services.ValidateSparseEntityMappers<SampleDbContext>();
 
@@ -52,6 +56,12 @@ using (var scope = app.Services.CreateScope())
 app.MapGet("/orders/{id:int}", GetOrderAsync);
 app.MapPut("/orders/{id:int}", UpdateOrderAsync);
 app.MapGet("/health", () => Results.Ok());
+app.MapOpenApi();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "EfCoreSample v1");
+    options.RoutePrefix = string.Empty;
+});
 app.Run();
 
 static async Task<IResult> GetOrderAsync(

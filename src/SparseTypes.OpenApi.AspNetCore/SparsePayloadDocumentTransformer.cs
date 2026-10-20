@@ -39,12 +39,11 @@ internal sealed class SparsePayloadDocumentTransformer(
                     $"SparseTypes schema name collision for '{type}'."
                 );
             }
-            if (document.Components.Schemas.ContainsKey(name))
-                throw new InvalidOperationException(
-                    $"OpenAPI component '{name}' is already registered."
-                );
             names.Add(name, type);
-            document.AddComponent(name, openApiSchema);
+            // Endpoints that take a ChangePayload register the same stable
+            // component during document generation. The curated schema wins
+            // so the document stays consistent with the registered metadata.
+            document.Components.Schemas[name] = openApiSchema;
         }
     }
 
