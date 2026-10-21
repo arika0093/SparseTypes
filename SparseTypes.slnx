@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SparseTypes.Core/SparseTypes.Core.csproj" />
+    <Project Path="src/SparseTypes.Fragments/SparseTypes.Fragments.csproj" />
+    <Project Path="src/SparseTypes.Fragments.Generator/SparseTypes.Fragments.Generator.csproj" />
     <Project Path="src/SparseTypes/SparseTypes.csproj" />
     <Project Path="src/SparseTypes.Blazor/SparseTypes.Blazor.csproj" />
     <Project Path="src/SparseTypes.Generator/SparseTypes.Generator.csproj" />
@@ -10,12 +13,14 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SparseTypes.Tests/SparseTypes.Tests.csproj" />
+    <Project Path="tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj" />
     <Project Path="tests/SparseTypes.DesktopBinding.Tests/SparseTypes.DesktopBinding.Tests.csproj" />
     <Project Path="tests/SparseTypes.EntityFrameworkCore.Tests/SparseTypes.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.Blazor.Tests/SparseTypes.Blazor.Tests.csproj" />
     <Project Path="tests/SparseTypes.NativeAotSmoke/SparseTypes.NativeAotSmoke.csproj" />
     <Project Path="tests/SparseTypes.PublicApi.Tests/SparseTypes.PublicApi.Tests.csproj" />
     <Project Path="tests/SparseTypes.OpenApi.AspNetCore.Tests/SparseTypes.OpenApi.AspNetCore.Tests.csproj" />
+    <Project Path="tests/SparseTypes.OpenApi.Swashbuckle.Tests/SparseTypes.OpenApi.Swashbuckle.Tests.csproj" />
     <Project Path="tests/SparseTypes.GeneratedApiFixtures/SparseTypes.GeneratedApiFixtures.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">

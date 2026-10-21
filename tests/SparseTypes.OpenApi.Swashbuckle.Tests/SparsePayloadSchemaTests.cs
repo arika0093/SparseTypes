@@ -7,7 +7,7 @@ using Microsoft.OpenApi;
 using SparseTypes.OpenApi.Swashbuckle;
 using Swashbuckle.AspNetCore.Swagger;
 
-namespace SparseTypes.Tests.OpenApi;
+namespace SparseTypes.OpenApi.Swashbuckle.Tests;
 
 public sealed class SparsePayloadSchemaTests
 {
@@ -19,10 +19,10 @@ public sealed class SparsePayloadSchemaTests
 
         schemas
             .Select(static schema => schema.Name)
-            .ShouldContain("SparseTypes_Tests_OpenApi_OpenApiTestModel_ChangePayload");
+            .ShouldContain("SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload");
         schemas
             .Select(static schema => schema.Name)
-            .ShouldContain("SparseTypes_Tests_OpenApi_OpenApiTestModel_Change");
+            .ShouldContain("SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_Change");
         schemas
             .Single(static schema => schema.Name.EndsWith("_Change", StringComparison.Ordinal))
             .JsonSchema.ShouldContain("\"oneOf\"");
@@ -49,10 +49,10 @@ public sealed class SparsePayloadSchemaTests
         var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
 
         document.Components!.Schemas!.Keys.ShouldContain(
-            "SparseTypes_Tests_OpenApi_OpenApiTestModel_ChangePayload"
+            "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload"
         );
         document.Components!.Schemas!.Keys.ShouldContain(
-            "SparseTypes_Tests_OpenApi_OpenApiTestModel_Change"
+            "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_Change"
         );
     }
 
@@ -72,10 +72,10 @@ public sealed class SparsePayloadSchemaTests
 
         document.Paths!.Keys.ShouldContain("/changes");
         document.Components!.Schemas!.Keys.ShouldContain(
-            "SparseTypes_Tests_OpenApi_OpenApiTestModel_ChangePayload"
+            "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload"
         );
         document.Components.Schemas.Keys.ShouldContain(
-            "SparseTypes_Tests_OpenApi_OpenApiTestModel_Change"
+            "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_Change"
         );
 
         await app.StopAsync();

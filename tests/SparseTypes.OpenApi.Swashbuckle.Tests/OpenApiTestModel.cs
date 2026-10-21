@@ -1,4 +1,4 @@
-namespace SparseTypes.Tests.OpenApi;
+namespace SparseTypes.OpenApi.Swashbuckle.Tests;
 
 [SparseModel]
 public partial class OpenApiTestModel

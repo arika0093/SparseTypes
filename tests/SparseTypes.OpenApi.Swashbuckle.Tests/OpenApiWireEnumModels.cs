@@ -1,4 +1,4 @@
-namespace SparseTypes.Tests.OpenApi;
+namespace SparseTypes.OpenApi.Swashbuckle.Tests;
 
 /// <summary>A payload model carrying a user domain enum.</summary>
 [SparseModel]
