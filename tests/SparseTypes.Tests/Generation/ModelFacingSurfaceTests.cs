@@ -208,6 +208,19 @@ public sealed class ModelFacingSurfaceTests
     }
 
     [Test]
+    public void GeneratedNestedTypesUseTheModelIndentation()
+    {
+        var compilation = Generate(ShapesSource);
+        var model = RequireModel(compilation, "Surface.Probe.SurfaceClass");
+        foreach (var name in new[] { "Fragment", "Patch", "ChangeSet", "ChangePayload", "PayloadJson" })
+        {
+            var nested = model.GetTypeMembers(name).ShouldHaveSingleItem();
+            var declaration = nested.DeclaringSyntaxReferences.ShouldHaveSingleItem().GetSyntax();
+            declaration.GetLocation().GetLineSpan().StartLinePosition.Character.ShouldBe(8);
+        }
+    }
+
+    [Test]
     public void GlobalNamespaceModelKeepsTheSameSurface()
     {
         var compilation = Generate(GlobalSource);

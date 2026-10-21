@@ -321,6 +321,7 @@ internal static class SparseEditSessionStateEmitter
         code.OpenBlock();
         code.AppendLine("__observationView = null;");
         code.CloseBlock();
+        code.Unindent();
         code.AppendLine("} while (__observationPending);");
         code.CloseBlock();
         code.AppendLine("finally");
