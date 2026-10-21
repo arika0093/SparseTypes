@@ -431,20 +431,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         // Partial System.Text.Json surface with JSON families requested: see
         // RegisterStjSurfaceValidation for the omission-plus-diagnostic policy.
         RegisterStjSurfaceValidation(context, stjCapabilities, hasModels);
-        var needsEditSession = generatedOncePlan
-            .Select(static (plan, _) => plan.Has(SparseGeneratedCapability.EditSession))
-            .WithComparer(EqualityComparer<bool>.Default)
-            .WithTrackingName("SparseTypesGenerator.GeneratedOnceEditSession");
-        context.RegisterSourceOutput(
-            needsEditSession,
-            static (productionContext, emit) =>
-            {
-                if (emit)
-                {
-                    SparseEditSessionEmitter.EmitCore(productionContext, Configuration);
-                }
-            }
-        );
+        // Session cores live in the SparseTypes runtime (SparseTypes.Generated);
+        // the generator only emits the per-model adapters that bind to them.
         // Emit shared helpers from the capability plan.
         var clonePlan = generatedOncePlan
             .Select(
@@ -546,6 +534,74 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                                 implementationNamespace,
                                 patchDialect,
                                 emit.EmitConverters,
+                                productionContext.CancellationToken
+                            ),
+                            Encoding.UTF8
+                        )
+                    );
+                }
+            }
+        );
+        // Shared JSON kernels back every split-mode fragment and payload
+        // converter; single-file legacy output keeps its inline copies.
+        var needsJsonCodecs = hasModels
+            .Combine(stjCapabilities)
+            .Select(
+                static (input, _) =>
+                    (
+                        HasModels: input.Left,
+                        EmitCodecs: input.Left
+                            && (
+                                Configuration.EffectiveEmissionFeatures.EmitJsonConverters
+                                || Configuration.EffectiveEmissionFeatures.EmitChangePayload
+                            )
+                            && input.Right.SupportsV1Wire
+                    )
+            )
+            .WithComparer(EqualityComparer<(bool HasModels, bool EmitCodecs)>.Default)
+            .WithTrackingName("SparseTypesGenerator.GeneratedOnceJsonCodecs");
+        context.RegisterSourceOutput(
+            needsJsonCodecs,
+            static (productionContext, emit) =>
+            {
+                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
+                if (emit.HasModels && implementationNamespace is not null)
+                {
+                    productionContext.AddSource(
+                        SparseGeneratedOnceEmitter.JsonCodecsHintName(implementationNamespace),
+                        SourceText.From(
+                            SparseGeneratedOnceEmitter.RenderJsonCodecs(
+                                implementationNamespace,
+                                Configuration.PatchDialect,
+                                emit.EmitCodecs,
+                                productionContext.CancellationToken
+                            ),
+                            Encoding.UTF8
+                        )
+                    );
+                }
+            }
+        );
+        // Key-list and custom-leaf helpers need resolver-era serializer APIs,
+        // so they ship behind the payload resolver capability.
+        var needsJsonPayloadCodecs = hasModels
+            .Combine(stjCapabilities)
+            .Select(static (input, _) => (HasModels: input.Left, EmitCodecs: input.Left && input.Right.SupportsPayloadJsonResolver))
+            .WithComparer(EqualityComparer<(bool HasModels, bool EmitCodecs)>.Default)
+            .WithTrackingName("SparseTypesGenerator.GeneratedOnceJsonPayloadCodecs");
+        context.RegisterSourceOutput(
+            needsJsonPayloadCodecs,
+            static (productionContext, emit) =>
+            {
+                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
+                if (emit.HasModels && implementationNamespace is not null)
+                {
+                    productionContext.AddSource(
+                        SparseGeneratedOnceEmitter.JsonPayloadCodecsHintName(implementationNamespace),
+                        SourceText.From(
+                            SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
+                                implementationNamespace,
+                                emit.EmitCodecs,
                                 productionContext.CancellationToken
                             ),
                             Encoding.UTF8

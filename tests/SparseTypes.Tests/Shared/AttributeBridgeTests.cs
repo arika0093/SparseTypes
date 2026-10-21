@@ -239,10 +239,22 @@ public sealed class AttributeBridgeTests
             config.RuntimeDialect!,
             config.PatchDialect!.Value
         );
+        var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(config)!;
         var changePayloadConverters = SparseGeneratedOnceEmitter.RenderChangePayloadJsonConverters(
-            SparseGeneratedOnceEmitter.TryGetNamespace(config)!,
+            implementationNamespace,
             config.PatchDialect!.Value,
             emitConverters: true,
+            CancellationToken.None
+        );
+        var jsonCodecs = SparseGeneratedOnceEmitter.RenderJsonCodecs(
+            implementationNamespace,
+            config.PatchDialect!.Value,
+            emitCodecs: true,
+            CancellationToken.None
+        );
+        var jsonPayloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
+            implementationNamespace,
+            emitCodecs: true,
             CancellationToken.None
         );
         const string stub = """
@@ -263,6 +275,8 @@ public sealed class AttributeBridgeTests
             .Append(
                 CSharpSyntaxTree.ParseText(changePayloadConverters, path: "PayloadConverters.cs")
             )
+            .Append(CSharpSyntaxTree.ParseText(jsonCodecs, path: "JsonCodecs.cs"))
+            .Append(CSharpSyntaxTree.ParseText(jsonPayloadCodecs, path: "JsonPayloadCodecs.cs"))
             .Append(CSharpSyntaxTree.ParseText(cores.Core, path: "EditSessionCore.cs"))
             .Append(
                 CSharpSyntaxTree.ParseText(cores.CurrentCore, path: "EditSessionWithCurrentCore.cs")

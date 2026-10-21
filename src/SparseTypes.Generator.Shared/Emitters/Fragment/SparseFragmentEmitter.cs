@@ -709,7 +709,8 @@ internal static class SparseFragmentEmitter
                 jsonConverterSimpleName,
                 generatedAccessibility,
                 operationsType,
-                canApplyPatchInPlace
+                canApplyPatchInPlace,
+                implementationNamespace
             );
         }
         else
@@ -727,7 +728,8 @@ internal static class SparseFragmentEmitter
                 implementationBuilder,
                 jsonConverterQualifiedName,
                 jsonConverterSimpleName,
-                generatedAccessibility
+                generatedAccessibility,
+                implementationNamespace
             );
             originEmitter?.AppendOriginEnumerationIterator(code, members, isStatic: false, receiver: "this.");
             // Internal helpers trail the public surface

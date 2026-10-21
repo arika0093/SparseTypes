@@ -121,6 +121,9 @@ public sealed class ThreeLayerCertificationTests
                     !pair.Key.Contains("CloneKernels", StringComparison.Ordinal)
                     && !pair.Key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
                     && !pair.Key.Contains("RemovalIndex", StringComparison.Ordinal)
+                    && !pair.Key.Contains("JsonCodecs", StringComparison.Ordinal)
+                    && !pair.Key.Contains("JsonPayloadCodecs", StringComparison.Ordinal)
+                    && !pair.Key.Contains("ChangePayloadJsonConverters", StringComparison.Ordinal)
                     && !pair.Key.Contains("EditSession", StringComparison.Ordinal)
                 )
                 .Select(static pair => pair.Value)
@@ -181,8 +184,14 @@ public sealed class ThreeLayerCertificationTests
         sources
             .Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal))
             .ShouldBe(1);
+        sources
+            .Keys.Count(key => key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
+            .ShouldBe(1);
+        sources
+            .Keys.Count(key => key.EndsWith("Generated.JsonPayloadCodecs.g.cs", StringComparison.Ordinal))
+            .ShouldBe(1);
 
-        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "RemovalIndex" })
+        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "RemovalIndex", "JsonPayloadCodecs" })
         {
             var source = SharedSource(sources, family);
             source.ShouldContain("internal ");
@@ -206,6 +215,10 @@ public sealed class ThreeLayerCertificationTests
         }
         SharedSource(sources, "CloneKernels").ShouldContain("class SparseCloneKernels");
         SharedSource(sources, "RemovalIndex").ShouldContain("class SparseRemovalIndex<");
+        // The wire-level core is dialect-bound (runtime wire vocabulary), so it
+        // stays out of the product-neutral purity loop above.
+        SharedSource(sources, "Generated.JsonCodecs").ShouldContain("class SparseJsonCodecs");
+        SharedSource(sources, "JsonPayloadCodecs").ShouldContain("class SparseJsonPayloadCodecs");
     }
 
     // Per-model output names the qualified shared helpers and defines no legacy
@@ -218,6 +231,8 @@ public sealed class ThreeLayerCertificationTests
         perModel.ShouldContain("global::" + SharedNamespace + ".SparseCloneKernels");
         perModel.ShouldContain("global::" + SharedNamespace + ".SparseReadOnlyListAdapter");
         perModel.ShouldContain("global::" + SharedNamespace + ".SparseRemovalIndex<");
+        perModel.ShouldContain("global::" + SharedNamespace + ".SparseJsonCodecs");
+        perModel.ShouldContain("global::" + SharedNamespace + ".SparseJsonPayloadCodecs");
         perModel.ShouldNotContain("class SparseCloneKernels");
         perModel.ShouldNotContain("__SparseReadOnlyCollection");
         perModel.ShouldNotContain("__SparseReadOnlyDictionary");
@@ -606,7 +621,7 @@ public sealed class ThreeLayerCertificationTests
                 ["M4.cs"] = CollectionModel("CertModelFour"),
             }
         );
-        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters" })
+        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "Generated.JsonCodecs.g.cs", "Generated.JsonPayloadCodecs.g.cs" })
         {
             SharedSource(one, family).ShouldBe(SharedSource(four, family));
         }
@@ -658,7 +673,12 @@ public sealed class ThreeLayerCertificationTests
             implementationNamespace,
             CancellationToken.None
         );
-        foreach (var source in new[] { clone, adapters, removal })
+        var payloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
+            implementationNamespace,
+            emitCodecs: true,
+            CancellationToken.None
+        );
+        foreach (var source in new[] { clone, adapters, removal, payloadCodecs })
         {
             source.ShouldNotContain("SparseTypes");
         }

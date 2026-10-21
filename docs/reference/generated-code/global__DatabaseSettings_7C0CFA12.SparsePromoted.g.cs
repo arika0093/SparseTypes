@@ -2408,186 +2408,21 @@ namespace SparseTypes.Generated
             writer.WriteEndObject();
         }
 
-        private static TMember? ReadMemberValue<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) { if (default(TMember) is null) return default; throw new global::System.Text.Json.JsonException("Malformed fragment value."); }
-            if (TryReadScalar<TMember>(ref reader, out var scalarMember)) return scalarMember;
-            return global::System.Text.Json.JsonSerializer.Deserialize<TMember>(ref reader, GetMemberTypeInfo<TMember>(options))!;
-        }
+        private static TMember? ReadMemberValue<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.ReadMemberValue<TMember>(ref reader, options, GetMemberTypeInfo<TMember>);
 
-        private static void WriteMemberValue<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (value is null) { writer.WriteNullValue(); return; }
-            if (!TryWriteScalar(writer, value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetMemberTypeInfo<TMember>(options));
-        }
+        private static void WriteMemberValue<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.WriteMemberValue(writer, value, options, GetMemberTypeInfo<TMember>);
 
-        private static bool TryReadScalar<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, out TMember? value)
-        {
-            value = default;
-            if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return false;
-            var target = global::System.Nullable.GetUnderlyingType(typeof(TMember)) ?? typeof(TMember);
-            try
-            {
-                if (target == typeof(string)) { value = (TMember?)(object)reader.GetString()!; return true; }
-                if (target == typeof(bool)) { value = (TMember?)(object)reader.GetBoolean(); return true; }
-                if (target == typeof(byte)) { value = (TMember?)(object)reader.GetByte(); return true; }
-                if (target == typeof(sbyte)) { value = (TMember?)(object)reader.GetSByte(); return true; }
-                if (target == typeof(short)) { value = (TMember?)(object)reader.GetInt16(); return true; }
-                if (target == typeof(ushort)) { value = (TMember?)(object)reader.GetUInt16(); return true; }
-                if (target == typeof(int)) { value = (TMember?)(object)reader.GetInt32(); return true; }
-                if (target == typeof(uint)) { value = (TMember?)(object)reader.GetUInt32(); return true; }
-                if (target == typeof(long)) { value = (TMember?)(object)reader.GetInt64(); return true; }
-                if (target == typeof(ulong)) { value = (TMember?)(object)reader.GetUInt64(); return true; }
-                if (target == typeof(float)) { value = (TMember?)(object)reader.GetSingle(); return true; }
-                if (target == typeof(double)) { value = (TMember?)(object)reader.GetDouble(); return true; }
-                if (target == typeof(decimal)) { value = (TMember?)(object)reader.GetDecimal(); return true; }
-                if (target == typeof(char))
-                {
-                    var text = reader.GetString();
-                    if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException("Malformed scalar value.");
-                    value = (TMember?)(object)text[0];
-                    return true;
-                }
-                if (target == typeof(global::System.Guid)) { value = (TMember?)(object)reader.GetGuid(); return true; }
-                if (target == typeof(global::System.DateTime)) { value = (TMember?)(object)reader.GetDateTime(); return true; }
-                if (target == typeof(global::System.DateTimeOffset)) { value = (TMember?)(object)reader.GetDateTimeOffset(); return true; }
-                if (target.IsEnum)
-                {
-                    value = ReadScalarEnum<TMember>(ref reader);
-                    return true;
-                }
-            }
-            catch (global::System.FormatException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-            }
-            catch (global::System.InvalidOperationException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-            }
-            return false;
-        }
+        private static bool TryReadScalar<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, out TMember? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryReadScalar(ref reader, out value);
 
-        private static TMember? ReadScalarEnum<TMember>(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            var enumType = global::System.Nullable.GetUnderlyingType(typeof(TMember)) ?? typeof(TMember);
-            var underlying = global::System.Enum.GetUnderlyingType(enumType);
-            try
-            {
-                if (underlying == typeof(int)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetInt32());
-                if (underlying == typeof(uint)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetUInt32());
-                if (underlying == typeof(long)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetInt64());
-                if (underlying == typeof(ulong)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetUInt64());
-                if (underlying == typeof(short)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetInt16());
-                if (underlying == typeof(ushort)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetUInt16());
-                if (underlying == typeof(byte)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetByte());
-                if (underlying == typeof(sbyte)) return (TMember?)global::System.Enum.ToObject(enumType, reader.GetSByte());
-            }
-            catch (global::System.FormatException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-            }
-            catch (global::System.InvalidOperationException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-            }
-            throw new global::System.Text.Json.JsonException("Unsupported enum underlying type.");
-        }
+        private static TMember? ReadScalarEnum<TMember>(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonCodecs.ReadScalarEnum<TMember>(ref reader);
 
-        private static bool TryWriteScalar<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value)
-        {
-            if (value is null) return false;
-            var target = global::System.Nullable.GetUnderlyingType(typeof(TMember)) ?? typeof(TMember);
-            if (target == typeof(string)) { writer.WriteStringValue((string)(object)value!); return true; }
-            if (target == typeof(bool)) { writer.WriteBooleanValue((bool)(object)value!); return true; }
-            if (target == typeof(byte)) { writer.WriteNumberValue((int)(byte)(object)value!); return true; }
-            if (target == typeof(sbyte)) { writer.WriteNumberValue((int)(sbyte)(object)value!); return true; }
-            if (target == typeof(short)) { writer.WriteNumberValue((int)(short)(object)value!); return true; }
-            if (target == typeof(ushort)) { writer.WriteNumberValue((int)(ushort)(object)value!); return true; }
-            if (target == typeof(int)) { writer.WriteNumberValue((int)(object)value!); return true; }
-            if (target == typeof(uint)) { writer.WriteNumberValue((uint)(object)value!); return true; }
-            if (target == typeof(long)) { writer.WriteNumberValue((long)(object)value!); return true; }
-            if (target == typeof(ulong)) { writer.WriteNumberValue((ulong)(object)value!); return true; }
-            if (target == typeof(float)) { writer.WriteNumberValue((float)(object)value!); return true; }
-            if (target == typeof(double)) { writer.WriteNumberValue((double)(object)value!); return true; }
-            if (target == typeof(decimal)) { writer.WriteNumberValue((decimal)(object)value!); return true; }
-            if (target == typeof(char)) { writer.WriteStringValue(((char)(object)value!).ToString()); return true; }
-            if (target == typeof(global::System.Guid)) { writer.WriteStringValue(((global::System.Guid)(object)value!).ToString()); return true; }
-            if (target == typeof(global::System.DateTime)) { writer.WriteStringValue((global::System.DateTime)(object)value!); return true; }
-            if (target == typeof(global::System.DateTimeOffset)) { writer.WriteStringValue((global::System.DateTimeOffset)(object)value!); return true; }
-            if (target.IsEnum)
-            {
-                WriteScalarEnum(writer, value!);
-                return true;
-            }
-            return false;
-        }
+        private static bool TryWriteScalar<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryWriteScalar(writer, value);
 
-        private static void WriteScalarEnum<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember value)
-        {
-            var enumType = global::System.Nullable.GetUnderlyingType(typeof(TMember)) ?? typeof(TMember);
-            var underlying = global::System.Enum.GetUnderlyingType(enumType);
-            if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);
-            else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);
-            else if (underlying == typeof(long)) writer.WriteNumberValue((long)(object)value!);
-            else if (underlying == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);
-            else if (underlying == typeof(short)) writer.WriteNumberValue((int)(short)(object)value!);
-            else if (underlying == typeof(ushort)) writer.WriteNumberValue((int)(ushort)(object)value!);
-            else if (underlying == typeof(byte)) writer.WriteNumberValue((int)(byte)(object)value!);
-            else if (underlying == typeof(sbyte)) writer.WriteNumberValue((int)(sbyte)(object)value!);
-            else throw new global::System.Text.Json.JsonException("Unsupported enum underlying type.");
-        }
+        private static void WriteScalarEnum<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember value) => global::SparseTypes.Generated.SparseJsonCodecs.WriteScalarEnum(writer, value);
 
-        private static TKey ParseMapKey<TKey>(string name)
-        {
-            var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);
-            try
-            {
-                if (target == typeof(string)) return (TKey)(object)name;
-                if (target == typeof(bool)) return (TKey)(object)bool.Parse(name);
-                if (target == typeof(char))
-                {
-                    if (name.Length != 1) throw new global::System.Text.Json.JsonException("Malformed collection key.");
-                    return (TKey)(object)name[0];
-                }
-                if (target == typeof(byte)) return (TKey)(object)byte.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(sbyte)) return (TKey)(object)sbyte.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(short)) return (TKey)(object)short.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(ushort)) return (TKey)(object)ushort.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(int)) return (TKey)(object)int.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(uint)) return (TKey)(object)uint.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(long)) return (TKey)(object)long.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(ulong)) return (TKey)(object)ulong.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(global::System.Guid)) return (TKey)(object)new global::System.Guid(name);
-            }
-            catch (global::System.FormatException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
-            }
-            catch (global::System.InvalidOperationException exception)
-            {
-                throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
-            }
-            throw new global::System.Text.Json.JsonException("Unsupported collection key.");
-        }
+        private static TKey ParseMapKey<TKey>(string name) => global::SparseTypes.Generated.SparseJsonCodecs.ParseMapKey<TKey>(name);
 
-        private static string FormatMapKey<TKey>(TKey key)
-        {
-            var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);
-            if (target == typeof(string)) return (string)(object)key!;
-            if (target == typeof(bool)) return ((bool)(object)key!).ToString();
-            if (target == typeof(char)) return ((char)(object)key!).ToString();
-            if (target == typeof(byte)) return ((byte)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(sbyte)) return ((sbyte)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(short)) return ((short)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(ushort)) return ((ushort)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(int)) return ((int)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(uint)) return ((uint)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(long)) return ((long)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(ulong)) return ((ulong)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-            if (target == typeof(global::System.Guid)) return ((global::System.Guid)(object)key!).ToString();
-            throw new global::System.Text.Json.JsonException("Unsupported collection key.");
-        }
+        private static string FormatMapKey<TKey>(TKey key) => global::SparseTypes.Generated.SparseJsonCodecs.FormatMapKey(key);
 
         private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember> GetMemberTypeInfo<TMember>(global::System.Text.Json.JsonSerializerOptions options)
         {
@@ -2612,17 +2447,9 @@ namespace SparseTypes.Generated
             }
         }
 
-        private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (actual is null) { return false; }
-            return global::System.String.Equals(actual, expected, options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal);
-        }
+        private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.Matches(actual, expected, options);
 
-        private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName)
-        {
-            if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) { throw new global::System.Text.Json.JsonException("The JSON property '" + propertyName + "' could not be mapped to fragment '" + typeof(Fragment) + "'."); }
-            reader.Skip();
-        }
+        private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName) => global::SparseTypes.Generated.SparseJsonCodecs.HandleUnknownFragmentProperty(ref reader, options, propertyName, typeof(Fragment));
         private static readonly global::System.Runtime.CompilerServices.ConditionalWeakTable<global::System.Text.Json.JsonSerializerOptions, JsonOptionsCache> __jsonOptionsCaches = new global::System.Runtime.CompilerServices.ConditionalWeakTable<global::System.Text.Json.JsonSerializerOptions, JsonOptionsCache>();
         private sealed class JsonOptionsCache
         {
@@ -3298,70 +3125,15 @@ namespace SparseTypes.Generated
                 if (change.After is not null) { writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, null); }
             }
 
-            private static bool TryReadNull(ref global::System.Text.Json.Utf8JsonReader reader)
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return true;
-                return false;
-            }
+            private static bool TryReadNull(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonCodecs.TryReadNull(ref reader);
 
-            private static global::SparseTypes.ChangePayloadState ParseState(string? token) => token switch
-            {
-                "missing" => global::SparseTypes.ChangePayloadState.Missing,
-                "null" => global::SparseTypes.ChangePayloadState.Null,
-                "value" => global::SparseTypes.ChangePayloadState.Value,
-                "redacted" => global::SparseTypes.ChangePayloadState.Redacted,
-                _ => throw new global::System.Text.Json.JsonException("Unknown endpoint state."),
-            };
+            private static global::SparseTypes.ChangePayloadState ParseState(string? token) => global::SparseTypes.Generated.SparseJsonCodecs.ParseState(token);
 
-            private static global::SparseTypes.ChangePayloadItemKind ParseKind(string? token) => token switch
-            {
-                "add" => global::SparseTypes.ChangePayloadItemKind.Add,
-                "remove" => global::SparseTypes.ChangePayloadItemKind.Remove,
-                "edit" => global::SparseTypes.ChangePayloadItemKind.Edit,
-                "reorder" => global::SparseTypes.ChangePayloadItemKind.Reorder,
-                _ => throw new global::System.Text.Json.JsonException("Unknown item kind."),
-            };
+            private static global::SparseTypes.ChangePayloadItemKind ParseKind(string? token) => global::SparseTypes.Generated.SparseJsonCodecs.ParseKind(token);
 
-            private delegate T RootReader<T>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options);
-            private delegate void RootWriter<T>(global::System.Text.Json.Utf8JsonWriter writer, T? value, global::System.Text.Json.JsonSerializerOptions options);
+            private static global::SparseTypes.ChangePayloadEndpoint<TValue>? ReadEndpoint<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, global::SparseTypes.Generated.SparseJsonCodecs.RootReader<TValue>? rootReader, global::SparseTypes.Generated.SparseJsonCodecs.RootWriter<TValue>? rootWriter) => global::SparseTypes.Generated.SparseJsonCodecs.ReadEndpoint(ref reader, options, rootReader, rootWriter, GetValueInfo<TValue>);
 
-            private static global::SparseTypes.ChangePayloadEndpoint<TValue>? ReadEndpoint<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, RootReader<TValue>? rootReader, RootWriter<TValue>? rootWriter)
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("An endpoint must be an object.");
-                var state = default(global::SparseTypes.ChangePayloadState);
-                var hasState = false;
-                TValue? value = default;
-                while (reader.Read())
-                {
-                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
-                    if (reader.ValueTextEquals("state")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); state = ParseState(reader.GetString()); hasState = true; }
-                    else if (reader.ValueTextEquals("value"))
-                    {
-                        if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
-                        if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;
-                        else if (rootReader is not null) value = rootReader(ref reader, options);
-                        else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;
-                        else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueInfo<TValue>(options));
-                    }
-                    else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); reader.Skip(); }
-                }
-                if (!hasState) throw new global::System.Text.Json.JsonException("An endpoint must contain a state.");
-                return new global::SparseTypes.ChangePayloadEndpoint<TValue> { State = state, Value = value };
-            }
-
-            private static void WriteEndpoint<TValue>(global::System.Text.Json.Utf8JsonWriter writer, global::SparseTypes.ChangePayloadEndpoint<TValue>? value, global::System.Text.Json.JsonSerializerOptions options, RootWriter<TValue>? rootWriter)
-            {
-                if (value is null) { writer.WriteNullValue(); return; }
-                writer.WriteStartObject();
-                writer.WriteString("state", global::SparseTypes.ChangePayloadWire.ToToken(value.State));
-                writer.WritePropertyName("value");
-                if (value.Value is null) writer.WriteNullValue();
-                else if (rootWriter is not null) rootWriter(writer, value.Value!, options);
-                else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueInfo<TValue>(options));
-                writer.WriteEndObject();
-            }
+            private static void WriteEndpoint<TValue>(global::System.Text.Json.Utf8JsonWriter writer, global::SparseTypes.ChangePayloadEndpoint<TValue>? value, global::System.Text.Json.JsonSerializerOptions options, global::SparseTypes.Generated.SparseJsonCodecs.RootWriter<TValue>? rootWriter) => global::SparseTypes.Generated.SparseJsonCodecs.WriteEndpoint(writer, value, options, rootWriter, GetValueInfo<TValue>);
 
             private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueInfo<TValue>(global::System.Text.Json.JsonSerializerOptions options)
             {
@@ -3372,226 +3144,29 @@ namespace SparseTypes.Generated
                 }
             }
 
-            private static TKey ReadKey<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException("Malformed key.");
-                if (TryReadScalar<TKey>(ref reader, out var scalarKey)) return scalarKey!;
-                return global::System.Text.Json.JsonSerializer.Deserialize<TKey>(ref reader, GetValueInfo<TKey>(options))!;
-            }
+            private static TKey ReadKey<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.ReadKey<TKey>(ref reader, options, GetValueInfo<TKey>);
 
-            private static void WriteKey<TKey>(global::System.Text.Json.Utf8JsonWriter writer, TKey key, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                if (!TryWriteScalar(writer, key!)) global::System.Text.Json.JsonSerializer.Serialize(writer, key!, GetValueInfo<TKey>(options));
-            }
+            private static void WriteKey<TKey>(global::System.Text.Json.Utf8JsonWriter writer, TKey key, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.WriteKey(writer, key, options, GetValueInfo<TKey>);
 
-            private static global::System.Collections.Generic.List<TKey>? ReadKeyList<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException("Malformed payload.");
-                var list = new global::System.Collections.Generic.List<TKey>();
-                while (reader.Read())
-                {
-                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                    list.Add(ReadKey<TKey>(ref reader, options));
-                }
-                return list;
-            }
+            private static global::System.Collections.Generic.List<TKey>? ReadKeyList<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.ReadKeyList<TKey>(ref reader, options, GetValueInfo<TKey>);
 
-            private static void WriteKeyList<TKey>(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                writer.WriteStartArray();
-                foreach (TKey item in values) WriteKey(writer, item, options);
-                writer.WriteEndArray();
-            }
+            private static void WriteKeyList<TKey>(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.WriteKeyList<TKey>(writer, values, options, GetValueInfo<TKey>);
 
-            private static global::System.Collections.Generic.List<global::System.Guid>? ReadGuidList(ref global::System.Text.Json.Utf8JsonReader reader)
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException("Malformed payload.");
-                var list = new global::System.Collections.Generic.List<global::System.Guid>();
-                while (reader.Read())
-                {
-                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                    list.Add(reader.GetGuid());
-                }
-                return list;
-            }
+            private static global::System.Collections.Generic.List<global::System.Guid>? ReadGuidList(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.ReadGuidList(ref reader);
 
-            private static void WriteGuidList(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values)
-            {
-                writer.WriteStartArray();
-                foreach (global::System.Guid item in values) writer.WriteStringValue(item.ToString());
-                writer.WriteEndArray();
-            }
+            private static void WriteGuidList(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.WriteGuidList(writer, values);
 
-            private static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value)
-            {
-                value = default;
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return false;
-                var target = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
-                try
-                {
-                    if (target == typeof(string)) { value = (TValue?)(object)reader.GetString()!; return true; }
-                    if (target == typeof(bool)) { value = (TValue?)(object)reader.GetBoolean(); return true; }
-                    if (target == typeof(byte)) { value = (TValue?)(object)reader.GetByte(); return true; }
-                    if (target == typeof(sbyte)) { value = (TValue?)(object)reader.GetSByte(); return true; }
-                    if (target == typeof(short)) { value = (TValue?)(object)reader.GetInt16(); return true; }
-                    if (target == typeof(ushort)) { value = (TValue?)(object)reader.GetUInt16(); return true; }
-                    if (target == typeof(int)) { value = (TValue?)(object)reader.GetInt32(); return true; }
-                    if (target == typeof(uint)) { value = (TValue?)(object)reader.GetUInt32(); return true; }
-                    if (target == typeof(long)) { value = (TValue?)(object)reader.GetInt64(); return true; }
-                    if (target == typeof(ulong)) { value = (TValue?)(object)reader.GetUInt64(); return true; }
-                    if (target == typeof(float)) { value = (TValue?)(object)reader.GetSingle(); return true; }
-                    if (target == typeof(double)) { value = (TValue?)(object)reader.GetDouble(); return true; }
-                    if (target == typeof(decimal)) { value = (TValue?)(object)reader.GetDecimal(); return true; }
-                    if (target == typeof(char))
-                    {
-                        var text = reader.GetString();
-                        if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException("Malformed scalar value.");
-                        value = (TValue?)(object)text[0];
-                        return true;
-                    }
-                    if (target == typeof(global::System.Guid)) { value = (TValue?)(object)reader.GetGuid(); return true; }
-                    if (target == typeof(global::System.DateTime)) { value = (TValue?)(object)reader.GetDateTime(); return true; }
-                    if (target == typeof(global::System.DateTimeOffset)) { value = (TValue?)(object)reader.GetDateTimeOffset(); return true; }
-                    if (target.IsEnum)
-                    {
-                        value = ReadScalarEnum<TValue>(ref reader);
-                        return true;
-                    }
-                }
-                catch (global::System.FormatException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-                }
-                catch (global::System.InvalidOperationException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-                }
-                return false;
-            }
+            private static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryReadScalar(ref reader, out value);
 
-            private static TValue? ReadScalarEnum<TValue>(ref global::System.Text.Json.Utf8JsonReader reader)
-            {
-                var enumType = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
-                var underlying = global::System.Enum.GetUnderlyingType(enumType);
-                try
-                {
-                    if (underlying == typeof(int)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt32());
-                    if (underlying == typeof(uint)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt32());
-                    if (underlying == typeof(long)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt64());
-                    if (underlying == typeof(ulong)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt64());
-                    if (underlying == typeof(short)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt16());
-                    if (underlying == typeof(ushort)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt16());
-                    if (underlying == typeof(byte)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetByte());
-                    if (underlying == typeof(sbyte)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetSByte());
-                }
-                catch (global::System.FormatException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-                }
-                catch (global::System.InvalidOperationException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed scalar value.", exception);
-                }
-                throw new global::System.Text.Json.JsonException("Unsupported enum underlying type.");
-            }
+            private static TValue? ReadScalarEnum<TValue>(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonCodecs.ReadScalarEnum<TValue>(ref reader);
 
-            private static bool TryWriteScalar<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value)
-            {
-                if (value is null) return false;
-                var target = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
-                if (target == typeof(string)) { writer.WriteStringValue((string)(object)value!); return true; }
-                if (target == typeof(bool)) { writer.WriteBooleanValue((bool)(object)value!); return true; }
-                if (target == typeof(byte)) { writer.WriteNumberValue((int)(byte)(object)value!); return true; }
-                if (target == typeof(sbyte)) { writer.WriteNumberValue((int)(sbyte)(object)value!); return true; }
-                if (target == typeof(short)) { writer.WriteNumberValue((int)(short)(object)value!); return true; }
-                if (target == typeof(ushort)) { writer.WriteNumberValue((int)(ushort)(object)value!); return true; }
-                if (target == typeof(int)) { writer.WriteNumberValue((int)(object)value!); return true; }
-                if (target == typeof(uint)) { writer.WriteNumberValue((uint)(object)value!); return true; }
-                if (target == typeof(long)) { writer.WriteNumberValue((long)(object)value!); return true; }
-                if (target == typeof(ulong)) { writer.WriteNumberValue((ulong)(object)value!); return true; }
-                if (target == typeof(float)) { writer.WriteNumberValue((float)(object)value!); return true; }
-                if (target == typeof(double)) { writer.WriteNumberValue((double)(object)value!); return true; }
-                if (target == typeof(decimal)) { writer.WriteNumberValue((decimal)(object)value!); return true; }
-                if (target == typeof(char)) { writer.WriteStringValue(((char)(object)value!).ToString()); return true; }
-                if (target == typeof(global::System.Guid)) { writer.WriteStringValue(((global::System.Guid)(object)value!).ToString()); return true; }
-                if (target == typeof(global::System.DateTime)) { writer.WriteStringValue((global::System.DateTime)(object)value!); return true; }
-                if (target == typeof(global::System.DateTimeOffset)) { writer.WriteStringValue((global::System.DateTimeOffset)(object)value!); return true; }
-                if (target.IsEnum)
-                {
-                    WriteScalarEnum(writer, value!);
-                    return true;
-                }
-                return false;
-            }
+            private static bool TryWriteScalar<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryWriteScalar(writer, value);
 
-            private static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value)
-            {
-                var enumType = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
-                var underlying = global::System.Enum.GetUnderlyingType(enumType);
-                if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);
-                else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);
-                else if (underlying == typeof(long)) writer.WriteNumberValue((long)(object)value!);
-                else if (underlying == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);
-                else if (underlying == typeof(short)) writer.WriteNumberValue((int)(short)(object)value!);
-                else if (underlying == typeof(ushort)) writer.WriteNumberValue((int)(ushort)(object)value!);
-                else if (underlying == typeof(byte)) writer.WriteNumberValue((int)(byte)(object)value!);
-                else if (underlying == typeof(sbyte)) writer.WriteNumberValue((int)(sbyte)(object)value!);
-                else throw new global::System.Text.Json.JsonException("Unsupported enum underlying type.");
-            }
+            private static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value) => global::SparseTypes.Generated.SparseJsonCodecs.WriteScalarEnum(writer, value);
 
-            private static TKey ParseMapKey<TKey>(string name)
-            {
-                var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);
-                try
-                {
-                    if (target == typeof(string)) return (TKey)(object)name;
-                    if (target == typeof(bool)) return (TKey)(object)bool.Parse(name);
-                    if (target == typeof(char))
-                    {
-                        if (name.Length != 1) throw new global::System.Text.Json.JsonException("Malformed collection key.");
-                        return (TKey)(object)name[0];
-                    }
-                    if (target == typeof(byte)) return (TKey)(object)byte.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(sbyte)) return (TKey)(object)sbyte.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(short)) return (TKey)(object)short.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(ushort)) return (TKey)(object)ushort.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(int)) return (TKey)(object)int.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(uint)) return (TKey)(object)uint.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(long)) return (TKey)(object)long.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(ulong)) return (TKey)(object)ulong.Parse(name, global::System.Globalization.CultureInfo.InvariantCulture);
-                    if (target == typeof(global::System.Guid)) return (TKey)(object)new global::System.Guid(name);
-                }
-                catch (global::System.FormatException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
-                }
-                catch (global::System.InvalidOperationException exception)
-                {
-                    throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
-                }
-                throw new global::System.Text.Json.JsonException("Unsupported collection key.");
-            }
+            private static TKey ParseMapKey<TKey>(string name) => global::SparseTypes.Generated.SparseJsonCodecs.ParseMapKey<TKey>(name);
 
-            private static string FormatMapKey<TKey>(TKey key)
-            {
-                var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);
-                if (target == typeof(string)) return (string)(object)key!;
-                if (target == typeof(bool)) return ((bool)(object)key!).ToString();
-                if (target == typeof(char)) return ((char)(object)key!).ToString();
-                if (target == typeof(byte)) return ((byte)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(sbyte)) return ((sbyte)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(short)) return ((short)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(ushort)) return ((ushort)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(int)) return ((int)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(uint)) return ((uint)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(long)) return ((long)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(ulong)) return ((ulong)(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
-                if (target == typeof(global::System.Guid)) return ((global::System.Guid)(object)key!).ToString();
-                throw new global::System.Text.Json.JsonException("Unsupported collection key.");
-            }
-
+            private static string FormatMapKey<TKey>(TKey key) => global::SparseTypes.Generated.SparseJsonCodecs.FormatMapKey(key);
         }
 
         /// <summary>Trim-safe resolver for this model's change payload.</summary>

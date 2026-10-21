@@ -9,6 +9,42 @@ internal static class SparsePayloadJsonPocoHelpers
     /// <summary>Emits the shared dispatch, scalar codecs, and delegating converter.</summary>
     internal static void AppendHelpers(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
+        var shared = SparsePayloadJsonSharedEmitter.SharedCodecsReference(context);
+        var payload = SparsePayloadJsonSharedEmitter.SharedPayloadCodecsReference(context);
+        if (shared is null || payload is null)
+        {
+            AppendPocoMatchHelpers(code);
+        }
+        else
+        {
+            code.AppendLine(
+                "private static bool MatchesPocoProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string wireName, string declaredName, bool hasExplicitName) => "
+                    + payload
+                    + ".MatchesPocoProperty(ref reader, options, wireName, declaredName, hasExplicitName);"
+            );
+            code.AppendLine();
+            code.AppendLine(
+                "private static bool ShouldOmitPocoValue<TValue>(TValue? value, global::System.Text.Json.JsonSerializerOptions options, int condition) => "
+                    + payload
+                    + ".ShouldOmitPocoValue(value, options, condition);"
+            );
+            code.AppendLine();
+            code.AppendLine(
+                "private static global::System.Text.Json.Serialization.JsonConverter<TValue>? FindPocoConverter<TValue>(global::System.Text.Json.JsonSerializerOptions options) => "
+                    + payload
+                    + ".FindPocoConverter<TValue>(options);"
+            );
+            code.AppendLine();
+        }
+
+        AppendScalarReader(code);
+        AppendScalarWriter(code);
+        AppendPocoDirectHelpers(code, context);
+    }
+
+    /// <summary>Emits self-contained poco match helpers for legacy single-file output.</summary>
+    private static void AppendPocoMatchHelpers(SharedIndentedBuilder code)
+    {
         code.AppendLine(
             "private static bool MatchesPocoProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string wireName, string declaredName, bool hasExplicitName)"
         );
@@ -55,8 +91,11 @@ internal static class SparsePayloadJsonPocoHelpers
         code.AppendLine("return null;");
         code.CloseBlock();
         code.AppendLine();
-        AppendScalarReader(code);
-        AppendScalarWriter(code);
+    }
+
+    /// <summary>Emits the poco-bound direct codecs and metadata lookup.</summary>
+    private static void AppendPocoDirectHelpers(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
+    {
         code.AppendLine(
             "private static TValue? ReadPocoDirect<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );

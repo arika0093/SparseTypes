@@ -516,9 +516,11 @@ without rebase or baseline materialization report `NotSupportedException`.
 the product feature selection, the analyzed model shapes (explicit and
 promoted), the applicable collection families, and the target-framework
 facts. `SparseGeneratedOnceEmitter` renders only the requested helper
-families — collection clone kernels, read-only adapters, and removal-index
-helpers — once per compilation as normally `internal` types. These helpers
-are BCL-only and take no dialect parameters (unlike the edit-session core,
+families — collection clone kernels, read-only adapters, removal-index
+helpers, and shared JSON codecs — once per compilation as normally
+`internal` types. The clone, adapter, and removal-index helpers are BCL-only
+and take no dialect parameters. The JSON codecs take the patch dialect for
+the runtime-typed endpoint and key helpers (unlike the edit-session core,
 which consumes the runtime, patch, and session dialects). Hint names and
 type identities derive from the owning generator namespaces, so coexisting
 products stay distinct. Missing feature prerequisites report the configured
@@ -605,7 +607,8 @@ downstream dialects.
 
 Compilation-scoped helpers live in the same namespace with stable hint names
 (`Generated.ReadOnlyAdapters.g.cs`, `Generated.CloneKernels.g.cs`,
-`Generated.RemovalIndex.g.cs`).
+`Generated.RemovalIndex.g.cs`, `Generated.JsonCodecs.g.cs`,
+`Generated.JsonPayloadCodecs.g.cs`).
 `SparseGeneratedOnceNames` pins those identities; per-model output with an
 explicit namespace instantiates them instead of redefining the generic
 code. The product generator aggregates capabilities across explicit and

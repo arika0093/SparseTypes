@@ -23,7 +23,26 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <summary>Emits bridge converter types into the current generated container.</summary>
     /// <param name="code">Container target builder (indented one level inside the container).</param>
     /// <param name="dialect">Owning patch dialect for runtime type names.</param>
-    internal static void AppendBridgeConverters(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
+    /// <param name="sharedCodecsReference">Shared codec container reference, or null for self-contained legacy output.</param>
+    internal static void AppendBridgeConverters(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? sharedCodecsReference = null
+    )
+    {
+        if (sharedCodecsReference is null)
+        {
+            AppendInlineBridgeConverters(code, dialect);
+            return;
+        }
+
+        AppendSharedBridgeConverters(code, dialect, sharedCodecsReference);
+    }
+
+    /// <summary>Emits self-contained bridge converter types for legacy single-file output.</summary>
+    /// <param name="code">Container target builder (indented one level inside the container).</param>
+    /// <param name="dialect">Owning patch dialect for runtime type names.</param>
+    private static void AppendInlineBridgeConverters(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
@@ -141,6 +160,76 @@ internal static class SparseChangePayloadJsonBridgeEmitter
                 + " value, global::System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue("
                 + wire
                 + ".ToToken(value));"
+        );
+        code.CloseBlock();
+        code.AppendLine();
+    }
+
+    /// <summary>Emits bridge converter types forwarding to the shared codecs.</summary>
+    /// <param name="code">Container target builder (indented one level inside the container).</param>
+    /// <param name="dialect">Owning patch dialect for runtime type names.</param>
+    /// <param name="sharedCodecsReference">Shared codec container reference.</param>
+    private static void AppendSharedBridgeConverters(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string sharedCodecsReference
+    )
+    {
+        var runtime = dialect.RuntimeNamespace;
+        var endpoint = runtime + "ChangePayloadEndpoint";
+        var kind = runtime + "ChangePayloadItemKind";
+        var shared = sharedCodecsReference;
+
+        code.AppendLine("/// <summary>Preserves the v1 endpoint wire shape for one value type.</summary>");
+        code.AppendLine("/// <remarks>State tokens and names come from the runtime wire constants so the contract stays single-sourced.</remarks>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine(
+            "public sealed class "
+                + EndpointConverterName
+                + "<TValue> : global::System.Text.Json.Serialization.JsonConverter<"
+                + endpoint
+                + "<TValue>>"
+        );
+        code.OpenBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
+            "public override "
+                + endpoint
+                + "<TValue>? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options) => "
+                + shared
+                + ".ReadEndpoint(ref reader, options, null, null, GetValueTypeTypeInfo);"
+        );
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
+            "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, "
+                + endpoint
+                + "<TValue>? value, global::System.Text.Json.JsonSerializerOptions options) => "
+                + shared
+                + ".WriteEndpoint(writer, value, options, null, GetValueTypeTypeInfo);"
+        );
+        AppendValueTypeTypeInfo(code);
+        code.CloseBlock();
+        code.AppendLine();
+
+        code.AppendLine("/// <summary>Preserves the lower-case v1 item-kind tokens.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + ItemKindConverterName + " : global::System.Text.Json.Serialization.JsonConverter<" + kind + ">");
+        code.OpenBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
+            "public override "
+                + kind
+                + " Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options) => "
+                + shared
+                + ".ReadItemKind(ref reader);"
+        );
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
+            "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, "
+                + kind
+                + " value, global::System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue("
+                + runtime
+                + "ChangePayloadWire.ToToken(value));"
         );
         code.CloseBlock();
         code.AppendLine();

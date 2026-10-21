@@ -6,7 +6,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseFragmentJsonFastPathEmitter
 {
     /// <summary>Emits collection codecs and member fast paths.</summary>
-    internal static void AppendFastPaths(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
+    internal static void AppendFastPaths(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string? sharedCodecsReference = null)
     {
         foreach (var codecMember in members)
         {
@@ -33,13 +33,69 @@ internal static class SparseFragmentJsonFastPathEmitter
                 "GetMemberTypeInfo"
             );
         }
-        AppendMemberValueHelpers(code);
-        SparseJsonScalarShapes.AppendScalarHelpers(code, "TMember");
-        SparseJsonScalarShapes.AppendMapKeyHelpers(code);
+        AppendMemberValueHelpers(code, sharedCodecsReference);
+        if (sharedCodecsReference is null)
+        {
+            SparseJsonScalarShapes.AppendScalarHelpers(code, "TMember");
+            SparseJsonScalarShapes.AppendMapKeyHelpers(code);
+        }
+        else
+        {
+            code.AppendLine(
+                "private static bool TryReadScalar<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, out TMember? value) => "
+                    + sharedCodecsReference
+                    + ".TryReadScalar(ref reader, out value);"
+            );
+            code.AppendLine();
+            code.AppendLine(
+                "private static TMember? ReadScalarEnum<TMember>(ref global::System.Text.Json.Utf8JsonReader reader) => "
+                    + sharedCodecsReference
+                    + ".ReadScalarEnum<TMember>(ref reader);"
+            );
+            code.AppendLine();
+            code.AppendLine(
+                "private static bool TryWriteScalar<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value) => "
+                    + sharedCodecsReference
+                    + ".TryWriteScalar(writer, value);"
+            );
+            code.AppendLine();
+            code.AppendLine(
+                "private static void WriteScalarEnum<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember value) => "
+                    + sharedCodecsReference
+                    + ".WriteScalarEnum(writer, value);"
+            );
+            code.AppendLine();
+            code.AppendLine("private static TKey ParseMapKey<TKey>(string name) => " + sharedCodecsReference + ".ParseMapKey<TKey>(name);");
+            code.AppendLine();
+            code.AppendLine("private static string FormatMapKey<TKey>(TKey key) => " + sharedCodecsReference + ".FormatMapKey(key);");
+            code.AppendLine();
+        }
     }
 
     /// <summary>Emits fast-path fragment member readers and writers.</summary>
-    private static void AppendMemberValueHelpers(SharedIndentedBuilder code)
+    private static void AppendMemberValueHelpers(SharedIndentedBuilder code, string? sharedCodecsReference)
+    {
+        if (sharedCodecsReference is null)
+        {
+            AppendMemberValueBodies(code);
+            return;
+        }
+
+        code.AppendLine(
+            "private static TMember? ReadMemberValue<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => "
+                + sharedCodecsReference
+                + ".ReadMemberValue<TMember>(ref reader, options, GetMemberTypeInfo<TMember>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteMemberValue<TMember>(global::System.Text.Json.Utf8JsonWriter writer, TMember? value, global::System.Text.Json.JsonSerializerOptions options) => "
+                + sharedCodecsReference
+                + ".WriteMemberValue(writer, value, options, GetMemberTypeInfo<TMember>);"
+        );
+        code.AppendLine();
+    }
+
+    private static void AppendMemberValueBodies(SharedIndentedBuilder code)
     {
         code.AppendLine(
             "private static TMember? ReadMemberValue<TMember>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"

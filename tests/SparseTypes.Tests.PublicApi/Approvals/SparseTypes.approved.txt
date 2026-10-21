@@ -1195,6 +1195,92 @@ namespace SparseTypes.CompilerServices
 }
 namespace SparseTypes.Generated
 {
+    public sealed class EditSessionCoreConfiguration<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent>
+        where TModel :  class
+        where TFragment :  class
+        where TPatch :  class
+        where TChangeSet :  class
+        where TObservable :  class
+        where TCurrent :  class
+    {
+        public EditSessionCoreConfiguration() { }
+        public System.Func<TChangeSet, SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>> AdvanceBaseline { get; init; }
+        public System.Func<TFragment, TModel>? BaselineToModel { get; init; }
+        public System.Func<SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>, TChangeSet> Between { get; init; }
+        public System.Func<TChangeSet, System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath>>? EnumerateChangedPaths { get; init; }
+        public System.Func<TModel, TFragment> FromModel { get; init; }
+        public System.Func<TChangeSet, TChangeSet>? Invert { get; init; }
+        public System.Func<TChangeSet, bool> IsEmpty { get; init; }
+        public System.Func<TChangeSet, TModel, SparseTypes.RebaseResult<TChangeSet>>? Rebase { get; init; }
+        public System.Action<TObservable>? RefreshObservable { get; init; }
+        public System.Func<TModel, TCurrent> ToCurrent { get; init; }
+        public System.Func<TModel, System.Action?, System.Action?, TObservable> ToObservable { get; init; }
+        public System.Func<TChangeSet, TPatch> ToPatch { get; init; }
+        [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Updated",
+                "Conflicts"})]
+        public System.Func<TChangeSet, TModel, System.ValueTuple<TModel?, System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>?>>? TryApplyTo { get; init; }
+        public System.Action<TModel, TModel>? WriteModel { get; init; }
+    }
+    public class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>
+        where TModel :  class
+        where TFragment :  class
+        where TPatch :  class
+        where TChangeSet :  class
+        where TObservable :  class
+    {
+        public long BaselineRevision { get; }
+        public bool HasChanges { get; }
+        public TModel Model { get; }
+        public TObservable Observable { get; }
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        public event System.Action<TChangeSet>? TransitionObserved;
+        public void AcceptChanges() { }
+        public void AcceptChanges(TChangeSet changes) { }
+        public void ApplyInPlace(TChangeSet changes) { }
+        public void BatchEdit(System.Action edit) { }
+        protected virtual SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> CreateBranched(TModel live, SparseTypes.Optional<TFragment?> baseline, System.Guid rootId, System.Action? onChanged) { }
+        public TChangeSet CreateChangeSet() { }
+        public TPatch CreatePatch() { }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> EnumerateChangedPaths() { }
+        public virtual SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Fork() { }
+        public TModel GetModelForFrameworkAccess() { }
+        public bool IsInSameLineage(SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> other) { }
+        public void RefreshAfterExternalMutation() { }
+        public SparseTypes.RebaseResult<TChangeSet> Reload(TModel serverState) { }
+        public void RevertChanges() { }
+        public bool TryApplyInPlace(TChangeSet changes, out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public virtual bool TryMergeFrom(SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> fork, out SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>? merged, out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public bool TryReconcile<TMap>(TChangeSet submitted, TModel persisted, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Map",
+                "Error"})] System.Func<TModel, TModel, System.ValueTuple<TMap?, string?>> buildMap, System.Func<TModel, TModel, TModel, TMap?, TChangeSet, string?> retarget, out string? error)
+            where TMap :  class { }
+        public bool TryReconcileAndApply<TMap>(TChangeSet submitted, TModel persisted, [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Map",
+                "Error"})] System.Func<TModel, TModel, System.ValueTuple<TMap?, string?>> buildMap, System.Func<TModel, TModel, TModel, TMap?, TChangeSet?, string?> retarget, System.Func<string, SparseTypes.SparseConflict> createReconcileConflict, out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts)
+            where TMap :  class { }
+        public bool TryRevertChanges(out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(TModel model, System.Func<TModel, TFragment> fromModel, System.Func<SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>, TChangeSet> between, System.Func<TChangeSet, TPatch> toPatch, System.Func<TChangeSet, bool> isEmpty, System.Func<TChangeSet, SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>> advanceBaseline, System.Func<TModel, TObservable> toObservable) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(TModel baseline, TModel current, System.Func<TModel, TFragment> fromModel, System.Func<SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>, TChangeSet> between, System.Func<TChangeSet, TPatch> toPatch, System.Func<TChangeSet, bool> isEmpty, System.Func<TChangeSet, SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>> advanceBaseline, System.Func<TModel, TObservable> toObservable) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(TModel model, System.Func<TModel, TFragment> fromModel, System.Func<SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>, TChangeSet> between, System.Func<TChangeSet, TPatch> toPatch, System.Func<TChangeSet, bool> isEmpty, System.Func<TChangeSet, SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>> advanceBaseline, System.Func<TModel, System.Action?, TObservable> toObservable, System.Action? onChanged = null) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(TModel baseline, TModel current, System.Func<TModel, TFragment> fromModel, System.Func<SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>, TChangeSet> between, System.Func<TChangeSet, TPatch> toPatch, System.Func<TChangeSet, bool> isEmpty, System.Func<TChangeSet, SparseTypes.Optional<TFragment?>, SparseTypes.Optional<TFragment?>> advanceBaseline, System.Func<TModel, System.Action?, TObservable> toObservable, System.Action? onChanged = null) { }
+    }
+    public class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> : SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>
+        where TModel :  class
+        where TFragment :  class
+        where TPatch :  class
+        where TChangeSet :  class
+        where TObservable :  class
+        where TCurrent :  class
+    {
+        protected EditSessionCore(TModel baseline, TModel current, SparseTypes.Generated.EditSessionCoreConfiguration<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> configuration, System.Action? onChanged) { }
+        public TCurrent Current { get; }
+        protected override SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> CreateBranched(TModel live, SparseTypes.Optional<TFragment?> baseline, System.Guid rootId, System.Action? onChanged) { }
+        public new SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> Fork() { }
+        public bool TryMergeFrom(SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> fork, out SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent>? merged, out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> Create(TModel model, SparseTypes.Generated.EditSessionCoreConfiguration<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> configuration, System.Action? onChanged = null) { }
+        public static SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> Create(TModel baseline, TModel current, SparseTypes.Generated.EditSessionCoreConfiguration<TModel, TFragment, TPatch, TChangeSet, TObservable, TCurrent> configuration, System.Action? onChanged = null) { }
+    }
     public interface IArrayDescriptor
     {
         bool CanAdd { get; }

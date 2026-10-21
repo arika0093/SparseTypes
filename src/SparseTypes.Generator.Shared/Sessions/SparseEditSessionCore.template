@@ -573,7 +573,10 @@ namespace __SESSION_NAMESPACE__
                     }
                 }
             }
-            catch (InvalidOperationException) { }
+            catch (InvalidOperationException)
+            {
+                // The fast-path probe failed; fall through to the full reconstruction below.
+            }
 
             // Reconstruct the submitted-after state; a stale or incompatible
             // submission fails here before anything is mutated.
@@ -1258,8 +1261,7 @@ namespace __SESSION_NAMESPACE__
             _baselineToModel = baselineToModel;
             // Fresh sessions start their own branch lineage; Fork keeps the
             // receiver lineage while TryMergeFrom preserves it on the result.
-            _branchId = Guid.NewGuid();
-            _rootId = _branchId;
+            _rootId = Guid.NewGuid();
             _baseline = __OPTIONAL_TYPE__<TFragment?>.Present(baseline);
             _lastObserved = __OPTIONAL_TYPE__<TFragment?>.Present(fromModel(model));
             _observable = toObservable(model, OnObservableMutation, DisableHasChangesCache);
@@ -1307,7 +1309,6 @@ namespace __SESSION_NAMESPACE__
         private readonly Action<TObservable>? _refreshObservable;
         private readonly Action? _onChanged;
         private readonly bool _initialCacheObservableChanges;
-        private Guid _branchId;
         private Guid _rootId;
         private bool _cacheObservableChanges;
         private bool _hasChangesCacheValid;

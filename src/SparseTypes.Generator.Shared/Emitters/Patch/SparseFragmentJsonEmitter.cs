@@ -64,7 +64,8 @@ internal static class SparseFragmentJsonEmitter
         string converterClassName = "FragmentJsonConverter",
         string converterAccessibility = "private",
         bool sealedConverter = true,
-        bool emitFastPaths = false
+        bool emitFastPaths = false,
+        string? sharedCodecsReference = null
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
@@ -380,7 +381,7 @@ internal static class SparseFragmentJsonEmitter
         code.AppendLine();
         if (emitFastPaths)
         {
-            SparseFragmentJsonFastPathEmitter.AppendFastPaths(code, members);
+            SparseFragmentJsonFastPathEmitter.AppendFastPaths(code, members, sharedCodecsReference);
         }
 
         code.AppendLine(
@@ -414,23 +415,46 @@ internal static class SparseFragmentJsonEmitter
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine();
-        code.AppendLine("private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options)");
-        code.OpenBlock();
-        code.AppendLine("if (actual is null) { return false; }");
-        code.AppendLine(
-            "return global::System.String.Equals(actual, expected, options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal);"
-        );
-        code.CloseBlock();
+        if (sharedCodecsReference is null)
+        {
+            code.AppendLine("private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options)");
+            code.OpenBlock();
+            code.AppendLine("if (actual is null) { return false; }");
+            code.AppendLine(
+                "return global::System.String.Equals(actual, expected, options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal);"
+            );
+            code.CloseBlock();
+        }
+        else
+        {
+            code.AppendLine(
+                "private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options) => "
+                    + sharedCodecsReference
+                    + ".Matches(actual, expected, options);"
+            );
+        }
+
         code.AppendLine();
-        code.AppendLine(
-            "private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName)"
-        );
-        code.OpenBlock();
-        code.AppendLine(
-            "if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) { throw new global::System.Text.Json.JsonException(\"The JSON property '\" + propertyName + \"' could not be mapped to fragment '\" + typeof(Fragment) + \"'.\"); }"
-        );
-        code.AppendLine("reader.Skip();");
-        code.CloseBlock();
+        if (sharedCodecsReference is null)
+        {
+            code.AppendLine(
+                "private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName)"
+            );
+            code.OpenBlock();
+            code.AppendLine(
+                "if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) { throw new global::System.Text.Json.JsonException(\"The JSON property '\" + propertyName + \"' could not be mapped to fragment '\" + typeof(Fragment) + \"'.\"); }"
+            );
+            code.AppendLine("reader.Skip();");
+            code.CloseBlock();
+        }
+        else
+        {
+            code.AppendLine(
+                "private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName) => "
+                    + sharedCodecsReference
+                    + ".HandleUnknownFragmentProperty(ref reader, options, propertyName, typeof(Fragment));"
+            );
+        }
         AppendJsonOptionsCache(code, members, jsonMemberIndexes, ignoredMemberIndexes, indexedDispatch);
         code.CloseBlock();
     }

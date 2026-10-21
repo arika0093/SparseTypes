@@ -30,7 +30,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         SharedIndentedBuilder? implementationBuilder,
         string? jsonConverterQualifiedName,
         string? jsonConverterSimpleName,
-        string generatedAccessibility
+        string generatedAccessibility,
+        string? implementationNamespace = null
     )
     {
         var writableMembers = members.Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly).ToImmutableArray();
@@ -62,7 +63,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     converterClassName: jsonConverterSimpleName,
                     converterAccessibility: "internal",
                     sealedConverter: false,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver,
+                    sharedCodecsReference: SharedCodecsReference(implementationBuilder, implementationNamespace)
                 );
                 implementationBuilder.AppendLine();
             }
@@ -77,6 +79,12 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             }
         }
     }
+
+    /// <summary>Shared codec reference for split-mode converters, or null for legacy single-file output.</summary>
+    private static string? SharedCodecsReference(SharedIndentedBuilder? implementationBuilder, string? implementationNamespace) =>
+        implementationBuilder is not null && implementationNamespace is not null
+            ? SparseGeneratedOnceNames.QualifiedJsonCodecs(implementationNamespace)
+            : null;
 
     /// <summary>Emits split-mode Fragment surface in public-first order.</summary>
     /// <remarks>Facade overloads keep public members ahead of internal bridges.</remarks>
@@ -96,7 +104,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         string? jsonConverterSimpleName,
         string generatedAccessibility,
         string operationsType,
-        bool canApplyPatchInPlace
+        bool canApplyPatchInPlace,
+        string? implementationNamespace = null
     )
     {
         core.AppendDiff(code, modelType, members, modelIsReferenceType, operationsType);
@@ -128,7 +137,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     converterClassName: jsonConverterSimpleName,
                     converterAccessibility: "internal",
                     sealedConverter: false,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
+                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver,
+                    sharedCodecsReference: SharedCodecsReference(implementationBuilder, implementationNamespace)
                 );
                 implementationBuilder.AppendLine();
             }

@@ -45,6 +45,17 @@ internal static class SparseGeneratedOnceEmitter
     public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) =>
         SparseGeneratedOnceNames.ChangePayloadJsonConvertersHintName(implementationNamespace);
 
+    /// <summary>Gets the stable hint name for shared JSON codecs.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <returns>A stable unique hint name.</returns>
+    public static string JsonCodecsHintName(string implementationNamespace) => SparseGeneratedOnceNames.JsonCodecsHintName(implementationNamespace);
+
+    /// <summary>Gets the stable hint name for shared payload JSON codecs.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <returns>A stable unique hint name.</returns>
+    public static string JsonPayloadCodecsHintName(string implementationNamespace) =>
+        SparseGeneratedOnceNames.JsonPayloadCodecsHintName(implementationNamespace);
+
     /// <summary>Resolves the implementation namespace, or null when disabled.</summary>
     /// <param name="config">Owning generator configuration.</param>
     /// <returns>The explicit namespace, or null for no Generated-Once output.</returns>
@@ -98,4 +109,25 @@ internal static class SparseGeneratedOnceEmitter
         bool emitConverters,
         CancellationToken cancellationToken
     ) => SparseGeneratedOnceChangePayloadJsonConverters.BuildSource(implementationNamespace, dialect, emitConverters, cancellationToken);
+
+    /// <summary>Renders shared System.Text.Json codecs for fragment and payload converters.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <param name="dialect">Product runtime type vocabulary, or null for the BCL-only subset.</param>
+    /// <param name="emitCodecs">Whether the consumer has the required serializer API.</param>
+    /// <param name="cancellationToken">Cooperative cancellation.</param>
+    /// <returns>Stable-hint source, with codec implementations when supported.</returns>
+    public static string RenderJsonCodecs(
+        string implementationNamespace,
+        SparseFragmentPatchEmitter.SparsePatchDialect? dialect,
+        bool emitCodecs,
+        CancellationToken cancellationToken
+    ) => SparseGeneratedOnceJsonCodecs.BuildSource(implementationNamespace, dialect, emitCodecs, cancellationToken);
+
+    /// <summary>Renders shared payload System.Text.Json codecs for change payload converters.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <param name="emitCodecs">Whether the consumer has the required serializer API.</param>
+    /// <param name="cancellationToken">Cooperative cancellation.</param>
+    /// <returns>Stable-hint source, with codec implementations when supported.</returns>
+    public static string RenderJsonPayloadCodecs(string implementationNamespace, bool emitCodecs, CancellationToken cancellationToken) =>
+        SparseGeneratedOnceJsonPayloadCodecs.BuildSource(implementationNamespace, emitCodecs, cancellationToken);
 }

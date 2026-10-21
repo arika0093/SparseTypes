@@ -187,21 +187,25 @@ public sealed class GeneratedOnceDriverTests
     }
 
     [Test]
-    public void ScalarClass_EmitsOnlyEditSessionCore()
+    public void ScalarClass_EmitsNoEditSessionCore()
     {
+        // Session cores live in the SparseTypes runtime; the generator only
+        // emits the per-model adapters that bind to them.
         var probe = Run(
             new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }
         );
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
-        sources
-            .Keys.Count(key => key.EndsWith("EditSessionCore.g.cs", StringComparison.Ordinal))
-            .ShouldBe(1);
+        sources.Keys.ShouldNotContain(key => key.Contains("EditSession", StringComparison.Ordinal));
+        sources.Keys.ShouldContain(key => key.Contains("JsonCodecs", StringComparison.Ordinal));
         sources
             .Keys.Count(key =>
-                key.EndsWith("EditSessionWithCurrentCore.g.cs", StringComparison.Ordinal)
+                key.EndsWith("ChangePayloadJsonConverters.g.cs", StringComparison.Ordinal)
             )
             .ShouldBe(1);
+        sources.Values.ShouldContain(source =>
+            source.Contains("global::SparseTypes.Generated.EditSessionCore<", StringComparison.Ordinal)
+        );
         sources.Keys.ShouldNotContain(key =>
             key.Contains("CloneKernels", StringComparison.Ordinal)
             || key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
@@ -335,9 +339,15 @@ public sealed class GeneratedOnceDriverTests
         CountTypeDefinitions(sources, "class SparseReadOnlyDictionaryAdapter<").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseReadOnlyDictionaryEntriesAdapter").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseRemovalIndex<").ShouldBe(1);
+        CountTypeDefinitions(sources, "class SparseJsonCodecs").ShouldBe(1);
+        CountTypeDefinitions(sources, "class SparseJsonPayloadCodecs").ShouldBe(1);
         CountTypeDefinitions(sources, "class ChangePayloadEndpointJsonConverter<").ShouldBe(1);
         CountTypeDefinitions(sources, "class ChangePayloadItemKindJsonConverter").ShouldBe(1);
-        CountTypeDefinitions(sources, "class EditSessionCore<").ShouldBe(2);
+        sources.Values.ShouldNotContain(source =>
+            source.Contains("class EditSessionCore<", StringComparison.Ordinal)
+        );
+        // Per-model sessions bind to the runtime session cores.
+        CountTypeDefinitions(sources, "global::SparseTypes.Generated.EditSessionCore<").ShouldBeGreaterThan(0);
         sources
             .Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal))
             .ShouldBe(1);
@@ -500,7 +510,8 @@ public sealed class GeneratedOnceDriverTests
             .ShouldBe(beforeSources.Keys.OrderBy(static key => key));
         foreach (
             var hint in beforeSources.Keys.Where(static key =>
-                key.Contains("EditSession", StringComparison.Ordinal)
+                key.Contains("JsonCodecs", StringComparison.Ordinal)
+                || key.Contains("JsonPayloadCodecs", StringComparison.Ordinal)
                 || key.Contains("CloneKernels", StringComparison.Ordinal)
                 || key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
             )
@@ -513,7 +524,8 @@ public sealed class GeneratedOnceDriverTests
             var stage in new[]
             {
                 "SparseTypesGenerator.GeneratedOncePlan",
-                "SparseTypesGenerator.GeneratedOnceEditSession",
+                "SparseTypesGenerator.GeneratedOnceJsonCodecs",
+                "SparseTypesGenerator.GeneratedOnceJsonPayloadCodecs",
                 "SparseTypesGenerator.GeneratedOnceCloneKernels",
                 "SparseTypesGenerator.GeneratedOnceReadOnlyAdapters",
             }
@@ -536,9 +548,9 @@ public sealed class GeneratedOnceDriverTests
         before
             .Sources()
             .Keys.ShouldNotContain(key => key.Contains("CloneKernels", StringComparison.Ordinal));
-        var editSessionBefore = before
+        var jsonCodecsBefore = before
             .Sources()
-            .First(pair => pair.Key.EndsWith("EditSessionCore.g.cs", StringComparison.Ordinal))
+            .First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
             .Value;
         var after = Rerun(
             before,
@@ -554,11 +566,12 @@ public sealed class GeneratedOnceDriverTests
             .Keys.Any(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal))
             .ShouldBeTrue();
         afterSources
-            .First(pair => pair.Key.EndsWith("EditSessionCore.g.cs", StringComparison.Ordinal))
-            .Value.ShouldBe(editSessionBefore);
-        // The unaffected family recomputes value-equal; the newly
+            .First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
+            .Value.ShouldBe(jsonCodecsBefore);
+        // The unaffected families recompute value-equal; the newly
         // requested families change output.
-        NoneModified(after, "SparseTypesGenerator.GeneratedOnceEditSession");
+        NoneModified(after, "SparseTypesGenerator.GeneratedOnceJsonCodecs");
+        NoneModified(after, "SparseTypesGenerator.GeneratedOnceJsonPayloadCodecs");
         HasModified(after, "SparseTypesGenerator.GeneratedOnceCloneKernels");
         HasModified(after, "SparseTypesGenerator.GeneratedOnceReadOnlyAdapters");
     }

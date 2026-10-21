@@ -6,6 +6,150 @@ internal static class SparsePayloadJsonSharedEmitter
     /// <summary>Emits shared helpers inside the converter.</summary>
     internal static void AppendShared(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
+        var shared = SharedCodecsReference(context);
+        if (shared is null)
+        {
+            AppendInline(code, context);
+            return;
+        }
+
+        AppendForwards(code, context, shared);
+    }
+
+    /// <summary>Qualified shared codec reference, or null for self-contained legacy output.</summary>
+    internal static string? SharedCodecsReference(PayloadJsonEmissionContext context) =>
+        context.ImplementationNamespace is null ? null : SparseGeneratedOnceNames.QualifiedJsonCodecs(context.ImplementationNamespace);
+
+    /// <summary>Qualified shared payload codec reference, or null for self-contained legacy output.</summary>
+    internal static string? SharedPayloadCodecsReference(PayloadJsonEmissionContext context) =>
+        context.ImplementationNamespace is null ? null : SparseGeneratedOnceNames.QualifiedJsonPayloadCodecs(context.ImplementationNamespace);
+
+    private static void AppendForwards(SharedIndentedBuilder code, PayloadJsonEmissionContext context, string shared)
+    {
+        var payload = SharedPayloadCodecsReference(context) ?? shared;
+        var runtime = context.Runtime;
+        var delegates = shared + ".RootReader<TValue>? rootReader, " + shared + ".RootWriter<TValue>? rootWriter";
+        code.AppendLine(
+            "private static bool TryReadNull(ref global::System.Text.Json.Utf8JsonReader reader) => " + shared + ".TryReadNull(ref reader);"
+        );
+        code.AppendLine();
+        code.AppendLine("private static " + runtime + "ChangePayloadState ParseState(string? token) => " + shared + ".ParseState(token);");
+        code.AppendLine();
+        code.AppendLine("private static " + runtime + "ChangePayloadItemKind ParseKind(string? token) => " + shared + ".ParseKind(token);");
+        code.AppendLine();
+        code.AppendLine(
+            "private static "
+                + runtime
+                + "ChangePayloadEndpoint<TValue>? ReadEndpoint<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, "
+                + delegates
+                + ") => "
+                + shared
+                + ".ReadEndpoint(ref reader, options, rootReader, rootWriter, GetValueInfo<TValue>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteEndpoint<TValue>(global::System.Text.Json.Utf8JsonWriter writer, "
+                + runtime
+                + "ChangePayloadEndpoint<TValue>? value, global::System.Text.Json.JsonSerializerOptions options, "
+                + shared
+                + ".RootWriter<TValue>? rootWriter) => "
+                + shared
+                + ".WriteEndpoint(writer, value, options, rootWriter, GetValueInfo<TValue>);"
+        );
+        code.AppendLine();
+        AppendGetValueInfo(code, context);
+        code.AppendLine();
+        code.AppendLine(
+            "private static TKey ReadKey<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => "
+                + shared
+                + ".ReadKey<TKey>(ref reader, options, GetValueInfo<TKey>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteKey<TKey>(global::System.Text.Json.Utf8JsonWriter writer, TKey key, global::System.Text.Json.JsonSerializerOptions options) => "
+                + shared
+                + ".WriteKey(writer, key, options, GetValueInfo<TKey>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static global::System.Collections.Generic.List<TKey>? ReadKeyList<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => "
+                + payload
+                + ".ReadKeyList<TKey>(ref reader, options, GetValueInfo<TKey>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteKeyList<TKey>(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values, global::System.Text.Json.JsonSerializerOptions options) => "
+                + payload
+                + ".WriteKeyList<TKey>(writer, values, options, GetValueInfo<TKey>);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static global::System.Collections.Generic.List<global::System.Guid>? ReadGuidList(ref global::System.Text.Json.Utf8JsonReader reader) => "
+                + payload
+                + ".ReadGuidList(ref reader);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteGuidList(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values) => "
+                + payload
+                + ".WriteGuidList(writer, values);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value) => "
+                + shared
+                + ".TryReadScalar(ref reader, out value);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static TValue? ReadScalarEnum<TValue>(ref global::System.Text.Json.Utf8JsonReader reader) => "
+                + shared
+                + ".ReadScalarEnum<TValue>(ref reader);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static bool TryWriteScalar<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value) => "
+                + shared
+                + ".TryWriteScalar(writer, value);"
+        );
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value) => "
+                + shared
+                + ".WriteScalarEnum(writer, value);"
+        );
+        code.AppendLine();
+        code.AppendLine("private static TKey ParseMapKey<TKey>(string name) => " + shared + ".ParseMapKey<TKey>(name);");
+        code.AppendLine();
+        code.AppendLine("private static string FormatMapKey<TKey>(TKey key) => " + shared + ".FormatMapKey(key);");
+    }
+
+    private static void AppendGetValueInfo(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
+    {
+        code.AppendLine(
+            "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueInfo<TValue>(global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        if (SparsePayloadJsonPocoEmitter.HasPocos(context))
+        {
+            code.AppendLine("var poco = GetPocoInfo<TValue>(options);");
+            code.AppendLine("if (poco is not null) return poco;");
+        }
+
+        code.AppendLine("try { return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue)); }");
+        code.AppendLine("catch (global::System.NotSupportedException exception)");
+        code.OpenBlock();
+        code.AppendLine(
+            "throw new global::System.InvalidOperationException(\"The generated payload resolver requires JsonTypeInfo metadata for value type '\" + typeof(TValue) + \"'. Combine "
+                + context.ResolverReference
+                + " with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception);"
+        );
+        code.CloseBlock();
+        code.CloseBlock();
+    }
+
+    private static void AppendInline(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
+    {
         var runtime = context.Runtime;
         code.AppendLine("private static bool TryReadNull(ref global::System.Text.Json.Utf8JsonReader reader)");
         code.OpenBlock();
