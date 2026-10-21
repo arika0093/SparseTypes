@@ -102,10 +102,7 @@ internal static class SparseShapeValidation
         // `file` accessibility is declaration-site metadata.
         foreach (var reference in model.DeclaringSyntaxReferences)
         {
-            if (
-                reference.GetSyntax() is TypeDeclarationSyntax candidate
-                && HasFileModifier(candidate)
-            )
+            if (reference.GetSyntax() is TypeDeclarationSyntax candidate && HasFileModifier(candidate))
             {
                 return true;
             }
@@ -115,9 +112,7 @@ internal static class SparseShapeValidation
     }
 
     private static bool HasFileModifier(TypeDeclarationSyntax declaration) =>
-        declaration.Modifiers.Any(static modifier =>
-            string.Equals(modifier.Text, "file", StringComparison.Ordinal)
-        );
+        declaration.Modifiers.Any(static modifier => string.Equals(modifier.Text, "file", StringComparison.Ordinal));
 
     /// <summary>
     /// Recursively rejects member shapes that generated code cannot represent.
@@ -166,10 +161,7 @@ internal static class SparseShapeValidation
                 return SparseMemberShapeProblem.RefLike;
             }
 
-            if (
-                named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-                && named.TypeArguments.Length == 1
-            )
+            if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && named.TypeArguments.Length == 1)
             {
                 pending.Push(named.TypeArguments[0]);
                 continue;
@@ -194,24 +186,17 @@ internal static class SparseShapeValidation
     }
 
     /// <summary>Wire name used for JSON comparisons of a generated member.</summary>
-    public static string GetWireName(SparseMemberModel member) =>
-        member.Property.JsonPropertyName ?? member.Property.Name;
+    public static string GetWireName(SparseMemberModel member) => member.Property.JsonPropertyName ?? member.Property.Name;
 
     /// <summary>
     /// Finds JSON wire names claimed by more than one serializable member.
     /// </summary>
     /// <remarks>Ordinal comparison: members ignored by <c>JsonIgnore</c> never participate (the generated converter skips them).</remarks>
-    public static ImmutableArray<string> FindDuplicateWireNames(
-        ImmutableArray<SparseMemberModel> members
-    )
+    public static ImmutableArray<string> FindDuplicateWireNames(ImmutableArray<SparseMemberModel> members)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var duplicates = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (
-            var property in members
-                .Select(static member => member.Property)
-                .Where(static property => !property.IsJsonIgnored)
-        )
+        foreach (var property in members.Select(static member => member.Property).Where(static property => !property.IsJsonIgnored))
         {
             var wire = property.JsonPropertyName ?? property.Name;
             if (!seen.Add(wire))
@@ -228,22 +213,12 @@ internal static class SparseShapeValidation
         ImmutableArray<SparseSymbolMemberModel> symbolMembers,
         string wireName,
         CancellationToken cancellationToken
-    ) =>
-        symbolMembers
-            .Select(static member => member.Property)
-            .FirstOrDefault(property => MatchesWireName(property, wireName, cancellationToken));
+    ) => symbolMembers.Select(static member => member.Property).FirstOrDefault(property => MatchesWireName(property, wireName, cancellationToken));
 
-    private static bool MatchesWireName(
-        IPropertySymbol property,
-        string wireName,
-        CancellationToken cancellationToken
-    )
+    private static bool MatchesWireName(IPropertySymbol property, string wireName, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (
-            SparseJsonNaming.GetJsonIgnoreCondition(property, cancellationToken)
-            == SparseJsonNaming.JsonIgnoreAlways
-        )
+        if (SparseJsonNaming.GetJsonIgnoreCondition(property, cancellationToken) == SparseJsonNaming.JsonIgnoreAlways)
         {
             return false;
         }
@@ -253,10 +228,7 @@ internal static class SparseShapeValidation
     }
 
     /// <summary>Finds member names colliding with generator-reserved names, in member order.</summary>
-    public static ImmutableArray<string> FindReservedNameCollisions(
-        IEnumerable<string> memberNames,
-        ImmutableArray<string> reservedNames
-    )
+    public static ImmutableArray<string> FindReservedNameCollisions(IEnumerable<string> memberNames, ImmutableArray<string> reservedNames)
     {
         var reserved = new HashSet<string>(StringComparer.Ordinal);
         if (!reservedNames.IsDefault)
@@ -267,10 +239,7 @@ internal static class SparseShapeValidation
             }
         }
 
-        var collisions = memberNames
-            .Where(reserved.Contains)
-            .Distinct(StringComparer.Ordinal)
-            .ToImmutableArray();
+        var collisions = memberNames.Where(reserved.Contains).Distinct(StringComparer.Ordinal).ToImmutableArray();
         return collisions;
     }
 
@@ -278,15 +247,9 @@ internal static class SparseShapeValidation
     /// First member colliding with this generator's reserved names, if any.
     /// </summary>
     /// <remarks>Returns the first collision to preserve single-diagnostic behavior.</remarks>
-    public static string? FindFirstReservedNameCollision(
-        ImmutableArray<SparseMemberModel> members,
-        ImmutableArray<string> reservedNames
-    )
+    public static string? FindFirstReservedNameCollision(ImmutableArray<SparseMemberModel> members, ImmutableArray<string> reservedNames)
     {
-        var collisions = FindReservedNameCollisions(
-            members.Select(static member => member.Property.Name),
-            reservedNames
-        );
+        var collisions = FindReservedNameCollisions(members.Select(static member => member.Property.Name), reservedNames);
         return collisions.IsDefaultOrEmpty ? null : collisions[0];
     }
 }

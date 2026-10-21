@@ -15,10 +15,7 @@ internal interface ISparseStateSnapshotScope
 /// <remarks>Exposes the concrete generated path builder (<see cref="Path"/>).</remarks>
 /// <typeparam name="TModel">The live editable model type.</typeparam>
 /// <typeparam name="TPaths">The concrete generated root path builder type.</typeparam>
-public sealed class SparseEditContext<TModel, TPaths>
-    : ISparseEditScope<TModel>,
-        ISparseStateSnapshotScope,
-        IDisposable
+public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>, ISparseStateSnapshotScope, IDisposable
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
 {
@@ -31,11 +28,7 @@ public sealed class SparseEditContext<TModel, TPaths>
     private object? _snapshotModel;
     private bool _disposed;
 
-    internal SparseEditContext(
-        ISparseEditSessionWithPaths<TModel, TPaths> session,
-        TPaths path,
-        EditContext editContext
-    )
+    internal SparseEditContext(ISparseEditSessionWithPaths<TModel, TPaths> session, TPaths path, EditContext editContext)
     {
         Session = session;
         Path = path;
@@ -145,23 +138,16 @@ public sealed class SparseEditContext<TModel, TPaths>
             object? model;
             try
             {
-                model = Session is ISparseEditSessionModelAccessor<TModel> accessor
-                    ? accessor.GetModelForFrameworkAccess()
-                    : Session.Model;
+                model = Session is ISparseEditSessionModelAccessor<TModel> accessor ? accessor.GetModelForFrameworkAccess() : Session.Model;
             }
-            catch (Exception exception)
-                when (exception is InvalidOperationException or ObjectDisposedException)
+            catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
             {
                 snapshot = null;
                 error = exception.Message;
                 return false;
             }
 
-            if (
-                _snapshot is not null
-                && _snapshotVersion == Interlocked.Read(ref _sessionVersion)
-                && ReferenceEquals(_snapshotModel, model)
-            )
+            if (_snapshot is not null && _snapshotVersion == Interlocked.Read(ref _sessionVersion) && ReferenceEquals(_snapshotModel, model))
             {
                 snapshot = _snapshot;
                 error = null;
@@ -174,13 +160,7 @@ public sealed class SparseEditContext<TModel, TPaths>
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 var version = Interlocked.Read(ref _sessionVersion);
-                if (
-                    !SparseSessionInterop.TryCaptureStateSnapshot(
-                        Session,
-                        out var captured,
-                        out error
-                    ) || captured is null
-                )
+                if (!SparseSessionInterop.TryCaptureStateSnapshot(Session, out var captured, out error) || captured is null)
                 {
                     snapshot = null;
                     return false;
@@ -230,21 +210,15 @@ public sealed class SparseEditContext<TModel, TPaths>
             object? model;
             try
             {
-                model = Session is ISparseEditSessionModelAccessor<TModel> accessor
-                    ? accessor.GetModelForFrameworkAccess()
-                    : Session.Model;
+                model = Session is ISparseEditSessionModelAccessor<TModel> accessor ? accessor.GetModelForFrameworkAccess() : Session.Model;
             }
-            catch (Exception exception)
-                when (exception is InvalidOperationException or ObjectDisposedException)
+            catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
             {
                 InvalidateStateSnapshot();
                 return;
             }
 
-            if (
-                !SparseSessionInterop.TryCaptureStateSnapshot(Session, out var captured, out _)
-                || captured is null
-            )
+            if (!SparseSessionInterop.TryCaptureStateSnapshot(Session, out var captured, out _) || captured is null)
             {
                 InvalidateStateSnapshot();
                 return;
@@ -255,10 +229,7 @@ public sealed class SparseEditContext<TModel, TPaths>
                 return;
             }
 
-            if (
-                ReferenceEquals(_snapshotModel, model)
-                && HaveSameChanges(_snapshot.Changes, captured.Changes)
-            )
+            if (ReferenceEquals(_snapshotModel, model) && HaveSameChanges(_snapshot.Changes, captured.Changes))
             {
                 return;
             }
@@ -331,7 +302,6 @@ public sealed class SparseEditContext<TModel, TPaths>
     private ISparseEditHistory RequireHistory() =>
         History
         ?? throw new InvalidOperationException(
-            "The session has no enabled history. Call EnableHistory on the session; "
-                + "this component never enables history itself."
+            "The session has no enabled history. Call EnableHistory on the session; " + "this component never enables history itself."
         );
 }

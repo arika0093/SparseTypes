@@ -22,8 +22,7 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
                 + ">(beforeValues, desiredValues, currentValues, out var rebasedValues, out var reason))"
         );
         code.OpenBlock();
-        var operationType =
-            operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
+        var operationType = operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
         code.AppendLine("result." + field + " = " + operationType + ".Set(rebasedValues);");
     }
 
@@ -39,16 +38,12 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
         var valueType = SparseFragmentPatchEmitter.GetMemberValueType(dialect, member);
         var listType = $"global::System.Collections.Generic.List<{elementType}>";
         var readOnlyType = $"global::System.Collections.Generic.IReadOnlyList<{elementType}>";
-        var typedMethod =
-            member.MergeMode == SparseMergeModes.Append
-                ? "TryRebaseSequenceAppend"
-                : "TryRebaseSequenceSetUnion";
+        var typedMethod = member.MergeMode == SparseMergeModes.Append ? "TryRebaseSequenceAppend" : "TryRebaseSequenceSetUnion";
         if (member.Collection.CloneKind == SparseCloneCollectionKind.Array)
         {
             typedMethod += "Array";
         }
-        var boxedMethod =
-            member.MergeMode == SparseMergeModes.Append ? "TryRebaseAppend" : "TryRebaseSetUnion";
+        var boxedMethod = member.MergeMode == SparseMergeModes.Append ? "TryRebaseAppend" : "TryRebaseSetUnion";
         string NativeInput(string state, string variable) =>
             $"(object?){state}.Value is {readOnlyType} {variable} && ({variable} is {elementType}[] || {variable}.GetType() == typeof({listType}))";
 
@@ -114,23 +109,16 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
             "if ("
                 + dialect.RuntimeFacade
                 + "."
-                + (
-                    member.MergeMode == SparseMergeModes.Append
-                        ? "TryRebaseAppend"
-                        : "TryRebaseSetUnion"
-                )
+                + (member.MergeMode == SparseMergeModes.Append ? "TryRebaseAppend" : "TryRebaseSetUnion")
                 + "(beforeValues, desiredValues, currentValues, (object? left, object? right) => "
                 + dialect.RuntimeFacade
                 + ".AreEqual(left, right), out var rebasedValues, out var reason))"
         );
         code.OpenBlock();
-        var operationType =
-            operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
+        var operationType = operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
         var materialized = SparseFragmentExpressions.MaterializeCollection(
             member,
-            "global::System.Linq.Enumerable.Cast<"
-                + member.Collection.ElementType.Name
-                + ">(rebasedValues)"
+            "global::System.Linq.Enumerable.Cast<" + member.Collection.ElementType.Name + ">(rebasedValues)"
         );
         code.AppendLine("result." + field + " = " + operationType + ".Set(" + materialized + ");");
     }

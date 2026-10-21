@@ -17,10 +17,7 @@ internal static class SparsePromotedDiscovery
         foreach (var reference in type.DeclaringSyntaxReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (
-                reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax declaration
-                && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
-            )
+            if (reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax declaration && declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
             {
                 return true;
             }
@@ -29,11 +26,7 @@ internal static class SparsePromotedDiscovery
         return false;
     }
 
-    internal static bool IsPromotablePartial(
-        INamedTypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static bool IsPromotablePartial(INamedTypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (type.ContainingType is not null || type.Arity != 0 || type.IsAbstract)
@@ -120,9 +113,7 @@ internal static class SparsePromotedDiscovery
 
                 result.Add(promotable);
                 foreach (
-                    var nested in SparseModelDiscovery
-                        .GetMembers(promotable, config, cancellationToken)
-                        .Select(static member => member.Property.Type)
+                    var nested in SparseModelDiscovery.GetMembers(promotable, config, cancellationToken).Select(static member => member.Property.Type)
                 )
                 {
                     pending.Push(nested);
@@ -148,11 +139,7 @@ internal static class SparsePromotedDiscovery
         return ordered;
     }
 
-    private static IEnumerable<INamedTypeSymbol> UnwrapPromotable(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static IEnumerable<INamedTypeSymbol> UnwrapPromotable(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         if (type is not INamedTypeSymbol named)
         {
@@ -185,10 +172,7 @@ internal static class SparsePromotedDiscovery
         }
     }
 
-    private static IEnumerable<ITypeSymbol> UnwrapCollectionElementTypes(
-        ITypeSymbol type,
-        CancellationToken cancellationToken
-    )
+    private static IEnumerable<ITypeSymbol> UnwrapCollectionElementTypes(ITypeSymbol type, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (type is IArrayTypeSymbol array)
@@ -199,10 +183,7 @@ internal static class SparsePromotedDiscovery
 
         if (type is INamedTypeSymbol named)
         {
-            if (
-                named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-                && named.TypeArguments.Length == 1
-            )
+            if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && named.TypeArguments.Length == 1)
             {
                 yield return named.TypeArguments[0];
                 yield break;

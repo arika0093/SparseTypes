@@ -13,12 +13,10 @@ internal static class SparseGeneratedOnceEmitter
     public const string ReadOnlyListAdapterTypeName = SparseGeneratedOnceNames.ReadOnlyListAdapter;
 
     /// <summary>Simple name of the shared read-only dictionary adapter.</summary>
-    public const string ReadOnlyDictionaryAdapterTypeName =
-        SparseGeneratedOnceNames.ReadOnlyDictionaryAdapter;
+    public const string ReadOnlyDictionaryAdapterTypeName = SparseGeneratedOnceNames.ReadOnlyDictionaryAdapter;
 
     /// <summary>Simple name of the shared read-only dictionary entries adapter.</summary>
-    public const string ReadOnlyDictionaryEntriesAdapterTypeName =
-        SparseGeneratedOnceNames.ReadOnlyDictionaryEntriesAdapter;
+    public const string ReadOnlyDictionaryEntriesAdapterTypeName = SparseGeneratedOnceNames.ReadOnlyDictionaryEntriesAdapter;
 
     /// <summary>Simple name of the shared removal-index helper.</summary>
     public const string RemovalIndexTypeName = SparseGeneratedOnceNames.RemovalIndex;
@@ -50,8 +48,7 @@ internal static class SparseGeneratedOnceEmitter
     /// <summary>Resolves the implementation namespace, or null when disabled.</summary>
     /// <param name="config">Owning generator configuration.</param>
     /// <returns>The explicit namespace, or null for no Generated-Once output.</returns>
-    public static string? TryGetNamespace(SparseGeneratorConfig config) =>
-        SparseGeneratedPlacement.TryGetImplementationNamespace(config);
+    public static string? TryGetNamespace(SparseGeneratorConfig config) => SparseGeneratedPlacement.TryGetImplementationNamespace(config);
 
     /// <summary>Renders the shared clone kernel source.</summary>
     /// <remarks>Per-model clone code already calls these kernels through the qualified container name.</remarks>
@@ -65,23 +62,14 @@ internal static class SparseGeneratedOnceEmitter
         bool includePortableSetView,
         bool hashSetSupportsCapacity,
         CancellationToken cancellationToken
-    ) =>
-        SparseGeneratedOnceCloneKernels.BuildSource(
-            implementationNamespace,
-            includePortableSetView,
-            hashSetSupportsCapacity,
-            cancellationToken
-        );
+    ) => SparseGeneratedOnceCloneKernels.BuildSource(implementationNamespace, includePortableSetView, hashSetSupportsCapacity, cancellationToken);
 
     /// <summary>Renders the shared read-only adapter source.</summary>
     /// <remarks>The capability plane tracks adapters as one coarse family.</remarks>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>Model-independent adapter source using only BCL types.</returns>
-    public static string RenderReadOnlyAdapters(
-        string implementationNamespace,
-        CancellationToken cancellationToken
-    ) =>
+    public static string RenderReadOnlyAdapters(string implementationNamespace, CancellationToken cancellationToken) =>
         SparseGeneratedOnceReadOnlyAdapters.BuildSource(
             implementationNamespace,
             includeCollection: true,
@@ -95,10 +83,8 @@ internal static class SparseGeneratedOnceEmitter
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>Generic index helpers over caller-owned removal lists.</returns>
-    public static string RenderRemovalIndex(
-        string implementationNamespace,
-        CancellationToken cancellationToken
-    ) => SparseGeneratedOnceRemovalIndex.BuildSource(implementationNamespace, cancellationToken);
+    public static string RenderRemovalIndex(string implementationNamespace, CancellationToken cancellationToken) =>
+        SparseGeneratedOnceRemovalIndex.BuildSource(implementationNamespace, cancellationToken);
 
     /// <summary>Renders shared ChangePayload endpoint and item-kind converters.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
@@ -111,11 +97,5 @@ internal static class SparseGeneratedOnceEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         bool emitConverters,
         CancellationToken cancellationToken
-    ) =>
-        SparseGeneratedOnceChangePayloadJsonConverters.BuildSource(
-            implementationNamespace,
-            dialect,
-            emitConverters,
-            cancellationToken
-        );
+    ) => SparseGeneratedOnceChangePayloadJsonConverters.BuildSource(implementationNamespace, dialect, emitConverters, cancellationToken);
 }

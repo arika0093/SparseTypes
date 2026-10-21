@@ -220,11 +220,7 @@ internal sealed class MixedSegmentIndex
         node.Path = path;
         node.Segments = segments;
         _byOrdinal[ordinal] = node;
-        for (
-            var ancestor = node.Parent;
-            ancestor is not null && !ReferenceEquals(ancestor, _root);
-            ancestor = ancestor.Parent
-        )
+        for (var ancestor = node.Parent; ancestor is not null && !ReferenceEquals(ancestor, _root); ancestor = ancestor.Parent)
         {
             var heap = ancestor.Descendants ??= new OrdinalHeap();
             heap.Enqueue(ordinal);
@@ -254,8 +250,7 @@ internal sealed class MixedSegmentIndex
     }
 
     /// <summary>Returns the terminal entry node at an exact path, or null.</summary>
-    public Node? GetTerminal(string path) =>
-        Walk(MixedPathSegments.Split(path)) is { } node && node.Ordinal >= 0 ? node : null;
+    public Node? GetTerminal(string path) => Walk(MixedPathSegments.Split(path)) is { } node && node.Ordinal >= 0 ? node : null;
 
     /// <summary>
     /// Finds the first inserted entry that is a strict ancestor or strict

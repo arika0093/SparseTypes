@@ -11,12 +11,7 @@ internal sealed class SparseFragmentConversionEmitter
     private string ReferenceComparer { get; }
     private SparseFragmentExpressions Expressions { get; }
 
-    public SparseFragmentConversionEmitter(
-        string optional,
-        string cloneContext,
-        string referenceComparer,
-        SparseFragmentExpressions expressions
-    )
+    public SparseFragmentConversionEmitter(string optional, string cloneContext, string referenceComparer, SparseFragmentExpressions expressions)
     {
         Optional = optional;
         CloneContext = cloneContext;
@@ -37,9 +32,7 @@ internal sealed class SparseFragmentConversionEmitter
         // (static, explicit receivers, Fragment aliases in scope).
         if (operationsType is not null)
         {
-            code.AppendLine(
-                "/// <summary>Creates a fragment with every member present from a model value.</summary>"
-            );
+            code.AppendLine("/// <summary>Creates a fragment with every member present from a model value.</summary>");
             code.AppendLine("/// <param name=\"value\">The model value to project.</param>");
             code.AppendLine("/// <returns>The fragment with all members present.</returns>");
             code.AppendIndent()
@@ -73,15 +66,10 @@ internal sealed class SparseFragmentConversionEmitter
         bool requiresContext
     )
     {
-        code.AppendLine(
-            "/// <summary>Creates a fragment with every member present from a model value.</summary>"
-        );
+        code.AppendLine("/// <summary>Creates a fragment with every member present from a model value.</summary>");
         code.AppendLine("/// <param name=\"value\">The model value to project.</param>");
         code.AppendLine("/// <returns>The fragment with all members present.</returns>");
-        code.AppendIndent()
-            .Append("public static Fragment From(")
-            .Append(modelType)
-            .AppendLine(" value)");
+        code.AppendIndent().Append("public static Fragment From(").Append(modelType).AppendLine(" value)");
         code.OpenBlock();
         if (modelIsReferenceType)
         {
@@ -93,14 +81,8 @@ internal sealed class SparseFragmentConversionEmitter
             Expressions.AppendCloneContext(code, ReferenceComparer);
             if (members.Any(static member => member.ChildModel is not null))
             {
-                code.AppendLine(
-                    "var __sparse_from_context = "
-                        + ReferenceComparer
-                        + ".CreateFromCycleContext();"
-                );
-                code.AppendLine(
-                    "return From(value, " + CloneContext + ", __sparse_from_context, \"\");"
-                );
+                code.AppendLine("var __sparse_from_context = " + ReferenceComparer + ".CreateFromCycleContext();");
+                code.AppendLine("return From(value, " + CloneContext + ", __sparse_from_context, \"\");");
             }
             else
             {
@@ -135,9 +117,7 @@ internal sealed class SparseFragmentConversionEmitter
             .Append(CloneContext);
         if (requiresFromCycleContext)
         {
-            code.Append(
-                ", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path"
-            );
+            code.Append(", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path");
         }
         code.AppendLine(")");
         code.OpenBlock();
@@ -184,14 +164,10 @@ internal sealed class SparseFragmentConversionEmitter
         code.AppendIndent()
             .Append("internal static Fragment From(")
             .Append(modelType)
-            .Append(
-                " value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context"
-            );
+            .Append(" value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context");
         if (requiresFromCycleContext)
         {
-            code.Append(
-                ", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path"
-            );
+            code.Append(", global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path");
         }
         code.Append(") => ")
             .Append(operationsType)
@@ -202,10 +178,7 @@ internal sealed class SparseFragmentConversionEmitter
             );
     }
 
-    private void AppendFromModelBody(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members
-    )
+    private void AppendFromModelBody(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
     {
         code.AppendLine("return new Fragment");
         code.OpenBlock();
@@ -247,11 +220,7 @@ internal sealed class SparseFragmentConversionEmitter
     private static string FromMemberPath(SparseMemberModel member)
     {
         var escaped = member.Property.Name.Replace("\\", "\\\\").Replace("\"", "\\\"");
-        return "(__sparse_from_path.Length == 0 ? \""
-            + escaped
-            + "\" : __sparse_from_path + \"."
-            + escaped
-            + "\")";
+        return "(__sparse_from_path.Length == 0 ? \"" + escaped + "\" : __sparse_from_path + \"." + escaped + "\")";
     }
 
     public static void AppendRootProjectionConstructor(
@@ -262,10 +231,7 @@ internal sealed class SparseFragmentConversionEmitter
         string bridgeAccessibility = "private"
     )
     {
-        if (
-            ModelConstructionPlan.ForMembers(members).CanOverlayAfterConstruction
-            && (constructor is null || constructor.Parameters.IsEmpty)
-        )
+        if (ModelConstructionPlan.ForMembers(members).CanOverlayAfterConstruction && (constructor is null || constructor.Parameters.IsEmpty))
         {
             return;
         }
@@ -288,35 +254,24 @@ internal sealed class SparseFragmentConversionEmitter
                 ", ",
                 constructor.Parameters.Select(parameter =>
                 {
-                    var member = members.FirstOrDefault(candidate =>
-                        candidate.Property.Name == parameter.PropertyName
-                    );
+                    var member = members.FirstOrDefault(candidate => candidate.Property.Name == parameter.PropertyName);
                     if (member.Property.Name is null)
                     {
                         return parameter.DefaultExpression;
                     }
 
-                    var access =
-                        "__sparse_projection."
-                        + SparseNaming.EscapeIdentifier(parameter.PropertyName);
+                    var access = "__sparse_projection." + SparseNaming.EscapeIdentifier(parameter.PropertyName);
                     var value = access + ".Value!";
                     if (member.ChildModel is not null)
                     {
-                        value = member.ChildIsReferenceType
-                            ? access + ".Value?.ToModel()!"
-                            : access + ".Value!.ToModel()";
+                        value = member.ChildIsReferenceType ? access + ".Value?.ToModel()!" : access + ".Value!.ToModel()";
                     }
 
                     return access + ".IsPresent ? " + value + " : " + parameter.DefaultExpression;
                 })
             );
         code.AppendLine(
-            bridgeAccessibility
-                + " "
-                + modelName
-                + "(Fragment __sparse_projection, __SparseProjectionToken _) : this("
-                + arguments
-                + ")"
+            bridgeAccessibility + " " + modelName + "(Fragment __sparse_projection, __SparseProjectionToken _) : this(" + arguments + ")"
         );
         code.OpenBlock();
         foreach (var member in members.Where(static member => !member.Property.IsReadOnly))
@@ -326,24 +281,12 @@ internal sealed class SparseFragmentConversionEmitter
             var value = access + ".Value!";
             if (member.ChildModel is not null)
             {
-                value = member.ChildIsReferenceType
-                    ? access + ".Value?.ToModel()!"
-                    : access + ".Value!.ToModel()";
+                value = member.ChildIsReferenceType ? access + ".Value?.ToModel()!" : access + ".Value!.ToModel()";
             }
 
             if (member.Property.IsRequired)
             {
-                code.AppendLine(
-                    "this."
-                        + name
-                        + " = "
-                        + access
-                        + ".IsPresent ? "
-                        + value
-                        + " : this."
-                        + name
-                        + "!;"
-                );
+                code.AppendLine("this." + name + " = " + access + ".IsPresent ? " + value + " : this." + name + "!;");
             }
             else
             {
@@ -367,12 +310,8 @@ internal sealed class SparseFragmentConversionEmitter
         // with an explicit receiver (surface instance access is bare).
         if (operationsType is not null)
         {
-            code.AppendLine(
-                "/// <summary>Materializes a model by overlaying this fragment onto a baseline value.</summary>"
-            );
-            code.AppendLine(
-                "/// <param name=\"baseline\">The baseline value supplying absent members.</param>"
-            );
+            code.AppendLine("/// <summary>Materializes a model by overlaying this fragment onto a baseline value.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">The baseline value supplying absent members.</param>");
             code.AppendLine("/// <returns>The materialized model value.</returns>");
             code.AppendIndent()
                 .Append("public ")
@@ -382,28 +321,19 @@ internal sealed class SparseFragmentConversionEmitter
                 .Append(" baseline) => ")
                 .Append(operationsType)
                 .AppendLine(".ToModel(this, baseline);");
-            code.AppendLine(
-                "/// <summary>Materializes a model from the present members of this fragment.</summary>"
-            );
+            code.AppendLine("/// <summary>Materializes a model from the present members of this fragment.</summary>");
             code.AppendLine("/// <returns>The materialized model value.</returns>");
-            code.AppendIndent()
-                .Append("public ")
-                .Append(modelType)
-                .AppendLine(" ToModel() => " + operationsType + ".ToModel(this);");
+            code.AppendIndent().Append("public ").Append(modelType).AppendLine(" ToModel() => " + operationsType + ".ToModel(this);");
             return;
         }
         var isOperationsBody = receiver.Length != 0;
-        code.AppendLine(
-            "/// <summary>Materializes a model by overlaying a fragment onto a baseline value.</summary>"
-        );
+        code.AppendLine("/// <summary>Materializes a model by overlaying a fragment onto a baseline value.</summary>");
         if (isOperationsBody)
         {
             code.AppendLine("/// <param name=\"fragment\">The fragment to overlay.</param>");
         }
 
-        code.AppendLine(
-            "/// <param name=\"baseline\">The baseline value supplying absent members.</param>"
-        );
+        code.AppendLine("/// <param name=\"baseline\">The baseline value supplying absent members.</param>");
         code.AppendLine("/// <returns>The materialized model value.</returns>");
         if (isOperationsBody)
         {
@@ -416,24 +346,13 @@ internal sealed class SparseFragmentConversionEmitter
         }
         else
         {
-            code.AppendIndent()
-                .Append("public ")
-                .Append(modelType)
-                .Append(" ToModel(")
-                .Append(modelType)
-                .AppendLine(" baseline)");
+            code.AppendIndent().Append("public ").Append(modelType).Append(" ToModel(").Append(modelType).AppendLine(" baseline)");
         }
         code.OpenBlock();
-        code.AppendLine(
-            isOperationsBody
-                ? "return ToModel(Merge(From(baseline), fragment));"
-                : "return From(baseline).Merge(this).ToModel();"
-        );
+        code.AppendLine(isOperationsBody ? "return ToModel(Merge(From(baseline), fragment));" : "return From(baseline).Merge(this).ToModel();");
         code.CloseBlock();
         code.AppendLine();
-        code.AppendLine(
-            "/// <summary>Materializes a model from the present members of a fragment.</summary>"
-        );
+        code.AppendLine("/// <summary>Materializes a model from the present members of a fragment.</summary>");
         if (isOperationsBody)
         {
             code.AppendLine("/// <param name=\"fragment\">The fragment to materialize.</param>");
@@ -442,10 +361,7 @@ internal sealed class SparseFragmentConversionEmitter
         code.AppendLine("/// <returns>The materialized model value.</returns>");
         if (isOperationsBody)
         {
-            code.AppendIndent()
-                .Append("public static ")
-                .Append(modelType)
-                .AppendLine(" ToModel(Fragment fragment)");
+            code.AppendIndent().Append("public static ").Append(modelType).AppendLine(" ToModel(Fragment fragment)");
         }
         else
         {
@@ -458,22 +374,14 @@ internal sealed class SparseFragmentConversionEmitter
             : ModelConstructionPlan.ForStructuralMembers(members, constructor);
         if (
             hasRootProjectionConstructor
-            && (
-                !construction.CanOverlayAfterConstruction
-                || (constructor is not null && !constructor.Parameters.IsEmpty)
-            )
+            && (!construction.CanOverlayAfterConstruction || (constructor is not null && !constructor.Parameters.IsEmpty))
         )
         {
             // Stage 4: split emission widens the projection bridge so
             // the operations class can invoke it; single-file keeps it private.
-            var token =
-                receiver.Length == 0
-                    ? "__SparseProjectionToken"
-                    : modelType + ".__SparseProjectionToken";
+            var token = receiver.Length == 0 ? "__SparseProjectionToken" : modelType + ".__SparseProjectionToken";
             var source = receiver.Length == 0 ? "this" : "fragment";
-            code.AppendLine(
-                "return new " + modelType + "(" + source + ", default(" + token + "));"
-            );
+            code.AppendLine("return new " + modelType + "(" + source + ", default(" + token + "));");
             code.CloseBlock();
             code.AppendLine();
             return;
@@ -486,9 +394,7 @@ internal sealed class SparseFragmentConversionEmitter
                     ", ",
                     constructor.Parameters.Select(parameter =>
                     {
-                        var member = members.FirstOrDefault(candidate =>
-                            candidate.Property.Name == parameter.PropertyName
-                        );
+                        var member = members.FirstOrDefault(candidate => candidate.Property.Name == parameter.PropertyName);
                         if (member.Property.Name is null)
                         {
                             return parameter.DefaultExpression;
@@ -499,38 +405,24 @@ internal sealed class SparseFragmentConversionEmitter
                         var projected = access + ".Value!";
                         if (member.ChildModel is not null)
                         {
-                            projected = member.ChildIsReferenceType
-                                ? access + ".Value?.ToModel()!"
-                                : access + ".Value!.ToModel()";
+                            projected = member.ChildIsReferenceType ? access + ".Value?.ToModel()!" : access + ".Value!.ToModel()";
                         }
 
-                        return access
-                            + ".IsPresent ? "
-                            + projected
-                            + " : "
-                            + parameter.DefaultExpression;
+                        return access + ".IsPresent ? " + projected + " : " + parameter.DefaultExpression;
                     })
                 );
             code.AppendLine("var value = new " + modelType + "(" + arguments + ");");
-            foreach (
-                var member in members.Where(static member =>
-                    !member.Property.IsReadOnly && !member.Property.IsInitOnly
-                )
-            )
+            foreach (var member in members.Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly))
             {
                 var name = SparseNaming.EscapeIdentifier(member.Property.Name);
                 var access = receiver + name;
                 var projected = access + ".Value!";
                 if (member.ChildModel is not null)
                 {
-                    projected = member.ChildIsReferenceType
-                        ? access + ".Value?.ToModel()!"
-                        : access + ".Value!.ToModel()";
+                    projected = member.ChildIsReferenceType ? access + ".Value?.ToModel()!" : access + ".Value!.ToModel()";
                 }
 
-                code.AppendLine(
-                    "if (" + access + ".IsPresent) value." + name + " = " + projected + ";"
-                );
+                code.AppendLine("if (" + access + ".IsPresent) value." + name + " = " + projected + ";");
             }
             code.AppendLine("return value;");
             code.CloseBlock();
@@ -547,9 +439,7 @@ internal sealed class SparseFragmentConversionEmitter
                     code.Append(" && ");
                 }
 
-                code.Append(receiver)
-                    .Append(SparseNaming.EscapeIdentifier(members[index].Property.Name))
-                    .Append(".IsPresent");
+                code.Append(receiver).Append(SparseNaming.EscapeIdentifier(members[index].Property.Name)).Append(".IsPresent");
             }
 
             code.AppendLine(")");
@@ -595,9 +485,7 @@ internal sealed class SparseFragmentConversionEmitter
             code.AppendIndent()
                 .Append(name)
                 .Append(" = ")
-                .Append(
-                    useDefaults ? access + ".IsPresent ? " + value + " : defaults." + name : value
-                )
+                .Append(useDefaults ? access + ".IsPresent ? " + value + " : defaults." + name : value)
                 .AppendLine(",");
         }
 

@@ -28,10 +28,7 @@ public sealed class SparseFieldContext<TModel, TValue>
         _scopeContext = scopeContext;
         Binding = binding;
         Path = path;
-        ValueChanged = EventCallback.Factory.Create<TValue>(
-            receiver,
-            value => binding.SetAsync(value)
-        );
+        ValueChanged = EventCallback.Factory.Create<TValue>(receiver, value => binding.SetAsync(value));
     }
 
     /// <summary>Gets the live typed binding backing this field.</summary>
@@ -89,15 +86,12 @@ public sealed class SparseFieldContext<TModel, TValue>
 
     /// <summary>Gets whether Blazor tracks the live field as modified.</summary>
     /// <remarks>False when the binding is stale; Blazor touched state is independent of the semantic <see cref="IsChanged"/>.</remarks>
-    public bool IsModified =>
-        Binding.TryGetField(out var fieldId, out _) && Binding.EditContext.IsModified(fieldId);
+    public bool IsModified => Binding.TryGetField(out var fieldId, out _) && Binding.EditContext.IsModified(fieldId);
 
     /// <summary>Gets the current validation messages for the live field.</summary>
     /// <remarks>Empty when the binding is stale.</remarks>
     public IEnumerable<string> ValidationMessages =>
-        Binding.TryGetField(out var fieldId, out _)
-            ? Binding.EditContext.GetValidationMessages(fieldId)
-            : [];
+        Binding.TryGetField(out var fieldId, out _) ? Binding.EditContext.GetValidationMessages(fieldId) : [];
 
     /// <summary>Writes through the binding, throwing on failure.</summary>
     /// <param name="value">The value to write.</param>
@@ -114,8 +108,7 @@ public sealed class SparseFieldContext<TModel, TValue>
     /// <param name="value">The current value on success.</param>
     /// <param name="error">The failure reason on failure.</param>
     /// <returns>True when the value resolved and matched <typeparamref name="TValue"/>.</returns>
-    public bool TryGetValue(out TValue? value, out string? error) =>
-        Binding.TryGetValue(out value, out error);
+    public bool TryGetValue(out TValue? value, out string? error) => Binding.TryGetValue(out value, out error);
 
     /// <summary>Queries the live collection state when this field addresses a root collection.</summary>
     /// <param name="state">The point-in-time view on success.</param>
@@ -134,9 +127,7 @@ public sealed class SparseFieldContext<TModel, TValue>
     public SparsePath<TModel, TChild> Select<TChild>(Expression<Func<TValue, TChild>> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
-        return new SparsePath<TModel, TChild>(
-            AppendSelector(Path.UntypedPath, typeof(TValue), selector, nameof(selector))
-        );
+        return new SparsePath<TModel, TChild>(AppendSelector(Path.UntypedPath, typeof(TValue), selector, nameof(selector)));
     }
 
     /// <summary>Navigates to a member of a keyed entry of a collection field.</summary>
@@ -147,10 +138,7 @@ public sealed class SparseFieldContext<TModel, TValue>
     /// <typeparam name="TElement">The element type.</typeparam>
     /// <typeparam name="TChild">The addressed child type.</typeparam>
     /// <returns>A typed path usable as a nested <c>SparseField</c> path.</returns>
-    public SparsePath<TModel, TChild> Key<TKey, TElement, TChild>(
-        TKey key,
-        Expression<Func<TElement, TChild>> selector
-    )
+    public SparsePath<TModel, TChild> Key<TKey, TElement, TChild>(TKey key, Expression<Func<TElement, TChild>> selector)
     {
         if (key is null)
         {
@@ -159,9 +147,7 @@ public sealed class SparseFieldContext<TModel, TValue>
 
         ArgumentNullException.ThrowIfNull(selector);
         RequireElement(typeof(TValue), typeof(TElement), nameof(TElement));
-        return new SparsePath<TModel, TChild>(
-            AppendSelector(Path.UntypedPath.Key(key), typeof(TElement), selector, nameof(selector))
-        );
+        return new SparsePath<TModel, TChild>(AppendSelector(Path.UntypedPath.Key(key), typeof(TElement), selector, nameof(selector)));
     }
 
     /// <summary>Navigates to a member of the entry at a position of a sequence field.</summary>
@@ -170,10 +156,7 @@ public sealed class SparseFieldContext<TModel, TValue>
     /// <typeparam name="TElement">The element type.</typeparam>
     /// <typeparam name="TChild">The addressed child type.</typeparam>
     /// <returns>A typed path usable as a nested <c>SparseField</c> path.</returns>
-    public SparsePath<TModel, TChild> At<TElement, TChild>(
-        int index,
-        Expression<Func<TElement, TChild>> selector
-    )
+    public SparsePath<TModel, TChild> At<TElement, TChild>(int index, Expression<Func<TElement, TChild>> selector)
     {
         if (index < 0)
         {
@@ -182,9 +165,7 @@ public sealed class SparseFieldContext<TModel, TValue>
 
         ArgumentNullException.ThrowIfNull(selector);
         RequireElement(typeof(TValue), typeof(TElement), nameof(TElement));
-        return new SparsePath<TModel, TChild>(
-            AppendSelector(Path.UntypedPath.At(index), typeof(TElement), selector, nameof(selector))
-        );
+        return new SparsePath<TModel, TChild>(AppendSelector(Path.UntypedPath.At(index), typeof(TElement), selector, nameof(selector)));
     }
 
     /// <summary>Navigates to a member of an unassigned keyed entry by its temporary identity.</summary>
@@ -193,28 +174,17 @@ public sealed class SparseFieldContext<TModel, TValue>
     /// <typeparam name="TElement">The element type.</typeparam>
     /// <typeparam name="TChild">The addressed child type.</typeparam>
     /// <returns>A typed path usable as a nested <c>SparseField</c> path.</returns>
-    public SparsePath<TModel, TChild> TemporaryKey<TElement, TChild>(
-        Guid temporaryKey,
-        Expression<Func<TElement, TChild>> selector
-    )
+    public SparsePath<TModel, TChild> TemporaryKey<TElement, TChild>(Guid temporaryKey, Expression<Func<TElement, TChild>> selector)
     {
         if (temporaryKey == Guid.Empty)
         {
-            throw new ArgumentException(
-                "The temporary key must not be empty.",
-                nameof(temporaryKey)
-            );
+            throw new ArgumentException("The temporary key must not be empty.", nameof(temporaryKey));
         }
 
         ArgumentNullException.ThrowIfNull(selector);
         RequireElement(typeof(TValue), typeof(TElement), nameof(TElement));
         return new SparsePath<TModel, TChild>(
-            AppendSelector(
-                Path.UntypedPath.TemporaryKey(temporaryKey),
-                typeof(TElement),
-                selector,
-                nameof(selector)
-            )
+            AppendSelector(Path.UntypedPath.TemporaryKey(temporaryKey), typeof(TElement), selector, nameof(selector))
         );
     }
 
@@ -231,16 +201,9 @@ public sealed class SparseFieldContext<TModel, TValue>
         {
             var property = Nullable.GetUnderlyingType(current) ?? current;
             var candidate = property.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
-            if (
-                candidate is null
-                || !candidate.CanRead
-                || candidate.GetIndexParameters().Length > 0
-            )
+            if (candidate is null || !candidate.CanRead || candidate.GetIndexParameters().Length > 0)
             {
-                throw new ArgumentException(
-                    $"The member '{name}' does not resolve to a readable model member.",
-                    paramName
-                );
+                throw new ArgumentException($"The member '{name}' does not resolve to a readable model member.", paramName);
             }
 
             untyped = untyped.Member(name);
@@ -250,22 +213,13 @@ public sealed class SparseFieldContext<TModel, TValue>
         return untyped;
     }
 
-    private static List<string> ReadMemberChain<TElement, TChild>(
-        Expression<Func<TElement, TChild>> selector,
-        string paramName
-    )
+    private static List<string> ReadMemberChain<TElement, TChild>(Expression<Func<TElement, TChild>> selector, string paramName)
     {
         var names = new List<string>();
         Expression node = selector.Body;
         while (true)
         {
-            if (
-                node is UnaryExpression unary
-                && (
-                    unary.NodeType == ExpressionType.Convert
-                    || unary.NodeType == ExpressionType.ConvertChecked
-                )
-            )
+            if (node is UnaryExpression unary && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
             {
                 node = unary.Operand;
                 continue;
@@ -273,15 +227,9 @@ public sealed class SparseFieldContext<TModel, TValue>
 
             if (node is MemberExpression member && member.Expression is not null)
             {
-                if (
-                    member.Member is not PropertyInfo property
-                    || property.GetIndexParameters().Length > 0
-                )
+                if (member.Member is not PropertyInfo property || property.GetIndexParameters().Length > 0)
                 {
-                    throw new ArgumentException(
-                        "The selector must be a member-access chain over readable properties.",
-                        paramName
-                    );
+                    throw new ArgumentException("The selector must be a member-access chain over readable properties.", paramName);
                 }
 
                 names.Add(property.Name);
@@ -293,20 +241,14 @@ public sealed class SparseFieldContext<TModel, TValue>
             {
                 if (names.Count == 0)
                 {
-                    throw new ArgumentException(
-                        "The selector must address a child member, not the field itself.",
-                        paramName
-                    );
+                    throw new ArgumentException("The selector must address a child member, not the field itself.", paramName);
                 }
 
                 names.Reverse();
                 return names;
             }
 
-            throw new ArgumentException(
-                "The selector must be a member-access chain over the field value.",
-                paramName
-            );
+            throw new ArgumentException("The selector must be a member-access chain over the field value.", paramName);
         }
     }
 
@@ -334,12 +276,7 @@ public sealed class SparseFieldContext<TModel, TValue>
                 return;
             }
 
-            if (
-                (
-                    definition == typeof(IDictionary<,>)
-                    || definition == typeof(IReadOnlyDictionary<,>)
-                ) && element.IsAssignableFrom(arguments[1])
-            )
+            if ((definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>)) && element.IsAssignableFrom(arguments[1]))
             {
                 return;
             }
@@ -351,8 +288,7 @@ public sealed class SparseFieldContext<TModel, TValue>
         }
 
         throw new ArgumentException(
-            $"The field value '{collection}' is not a collection of '{element}'. "
-                + "Select the collection member first.",
+            $"The field value '{collection}' is not a collection of '{element}'. " + "Select the collection member first.",
             paramName
         );
     }

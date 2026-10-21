@@ -4,10 +4,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseKeyedSequenceApplyEmitter
 {
     /// <summary>Aliases nested keyed-patch fields by reference for relocated bodies.</summary>
-    internal static void AppendKeyedFieldAliases(
-        SharedIndentedBuilder code,
-        SparseMemberModel? member = null
-    )
+    internal static void AppendKeyedFieldAliases(SharedIndentedBuilder code, SparseMemberModel? member = null)
     {
         code.AppendLine("ref var __whole = ref self.__whole;");
         code.AppendLine("ref var __added = ref self.__added;");
@@ -38,28 +35,12 @@ internal static class SparseKeyedSequenceApplyEmitter
         var patchName = SparseKeyedCollectionEmitter.CollectionPatchName(member);
         if (split is not null)
         {
+            split.Shell.AppendLine("/// <summary>Applies this keyed patch to a member value.</summary>");
             split.Shell.AppendLine(
-                "/// <summary>Applies this keyed patch to a member value.</summary>"
-            );
-            split.Shell.AppendLine(
-                "public "
-                    + optionalList
-                    + " Apply("
-                    + optionalList
-                    + " current) => "
-                    + split.OperationsType
-                    + ".Apply(this, current);"
+                "public " + optionalList + " Apply(" + optionalList + " current) => " + split.OperationsType + ".Apply(this, current);"
             );
             code.AppendLine("/// <summary>Applies a keyed patch to a member value.</summary>");
-            code.AppendLine(
-                "internal static "
-                    + optionalList
-                    + " Apply("
-                    + patchName
-                    + " self, "
-                    + optionalList
-                    + " current)"
-            );
+            code.AppendLine("internal static " + optionalList + " Apply(" + patchName + " self, " + optionalList + " current)");
         }
         else
         {
@@ -74,11 +55,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         var keyOfApply = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         if (hasTempApply)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineValidation(
-                code,
-                member,
-                keyOfApply
-            );
+            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineValidation(code, member, keyOfApply);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -92,22 +69,12 @@ internal static class SparseKeyedSequenceApplyEmitter
             );
         }
         code.AppendLine("if (__whole.Kind != " + kind + ".Keep) return __whole.Apply(current);");
-        code.AppendLine(
-            "if (" + (split is null ? string.Empty : "self.") + "IsEmpty) return current;"
-        );
+        code.AppendLine("if (" + (split is null ? string.Empty : "self.") + "IsEmpty) return current;");
         code.AppendLine(
             "if (!current.IsPresent || (object?)current.Value is null) throw new global::System.InvalidOperationException(\"Cannot apply granular collection operations to a missing collection.\");"
         );
         code.AppendLine("var source = current.Value!;");
-        code.AppendLine(
-            "var map = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementType
-                + ">("
-                + comparer
-                + ");"
-        );
+        code.AppendLine("var map = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">(" + comparer + ");");
         code.AppendLine("foreach (var item in source)");
         code.OpenBlock();
         if (hasTempApply)
@@ -116,9 +83,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         }
         else
         {
-            code.AppendLine(
-                "var k = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(item);"
-            );
+            code.AppendLine("var k = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(item);");
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
             {
                 code.AppendLine(
@@ -137,9 +102,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         }
         else
         {
-            code.AppendLine(
-                "if (__removed is not null) foreach (var k in __removed) map.Remove(k);"
-            );
+            code.AppendLine("if (__removed is not null) foreach (var k in __removed) map.Remove(k);");
         }
 
         if (hasTempApply)
@@ -156,13 +119,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                 "if (!map.TryGetValue(kv.Key, out var existing)) throw new global::System.InvalidOperationException(\"Cannot edit a missing element.\");"
             );
             code.AppendLine(
-                "var applied = kv.Value.Apply("
-                    + runtime
-                    + "Optional<"
-                    + elementFragment
-                    + "?>.Present("
-                    + elementFragment
-                    + ".From(existing)));"
+                "var applied = kv.Value.Apply(" + runtime + "Optional<" + elementFragment + "?>.Present(" + elementFragment + ".From(existing)));"
             );
             code.AppendLine(
                 "if (!applied.IsPresent || applied.Value is null) throw new global::System.InvalidOperationException(\"Element edit removed the element. Use Remove instead.\");"
@@ -178,11 +135,7 @@ internal static class SparseKeyedSequenceApplyEmitter
             code.AppendLine("map[kv.Key] = updated;");
             if (hasTempApply)
             {
-                SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(
-                    code,
-                    member,
-                    "updated"
-                );
+                SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(code, member, "updated");
             }
 
             code.CloseBlock();
@@ -204,36 +157,20 @@ internal static class SparseKeyedSequenceApplyEmitter
             code.AppendLine("map[kv.Key] = kv.Value;");
             if (hasTempApply)
             {
-                SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(
-                    code,
-                    member,
-                    "kv.Value"
-                );
+                SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(code, member, "kv.Value");
             }
 
             code.CloseBlock();
         }
         if (hasTempApply)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendApplyTempEdits(
-                code,
-                member,
-                hasPatch,
-                runtime
-            );
+            SparseKeyedSequenceTempBetweenEmitter.AppendApplyTempEdits(code, member, hasPatch, runtime);
         }
 
         // Adds.
-        if (
-            SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-            || SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-        )
+        if (SparseKeyedCollectionEmitter.HasUnassignedKey(member) || SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLine(
-                "var __unassignedAdded = new global::System.Collections.Generic.List<"
-                    + elementType
-                    + ">();"
-            );
+            code.AppendLine("var __unassignedAdded = new global::System.Collections.Generic.List<" + elementType + ">();");
         }
 
         code.AppendLine("if (__added is not null) foreach (var item in __added)");
@@ -258,14 +195,10 @@ internal static class SparseKeyedSequenceApplyEmitter
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             code.AppendLine(
-                "if ("
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
-                    + ") { __unassignedAdded.Add(item); continue; }"
+                "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k") + ") { __unassignedAdded.Add(item); continue; }"
             );
         }
-        code.AppendLine(
-            "if (map.ContainsKey(k)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\");"
-        );
+        code.AppendLine("if (map.ContainsKey(k)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\");");
         code.AppendLine("map[k] = item;");
         code.CloseBlock();
         code.AppendLine("global::System.Collections.Generic.List<" + elementType + "> result;");
@@ -273,31 +206,18 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.OpenBlock();
         code.AppendLine(
             "if (__order.Count != map.Count"
-                + (
-                    SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? " + __unassignedAdded.Count"
-                        : ""
-                )
+                + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? " + __unassignedAdded.Count" : "")
                 + (
                     SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? " + __baselineTemp"
-                            + member.Id
-                            + ".Count - __baselineTempEcho"
-                            + member.Id
+                        ? " + __baselineTemp" + member.Id + ".Count - __baselineTempEcho" + member.Id
                         : ""
                 )
                 + ") throw new global::System.InvalidOperationException(\"Order must list exactly the final keys.\");"
         );
-        code.AppendLine(
-            "result = new global::System.Collections.Generic.List<" + elementType + ">(map.Count);"
-        );
+        code.AppendLine("result = new global::System.Collections.Generic.List<" + elementType + ">(map.Count);");
         if (hasTempApply)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendApplyOrderConsumption(
-                code,
-                member,
-                elementType
-            );
+            SparseKeyedSequenceTempBetweenEmitter.AppendApplyOrderConsumption(code, member, elementType);
         }
         else
         {
@@ -327,9 +247,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.OpenBlock();
         // map.Count is the exact result capacity. Check added keys with a
         // comparer-aware set to avoid repeated linear scans.
-        code.AppendLine(
-            "result = new global::System.Collections.Generic.List<" + elementType + ">(map.Count);"
-        );
+        code.AppendLine("result = new global::System.Collections.Generic.List<" + elementType + ">(map.Count);");
         code.AppendLine("foreach (var item in source)");
         code.OpenBlock();
         code.AppendLine("var k = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(item);");
@@ -352,9 +270,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                     + member.Id
                     + ".TryGetValue(__ste.Value, out var __tecurrent)) result.Add(__tecurrent);"
             );
-            code.AppendLine(
-                "else if (map.TryGetValue(k, out var current2)) result.Add(current2); }"
-            );
+            code.AppendLine("else if (map.TryGetValue(k, out var current2)) result.Add(current2); }");
         }
         else
         {
@@ -364,27 +280,15 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.CloseBlock();
         code.AppendLine("if (__added is not null)");
         code.OpenBlock();
-        code.AppendLine(
-            "var __emitted = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
-        code.AppendLine(
-            "foreach (var __placed in result) __emitted.Add("
-                + SparseKeyedCollectionEmitter.KeyOfMethod(member)
-                + "(__placed));"
-        );
+        code.AppendLine("var __emitted = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
+        code.AppendLine("foreach (var __placed in result) __emitted.Add(" + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(__placed));");
         code.AppendLine(
             "foreach (var item in __added) { var k = "
                 + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                 + "(item); "
                 + (
                     SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? "if ("
-                            + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
-                            + ") continue; "
+                        ? "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k") + ") continue; "
                         : ""
                 )
                 + "if (__emitted.Add(k)) result.Add(map[k]); }"
@@ -396,11 +300,7 @@ internal static class SparseKeyedSequenceApplyEmitter
 
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "return "
-                + SparseKeyedCollectionEmitter.MaterializeSequence(member, "result", runtime)
-                + ";"
-        );
+        code.AppendLine("return " + SparseKeyedCollectionEmitter.MaterializeSequence(member, "result", runtime) + ";");
         code.CloseBlock();
     }
 
@@ -422,9 +322,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         var operation = runtime + "FragmentOperation<" + listType + ">";
         if (split is not null)
         {
-            split.Shell.AppendLine(
-                "/// <summary>Derives a keyed patch between two member values.</summary>"
-            );
+            split.Shell.AppendLine("/// <summary>Derives a keyed patch between two member values.</summary>");
             split.Shell.AppendLine(
                 "public static "
                     + patchName
@@ -436,18 +334,10 @@ internal static class SparseKeyedSequenceApplyEmitter
                     + split.OperationsType
                     + ".Between(before, after);"
             );
-            code.AppendLine(
-                "/// <summary>Derives a keyed patch between two member values.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives a keyed patch between two member values.</summary>");
         }
         code.AppendLine(
-            (split is null ? "public static " : "internal static ")
-                + patchName
-                + " Between("
-                + optionalList
-                + " before, "
-                + optionalList
-                + " after)"
+            (split is null ? "public static " : "internal static ") + patchName + " Between(" + optionalList + " before, " + optionalList + " after)"
         );
         code.OpenBlock();
         code.AppendLine("var patch = new " + patchName + "();");
@@ -469,35 +359,19 @@ internal static class SparseKeyedSequenceApplyEmitter
         }
         code.AppendLine("if (before.IsPresent != after.IsPresent)");
         code.OpenBlock();
-        code.AppendLine(
-            "patch.__whole = after.IsPresent ? "
-                + operation
-                + ".Set(after.Value) : "
-                + operation
-                + ".Remove;"
-        );
+        code.AppendLine("patch.__whole = after.IsPresent ? " + operation + ".Set(after.Value) : " + operation + ".Remove;");
         code.AppendLine("return patch;");
         code.CloseBlock();
         code.AppendLine("if (!before.IsPresent) return patch;");
-        code.AppendLine(
-            "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;"
-        );
+        code.AppendLine("if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;");
         code.AppendLine("if ((object?)before.Value is null || (object?)after.Value is null)");
         code.OpenBlock();
         code.AppendLine(
-            "if (!"
-                + facade
-                + ".AreEqual((object?)before.Value, (object?)after.Value)) patch.__whole = "
-                + operation
-                + ".Set(after.Value);"
+            "if (!" + facade + ".AreEqual((object?)before.Value, (object?)after.Value)) patch.__whole = " + operation + ".Set(after.Value);"
         );
         code.AppendLine("return patch;");
         code.CloseBlock();
-        code.AppendLine(
-            "if ("
-                + facade
-                + ".AreEqual((object?)before.Value, (object?)after.Value)) return patch;"
-        );
+        code.AppendLine("if (" + facade + ".AreEqual((object?)before.Value, (object?)after.Value)) return patch;");
         // Build each key map and order list in one pass, reusing afterMap for
         // additions while preserving duplicate and comparer validation.
         code.AppendLine(
@@ -516,11 +390,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLine(
-            "var beforeOrder = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(__beforeCapacity);"
-        );
+        code.AppendLine("var beforeOrder = new global::System.Collections.Generic.List<" + keyType + ">(__beforeCapacity);");
         code.AppendLine("foreach (var item in before.Value!)");
         code.OpenBlock();
         code.AppendLine("var k = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(item);");
@@ -528,11 +398,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         {
             // Temporary baselines correlate by Guid; assigned entries keep the
             // key map.
-            code.AppendLine(
-                "if ("
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
-                    + ") continue;"
-            );
+            code.AppendLine("if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k") + ") continue;");
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -561,28 +427,14 @@ internal static class SparseKeyedSequenceApplyEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLine(
-            "var afterOrder = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(__afterCapacity);"
-        );
-        code.AppendLine(
-            "var unassignedAfter = new global::System.Collections.Generic.List<"
-                + elementType
-                + ">();"
-        );
+        code.AppendLine("var afterOrder = new global::System.Collections.Generic.List<" + keyType + ">(__afterCapacity);");
+        code.AppendLine("var unassignedAfter = new global::System.Collections.Generic.List<" + elementType + ">();");
         if (hasTempBetween)
         {
             code.AppendLine(
-                "var __afterTemp"
-                    + member.Id
-                    + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                    + elementType
-                    + ">();"
+                "var __afterTemp" + member.Id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();"
             );
-            code.AppendLine(
-                "var __orderTemp = new global::System.Collections.Generic.List<global::System.Guid?>();"
-            );
+            code.AppendLine("var __orderTemp = new global::System.Collections.Generic.List<global::System.Guid?>();");
         }
         code.AppendLine("foreach (var item in after.Value!)");
         code.OpenBlock();
@@ -606,14 +458,8 @@ internal static class SparseKeyedSequenceApplyEmitter
             code.AppendLine("__orderTemp.Add(null);");
         }
         code.CloseBlock();
-        code.AppendLine(
-            "var removed = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(beforeMap.Count);"
-        );
-        code.AppendLine(
-            "foreach (var k in beforeMap.Keys) if (!afterMap.ContainsKey(k)) removed.Add(k);"
-        );
+        code.AppendLine("var removed = new global::System.Collections.Generic.List<" + keyType + ">(beforeMap.Count);");
+        code.AppendLine("foreach (var k in beforeMap.Keys) if (!afterMap.ContainsKey(k)) removed.Add(k);");
         // Added entries are derived from afterOrder/afterMap (after-order, no
         // key recomputation, no second enumeration of after.Value).
         code.AppendLine(
@@ -643,13 +489,7 @@ internal static class SparseKeyedSequenceApplyEmitter
             var elementFragment = SparseKeyedCollectionEmitter.ElementFragmentType(member);
             var elementPatch = SparseKeyedCollectionEmitter.ElementPatchType(member);
             var prefix = SparseKeyedCollectionEmitter.ElementPatchPrefix(member);
-            code.AppendLine(
-                "global::System.Collections.Generic.Dictionary<"
-                    + keyType
-                    + ", "
-                    + elementPatch
-                    + ">? edited = null;"
-            );
+            code.AppendLine("global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementPatch + ">? edited = null;");
             code.AppendLine("foreach (var k in beforeMap.Keys)");
             code.OpenBlock();
             code.AppendLine("if (!afterMap.TryGetValue(k, out var afterItem)) continue;");
@@ -686,13 +526,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         }
         else
         {
-            code.AppendLine(
-                "global::System.Collections.Generic.Dictionary<"
-                    + keyType
-                    + ", "
-                    + elementType
-                    + ">? edited = null;"
-            );
+            code.AppendLine("global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">? edited = null;");
             code.AppendLine("foreach (var k in beforeMap.Keys)");
             code.OpenBlock();
             code.AppendLine("if (!afterMap.TryGetValue(k, out var afterItem)) continue;");
@@ -712,34 +546,17 @@ internal static class SparseKeyedSequenceApplyEmitter
 
         if (hasTempBetween)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenTempChanges(
-                code,
-                member,
-                elementType,
-                hasPatch,
-                facade,
-                runtime
-            );
+            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenTempChanges(code, member, elementType, hasPatch, facade, runtime);
         }
 
         code.AppendLine(
             "if (removed.Count == 0 && added.Count == 0 && (edited is null || edited.Count == 0)"
-                + (
-                    hasTempBetween
-                        ? " && patch.__removedTemp is null && patch.__editedTemp is null"
-                        : ""
-                )
+                + (hasTempBetween ? " && patch.__removedTemp is null && patch.__editedTemp is null" : "")
                 + ")"
         );
         code.OpenBlock();
         // Order-only change?
-        code.AppendLine(
-            "if ("
-                + facade
-                + ".KeyOrderEquals<"
-                + keyType
-                + ">(beforeOrder, afterOrder)) return patch;"
-        );
+        code.AppendLine("if (" + facade + ".KeyOrderEquals<" + keyType + ">(beforeOrder, afterOrder)) return patch;");
         code.AppendLine("patch.__order = afterOrder;");
         if (hasTempBetween)
         {
@@ -750,22 +567,10 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.AppendLine("if (removed.Count > 0) patch.__removed = removed;");
         code.AppendLine("if (added.Count > 0) patch.__added = added;");
         code.AppendLine("if (edited is not null && edited.Count > 0) patch.__edited = edited;");
-        code.AppendLine(
-            "if (!"
-                + facade
-                + ".KeyOrderEquals<"
-                + keyType
-                + ">(beforeOrder, afterOrder)) patch.__order = afterOrder;"
-        );
+        code.AppendLine("if (!" + facade + ".KeyOrderEquals<" + keyType + ">(beforeOrder, afterOrder)) patch.__order = afterOrder;");
         if (hasTempBetween)
         {
-            code.AppendLine(
-                "if (!"
-                    + facade
-                    + ".KeyOrderEquals<"
-                    + keyType
-                    + ">(beforeOrder, afterOrder)) patch.__orderTemp = __orderTemp;"
-            );
+            code.AppendLine("if (!" + facade + ".KeyOrderEquals<" + keyType + ">(beforeOrder, afterOrder)) patch.__orderTemp = __orderTemp;");
         }
         code.AppendLine("return patch;");
         code.CloseBlock();

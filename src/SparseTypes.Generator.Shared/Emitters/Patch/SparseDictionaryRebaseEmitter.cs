@@ -25,9 +25,7 @@ internal static class SparseDictionaryRebaseEmitter
         var conflictKindType = dialect.ConflictKindType;
         if (split is not null)
         {
-            split.Shell.AppendLine(
-                "/// <summary>Rebases this dictionary patch onto a newer member value.</summary>"
-            );
+            split.Shell.AppendLine("/// <summary>Rebases this dictionary patch onto a newer member value.</summary>");
             split.Shell.AppendLine(
                 "public static "
                     + resultType
@@ -41,9 +39,7 @@ internal static class SparseDictionaryRebaseEmitter
                     + split.OperationsType
                     + ".Rebase(baseState, local, currentState);"
             );
-            code.AppendLine(
-                "/// <summary>Rebases a dictionary patch onto a newer member value.</summary>"
-            );
+            code.AppendLine("/// <summary>Rebases a dictionary patch onto a newer member value.</summary>");
         }
         code.AppendLine(
             (split is null ? "public static " : "internal static ")
@@ -57,20 +53,10 @@ internal static class SparseDictionaryRebaseEmitter
                 + " currentState)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (local is null) throw new global::System.ArgumentNullException(nameof(local));"
-        );
-        code.AppendLine(
-            "if (local.__SparseIsEmpty()) return "
-                + resultType
-                + ".Success(new "
-                + patchName
-                + "());"
-        );
+        code.AppendLine("if (local is null) throw new global::System.ArgumentNullException(nameof(local));");
+        code.AppendLine("if (local.__SparseIsEmpty()) return " + resultType + ".Success(new " + patchName + "());");
         code.AppendLine("var result = new " + patchName + "();");
-        code.AppendLine(
-            "var conflicts = new global::System.Collections.Generic.List<" + conflictType + ">();"
-        );
+        code.AppendLine("var conflicts = new global::System.Collections.Generic.List<" + conflictType + ">();");
         code.AppendLine(optionalDict + " desired;");
         code.AppendLine("try { desired = local.Apply(baseState); }");
         code.AppendLine(
@@ -170,14 +156,7 @@ internal static class SparseDictionaryRebaseEmitter
         // Per-key three-way (without nested rebase composition for brevity:
         // nested edits rebase recursively when both edited).
         EmitRebaseDictionarySnapshot(code, "baseState", "baseDict", keyType, valueType, comparer);
-        EmitRebaseDictionarySnapshot(
-            code,
-            "currentState",
-            "currentDict",
-            keyType,
-            valueType,
-            comparer
-        );
+        EmitRebaseDictionarySnapshot(code, "currentState", "currentDict", keyType, valueType, comparer);
         EmitRebaseDictionarySnapshot(code, "desired", "desiredDict", keyType, valueType, comparer);
         // Pre-index locally removed keys once (O(K)) so per-key touch checks
         // Use comparer-aware maps instead of repeated linear scans.
@@ -192,27 +171,15 @@ internal static class SparseDictionaryRebaseEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLine(
-            "var __pendingSeen = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
+        code.AppendLine("var __pendingSeen = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
         code.AppendLine(
             "var __pendingKeys = new global::System.Collections.Generic.List<"
                 + keyType
                 + ">((local.__set is null ? 0 : local.__set.Count) + (local.__edited is null ? 0 : local.__edited.Count) + __dictRemoved.Count);"
         );
-        code.AppendLine(
-            "if (local.__set is not null) foreach (var k in local.__set.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
-        );
-        code.AppendLine(
-            "if (local.__edited is not null) foreach (var k in local.__edited.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
-        );
-        code.AppendLine(
-            "if (local.__removed is not null) foreach (var k in local.__removed) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);"
-        );
+        code.AppendLine("if (local.__set is not null) foreach (var k in local.__set.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);");
+        code.AppendLine("if (local.__edited is not null) foreach (var k in local.__edited.Keys) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);");
+        code.AppendLine("if (local.__removed is not null) foreach (var k in local.__removed) if (__pendingSeen.Add(k)) __pendingKeys.Add(k);");
         if (hasPatch)
         {
             var valuePatch = SparseKeyedCollectionEmitter.ValuePatchType(member);
@@ -232,20 +199,8 @@ internal static class SparseDictionaryRebaseEmitter
             code.AppendLine(
                 "var touchesSet = local.__set is not null && local.__set.ContainsKey(k); var touchesRemoved = __dictRemoved.Contains(k); var touchesEdited = local.__edited is not null && local.__edited.ContainsKey(k);"
             );
-            code.AppendLine(
-                "bool baseEqCurrent = inBase == inCurrent && (!inBase || "
-                    + facade
-                    + ".AreEqual<"
-                    + valueType
-                    + ">(b, c));"
-            );
-            code.AppendLine(
-                "bool desiredEqCurrent = inDesired == inCurrent && (!inDesired || "
-                    + facade
-                    + ".AreEqual<"
-                    + valueType
-                    + ">(d, c));"
-            );
+            code.AppendLine("bool baseEqCurrent = inBase == inCurrent && (!inBase || " + facade + ".AreEqual<" + valueType + ">(b, c));");
+            code.AppendLine("bool desiredEqCurrent = inDesired == inCurrent && (!inDesired || " + facade + ".AreEqual<" + valueType + ">(d, c));");
             code.AppendLine(
                 "if (baseEqCurrent) { if (touchesSet) (result.__set ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
@@ -319,20 +274,8 @@ internal static class SparseDictionaryRebaseEmitter
                 "var inBase = baseDict.TryGetValue(k, out var b); var inCurrent = currentDict.TryGetValue(k, out var c); var inDesired = desiredDict.TryGetValue(k, out var d);"
             );
             code.AppendLine("if (!inBase && !inCurrent && !inDesired) continue;");
-            code.AppendLine(
-                "bool baseEqCurrent = inBase == inCurrent && (!inBase || "
-                    + facade
-                    + ".AreEqual<"
-                    + valueType
-                    + ">(b, c));"
-            );
-            code.AppendLine(
-                "bool desiredEqCurrent = inDesired == inCurrent && (!inDesired || "
-                    + facade
-                    + ".AreEqual<"
-                    + valueType
-                    + ">(d, c));"
-            );
+            code.AppendLine("bool baseEqCurrent = inBase == inCurrent && (!inBase || " + facade + ".AreEqual<" + valueType + ">(b, c));");
+            code.AppendLine("bool desiredEqCurrent = inDesired == inCurrent && (!inDesired || " + facade + ".AreEqual<" + valueType + ">(d, c));");
             code.AppendLine(
                 "if (baseEqCurrent) { if (local.__set is not null && local.__set.TryGetValue(k, out var sv)) (result.__set ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
@@ -379,10 +322,8 @@ internal static class SparseDictionaryRebaseEmitter
         string comparer
     )
     {
-        var dictionaryType =
-            $"global::System.Collections.Generic.Dictionary<{keyType}, {valueType}>";
-        var interfaceType =
-            $"global::System.Collections.Generic.IDictionary<{keyType}, {valueType}>";
+        var dictionaryType = $"global::System.Collections.Generic.Dictionary<{keyType}, {valueType}>";
+        var interfaceType = $"global::System.Collections.Generic.IDictionary<{keyType}, {valueType}>";
         var direct = "__" + variable + "Direct";
         // These indexes are read-only. Keep fallback assignment semantics for
         // custom comparers.
@@ -392,13 +333,9 @@ internal static class SparseDictionaryRebaseEmitter
         code.AppendLine($"if ({variable} is null)");
         code.OpenBlock();
         var source = "__" + variable + "Source";
-        code.AppendLine(
-            $"var {source} = {state}.IsPresent ? ({interfaceType}?){state}.Value : null;"
-        );
+        code.AppendLine($"var {source} = {state}.IsPresent ? ({interfaceType}?){state}.Value : null;");
         code.AppendLine($"{variable} = new {dictionaryType}({source}?.Count ?? 0, {comparer});");
-        code.AppendLine(
-            $"if ({source} is not null) foreach (var kv in {source}) {variable}[kv.Key] = kv.Value;"
-        );
+        code.AppendLine($"if ({source} is not null) foreach (var kv in {source}) {variable}[kv.Key] = kv.Value;");
         code.CloseBlock();
     }
 }

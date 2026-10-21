@@ -33,11 +33,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     where TEntityChild : class
     where TDtoChild : class
 {
-    internal Action<SparseEntityMapBuilder<TEntityChild, TDtoChild>>? ElementConfigure
-    {
-        get;
-        private set;
-    }
+    internal Action<SparseEntityMapBuilder<TEntityChild, TDtoChild>>? ElementConfigure { get; private set; }
 
     internal Func<TDtoChild, TEntityChild>? CreateFactory { get; private set; }
 
@@ -71,9 +67,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <remarks>Same-name child members are inferred by the generated child plan.</remarks>
     /// <param name="configure">Configures the child mapping.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Element(
-        Action<SparseEntityMapBuilder<TEntityChild, TDtoChild>> configure
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Element(Action<SparseEntityMapBuilder<TEntityChild, TDtoChild>> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
         if (ElementConfigure is not null)
@@ -149,18 +143,12 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <remarks>The factory is expected to be pure.</remarks>
     /// <param name="factory">Builds the child entity for an added DTO element.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Create(
-        Func<TDtoChild, TEntityChild> factory
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Create(Func<TDtoChild, TEntityChild> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
         if (CreateFactory is not null)
         {
-            throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.Duplicate,
-                null,
-                "Create() is already configured for this collection."
-            );
+            throw new SparseEntityMappingException(SparseEntityMappingFailure.Duplicate, null, "Create() is already configured for this collection.");
         }
 
         CreateFactory = factory;
@@ -172,9 +160,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// </summary>
     /// <param name="remove">Disposes the removed child (delete, detach, or flag).</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Remove(
-        Action<DbContext, TEntityChild> remove
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Remove(Action<DbContext, TEntityChild> remove)
     {
         ArgumentNullException.ThrowIfNull(remove);
         EnsureSingleRemovePolicy();
@@ -212,9 +198,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <paramref name="markDeleted" /> distinguishes it afterwards.</remarks>
     /// <param name="markDeleted">Flags the removed child (for example a soft-delete column).</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDelete(
-        Action<TEntityChild> markDeleted
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDelete(Action<TEntityChild> markDeleted)
     {
         ArgumentNullException.ThrowIfNull(markDeleted);
         EnsureSingleRemovePolicy();
@@ -228,10 +212,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <param name="markDeleted">Flags the removed child (for example a soft-delete column).</param>
     /// <param name="isDeleted">Tests whether a tracked child was already flagged.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDelete(
-        Action<TEntityChild> markDeleted,
-        Func<TEntityChild, bool> isDeleted
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDelete(Action<TEntityChild> markDeleted, Func<TEntityChild, bool> isDeleted)
     {
         ArgumentNullException.ThrowIfNull(markDeleted);
         ArgumentNullException.ThrowIfNull(isDeleted);
@@ -246,9 +227,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <remarks>The expression also becomes the preflight predicate used to recognize previously soft-deleted rows.</remarks>
     /// <param name="isDeleted">Tests whether a child has already been soft-deleted.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDeleteFilter(
-        Expression<Func<TEntityChild, bool>> isDeleted
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> SoftDeleteFilter(Expression<Func<TEntityChild, bool>> isDeleted)
     {
         ArgumentNullException.ThrowIfNull(isDeleted);
         if (RemoveKind != SparseEntityRemoveKind.SoftDelete)
@@ -280,18 +259,12 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// <remarks>Key-order changes require this setter; when configured, it persists positions and reorders the tracked list.</remarks>
     /// <param name="setOrder">Writes the zero-based position to the child.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Order(
-        Action<TEntityChild, int> setOrder
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Order(Action<TEntityChild, int> setOrder)
     {
         ArgumentNullException.ThrowIfNull(setOrder);
         if (OrderSetter is not null)
         {
-            throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.Duplicate,
-                null,
-                "Order() is already configured for this collection."
-            );
+            throw new SparseEntityMappingException(SparseEntityMappingFailure.Duplicate, null, "Order() is already configured for this collection.");
         }
 
         OrderSetter = setOrder;
@@ -307,26 +280,16 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
     /// </remarks>
     /// <param name="order">Selects the writable integer order member.</param>
     /// <returns>This builder.</returns>
-    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Order(
-        Expression<Func<TEntityChild, int>> order
-    )
+    public SparseEntityCollectionBuilder<TEntityChild, TDtoChild> Order(Expression<Func<TEntityChild, int>> order)
     {
         ArgumentNullException.ThrowIfNull(order);
         if (OrderSetter is not null)
         {
-            throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.Duplicate,
-                null,
-                "Order() is already configured for this collection."
-            );
+            throw new SparseEntityMappingException(SparseEntityMappingFailure.Duplicate, null, "Order() is already configured for this collection.");
         }
 
         var body = StripConvert(order.Body);
-        if (
-            body is not MemberExpression member
-            || member.Expression != order.Parameters[0]
-            || !CanAssignOrder(member.Member)
-        )
+        if (body is not MemberExpression member || member.Expression != order.Parameters[0] || !CanAssignOrder(member.Member))
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -339,12 +302,9 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
         try
         {
             var assignment = Expression.Assign(body, index);
-            OrderSetter = Expression
-                .Lambda<Action<TEntityChild, int>>(assignment, order.Parameters[0], index)
-                .Compile();
+            OrderSetter = Expression.Lambda<Action<TEntityChild, int>>(assignment, order.Parameters[0], index).Compile();
         }
-        catch (Exception exception)
-            when (exception is ArgumentException or InvalidOperationException)
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -359,13 +319,7 @@ public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
 
     private static Expression StripConvert(Expression expression)
     {
-        while (
-            expression is UnaryExpression unary
-            && (
-                unary.NodeType == ExpressionType.Convert
-                || unary.NodeType == ExpressionType.ConvertChecked
-            )
-        )
+        while (expression is UnaryExpression unary && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
         {
             expression = unary.Operand;
         }

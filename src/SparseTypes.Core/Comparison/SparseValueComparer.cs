@@ -7,8 +7,7 @@ namespace SparseTypes;
 internal static class SparseValueComparer
 {
     /// <summary>Compares two values, treating ordinary sequences element-wise.</summary>
-    public static bool AreEqual(object? left, object? right) =>
-        FragmentComparisonPrimitives.AreValuesEqual(left, right);
+    public static bool AreEqual(object? left, object? right) => FragmentComparisonPrimitives.AreValuesEqual(left, right);
 
     /// <summary>Compares two typed values using the default sparse semantics.</summary>
     public static bool AreEqual<T>(T? left, T? right)
@@ -86,11 +85,7 @@ internal static class SparseValueComparer
     }
 
     /// <summary>Compares a sequence using a caller-provided semantic item comparer.</summary>
-    public static bool AreSequenceEqual<T>(
-        IEnumerable<T>? left,
-        IEnumerable<T>? right,
-        Func<T, T, bool> itemComparer
-    )
+    public static bool AreSequenceEqual<T>(IEnumerable<T>? left, IEnumerable<T>? right, Func<T, T, bool> itemComparer)
     {
         ArgumentNullException.ThrowIfNull(itemComparer);
         if (ReferenceEquals(left, right))
@@ -112,11 +107,7 @@ internal static class SparseValueComparer
 
         if (left.GetType() == typeof(List<T>) && right.GetType() == typeof(List<T>))
         {
-            return SparseConcreteComparisons.AreSequenceEqual(
-                (List<T>)left,
-                (List<T>)right,
-                itemComparer
-            );
+            return SparseConcreteComparisons.AreSequenceEqual((List<T>)left, (List<T>)right, itemComparer);
         }
 
         using var leftEnumerator = left.GetEnumerator();
@@ -200,10 +191,7 @@ internal static class SparseValueComparer
 
     /// <summary>Compares dictionary-shaped values by key/value semantics.</summary>
     /// <remarks>Key comparers are part of the value: differing comparers are unequal regardless of operand order.</remarks>
-    public static bool AreDictionaryEqual<TKey, TValue>(
-        IEnumerable<KeyValuePair<TKey, TValue>>? left,
-        IEnumerable<KeyValuePair<TKey, TValue>>? right
-    )
+    public static bool AreDictionaryEqual<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>>? left, IEnumerable<KeyValuePair<TKey, TValue>>? right)
     {
         if (ReferenceEquals(left, right))
         {
@@ -217,29 +205,17 @@ internal static class SparseValueComparer
 
         // Concrete shapes read their key comparer statically and skip
         // reflection-based discovery; other shapes keep the fallback below.
-        if (
-            left is Dictionary<TKey, TValue> leftDictionary
-            && right is Dictionary<TKey, TValue> rightDictionary
-        )
+        if (left is Dictionary<TKey, TValue> leftDictionary && right is Dictionary<TKey, TValue> rightDictionary)
         {
             return SparseConcreteComparisons.AreDictionaryEqual(leftDictionary, rightDictionary);
         }
 
-        if (
-            left is SortedDictionary<TKey, TValue> leftSortedDictionary
-            && right is SortedDictionary<TKey, TValue> rightSortedDictionary
-        )
+        if (left is SortedDictionary<TKey, TValue> leftSortedDictionary && right is SortedDictionary<TKey, TValue> rightSortedDictionary)
         {
-            return SparseConcreteComparisons.AreDictionaryEqual(
-                leftSortedDictionary,
-                rightSortedDictionary
-            );
+            return SparseConcreteComparisons.AreDictionaryEqual(leftSortedDictionary, rightSortedDictionary);
         }
 
-        if (
-            left is SortedList<TKey, TValue> leftSortedList
-            && right is SortedList<TKey, TValue> rightSortedList
-        )
+        if (left is SortedList<TKey, TValue> leftSortedList && right is SortedList<TKey, TValue> rightSortedList)
         {
             return SparseConcreteComparisons.AreDictionaryEqual(leftSortedList, rightSortedList);
         }
@@ -291,40 +267,19 @@ internal static class SparseValueComparer
 
         // Concrete shapes use static comparer access and direct lookups; other
         // shapes keep the view-based fallback below.
-        if (
-            left is Dictionary<TKey, TValue> leftConcrete
-            && right is Dictionary<TKey, TValue> rightConcrete
-        )
+        if (left is Dictionary<TKey, TValue> leftConcrete && right is Dictionary<TKey, TValue> rightConcrete)
         {
-            return SparseConcreteComparisons.AreDictionaryEqual(
-                leftConcrete,
-                rightConcrete,
-                valueComparer
-            );
+            return SparseConcreteComparisons.AreDictionaryEqual(leftConcrete, rightConcrete, valueComparer);
         }
 
-        if (
-            left is SortedDictionary<TKey, TValue> leftSortedConcrete
-            && right is SortedDictionary<TKey, TValue> rightSortedConcrete
-        )
+        if (left is SortedDictionary<TKey, TValue> leftSortedConcrete && right is SortedDictionary<TKey, TValue> rightSortedConcrete)
         {
-            return SparseConcreteComparisons.AreDictionaryEqual(
-                leftSortedConcrete,
-                rightSortedConcrete,
-                valueComparer
-            );
+            return SparseConcreteComparisons.AreDictionaryEqual(leftSortedConcrete, rightSortedConcrete, valueComparer);
         }
 
-        if (
-            left is SortedList<TKey, TValue> leftListConcrete
-            && right is SortedList<TKey, TValue> rightListConcrete
-        )
+        if (left is SortedList<TKey, TValue> leftListConcrete && right is SortedList<TKey, TValue> rightListConcrete)
         {
-            return SparseConcreteComparisons.AreDictionaryEqual(
-                leftListConcrete,
-                rightListConcrete,
-                valueComparer
-            );
+            return SparseConcreteComparisons.AreDictionaryEqual(leftListConcrete, rightListConcrete, valueComparer);
         }
 
         var leftDictionary = AsDictionary(left);
@@ -351,13 +306,10 @@ internal static class SparseValueComparer
             return leftView.ContainsAll(right, valueComparer);
         }
 
-        return leftView.ContainsAll(right, valueComparer)
-            && rightView.ContainsAll(left, valueComparer);
+        return leftView.ContainsAll(right, valueComparer) && rightView.ContainsAll(left, valueComparer);
     }
 
-    private static DictionaryView<TKey, TValue>? AsDictionary<TKey, TValue>(
-        IEnumerable<KeyValuePair<TKey, TValue>> value
-    )
+    private static DictionaryView<TKey, TValue>? AsDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
     {
         if (value is IReadOnlyDictionary<TKey, TValue> readOnly)
         {
@@ -384,13 +336,9 @@ internal static class SparseValueComparer
 
         public int Count => _readOnly?.Count ?? _dictionary!.Count;
 
-        public bool ContainsAll(IEnumerable<KeyValuePair<TKey, TValue>> entries) =>
-            ContainsAll(entries, AreEqual);
+        public bool ContainsAll(IEnumerable<KeyValuePair<TKey, TValue>> entries) => ContainsAll(entries, AreEqual);
 
-        public bool ContainsAll(
-            IEnumerable<KeyValuePair<TKey, TValue>> entries,
-            Func<TValue, TValue, bool> valueComparer
-        )
+        public bool ContainsAll(IEnumerable<KeyValuePair<TKey, TValue>> entries, Func<TValue, TValue, bool> valueComparer)
         {
 #pragma warning disable S3267 // Concrete dictionary enumeration avoids boxing its value-type enumerator.
             if (entries is Dictionary<TKey, TValue> dictionary)
@@ -418,10 +366,8 @@ internal static class SparseValueComparer
             return true;
         }
 
-        private bool Contains(
-            KeyValuePair<TKey, TValue> pair,
-            Func<TValue, TValue, bool> valueComparer
-        ) => TryGetValue(pair.Key, out var value) && valueComparer(value, pair.Value);
+        private bool Contains(KeyValuePair<TKey, TValue> pair, Func<TValue, TValue, bool> valueComparer) =>
+            TryGetValue(pair.Key, out var value) && valueComparer(value, pair.Value);
 
         private bool TryGetValue(TKey key, out TValue value)
         {
@@ -442,9 +388,7 @@ internal static class SparseValueComparer
             _ => null,
         };
 
-    private static object? TryGetDictionaryComparer<TKey, TValue>(
-        IEnumerable<KeyValuePair<TKey, TValue>> value
-    )
+    private static object? TryGetDictionaryComparer<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
     {
         return value switch
         {
@@ -455,10 +399,7 @@ internal static class SparseValueComparer
         };
     }
 
-    private static bool PairSequenceEquals<TKey, TValue>(
-        KeyValuePair<TKey, TValue>[] left,
-        KeyValuePair<TKey, TValue>[] right
-    )
+    private static bool PairSequenceEquals<TKey, TValue>(KeyValuePair<TKey, TValue>[] left, KeyValuePair<TKey, TValue>[] right)
     {
         if (left.Length != right.Length)
         {

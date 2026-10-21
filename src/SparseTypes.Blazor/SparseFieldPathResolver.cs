@@ -32,11 +32,7 @@ internal readonly record struct SparseFieldResolution
 internal static class SparseFieldPathResolver
 {
     /// <summary>Resolves a canonical typed path, throwing when the path does not resolve.</summary>
-    internal static FieldIdentifier Resolve(
-        object model,
-        SparsePath path,
-        IDescriptorSet? descriptors = null
-    )
+    internal static FieldIdentifier Resolve(object model, SparsePath path, IDescriptorSet? descriptors = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         if (descriptors is not null)
@@ -53,11 +49,7 @@ internal static class SparseFieldPathResolver
         return resolution.Field;
     }
 
-    private static FieldIdentifier ResolveWithDescriptors(
-        object model,
-        SparsePath path,
-        IDescriptorSet descriptors
-    )
+    private static FieldIdentifier ResolveWithDescriptors(object model, SparsePath path, IDescriptorSet descriptors)
     {
         try
         {
@@ -78,11 +70,7 @@ internal static class SparseFieldPathResolver
             switch (segment.Kind)
             {
                 case SparsePathSegmentKind.Member:
-                    if (
-                        current is null
-                        || scope is null
-                        || !scope.TryGet(segment.Name, out descriptor)
-                    )
+                    if (current is null || scope is null || !scope.TryGet(segment.Name, out descriptor))
                     {
                         throw InvalidFieldPath(path.ToString());
                     }
@@ -141,9 +129,7 @@ internal static class SparseFieldPathResolver
                         throw InvalidFieldPath(path.ToString());
                     }
 
-                    var temporaryIndex = temporaryArray.IndexOfTemporaryKey(
-                        segment.TemporaryKey!.Value
-                    );
+                    var temporaryIndex = temporaryArray.IndexOfTemporaryKey(segment.TemporaryKey!.Value);
                     if (temporaryIndex < 0)
                     {
                         throw InvalidFieldPath(path.ToString());
@@ -228,11 +214,7 @@ internal static class SparseFieldPathResolver
             {
                 case SparsePathSegmentKind.Member:
                     if (
-                        !SparseTypeMetadataCache.TryGetProperty(
-                            current.GetType(),
-                            segment.Name,
-                            out var property
-                        )
+                        !SparseTypeMetadataCache.TryGetProperty(current.GetType(), segment.Name, out var property)
                         || property is null
                         || !property.CanRead
                     )
@@ -289,11 +271,7 @@ internal static class SparseFieldPathResolver
             Field = root,
         };
 
-    private static SparseFieldResolution NearestField(
-        object? fieldOwner,
-        string? fieldNamePart,
-        FieldIdentifier root
-    ) =>
+    private static SparseFieldResolution NearestField(object? fieldOwner, string? fieldNamePart, FieldIdentifier root) =>
         fieldOwner is null || fieldNamePart is null
             ? RootResolution(root)
             : new SparseFieldResolution
@@ -315,13 +293,7 @@ internal static class SparseFieldPathResolver
         // spelling), never positions.
         if (collection is IList list)
         {
-            return TryResolveKeyedElement(
-                collection,
-                list,
-                SparseTypeMetadataCache.GetSequenceElementType(collection.GetType()),
-                key,
-                out value
-            );
+            return TryResolveKeyedElement(collection, list, SparseTypeMetadataCache.GetSequenceElementType(collection.GetType()), key, out value);
         }
 
         if (collection is IDictionary dictionary)
@@ -341,14 +313,7 @@ internal static class SparseFieldPathResolver
         }
 
         var collectionType = collection.GetType();
-        if (
-            SparseTypeMetadataCache.TryGetReadOnlyDictionary(
-                collectionType,
-                out var dictionaryInterface,
-                out var containsKey,
-                out var indexer
-            )
-        )
+        if (SparseTypeMetadataCache.TryGetReadOnlyDictionary(collectionType, out var dictionaryInterface, out var containsKey, out var indexer))
         {
             var keyType = dictionaryInterface.GetGenericArguments()[0];
             if (
@@ -365,17 +330,9 @@ internal static class SparseFieldPathResolver
             return true;
         }
 
-        if (
-            SparseTypeMetadataCache.TryGetReadOnlyList(collectionType, out var listInterface, out _)
-        )
+        if (SparseTypeMetadataCache.TryGetReadOnlyList(collectionType, out var listInterface, out _))
         {
-            return TryResolveKeyedElement(
-                collection,
-                (IEnumerable)collection,
-                listInterface.GetGenericArguments()[0],
-                key,
-                out value
-            );
+            return TryResolveKeyedElement(collection, (IEnumerable)collection, listInterface.GetGenericArguments()[0], key, out value);
         }
 
         return false;
@@ -401,25 +358,11 @@ internal static class SparseFieldPathResolver
         }
 
         var collectionType = collection.GetType();
-        if (
-            SparseTypeMetadataCache.TryGetReadOnlyList(
-                collectionType,
-                out var listInterface,
-                out var indexer
-            )
-        )
+        if (SparseTypeMetadataCache.TryGetReadOnlyList(collectionType, out var listInterface, out var indexer))
         {
             // Index lookup, not linear enumeration.
             var elementType = listInterface.GetGenericArguments()[0];
-            if (
-                indexer is null
-                || !SparseTypeMetadataCache.TryGetReadOnlyCollectionCount(
-                    collectionType,
-                    elementType,
-                    collection,
-                    out var count
-                )
-            )
+            if (indexer is null || !SparseTypeMetadataCache.TryGetReadOnlyCollectionCount(collectionType, elementType, collection, out var count))
             {
                 return false;
             }
@@ -437,21 +380,13 @@ internal static class SparseFieldPathResolver
         {
             // Historical spelling accepts unquoted numerics as dictionary keys,
             // so index segments fall back to invariant key text here.
-            return TryResolveKeyedValue(
-                collection,
-                index.ToString(CultureInfo.InvariantCulture),
-                out value
-            );
+            return TryResolveKeyedValue(collection, index.ToString(CultureInfo.InvariantCulture), out value);
         }
 
         return false;
     }
 
-    private static bool TryConvertDictionaryKey(
-        object collection,
-        object key,
-        out object? dictionaryKey
-    )
+    private static bool TryConvertDictionaryKey(object collection, object key, out object? dictionaryKey)
     {
         dictionaryKey = key;
         if (collection is not IDictionary || key is not string text)
@@ -468,11 +403,7 @@ internal static class SparseFieldPathResolver
         return TryConvertKeyTextOrInvalidPath(keyType, text, out dictionaryKey);
     }
 
-    private static bool TryConvertDictionaryKeyText(
-        Type keyType,
-        object key,
-        out object? dictionaryKey
-    )
+    private static bool TryConvertDictionaryKeyText(Type keyType, object key, out object? dictionaryKey)
     {
         dictionaryKey = key;
         if (key is not string text)
@@ -483,19 +414,14 @@ internal static class SparseFieldPathResolver
         return TryConvertKeyTextOrInvalidPath(keyType, text, out dictionaryKey);
     }
 
-    private static bool TryConvertKeyTextOrInvalidPath(
-        Type keyType,
-        string key,
-        out object? converted
-    )
+    private static bool TryConvertKeyTextOrInvalidPath(Type keyType, string key, out object? converted)
     {
         converted = null;
         try
         {
             return TryConvertKeyText(keyType, key, out converted);
         }
-        catch (Exception exception)
-            when (exception is ArgumentException or FormatException or InvalidCastException)
+        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidCastException)
         {
             return false;
         }
@@ -529,11 +455,7 @@ internal static class SparseFieldPathResolver
         return true;
     }
 
-    private static bool TryResolveTemporaryValue(
-        object collection,
-        Guid? temporaryKey,
-        out object? value
-    )
+    private static bool TryResolveTemporaryValue(object collection, Guid? temporaryKey, out object? value)
     {
         value = null;
         // The element is located through its SparseTemporaryKey member, so the
@@ -543,28 +465,14 @@ internal static class SparseFieldPathResolver
             return false;
         }
 
-        var elementType =
-            SparseTypeMetadataCache.GetSequenceElementType(collection.GetType())
-            ?? FirstElementType(elements);
-        if (
-            elementType is null
-            || !SparseTypeMetadataCache.TryGetTemporaryReader(elementType, out var reader)
-            || reader is null
-        )
+        var elementType = SparseTypeMetadataCache.GetSequenceElementType(collection.GetType()) ?? FirstElementType(elements);
+        if (elementType is null || !SparseTypeMetadataCache.TryGetTemporaryReader(elementType, out var reader) || reader is null)
         {
             return false;
         }
 
         var access = KeyedCollectionAccess.Create(collection, elements);
-        if (
-            SparseKeyedLookupIndex.TryGetByTemporaryKey(
-                collection,
-                access,
-                reader,
-                temporaryKey.Value,
-                out var indexed
-            )
-        )
+        if (SparseKeyedLookupIndex.TryGetByTemporaryKey(collection, access, reader, temporaryKey.Value, out var indexed))
         {
             value = indexed!;
             return true;
@@ -584,23 +492,13 @@ internal static class SparseFieldPathResolver
         return false;
     }
 
-    private static bool TryResolveKeyedElement(
-        object collection,
-        IEnumerable elements,
-        Type? elementType,
-        object? key,
-        out object? value
-    )
+    private static bool TryResolveKeyedElement(object collection, IEnumerable elements, Type? elementType, object? key, out object? value)
     {
         value = null;
         // Key segments name stable keys (the EnumerateChanges spelling),
         // never positions: even a numeric string key looks up key identity.
         elementType ??= FirstElementType(elements);
-        if (
-            elementType is null
-            || !SparseTypeMetadataCache.TryGetKeyReader(elementType, out var reader)
-            || reader is null
-        )
+        if (elementType is null || !SparseTypeMetadataCache.TryGetKeyReader(elementType, out var reader) || reader is null)
         {
             return false;
         }
@@ -619,16 +517,7 @@ internal static class SparseFieldPathResolver
         }
 
         var access = KeyedCollectionAccess.Create(collection, elements);
-        if (
-            convertedKey is not null
-            && SparseKeyedLookupIndex.TryGetByKey(
-                collection,
-                access,
-                reader,
-                convertedKey,
-                out var indexed
-            )
-        )
+        if (convertedKey is not null && SparseKeyedLookupIndex.TryGetByKey(collection, access, reader, convertedKey, out var indexed))
         {
             value = indexed!;
             return true;
@@ -665,20 +554,10 @@ internal static class SparseFieldPathResolver
         return null;
     }
 
-    internal static bool TryGetReadOnlyDictionaryInterface(
-        object collection,
-        out Type interfaceType
-    )
+    internal static bool TryGetReadOnlyDictionaryInterface(object collection, out Type interfaceType)
     {
         ArgumentNullException.ThrowIfNull(collection);
-        if (
-            SparseTypeMetadataCache.TryGetReadOnlyDictionary(
-                collection.GetType(),
-                out interfaceType,
-                out _,
-                out _
-            )
-        )
+        if (SparseTypeMetadataCache.TryGetReadOnlyDictionary(collection.GetType(), out interfaceType, out _, out _))
         {
             return true;
         }

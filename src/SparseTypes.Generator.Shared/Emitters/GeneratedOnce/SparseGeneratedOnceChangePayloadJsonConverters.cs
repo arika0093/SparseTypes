@@ -18,11 +18,7 @@ internal static class SparseGeneratedOnceChangePayloadJsonConverters
     )
     {
         using var code = new SharedIndentedBuilder(cancellationToken);
-        SparseGeneratedOnceNames.AppendGeneratedHeader(
-            code,
-            implementationNamespace,
-            cancellationToken
-        );
+        SparseGeneratedOnceNames.AppendGeneratedHeader(code, implementationNamespace, cancellationToken);
         if (emitConverters)
         {
             SparseChangePayloadJsonBridgeEmitter.AppendBridgeConverters(code, dialect);

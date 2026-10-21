@@ -23,20 +23,13 @@ internal sealed record PayloadJsonEmissionContext(
         System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
     )
     {
-        if (
-            !dialect.EmitJson
-            || !dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
-            || modelType is null
-        )
+        if (!dialect.EmitJson || !dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver || modelType is null)
         {
             return null;
         }
 
         var runtime = dialect.RuntimeNamespace;
-        var containerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
-            dialect,
-            modelType
-        );
+        var containerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(dialect, modelType);
         return new PayloadJsonEmissionContext(
             members,
             dialect,
@@ -47,26 +40,14 @@ internal sealed record PayloadJsonEmissionContext(
             "PayloadJsonConverter",
             "PayloadJson",
             RootDiscriminatorFor(members),
-            pocos.IsDefault
-                ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty
-                : pocos
+            pocos.IsDefault ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty : pocos
         );
     }
 
-    private static string RootDiscriminatorFor(
-        System.Collections.Immutable.ImmutableArray<SparseMemberModel> members
-    )
+    private static string RootDiscriminatorFor(System.Collections.Immutable.ImmutableArray<SparseMemberModel> members)
     {
         var builder = new System.Text.StringBuilder("$root");
-        while (
-            members.Any(member =>
-                string.Equals(
-                    member.Property.Name,
-                    builder.ToString(),
-                    System.StringComparison.Ordinal
-                )
-            )
-        )
+        while (members.Any(member => string.Equals(member.Property.Name, builder.ToString(), System.StringComparison.Ordinal)))
         {
             builder.Append('$');
         }
@@ -75,8 +56,7 @@ internal sealed record PayloadJsonEmissionContext(
     }
 
     /// <summary>Qualified DTO type for the current model.</summary>
-    public string Dto(string suffix) =>
-        ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
+    public string Dto(string suffix) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
 
     /// <summary>Documented composition entry point for diagnostics.</summary>
     /// <remarks>Points custom-type failures at the top-level ModelJson helper instead of the nested resolver instance it delegates to.</remarks>
@@ -91,17 +71,9 @@ internal sealed record PayloadJsonEmissionContext(
     }
 
     /// <summary>Qualified member DTO type for the current model.</summary>
-    public string MemberDto(string suffix, int id) =>
-        ContainerAlias
-        + "."
-        + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
+    public string MemberDto(string suffix, int id) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
 
     /// <summary>Qualified child DTO type.</summary>
     public string ChildDto(string childModel, string suffix) =>
-        SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
-            Dialect,
-            childModel,
-            suffix,
-            ImplementationNamespace
-        );
+        SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(Dialect, childModel, suffix, ImplementationNamespace);
 }

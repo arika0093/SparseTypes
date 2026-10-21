@@ -23,10 +23,7 @@ internal enum SparseMemberTransport
 /// <summary>Generator-time transport choice for one member, matched by member name.</summary>
 internal sealed record SparseMemberPolicy
 {
-    public SparseMemberPolicy(
-        string MemberName,
-        SparseMemberTransport Transport = SparseMemberTransport.Full
-    )
+    public SparseMemberPolicy(string MemberName, SparseMemberTransport Transport = SparseMemberTransport.Full)
     {
         this.MemberName = MemberName;
         this.Transport = Transport;
@@ -53,9 +50,7 @@ internal enum SparseRedactedBeforeBehavior
 /// <summary>Generator-time rebase behavior for redacted-before operations.</summary>
 internal sealed record SparseRebasePolicy
 {
-    public SparseRebasePolicy(
-        SparseRedactedBeforeBehavior RedactedBefore = SparseRedactedBeforeBehavior.Passthrough
-    )
+    public SparseRebasePolicy(SparseRedactedBeforeBehavior RedactedBefore = SparseRedactedBeforeBehavior.Passthrough)
     {
         this.RedactedBefore = RedactedBefore;
     }
@@ -90,10 +85,7 @@ internal sealed record SparseWriteMember
 /// <remarks>Shared never assumes the read and write shapes are the same CLR model.</remarks>
 internal sealed record SparseWriteContract
 {
-    public SparseWriteContract(
-        string WriteModelType,
-        ImmutableArray<SparseWriteMember> Members = default
-    )
+    public SparseWriteContract(string WriteModelType, ImmutableArray<SparseWriteMember> Members = default)
     {
         this.WriteModelType = WriteModelType;
         this.Members = Members;
@@ -106,15 +98,12 @@ internal sealed record SparseWriteContract
     public ImmutableArray<SparseWriteMember> Members { get; init; }
 
     /// <summary>Mapped members, or empty when no overrides are configured.</summary>
-    public ImmutableArray<SparseWriteMember> EffectiveMembers =>
-        Members.IsDefault ? ImmutableArray<SparseWriteMember>.Empty : Members;
+    public ImmutableArray<SparseWriteMember> EffectiveMembers => Members.IsDefault ? ImmutableArray<SparseWriteMember>.Empty : Members;
 
     /// <summary>Write member name for one read member.</summary>
     public string GetWriteMemberName(string readMemberName) =>
         EffectiveMembers
-            .Where(mapping =>
-                string.Equals(mapping.ReadMemberName, readMemberName, StringComparison.Ordinal)
-            )
+            .Where(mapping => string.Equals(mapping.ReadMemberName, readMemberName, StringComparison.Ordinal))
             .Select(static mapping => mapping.WriteMemberName)
             .FirstOrDefault()
         ?? readMemberName;
@@ -126,14 +115,10 @@ internal static class SparseDownstreamPolicy
 {
     /// <summary>Whether a member can carry a non-full transport policy.</summary>
     /// <remarks>Only scalar members qualify.</remarks>
-    public static bool IsScalarMember(SparseMemberModel member) =>
-        member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member);
+    public static bool IsScalarMember(SparseMemberModel member) => member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member);
 
     /// <summary>Transport configured for one member name.</summary>
-    public static SparseMemberTransport GetTransport(
-        ImmutableArray<SparseMemberPolicy> policies,
-        string memberName
-    ) =>
+    public static SparseMemberTransport GetTransport(ImmutableArray<SparseMemberPolicy> policies, string memberName) =>
         policies
             .Where(policy => string.Equals(policy.MemberName, memberName, StringComparison.Ordinal))
             .Select(static policy => policy.Transport)
@@ -141,15 +126,10 @@ internal static class SparseDownstreamPolicy
 
     /// <summary>Whether the dialect carries any non-full member policy.</summary>
     public static bool HasAnyNonFullPolicy(SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
-        dialect.EffectiveMemberPolicies.Any(static policy =>
-            policy.Transport != SparseMemberTransport.Full
-        );
+        dialect.EffectiveMemberPolicies.Any(static policy => policy.Transport != SparseMemberTransport.Full);
 
     /// <summary>Whether this model's members carry any non-full policy.</summary>
-    public static bool HasOwnNonFullPolicy(
-        ImmutableArray<SparseMemberModel> members,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    )
+    public static bool HasOwnNonFullPolicy(ImmutableArray<SparseMemberModel> members, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var policies = dialect.EffectiveMemberPolicies;
         if (policies.IsEmpty)
@@ -157,9 +137,7 @@ internal static class SparseDownstreamPolicy
             return false;
         }
 
-        return members.Any(member =>
-            GetTransport(policies, member.Property.Name) != SparseMemberTransport.Full
-        );
+        return members.Any(member => GetTransport(policies, member.Property.Name) != SparseMemberTransport.Full);
     }
 
     /// <summary>Policy and mapping names matching no analyzed member.</summary>
@@ -168,23 +146,15 @@ internal static class SparseDownstreamPolicy
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     )
     {
-        var known = new HashSet<string>(
-            members.Select(static member => member.Property.Name),
-            StringComparer.Ordinal
-        );
+        var known = new HashSet<string>(members.Select(static member => member.Property.Name), StringComparer.Ordinal);
         var candidates = dialect.EffectiveMemberPolicies.Select(static policy => policy.MemberName);
         var contract = dialect.WriteContract;
         if (contract is not null)
         {
-            candidates = candidates.Concat(
-                contract.EffectiveMembers.Select(static mapping => mapping.ReadMemberName)
-            );
+            candidates = candidates.Concat(contract.EffectiveMembers.Select(static mapping => mapping.ReadMemberName));
         }
 
-        return candidates
-            .Where(candidate => !known.Contains(candidate))
-            .Distinct()
-            .ToImmutableArray();
+        return candidates.Where(candidate => !known.Contains(candidate)).Distinct().ToImmutableArray();
     }
 
     /// <summary>Non-full policies on members that cannot carry them.</summary>
@@ -200,36 +170,24 @@ internal static class SparseDownstreamPolicy
         }
 
         return members
-            .Where(member =>
-                !IsScalarMember(member)
-                && GetTransport(policies, member.Property.Name) != SparseMemberTransport.Full
-            )
+            .Where(member => !IsScalarMember(member) && GetTransport(policies, member.Property.Name) != SparseMemberTransport.Full)
             .Select(static member => member.Property.Name)
             .ToImmutableArray();
     }
 
     /// <summary>Fails fast on plan errors for direct emitter calls.</summary>
-    public static void ThrowOnInvalidTransport(
-        ImmutableArray<SparseMemberModel> members,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    )
+    public static void ThrowOnInvalidTransport(ImmutableArray<SparseMemberModel> members, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var unknown = FindUnknownMemberNames(members, dialect);
         if (!unknown.IsDefaultOrEmpty && unknown.Length > 0)
         {
-            throw new ArgumentException(
-                "A product policy references unknown member '" + unknown[0] + "'.",
-                nameof(dialect)
-            );
+            throw new ArgumentException("A product policy references unknown member '" + unknown[0] + "'.", nameof(dialect));
         }
 
         var offenders = FindNonScalarPolicyMembers(members, dialect);
         if (!offenders.IsDefaultOrEmpty && offenders.Length > 0)
         {
-            throw new ArgumentException(
-                "Member '" + offenders[0] + "' cannot carry a redacted or write-only policy.",
-                nameof(dialect)
-            );
+            throw new ArgumentException("Member '" + offenders[0] + "' cannot carry a redacted or write-only policy.", nameof(dialect));
         }
     }
 
@@ -256,9 +214,7 @@ internal static class SparseDownstreamPolicy
             foreach (var name in FindUnknownMemberNames(members, dialect.Value))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                diagnostics.Add(
-                    new SparseGeneratorDiagnostic(ids.UnknownProductMember, null, name)
-                );
+                diagnostics.Add(new SparseGeneratorDiagnostic(ids.UnknownProductMember, null, name));
             }
 
             foreach (var name in FindNonScalarPolicyMembers(members, dialect.Value))
@@ -277,22 +233,14 @@ internal static class SparseDownstreamPolicy
         // Member collisions keep the historical reserved set and stay in the
         // analyzer.
         var productNames = config.EffectiveProductExtensionNames;
-        var productCollision = productNames
-            .Where(product => IsGeneratedName(product, config))
-            .FirstOrDefault();
+        var productCollision = productNames.Where(product => IsGeneratedName(product, config)).FirstOrDefault();
         if (productCollision is not null)
         {
-            diagnostics.Add(
-                new SparseGeneratorDiagnostic(ids.GeneratedNameCollision, null, productCollision)
-            );
+            diagnostics.Add(new SparseGeneratorDiagnostic(ids.GeneratedNameCollision, null, productCollision));
         }
     }
 
     private static bool IsGeneratedName(string name, SparseGeneratorConfig config) =>
-        config
-            .EffectiveEmissionFeatures.GetEmittedTypeNames()
-            .Any(emitted => string.Equals(emitted, name, StringComparison.Ordinal))
-        || config.EffectiveReservedGeneratedNames.Any(reserved =>
-            string.Equals(reserved, name, StringComparison.Ordinal)
-        );
+        config.EffectiveEmissionFeatures.GetEmittedTypeNames().Any(emitted => string.Equals(emitted, name, StringComparison.Ordinal))
+        || config.EffectiveReservedGeneratedNames.Any(reserved => string.Equals(reserved, name, StringComparison.Ordinal));
 }

@@ -15,8 +15,7 @@ internal static class SparseSessionScopeOwnership
             if (Owners.TryGetValue(session, out _))
             {
                 throw new InvalidOperationException(
-                    "An edit session can have only one SparseSessionScope owner. "
-                        + "Reuse its cascaded ScopeContext for all child sessions."
+                    "An edit session can have only one SparseSessionScope owner. " + "Reuse its cascaded ScopeContext for all child sessions."
                 );
             }
 
@@ -77,13 +76,7 @@ public sealed class SparseSessionScopeContext<TModel>
         SparseChildEditMode mode,
         SparsePassThroughStateScope? parentStateScope = null
     )
-        : this(
-            session,
-            mode,
-            SparsePassThroughStateScope.CreateRoot(session),
-            parentStateScope,
-            ownsLocalStateScope: true
-        ) { }
+        : this(session, mode, SparsePassThroughStateScope.CreateRoot(session), parentStateScope, ownsLocalStateScope: true) { }
 
     internal SparseSessionScopeContext(
         ISparseEditSession<TModel> session,
@@ -96,8 +89,7 @@ public sealed class SparseSessionScopeContext<TModel>
         _session = session;
         _localStateScope = localStateScope;
         _passThroughStateScope = passThroughStateScope ?? localStateScope;
-        _stateScope =
-            mode == SparseChildEditMode.PassThrough ? _passThroughStateScope : _localStateScope;
+        _stateScope = mode == SparseChildEditMode.PassThrough ? _passThroughStateScope : _localStateScope;
         _ownsLocalStateScope = ownsLocalStateScope;
         try
         {
@@ -138,12 +130,7 @@ public sealed class SparseSessionScopeContext<TModel>
     /// <returns>The retained child context for this path.</returns>
     /// <exception cref="ArgumentException">The parent session differs from the owning scope session.</exception>
     /// <exception cref="ObjectDisposedException">The scope context has been disposed.</exception>
-    public SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession> OpenChildSession<
-        TChild,
-        TChildPaths,
-        TConflict,
-        TChildSession
-    >(
+    public SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession> OpenChildSession<TChild, TChildPaths, TConflict, TChildSession>(
         ISparseEditSessionWithChildren<TModel, TConflict> parentSession,
         ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path
     )
@@ -157,10 +144,7 @@ public sealed class SparseSessionScopeContext<TModel>
             return context!;
         }
 
-        throw new ArgumentException(
-            "The path does not resolve to a model value of the requested type.",
-            nameof(path)
-        );
+        throw new ArgumentException("The path does not resolve to a model value of the requested type.", nameof(path));
     }
 
     internal bool TryOpenChildSession<TChild, TChildPaths, TConflict, TChildSession>(
@@ -178,10 +162,7 @@ public sealed class SparseSessionScopeContext<TModel>
         ArgumentNullException.ThrowIfNull(path);
         if (!ReferenceEquals(parentSession, _session))
         {
-            throw new ArgumentException(
-                "The parent session must be the session assigned to this scope.",
-                nameof(parentSession)
-            );
+            throw new ArgumentException("The parent session must be the session assigned to this scope.", nameof(parentSession));
         }
 
         var untypedPath = path.UntypedPath;
@@ -191,13 +172,7 @@ public sealed class SparseSessionScopeContext<TModel>
             if (
                 targetModel is TChild target
                 && ReferenceEquals(entry.TargetModel, target)
-                && entry.Context
-                    is SparseChildEditContext<
-                        TChild,
-                        TChildPaths,
-                        TConflict,
-                        TChildSession
-                    > retained
+                && entry.Context is SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession> retained
             )
             {
                 context = retained;
@@ -232,12 +207,7 @@ public sealed class SparseSessionScopeContext<TModel>
                 ownsLocalStateScope: true
             );
             childLocalStateScope = null;
-            var childContext = new SparseChildEditContext<
-                TChild,
-                TChildPaths,
-                TConflict,
-                TChildSession
-            >(
+            var childContext = new SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession>(
                 child,
                 parentSession,
                 childScopeContext,
@@ -251,9 +221,7 @@ public sealed class SparseSessionScopeContext<TModel>
             var acceptVersionAtOpen = childContext.AcceptVersion;
             var parentDirtyAtOpen = !IsParentSubtreeClean(untypedPath);
             bool CanRetainWithoutRefork() =>
-                childContext.AcceptVersion == acceptVersionAtOpen
-                && !parentDirtyAtOpen
-                && IsParentSubtreeClean(untypedPath);
+                childContext.AcceptVersion == acceptVersionAtOpen && !parentDirtyAtOpen && IsParentSubtreeClean(untypedPath);
             _children.Add(
                 untypedPath,
                 new ChildEntry(
@@ -298,9 +266,7 @@ public sealed class SparseSessionScopeContext<TModel>
     /// <typeparam name="TChildPaths">The path builder rooted at the child model.</typeparam>
     /// <typeparam name="TChildSession">The generated child edit-session type.</typeparam>
     /// <returns>True when the child session or one of its descendants has pending changes.</returns>
-    public bool HasChangesFor<TChild, TChildPaths, TChildSession>(
-        ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path
-    )
+    public bool HasChangesFor<TChild, TChildPaths, TChildSession>(ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path)
         where TChild : class
         where TChildPaths : ISparseTypedPath<TChild, TChild>
         where TChildSession : ISparseEditSessionWithPaths<TChild, TChildPaths>
@@ -316,15 +282,12 @@ public sealed class SparseSessionScopeContext<TModel>
 
     /// <summary>Gets whether any opened or detached child session has pending changes.</summary>
     /// <remarks>Detached drafts keep their edits until the owner recovers or disposes them.</remarks>
-    public bool HasChanges =>
-        _children.Values.Any(static entry => entry.HasChanges())
-        || _detached.Any(static entry => entry.HasChanges());
+    public bool HasChanges => _children.Values.Any(static entry => entry.HasChanges()) || _detached.Any(static entry => entry.HasChanges());
 
     /// <summary>Gets the paths of detached child drafts retained by the scope.</summary>
     /// <remarks>A changed child whose target was replaced or deleted moves to the detached holding instead of being disposed; see <see cref="GetDetachedChildPaths"/>.</remarks>
     /// <returns>The paths with a retained detached draft.</returns>
-    public IReadOnlyList<SparsePath> GetDetachedChildPaths() =>
-        _detached.Select(static entry => entry.Path).ToArray();
+    public IReadOnlyList<SparsePath> GetDetachedChildPaths() => _detached.Select(static entry => entry.Path).ToArray();
 
     /// <summary>Gets a detached child draft retained for a typed path.</summary>
     /// <param name="parentSession">The exact parent session assigned to the owning scope.</param>
@@ -352,19 +315,12 @@ public sealed class SparseSessionScopeContext<TModel>
         ArgumentNullException.ThrowIfNull(path);
         if (!ReferenceEquals(parentSession, _session))
         {
-            throw new ArgumentException(
-                "The parent session must be the session assigned to this scope.",
-                nameof(parentSession)
-            );
+            throw new ArgumentException("The parent session must be the session assigned to this scope.", nameof(parentSession));
         }
 
         foreach (var entry in _detached)
         {
-            if (
-                entry.Path.Equals(path.UntypedPath)
-                && entry.Context
-                    is SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession> match
-            )
+            if (entry.Path.Equals(path.UntypedPath) && entry.Context is SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession> match)
             {
                 context = match;
                 return true;
@@ -403,15 +359,11 @@ public sealed class SparseSessionScopeContext<TModel>
         NotifyChanged();
         if (failures is not null)
         {
-            throw new AggregateException(
-                "One or more detached child sessions failed to dispose.",
-                failures
-            );
+            throw new AggregateException("One or more detached child sessions failed to dispose.", failures);
         }
     }
 
-    internal bool OwnsSession(ISparseEditSession<TModel> session) =>
-        !_disposed && ReferenceEquals(_session, session);
+    internal bool OwnsSession(ISparseEditSession<TModel> session) => !_disposed && ReferenceEquals(_session, session);
 
     internal bool IsChildSessionCurrent(SparsePath path, object context) =>
         !_disposed
@@ -423,14 +375,10 @@ public sealed class SparseSessionScopeContext<TModel>
 
     internal bool HasChangesAtRoot => _stateScope.HasSubtreeChanges(SparsePath.Root<TModel>());
 
-    internal bool TryFieldState<TValue>(
-        SparsePath path,
-        out SparseFieldState<TValue> state,
-        out string? error
-    ) => _stateScope.TryFieldState(path, out state, out error);
+    internal bool TryFieldState<TValue>(SparsePath path, out SparseFieldState<TValue> state, out string? error) =>
+        _stateScope.TryFieldState(path, out state, out error);
 
-    internal bool TryCollectionState(SparsePath path, out SparseCollectionState? state) =>
-        _stateScope.TryCollectionState(path, out state);
+    internal bool TryCollectionState(SparsePath path, out SparseCollectionState? state) => _stateScope.TryCollectionState(path, out state);
 
     internal void SetMode(SparseChildEditMode mode)
     {
@@ -450,8 +398,7 @@ public sealed class SparseSessionScopeContext<TModel>
         }
 
         Mode = mode;
-        _stateScope =
-            mode == SparseChildEditMode.PassThrough ? _passThroughStateScope : _localStateScope;
+        _stateScope = mode == SparseChildEditMode.PassThrough ? _passThroughStateScope : _localStateScope;
         foreach (var entry in _children.Values.ToArray())
         {
             entry.SetMode(mode);
@@ -546,10 +493,7 @@ public sealed class SparseSessionScopeContext<TModel>
 
         if (failures is not null)
         {
-            throw new AggregateException(
-                "One or more owned child sessions failed to dispose.",
-                failures
-            );
+            throw new AggregateException("One or more owned child sessions failed to dispose.", failures);
         }
     }
 
@@ -562,16 +506,7 @@ public sealed class SparseSessionScopeContext<TModel>
 
         if (entry.HasChanges())
         {
-            _detached.Add(
-                new DetachedChildEntry(
-                    path,
-                    entry.Context,
-                    entry.HasChanges,
-                    entry.ValidateMode,
-                    entry.SetMode,
-                    entry.Dispose
-                )
-            );
+            _detached.Add(new DetachedChildEntry(path, entry.Context, entry.HasChanges, entry.ValidateMode, entry.SetMode, entry.Dispose));
         }
         else
         {
@@ -587,17 +522,12 @@ public sealed class SparseSessionScopeContext<TModel>
         }
     }
 
-    private static object? ResolveChildModel<TConflict>(
-        ISparseEditSessionWithChildren<TModel, TConflict> parentSession,
-        SparsePath path
-    )
+    private static object? ResolveChildModel<TConflict>(ISparseEditSessionWithChildren<TModel, TConflict> parentSession, SparsePath path)
         where TConflict : class
     {
         if (parentSession is not ISparseEditSessionWithChildStatus<TModel, TConflict> childStatus)
         {
-            throw new InvalidOperationException(
-                "The parent session does not support resolving child model paths."
-            );
+            throw new InvalidOperationException("The parent session does not support resolving child model paths.");
         }
 
         return childStatus.ResolveChildModel(path);
@@ -623,11 +553,7 @@ public sealed class SparseSessionScopeContext<TModel>
             // Retain clean children whose subtree is provably untouched: the
             // fork still matches the parent, so no refork is needed. Anything
             // else on the affected subtree still invalidates as before.
-            if (
-                Mode == SparseChildEditMode.PassThrough
-                && !entry.HasChanges()
-                && !entry.CanRetainWithoutRefork()
-            )
+            if (Mode == SparseChildEditMode.PassThrough && !entry.HasChanges() && !entry.CanRetainWithoutRefork())
             {
                 _children.Remove(path);
                 entry.Dispose();

@@ -11,8 +11,7 @@ public static class OptionalExtensions
     /// <summary>Makes the referenced member present with the supplied value, including null or default.</summary>
     /// <param name="target">The member storage to mutate.</param>
     /// <param name="value">The value to store as present.</param>
-    public static void Set<T>(this ref Optional<T> target, T? value) =>
-        target = Optional<T>.Present(value);
+    public static void Set<T>(this ref Optional<T> target, T? value) => target = Optional<T>.Present(value);
 
     /// <summary>Removes the referenced member value, making it missing.</summary>
     /// <param name="target">The member storage to mutate.</param>
@@ -21,8 +20,7 @@ public static class OptionalExtensions
     /// <summary>Copies the presence and value of another member.</summary>
     /// <param name="target">The member storage to mutate.</param>
     /// <param name="source">The member state to copy; missing stays missing.</param>
-    public static void CopyFrom<T>(this ref Optional<T> target, Optional<T> source) =>
-        target = source;
+    public static void CopyFrom<T>(this ref Optional<T> target, Optional<T> source) => target = source;
 
     /// <summary>Copies another member while converting its value, preserving presence exactly.</summary>
     /// <remarks>Missing sources never invoke <paramref name="map"/>; present
@@ -37,8 +35,6 @@ public static class OptionalExtensions
     )
     {
         ArgumentNullException.ThrowIfNull(map);
-        target = source.IsPresent
-            ? Optional<TDestination>.Present(map(source.Value))
-            : Optional<TDestination>.Missing;
+        target = source.IsPresent ? Optional<TDestination>.Present(map(source.Value)) : Optional<TDestination>.Missing;
     }
 }

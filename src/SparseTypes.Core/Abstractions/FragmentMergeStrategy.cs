@@ -15,13 +15,7 @@ public abstract class FragmentMergeStrategy<T>
     public abstract bool AreEqual(T? left, T? right);
 
     /// <summary>Reapplies an edit based on an earlier sparse state to the current sparse state.</summary>
-    public virtual bool TryRebase(
-        Optional<T> editBase,
-        Optional<T> desired,
-        Optional<T> current,
-        out Optional<T> rebased,
-        out string? reason
-    )
+    public virtual bool TryRebase(Optional<T> editBase, Optional<T> desired, Optional<T> current, out Optional<T> rebased, out string? reason)
     {
         if (OptionalsEqual(desired, editBase))
         {

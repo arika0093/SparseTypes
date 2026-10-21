@@ -20,22 +20,14 @@ internal readonly record struct SparseLocationSnapshot(string FilePath, int Star
             return new SparseLocationSnapshot(string.Empty, 0, 0);
         }
 
-        return new SparseLocationSnapshot(
-            location.SourceTree?.FilePath ?? string.Empty,
-            location.SourceSpan.Start,
-            location.SourceSpan.Length
-        );
+        return new SparseLocationSnapshot(location.SourceTree?.FilePath ?? string.Empty, location.SourceSpan.Start, location.SourceSpan.Length);
     }
 
     public override string ToString() => FilePath + "(" + Start + "," + Length + ")";
 }
 
 /// <summary>Product-neutral diagnostic payload keyed by diagnostic ID plus format arguments.</summary>
-internal readonly record struct SparseDiagnosticPayload(
-    string DescriptorId,
-    SparseLocationSnapshot? Location,
-    ImmutableArray<string?> Arguments
-)
+internal readonly record struct SparseDiagnosticPayload(string DescriptorId, SparseLocationSnapshot? Location, ImmutableArray<string?> Arguments)
 {
     public static SparseDiagnosticPayload FromDiagnostic(SparseGeneratorDiagnostic diagnostic) =>
         new(
@@ -44,8 +36,7 @@ internal readonly record struct SparseDiagnosticPayload(
             diagnostic.Arguments.IsDefault ? ImmutableArray<string?>.Empty : diagnostic.Arguments
         );
 
-    public string? Argument(int index) =>
-        !Arguments.IsDefault && (uint)index < (uint)Arguments.Length ? Arguments[index] : null;
+    public string? Argument(int index) => !Arguments.IsDefault && (uint)index < (uint)Arguments.Length ? Arguments[index] : null;
 
     // ImmutableArray equality is reference-based; compare via SparseSequence.
     public bool Equals(SparseDiagnosticPayload other) =>
@@ -54,18 +45,13 @@ internal readonly record struct SparseDiagnosticPayload(
         && SparseSequence.Equal(Arguments, other.Arguments);
 
     public override int GetHashCode() =>
-        unchecked(
-            (StringComparer.Ordinal.GetHashCode(DescriptorId) * 31 + (Location?.GetHashCode() ?? 0))
-                * 31
-            + SparseSequence.Hash(Arguments)
-        );
+        unchecked((StringComparer.Ordinal.GetHashCode(DescriptorId) * 31 + (Location?.GetHashCode() ?? 0)) * 31 + SparseSequence.Hash(Arguments));
 }
 
 /// <summary>Reusable incremental-generator emission plumbing.</summary>
 internal static class SparseExternalInit
 {
-    internal const string IsExternalInitMetadataName =
-        "System.Runtime.CompilerServices.IsExternalInit";
+    internal const string IsExternalInitMetadataName = "System.Runtime.CompilerServices.IsExternalInit";
 
     /// <summary>Emission is enabled by configuration and the compilation does not already reference an accessible marker type.</summary>
     public static bool ShouldEmitIsExternalInit(Compilation compilation, bool configured)

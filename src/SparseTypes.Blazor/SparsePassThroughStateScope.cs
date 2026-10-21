@@ -6,11 +6,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
 {
     private interface IStateSource : IDisposable
     {
-        bool TryFieldState<TValue>(
-            SparsePath path,
-            out SparseFieldState<TValue> state,
-            out string? error
-        );
+        bool TryFieldState<TValue>(SparsePath path, out SparseFieldState<TValue> state, out string? error);
 
         bool TryCollectionState(SparsePath path, out SparseCollectionState? state);
     }
@@ -38,11 +34,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
             }
         }
 
-        public bool TryFieldState<TValue>(
-            SparsePath path,
-            out SparseFieldState<TValue> state,
-            out string? error
-        )
+        public bool TryFieldState<TValue>(SparsePath path, out SparseFieldState<TValue> state, out string? error)
         {
             SparsePath<TModel, TValue> typedPath;
             try
@@ -58,12 +50,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
 
             if (_snapshotProvider is null)
             {
-                return SparseSessionInterop.TryFieldState(
-                    _session,
-                    typedPath,
-                    out state,
-                    out error
-                );
+                return SparseSessionInterop.TryFieldState(_session, typedPath, out state, out error);
             }
 
             if (!TryGetSnapshot(out var snapshot, out error) || snapshot is null)
@@ -100,12 +87,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
                 && snapshot is not null
             )
             {
-                return SparseNestedCollectionStateQuery.TryGetState<TModel>(
-                    snapshot.Changes,
-                    descriptorSession.Descriptors,
-                    path,
-                    out state
-                );
+                return SparseNestedCollectionStateQuery.TryGetState<TModel>(snapshot.Changes, descriptorSession.Descriptors, path, out state);
             }
 
             state = null;
@@ -153,13 +135,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
                 for (var attempt = 0; attempt < 3; attempt++)
                 {
                     version = Interlocked.Read(ref _version);
-                    if (
-                        !SparseSessionInterop.TryCaptureStateSnapshot(
-                            _session,
-                            out var captured,
-                            out error
-                        ) || captured is null
-                    )
+                    if (!SparseSessionInterop.TryCaptureStateSnapshot(_session, out var captured, out error) || captured is null)
                     {
                         snapshot = null;
                         return false;
@@ -192,8 +168,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
             }
         }
 
-        private void OnSessionChanged(object? sender, PropertyChangedEventArgs args) =>
-            Interlocked.Increment(ref _version);
+        private void OnSessionChanged(object? sender, PropertyChangedEventArgs args) => Interlocked.Increment(ref _version);
     }
 
     private readonly IStateSource _source;
@@ -208,20 +183,14 @@ internal sealed class SparsePassThroughStateScope : IDisposable
     }
 
     public static SparsePassThroughStateScope CreateRoot<TModel>(ISparseEditSession<TModel> session)
-        where TModel : class =>
-        new(new StateSource<TModel>(session), SparsePath.Root<TModel>(), true);
+        where TModel : class => new(new StateSource<TModel>(session), SparsePath.Root<TModel>(), true);
 
-    public SparsePassThroughStateScope Push(SparsePath path) =>
-        new(_source, _prefix.Append(path), false);
+    public SparsePassThroughStateScope Push(SparsePath path) => new(_source, _prefix.Append(path), false);
 
-    public bool TryFieldState<TValue>(
-        SparsePath path,
-        out SparseFieldState<TValue> state,
-        out string? error
-    ) => _source.TryFieldState(_prefix.Append(path), out state, out error);
+    public bool TryFieldState<TValue>(SparsePath path, out SparseFieldState<TValue> state, out string? error) =>
+        _source.TryFieldState(_prefix.Append(path), out state, out error);
 
-    public bool TryCollectionState(SparsePath path, out SparseCollectionState? state) =>
-        _source.TryCollectionState(_prefix.Append(path), out state);
+    public bool TryCollectionState(SparsePath path, out SparseCollectionState? state) => _source.TryCollectionState(_prefix.Append(path), out state);
 
     // Reports changes owned by the subtree at the path. Ancestor records are
     // excluded: a container reorder or resize does not change its rows, and

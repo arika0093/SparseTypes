@@ -16,13 +16,10 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         [Parameter]
         public RenderFragment? ChildContent { get; set; }
 
-        protected override void BuildRenderTree(RenderTreeBuilder builder) =>
-            builder.AddContent(0, ChildContent);
+        protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddContent(0, ChildContent);
     }
 
-    private readonly Dictionary<TElement, Guid> _identityByItem = new(
-        ReferenceEqualityComparer.Instance
-    );
+    private readonly Dictionary<TElement, Guid> _identityByItem = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<TElement> _itemsInRender = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<SparsePathSegment, Guid> _identityByPath = [];
     private readonly HashSet<SparsePathSegment> _pathsInRender = [];
@@ -79,9 +76,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
 
                 if (!change.Before.IsPresent || change.Before.Value is not TElement item)
                 {
-                    throw new InvalidOperationException(
-                        $"The removed entry at '{state.Path}' has no baseline value of type '{typeof(TElement)}'."
-                    );
+                    throw new InvalidOperationException($"The removed entry at '{state.Path}' has no baseline value of type '{typeof(TElement)}'.");
                 }
 
                 removed ??= [];
@@ -90,9 +85,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
 
             // Publish only a completed projection so a malformed entry never
             // poisons the cache. The wrapper keeps callers from mutating it.
-            IReadOnlyList<TElement> result = removed is null
-                ? Array.Empty<TElement>()
-                : removed.AsReadOnly();
+            IReadOnlyList<TElement> result = removed is null ? Array.Empty<TElement>() : removed.AsReadOnly();
             _removedItems = result;
             return result;
         }
@@ -102,8 +95,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
     public string? QueryError { get; private set; }
 
     /// <summary>Gets the generated collection editor for this path.</summary>
-    public SparseCollectionEditor<TElement> Editor =>
-        _editor ?? throw new InvalidOperationException("The collection has not been bound.");
+    public SparseCollectionEditor<TElement> Editor => _editor ?? throw new InvalidOperationException("The collection has not been bound.");
 
     /// <summary>Appends an element through the session collection editor.</summary>
     /// <param name="item">The element model to append.</param>
@@ -131,8 +123,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             }
 
             RefreshRows();
-            _skipNextParameterRefresh =
-                _notificationDuringMutation && !_parameterRefreshDuringMutation;
+            _skipNextParameterRefresh = _notificationDuringMutation && !_parameterRefreshDuringMutation;
         }
 
         if (added)
@@ -172,16 +163,10 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
     {
         base.OnParametersSet();
         Interlocked.Increment(ref _parameterSetVersion);
-        var scope =
-            Scope
-            ?? throw new InvalidOperationException(
-                "SparseCollection must be placed inside a SparseEdit for the same model type."
-            );
+        var scope = Scope ?? throw new InvalidOperationException("SparseCollection must be placed inside a SparseEdit for the same model type.");
         if (Path.RootType != typeof(TModel) || Path.Segments.Count != 1)
         {
-            throw new InvalidOperationException(
-                "SparseCollection requires a single-member path rooted at its model type."
-            );
+            throw new InvalidOperationException("SparseCollection requires a single-member path rooted at its model type.");
         }
 
         if (!ReferenceEquals(_scope, scope) || !_hasPath || !_path.Equals(Path))
@@ -306,11 +291,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             hasCollectionState =
                 SessionScopeContext?.OwnsSession(_scope!.Session) == true
                     ? SessionScopeContext.TryCollectionState(_path, out collectionState)
-                    : SparseSessionInterop.TryCollectionState(
-                        _scope!.Session,
-                        _path,
-                        out collectionState
-                    );
+                    : SparseSessionInterop.TryCollectionState(_scope!.Session, _path, out collectionState);
         }
         catch (Exception exception)
         {
@@ -328,15 +309,10 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         SparseCollectionRow<TModel, TElement>.MoveOperation? move = null;
         if (count > 0)
         {
-            remove = (
-                SparseCollectionRow<TModel, TElement> row,
-                out SparseCollectionEditError removeError
-            ) => RemoveRow(row, bindingVersion, out removeError);
-            move = (
-                SparseCollectionRow<TModel, TElement> row,
-                int newIndex,
-                out SparseCollectionEditError moveError
-            ) => MoveRow(row, newIndex, bindingVersion, out moveError);
+            remove = (SparseCollectionRow<TModel, TElement> row, out SparseCollectionEditError removeError) =>
+                RemoveRow(row, bindingVersion, out removeError);
+            move = (SparseCollectionRow<TModel, TElement> row, int newIndex, out SparseCollectionEditError moveError) =>
+                MoveRow(row, newIndex, bindingVersion, out moveError);
         }
         for (var index = 0; index < count; index++)
         {
@@ -401,25 +377,17 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             );
         }
 
-        foreach (
-            var item in _identityByItem.Keys.Where(item => !_itemsInRender.Contains(item)).ToArray()
-        )
+        foreach (var item in _identityByItem.Keys.Where(item => !_itemsInRender.Contains(item)).ToArray())
         {
             _identityByItem.Remove(item);
         }
 
-        foreach (
-            var path in _identityByPath.Keys.Where(path => !_pathsInRender.Contains(path)).ToArray()
-        )
+        foreach (var path in _identityByPath.Keys.Where(path => !_pathsInRender.Contains(path)).ToArray())
         {
             _identityByPath.Remove(path);
         }
 
-        foreach (
-            var temporaryKey in _identityByTemporaryKey
-                .Keys.Where(key => !_temporaryKeysInRender.Contains(key))
-                .ToArray()
-        )
+        foreach (var temporaryKey in _identityByTemporaryKey.Keys.Where(key => !_temporaryKeysInRender.Contains(key)).ToArray())
         {
             _identityByTemporaryKey.Remove(temporaryKey);
         }
@@ -428,12 +396,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         QueryError = null;
     }
 
-    private Guid GetUiKey(
-        TElement item,
-        SparsePathSegment identity,
-        Guid? temporaryKey,
-        bool isKeyed
-    )
+    private Guid GetUiKey(TElement item, SparsePathSegment identity, Guid? temporaryKey, bool isKeyed)
     {
         if (!isKeyed)
         {
@@ -472,11 +435,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         return uiKey;
     }
 
-    private bool RemoveRow(
-        SparseCollectionRow<TModel, TElement> row,
-        long bindingVersion,
-        out SparseCollectionEditError error
-    )
+    private bool RemoveRow(SparseCollectionRow<TModel, TElement> row, long bindingVersion, out SparseCollectionEditError error)
     {
         if (_disposed || bindingVersion != Interlocked.Read(ref _bindingVersion))
         {
@@ -517,8 +476,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             }
 
             RefreshRows();
-            _skipNextParameterRefresh =
-                _notificationDuringMutation && !_parameterRefreshDuringMutation;
+            _skipNextParameterRefresh = _notificationDuringMutation && !_parameterRefreshDuringMutation;
         }
 
         if (removed)
@@ -529,12 +487,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         return removed;
     }
 
-    private bool MoveRow(
-        SparseCollectionRow<TModel, TElement> row,
-        int newIndex,
-        long bindingVersion,
-        out SparseCollectionEditError error
-    )
+    private bool MoveRow(SparseCollectionRow<TModel, TElement> row, int newIndex, long bindingVersion, out SparseCollectionEditError error)
     {
         if (_disposed || bindingVersion != Interlocked.Read(ref _bindingVersion))
         {
@@ -575,8 +528,7 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
             }
 
             RefreshRows();
-            _skipNextParameterRefresh =
-                _notificationDuringMutation && !_parameterRefreshDuringMutation;
+            _skipNextParameterRefresh = _notificationDuringMutation && !_parameterRefreshDuringMutation;
         }
 
         if (moved)

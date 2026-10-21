@@ -10,13 +10,7 @@ namespace SparseTypes.Generator;
 /// <remarks>Product-specific surface, not Shared: Shared never hard-codes SparseTypes runtime or mapper names.</remarks>
 internal static class SparseEntityMapperFactoryEmitter
 {
-    internal static void AppendFactory(
-        StringBuilder code,
-        int indent,
-        INamedTypeSymbol mapper,
-        INamedTypeSymbol entityType,
-        INamedTypeSymbol dtoType
-    )
+    internal static void AppendFactory(StringBuilder code, int indent, INamedTypeSymbol mapper, INamedTypeSymbol entityType, INamedTypeSymbol dtoType)
     {
         if (mapper.IsAbstract || !HasParameterlessConstructor(mapper))
         {
@@ -38,25 +32,16 @@ internal static class SparseEntityMapperFactoryEmitter
                 .Append("partial ")
                 .Append(declaration.Keyword.ValueText)
                 .Append(' ')
-                .Append(
-                    SparseEntityMapperEmitter.EscapeIdentifier(declaration.Identifier.ValueText)
-                )
+                .Append(SparseEntityMapperEmitter.EscapeIdentifier(declaration.Identifier.ValueText))
                 .Append(declaration.TypeParameterList?.ToString() ?? string.Empty)
                 .AppendLine();
             AppendIndent(code, indent + index).AppendLine("{");
         }
 
         var methodIndent = indent + levels.Count;
-        AppendIndent(code, methodIndent)
-            .AppendLine(
-                "/// <summary>Creates the mapper for this mapping plus EF model.</summary>"
-            );
-        AppendIndent(code, methodIndent)
-            .AppendLine(
-                "/// <param name=\"model\">The EF model the plan is validated against.</param>"
-            );
-        AppendIndent(code, methodIndent)
-            .AppendLine("/// <returns>The validated mapper for this model and mapping.</returns>");
+        AppendIndent(code, methodIndent).AppendLine("/// <summary>Creates the mapper for this mapping plus EF model.</summary>");
+        AppendIndent(code, methodIndent).AppendLine("/// <param name=\"model\">The EF model the plan is validated against.</param>");
+        AppendIndent(code, methodIndent).AppendLine("/// <returns>The validated mapper for this model and mapping.</returns>");
         AppendIndent(code, methodIndent)
             .Append("public static global::SparseTypes.EntityFrameworkCore.SparseEntityMapper<")
             .Append(entityName)
@@ -64,10 +49,7 @@ internal static class SparseEntityMapperFactoryEmitter
             .Append(dtoName)
             .AppendLine("> Create(global::Microsoft.EntityFrameworkCore.Metadata.IModel model)");
         AppendIndent(code, methodIndent).AppendLine("{");
-        AppendIndent(code, methodIndent + 1)
-            .AppendLine(
-                "if (model is null) throw new global::System.ArgumentNullException(nameof(model));"
-            );
+        AppendIndent(code, methodIndent + 1).AppendLine("if (model is null) throw new global::System.ArgumentNullException(nameof(model));");
         AppendIndent(code, methodIndent + 1)
             .Append("var mapping = new ")
             .Append(SparseEntityMapperEmitter.EscapeIdentifier(levels[^1].Identifier.ValueText))
@@ -89,10 +71,7 @@ internal static class SparseEntityMapperFactoryEmitter
     private static bool HasParameterlessConstructor(INamedTypeSymbol mapper) =>
         mapper.InstanceConstructors.Any(static constructor => constructor.Parameters.Length == 0);
 
-    private static bool TryCollectLevels(
-        INamedTypeSymbol mapper,
-        out System.Collections.Generic.List<TypeDeclarationSyntax> levels
-    )
+    private static bool TryCollectLevels(INamedTypeSymbol mapper, out System.Collections.Generic.List<TypeDeclarationSyntax> levels)
     {
         levels = new System.Collections.Generic.List<TypeDeclarationSyntax>();
         var chain = new System.Collections.Generic.List<INamedTypeSymbol>();

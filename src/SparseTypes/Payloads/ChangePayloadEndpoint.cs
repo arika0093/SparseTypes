@@ -26,17 +26,12 @@ public sealed class ChangePayloadEndpoint<T>
             return new ChangePayloadEndpoint<T> { State = ChangePayloadState.Null };
         }
 
-        return new ChangePayloadEndpoint<T>
-        {
-            State = ChangePayloadState.Value,
-            Value = value.Value,
-        };
+        return new ChangePayloadEndpoint<T> { State = ChangePayloadState.Value, Value = value.Value };
     }
 
     /// <summary>Creates a redacted endpoint that carries no observable value.</summary>
     /// <remarks>Redacted values conceal before-state data.</remarks>
-    public static ChangePayloadEndpoint<T> Redacted() =>
-        new() { State = ChangePayloadState.Redacted };
+    public static ChangePayloadEndpoint<T> Redacted() => new() { State = ChangePayloadState.Redacted };
 
     /// <summary>Whether this endpoint redacts its value.</summary>
     public bool IsRedacted => State == ChangePayloadState.Redacted;
@@ -73,10 +68,7 @@ public sealed class ChangePayloadEndpoint<T>
     {
         // Null for reference types and zero for value types, matching what
         // Redacted() and deserialization of a value-free envelope produce.
-        if (
-            Value is not null
-            && !System.Collections.Generic.EqualityComparer<T>.Default.Equals(Value, default!)
-        )
+        if (Value is not null && !System.Collections.Generic.EqualityComparer<T>.Default.Equals(Value, default!))
         {
             switch (State)
             {
@@ -110,18 +102,12 @@ public sealed class ChangePayloadEndpoint<T>
         {
             ChangePayloadState.Missing => Optional<T>.Missing,
             ChangePayloadState.Null when default(T) is null => Optional<T>.Present(default),
-            ChangePayloadState.Null => throw new InvalidOperationException(
-                "A non-nullable payload value cannot have a null endpoint."
-            ),
+            ChangePayloadState.Null => throw new InvalidOperationException("A non-nullable payload value cannot have a null endpoint."),
             ChangePayloadState.Value when Value is not null => Optional<T>.Present(Value),
-            ChangePayloadState.Value => throw new InvalidOperationException(
-                "A value endpoint must contain a value."
-            ),
+            ChangePayloadState.Value => throw new InvalidOperationException("A value endpoint must contain a value."),
             // Callers must project through ChangePayload.ToPatch rather than
             // read a baseline.
-            _ => throw new InvalidOperationException(
-                "A redacted payload endpoint has no observable optional value."
-            ),
+            _ => throw new InvalidOperationException("A redacted payload endpoint has no observable optional value."),
         };
     }
 }

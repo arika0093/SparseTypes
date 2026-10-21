@@ -5,36 +5,17 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseKeyedSequenceTempRebaseEmitter
 {
     /// <summary>Emits temporary side maps for base/current/desired states.</summary>
-    internal static void AppendTempStateMaps(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string elementType,
-        int id
-    )
+    internal static void AppendTempStateMaps(SharedIndentedBuilder code, SparseMemberModel member, string elementType, int id)
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         var isUnassigned = SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k");
+        code.AppendLine("var __baseTemp" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
         code.AppendLine(
-            "var __baseTemp"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
+            "var __currentTemp" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();"
         );
         code.AppendLine(
-            "var __currentTemp"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
-        );
-        code.AppendLine(
-            "var __desiredTemp"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
+            "var __desiredTemp" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();"
         );
         code.AppendLine(
             "if (baseState.IsPresent && (object?)baseState.Value is not null) foreach (var item in baseState.Value!) { var k = "
@@ -44,11 +25,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__baseTemp" + id,
-                    "__t.Value",
-                    "item"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baseTemp" + id, "__t.Value", "item")
                 + " } }"
         );
         code.AppendLine(
@@ -59,11 +36,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__currentTemp" + id,
-                    "__t.Value",
-                    "item"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__currentTemp" + id, "__t.Value", "item")
                 + " } }"
         );
         code.AppendLine(
@@ -74,11 +47,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__desiredTemp" + id,
-                    "__t.Value",
-                    "item"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__desiredTemp" + id, "__t.Value", "item")
                 + " } }"
         );
     }
@@ -99,44 +68,25 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
         var conflictKindType = dialect.ConflictKindType;
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         code.AppendLine(
-            "var __localTempAdded"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
+            "var __localTempAdded" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();"
         );
         code.AppendLine(
             "if (local.__added is not null) foreach (var __touchedItem in local.__added) { var __ttk = "
                 + tempOf
                 + "(__touchedItem); if ("
-                + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                    member,
-                    SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(__touchedItem)"
-                )
+                + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(__touchedItem)")
                 + " && __ttk.HasValue && __ttk.Value != global::System.Guid.Empty) __localTempAdded"
                 + id
                 + "[__ttk.Value] = __touchedItem; }"
         );
         code.AppendLine(
-            "var __tempUnion"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__baseTemp"
-                + id
-                + ".Keys);"
+            "var __tempUnion" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__baseTemp" + id + ".Keys);"
         );
         code.AppendLine("__tempUnion" + id + ".UnionWith(__currentTemp" + id + ".Keys);");
         code.AppendLine("__tempUnion" + id + ".UnionWith(__desiredTemp" + id + ".Keys);");
         code.AppendLine("__tempUnion" + id + ".UnionWith(__localTempAdded" + id + ".Keys);");
-        code.AppendLine(
-            "if (local.__removedTemp is not null) __tempUnion"
-                + id
-                + ".UnionWith(local.__removedTemp);"
-        );
-        code.AppendLine(
-            "if (local.__editedTemp is not null) __tempUnion"
-                + id
-                + ".UnionWith(local.__editedTemp.Keys);"
-        );
+        code.AppendLine("if (local.__removedTemp is not null) __tempUnion" + id + ".UnionWith(local.__removedTemp);");
+        code.AppendLine("if (local.__editedTemp is not null) __tempUnion" + id + ".UnionWith(local.__editedTemp.Keys);");
         code.AppendLine("foreach (var __tt in __tempUnion" + id + ")");
         code.OpenBlock();
         code.AppendLine(
@@ -149,14 +99,10 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ".TryGetValue(__tt, out var __td);"
         );
         code.AppendLine(
-            "bool __tbaseEqualsCurrent = __tinBase == __tinCurrent && (!__tinBase || "
-                + facade
-                + ".AreEqual((object?)__tb, (object?)__tc));"
+            "bool __tbaseEqualsCurrent = __tinBase == __tinCurrent && (!__tinBase || " + facade + ".AreEqual((object?)__tb, (object?)__tc));"
         );
         code.AppendLine(
-            "bool __tdesiredEqualsCurrent = __tinDesired == __tinCurrent && (!__tinDesired || "
-                + facade
-                + ".AreEqual((object?)__td, (object?)__tc));"
+            "bool __tdesiredEqualsCurrent = __tinDesired == __tinCurrent && (!__tinDesired || " + facade + ".AreEqual((object?)__td, (object?)__tc));"
         );
         code.AppendLine("if (__tbaseEqualsCurrent)");
         code.OpenBlock();

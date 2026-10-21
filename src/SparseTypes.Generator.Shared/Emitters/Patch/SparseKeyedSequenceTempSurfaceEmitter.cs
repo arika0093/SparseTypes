@@ -7,17 +7,9 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
     /// <summary>Emits temporary operation-log fields for a keyed patch.</summary>
     internal static void AppendTempFields(SharedIndentedBuilder code, string editedValueType)
     {
-        code.AppendLine(
-            "internal global::System.Collections.Generic.List<global::System.Guid>? __removedTemp;"
-        );
-        code.AppendLine(
-            "internal global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + editedValueType
-                + ">? __editedTemp;"
-        );
-        code.AppendLine(
-            "internal global::System.Collections.Generic.List<global::System.Guid?>? __orderTemp;"
-        );
+        code.AppendLine("internal global::System.Collections.Generic.List<global::System.Guid>? __removedTemp;");
+        code.AppendLine("internal global::System.Collections.Generic.Dictionary<global::System.Guid, " + editedValueType + ">? __editedTemp;");
+        code.AppendLine("internal global::System.Collections.Generic.List<global::System.Guid?>? __orderTemp;");
     }
 
     /// <summary>Aliases temporary fields for relocated operation bodies.</summary>
@@ -76,16 +68,7 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
         }
         else
         {
-            AppendUpdateByTemporaryKey(
-                operations,
-                code,
-                split,
-                patchName,
-                elementType,
-                guard,
-                relocated,
-                tempOf
-            );
+            AppendUpdateByTemporaryKey(operations, code, split, patchName, elementType, guard, relocated, tempOf);
         }
     }
 
@@ -101,31 +84,21 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
     {
         if (relocated)
         {
-            split!.Shell.AppendLine(
-                "/// <summary>Removes an unassigned element from this keyed patch by temporary identity.</summary>"
-            );
+            split!.Shell.AppendLine("/// <summary>Removes an unassigned element from this keyed patch by temporary identity.</summary>");
             split.Shell.AppendLine(
                 "public void RemoveByTemporaryKey(global::System.Guid temporaryKey) => "
                     + split.OperationsType
                     + ".RemoveByTemporaryKey(this, temporaryKey);"
             );
-            operations.AppendLine(
-                "/// <summary>Removes an unassigned element from a keyed patch by temporary identity.</summary>"
-            );
-            operations.AppendLine(
-                "internal static void RemoveByTemporaryKey("
-                    + patchName
-                    + " self, global::System.Guid temporaryKey)"
-            );
+            operations.AppendLine("/// <summary>Removes an unassigned element from a keyed patch by temporary identity.</summary>");
+            operations.AppendLine("internal static void RemoveByTemporaryKey(" + patchName + " self, global::System.Guid temporaryKey)");
             operations.OpenBlock();
             SparseKeyedSequenceSurfaceEmitter.AppendFieldAliases(operations);
             AppendTempFieldAliases(operations);
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Removes an unassigned element by temporary identity.</summary>"
-            );
+            code.AppendLine("/// <summary>Removes an unassigned element by temporary identity.</summary>");
             code.AppendLine("/// <param name=\"temporaryKey\">The temporary identity.</param>");
             code.AppendLine("public void RemoveByTemporaryKey(global::System.Guid temporaryKey)");
             code.OpenBlock();
@@ -144,9 +117,7 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
         target.AppendLine(
             "if (__removedTemp is not null && __removedTemp.Contains(temporaryKey)) throw new global::System.InvalidOperationException(\"Element is already removed in this patch.\");"
         );
-        target.AppendLine(
-            "__removedTemp ??= new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
+        target.AppendLine("__removedTemp ??= new global::System.Collections.Generic.List<global::System.Guid>();");
         target.AppendLine("__removedTemp.Add(temporaryKey);");
         target.CloseBlock();
     }
@@ -164,9 +135,7 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
     {
         if (relocated)
         {
-            split!.Shell.AppendLine(
-                "/// <summary>Gets the edit patch for an unassigned element of this keyed patch.</summary>"
-            );
+            split!.Shell.AppendLine("/// <summary>Gets the edit patch for an unassigned element of this keyed patch.</summary>");
             split.Shell.AppendLine(
                 "public "
                     + elementPatch
@@ -174,15 +143,9 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
                     + split.OperationsType
                     + ".EditByTemporaryKey(this, temporaryKey);"
             );
+            operations.AppendLine("/// <summary>Gets the edit patch for an unassigned element of a keyed patch.</summary>");
             operations.AppendLine(
-                "/// <summary>Gets the edit patch for an unassigned element of a keyed patch.</summary>"
-            );
-            operations.AppendLine(
-                "internal static "
-                    + elementPatch
-                    + " EditByTemporaryKey("
-                    + patchName
-                    + " self, global::System.Guid temporaryKey)"
+                "internal static " + elementPatch + " EditByTemporaryKey(" + patchName + " self, global::System.Guid temporaryKey)"
             );
             operations.OpenBlock();
             SparseKeyedSequenceSurfaceEmitter.AppendFieldAliases(operations);
@@ -190,14 +153,10 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Gets the edit patch for an unassigned element.</summary>"
-            );
+            code.AppendLine("/// <summary>Gets the edit patch for an unassigned element.</summary>");
             code.AppendLine("/// <param name=\"temporaryKey\">The temporary identity.</param>");
             code.AppendLine("/// <returns>The edit patch.</returns>");
-            code.AppendLine(
-                "public " + elementPatch + " EditByTemporaryKey(global::System.Guid temporaryKey)"
-            );
+            code.AppendLine("public " + elementPatch + " EditByTemporaryKey(global::System.Guid temporaryKey)");
             code.OpenBlock();
         }
         var target = relocated ? operations : code;
@@ -213,15 +172,9 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
                 + tempOf
                 + "(a) == temporaryKey) throw new global::System.InvalidOperationException(\"Cannot edit an element added in the same patch. Update the added value directly.\");"
         );
+        target.AppendLine("__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementPatch + ">();");
         target.AppendLine(
-            "__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementPatch
-                + ">();"
-        );
-        target.AppendLine(
-            "if (!__editedTemp.TryGetValue(temporaryKey, out var patch)) { patch = new "
-                + elementPatch
-                + "(); __editedTemp[temporaryKey] = patch; }"
+            "if (!__editedTemp.TryGetValue(temporaryKey, out var patch)) { patch = new " + elementPatch + "(); __editedTemp[temporaryKey] = patch; }"
         );
         target.AppendLine("return patch;");
         target.CloseBlock();
@@ -240,26 +193,12 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
     {
         if (relocated)
         {
-            split!.Shell.AppendLine(
-                "/// <summary>Updates an unassigned element of this keyed patch in place.</summary>"
-            );
+            split!.Shell.AppendLine("/// <summary>Updates an unassigned element of this keyed patch in place.</summary>");
             split.Shell.AppendLine(
-                "public void UpdateByTemporaryKey("
-                    + elementType
-                    + " element) => "
-                    + split.OperationsType
-                    + ".UpdateByTemporaryKey(this, element);"
+                "public void UpdateByTemporaryKey(" + elementType + " element) => " + split.OperationsType + ".UpdateByTemporaryKey(this, element);"
             );
-            operations.AppendLine(
-                "/// <summary>Updates an unassigned element of a keyed patch in place.</summary>"
-            );
-            operations.AppendLine(
-                "internal static void UpdateByTemporaryKey("
-                    + patchName
-                    + " self, "
-                    + elementType
-                    + " element)"
-            );
+            operations.AppendLine("/// <summary>Updates an unassigned element of a keyed patch in place.</summary>");
+            operations.AppendLine("internal static void UpdateByTemporaryKey(" + patchName + " self, " + elementType + " element)");
             operations.OpenBlock();
             SparseKeyedSequenceSurfaceEmitter.AppendFieldAliases(operations);
             AppendTempFieldAliases(operations);
@@ -271,9 +210,7 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
             code.OpenBlock();
         }
         var target = relocated ? operations : code;
-        target.AppendLine(
-            "if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));"
-        );
+        target.AppendLine("if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));");
         target.AppendLine(guard + "EnsureGranular(\"UpdateByTemporaryKey\");");
         target.AppendLine("var __temp = " + tempOf + "(element);");
         target.AppendLine(
@@ -287,11 +224,7 @@ internal static class SparseKeyedSequenceTempSurfaceEmitter
                 + tempOf
                 + "(__added[i]) == __temp.Value) { __added[i] = element; return; }"
         );
-        target.AppendLine(
-            "__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
-        );
+        target.AppendLine("__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
         target.AppendLine("__editedTemp[__temp.Value] = element;");
         target.CloseBlock();
     }

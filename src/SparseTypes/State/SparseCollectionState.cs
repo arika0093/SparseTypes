@@ -73,9 +73,7 @@ public readonly record struct SparseCollectionItemState
             IsEmpty = item.IsEmpty,
         };
 
-    internal static SparseCollectionItemState FromDictionary<TKey, TValue>(
-        ISparseDictionaryItemChange<TKey, TValue> entry
-    ) =>
+    internal static SparseCollectionItemState FromDictionary<TKey, TValue>(ISparseDictionaryItemChange<TKey, TValue> entry) =>
         new()
         {
             Key = entry.Key,
@@ -151,8 +149,7 @@ public readonly record struct SparseCollectionState
     /// Members whose element type opts out of temporary identity always
     /// report the empty state here.
     /// </remarks>
-    public SparseCollectionItemState GetTemporaryState(Guid temporaryKey) =>
-        _getTemporary(temporaryKey);
+    public SparseCollectionItemState GetTemporaryState(Guid temporaryKey) => _getTemporary(temporaryKey);
 
     private readonly Func<object?, SparseCollectionItemState> _getItem;
     private readonly Func<Guid, SparseCollectionItemState> _getTemporary;

@@ -10,11 +10,7 @@ internal static class SparseStjConstructorCapabilityProbe
     /// <param name="compilation">The consuming compilation.</param>
     /// <param name="requiredParameters">The required leading parameter types.</param>
     /// <returns><see langword="true"/> when an accessible constructor can be called with the prefix.</returns>
-    public static bool HasAccessibleConstructorWithOptionalSuffix(
-        INamedTypeSymbol type,
-        Compilation compilation,
-        ITypeSymbol[] requiredParameters
-    )
+    public static bool HasAccessibleConstructorWithOptionalSuffix(INamedTypeSymbol type, Compilation compilation, ITypeSymbol[] requiredParameters)
     {
         foreach (var ctor in type.InstanceConstructors)
         {
@@ -34,13 +30,7 @@ internal static class SparseStjConstructorCapabilityProbe
                 if (index < requiredParameters.Length)
                 {
                     var parameter = ctor.Parameters[index];
-                    if (
-                        parameter.RefKind != RefKind.None
-                        || !SymbolEqualityComparer.Default.Equals(
-                            parameter.Type,
-                            requiredParameters[index]
-                        )
-                    )
+                    if (parameter.RefKind != RefKind.None || !SymbolEqualityComparer.Default.Equals(parameter.Type, requiredParameters[index]))
                     {
                         matches = false;
                         break;

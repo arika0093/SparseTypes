@@ -105,12 +105,7 @@ public enum SparseChangeKind
 public sealed class SparseChangeRecord
 {
     /// <summary>Creates a change record.</summary>
-    public SparseChangeRecord(
-        SparsePath path,
-        Optional<object?> before,
-        Optional<object?> after,
-        SparseChangeKind kind
-    )
+    public SparseChangeRecord(SparsePath path, Optional<object?> before, Optional<object?> after, SparseChangeKind kind)
     {
         Path = path;
         Before = before;
@@ -214,26 +209,15 @@ public sealed class SparseStaticModelMetadata : ISparseModelMetadata
     private readonly Dictionary<string, ISparsePropertyMetadata> _byName;
 
     /// <summary>Creates model metadata from cached property entries.</summary>
-    public SparseStaticModelMetadata(
-        Type modelType,
-        IReadOnlyList<ISparsePropertyMetadata> properties
-    )
+    public SparseStaticModelMetadata(Type modelType, IReadOnlyList<ISparsePropertyMetadata> properties)
     {
         ModelType = modelType ?? throw new ArgumentNullException(nameof(modelType));
         ArgumentNullException.ThrowIfNull(properties);
         var copy = new ISparsePropertyMetadata[properties.Count];
-        _byName = new Dictionary<string, ISparsePropertyMetadata>(
-            properties.Count,
-            StringComparer.Ordinal
-        );
+        _byName = new Dictionary<string, ISparsePropertyMetadata>(properties.Count, StringComparer.Ordinal);
         for (var index = 0; index < properties.Count; index++)
         {
-            var entry =
-                properties[index]
-                ?? throw new ArgumentException(
-                    "Model metadata cannot contain null entries.",
-                    nameof(properties)
-                );
+            var entry = properties[index] ?? throw new ArgumentException("Model metadata cannot contain null entries.", nameof(properties));
             copy[index] = entry;
             _byName.Add(entry.Name, entry);
         }

@@ -10,10 +10,7 @@ public static class SparsePathQueries
     /// <param name="conflicts">The conflicts to search.</param>
     /// <param name="path">The exact path to locate.</param>
     /// <remarks>Exact paths only; ancestors and descendants never match.</remarks>
-    public static SparseConflict? Find(
-        this IReadOnlyList<SparseConflict> conflicts,
-        SparsePath path
-    )
+    public static SparseConflict? Find(this IReadOnlyList<SparseConflict> conflicts, SparsePath path)
     {
         ArgumentNullException.ThrowIfNull(conflicts);
         for (var index = 0; index < conflicts.Count; index++)
@@ -34,10 +31,7 @@ public static class SparsePathQueries
     /// <typeparam name="TModel">The root model type.</typeparam>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
     /// <remarks>Exact paths only; ancestors and descendants never match.</remarks>
-    public static SparseConflict? Find<TModel, TValue>(
-        this IReadOnlyList<SparseConflict> conflicts,
-        SparsePath<TModel, TValue> path
-    )
+    public static SparseConflict? Find<TModel, TValue>(this IReadOnlyList<SparseConflict> conflicts, SparsePath<TModel, TValue> path)
     {
         return Find(conflicts, path.Path);
     }

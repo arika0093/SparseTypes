@@ -13,11 +13,9 @@ internal static class SparseNaming
 {
     public const int InitialSchemaVersion = 1;
 
-    public static readonly SymbolDisplayFormat TypeFormat =
-        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
-            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
-                | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
-        );
+    public static readonly SymbolDisplayFormat TypeFormat = SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+        SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+    );
 
     public static string TypeName(ITypeSymbol type) => type.ToDisplayString(TypeFormat);
 
@@ -25,8 +23,7 @@ internal static class SparseNaming
         type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat);
 
     public static string EscapeIdentifier(string identifier) =>
-        SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None
-        || SyntaxFacts.GetContextualKeywordKind(identifier) != SyntaxKind.None
+        SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None || SyntaxFacts.GetContextualKeywordKind(identifier) != SyntaxKind.None
             ? "@" + identifier
             : identifier;
 
@@ -34,11 +31,7 @@ internal static class SparseNaming
     {
         var names = new HashSet<string>(memberNames);
         var prefix = new StringBuilder();
-        while (
-            new[] { "Between", "Compose", "Invert", "Rebase" }.Any(name =>
-                names.Contains(prefix.ToString() + name)
-            )
-        )
+        while (new[] { "Between", "Compose", "Invert", "Rebase" }.Any(name => names.Contains(prefix.ToString() + name)))
         {
             prefix.Append("Sparse");
         }
@@ -50,11 +43,7 @@ internal static class SparseNaming
     {
         var names = new HashSet<string>(memberNames);
         var prefix = new StringBuilder();
-        while (
-            new[] { "Set", "SetNull", "Remove", "IsEmpty" }.Any(name =>
-                names.Contains(prefix.ToString() + name)
-            )
-        )
+        while (new[] { "Set", "SetNull", "Remove", "IsEmpty" }.Any(name => names.Contains(prefix.ToString() + name)))
         {
             prefix.Append("Sparse");
         }
@@ -107,22 +96,17 @@ internal static class SparseCanonicalKeyPath
     /// <summary>Builds a path-suffix expression for converted key text.</summary>
     /// <param name="convertedTextExpression">Expression producing the key text.</param>
     internal static string AppendQuoted(string convertedTextExpression) =>
-        " + \"[\\\"\" + "
-        + convertedTextExpression
-        + ".Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"]\"";
+        " + \"[\\\"\" + " + convertedTextExpression + ".Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"]\"";
 
     /// <summary>Builds a path-suffix expression for a boxed key value.</summary>
     /// <param name="keyExpression">Expression producing the key (any type).</param>
     internal static string AppendKey(string keyExpression) =>
         AppendQuoted(
-            "(global::System.Convert.ToString("
-                + keyExpression
-                + ", global::System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)"
+            "(global::System.Convert.ToString(" + keyExpression + ", global::System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)"
         );
 
     /// <summary>Builds a path-suffix expression for already-escaped key text.</summary>
     /// <param name="escapedTextExpression">Expression producing escaped key text.</param>
     /// <remarks>No further escaping is applied.</remarks>
-    internal static string AppendEscaped(string escapedTextExpression) =>
-        " + \"[\\\"\" + " + escapedTextExpression + " + \"\\\"]\"";
+    internal static string AppendEscaped(string escapedTextExpression) => " + \"[\\\"\" + " + escapedTextExpression + " + \"\\\"]\"";
 }

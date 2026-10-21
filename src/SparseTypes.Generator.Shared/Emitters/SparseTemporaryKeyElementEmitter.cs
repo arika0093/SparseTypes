@@ -28,23 +28,14 @@ internal static class SparseTemporaryKeyElementEmitter
         }
 
         var prop = SparseNaming.EscapeIdentifier(member.Property.Name);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         _ = prop;
         _ = optionalFragment;
         _ = elementNullableStruct;
 
         code.OpenBlock();
-        code.AppendLine(
-            "var __subKeys = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
-        code.AppendLine(
-            "var __subTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
+        code.AppendLine("var __subKeys = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
+        code.AppendLine("var __subTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         code.AppendLine("if (__subList is not null)");
         code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitCollectIdentities(
@@ -60,16 +51,8 @@ internal static class SparseTemporaryKeyElementEmitter
             elementRef
         );
         code.CloseBlock();
-        code.AppendLine(
-            "var __liveKeys = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
-        code.AppendLine(
-            "var __liveTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
+        code.AppendLine("var __liveKeys = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
+        code.AppendLine("var __liveTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         code.AppendLine("if (__liveList is not null)");
         code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitCollectIdentities(
@@ -87,9 +70,7 @@ internal static class SparseTemporaryKeyElementEmitter
         code.CloseBlock();
         // Live surviving order mapped to final assigned keys versus
         // submitted surviving order decides who wins ordering.
-        code.AppendLine(
-            "var __liveSurviving = new global::System.Collections.Generic.List<" + keyType + ">();"
-        );
+        code.AppendLine("var __liveSurviving = new global::System.Collections.Generic.List<" + keyType + ">();");
         code.AppendLine("if (__liveList is not null)");
         code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitSurvivingOrder(
@@ -106,9 +87,7 @@ internal static class SparseTemporaryKeyElementEmitter
             elementRef
         );
         code.CloseBlock();
-        code.AppendLine(
-            "var __subSurviving = new global::System.Collections.Generic.List<" + keyType + ">();"
-        );
+        code.AppendLine("var __subSurviving = new global::System.Collections.Generic.List<" + keyType + ">();");
         code.AppendLine("if (__subList is not null)");
         code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitSubmittedSurvivingOrder(
@@ -138,11 +117,7 @@ internal static class SparseTemporaryKeyElementEmitter
         code.AppendLine("if (!__hasLocalReorder)");
         code.OpenBlock();
         // Clean path: persisted order plus post-submit insertions.
-        code.AppendLine(
-            "var __ordered = new global::System.Collections.Generic.List<"
-                + member.Collection.ElementType.Name
-                + ">();"
-        );
+        code.AppendLine("var __ordered = new global::System.Collections.Generic.List<" + member.Collection.ElementType.Name + ">();");
         SparseTemporaryKeyOrderEmitter.EmitBuildKeyLookup(
             code,
             "__working",
@@ -201,9 +176,7 @@ internal static class SparseTemporaryKeyElementEmitter
             elementRef
         );
         code.CloseBlock();
-        code.AppendLine(
-            "if (__ordered!.Count != __working!.Count) { __working.Clear(); __working.AddRange(__ordered); __dirty = true; }"
-        );
+        code.AppendLine("if (__ordered!.Count != __working!.Count) { __working.Clear(); __working.AddRange(__ordered); __dirty = true; }");
         code.AppendLine(
             "else { for (var __oi = 0; __oi < __ordered.Count; __oi++) { var __a = __ordered[__oi]; var __b = __working[__oi]; bool __same = object.ReferenceEquals(__a, __b); if (!__same && __a is not null && __b is not null) { __same = "
                 + elementType
@@ -244,16 +217,8 @@ internal static class SparseTemporaryKeyElementEmitter
         code.CloseBlock();
         code.CloseBlock();
         // Final duplicate guard before commit.
-        code.AppendLine(
-            "var __seenKeys = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
-        code.AppendLine(
-            "var __seenTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
+        code.AppendLine("var __seenKeys = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
+        code.AppendLine("var __seenTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         SparseTemporaryKeyOrderEmitter.EmitDuplicateGuard(
             code,
             "__working",
@@ -292,35 +257,11 @@ internal static class SparseTemporaryKeyElementEmitter
         // Submitted-missing elements are post-submit additions and stay.
         code.AppendLine(elementType + " __subFound = default" + (elementRef ? "!" : "") + ";");
         code.AppendLine("bool __hasSub = false;");
-        EmitIndexedFind(
-            code,
-            subLookup,
-            subHasNullKey,
-            subNullKey,
-            "__subFound",
-            "__hasSub",
-            "__k",
-            keyType,
-            keyIsReferenceType
-        );
-        code.AppendLine(
-            "if (!__hasSub) { __working[__write++] = __working[__i]"
-                + (elementRef ? "!" : "")
-                + "; continue; }"
-        );
+        EmitIndexedFind(code, subLookup, subHasNullKey, subNullKey, "__subFound", "__hasSub", "__k", keyType, keyIsReferenceType);
+        code.AppendLine("if (!__hasSub) { __working[__write++] = __working[__i]" + (elementRef ? "!" : "") + "; continue; }");
         code.AppendLine(elementType + " __perFound = default" + (elementRef ? "!" : "") + ";");
         code.AppendLine("bool __hasPer = false;");
-        EmitIndexedFind(
-            code,
-            perLookup,
-            perHasNullKey,
-            perNullKey,
-            "__perFound",
-            "__hasPer",
-            "__k",
-            keyType,
-            keyIsReferenceType
-        );
+        EmitIndexedFind(code, perLookup, perHasNullKey, perNullKey, "__perFound", "__hasPer", "__k", keyType, keyIsReferenceType);
         code.AppendLine("if (!__hasPer)");
         code.OpenBlock();
         code.AppendLine("__dirty = true; continue;");
@@ -352,12 +293,8 @@ internal static class SparseTemporaryKeyElementEmitter
         code.OpenBlock();
         // The edit sits on the submitted state while adoption targets the
         // persisted state.
-        code.AppendLine(
-            "var __applied = __edit.ToPatch().Apply(" + elementType + ".Fragment.From(__perFound));"
-        );
-        code.AppendLine(
-            "if (!__applied.IsPresent || __applied.Value is null) return __Fail(\"Reconciling produced an invalid element.\");"
-        );
+        code.AppendLine("var __applied = __edit.ToPatch().Apply(" + elementType + ".Fragment.From(__perFound));");
+        code.AppendLine("if (!__applied.IsPresent || __applied.Value is null) return __Fail(\"Reconciling produced an invalid element.\");");
         code.AppendLine("__working[__i] = __applied.Value.ToModel(); __dirty = true;");
         code.CloseBlock();
         _ = runtimeNamespace;
@@ -382,17 +319,7 @@ internal static class SparseTemporaryKeyElementEmitter
         {
             code.AppendLine("if (!" + keyExpr + ".HasValue)");
             code.OpenBlock();
-            code.AppendLine(
-                "if ("
-                    + hasNullKey
-                    + ") { "
-                    + foundVar
-                    + " = "
-                    + nullKeyValue
-                    + "; "
-                    + flagVar
-                    + " = true; }"
-            );
+            code.AppendLine("if (" + hasNullKey + ") { " + foundVar + " = " + nullKeyValue + "; " + flagVar + " = true; }");
             code.CloseBlock();
             code.AppendLine(
                 "else if ("
@@ -414,17 +341,7 @@ internal static class SparseTemporaryKeyElementEmitter
         {
             code.AppendLine("if (" + keyExpr + " is null)");
             code.OpenBlock();
-            code.AppendLine(
-                "if ("
-                    + hasNullKey
-                    + ") { "
-                    + foundVar
-                    + " = "
-                    + nullKeyValue
-                    + "; "
-                    + flagVar
-                    + " = true; }"
-            );
+            code.AppendLine("if (" + hasNullKey + ") { " + foundVar + " = " + nullKeyValue + "; " + flagVar + " = true; }");
             code.CloseBlock();
             code.AppendLine(
                 "else if ("

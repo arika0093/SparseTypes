@@ -9,28 +9,16 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Shared capability plan for constructing and projecting model values.</summary>
 internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstruction)
 {
-    public static bool HasUnsupportedStructuralMembers(
-        INamedTypeSymbol pocoType,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool HasUnsupportedStructuralMembers(INamedTypeSymbol pocoType, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
-        var constructor = ModelConstructorBinding.AnalyzeStructural(
-            pocoType,
-            config,
-            cancellationToken
-        );
+        var constructor = ModelConstructorBinding.AnalyzeStructural(pocoType, config, cancellationToken);
         if (constructor is null)
         {
             return true;
         }
 
         var hierarchy = new Stack<INamedTypeSymbol>();
-        for (
-            var current = pocoType;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = pocoType; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             cancellationToken.ThrowIfCancellationRequested();
             hierarchy.Push(current);
@@ -59,13 +47,9 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
                     continue;
                 }
 
-                var hasPublicGetter =
-                    property.GetMethod?.DeclaredAccessibility == Accessibility.Public;
-                var hasPublicSetter =
-                    property.SetMethod?.DeclaredAccessibility == Accessibility.Public;
-                var isConstructorBound = constructor.Parameters.Any(parameter =>
-                    parameter.PropertyName == property.Name
-                );
+                var hasPublicGetter = property.GetMethod?.DeclaredAccessibility == Accessibility.Public;
+                var hasPublicSetter = property.SetMethod?.DeclaredAccessibility == Accessibility.Public;
+                var isConstructorBound = constructor.Parameters.Any(parameter => parameter.PropertyName == property.Name);
                 if (!hasPublicGetter && !hasPublicSetter)
                 {
                     continue;
@@ -99,11 +83,7 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
                 current
                     .GetMembers()
                     .OfType<IFieldSymbol>()
-                    .Any(static field =>
-                        !field.IsStatic
-                        && !field.IsConst
-                        && field.DeclaredAccessibility == Accessibility.Public
-                    )
+                    .Any(static field => !field.IsStatic && !field.IsConst && field.DeclaredAccessibility == Accessibility.Public)
             )
             {
                 return true;
@@ -115,11 +95,7 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
 
     /// <summary>Determines whether a property is computed identity metadata rather than state.</summary>
     /// <remarks>A getter-only <c>[SparseKey]</c> property (e.g.</remarks>
-    private static bool IsComputedKeyMetadata(
-        IPropertySymbol property,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static bool IsComputedKeyMetadata(IPropertySymbol property, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (property.SetMethod is not null)
@@ -152,18 +128,11 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
             foreach (var member in type.GetMembers())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (
-                    member is IPropertySymbol ignoredProperty
-                    && SparseModelDiscovery.IsSparseIgnored(ignoredProperty, config)
-                )
+                if (member is IPropertySymbol ignoredProperty && SparseModelDiscovery.IsSparseIgnored(ignoredProperty, config))
                 {
                     continue;
                 }
-                if (
-                    member is IPropertySymbol or IFieldSymbol
-                    && RoslynSymbolCompat.IsRequired(member)
-                    && !represented.Contains(member)
-                )
+                if (member is IPropertySymbol or IFieldSymbol && RoslynSymbolCompat.IsRequired(member) && !represented.Contains(member))
                 {
                     yield return member;
                 }
@@ -171,34 +140,21 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
         }
     }
 
-    public static ModelConstructionPlan ForStructuralMembers(
-        ImmutableArray<SparseMemberModel> members,
-        ModelConstructorBinding? constructor
-    ) =>
+    public static ModelConstructionPlan ForStructuralMembers(ImmutableArray<SparseMemberModel> members, ModelConstructorBinding? constructor) =>
         new(
             members.All(member =>
                 (!member.Property.IsRequired || constructor?.SetsRequiredMembers == true)
                 && (
                     !member.Property.IsInitOnly
-                    || (
-                        constructor is not null
-                        && constructor.Parameters.Any(parameter =>
-                            parameter.PropertyName == member.Property.Name
-                        )
-                    )
+                    || (constructor is not null && constructor.Parameters.Any(parameter => parameter.PropertyName == member.Property.Name))
                 )
             )
         );
 
     public static ModelConstructionPlan ForMembers(ImmutableArray<SparseMemberModel> members) =>
-        new(
-            members.All(static member => !member.Property.IsInitOnly && !member.Property.IsRequired)
-        );
+        new(members.All(static member => !member.Property.IsInitOnly && !member.Property.IsRequired));
 
-    public static bool HasRootParameterlessConstructor(
-        INamedTypeSymbol model,
-        CancellationToken cancellationToken
-    )
+    public static bool HasRootParameterlessConstructor(INamedTypeSymbol model, CancellationToken cancellationToken)
     {
         foreach (var constructor in model.InstanceConstructors)
         {

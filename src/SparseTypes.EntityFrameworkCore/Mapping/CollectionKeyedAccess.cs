@@ -115,10 +115,8 @@ internal sealed class KeyedCollectionView<TDtoChild>
 internal static class KeyedCollectionView
 {
     private static readonly MethodInfo FetcherFactory =
-        typeof(KeyedCollectionView).GetMethod(
-            nameof(CreateFetcherCore),
-            BindingFlags.Public | BindingFlags.Static
-        ) ?? throw new InvalidOperationException("The keyed fetch factory is missing.");
+        typeof(KeyedCollectionView).GetMethod(nameof(CreateFetcherCore), BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("The keyed fetch factory is missing.");
 
     /// <summary>Finds the closed keyed-change interface on a generated transition type.</summary>
     public static Type? FindKeyedInterface(Type transitionType)
@@ -132,10 +130,7 @@ internal static class KeyedCollectionView
             }
 
             var definition = candidate.GetGenericTypeDefinition();
-            if (
-                definition == typeof(ISparseKeyedChange<,,>)
-                || definition == typeof(ISparseTemporaryKeyedChange<,,>)
-            )
+            if (definition == typeof(ISparseKeyedChange<,,>) || definition == typeof(ISparseTemporaryKeyedChange<,,>))
             {
                 return candidate;
             }
@@ -145,42 +140,22 @@ internal static class KeyedCollectionView
     }
 
     /// <summary>Closes a typed fetch delegate for one DTO member transition.</summary>
-    public static Func<
-        ISparseChangeSet,
-        string,
-        KeyedCollectionView<TDtoChild>?
-    > CreateFetcher<TDtoChild>(Type keyedInterface)
+    public static Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?> CreateFetcher<TDtoChild>(Type keyedInterface)
         where TDtoChild : class
     {
         ArgumentNullException.ThrowIfNull(keyedInterface);
         var arguments = keyedInterface.GetGenericArguments();
-        var method = FetcherFactory.MakeGenericMethod(
-            arguments[0],
-            arguments[1],
-            arguments[2],
-            typeof(TDtoChild)
-        );
-        return (Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?>)
-            method.Invoke(null, null)!;
+        var method = FetcherFactory.MakeGenericMethod(arguments[0], arguments[1], arguments[2], typeof(TDtoChild));
+        return (Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?>)method.Invoke(null, null)!;
     }
 
     /// <summary>Public factory entry so plan-time generic closing needs no accessibility bypass.</summary>
-    public static Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?> CreateFetcherCore<
-        TKey,
-        TElement,
-        TElementChange,
-        TDtoChild
-    >()
+    public static Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?> CreateFetcherCore<TKey, TElement, TElementChange, TDtoChild>()
         where TDtoChild : class
     {
         return static (changes, memberName) =>
         {
-            if (
-                !changes.TryGetKeyedChange<TKey, TElement, TElementChange>(
-                    memberName,
-                    out var change
-                ) || change is null
-            )
+            if (!changes.TryGetKeyedChange<TKey, TElement, TElementChange>(memberName, out var change) || change is null)
             {
                 return null;
             }
@@ -206,11 +181,7 @@ internal static class KeyedCollectionView
     )
         where TDtoChild : class
     {
-        if (
-            item.Before.IsPresent
-            && item.Before.Value is not null
-            && item.Before.Value is not TDtoChild
-        )
+        if (item.Before.IsPresent && item.Before.Value is not null && item.Before.Value is not TDtoChild)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -219,11 +190,7 @@ internal static class KeyedCollectionView
             );
         }
 
-        if (
-            item.After.IsPresent
-            && item.After.Value is not null
-            && item.After.Value is not TDtoChild
-        )
+        if (item.After.IsPresent && item.After.Value is not null && item.After.Value is not TDtoChild)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -259,8 +226,6 @@ internal static class KeyedCollectionView
         );
 
         static Optional<TDtoChild?> ConvertOptional(Optional<TElement> optional) =>
-            optional.IsPresent
-                ? Optional<TDtoChild?>.Present((TDtoChild?)(object?)optional.Value)
-                : Optional<TDtoChild?>.Missing;
+            optional.IsPresent ? Optional<TDtoChild?>.Present((TDtoChild?)(object?)optional.Value) : Optional<TDtoChild?>.Missing;
     }
 }

@@ -41,11 +41,7 @@ internal static class SparseDescriptorCapabilities
     /// <param name="hasCollections">Whether sequence/dictionary/set shapes occur.</param>
     /// <param name="hasChangeProjection">Whether change enumeration is needed.</param>
     /// <returns>The de-duplicated capability set.</returns>
-    public static SparseDescriptorCapability ForCompilation(
-        bool hasDescriptors,
-        bool hasCollections,
-        bool hasChangeProjection
-    )
+    public static SparseDescriptorCapability ForCompilation(bool hasDescriptors, bool hasCollections, bool hasChangeProjection)
     {
         if (!hasDescriptors)
         {
@@ -53,15 +49,11 @@ internal static class SparseDescriptorCapabilities
         }
 
         var capability =
-            SparseDescriptorCapability.StaticMetadata
-            | SparseDescriptorCapability.InstanceBridges
-            | SparseDescriptorCapability.ValueConversion;
+            SparseDescriptorCapability.StaticMetadata | SparseDescriptorCapability.InstanceBridges | SparseDescriptorCapability.ValueConversion;
         if (hasCollections)
         {
             capability |=
-                SparseDescriptorCapability.ArrayHelpers
-                | SparseDescriptorCapability.DictionaryHelpers
-                | SparseDescriptorCapability.SetHelpers;
+                SparseDescriptorCapability.ArrayHelpers | SparseDescriptorCapability.DictionaryHelpers | SparseDescriptorCapability.SetHelpers;
         }
 
         if (hasChangeProjection)
@@ -76,10 +68,7 @@ internal static class SparseDescriptorCapabilities
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="capability">Requested capability set.</param>
     /// <returns>Actionable errors, empty when prerequisites hold.</returns>
-    public static ImmutableArray<string> ValidatePrerequisites(
-        SparseGeneratorConfig config,
-        SparseDescriptorCapability capability
-    )
+    public static ImmutableArray<string> ValidatePrerequisites(SparseGeneratorConfig config, SparseDescriptorCapability capability)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         if (capability == SparseDescriptorCapability.None)

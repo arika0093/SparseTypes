@@ -26,13 +26,7 @@ internal static class SparseFragmentMergeOriginEmitter
         for (var position = 0; position < members.Length; position++)
         {
             var member = members[position];
-            code.AppendLine(
-                "var __sparse_value_"
-                    + member.Id
-                    + " = "
-                    + buildMergeValue(member, receiver, position)
-                    + ";"
-            );
+            code.AppendLine("var __sparse_value_" + member.Id + " = " + buildMergeValue(member, receiver, position) + ";");
         }
 
         code.AppendLine(
@@ -101,11 +95,7 @@ internal static class SparseFragmentMergeOriginEmitter
             );
         }
 
-        code.AppendLine(
-            "return new Fragment(higherPriority.Origin ?? higherFallback ?? "
-                + receiver
-                + "Origin ?? selfFallback)"
-        );
+        code.AppendLine("return new Fragment(higherPriority.Origin ?? higherFallback ?? " + receiver + "Origin ?? selfFallback)");
         code.OpenBlock();
         foreach (var member in members)
         {
@@ -142,9 +132,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 code.Append(" || ");
             }
 
-            code.Append("__sparse_elements_")
-                .Append(members[elementPositions[index]].Id)
-                .Append(" is not null");
+            code.Append("__sparse_elements_").Append(members[elementPositions[index]].Id).Append(" is not null");
         }
 
         code.Append(") ? new string?[]?[] { ");
@@ -155,11 +143,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 code.Append(", ");
             }
 
-            code.Append(
-                elementPositions.Contains(position)
-                    ? "__sparse_elements_" + members[position].Id
-                    : "null"
-            );
+            code.Append(elementPositions.Contains(position) ? "__sparse_elements_" + members[position].Id : "null");
         }
 
         code.AppendLine(" } : null,");
@@ -181,13 +165,7 @@ internal static class SparseFragmentMergeOriginEmitter
         for (var position = 0; position < members.Length; position++)
         {
             var member = members[position];
-            code.AppendLine(
-                "var __sparse_value_"
-                    + member.Id
-                    + " = "
-                    + buildApplyValue(member, receiver, position)
-                    + ";"
-            );
+            code.AppendLine("var __sparse_value_" + member.Id + " = " + buildApplyValue(member, receiver, position) + ";");
         }
 
         code.AppendLine(
@@ -237,22 +215,13 @@ internal static class SparseFragmentMergeOriginEmitter
                     "string?[]? __sparse_elements_"
                         + members[position].Id
                         + " = "
-                        + SparseFragmentOriginEmitter.BuildApplyElements(
-                            members[position],
-                            receiver,
-                            "changes.",
-                            position
-                        )
+                        + SparseFragmentOriginEmitter.BuildApplyElements(members[position], receiver, "changes.", position)
                         + ";"
                 );
             }
         }
 
-        code.AppendLine(
-            "return new Fragment(changes.Origin ?? changesFallback ?? "
-                + receiver
-                + "Origin ?? selfFallback)"
-        );
+        code.AppendLine("return new Fragment(changes.Origin ?? changesFallback ?? " + receiver + "Origin ?? selfFallback)");
         code.OpenBlock();
         foreach (var member in members)
         {
@@ -290,9 +259,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 code.Append(" || ");
             }
 
-            code.Append("__sparse_elements_")
-                .Append(members[elementPositions[index]].Id)
-                .Append(" is not null");
+            code.Append("__sparse_elements_").Append(members[elementPositions[index]].Id).Append(" is not null");
         }
 
         code.Append(") ? new string?[]?[] { ");
@@ -303,11 +270,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 code.Append(", ");
             }
 
-            code.Append(
-                elementPositions.Contains(position)
-                    ? "__sparse_elements_" + members[position].Id
-                    : "null"
-            );
+            code.Append(elementPositions.Contains(position) ? "__sparse_elements_" + members[position].Id : "null");
         }
 
         code.AppendLine(" } : null,");

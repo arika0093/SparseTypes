@@ -2,11 +2,7 @@ namespace SparseTypes.Generator.Shared;
 
 /// <summary>Product-owned type names for the semantic field and collection state surface.</summary>
 /// <remarks>Shared emission references these state types only through this configuration.</remarks>
-internal sealed record SparseStateContracts(
-    string FieldStateType,
-    string CollectionStateType,
-    string StateQueryType
-)
+internal sealed record SparseStateContracts(string FieldStateType, string CollectionStateType, string StateQueryType)
 {
     /// <summary>Semantic field state type (open generic, arity 1).</summary>
     public string FieldStateType { get; init; } = FieldStateType;
@@ -28,8 +24,7 @@ internal sealed record SparseStateContracts(
     public string ObservedFieldHooksType { get; init; } = string.Empty;
 
     /// <summary>Whether the observe surface is bound.</summary>
-    public bool HasObservedField =>
-        ObservedFieldType.Length != 0 && ObservedFieldHooksType.Length != 0;
+    public bool HasObservedField => ObservedFieldType.Length != 0 && ObservedFieldHooksType.Length != 0;
 
     /// <summary>Reusable state-query snapshot type over one captured change set.</summary>
     /// <remarks>

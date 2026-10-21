@@ -41,10 +41,7 @@ public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : IDisposa
     /// <param name="path">The generated typed path to the child model.</param>
     /// <returns>An independent child draft.</returns>
     /// <exception cref="ArgumentException">The path does not resolve to a writable model value.</exception>
-    public static SparseEditChildDraft<TChild, TSession, TConflict> Create<TParent>(
-        TSession parent,
-        ISparseTypedPath<TParent, TChild> path
-    )
+    public static SparseEditChildDraft<TChild, TSession, TConflict> Create<TParent>(TSession parent, ISparseTypedPath<TParent, TChild> path)
         where TParent : class
     {
         ArgumentNullException.ThrowIfNull(parent);
@@ -52,37 +49,22 @@ public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : IDisposa
         var parentHost = GetHost(parent);
         if (parentHost.ResolveChildDraftModel(path.UntypedPath) is not TChild)
         {
-            throw new ArgumentException(
-                "The path does not resolve to a model value of the requested type.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path does not resolve to a model value of the requested type.", nameof(path));
         }
 
         if (!path.CanWriteModelValueInPlace)
         {
-            throw new ArgumentException(
-                "The path does not address a generated model value.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path does not address a generated model value.", nameof(path));
         }
 
         var fork = parentHost.ForkForChildDraft();
         var forkHost = GetHost(fork);
         if (forkHost.ResolveChildDraftModel(path.UntypedPath) is not TChild target)
         {
-            throw new ArgumentException(
-                "The path does not resolve to a model value of the requested type.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path does not resolve to a model value of the requested type.", nameof(path));
         }
 
-        return new SparseEditChildDraft<TChild, TSession, TConflict>(
-            parentHost,
-            fork,
-            path.UntypedPath,
-            path.WriteModelValueInPlace,
-            target
-        );
+        return new SparseEditChildDraft<TChild, TSession, TConflict>(parentHost, fork, path.UntypedPath, path.WriteModelValueInPlace, target);
     }
 
     /// <summary>Gets the editable child model.</summary>
@@ -93,8 +75,7 @@ public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : IDisposa
 
     /// <summary>Gets whether the addressed path currently resolves to no model.</summary>
     /// <remarks>The draft and its pending edits are retained while the target is missing.</remarks>
-    public bool IsTargetMissing =>
-        _isOpen && _parentHost.ResolveChildDraftModel(_path) is not TChild;
+    public bool IsTargetMissing => _isOpen && _parentHost.ResolveChildDraftModel(_path) is not TChild;
 
     /// <summary>Attempts to merge the draft into the parent's current unsaved state.</summary>
     /// <param name="conflicts">Structured conflicts when the draft cannot be accepted.</param>
@@ -145,9 +126,7 @@ public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : IDisposa
 
     private static ISparseEditChildDraftHost<TSession, TConflict> GetHost(TSession session) =>
         session as ISparseEditChildDraftHost<TSession, TConflict>
-        ?? throw new InvalidOperationException(
-            "The generated edit session does not support child drafts."
-        );
+        ?? throw new InvalidOperationException("The generated edit session does not support child drafts.");
 
     private void ThrowIfDisconnected(bool closeOnInvalidParent = true)
     {
@@ -163,9 +142,7 @@ public sealed class SparseEditChildDraft<TChild, TSession, TConflict> : IDisposa
                 Dispose();
             }
 
-            throw new InvalidOperationException(
-                "The parent edit session is no longer connected or belongs to an unrelated edit lineage."
-            );
+            throw new InvalidOperationException("The parent edit session is no longer connected or belongs to an unrelated edit lineage.");
         }
     }
 }

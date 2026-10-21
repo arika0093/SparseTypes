@@ -7,28 +7,17 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>One validation policy for the fragment algebra's built-in merge modes.</summary>
 internal static class SparseMergeValidation
 {
-    public static string? GetUnsupportedReason(
-        int mode,
-        bool hasChild,
-        SparseCollectionKind collection
-    ) =>
+    public static string? GetUnsupportedReason(int mode, bool hasChild, SparseCollectionKind collection) =>
         mode switch
         {
             SparseMergeModes.Default => null,
             SparseMergeModes.Replace => null,
             SparseMergeModes.Deep when !hasChild => "Deep",
             SparseMergeModes.Deep => null,
-            SparseMergeModes.Append when collection == SparseCollectionKind.Set =>
-                "Append on set types (use an ordered collection or SetUnion)",
-            SparseMergeModes.Append
-                when collection
-                    is SparseCollectionKind.Unsupported
-                        or SparseCollectionKind.MutableList => "Append",
+            SparseMergeModes.Append when collection == SparseCollectionKind.Set => "Append on set types (use an ordered collection or SetUnion)",
+            SparseMergeModes.Append when collection is SparseCollectionKind.Unsupported or SparseCollectionKind.MutableList => "Append",
             SparseMergeModes.Append => null,
-            SparseMergeModes.SetUnion
-                when collection
-                    is SparseCollectionKind.Unsupported
-                        or SparseCollectionKind.MutableList => "SetUnion",
+            SparseMergeModes.SetUnion when collection is SparseCollectionKind.Unsupported or SparseCollectionKind.MutableList => "SetUnion",
             SparseMergeModes.SetUnion => null,
             SparseMergeModes.Custom => null,
             _ => mode.ToString(),
@@ -43,12 +32,7 @@ internal static class SparseMergeValidation
         CancellationToken cancellationToken
     )
     {
-        if (
-            isNestedModel
-            || strategyType.TypeKind != TypeKind.Class
-            || strategyType.IsAbstract
-            || strategyType.Arity != 0
-        )
+        if (isNestedModel || strategyType.TypeKind != TypeKind.Class || strategyType.IsAbstract || strategyType.Arity != 0)
         {
             return false;
         }
@@ -56,18 +40,14 @@ internal static class SparseMergeValidation
         for (var current = strategyType; current is not null; current = current.ContainingType)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (
-                current.DeclaredAccessibility
-                is not (Accessibility.Public or Accessibility.Internal)
-            )
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
             {
                 return false;
             }
         }
 
         var hasConstructor = strategyType.InstanceConstructors.Any(static constructor =>
-            constructor.Parameters.Length == 0
-            && constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+            constructor.Parameters.Length == 0 && constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
         );
         if (!hasConstructor)
         {
@@ -101,9 +81,7 @@ internal static class SparseMergeValidation
         if (
             symbolMember.ChildModel is not null
             || symbolMember.MergeMode is SparseMergeModes.Append or SparseMergeModes.SetUnion
-            || member.Collection.Semantic
-                is SparseCollectionSemantic.KeyedSequence
-                    or SparseCollectionSemantic.Dictionary
+            || member.Collection.Semantic is SparseCollectionSemantic.KeyedSequence or SparseCollectionSemantic.Dictionary
         )
         {
             return false;
@@ -123,18 +101,14 @@ internal static class SparseMergeValidation
         for (var current = policyType; current is not null; current = current.ContainingType)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (
-                current.DeclaredAccessibility
-                is not (Accessibility.Public or Accessibility.Internal)
-            )
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
             {
                 return false;
             }
         }
 
         var hasConstructor = policyType.InstanceConstructors.Any(static constructor =>
-            constructor.Parameters.Length == 0
-            && constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
+            constructor.Parameters.Length == 0 && constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
         );
         if (!hasConstructor)
         {
@@ -146,10 +120,7 @@ internal static class SparseMergeValidation
             cancellationToken.ThrowIfCancellationRequested();
             if (
                 current.OriginalDefinition.ToDisplayString() == config.RebasePolicyBaseMetadataName
-                && SymbolEqualityComparer.Default.Equals(
-                    current.TypeArguments[0],
-                    symbolMember.Property.Type
-                )
+                && SymbolEqualityComparer.Default.Equals(current.TypeArguments[0], symbolMember.Property.Type)
             )
             {
                 return true;

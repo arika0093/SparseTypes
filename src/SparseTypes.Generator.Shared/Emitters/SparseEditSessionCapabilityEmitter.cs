@@ -44,10 +44,7 @@ internal static class SparseEditSessionCapabilityEmitter
 
             // The snapshot member exists only when the view type is bound, so
             // the base stays off for products without the view type.
-            if (
-                capabilities.StateSnapshotInterface is { Length: > 0 } snapshot
-                && patchDialect.StateContracts?.HasQueryView == true
-            )
+            if (capabilities.StateSnapshotInterface is { Length: > 0 } snapshot && patchDialect.StateContracts?.HasQueryView == true)
             {
                 sessionBases += ", global::" + snapshot;
             }

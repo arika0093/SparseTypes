@@ -1,0 +1,5 @@
+# The standard value (100) is too low...
+# Unnecessary line breaks increase and make it difficult to read, so it is intentionally relaxed.
+printWidth: 150
+# In most cases, it is easier to read if trailing whitespace is not respected.
+xmlWhitespaceSensitivity: ignore

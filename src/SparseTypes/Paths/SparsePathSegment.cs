@@ -13,13 +13,7 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
     private readonly Type? _keyType;
     private readonly int _index;
 
-    private SparsePathSegment(
-        SparsePathSegmentKind kind,
-        string name,
-        object? key,
-        Type? keyType,
-        int index
-    )
+    private SparsePathSegment(SparsePathSegmentKind kind, string name, object? key, Type? keyType, int index)
     {
         Kind = kind;
         _name = name;
@@ -57,8 +51,7 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
     /// <summary>Creates a key segment carrying the actual typed key.</summary>
     /// <param name="key">The entry key.</param>
     /// <typeparam name="TKey">The key type.</typeparam>
-    public static SparsePathSegment KeyOf<TKey>(TKey key) =>
-        new(SparsePathSegmentKind.Key, string.Empty, key, typeof(TKey), -1);
+    public static SparsePathSegment KeyOf<TKey>(TKey key) => new(SparsePathSegmentKind.Key, string.Empty, key, typeof(TKey), -1);
 
     /// <summary>Creates a key segment when the key type is only known at runtime.</summary>
     /// <remarks>Framework hosts use this overload to preserve key typing without generic method lookup.</remarks>
@@ -94,11 +87,7 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
 
         return Kind switch
         {
-            SparsePathSegmentKind.Member => string.Equals(
-                _name,
-                other._name,
-                StringComparison.Ordinal
-            ),
+            SparsePathSegmentKind.Member => string.Equals(_name, other._name, StringComparison.Ordinal),
             SparsePathSegmentKind.Index => _index == other._index,
             _ => _keyType == other._keyType && Equals(_key, other._key),
         };
@@ -128,21 +117,17 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
     }
 
     /// <summary>Determines whether two segments have the same identity.</summary>
-    public static bool operator ==(SparsePathSegment left, SparsePathSegment right) =>
-        left.Equals(right);
+    public static bool operator ==(SparsePathSegment left, SparsePathSegment right) => left.Equals(right);
 
     /// <summary>Determines whether two segments differ in identity.</summary>
-    public static bool operator !=(SparsePathSegment left, SparsePathSegment right) =>
-        !left.Equals(right);
+    public static bool operator !=(SparsePathSegment left, SparsePathSegment right) => !left.Equals(right);
 
     /// <inheritdoc />
     public override string ToString() =>
         Kind switch
         {
             SparsePathSegmentKind.Member => _name,
-            SparsePathSegmentKind.Index => "["
-                + _index.ToString(CultureInfo.InvariantCulture)
-                + "]",
+            SparsePathSegmentKind.Index => "[" + _index.ToString(CultureInfo.InvariantCulture) + "]",
             _ => "[\"" + SparsePath.EscapeKey(SparsePath.KeyText(_key)) + "\"]",
         };
 }

@@ -2,11 +2,7 @@ namespace SparseTypes;
 
 /// <summary>Configures semantic equality for a model member type.</summary>
 /// <remarks>Generated models keep one comparer instance per configured member and may call it concurrently.</remarks>
-[AttributeUsage(
-    AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Struct,
-    AllowMultiple = true,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
 public sealed class SparseCompareAttribute : Attribute
 {
     /// <summary>Maps a value type to an equality comparer.</summary>

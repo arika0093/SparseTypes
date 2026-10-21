@@ -9,10 +9,7 @@ internal static class SparseAttributeSource
 {
     public static string FormatPropertyAttributes(IPropertySymbol property)
     {
-        var attributes = property
-            .GetAttributes()
-            .Select(FormatAttribute)
-            .Where(static expression => expression is not null);
+        var attributes = property.GetAttributes().Select(FormatAttribute).Where(static expression => expression is not null);
         return string.Join(", ", attributes);
     }
 
@@ -29,9 +26,7 @@ internal static class SparseAttributeSource
             return null;
         }
 
-        var typeName = attribute.AttributeClass.ToDisplayString(
-            SymbolDisplayFormat.FullyQualifiedFormat
-        );
+        var typeName = attribute.AttributeClass.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var source = "new " + typeName + "(" + string.Join(", ", arguments) + ")";
         if (attribute.NamedArguments.IsDefaultOrEmpty)
         {
@@ -42,9 +37,7 @@ internal static class SparseAttributeSource
             .NamedArguments.Select(pair =>
             {
                 var value = FormatConstant(pair.Value);
-                return value is null
-                    ? null
-                    : SparseNaming.EscapeIdentifier(pair.Key) + " = " + value;
+                return value is null ? null : SparseNaming.EscapeIdentifier(pair.Key) + " = " + value;
             })
             .ToArray();
         if (assignments.Any(static assignment => assignment is null))
@@ -59,11 +52,7 @@ internal static class SparseAttributeSource
     {
         if (constant.IsNull)
         {
-            return constant.Type is null
-                ? "null"
-                : "("
-                    + constant.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-                    + ")null!";
+            return constant.Type is null ? "null" : "(" + constant.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ")null!";
         }
 
         if (constant.Kind == TypedConstantKind.Array)

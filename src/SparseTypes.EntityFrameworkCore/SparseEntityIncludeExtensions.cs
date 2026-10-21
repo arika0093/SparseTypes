@@ -64,9 +64,6 @@ public static class SparseEntityIncludeExtensions
         ArgumentNullException.ThrowIfNull(changes);
         return changes is ISparseChangeSet<TDto> typed
             ? source.IncludeFor(mapper, typed)
-            : throw new ArgumentException(
-                $"The change set must describe DTO type '{typeof(TDto).FullName}'.",
-                nameof(changes)
-            );
+            : throw new ArgumentException($"The change set must describe DTO type '{typeof(TDto).FullName}'.", nameof(changes));
     }
 }

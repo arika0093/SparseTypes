@@ -34,31 +34,19 @@ internal static class SparseChangeSetComposeEmitter
         _ = optionalFragment;
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
-            );
-            code.AppendLine(
-                "/// <param name=\"next\">The change set to apply after this change set.</param>"
-            );
+            code.AppendLine("/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>");
+            code.AppendLine("/// <param name=\"next\">The change set to apply after this change set.</param>");
             code.AppendLine("/// <returns>The composed change set.</returns>");
-            code.AppendLine(
-                "public ChangeSet Compose(ChangeSet next) => "
-                    + target.ChangeSetOperationsType
-                    + ".Compose(this, next);"
-            );
+            code.AppendLine("public ChangeSet Compose(ChangeSet next) => " + target.ChangeSetOperationsType + ".Compose(this, next);");
             code.AppendLine("/// <summary>Composes two sequential change sets.</summary>");
             code.AppendLine("/// <param name=\"first\">The first change set.</param>");
             code.AppendLine("/// <param name=\"second\">The second change set.</param>");
             code.AppendLine("/// <returns>The composed change set.</returns>");
             code.AppendLine(
-                "public static ChangeSet Compose(ChangeSet first, ChangeSet second) => "
-                    + target.ChangeSetOperationsType
-                    + ".Compose(first, second);"
+                "public static ChangeSet Compose(ChangeSet first, ChangeSet second) => " + target.ChangeSetOperationsType + ".Compose(first, second);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLine(
-                "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
-            );
+            code.AppendLine("/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>");
             code.AppendLine("/// <param name=\"self\">The first change set.</param>");
             code.AppendLine("/// <param name=\"next\">The second change set.</param>");
             code.AppendLine("/// <returns>The composed change set.</returns>");
@@ -66,33 +54,21 @@ internal static class SparseChangeSetComposeEmitter
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
-            );
-            code.AppendLine(
-                "/// <param name=\"next\">The change set to apply after this change set.</param>"
-            );
+            code.AppendLine("/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>");
+            code.AppendLine("/// <param name=\"next\">The change set to apply after this change set.</param>");
             code.AppendLine("/// <returns>The composed change set.</returns>");
             code.AppendLine("public ChangeSet Compose(ChangeSet next)");
         }
         code.OpenBlock();
         if (target is not null)
         {
-            code.AppendLine(
-                "if (self is null) throw new global::System.ArgumentNullException(nameof(self));"
-            );
+            code.AppendLine("if (self is null) throw new global::System.ArgumentNullException(nameof(self));");
             AppendSelfAliases(code, members);
         }
         var __hasSparse = members.Any(static m => IsKeyed(m) || IsDict(m));
-        code.AppendLine(
-            "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
-        );
-        code.AppendLine(
-            target is null ? "if (IsEmpty) return next;" : "if (self.IsEmpty) return next;"
-        );
-        code.AppendLine(
-            target is null ? "if (next.IsEmpty) return this;" : "if (next.IsEmpty) return self;"
-        );
+        code.AppendLine("if (next is null) throw new global::System.ArgumentNullException(nameof(next));");
+        code.AppendLine(target is null ? "if (IsEmpty) return next;" : "if (self.IsEmpty) return next;");
+        code.AppendLine(target is null ? "if (next.IsEmpty) return this;" : "if (next.IsEmpty) return self;");
         code.AppendLine("if (__sparse_hasWhole || next.__sparse_hasWhole)");
         code.OpenBlock();
         code.AppendLine("if (__sparse_hasWhole && next.__sparse_hasWhole)");
@@ -138,24 +114,8 @@ internal static class SparseChangeSetComposeEmitter
 
             var child = ChildChangeSet(member, dialect);
             code.AppendLine(child + "? __c" + member.Id + ";");
-            code.AppendLine(
-                "if ("
-                    + NestedField(member)
-                    + " is null) __c"
-                    + member.Id
-                    + " = next."
-                    + NestedField(member)
-                    + ";"
-            );
-            code.AppendLine(
-                "else if (next."
-                    + NestedField(member)
-                    + " is null) __c"
-                    + member.Id
-                    + " = "
-                    + NestedField(member)
-                    + ";"
-            );
+            code.AppendLine("if (" + NestedField(member) + " is null) __c" + member.Id + " = next." + NestedField(member) + ";");
+            code.AppendLine("else if (next." + NestedField(member) + " is null) __c" + member.Id + " = " + NestedField(member) + ";");
             code.AppendLine(
                 "else { var __cc"
                     + member.Id
@@ -262,12 +222,8 @@ internal static class SparseChangeSetComposeEmitter
                     "__cb" + member.Id + "_items",
                     "__cb" + member.Id + "_bO",
                     "__cb" + member.Id + "_aO",
-                    SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? "__cb" + member.Id + "_tbO"
-                        : null,
-                    SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? "__cb" + member.Id + "_taO"
-                        : null
+                    SparseKeyedCollectionEmitter.HasTemporaryKey(member) ? "__cb" + member.Id + "_tbO" : null,
+                    SparseKeyedCollectionEmitter.HasTemporaryKey(member) ? "__cb" + member.Id + "_taO" : null
                 );
             }
             else if (IsDict(member))
@@ -285,14 +241,7 @@ internal static class SparseChangeSetComposeEmitter
             }
             else
             {
-                args.AddRange(
-                    new[]
-                    {
-                        "__cb" + member.Id + "_b",
-                        "__cb" + member.Id + "_a",
-                        "__cb" + member.Id + "_has",
-                    }
-                );
+                args.AddRange(new[] { "__cb" + member.Id + "_b", "__cb" + member.Id + "_a", "__cb" + member.Id + "_has" });
             }
         }
         if (__hasSparse)
@@ -310,9 +259,7 @@ internal static class SparseChangeSetComposeEmitter
             code.AppendLine("/// <returns>The composed change set.</returns>");
             code.AppendLine("public static ChangeSet Compose(ChangeSet first, ChangeSet second)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (first is null) throw new global::System.ArgumentNullException(nameof(first));"
-            );
+            code.AppendLine("if (first is null) throw new global::System.ArgumentNullException(nameof(first));");
             code.AppendLine("return first." + "Compose(second);");
             code.CloseBlock();
         }
@@ -323,9 +270,7 @@ internal static class SparseChangeSetComposeEmitter
     internal static void AppendPragmaDisableNullKey(SharedIndentedBuilder code)
     {
         // Use comparer-aware key maps for all key shapes.
-        code.AppendLine(
-            "#pragma warning disable CS8604 // Sparse stable keys are non-null by construction."
-        );
+        code.AppendLine("#pragma warning disable CS8604 // Sparse stable keys are non-null by construction.");
     }
 
     internal static void AppendPragmaRestoreNullKey(SharedIndentedBuilder code)

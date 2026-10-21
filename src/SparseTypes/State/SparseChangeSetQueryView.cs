@@ -98,8 +98,7 @@ public sealed class SparseChangeSetQueryView
     /// <exception cref="InvalidOperationException">
     /// The exact transition value cannot be represented as <typeparamref name="TValue"/>.
     /// </exception>
-    public SparseFieldState<TValue> FieldState<TModel, TValue>(SparsePath<TModel, TValue> path) =>
-        FieldStateCore<TValue>(path.Path);
+    public SparseFieldState<TValue> FieldState<TModel, TValue>(SparsePath<TModel, TValue> path) => FieldStateCore<TValue>(path.Path);
 
     /// <summary>Queries the semantic field state at a model-agnostic path over the captured set.</summary>
     /// <param name="path">The path to inspect.</param>
@@ -200,9 +199,7 @@ public sealed class SparseChangeSetQueryView
         return _changes.EnumerateChangeRecords().ToArray();
     }
 
-    private static Dictionary<Type, TrieNode> BuildIndexLocked(
-        IReadOnlyList<SparseChangeRecord> records
-    )
+    private static Dictionary<Type, TrieNode> BuildIndexLocked(IReadOnlyList<SparseChangeRecord> records)
     {
         // Index by structured segments, never by ToString: distinct typed keys
         // can share display text.

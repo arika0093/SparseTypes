@@ -21,8 +21,7 @@ public sealed class SparseKeyValidationScope<TKey> : IDisposable
 
     /// <summary>Gets the set exclusively owned by this scope.</summary>
     /// <exception cref="ObjectDisposedException">The scope has been disposed.</exception>
-    public HashSet<TKey> Keys =>
-        _keys ?? throw new ObjectDisposedException(nameof(SparseKeyValidationScope<TKey>));
+    public HashSet<TKey> Keys => _keys ?? throw new ObjectDisposedException(nameof(SparseKeyValidationScope<TKey>));
 
     /// <summary>Returns bounded storage for reuse on the current thread.</summary>
     public void Dispose()
@@ -43,10 +42,7 @@ internal static class SparseKeyValidationPool<TKey>
     [ThreadStatic]
     private static KeyValuePair<HashSet<TKey>?, int> _cached;
 
-    internal static SparseKeyValidationScope<TKey> Rent(
-        int capacity,
-        Func<int, HashSet<TKey>> create
-    )
+    internal static SparseKeyValidationScope<TKey> Rent(int capacity, Func<int, HashSet<TKey>> create)
     {
         if (capacity < 0)
         {

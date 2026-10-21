@@ -25,9 +25,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         bool modelIsReferenceType
     )
     {
-        code.AppendLine(
-            "/// <summary>Assigns mapped temporary identities into the live model.</summary>"
-        );
+        code.AppendLine("/// <summary>Assigns mapped temporary identities into the live model.</summary>");
         code.AppendLine(
             "/// <remarks>Replays recorded post-submit edits onto persisted elements; rows without their own edits adopt the persisted element, and unmapped temporary identities stay pending. Returns an error without partial writes when the live state is incompatible.</remarks>"
         );
@@ -43,34 +41,21 @@ internal static class SparseTemporaryKeyReconcileEmitter
                 + ".ChangeSet? pending, string __scope)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if ((object?)live is null) throw new global::System.ArgumentNullException(nameof(live));"
-        );
-        code.AppendLine(
-            "if (map is null) throw new global::System.ArgumentNullException(nameof(map));"
-        );
-        code.AppendLine(
-            "if (__scope is null) throw new global::System.ArgumentNullException(nameof(__scope));"
-        );
+        code.AppendLine("if ((object?)live is null) throw new global::System.ArgumentNullException(nameof(live));");
+        code.AppendLine("if (map is null) throw new global::System.ArgumentNullException(nameof(map));");
+        code.AppendLine("if (__scope is null) throw new global::System.ArgumentNullException(nameof(__scope));");
         // Models without keyed fragment members or fragment children emit no
         // failing paths.
         var needsFailHelper = false;
         foreach (var member in members)
         {
-            if (
-                SparseChangeSetBasicsEmitter.IsKeyed(member)
-                && member.Collection.ElementType.IsFragmentModel
-            )
+            if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
                 needsFailHelper = true;
                 break;
             }
 
-            if (
-                member.ChildModel is not null
-                && !SparseFragmentPatchEmitter.IsCollectionPatch(member)
-                && member.ChildModel.Value.IsFragmentModel
-            )
+            if (member.ChildModel is not null && !SparseFragmentPatchEmitter.IsCollectionPatch(member) && member.ChildModel.Value.IsFragmentModel)
             {
                 needsFailHelper = true;
                 break;
@@ -90,10 +75,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         }
         foreach (var member in members)
         {
-            if (
-                SparseChangeSetBasicsEmitter.IsKeyed(member)
-                && member.Collection.ElementType.IsFragmentModel
-            )
+            if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
                 AppendKeyedRetarget(code, runtimeNamespace, member, modelIsReferenceType);
             }
@@ -110,19 +92,13 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.CloseBlock();
     }
 
-    private static void AppendRetargetBackups(
-        SharedIndentedBuilder code,
-        System.Collections.Immutable.ImmutableArray<SparseMemberModel> members
-    )
+    private static void AppendRetargetBackups(SharedIndentedBuilder code, System.Collections.Immutable.ImmutableArray<SparseMemberModel> members)
     {
         // Shallow backups preserve original row references for rollback.
         foreach (var member in members)
         {
             var prop = SparseNaming.EscapeIdentifier(member.Property.Name);
-            if (
-                SparseChangeSetBasicsEmitter.IsKeyed(member)
-                && member.Collection.ElementType.IsFragmentModel
-            )
+            if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
                 var elementName = member.Collection.ElementType.Name;
                 code.AppendLine("var __origRef" + member.Id + " = live." + prop + ";");
@@ -160,10 +136,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         foreach (var member in members)
         {
             var prop = SparseNaming.EscapeIdentifier(member.Property.Name);
-            if (
-                SparseChangeSetBasicsEmitter.IsKeyed(member)
-                && member.Collection.ElementType.IsFragmentModel
-            )
+            if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
                 var elementName = member.Collection.ElementType.Name;
                 var settable = !member.Property.IsReadOnly && !member.Property.IsInitOnly;
@@ -192,9 +165,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
                         + "> __sameList && __bak is not null && !__sameList.IsReadOnly)"
                 );
                 code.OpenBlock();
-                code.AppendLine(
-                    "if (__sameList.Count != __bak.Count) { __sameList.Clear(); foreach (var __rb in __bak) __sameList.Add(__rb); }"
-                );
+                code.AppendLine("if (__sameList.Count != __bak.Count) { __sameList.Clear(); foreach (var __rb in __bak) __sameList.Add(__rb); }");
                 code.AppendLine(
                     "else { var __diff = false; for (var __bi = 0; __bi < __bak.Count; __bi++) if (!object.ReferenceEquals(__sameList[__bi], __bak[__bi])) { __diff = true; break; } if (__diff) { __sameList.Clear(); foreach (var __rb in __bak) __sameList.Add(__rb); } }"
                 );
@@ -214,19 +185,11 @@ internal static class SparseTemporaryKeyReconcileEmitter
         }
     }
 
-    private static void AppendKeyedRetarget(
-        SharedIndentedBuilder code,
-        string runtimeNamespace,
-        SparseMemberModel member,
-        bool modelIsReferenceType
-    )
+    private static void AppendKeyedRetarget(SharedIndentedBuilder code, string runtimeNamespace, SparseMemberModel member, bool modelIsReferenceType)
     {
         var elementType = member.Collection.ElementType.NonNullableName;
         var keyType = member.Collection.KeyTypeName ?? "object?";
-        var keyProp =
-            member.Collection.KeyPropertyNames.Length == 1
-                ? SparseNaming.EscapeIdentifier(member.Collection.KeyPropertyNames[0])
-                : null;
+        var keyProp = member.Collection.KeyPropertyNames.Length == 1 ? SparseNaming.EscapeIdentifier(member.Collection.KeyPropertyNames[0]) : null;
         var tempProp = member.Collection.TemporaryKeyPropertyName is null
             ? null
             : SparseNaming.EscapeIdentifier(member.Collection.TemporaryKeyPropertyName);
@@ -237,9 +200,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         // never fail on variance.
         var elementName = member.Collection.ElementType.Name;
         var elementRef2 = member.Collection.ElementType.IsReferenceType;
-        var elementNullableStruct2 =
-            !elementRef2
-            && (elementName.TrimEnd().EndsWith("?") || elementName.Contains("Nullable<"));
+        var elementNullableStruct2 = !elementRef2 && (elementName.TrimEnd().EndsWith("?") || elementName.Contains("Nullable<"));
         code.OpenBlock();
         code.AppendLine("var __liveList = live." + prop + ";");
         code.AppendLine("var __subList = submittedAfter?." + prop + ";");
@@ -249,25 +210,11 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.AppendLine("var __transition = pending?." + prop + ";");
         // Collection scope matches the correlation scope so sibling
         // collections never cross-target a reused Guid.
-        code.AppendLine(
-            "var __collectionScope = string.IsNullOrEmpty(__scope) ? \""
-                + prop
-                + "\" : __scope + \"."
-                + prop
-                + "\";"
-        );
+        code.AppendLine("var __collectionScope = string.IsNullOrEmpty(__scope) ? \"" + prop + "\" : __scope + \"." + prop + "\";");
         // Detached staging: the live list is never aliased, so late
         // shape failures return before any mutation.
-        code.AppendLine(
-            "var __backing = __liveList as global::System.Collections.Generic.IList<"
-                + elementName
-                + ">;"
-        );
-        code.AppendLine(
-            "var __working = new global::System.Collections.Generic.List<"
-                + elementName
-                + ">(__liveList);"
-        );
+        code.AppendLine("var __backing = __liveList as global::System.Collections.Generic.IList<" + elementName + ">;");
+        code.AppendLine("var __working = new global::System.Collections.Generic.List<" + elementName + ">(__liveList);");
         code.AppendLine("var __dirty = false;");
         if (keyProp is not null)
         {
@@ -325,11 +272,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
             if (hasUnassignedState)
             {
                 var isUnassignedCheck =
-                    "global::System.Collections.Generic.EqualityComparer<"
-                    + keyType
-                    + ">.Default.Equals(__k, "
-                    + unassigned
-                    + ")";
+                    "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default.Equals(__k, " + unassigned + ")";
                 code.AppendLine("if (" + isUnassignedCheck + ")");
                 code.OpenBlock();
                 if (tempProp is not null)
@@ -343,9 +286,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
                             + (elementRef2 ? "!" : "")
                             + "; continue; }"
                     );
-                    code.AppendLine(
-                        "var __edit = __transition?.GetTemporaryChange(__t.Value)?.Edit;"
-                    );
+                    code.AppendLine("var __edit = __transition?.GetTemporaryChange(__t.Value)?.Edit;");
                     code.AppendLine(elementType + " __merged;");
                     // The live row carries no divergent local state, so the
                     // server state (identity plus values it computed) decides.
@@ -361,11 +302,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
                     // The edit sits on the submitted temporary state, so
                     // applying it to the assigned persisted state goes stale.
                     code.AppendLine("var __persistedElement = (" + elementType + ")__persisted!;");
-                    code.AppendLine(
-                        "var __applied = __edit.ToPatch().Apply("
-                            + elementType
-                            + ".Fragment.From(__persistedElement));"
-                    );
+                    code.AppendLine("var __applied = __edit.ToPatch().Apply(" + elementType + ".Fragment.From(__persistedElement));");
                     code.AppendLine(
                         "if (!__applied.IsPresent || __applied.Value is null) return __Fail(\"Reconciling produced an invalid element.\");"
                     );
@@ -375,9 +312,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
                 }
                 else
                 {
-                    code.AppendLine(
-                        "return __Fail(\"The live model contains an unassigned element without temporary support.\");"
-                    );
+                    code.AppendLine("return __Fail(\"The live model contains an unassigned element without temporary support.\");");
                 }
                 code.CloseBlock();
                 code.AppendLine("else");
@@ -434,20 +369,12 @@ internal static class SparseTemporaryKeyReconcileEmitter
             code.AppendLine(
                 "var __elemScope = __collectionScope + \"[\" + __i.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \"]\";"
             );
-            code.AppendLine(
-                "var __recurseError = "
-                    + elementType
-                    + ".__SparseRetargetTemps("
-                    + eUse
-                    + ", null, null, map, null, __elemScope);"
-            );
+            code.AppendLine("var __recurseError = " + elementType + ".__SparseRetargetTemps(" + eUse + ", null, null, map, null, __elemScope);");
             code.AppendLine("if (__recurseError is not null) return __Fail(__recurseError);");
         }
         code.AppendLine("__working[__write++] = __working[__i]" + (elementRef2 ? "!" : "") + ";");
         code.CloseBlock();
-        code.AppendLine(
-            "if (__write != __working.Count) __working.RemoveRange(__write, __working.Count - __write);"
-        );
+        code.AppendLine("if (__write != __working.Count) __working.RemoveRange(__write, __working.Count - __write);");
         SparseTemporaryKeyElementEmitter.AppendKeyedMembershipReconcile(
             code,
             member,
@@ -465,11 +392,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.CloseBlock();
     }
 
-    private static void AppendRetargetWriteback(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        bool modelIsReferenceType
-    )
+    private static void AppendRetargetWriteback(SharedIndentedBuilder code, SparseMemberModel member, bool modelIsReferenceType)
     {
         var prop = SparseNaming.EscapeIdentifier(member.Property.Name);
         var writeable =
@@ -478,35 +401,26 @@ internal static class SparseTemporaryKeyReconcileEmitter
             && !member.Property.IsInitOnly
             && (
                 member.Collection.NamedTypeDefinition is null
-                || member.Collection.NamedTypeDefinition.StartsWith(
-                    "System.",
-                    System.StringComparison.Ordinal
-                )
+                || member.Collection.NamedTypeDefinition.StartsWith("System.", System.StringComparison.Ordinal)
             );
         // Atomic commit: preflight every shape constraint before touching the
         // live list, then publish the detached staging in one step.
         var elementName = member.Collection.ElementType.Name;
         var conversion = member.Property.Type.Name.TrimEnd().EndsWith("[]")
-            ? "new global::System.Collections.Generic.List<"
-                + elementName
-                + ">(__working).ToArray()"
+            ? "new global::System.Collections.Generic.List<" + elementName + ">(__working).ToArray()"
             : "new global::System.Collections.Generic.List<" + elementName + ">(__working)";
         code.AppendLine("if (__dirty)");
         code.OpenBlock();
         if (!writeable)
         {
             code.AppendLine("_ = __backing;");
-            code.AppendLine(
-                "return __Fail(\"The live collection shape cannot be reconciled in place.\");"
-            );
+            code.AppendLine("return __Fail(\"The live collection shape cannot be reconciled in place.\");");
         }
         else
         {
             code.AppendLine("if (__backing is not null)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (__backing.IsReadOnly) return __Fail(\"The live collection shape cannot be reconciled in place.\");"
-            );
+            code.AppendLine("if (__backing.IsReadOnly) return __Fail(\"The live collection shape cannot be reconciled in place.\");");
             code.AppendLine("__backing.Clear();");
             code.AppendLine("foreach (var __commit in __working) __backing.Add(__commit);");
             code.CloseBlock();
@@ -516,12 +430,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.CloseBlock();
     }
 
-    private static void AppendNestedRetarget(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string runtimeNamespace,
-        bool modelIsReferenceType
-    )
+    private static void AppendNestedRetarget(SharedIndentedBuilder code, SparseMemberModel member, string runtimeNamespace, bool modelIsReferenceType)
     {
         var childType = member.ChildModel!.Value.NonNullableName;
         var childFrag = childType + ".Fragment";
@@ -536,15 +445,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         // Child live value with nullability normalized; server-side drops with
         // local edits fail deterministically instead of losing edits silently.
         code.OpenBlock();
-        code.AppendLine(
-            "var __childScope"
-                + member.Id
-                + " = string.IsNullOrEmpty(__scope) ? \""
-                + prop
-                + "\" : __scope + \"."
-                + prop
-                + "\";"
-        );
+        code.AppendLine("var __childScope" + member.Id + " = string.IsNullOrEmpty(__scope) ? \"" + prop + "\" : __scope + \"." + prop + "\";");
         code.AppendLine("var __childLive = live." + prop + ";");
         if (childRef)
         {
@@ -611,14 +512,10 @@ internal static class SparseTemporaryKeyReconcileEmitter
             code.AppendLine("var __mergedChildBase = " + childFrag + ".From(" + perAccess + ");");
             // Pending edits sit on the submitted state while the base moved to
             // the persisted state.
-            code.AppendLine(
-                "var __mergedChildAdvanced = " + childOptionalFrag + ".Present(__mergedChildBase);"
-            );
+            code.AppendLine("var __mergedChildAdvanced = " + childOptionalFrag + ".Present(__mergedChildBase);");
             code.AppendLine("if (__childPending is not null && !__childPending.IsEmpty)");
             code.OpenBlock();
-            code.AppendLine(
-                "var __mergedChildApplied = __childPending.ToPatch().Apply(__mergedChildBase);"
-            );
+            code.AppendLine("var __mergedChildApplied = __childPending.ToPatch().Apply(__mergedChildBase);");
             code.AppendLine(
                 "if (!__mergedChildApplied.IsPresent || __mergedChildApplied.Value is null) return __Fail(\"Reconciling produced an invalid element.\");"
             );

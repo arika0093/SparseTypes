@@ -37,32 +37,17 @@ internal static class SparseModelOperationFileEmitter
         code.AppendLine("#nullable enable");
         if (HasNullableKeyedMember(members))
         {
-            code.AppendLine(
-                "#pragma warning disable CS8714 // Present nullable values are valid dictionary keys."
-            );
+            code.AppendLine("#pragma warning disable CS8714 // Present nullable values are valid dictionary keys.");
         }
-        SparseModelOperationAliases.Append(
-            code,
-            SparseModelOperationAliases.Collect(
-                modelType,
-                members,
-                dialect,
-                plan,
-                canApplyPatchInPlace
-            )
-        );
+        SparseModelOperationAliases.Append(code, SparseModelOperationAliases.Collect(modelType, members, dialect, plan, canApplyPatchInPlace));
         code.AppendLine();
         code.Append("namespace ").Append(implementationNamespace).AppendLine();
         code.OpenBlock();
         var accessibility = model.IsPublic ? "public" : "internal";
         code.AppendLine(
-            "/// <summary>Per-model generated operations for '"
-                + modelType
-                + "'. Backs the model-facing generated operations.</summary>"
+            "/// <summary>Per-model generated operations for '" + modelType + "'. Backs the model-facing generated operations.</summary>"
         );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(accessibility + " static partial class " + container);
         code.OpenBlock();
     }
@@ -71,17 +56,9 @@ internal static class SparseModelOperationFileEmitter
     /// <param name="code">Implementation file builder.</param>
     /// <param name="simpleName">Operation class simple name.</param>
     /// <param name="backedFacade">Backed facade description for docs.</param>
-    public static void OpenOperations(
-        SharedIndentedBuilder code,
-        string simpleName,
-        string backedFacade
-    )
+    public static void OpenOperations(SharedIndentedBuilder code, string simpleName, string backedFacade)
     {
-        code.AppendLine(
-            "/// <summary>Model-specific "
-                + backedFacade
-                + " algorithms backing the thin model facade.</summary>"
-        );
+        code.AppendLine("/// <summary>Model-specific " + backedFacade + " algorithms backing the thin model facade.</summary>");
         code.AppendLine("internal static class " + simpleName);
         code.OpenBlock();
     }

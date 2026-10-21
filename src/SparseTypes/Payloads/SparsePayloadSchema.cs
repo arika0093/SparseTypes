@@ -14,9 +14,7 @@ public sealed class SparsePayloadSchema
     public SparsePayloadSchema(Type type, string name, string jsonSchema)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
-        Name = string.IsNullOrWhiteSpace(name)
-            ? throw new ArgumentException("A schema name is required.", nameof(name))
-            : name;
+        Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("A schema name is required.", nameof(name)) : name;
         JsonSchema = string.IsNullOrWhiteSpace(jsonSchema)
             ? throw new ArgumentException("A JSON schema is required.", nameof(jsonSchema))
             : jsonSchema;

@@ -21,11 +21,7 @@ internal static class SparseFragmentEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
-        Action<
-            SharedIndentedBuilder,
-            SparseModelInfo,
-            ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null,
+        Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
@@ -56,11 +52,7 @@ internal static class SparseFragmentEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
-        Action<
-            SharedIndentedBuilder,
-            SparseModelInfo,
-            ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null,
+        Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
@@ -87,13 +79,7 @@ internal static class SparseFragmentEmitter
         SparseGeneratorConfig config
     )
     {
-        return BuildPromotedSplitSource(
-            promoted,
-            bclHashSetImplementsReadOnlySet,
-            bclHashSetSupportsCapacity,
-            cancellationToken,
-            config
-        ).Surface;
+        return BuildPromotedSplitSource(promoted, bclHashSetImplementsReadOnlySet, bclHashSetSupportsCapacity, cancellationToken, config).Surface;
     }
 
     /// <summary>Builds split sources for one promoted model.</summary>
@@ -121,11 +107,7 @@ internal static class SparseFragmentEmitter
         );
     }
 
-    public static string GetPromotedHintName(
-        SparseModelInfo model,
-        string suffix,
-        CancellationToken cancellationToken
-    )
+    public static string GetPromotedHintName(SparseModelInfo model, string suffix, CancellationToken cancellationToken)
     {
         var fullyQualifiedName = model.ModelTypeName;
         return SparseNaming.Sanitize(fullyQualifiedName, cancellationToken)
@@ -150,9 +132,7 @@ internal static class SparseFragmentEmitter
         SparseGeneratorConfig config
     )
     {
-        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(
-            config
-        );
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
         if (implementationNamespace is null)
         {
             return ImmutableArray<SparseGeneratedSource>.Empty;
@@ -164,25 +144,11 @@ internal static class SparseFragmentEmitter
             return ImmutableArray<SparseGeneratedSource>.Empty;
         }
 
-        var runtime =
-            config.RuntimeDialect
-            ?? throw new ArgumentException(
-                "A runtime dialect is required for source emission.",
-                nameof(config)
-            );
+        var runtime = config.RuntimeDialect ?? throw new ArgumentException("A runtime dialect is required for source emission.", nameof(config));
         var builder = ImmutableArray.CreateBuilder<SparseGeneratedSource>();
         if (!model.IsStruct)
         {
-            builder.Add(
-                SparseModelImplementationEmitter.BuildObservableSource(
-                    model,
-                    members,
-                    config,
-                    cancellationToken,
-                    runtime.Namespace,
-                    null
-                )
-            );
+            builder.Add(SparseModelImplementationEmitter.BuildObservableSource(model, members, config, cancellationToken, runtime.Namespace, null));
         }
 
         builder.Add(
@@ -197,25 +163,10 @@ internal static class SparseFragmentEmitter
         );
         if (!model.IsStruct)
         {
-            builder.Add(
-                SparseModelImplementationEmitter.BuildEditSessionSource(
-                    model,
-                    members,
-                    config,
-                    cancellationToken
-                )
-            );
+            builder.Add(SparseModelImplementationEmitter.BuildEditSessionSource(model, members, config, cancellationToken));
             if (config.DescriptorDialect is not null)
             {
-                builder.Add(
-                    SparseDescriptorFactoryEmitter.BuildSource(
-                        model,
-                        members,
-                        config,
-                        cancellationToken,
-                        runtime.Namespace
-                    )
-                );
+                builder.Add(SparseDescriptorFactoryEmitter.BuildSource(model, members, config, cancellationToken, runtime.Namespace));
             }
         }
 
@@ -232,43 +183,21 @@ internal static class SparseFragmentEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
-        Action<
-            SharedIndentedBuilder,
-            SparseModelInfo,
-            ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions,
+        Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var runtime =
-            config.RuntimeDialect
-            ?? throw new ArgumentException(
-                "A runtime dialect is required for source emission.",
-                nameof(config)
-            );
-        var patchDialect =
-            config.PatchDialect
-            ?? throw new ArgumentException(
-                "A patch dialect is required for source emission.",
-                nameof(config)
-            );
+        var runtime = config.RuntimeDialect ?? throw new ArgumentException("A runtime dialect is required for source emission.", nameof(config));
+        var patchDialect = config.PatchDialect ?? throw new ArgumentException("A patch dialect is required for source emission.", nameof(config));
         patchDialect = patchDialect with
         {
             HashSetSupportsCapacity = bclHashSetSupportsCapacity,
             HashSetImplementsReadOnlySet = bclHashSetImplementsReadOnlySet,
-            MergeStrategyField =
-                patchDialect.MergeStrategyField
-                ?? (member => runtime.MergeStrategyFieldPrefix + member.Id),
+            MergeStrategyField = patchDialect.MergeStrategyField ?? (member => runtime.MergeStrategyFieldPrefix + member.Id),
             RebasePolicyField =
                 patchDialect.RebasePolicyField
-                ?? (
-                    member =>
-                        (
-                            runtime.RebasePolicyFieldPrefix
-                            ?? SparseWellKnownNames.RebasePolicyFieldPrefix
-                        ) + member.Id
-                ),
+                ?? (member => (runtime.RebasePolicyFieldPrefix ?? SparseWellKnownNames.RebasePolicyFieldPrefix) + member.Id),
         };
         var features = config.EffectiveEmissionFeatures;
         var planErrors = features.ValidateDependencies();
@@ -280,12 +209,8 @@ internal static class SparseFragmentEmitter
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, patchDialect);
         // Generated-Once: with an explicit namespace the collection clone
         // kernels live once per compilation.
-        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(
-            config
-        );
-        var cloneKernelsPrefix = implementationNamespace is null
-            ? null
-            : SparseGeneratedOnceNames.QualifiedCloneKernels(implementationNamespace);
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
+        var cloneKernelsPrefix = implementationNamespace is null ? null : SparseGeneratedOnceNames.QualifiedCloneKernels(implementationNamespace);
         // Stage 4: split emission moves Fragment algorithms to an operations
         // class.
         var splitOperations = implementationNamespace is not null && features.EmitFragment;
@@ -293,13 +218,7 @@ internal static class SparseFragmentEmitter
         if (splitOperations)
         {
             operationsType =
-                "global::"
-                + implementationNamespace
-                + "."
-                + SparseGeneratedPlacement.GetFragmentOperationsSimpleName(
-                    model,
-                    cancellationToken
-                );
+                "global::" + implementationNamespace + "." + SparseGeneratedPlacement.GetFragmentOperationsSimpleName(model, cancellationToken);
         }
 
         var expressions = new SparseFragmentExpressions(
@@ -356,18 +275,12 @@ internal static class SparseFragmentEmitter
             bclHashSetImplementsReadOnlySet,
             members
                 .Select(static member => member.Collection.NamedTypeDefinition)
-                .Concat(
-                    pocoCloneModels.SelectMany(static poco =>
-                        poco.Members.Select(static member => member.Collection.NamedTypeDefinition)
-                    )
-                )
+                .Concat(pocoCloneModels.SelectMany(static poco => poco.Members.Select(static member => member.Collection.NamedTypeDefinition)))
         );
         if (portableSetView)
         {
             members = ApplyPortableSetView(members);
-            pocoCloneModels = pocoCloneModels
-                .Select(static poco => poco with { Members = ApplyPortableSetView(poco.Members) })
-                .ToImmutableArray();
+            pocoCloneModels = pocoCloneModels.Select(static poco => poco with { Members = ApplyPortableSetView(poco.Members) }).ToImmutableArray();
         }
 
         var modelType = model.ModelTypeName;
@@ -377,19 +290,13 @@ internal static class SparseFragmentEmitter
         // Stage 3: with an explicit implementation namespace the typed payload
         // Emit DTO and Fragment JSON converter bodies per model.
         var splitImplementation = implementationNamespace is not null && features.EmitFragment;
-        using var implementationBuilder = splitImplementation
-            ? new SharedIndentedBuilder(cancellationToken)
-            : null;
+        using var implementationBuilder = splitImplementation ? new SharedIndentedBuilder(cancellationToken) : null;
         string? jsonConverterSimpleName = null;
         string? jsonConverterQualifiedName = null;
         if (splitImplementation)
         {
-            jsonConverterSimpleName = SparseGeneratedPlacement.GetFragmentJsonConverterSimpleName(
-                model,
-                cancellationToken
-            );
-            jsonConverterQualifiedName =
-                "global::" + implementationNamespace + "." + jsonConverterSimpleName;
+            jsonConverterSimpleName = SparseGeneratedPlacement.GetFragmentJsonConverterSimpleName(model, cancellationToken);
+            jsonConverterQualifiedName = "global::" + implementationNamespace + "." + jsonConverterSimpleName;
             implementationBuilder!.AppendLine("// <auto-generated />");
             implementationBuilder.AppendLine("#nullable enable");
             // Union aliases are written after the operation-target block below.
@@ -401,86 +308,47 @@ internal static class SparseFragmentEmitter
             canApplyPatchInPlace
             && (
                 patchDialect.InPlaceWriteUnavailableKindMemberName is not null
-                || members.All(static member =>
-                    !member.Property.IsReadOnly && !member.Property.IsInitOnly
-                )
+                || members.All(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly)
             );
         var splitPatchOperations = implementationNamespace is not null && features.EmitPatch;
-        using var patchOperations = splitPatchOperations
-            ? new SharedIndentedBuilder(cancellationToken)
-            : null;
-        using var changeSetOperations = splitPatchOperations
-            ? new SharedIndentedBuilder(cancellationToken)
-            : null;
+        using var patchOperations = splitPatchOperations ? new SharedIndentedBuilder(cancellationToken) : null;
+        using var changeSetOperations = splitPatchOperations ? new SharedIndentedBuilder(cancellationToken) : null;
         SparseOperationTarget? operationTarget = null;
         string? operationContainer = null;
         if (splitPatchOperations)
         {
-            operationContainer = SparseGeneratedPlacement.GetImplementationContainer(
-                model,
-                cancellationToken
-            );
+            operationContainer = SparseGeneratedPlacement.GetImplementationContainer(model, cancellationToken);
             operationTarget = new SparseOperationTarget(
                 patchOperations!,
                 changeSetOperations!,
-                "global::"
-                    + implementationNamespace
-                    + "."
-                    + operationContainer
-                    + "."
-                    + SparseGeneratedPlacement.PatchOperationsSimpleName,
-                "global::"
-                    + implementationNamespace
-                    + "."
-                    + operationContainer
-                    + "."
-                    + SparseGeneratedPlacement.ChangeSetOperationsSimpleName
+                "global::" + implementationNamespace + "." + operationContainer + "." + SparseGeneratedPlacement.PatchOperationsSimpleName,
+                "global::" + implementationNamespace + "." + operationContainer + "." + SparseGeneratedPlacement.ChangeSetOperationsSimpleName
             );
         }
         if (implementationBuilder is not null && implementationNamespace is not null)
         {
             // Co-host payload DTOs and Fragment/Patch/ChangeSet operations in
             // one namespace block, with file-level usings kept before it.
-            var unionAliases = SparseModelOperationAliases.Collect(
-                modelType,
-                members,
-                patchDialect,
-                features,
-                canApplyPatchInPlace
-            );
-            var seenAliases = new System.Collections.Generic.HashSet<string>(
-                System.StringComparer.Ordinal
-            );
+            var unionAliases = SparseModelOperationAliases.Collect(modelType, members, patchDialect, features, canApplyPatchInPlace);
+            var seenAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
             // FragmentBuilder lives in the per-model implementation container
             // when Patch/ChangeSet operations split.
             var relocateBuilder = operationContainer is not null;
             implementationBuilder.AppendLine(
                 relocateBuilder
-                    ? "using FragmentBuilder = global::"
-                        + implementationNamespace
-                        + "."
-                        + operationContainer
-                        + ".FragmentBuilder;"
-                    : "using FragmentBuilder = global::"
-                        + TrimImplPrefix(modelType)
-                        + ".FragmentBuilder;"
+                    ? "using FragmentBuilder = global::" + implementationNamespace + "." + operationContainer + ".FragmentBuilder;"
+                    : "using FragmentBuilder = global::" + TrimImplPrefix(modelType) + ".FragmentBuilder;"
             );
             seenAliases.Add("FragmentBuilder");
             if (operationTarget is null)
             {
                 // No operations file: reloc-2 single-split aliases.
-                implementationBuilder.AppendLine(
-                    "using Fragment = global::" + TrimImplPrefix(modelType) + ".Fragment;"
-                );
+                implementationBuilder.AppendLine("using Fragment = global::" + TrimImplPrefix(modelType) + ".Fragment;");
                 seenAliases.Add("Fragment");
                 if (features.EmitChangePayload)
                 {
-                    implementationBuilder.AppendLine(
-                        "using Patch = global::" + TrimImplPrefix(modelType) + ".Patch;"
-                    );
-                    implementationBuilder.AppendLine(
-                        "using ChangeSet = global::" + TrimImplPrefix(modelType) + ".ChangeSet;"
-                    );
+                    implementationBuilder.AppendLine("using Patch = global::" + TrimImplPrefix(modelType) + ".Patch;");
+                    implementationBuilder.AppendLine("using ChangeSet = global::" + TrimImplPrefix(modelType) + ".ChangeSet;");
                     seenAliases.Add("Patch");
                     seenAliases.Add("ChangeSet");
                 }
@@ -491,23 +359,16 @@ internal static class SparseFragmentEmitter
                     .GroupBy(static a => a.Key)
                     .Select(static g => g.First())
                     .Where(a => !seenAliases.Contains(a.Key))
-                    .Where(a =>
-                        string.IsNullOrEmpty(payloadPrefix)
-                        || !a.Key.StartsWith(payloadPrefix, System.StringComparison.Ordinal)
-                    )
+                    .Where(a => string.IsNullOrEmpty(payloadPrefix) || !a.Key.StartsWith(payloadPrefix, System.StringComparison.Ordinal))
             )
             {
                 // Relocated payload DTOs use qualified references, so omit
                 // their model-nested aliases while retaining operation aliases.
-                implementationBuilder.AppendLine(
-                    "using " + alias.Key + " = global::" + TrimAliasPrefix(alias.Value) + ";"
-                );
+                implementationBuilder.AppendLine("using " + alias.Key + " = global::" + TrimAliasPrefix(alias.Value) + ";");
             }
             if (HasNullableKeyedMember(members))
             {
-                implementationBuilder.AppendLine(
-                    "#pragma warning disable CS8714 // Present nullable values are valid dictionary keys."
-                );
+                implementationBuilder.AppendLine("#pragma warning disable CS8714 // Present nullable values are valid dictionary keys.");
             }
             implementationBuilder.AppendLine();
             implementationBuilder.Append("namespace ").Append(implementationNamespace).AppendLine();
@@ -520,42 +381,22 @@ internal static class SparseFragmentEmitter
         {
             // Child payload references stay fully qualified; only the current
             // container resolves through a file alias (stage 3, ).
-            var payloadContainerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
-                patchDialect,
-                modelType
-            );
-            code.AppendLine(
-                "using "
-                    + payloadContainerAlias
-                    + " = global::"
-                    + implementationNamespace
-                    + "."
-                    + payloadContainerAlias
-                    + ";"
-            );
+            var payloadContainerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(patchDialect, modelType);
+            code.AppendLine("using " + payloadContainerAlias + " = global::" + implementationNamespace + "." + payloadContainerAlias + ";");
         }
         if (splitImplementation && operationContainer is not null)
         {
             // FragmentBuilder is container-nested after relocation; the model
             // facade resolves it through this alias.
-            code.AppendLine(
-                "using FragmentBuilder = global::"
-                    + implementationNamespace
-                    + "."
-                    + operationContainer
-                    + ".FragmentBuilder;"
-            );
+            code.AppendLine("using FragmentBuilder = global::" + implementationNamespace + "." + operationContainer + ".FragmentBuilder;");
         }
         if (
             members.Any(static member =>
-                SparseKeyedCollectionEmitter.IsKeyedSequence(member)
-                && member.Collection.KeyTypeName?.EndsWith("?", StringComparison.Ordinal) == true
+                SparseKeyedCollectionEmitter.IsKeyedSequence(member) && member.Collection.KeyTypeName?.EndsWith("?", StringComparison.Ordinal) == true
             )
         )
         {
-            code.AppendLine(
-                "#pragma warning disable CS8714 // Present nullable values are valid dictionary keys."
-            );
+            code.AppendLine("#pragma warning disable CS8714 // Present nullable values are valid dictionary keys.");
         }
         // Block-scoped namespace: file-scoped namespaces need C# 10, while the
         // generated surface targets C# 9 as its minimum language version.
@@ -569,23 +410,9 @@ internal static class SparseFragmentEmitter
         code.OpenBlock();
         if (!splitOperations)
         {
-            SparseFragmentCoreEmitter.AppendRootProjectionConstructor(
-                code,
-                name,
-                members,
-                model.Constructor,
-                bridgeAccessibility: "private"
-            );
+            SparseFragmentCoreEmitter.AppendRootProjectionConstructor(code, name, members, model.Constructor, bridgeAccessibility: "private");
         }
-        core.AppendDeepClone(
-            code,
-            modelType,
-            members,
-            !pocoCloneModels.IsEmpty,
-            model.Constructor,
-            !model.IsStruct,
-            operationsType: operationsType
-        );
+        core.AppendDeepClone(code, modelType, members, !pocoCloneModels.IsEmpty, model.Constructor, !model.IsStruct, operationsType: operationsType);
         if (!splitOperations)
         {
             foreach (var poco in pocoCloneModels)
@@ -604,11 +431,7 @@ internal static class SparseFragmentEmitter
         // legacy single-file path redefines them per model.
         if (implementationNamespace is null)
         {
-            SparseFragmentCoreEmitter.AppendCollectionCloneHelpers(
-                code,
-                portableSetView,
-                bclHashSetSupportsCapacity
-            );
+            SparseFragmentCoreEmitter.AppendCollectionCloneHelpers(code, portableSetView, bclHashSetSupportsCapacity);
         }
         if (features.EmitFragment)
         {
@@ -657,18 +480,8 @@ internal static class SparseFragmentEmitter
             // types, so no internal member precedes the Fragment facade.
             if (splitOperations && operationsType is not null)
             {
-                SparseFragmentCoreEmitter.AppendRootProjectionConstructor(
-                    code,
-                    name,
-                    members,
-                    model.Constructor,
-                    bridgeAccessibility: "internal"
-                );
-                SparseFragmentCoreEmitter.AppendDeepCloneInternalFacade(
-                    code,
-                    modelType,
-                    operationsType
-                );
+                SparseFragmentCoreEmitter.AppendRootProjectionConstructor(code, name, members, model.Constructor, bridgeAccessibility: "internal");
+                SparseFragmentCoreEmitter.AppendDeepCloneInternalFacade(code, modelType, operationsType);
             }
         }
         if (features.EmitFragment && features.EmitObservable && implementationNamespace is null)
@@ -677,21 +490,9 @@ internal static class SparseFragmentEmitter
             // partial alongside Fragment state.
             if (!model.IsStruct)
             {
-                SparseObservableEmitter.AppendObservable(
-                    code,
-                    modelType,
-                    members,
-                    runtime.Namespace,
-                    config.DescriptorDialect
-                );
+                SparseObservableEmitter.AppendObservable(code, modelType, members, runtime.Namespace, config.DescriptorDialect);
             }
-            SparseReadOnlyViewEmitter.AppendReadOnlyView(
-                code,
-                modelType,
-                members,
-                readOnlyViewModels,
-                implementationNamespace
-            );
+            SparseReadOnlyViewEmitter.AppendReadOnlyView(code, modelType, members, readOnlyViewModels, implementationNamespace);
         }
 
         // Emit bridges whenever relocation is active so relocated descriptors
@@ -719,12 +520,7 @@ internal static class SparseFragmentEmitter
         {
             // The top-level ModelJson helper reuses the nested payload
             // resolver, so it shares the emission gate with the facade.
-            var payloadJson = PayloadJsonEmissionContext.TryCreate(
-                members,
-                patchDialect,
-                modelType,
-                implementationNamespace
-            );
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, patchDialect, modelType, implementationNamespace);
             if (payloadJson is not null)
             {
                 SparsePayloadJsonHelperEmitter.AppendHelper(code, model, payloadJson);
@@ -743,24 +539,16 @@ internal static class SparseFragmentEmitter
 
         // The implementation builder already contains payload and Fragment
         // operations; this per-model container exposes only Builder and Paths.
-        if (
-            operationTarget is not null
-            && operationContainer is not null
-            && patchOperations is not null
-        )
+        if (operationTarget is not null && operationContainer is not null && patchOperations is not null)
         {
             var containerAccessibility = model.IsPublic ? "public" : "internal";
             implementationBuilder.AppendLine(
-                "/// <summary>Per-model generated operations for '"
-                    + modelType
-                    + "'. Backs the model-facing generated operations.</summary>"
+                "/// <summary>Per-model generated operations for '" + modelType + "'. Backs the model-facing generated operations.</summary>"
             );
             implementationBuilder.AppendLine(
                 "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
             );
-            implementationBuilder.AppendLine(
-                containerAccessibility + " static partial class " + operationContainer
-            );
+            implementationBuilder.AppendLine(containerAccessibility + " static partial class " + operationContainer);
             implementationBuilder.OpenBlock();
             // FragmentBuilder is public model-facing API co-hosted first in the
             // container; internal operation classes follow it.
@@ -784,10 +572,7 @@ internal static class SparseFragmentEmitter
                             "global::"
                             + implementationNamespace
                             + "."
-                            + SparseGeneratedPlacement.GetContainerForQualifiedName(
-                                child,
-                                cancellationToken
-                            ),
+                            + SparseGeneratedPlacement.GetContainerForQualifiedName(child, cancellationToken),
                         model,
                         config
                     );
@@ -799,11 +584,7 @@ internal static class SparseFragmentEmitter
             var patchOpsText = patchOperations.ToString();
             if (!string.IsNullOrWhiteSpace(patchOpsText))
             {
-                SparseModelOperationFileEmitter.OpenOperations(
-                    implementationBuilder,
-                    SparseGeneratedPlacement.PatchOperationsSimpleName,
-                    "Patch"
-                );
+                SparseModelOperationFileEmitter.OpenOperations(implementationBuilder, SparseGeneratedPlacement.PatchOperationsSimpleName, "Patch");
                 SparseOperationOrdering.AppendInternalFirst(implementationBuilder, patchOpsText);
                 SparseModelOperationFileEmitter.CloseOperations(implementationBuilder);
             }
@@ -817,10 +598,7 @@ internal static class SparseFragmentEmitter
                         SparseGeneratedPlacement.ChangeSetOperationsSimpleName,
                         "ChangeSet"
                     );
-                    SparseOperationOrdering.AppendInternalFirst(
-                        implementationBuilder,
-                        changeSetOpsText
-                    );
+                    SparseOperationOrdering.AppendInternalFirst(implementationBuilder, changeSetOpsText);
                     SparseModelOperationFileEmitter.CloseOperations(implementationBuilder);
                 }
             }
@@ -830,9 +608,8 @@ internal static class SparseFragmentEmitter
         return (code.ToString(), implementationBuilder.ToString());
     }
 
-    private static ImmutableArray<SparseMemberModel> ApplyPortableSetView(
-        ImmutableArray<SparseMemberModel> members
-    ) => members.Select(static member => member with { PortableSetView = true }).ToImmutableArray();
+    private static ImmutableArray<SparseMemberModel> ApplyPortableSetView(ImmutableArray<SparseMemberModel> members) =>
+        members.Select(static member => member with { PortableSetView = true }).ToImmutableArray();
 
     private static string ModelDeclarationKeyword(SparseModelInfo model)
     {
@@ -877,12 +654,7 @@ internal static class SparseFragmentEmitter
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
-        SparseFragmentCoreEmitter.AppendDeclaration(
-            code,
-            string.Empty,
-            string.Empty,
-            accessibility: generatedAccessibility
-        );
+        SparseFragmentCoreEmitter.AppendDeclaration(code, string.Empty, string.Empty, accessibility: generatedAccessibility);
         // Public-first ordering: the empty singleton precedes the member
         // slots so no public member trails the internal strategy caches.
         code.AppendLine("/// <summary>The empty fragment.</summary>");
@@ -900,22 +672,8 @@ internal static class SparseFragmentEmitter
             SparseFragmentOriginEmitter.AppendOriginState(code);
         }
 
-        core.AppendFromModel(
-            code,
-            modelType,
-            members,
-            modelIsReferenceType,
-            usesPocoCloning,
-            operationsType: operationsType
-        );
-        SparseFragmentCoreEmitter.AppendToModel(
-            code,
-            modelType,
-            members,
-            isRootModel,
-            constructor,
-            operationsType: operationsType
-        );
+        core.AppendFromModel(code, modelType, members, modelIsReferenceType, usesPocoCloning, operationsType: operationsType);
+        SparseFragmentCoreEmitter.AppendToModel(code, modelType, members, isRootModel, constructor, operationsType: operationsType);
         core.AppendMerge(code, members, operationsType: operationsType);
         core.AppendApplyChanges(code, members, operationsType: operationsType);
         // Origin queries are public surface; facades precede Diff so the
@@ -959,12 +717,7 @@ internal static class SparseFragmentEmitter
                 jsonConverterSimpleName,
                 generatedAccessibility
             );
-            originEmitter?.AppendOriginEnumerationIterator(
-                code,
-                members,
-                isStatic: false,
-                receiver: "this."
-            );
+            originEmitter?.AppendOriginEnumerationIterator(code, members, isStatic: false, receiver: "this.");
             // Internal helpers trail the public surface
             // (ToBuilder/JsonConverter).
             core.AppendOriginStorage(code);
@@ -976,18 +729,11 @@ internal static class SparseFragmentEmitter
                 expressions,
                 core
             );
-            var writableMembersLegacy = members
-                .Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly)
-                .ToImmutableArray();
-            var canWriteInPlaceLegacy =
-                modelIsReferenceType && writableMembersLegacy.Length == members.Length;
+            var writableMembersLegacy = members.Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly).ToImmutableArray();
+            var canWriteInPlaceLegacy = modelIsReferenceType && writableMembersLegacy.Length == members.Length;
             if (canWriteInPlaceLegacy || (features.EmitPatch && canApplyPatchInPlace))
             {
-                SparseFragmentSurfaceOrderingEmitter.AppendWritableMemberWriter(
-                    code,
-                    modelType,
-                    writableMembersLegacy
-                );
+                SparseFragmentSurfaceOrderingEmitter.AppendWritableMemberWriter(code, modelType, writableMembersLegacy);
             }
             originEmitter?.AppendOriginPathCacheFields(code, members, modelType);
         }
@@ -1029,29 +775,14 @@ internal static class SparseFragmentEmitter
             }
             else
             {
-                SparsePathBuilderEmitter.Append(
-                    code,
-                    modelType,
-                    members,
-                    patchDialect,
-                    model,
-                    config
-                );
+                SparsePathBuilderEmitter.Append(code, modelType, members, patchDialect, model, config);
             }
-            SparseTemporaryKeyReconcileEmitter.AppendReconcileHelpers(
-                code,
-                modelType,
-                patchDialect.RuntimeNamespace,
-                members,
-                modelIsReferenceType
-            );
+            SparseTemporaryKeyReconcileEmitter.AppendReconcileHelpers(code, modelType, patchDialect.RuntimeNamespace, members, modelIsReferenceType);
         }
     }
 
     private static string TrimImplPrefix(string qualified) =>
-        qualified.StartsWith("global::", System.StringComparison.Ordinal)
-            ? qualified.Substring("global::".Length)
-            : qualified;
+        qualified.StartsWith("global::", System.StringComparison.Ordinal) ? qualified.Substring("global::".Length) : qualified;
 
     private static string TrimAliasPrefix(string qualified) => TrimImplPrefix(qualified);
 

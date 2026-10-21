@@ -9,8 +9,7 @@ namespace SparseTypes;
 public sealed class SparseEditHistoryCollection<TChangeSet>
     where TChangeSet : class
 {
-    private readonly List<SparseEditHistory<TChangeSet>> _histories =
-        new List<SparseEditHistory<TChangeSet>>();
+    private readonly List<SparseEditHistory<TChangeSet>> _histories = new List<SparseEditHistory<TChangeSet>>();
 
     /// <summary>Adds a history and removes it from the collection when disposed.</summary>
     /// <param name="history">The history to track.</param>
@@ -75,8 +74,7 @@ public sealed class SparseOwnedEditHistory<TChangeSet> : ISparseEditHistory
     /// <summary>Attempts to undo the newest entry.</summary>
     /// <param name="conflicts">Conflicts when the operation fails.</param>
     /// <returns>True on success; otherwise false.</returns>
-    public bool TryUndo(out System.Collections.Generic.IReadOnlyList<SparseConflict>? conflicts) =>
-        Inner.TryUndo(out conflicts);
+    public bool TryUndo(out System.Collections.Generic.IReadOnlyList<SparseConflict>? conflicts) => Inner.TryUndo(out conflicts);
 
     /// <summary>Redoes the newest undone entry, throwing on conflict.</summary>
     public void Redo() => Inner.Redo();
@@ -84,8 +82,7 @@ public sealed class SparseOwnedEditHistory<TChangeSet> : ISparseEditHistory
     /// <summary>Attempts to redo the newest undone entry.</summary>
     /// <param name="conflicts">Conflicts when the operation fails.</param>
     /// <returns>True on success; otherwise false.</returns>
-    public bool TryRedo(out System.Collections.Generic.IReadOnlyList<SparseConflict>? conflicts) =>
-        Inner.TryRedo(out conflicts);
+    public bool TryRedo(out System.Collections.Generic.IReadOnlyList<SparseConflict>? conflicts) => Inner.TryRedo(out conflicts);
 
     /// <summary>Begins an explicit group across multiple events.</summary>
     /// <returns>A scope that commits the group on dispose.</returns>
@@ -112,8 +109,7 @@ public sealed class SparseOwnedEditHistory<TChangeSet> : ISparseEditHistory
         history.Dispose();
     }
 
-    private SparseEditHistory<TChangeSet> Inner =>
-        _inner ?? throw new System.ObjectDisposedException(GetType().FullName);
+    private SparseEditHistory<TChangeSet> Inner => _inner ?? throw new System.ObjectDisposedException(GetType().FullName);
 
     private void OnStateChanged()
     {

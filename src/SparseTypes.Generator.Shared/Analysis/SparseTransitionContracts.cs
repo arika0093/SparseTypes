@@ -31,19 +31,16 @@ internal sealed record SparseTransitionContracts(
     public string KeyedItemChangeInterfaceType { get; init; } = KeyedItemChangeInterfaceType;
 
     /// <summary>Temporary-identity keyed transition contract (open generic, arity 3).</summary>
-    public string TemporaryKeyedChangeInterfaceType { get; init; } =
-        TemporaryKeyedChangeInterfaceType;
+    public string TemporaryKeyedChangeInterfaceType { get; init; } = TemporaryKeyedChangeInterfaceType;
 
     /// <summary>Read-only dictionary transition contract (open generic, arity 3).</summary>
     public string DictionaryChangeInterfaceType { get; init; } = DictionaryChangeInterfaceType;
 
     /// <summary>Single dictionary entry change contract (open generic, arity 2).</summary>
-    public string DictionaryItemChangeInterfaceType { get; init; } =
-        DictionaryItemChangeInterfaceType;
+    public string DictionaryItemChangeInterfaceType { get; init; } = DictionaryItemChangeInterfaceType;
 
     /// <summary>Structural dictionary entry change contract (open generic, arity 3).</summary>
-    public string StructuralDictionaryItemChangeInterfaceType { get; init; } =
-        StructuralDictionaryItemChangeInterfaceType;
+    public string StructuralDictionaryItemChangeInterfaceType { get; init; } = StructuralDictionaryItemChangeInterfaceType;
 
     /// <summary>Model-independent flattened change record type.</summary>
     public string ChangeRecordType { get; init; } = ChangeRecordType;

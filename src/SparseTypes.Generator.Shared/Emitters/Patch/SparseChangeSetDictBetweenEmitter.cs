@@ -20,55 +20,21 @@ internal static class SparseChangeSetDictBetweenEmitter
         var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
         var keyType = KeyTypeOf(member);
         var valueType = ValueTypeOf(member);
-        ComputePublicNames(
-            System.Collections.Immutable.ImmutableArray.Create(member),
-            out _,
-            out var transNames
-        );
+        ComputePublicNames(System.Collections.Immutable.ImmutableArray.Create(member), out _, out var transNames);
         var trans = transNames[member.Id];
         code.AppendLine("bool __h" + id + " = false;");
         code.AppendLine("bool __whole" + id + " = false;");
         code.AppendLine(opt + " __wb" + id + " = default;");
         code.AppendLine(opt + " __wa" + id + " = default;");
-        code.AppendLine(
-            "global::System.Collections.Generic.List<" + trans + ".Item>? __items" + id + " = null;"
-        );
+        code.AppendLine("global::System.Collections.Generic.List<" + trans + ".Item>? __items" + id + " = null;");
         code.OpenBlock();
         code.AppendLine("var __before" + id + " = bf." + escName + ";");
         code.AppendLine("var __after" + id + " = af." + escName + ";");
-        code.AppendLine(
-            "bool __beforeHas"
-                + id
-                + " = __before"
-                + id
-                + ".IsPresent && (object?)__before"
-                + id
-                + ".Value is not null;"
-        );
-        code.AppendLine(
-            "bool __afterHas"
-                + id
-                + " = __after"
-                + id
-                + ".IsPresent && (object?)__after"
-                + id
-                + ".Value is not null;"
-        );
-        code.AppendLine(
-            "if (__before"
-                + id
-                + ".IsPresent != __after"
-                + id
-                + ".IsPresent || !__beforeHas"
-                + id
-                + " || !__afterHas"
-                + id
-                + ")"
-        );
+        code.AppendLine("bool __beforeHas" + id + " = __before" + id + ".IsPresent && (object?)__before" + id + ".Value is not null;");
+        code.AppendLine("bool __afterHas" + id + " = __after" + id + ".IsPresent && (object?)__after" + id + ".Value is not null;");
+        code.AppendLine("if (__before" + id + ".IsPresent != __after" + id + ".IsPresent || !__beforeHas" + id + " || !__afterHas" + id + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!Fragment.__SparseEqual_" + id + "(__before" + id + ", __after" + id + "))"
-        );
+        code.AppendLine("if (!Fragment.__SparseEqual_" + id + "(__before" + id + ", __after" + id + "))");
         code.OpenBlock();
         code.AppendLine("__h" + id + " = true; __whole" + id + " = true;");
         var dictBefore = "__before" + id;
@@ -83,20 +49,8 @@ internal static class SparseChangeSetDictBetweenEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        AppendNormalizedInput(
-            code,
-            "__beforeDict" + id,
-            "__before" + id + ".Value!",
-            keyType,
-            valueType
-        );
-        AppendNormalizedInput(
-            code,
-            "__afterDict" + id,
-            "__after" + id + ".Value!",
-            keyType,
-            valueType
-        );
+        AppendNormalizedInput(code, "__beforeDict" + id, "__before" + id + ".Value!", keyType, valueType);
+        AppendNormalizedInput(code, "__afterDict" + id, "__after" + id + ".Value!", keyType, valueType);
         AppendItemAssembly(code, member, trans, dialect);
         code.CloseBlock();
         code.CloseBlock();
@@ -112,16 +66,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         var id = member.Id;
         var itemList = "global::System.Collections.Generic.List<" + trans + ".Item>";
         var optValue = dialect.RuntimeNamespace + "Optional<" + ValueTypeOf(member) + ">";
-        code.AppendLine(
-            itemList
-                + "? __added"
-                + id
-                + " = null, __removed"
-                + id
-                + " = null, __edited"
-                + id
-                + " = null;"
-        );
+        code.AppendLine(itemList + "? __added" + id + " = null, __removed" + id + " = null, __edited" + id + " = null;");
         code.AppendLine("foreach (var __kv in __beforeDict" + id + ")");
         code.OpenBlock();
         code.AppendLine("if (__afterDict" + id + ".ContainsKey(__kv.Key)) continue;");
@@ -136,9 +81,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         code.CloseBlock();
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
-            code.AppendLine(
-                "var __nested = " + ValueChangeSetOf(member) + ".Between(__b!, __kv.Value);"
-            );
+            code.AppendLine("var __nested = " + ValueChangeSetOf(member) + ".Between(__b!, __kv.Value);");
             code.AppendLine(
                 "if (!__nested.IsEmpty) (__edited"
                     + id
@@ -168,31 +111,13 @@ internal static class SparseChangeSetDictBetweenEmitter
             );
         }
         code.CloseBlock();
-        code.AppendLine(
-            "if (__added"
-                + id
-                + " is not null || __removed"
-                + id
-                + " is not null || __edited"
-                + id
-                + " is not null)"
-        );
+        code.AppendLine("if (__added" + id + " is not null || __removed" + id + " is not null || __edited" + id + " is not null)");
         code.OpenBlock();
         code.AppendLine("__h" + id + " = true;");
         // Reuse the first group while preserving the established
         // added/removed/edited order.
-        code.AppendLine(
-            "var __list = __added" + id + " ?? __removed" + id + " ?? __edited" + id + "!;"
-        );
-        code.AppendLine(
-            "int __count = (__added"
-                + id
-                + "?.Count ?? 0) + (__removed"
-                + id
-                + "?.Count ?? 0) + (__edited"
-                + id
-                + "?.Count ?? 0);"
-        );
+        code.AppendLine("var __list = __added" + id + " ?? __removed" + id + " ?? __edited" + id + "!;");
+        code.AppendLine("int __count = (__added" + id + "?.Count ?? 0) + (__removed" + id + "?.Count ?? 0) + (__edited" + id + "?.Count ?? 0);");
         code.AppendLine("if (__list.Capacity < __count) __list.Capacity = __count;");
         code.AppendLine(
             "if (__removed"
@@ -233,50 +158,21 @@ internal static class SparseChangeSetDictBetweenEmitter
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
             var valueFrag = ValueFragmentOf(member);
-            code.AppendLine(
-                "var __fragment = "
-                    + runtime
-                    + "Optional<"
-                    + valueFrag
-                    + "?>.Present("
-                    + valueFrag
-                    + ".From(__kv.Value!));"
-            );
+            code.AppendLine("var __fragment = " + runtime + "Optional<" + valueFrag + "?>.Present(" + valueFrag + ".From(__kv.Value!));");
             var endpoints = isAdded ? "default, __fragment" : "__fragment, default";
-            code.AppendLine(
-                "var __edit = " + ValueChangeSetOf(member) + ".Between(" + endpoints + ");"
-            );
+            code.AppendLine("var __edit = " + ValueChangeSetOf(member) + ".Between(" + endpoints + ");");
             editArgument = ", __edit";
         }
-        var valuesAndFlags = isAdded
-            ? "default, __value, true, false, false"
-            : "__value, default, false, true, false";
+        var valuesAndFlags = isAdded ? "default, __value, true, false, false" : "__value, default, false, true, false";
         code.AppendLine(
-            "("
-                + group
-                + " ??= new "
-                + itemList
-                + "()).Add(new "
-                + trans
-                + ".Item(__kv.Key, "
-                + valuesAndFlags
-                + editArgument
-                + ", false));"
+            "(" + group + " ??= new " + itemList + "()).Add(new " + trans + ".Item(__kv.Key, " + valuesAndFlags + editArgument + ", false));"
         );
     }
 
-    private static void AppendNormalizedInput(
-        SharedIndentedBuilder code,
-        string target,
-        string source,
-        string keyType,
-        string valueType
-    )
+    private static void AppendNormalizedInput(SharedIndentedBuilder code, string target, string source, string keyType, string valueType)
     {
-        var dictionary =
-            "global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">";
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var dictionary = "global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var native = target + "Native";
         // Between only reads these maps. Other comparers still need default-key
         // normalization.

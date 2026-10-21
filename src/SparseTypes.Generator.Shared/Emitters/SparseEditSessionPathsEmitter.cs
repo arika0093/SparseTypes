@@ -10,12 +10,8 @@ internal static class SparseEditSessionPathsEmitter
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="dialect">Product patch dialect.</param>
     /// <returns>True when the provider contract and the typed-path surface both exist.</returns>
-    internal static bool HasPathsSurface(
-        SparseGeneratorConfig config,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    ) =>
-        config.EditSessionWithPathsInterfaceMetadataName is { Length: > 0 }
-        && dialect.TypedPathInterfaceType is { Length: > 0 };
+    internal static bool HasPathsSurface(SparseGeneratorConfig config, SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
+        config.EditSessionWithPathsInterfaceMetadataName is { Length: > 0 } && dialect.TypedPathInterfaceType is { Length: > 0 };
 
     /// <summary>Resolves the session Paths builder type for one model.</summary>
     /// <remarks>
@@ -26,11 +22,7 @@ internal static class SparseEditSessionPathsEmitter
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>The qualified root builder type.</returns>
-    internal static string GetPathsType(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static string GetPathsType(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var root = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
         if (root is null)
@@ -96,9 +88,7 @@ internal static class SparseEditSessionPathsEmitter
         }
 
         var pathsType = GetPathsType(model, config, code.CancellationToken);
-        code.AppendLine(
-            "/// <summary>Gets the typed path navigation rooted at this session's model.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the typed path navigation rooted at this session's model.</summary>");
         code.AppendLine(
             "/// <remarks>Path-only access: returns the cached builder without reading the mutable model, invalidating the change cache, or subscribing to edit notifications. For example <c>Paths.Customer.Name</c>.</remarks>"
         );
@@ -126,16 +116,6 @@ internal static class SparseEditSessionPathsEmitter
 
         var pathsType = GetPathsType(model, config, code.CancellationToken);
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
-        code.AppendLine(
-            "private readonly "
-                + pathsType
-                + " __paths = new "
-                + pathsType
-                + "("
-                + pathType
-                + ".Root(typeof("
-                + modelType
-                + ")));"
-        );
+        code.AppendLine("private readonly " + pathsType + " __paths = new " + pathsType + "(" + pathType + ".Root(typeof(" + modelType + ")));");
     }
 }

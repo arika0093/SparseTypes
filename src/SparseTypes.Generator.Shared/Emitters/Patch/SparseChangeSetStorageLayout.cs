@@ -17,9 +17,7 @@ internal sealed class SparseChangeSetStorageLayout
         _usedNames = SparseChangeSetNaming.CreateReservedSet();
         _usedNames.UnionWith(properties.Values);
         _usedNames.UnionWith(transitions.Values);
-        _usedNames.UnionWith(
-            new[] { "__sparse_hasWhole", "__sparse_wholeBefore", "__sparse_wholeAfter" }
-        );
+        _usedNames.UnionWith(new[] { "__sparse_hasWhole", "__sparse_wholeBefore", "__sparse_wholeAfter" });
         foreach (var member in members)
         {
             _usedNames.Add(BeforeField(member));

@@ -76,24 +76,12 @@ internal static class SparseChangeSetTransitionEmitter
                     + " : default)";
                 if (target is not null)
                 {
-                    helpers.AppendLine(
-                        "internal static "
-                            + opt
-                            + " __SparseBefore_"
-                            + member.Id
-                            + "(ChangeSet self)"
-                    );
+                    helpers.AppendLine("internal static " + opt + " __SparseBefore_" + member.Id + "(ChangeSet self)");
                     helpers.OpenBlock();
                     SparseChangeSetBasicsEmitter.AppendMemberStateAliases(helpers, member);
                     helpers.AppendLine("return " + SnapshotWrap(member, keyedBefore) + ";");
                     helpers.CloseBlock();
-                    helpers.AppendLine(
-                        "internal static "
-                            + opt
-                            + " __SparseAfter_"
-                            + member.Id
-                            + "(ChangeSet self)"
-                    );
+                    helpers.AppendLine("internal static " + opt + " __SparseAfter_" + member.Id + "(ChangeSet self)");
                     helpers.OpenBlock();
                     SparseChangeSetBasicsEmitter.AppendMemberStateAliases(helpers, member);
                     helpers.AppendLine("return " + SnapshotWrap(member, keyedAfter) + ";");
@@ -101,24 +89,8 @@ internal static class SparseChangeSetTransitionEmitter
                 }
                 else
                 {
-                    helpers.AppendLine(
-                        "private "
-                            + opt
-                            + " __SparseBefore_"
-                            + member.Id
-                            + "() => "
-                            + SnapshotWrap(member, keyedBefore)
-                            + ";"
-                    );
-                    helpers.AppendLine(
-                        "private "
-                            + opt
-                            + " __SparseAfter_"
-                            + member.Id
-                            + "() => "
-                            + SnapshotWrap(member, keyedAfter)
-                            + ";"
-                    );
+                    helpers.AppendLine("private " + opt + " __SparseBefore_" + member.Id + "() => " + SnapshotWrap(member, keyedBefore) + ";");
+                    helpers.AppendLine("private " + opt + " __SparseAfter_" + member.Id + "() => " + SnapshotWrap(member, keyedAfter) + ";");
                 }
             }
             else
@@ -141,24 +113,12 @@ internal static class SparseChangeSetTransitionEmitter
                     + " : default)";
                 if (target is not null)
                 {
-                    helpers.AppendLine(
-                        "internal static "
-                            + opt
-                            + " __SparseBefore_"
-                            + member.Id
-                            + "(ChangeSet self)"
-                    );
+                    helpers.AppendLine("internal static " + opt + " __SparseBefore_" + member.Id + "(ChangeSet self)");
                     helpers.OpenBlock();
                     SparseChangeSetBasicsEmitter.AppendMemberStateAliases(helpers, member);
                     helpers.AppendLine("return " + SnapshotWrap(member, scalarBefore) + ";");
                     helpers.CloseBlock();
-                    helpers.AppendLine(
-                        "internal static "
-                            + opt
-                            + " __SparseAfter_"
-                            + member.Id
-                            + "(ChangeSet self)"
-                    );
+                    helpers.AppendLine("internal static " + opt + " __SparseAfter_" + member.Id + "(ChangeSet self)");
                     helpers.OpenBlock();
                     SparseChangeSetBasicsEmitter.AppendMemberStateAliases(helpers, member);
                     helpers.AppendLine("return " + SnapshotWrap(member, scalarAfter) + ";");
@@ -166,24 +126,8 @@ internal static class SparseChangeSetTransitionEmitter
                 }
                 else
                 {
-                    helpers.AppendLine(
-                        "private "
-                            + opt
-                            + " __SparseBefore_"
-                            + member.Id
-                            + "() => "
-                            + SnapshotWrap(member, scalarBefore)
-                            + ";"
-                    );
-                    helpers.AppendLine(
-                        "private "
-                            + opt
-                            + " __SparseAfter_"
-                            + member.Id
-                            + "() => "
-                            + SnapshotWrap(member, scalarAfter)
-                            + ";"
-                    );
+                    helpers.AppendLine("private " + opt + " __SparseBefore_" + member.Id + "() => " + SnapshotWrap(member, scalarBefore) + ";");
+                    helpers.AppendLine("private " + opt + " __SparseAfter_" + member.Id + "() => " + SnapshotWrap(member, scalarAfter) + ";");
                 }
             }
             AppendSnapshotHelper(helpers, member, opt);
@@ -193,28 +137,11 @@ internal static class SparseChangeSetTransitionEmitter
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             if (IsSet(member))
             {
-                AppendSetTransition(
-                    code,
-                    member,
-                    prop,
-                    transNames[member.Id],
-                    runtime,
-                    dialect.HashSetImplementsReadOnlySet,
-                    target,
-                    dialect
-                );
+                AppendSetTransition(code, member, prop, transNames[member.Id], runtime, dialect.HashSetImplementsReadOnlySet, target, dialect);
             }
             else if (IsScalar(member))
             {
-                AppendScalarTransition(
-                    code,
-                    member,
-                    prop,
-                    transNames[member.Id],
-                    runtime,
-                    target,
-                    dialect
-                );
+                AppendScalarTransition(code, member, prop, transNames[member.Id], runtime, target, dialect);
             }
             else if (IsNested(member))
             {
@@ -222,48 +149,23 @@ internal static class SparseChangeSetTransitionEmitter
             }
             else if (IsKeyed(member) || IsDict(member))
             {
-                var cacheBuilder = new System.Text.StringBuilder(
-                    "__sparse_projection_cache_"
-                ).Append(member.Id);
+                var cacheBuilder = new System.Text.StringBuilder("__sparse_projection_cache_").Append(member.Id);
                 var cacheName = cacheBuilder.ToString();
-                while (
-                    propNames.Values.Contains(cacheName) || transNames.Values.Contains(cacheName)
-                )
+                while (propNames.Values.Contains(cacheName) || transNames.Values.Contains(cacheName))
                 {
                     cacheBuilder.Append('_');
                     cacheName = cacheBuilder.ToString();
                 }
                 if (IsKeyed(member))
                 {
-                    AppendKeyedTransition(
-                        code,
-                        member,
-                        prop,
-                        transNames[member.Id],
-                        cacheName,
-                        dialect,
-                        target
-                    );
+                    AppendKeyedTransition(code, member, prop, transNames[member.Id], cacheName, dialect, target);
                 }
                 else
                 {
-                    AppendDictTransition(
-                        code,
-                        member,
-                        prop,
-                        transNames[member.Id],
-                        cacheName,
-                        dialect,
-                        target
-                    );
+                    AppendDictTransition(code, member, prop, transNames[member.Id], cacheName, dialect, target);
                 }
                 projectionFields ??= new System.Text.StringBuilder();
-                projectionFields
-                    .Append("private ")
-                    .Append(transNames[member.Id])
-                    .Append("? ")
-                    .Append(cacheName)
-                    .AppendLine(";");
+                projectionFields.Append("private ").Append(transNames[member.Id]).Append("? ").Append(cacheName).AppendLine(";");
             }
         }
         return projectionFields?.ToString() ?? string.Empty;
@@ -278,17 +180,11 @@ internal static class SparseChangeSetTransitionEmitter
         !IsNested(member) && member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported;
 
     private static string SnapshotWrap(SparseMemberModel member, string expression) =>
-        NeedsSnapshot(member)
-            ? "__SparseSnapshot_" + member.Id + "(" + expression + ")"
-            : expression;
+        NeedsSnapshot(member) ? "__SparseSnapshot_" + member.Id + "(" + expression + ")" : expression;
 
     /// <summary>Emits the defensive container snapshot for one member.</summary>
     /// <remarks>The container is copied so later caller-side mutation cannot alter retained history, while element values stay shared.</remarks>
-    internal static void AppendSnapshotHelper(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string opt
-    )
+    internal static void AppendSnapshotHelper(SharedIndentedBuilder code, SparseMemberModel member, string opt)
     {
         if (!NeedsSnapshot(member))
         {
@@ -299,14 +195,8 @@ internal static class SparseChangeSetTransitionEmitter
         // A branch is emitted only when its copy is provably assignable to the
         // declared member type.
         var bareValueType = valueType.TrimEnd('?');
-        code.AppendLine(
-            "/// <summary>Defensive container snapshot for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
-        code.AppendLine(
-            "private static " + opt + " __SparseSnapshot_" + member.Id + "(" + opt + " value)"
-        );
+        code.AppendLine("/// <summary>Defensive container snapshot for member '" + member.Property.Name + "'.</summary>");
+        code.AppendLine("private static " + opt + " __SparseSnapshot_" + member.Id + "(" + opt + " value)");
         code.OpenBlock();
         code.AppendLine("if (!value.IsPresent || (object?)value.Value is null) return value;");
         code.AppendLine("var __source" + member.Id + " = (object)value.Value!;");
@@ -316,16 +206,8 @@ internal static class SparseChangeSetTransitionEmitter
             var elementValueType = ValueTypeOf(member);
             var dictInterfaces = new[]
             {
-                "global::System.Collections.Generic.IDictionary<"
-                    + keyType
-                    + ", "
-                    + elementValueType
-                    + ">",
-                "global::System.Collections.Generic.IReadOnlyDictionary<"
-                    + keyType
-                    + ", "
-                    + elementValueType
-                    + ">",
+                "global::System.Collections.Generic.IDictionary<" + keyType + ", " + elementValueType + ">",
+                "global::System.Collections.Generic.IReadOnlyDictionary<" + keyType + ", " + elementValueType + ">",
             };
             AppendSnapshotBranch(
                 code,
@@ -333,11 +215,7 @@ internal static class SparseChangeSetTransitionEmitter
                 opt,
                 valueType,
                 bareValueType,
-                "global::System.Collections.Generic.Dictionary<"
-                    + keyType
-                    + ", "
-                    + elementValueType
-                    + ">",
+                "global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementValueType + ">",
                 "__dict" + member.Id,
                 "new global::System.Collections.Generic.Dictionary<"
                     + keyType
@@ -356,11 +234,7 @@ internal static class SparseChangeSetTransitionEmitter
                 opt,
                 valueType,
                 bareValueType,
-                "global::System.Collections.Generic.SortedDictionary<"
-                    + keyType
-                    + ", "
-                    + elementValueType
-                    + ">",
+                "global::System.Collections.Generic.SortedDictionary<" + keyType + ", " + elementValueType + ">",
                 "__sorted" + member.Id,
                 "new global::System.Collections.Generic.SortedDictionary<"
                     + keyType
@@ -379,11 +253,7 @@ internal static class SparseChangeSetTransitionEmitter
                 opt,
                 valueType,
                 bareValueType,
-                "global::System.Collections.Generic.SortedList<"
-                    + keyType
-                    + ", "
-                    + elementValueType
-                    + ">",
+                "global::System.Collections.Generic.SortedList<" + keyType + ", " + elementValueType + ">",
                 "__sortedList" + member.Id,
                 "new global::System.Collections.Generic.SortedList<"
                     + keyType
@@ -408,13 +278,7 @@ internal static class SparseChangeSetTransitionEmitter
                 bareValueType,
                 "global::System.Collections.Generic.HashSet<" + elementType + ">",
                 "__set" + member.Id,
-                "new global::System.Collections.Generic.HashSet<"
-                    + elementType
-                    + ">(__set"
-                    + member.Id
-                    + ", __set"
-                    + member.Id
-                    + ".Comparer)",
+                "new global::System.Collections.Generic.HashSet<" + elementType + ">(__set" + member.Id + ", __set" + member.Id + ".Comparer)",
                 [
                     "global::System.Collections.Generic.ISet<" + elementType + ">",
                     "global::System.Collections.Generic.IReadOnlySet<" + elementType + ">",
@@ -440,11 +304,7 @@ internal static class SparseChangeSetTransitionEmitter
                 bareValueType,
                 "global::System.Collections.Generic.List<" + elementType + ">",
                 "__list" + member.Id,
-                "new global::System.Collections.Generic.List<"
-                    + elementType
-                    + ">(__list"
-                    + member.Id
-                    + ")",
+                "new global::System.Collections.Generic.List<" + elementType + ">(__list" + member.Id + ")",
                 listInterfaces
             );
             AppendSnapshotBranch(
@@ -483,11 +343,7 @@ internal static class SparseChangeSetTransitionEmitter
                 bareValueType,
                 "global::System.Collections.ObjectModel.ObservableCollection<" + elementType + ">",
                 "__observable" + member.Id,
-                "new global::System.Collections.ObjectModel.ObservableCollection<"
-                    + elementType
-                    + ">(__observable"
-                    + member.Id
-                    + ")",
+                "new global::System.Collections.ObjectModel.ObservableCollection<" + elementType + ">(__observable" + member.Id + ")",
                 listInterfaces
             );
         }
@@ -509,9 +365,7 @@ internal static class SparseChangeSetTransitionEmitter
     {
         if (
             !string.Equals(bareValueType, sourceType, System.StringComparison.Ordinal)
-            && !implementedInterfaces.Any(candidate =>
-                string.Equals(bareValueType, candidate, System.StringComparison.Ordinal)
-            )
+            && !implementedInterfaces.Any(candidate => string.Equals(bareValueType, candidate, System.StringComparison.Ordinal))
         )
         {
             return;
@@ -519,9 +373,7 @@ internal static class SparseChangeSetTransitionEmitter
 
         code.AppendLine("if (__source" + member.Id + " is " + sourceType + " " + local + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "return " + opt + ".Present((" + valueType + ")(object)" + copyExpression + ");"
-        );
+        code.AppendLine("return " + opt + ".Present((" + valueType + ")(object)" + copyExpression + ");");
         code.CloseBlock();
     }
 
@@ -540,43 +392,19 @@ internal static class SparseChangeSetTransitionEmitter
         {
             var valueType = FragmentValueType(member);
             var transitionType = sharedTransitionType + "<" + valueType + ">";
-            code.AppendLine(
-                "/// <summary>Gets the typed transition for member '"
-                    + member.Property.Name
-                    + "'.</summary>"
-            );
+            code.AppendLine("/// <summary>Gets the typed transition for member '" + member.Property.Name + "'.</summary>");
             SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(code, dialect.Value.EmitJson);
             if (target is not null)
             {
                 code.AppendLine(
-                    "public "
-                        + transitionType
-                        + " "
-                        + prop
-                        + " => "
-                        + target.ChangeSetOperationsType
-                        + ".__SparseGet_"
-                        + member.Id
-                        + "(this);"
+                    "public " + transitionType + " " + prop + " => " + target.ChangeSetOperationsType + ".__SparseGet_" + member.Id + "(this);"
                 );
                 var operations = target.ChangeSetOperations;
-                operations.AppendLine(
-                    "internal static "
-                        + transitionType
-                        + " __SparseGet_"
-                        + member.Id
-                        + "(ChangeSet self)"
-                );
+                operations.AppendLine("internal static " + transitionType + " __SparseGet_" + member.Id + "(ChangeSet self)");
                 operations.OpenBlock();
                 operations.AppendLine("var __b = __SparseBefore_" + member.Id + "(self);");
                 operations.AppendLine("var __a = __SparseAfter_" + member.Id + "(self);");
-                operations.AppendLine(
-                    "return new "
-                        + transitionType
-                        + "(__b, __a, !Fragment.__SparseEqual_"
-                        + member.Id
-                        + "(__b, __a));"
-                );
+                operations.AppendLine("return new " + transitionType + "(__b, __a, !Fragment.__SparseEqual_" + member.Id + "(__b, __a));");
                 operations.CloseBlock();
                 return;
             }
@@ -587,45 +415,26 @@ internal static class SparseChangeSetTransitionEmitter
             code.OpenBlock();
             code.AppendLine("var __b = __SparseBefore_" + member.Id + "();");
             code.AppendLine("var __a = __SparseAfter_" + member.Id + "();");
-            code.AppendLine(
-                "return new "
-                    + transitionType
-                    + "(__b, __a, !Fragment.__SparseEqual_"
-                    + member.Id
-                    + "(__b, __a));"
-            );
+            code.AppendLine("return new " + transitionType + "(__b, __a, !Fragment.__SparseEqual_" + member.Id + "(__b, __a));");
             code.CloseBlock();
             code.CloseBlock();
             return;
         }
 
-        code.AppendLine(
-            "/// <summary>Typed transition for member '" + member.Property.Name + "'.</summary>"
-        );
+        code.AppendLine("/// <summary>Typed transition for member '" + member.Property.Name + "'.</summary>");
         code.AppendLine(
             "public readonly struct "
                 + trans
-                + (
-                    dialect.HasValue
-                        ? SparseChangeSetContractEmitter.ScalarBases(
-                            dialect.Value,
-                            FragmentValueType(member)
-                        )
-                        : string.Empty
-                )
+                + (dialect.HasValue ? SparseChangeSetContractEmitter.ScalarBases(dialect.Value, FragmentValueType(member)) : string.Empty)
         );
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Gets whether the member changed between the endpoints.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets whether the member changed between the endpoints.</summary>");
         code.AppendLine("public bool IsChanged => _isChanged;");
         code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
         code.AppendLine("public " + opt + " Before => _before;");
         code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
         code.AppendLine("public " + opt + " After => _after;");
-        code.AppendLine(
-            "internal " + trans + "(" + opt + " before, " + opt + " after, bool isChanged)"
-        );
+        code.AppendLine("internal " + trans + "(" + opt + " before, " + opt + " after, bool isChanged)");
         code.OpenBlock();
         code.AppendLine("_before = before;");
         code.AppendLine("_after = after;");
@@ -635,40 +444,18 @@ internal static class SparseChangeSetTransitionEmitter
         code.AppendLine("private readonly " + opt + " _after;");
         code.AppendLine("private readonly bool _isChanged;");
         code.CloseBlock();
-        code.AppendLine(
-            "/// <summary>Gets the typed transition for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the typed transition for member '" + member.Property.Name + "'.</summary>");
         SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(code, dialect?.EmitJson ?? true);
         if (target is not null)
         {
-            code.AppendLine(
-                "public "
-                    + trans
-                    + " "
-                    + prop
-                    + " => "
-                    + target.ChangeSetOperationsType
-                    + ".__SparseGet_"
-                    + member.Id
-                    + "(this);"
-            );
+            code.AppendLine("public " + trans + " " + prop + " => " + target.ChangeSetOperationsType + ".__SparseGet_" + member.Id + "(this);");
             var ops = target.ChangeSetOperations;
             ops.AppendLine("/// <summary>Projects the typed transition for one member.</summary>");
-            ops.AppendLine(
-                "internal static " + trans + " __SparseGet_" + member.Id + "(ChangeSet self)"
-            );
+            ops.AppendLine("internal static " + trans + " __SparseGet_" + member.Id + "(ChangeSet self)");
             ops.OpenBlock();
             ops.AppendLine("var __b = __SparseBefore_" + member.Id + "(self);");
             ops.AppendLine("var __a = __SparseAfter_" + member.Id + "(self);");
-            ops.AppendLine(
-                "return new "
-                    + trans
-                    + "(__b, __a, !Fragment.__SparseEqual_"
-                    + member.Id
-                    + "(__b, __a));"
-            );
+            ops.AppendLine("return new " + trans + "(__b, __a, !Fragment.__SparseEqual_" + member.Id + "(__b, __a));");
             ops.CloseBlock();
             return;
         }
@@ -678,24 +465,13 @@ internal static class SparseChangeSetTransitionEmitter
         code.OpenBlock();
         code.AppendLine("var __b = __SparseBefore_" + member.Id + "();");
         code.AppendLine("var __a = __SparseAfter_" + member.Id + "();");
-        code.AppendLine(
-            "return new "
-                + trans
-                + "(__b, __a, !Fragment.__SparseEqual_"
-                + member.Id
-                + "(__b, __a));"
-        );
+        code.AppendLine("return new " + trans + "(__b, __a, !Fragment.__SparseEqual_" + member.Id + "(__b, __a));");
         code.CloseBlock();
         code.CloseBlock();
     }
 
-    internal static void AppendSetTransition(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string prop,
-        string trans,
-        string runtime
-    ) => AppendSetTransition(code, member, prop, trans, runtime, supportsReadOnlySet: true);
+    internal static void AppendSetTransition(SharedIndentedBuilder code, SparseMemberModel member, string prop, string trans, string runtime) =>
+        AppendSetTransition(code, member, prop, trans, runtime, supportsReadOnlySet: true);
 
     internal static void AppendSetTransition(
         SharedIndentedBuilder code,
@@ -711,37 +487,20 @@ internal static class SparseChangeSetTransitionEmitter
         var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
         var elementType = ElementTypeOf(member);
         var readOnlyList = "global::System.Collections.Generic.IReadOnlyList<" + elementType + ">";
-        code.AppendLine(
-            "/// <summary>Typed set transition for member '" + member.Property.Name + "'.</summary>"
-        );
+        code.AppendLine("/// <summary>Typed set transition for member '" + member.Property.Name + "'.</summary>");
         code.AppendLine(
             "public sealed class "
                 + trans
-                + (
-                    dialect.HasValue
-                        ? SparseChangeSetContractEmitter.ScalarBases(
-                            dialect.Value,
-                            FragmentValueType(member)
-                        )
-                        : string.Empty
-                )
+                + (dialect.HasValue ? SparseChangeSetContractEmitter.ScalarBases(dialect.Value, FragmentValueType(member)) : string.Empty)
         );
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Whether this set transition contains no semantic changes.</summary>"
-        );
+        code.AppendLine("/// <summary>Whether this set transition contains no semantic changes.</summary>");
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine(
-            "/// <summary>Whether this set transition contains any semantic changes.</summary>"
-        );
+        code.AppendLine("/// <summary>Whether this set transition contains any semantic changes.</summary>");
         code.AppendLine("public bool IsChanged => !IsEmpty;");
-        code.AppendLine(
-            "/// <summary>The presence-aware set value before the transition.</summary>"
-        );
+        code.AppendLine("/// <summary>The presence-aware set value before the transition.</summary>");
         code.AppendLine("public " + opt + " Before { get; }");
-        code.AppendLine(
-            "/// <summary>The presence-aware set value after the transition.</summary>"
-        );
+        code.AppendLine("/// <summary>The presence-aware set value after the transition.</summary>");
         code.AppendLine("public " + opt + " After { get; }");
         code.AppendLine("/// <summary>Values present only in the after set.</summary>");
         code.AppendLine("public " + readOnlyList + " Added { get; }");
@@ -787,32 +546,14 @@ internal static class SparseChangeSetTransitionEmitter
                 + ";"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "/// <summary>Gets the typed set transition for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the typed set transition for member '" + member.Property.Name + "'.</summary>");
         SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(code, dialect?.EmitJson ?? true);
         if (target is not null)
         {
-            code.AppendLine(
-                "public "
-                    + trans
-                    + " "
-                    + prop
-                    + " => "
-                    + target.ChangeSetOperationsType
-                    + ".__SparseGet_"
-                    + member.Id
-                    + "(this);"
-            );
+            code.AppendLine("public " + trans + " " + prop + " => " + target.ChangeSetOperationsType + ".__SparseGet_" + member.Id + "(this);");
             var ops = target.ChangeSetOperations;
-            ops.AppendLine(
-                "/// <summary>Projects the typed set transition for one member.</summary>"
-            );
-            ops.AppendLine(
-                "internal static " + trans + " __SparseGet_" + member.Id + "(ChangeSet self)"
-            );
+            ops.AppendLine("/// <summary>Projects the typed set transition for one member.</summary>");
+            ops.AppendLine("internal static " + trans + " __SparseGet_" + member.Id + "(ChangeSet self)");
             ops.OpenBlock();
             ops.AppendLine("var __b = __SparseBefore_" + member.Id + "(self);");
             ops.AppendLine("var __a = __SparseAfter_" + member.Id + "(self);");
@@ -831,25 +572,16 @@ internal static class SparseChangeSetTransitionEmitter
         code.CloseBlock();
     }
 
-    private static void AppendSetProjectionBody(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        string elementType
-    )
+    private static void AppendSetProjectionBody(SharedIndentedBuilder code, SparseMemberModel member, string trans, string elementType)
     {
         code.AppendLine("var __isEmpty = Fragment.__SparseEqual_" + member.Id + "(__b, __a);");
-        code.AppendLine(
-            "var __added = new global::System.Collections.Generic.List<" + elementType + ">();"
-        );
+        code.AppendLine("var __added = new global::System.Collections.Generic.List<" + elementType + ">();");
         code.AppendLine(
             "if (!__isEmpty && __a.IsPresent && (object?)__a.Value is not null) foreach (var __item in __a.Value!) if (!"
                 + trans
                 + ".__Contains(__b, __item)) __added.Add(__item);"
         );
-        code.AppendLine(
-            "var __removed = new global::System.Collections.Generic.List<" + elementType + ">();"
-        );
+        code.AppendLine("var __removed = new global::System.Collections.Generic.List<" + elementType + ">();");
         code.AppendLine(
             "if (!__isEmpty && __b.IsPresent && (object?)__b.Value is not null) foreach (var __item in __b.Value!) if (!"
                 + trans
@@ -869,32 +601,14 @@ internal static class SparseChangeSetTransitionEmitter
         var childCs = ChildChangeSet(member, dialect);
         var runtime = dialect.RuntimeNamespace;
         var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
-        code.AppendLine(
-            "/// <summary>Gets the nested typed change set for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the nested typed change set for member '" + member.Property.Name + "'.</summary>");
         SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(code, dialect.EmitJson);
         if (target is not null)
         {
-            code.AppendLine(
-                "public "
-                    + childCs
-                    + " "
-                    + prop
-                    + " => "
-                    + target.ChangeSetOperationsType
-                    + ".__SparseGet_"
-                    + member.Id
-                    + "(this);"
-            );
+            code.AppendLine("public " + childCs + " " + prop + " => " + target.ChangeSetOperationsType + ".__SparseGet_" + member.Id + "(this);");
             var ops = target.ChangeSetOperations;
-            ops.AppendLine(
-                "/// <summary>Projects the nested typed change set for one member.</summary>"
-            );
-            ops.AppendLine(
-                "internal static " + childCs + " __SparseGet_" + member.Id + "(ChangeSet self)"
-            );
+            ops.AppendLine("/// <summary>Projects the nested typed change set for one member.</summary>");
+            ops.AppendLine("internal static " + childCs + " __SparseGet_" + member.Id + "(ChangeSet self)");
             ops.OpenBlock();
             SparseChangeSetBasicsEmitter.AppendMemberStateAliases(ops, member);
             AppendNestedProjectionBody(ops, member, esc, childCs, runtime);
@@ -910,25 +624,15 @@ internal static class SparseChangeSetTransitionEmitter
         code.CloseBlock();
     }
 
-    private static void AppendNestedProjectionBody(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string esc,
-        string childCs,
-        string runtime
-    )
+    private static void AppendNestedProjectionBody(SharedIndentedBuilder code, SparseMemberModel member, string esc, string childCs, string runtime)
     {
         code.AppendLine("if (__sparse_hasWhole)");
         code.OpenBlock();
         code.AppendLine(
-            "var __wb = __sparse_wholeBefore.IsPresent && __sparse_wholeBefore.Value is not null ? __sparse_wholeBefore.Value."
-                + esc
-                + " : default;"
+            "var __wb = __sparse_wholeBefore.IsPresent && __sparse_wholeBefore.Value is not null ? __sparse_wholeBefore.Value." + esc + " : default;"
         );
         code.AppendLine(
-            "var __wa = __sparse_wholeAfter.IsPresent && __sparse_wholeAfter.Value is not null ? __sparse_wholeAfter.Value."
-                + esc
-                + " : default;"
+            "var __wa = __sparse_wholeAfter.IsPresent && __sparse_wholeAfter.Value is not null ? __sparse_wholeAfter.Value." + esc + " : default;"
         );
         code.AppendLine("return " + childCs + ".Between(__wb, __wa);");
         code.CloseBlock();

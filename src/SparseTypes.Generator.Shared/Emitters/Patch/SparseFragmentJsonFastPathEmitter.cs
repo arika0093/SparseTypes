@@ -6,10 +6,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseFragmentJsonFastPathEmitter
 {
     /// <summary>Emits collection codecs and member fast paths.</summary>
-    internal static void AppendFastPaths(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members
-    )
+    internal static void AppendFastPaths(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
     {
         foreach (var codecMember in members)
         {
@@ -20,11 +17,8 @@ internal static class SparseFragmentJsonFastPathEmitter
 
             SparseJsonCollectionModel? codecModel = null;
             if (
-                !SparseJsonCollectionShapes.TryResolve(
-                    codecMember,
-                    SparseFragmentEmitHelpers.FragmentValueType(codecMember),
-                    out codecModel
-                ) || codecModel is null
+                !SparseJsonCollectionShapes.TryResolve(codecMember, SparseFragmentEmitHelpers.FragmentValueType(codecMember), out codecModel)
+                || codecModel is null
             )
             {
                 continue;
@@ -54,12 +48,8 @@ internal static class SparseFragmentJsonFastPathEmitter
         code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) { if (default(TMember) is null) return default; throw new global::System.Text.Json.JsonException(\"Malformed fragment value.\"); }"
         );
-        code.AppendLine(
-            "if (TryReadScalar<TMember>(ref reader, out var scalarMember)) return scalarMember;"
-        );
-        code.AppendLine(
-            "return global::System.Text.Json.JsonSerializer.Deserialize<TMember>(ref reader, GetMemberTypeInfo<TMember>(options))!;"
-        );
+        code.AppendLine("if (TryReadScalar<TMember>(ref reader, out var scalarMember)) return scalarMember;");
+        code.AppendLine("return global::System.Text.Json.JsonSerializer.Deserialize<TMember>(ref reader, GetMemberTypeInfo<TMember>(options))!;");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine(

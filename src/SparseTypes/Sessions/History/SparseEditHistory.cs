@@ -11,10 +11,7 @@ namespace SparseTypes;
 /// <param name="conflicts">Structured conflicts when the result is false.</param>
 /// <returns>True when the model was updated; otherwise false.</returns>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public delegate bool EditHistoryTryApply<TChangeSet>(
-    TChangeSet changes,
-    out IReadOnlyList<SparseConflict>? conflicts
-)
+public delegate bool EditHistoryTryApply<TChangeSet>(TChangeSet changes, out IReadOnlyList<SparseConflict>? conflicts)
     where TChangeSet : class;
 
 /// <summary>Typed operations binding a history to one generated change set.</summary>
@@ -60,8 +57,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
     private readonly Action<TChangeSet> _handler;
     private readonly int _maxEntries;
     private readonly LinkedList<TChangeSet> _undo = new LinkedList<TChangeSet>();
-    private readonly Stack<LinkedListNode<TChangeSet>> _redo =
-        new Stack<LinkedListNode<TChangeSet>>();
+    private readonly Stack<LinkedListNode<TChangeSet>> _redo = new Stack<LinkedListNode<TChangeSet>>();
     private List<TChangeSet>? _groupBuffer;
     private int _groupDepth;
     private bool _replaying;
@@ -253,9 +249,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
 
             if (conflicts != null && conflicts.Count != 0)
             {
-                throw new InvalidOperationException(
-                    "The undo entry conflicts with the current model."
-                );
+                throw new InvalidOperationException("The undo entry conflicts with the current model.");
             }
 
             throw new InvalidOperationException("No undo entries are available.");
@@ -272,9 +266,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
         conflicts = null;
         if (_groupDepth != 0)
         {
-            throw new InvalidOperationException(
-                "Undo cannot run inside an explicit history group."
-            );
+            throw new InvalidOperationException("Undo cannot run inside an explicit history group.");
         }
 
         if (_undo.Count == 0)
@@ -320,9 +312,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
 
             if (conflicts != null && conflicts.Count != 0)
             {
-                throw new InvalidOperationException(
-                    "The redo entry conflicts with the current model."
-                );
+                throw new InvalidOperationException("The redo entry conflicts with the current model.");
             }
 
             throw new InvalidOperationException("No redo entries are available.");
@@ -342,9 +332,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
         conflicts = null;
         if (_groupDepth != 0)
         {
-            throw new InvalidOperationException(
-                "Redo cannot run inside an explicit history group."
-            );
+            throw new InvalidOperationException("Redo cannot run inside an explicit history group.");
         }
 
         if (_redo.Count == 0)
@@ -382,10 +370,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
     public void Clear()
     {
         ThrowIfDisposed();
-        bool retained =
-            _undo.Count != 0
-            || _redo.Count != 0
-            || (_groupBuffer != null && _groupBuffer.Count != 0);
+        bool retained = _undo.Count != 0 || _redo.Count != 0 || (_groupBuffer != null && _groupBuffer.Count != 0);
         _undo.Clear();
         _redo.Clear();
         if (_groupBuffer != null)
@@ -526,12 +511,7 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
     private void RecycleGroupBuffer(List<TChangeSet> entries)
     {
         entries.Clear();
-        if (
-            entries.Capacity <= MaxReusableGroupBufferCapacity
-            && _groupBuffer == null
-            && _groupDepth == 0
-            && !_disposed
-        )
+        if (entries.Capacity <= MaxReusableGroupBufferCapacity && _groupBuffer == null && _groupDepth == 0 && !_disposed)
         {
             _groupBuffer = entries;
         }

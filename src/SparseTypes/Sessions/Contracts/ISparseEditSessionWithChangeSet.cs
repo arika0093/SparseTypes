@@ -7,8 +7,7 @@ namespace SparseTypes;
 /// <typeparam name="TModel">The editable model type.</typeparam>
 /// <typeparam name="TChangeSet">The generated immutable change-set type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ISparseEditSessionWithChangeSet<TModel, TChangeSet>
-    : ISparseEditSession<TModel, TChangeSet>
+public interface ISparseEditSessionWithChangeSet<TModel, TChangeSet> : ISparseEditSession<TModel, TChangeSet>
     where TModel : class
     where TChangeSet : class
 {

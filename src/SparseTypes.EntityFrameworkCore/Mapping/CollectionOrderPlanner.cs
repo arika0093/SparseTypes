@@ -12,14 +12,8 @@ internal static class CollectionOrderPlanner
         where TDtoChild : class
         where TEntityChild : class
     {
-        var removed = new HashSet<object>(
-            plan.Removed.Select(static removal => removal.Key),
-            runtime.KeyComparer
-        );
-        var survivors = new Dictionary<object, TEntityChild>(
-            Math.Max(0, tracked.Count - plan.Removed.Count),
-            runtime.KeyComparer
-        );
+        var removed = new HashSet<object>(plan.Removed.Select(static removal => removal.Key), runtime.KeyComparer);
+        var survivors = new Dictionary<object, TEntityChild>(Math.Max(0, tracked.Count - plan.Removed.Count), runtime.KeyComparer);
         foreach (var (key, child) in tracked)
         {
             if (!removed.Contains(key))
@@ -28,18 +22,11 @@ internal static class CollectionOrderPlanner
             }
         }
 
-        var assignedAdds = new Dictionary<object, TEntityChild>(
-            plan.Added.Count,
-            runtime.KeyComparer
-        );
+        var assignedAdds = new Dictionary<object, TEntityChild>(plan.Added.Count, runtime.KeyComparer);
         var temporarySeen = new HashSet<Guid>();
         foreach (var addition in plan.Added.OrderBy(static a => a.SequenceHint))
         {
-            if (
-                addition.TemporaryKey is not null
-                && addition.TemporaryKey != Guid.Empty
-                && !temporarySeen.Add(addition.TemporaryKey.Value)
-            )
+            if (addition.TemporaryKey is not null && addition.TemporaryKey != Guid.Empty && !temporarySeen.Add(addition.TemporaryKey.Value))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -48,10 +35,7 @@ internal static class CollectionOrderPlanner
                 );
             }
 
-            if (
-                addition.AssignedKey is not null
-                && !assignedAdds.TryAdd(addition.AssignedKey, addition.Entity)
-            )
+            if (addition.AssignedKey is not null && !assignedAdds.TryAdd(addition.AssignedKey, addition.Entity))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -134,29 +118,19 @@ internal static class CollectionOrderPlanner
             {
                 // List.Contains scans the growing output per retained row;
                 // one membership set keeps retention linear instead.
-                retained = new HashSet<TEntityChild>(
-                    merged,
-                    System.Collections.Generic.EqualityComparer<TEntityChild>.Default
-                );
+                retained = new HashSet<TEntityChild>(merged, System.Collections.Generic.EqualityComparer<TEntityChild>.Default);
             }
 
             // Soft-deleted rows stay in the collection: removals are excluded
             // from the survivor map, so re-add them from the removal plan.
-            foreach (
-                var removal in plan.Removed.Where(removal =>
-                    retained is null || retained.Add(removal.Entity)
-                )
-            )
+            foreach (var removal in plan.Removed.Where(removal => retained is null || retained.Add(removal.Entity)))
             {
                 merged.Add(removal.Entity);
             }
 
             // Previously flagged rows leave the DTO projection but stay
             // tracked: retain proven rows in tracked order instead of failing.
-            var afterSet = new HashSet<object>(
-                view.AfterOrder.Where(key => !runtime.IsUnassigned(key)),
-                runtime.KeyComparer
-            );
+            var afterSet = new HashSet<object>(view.AfterOrder.Where(key => !runtime.IsUnassigned(key)), runtime.KeyComparer);
             foreach (
                 var survivor in survivors.Where(candidate =>
                     !afterSet.Contains(candidate.Key)

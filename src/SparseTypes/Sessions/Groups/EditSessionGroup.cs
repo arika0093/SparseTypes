@@ -12,9 +12,7 @@ namespace SparseTypes;
 public sealed class EditSessionGroup
 {
     private readonly object _gate = new();
-    private readonly Dictionary<string, IEditSessionGroupSection> _sections = new(
-        StringComparer.Ordinal
-    );
+    private readonly Dictionary<string, IEditSessionGroupSection> _sections = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _baselineRevisions = new(StringComparer.Ordinal);
     private readonly HashSet<object> _sessions = new(ReferenceIdentityComparer.Instance);
 
@@ -38,10 +36,7 @@ public sealed class EditSessionGroup
         {
             if (_sections.ContainsKey(sectionId))
             {
-                throw new ArgumentException(
-                    $"Section '{sectionId}' is already registered. Use Replace to replace it explicitly.",
-                    nameof(sectionId)
-                );
+                throw new ArgumentException($"Section '{sectionId}' is already registered. Use Replace to replace it explicitly.", nameof(sectionId));
             }
 
             if (!_sessions.Add(registration.Session))
@@ -52,14 +47,8 @@ public sealed class EditSessionGroup
                 );
             }
 
-            var revision = _baselineRevisions.TryGetValue(sectionId, out var previousRevision)
-                ? checked(previousRevision + 1)
-                : 0;
-            var section = new EditSessionGroupSection<TModel, TChangeSet>(
-                sectionId,
-                revision,
-                registration
-            );
+            var revision = _baselineRevisions.TryGetValue(sectionId, out var previousRevision) ? checked(previousRevision + 1) : 0;
+            var section = new EditSessionGroupSection<TModel, TChangeSet>(sectionId, revision, registration);
             _sections.Add(sectionId, section);
             _baselineRevisions[sectionId] = revision;
             return new EditSessionSectionHandle<TModel, TChangeSet>(this, section);
@@ -86,10 +75,7 @@ public sealed class EditSessionGroup
     /// <summary>Removes a section using an explicit policy for dirty sessions.</summary>
     /// <param name="handle">The current typed section handle.</param>
     /// <param name="policy">Whether removal must reject dirty state or detach it from the group.</param>
-    public void Unregister<TModel, TChangeSet>(
-        EditSessionSectionHandle<TModel, TChangeSet> handle,
-        EditSessionGroupRemovalPolicy policy
-    )
+    public void Unregister<TModel, TChangeSet>(EditSessionSectionHandle<TModel, TChangeSet> handle, EditSessionGroupRemovalPolicy policy)
         where TModel : class
         where TChangeSet : class
     {
@@ -134,11 +120,7 @@ public sealed class EditSessionGroup
             }
 
             var revision = checked(previous.BaselineRevision + 1);
-            var replacement = new EditSessionGroupSection<TModel, TChangeSet>(
-                previous.SectionId,
-                revision,
-                registration
-            );
+            var replacement = new EditSessionGroupSection<TModel, TChangeSet>(previous.SectionId, revision, registration);
             _sections[previous.SectionId] = replacement;
             _baselineRevisions[previous.SectionId] = revision;
             return new EditSessionSectionHandle<TModel, TChangeSet>(this, replacement);
@@ -157,12 +139,7 @@ public sealed class EditSessionGroup
             var section = capture.Section;
             if (section.HasAsyncValidation)
             {
-                issues.Add(
-                    new EditSessionGroupValidationIssue(
-                        section.SectionId,
-                        "Asynchronous validation is configured; use PrepareAsync."
-                    )
-                );
+                issues.Add(new EditSessionGroupValidationIssue(section.SectionId, "Asynchronous validation is configured; use PrepareAsync."));
                 continue;
             }
 
@@ -187,9 +164,7 @@ public sealed class EditSessionGroup
     /// <returns>The immutable submission after all section validation succeeds.</returns>
     /// <exception cref="EditSessionGroupValidationException">A section is unready or fails validation.</exception>
     /// <exception cref="OperationCanceledException">Validation is canceled.</exception>
-    public Task<EditSessionGroupSubmission> PrepareAsync(
-        CancellationToken cancellationToken = default
-    )
+    public Task<EditSessionGroupSubmission> PrepareAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var captures = CaptureSections();
@@ -202,10 +177,7 @@ public sealed class EditSessionGroup
     /// <param name="submission">The submission that contains the transition.</param>
     /// <param name="handle">The current typed section handle.</param>
     /// <exception cref="EditSessionStaleSubmissionException">The submission is unrelated, stale, or its registration was replaced.</exception>
-    public void AcceptChanges<TModel, TChangeSet>(
-        EditSessionGroupSubmission submission,
-        EditSessionSectionHandle<TModel, TChangeSet> handle
-    )
+    public void AcceptChanges<TModel, TChangeSet>(EditSessionGroupSubmission submission, EditSessionSectionHandle<TModel, TChangeSet> handle)
         where TModel : class
         where TChangeSet : class
     {
@@ -272,15 +244,7 @@ public sealed class EditSessionGroup
 
         lock (_gate)
         {
-            if (
-                !TryGetCurrentSubmissionSection(
-                    submission,
-                    handle,
-                    out var section,
-                    out var entry,
-                    out error
-                )
-            )
+            if (!TryGetCurrentSubmissionSection(submission, handle, out var section, out var entry, out error))
             {
                 return false;
             }
@@ -307,9 +271,7 @@ public sealed class EditSessionGroup
         }
     }
 
-    private IEditSessionGroupSection GetCurrentSection<TModel, TChangeSet>(
-        EditSessionSectionHandle<TModel, TChangeSet> handle
-    )
+    private IEditSessionGroupSection GetCurrentSection<TModel, TChangeSet>(EditSessionSectionHandle<TModel, TChangeSet> handle)
         where TModel : class
         where TChangeSet : class
     {
@@ -320,19 +282,12 @@ public sealed class EditSessionGroup
 
         if (!ReferenceEquals(handle.Owner, this))
         {
-            throw new EditSessionStaleSubmissionException(
-                "The section handle belongs to another group."
-            );
+            throw new EditSessionStaleSubmissionException("The section handle belongs to another group.");
         }
 
-        if (
-            !_sections.TryGetValue(handle.SectionId, out var current)
-            || !ReferenceEquals(current, handle.Section)
-        )
+        if (!_sections.TryGetValue(handle.SectionId, out var current) || !ReferenceEquals(current, handle.Section))
         {
-            throw new EditSessionStaleSubmissionException(
-                $"Section '{handle.SectionId}' was unregistered or replaced."
-            );
+            throw new EditSessionStaleSubmissionException($"Section '{handle.SectionId}' was unregistered or replaced.");
         }
 
         return current;
@@ -348,9 +303,7 @@ public sealed class EditSessionGroup
                 SynchronizeBaselineRevision(section);
             }
             // Run capture delegates outside the lock to allow re-entrant calls.
-            registeredSections = _sections
-                .Values.OrderBy(value => value.SectionId, StringComparer.Ordinal)
-                .ToArray();
+            registeredSections = _sections.Values.OrderBy(value => value.SectionId, StringComparer.Ordinal).ToArray();
         }
 
         var captures = new List<EditSessionGroupCapture>(registeredSections.Length);
@@ -370,9 +323,7 @@ public sealed class EditSessionGroup
         return Array.AsReadOnly(captures.ToArray());
     }
 
-    private EditSessionGroupSubmission CreateSubmission(
-        IReadOnlyList<EditSessionGroupCapture> captures
-    )
+    private EditSessionGroupSubmission CreateSubmission(IReadOnlyList<EditSessionGroupCapture> captures)
     {
         var entries = captures
             .Where(static capture => capture.SubmissionEntry is not null)
@@ -404,16 +355,12 @@ public sealed class EditSessionGroup
             cancellationToken.ThrowIfCancellationRequested();
             if (!capture.Section.TryValidate(out var readinessError))
             {
-                issues.Add(
-                    new EditSessionGroupValidationIssue(capture.Section.SectionId, readinessError!)
-                );
+                issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, readinessError!));
             }
 
             if (!capture.Section.TryValidateChanges(capture.Changes, out var changesError))
             {
-                issues.Add(
-                    new EditSessionGroupValidationIssue(capture.Section.SectionId, changesError!)
-                );
+                issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, changesError!));
             }
         }
 
@@ -429,16 +376,11 @@ public sealed class EditSessionGroup
 
             try
             {
-                var asyncError = await capture.Section.ValidateAsync(
-                    capture.Changes,
-                    cancellationToken
-                );
+                var asyncError = await capture.Section.ValidateAsync(capture.Changes, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrWhiteSpace(asyncError))
                 {
-                    issues.Add(
-                        new EditSessionGroupValidationIssue(capture.Section.SectionId, asyncError!)
-                    );
+                    issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, asyncError!));
                 }
             }
             catch (OperationCanceledException)
@@ -447,12 +389,7 @@ public sealed class EditSessionGroup
             }
             catch (Exception exception)
             {
-                issues.Add(
-                    new EditSessionGroupValidationIssue(
-                        capture.Section.SectionId,
-                        exception.Message
-                    )
-                );
+                issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, exception.Message));
             }
         }
 
@@ -462,10 +399,7 @@ public sealed class EditSessionGroup
         {
             foreach (var capture in captures)
             {
-                if (
-                    !_sections.TryGetValue(capture.Section.SectionId, out var current)
-                    || !ReferenceEquals(current, capture.Section)
-                )
+                if (!_sections.TryGetValue(capture.Section.SectionId, out var current) || !ReferenceEquals(current, capture.Section))
                 {
                     issues.Add(
                         new EditSessionGroupValidationIssue(
@@ -495,10 +429,7 @@ public sealed class EditSessionGroup
         return submission;
     }
 
-    private EditSessionSubmittedSection GetCurrentSubmissionEntry(
-        EditSessionGroupSubmission submission,
-        IEditSessionGroupSection section
-    )
+    private EditSessionSubmittedSection GetCurrentSubmissionEntry(EditSessionGroupSubmission submission, IEditSessionGroupSection section)
     {
         SynchronizeBaselineRevision(section);
         if (submission is null)
@@ -508,9 +439,7 @@ public sealed class EditSessionGroup
 
         if (!submission.BelongsTo(this) || !submission.TryGet(section, out var entry))
         {
-            throw new EditSessionStaleSubmissionException(
-                $"The submission does not contain section '{section.SectionId}'."
-            );
+            throw new EditSessionStaleSubmissionException($"The submission does not contain section '{section.SectionId}'.");
         }
 
         if (entry!.BaselineRevision != section.BaselineRevision)
@@ -554,10 +483,7 @@ public sealed class EditSessionGroup
             return false;
         }
 
-        if (
-            !_sections.TryGetValue(handle.SectionId, out section)
-            || !ReferenceEquals(section, handle.Section)
-        )
+        if (!_sections.TryGetValue(handle.SectionId, out section) || !ReferenceEquals(section, handle.Section))
         {
             error = $"Section '{handle.SectionId}' was unregistered or replaced.";
             return false;
@@ -572,18 +498,14 @@ public sealed class EditSessionGroup
 
         if (entry!.BaselineRevision != section.BaselineRevision)
         {
-            error =
-                $"The submission for section '{section.SectionId}' was prepared against an older baseline revision.";
+            error = $"The submission for section '{section.SectionId}' was prepared against an older baseline revision.";
             return false;
         }
 
         return true;
     }
 
-    private static void EnsureRemovalAllowed(
-        IEditSessionGroupSection section,
-        EditSessionGroupRemovalPolicy policy
-    )
+    private static void EnsureRemovalAllowed(IEditSessionGroupSection section, EditSessionGroupRemovalPolicy policy)
     {
         if (policy == EditSessionGroupRemovalPolicy.DetachWithPendingChanges)
         {
@@ -629,10 +551,7 @@ public sealed class EditSessionGroup
             return false;
         }
 
-        var revisionDelta =
-            previousSessionRevision is long previous && sessionRevision > previous
-                ? sessionRevision - previous
-                : 1;
+        var revisionDelta = previousSessionRevision is long previous && sessionRevision > previous ? sessionRevision - previous : 1;
         var revision = checked(section.BaselineRevision + revisionDelta);
         section.BaselineRevision = revision;
         _baselineRevisions[section.SectionId] = revision;
@@ -640,11 +559,7 @@ public sealed class EditSessionGroup
     }
 
     private string FindSectionId(object session) =>
-        _sections
-            .Values.Where(section => ReferenceEquals(section.Session, session))
-            .Select(section => section.SectionId)
-            .FirstOrDefault()
-        ?? "?";
+        _sections.Values.Where(section => ReferenceEquals(section.Session, session)).Select(section => section.SectionId).FirstOrDefault() ?? "?";
 
     private sealed class ReferenceIdentityComparer : IEqualityComparer<object>
     {
@@ -657,21 +572,13 @@ public sealed class EditSessionGroup
 
     private static void ValidateSectionId(string sectionId)
     {
-        if (
-            string.IsNullOrWhiteSpace(sectionId)
-            || !string.Equals(sectionId, sectionId.Trim(), StringComparison.Ordinal)
-        )
+        if (string.IsNullOrWhiteSpace(sectionId) || !string.Equals(sectionId, sectionId.Trim(), StringComparison.Ordinal))
         {
-            throw new ArgumentException(
-                "A section identifier must be non-empty and have no surrounding whitespace.",
-                nameof(sectionId)
-            );
+            throw new ArgumentException("A section identifier must be non-empty and have no surrounding whitespace.", nameof(sectionId));
         }
     }
 
-    private static void ValidateRegistration<TModel, TChangeSet>(
-        EditSessionGroupRegistration<TModel, TChangeSet> registration
-    )
+    private static void ValidateRegistration<TModel, TChangeSet>(EditSessionGroupRegistration<TModel, TChangeSet> registration)
         where TModel : class
         where TChangeSet : class
     {
@@ -687,26 +594,17 @@ public sealed class EditSessionGroup
 
         if (registration.CreateChangeSet is null)
         {
-            throw new ArgumentException(
-                "A change-set capture delegate is required.",
-                nameof(registration)
-            );
+            throw new ArgumentException("A change-set capture delegate is required.", nameof(registration));
         }
 
         if (registration.IsEmpty is null)
         {
-            throw new ArgumentException(
-                "An empty-check delegate is required.",
-                nameof(registration)
-            );
+            throw new ArgumentException("An empty-check delegate is required.", nameof(registration));
         }
 
         if (registration.EnumerateChangedPaths is null)
         {
-            throw new ArgumentException(
-                "A changed-path delegate is required.",
-                nameof(registration)
-            );
+            throw new ArgumentException("A changed-path delegate is required.", nameof(registration));
         }
     }
 
@@ -714,11 +612,7 @@ public sealed class EditSessionGroup
         where TModel : class
         where TChangeSet : class
     {
-        public EditSessionGroupSection(
-            string sectionId,
-            long baselineRevision,
-            EditSessionGroupRegistration<TModel, TChangeSet> registration
-        )
+        public EditSessionGroupSection(string sectionId, long baselineRevision, EditSessionGroupRegistration<TModel, TChangeSet> registration)
         {
             SectionId = sectionId;
             BaselineRevision = baselineRevision;
@@ -849,19 +743,14 @@ public sealed class EditSessionGroup
             }
         }
 
-        public async Task<string?> ValidateAsync(
-            object changes,
-            CancellationToken cancellationToken
-        )
+        public async Task<string?> ValidateAsync(object changes, CancellationToken cancellationToken)
         {
             if (Registration.ValidateAsync is null)
             {
                 return null;
             }
 
-            return await Registration
-                .ValidateAsync((TChangeSet)changes, cancellationToken)
-                .ConfigureAwait(false);
+            return await Registration.ValidateAsync((TChangeSet)changes, cancellationToken).ConfigureAwait(false);
         }
 
         public void AcceptChanges(EditSessionSubmittedSection submission)
@@ -911,10 +800,7 @@ public sealed class EditSessionGroup
             "S3267",
             Justification = "Early-exiting foreach over the IReadOnlyList avoids LINQ's enumerator indirection and keeps disqualification cheap."
         )]
-        private static bool HasNoPendingCollision(
-            IReadOnlyList<SparsePath> paths,
-            HashSet<SparsePath> pending
-        )
+        private static bool HasNoPendingCollision(IReadOnlyList<SparsePath> paths, HashSet<SparsePath> pending)
         {
             foreach (var path in paths)
             {
@@ -927,11 +813,7 @@ public sealed class EditSessionGroup
             return true;
         }
 
-        public bool TryReconcile(
-            EditSessionSubmittedSection submission,
-            object persisted,
-            out string? error
-        )
+        public bool TryReconcile(EditSessionSubmittedSection submission, object persisted, out string? error)
         {
             if (Registration.TryReconcile is null)
             {

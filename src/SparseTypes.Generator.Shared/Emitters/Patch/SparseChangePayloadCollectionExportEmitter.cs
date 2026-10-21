@@ -14,18 +14,11 @@ internal static class SparseChangePayloadCollectionExportEmitter
     )
     {
         var id = member.Id;
-        var change = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-            dialect,
-            modelType,
-            "Change",
-            id
-        );
+        var change = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
         if (split is not null)
         {
             // ChangeSet payload projection calls through the facade bridge.
-            split.Shell.AppendLine(
-                "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
-            );
+            split.Shell.AppendLine("/// <summary>Exports whole and granular operations as a payload change entry.</summary>");
             split.Shell.AppendLine(
                 "internal void __SparseExportChangePayload("
                     + change
@@ -33,9 +26,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + split.OperationsType
                     + ".__SparseExportChangePayload(this, entry);"
             );
-            code.AppendLine(
-                "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
-            );
+            code.AppendLine("/// <summary>Exports whole and granular operations as a payload change entry.</summary>");
             code.AppendLine(
                 "internal static void __SparseExportChangePayload("
                     + SparseKeyedCollectionEmitter.CollectionPatchName(member)
@@ -46,15 +37,11 @@ internal static class SparseChangePayloadCollectionExportEmitter
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
-            );
+            code.AppendLine("/// <summary>Exports whole and granular operations as a payload change entry.</summary>");
             code.AppendLine("internal void __SparseExportChangePayload(" + change + " entry)");
         }
         code.OpenBlock();
-        code.AppendLine(
-            split is null ? "var collection" + id + " = this;" : "var collection" + id + " = self;"
-        );
+        code.AppendLine(split is null ? "var collection" + id + " = this;" : "var collection" + id + " = self;");
         code.AppendLine("var entry" + id + " = entry;");
         AppendExportEntryBody(code, member, dialect, modelType, id, implementationNamespace);
         code.CloseBlock();
@@ -74,14 +61,10 @@ internal static class SparseChangePayloadCollectionExportEmitter
         var state = runtime + "ChangePayloadState";
         var kind = runtime + "FragmentOperationKind";
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
-        var collectionType = isKeyed
-            ? SparseKeyedCollectionEmitter.MemberListType(member)
-            : SparseKeyedCollectionEmitter.DictionaryType(member);
+        var collectionType = isKeyed ? SparseKeyedCollectionEmitter.MemberListType(member) : SparseKeyedCollectionEmitter.DictionaryType(member);
         code.AppendLine("if (collection" + id + ".__whole.Kind != " + kind + ".Keep)");
         code.OpenBlock();
-        code.AppendLine(
-            "entry" + id + ".Before = " + endpoint + "<" + collectionType + ">.Redacted();"
-        );
+        code.AppendLine("entry" + id + ".Before = " + endpoint + "<" + collectionType + ">.Redacted();");
         code.AppendLine(
             "entry"
                 + id
@@ -134,12 +117,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         var runtime = dialect.RuntimeNamespace;
         var endpoint = runtime + "ChangePayloadEndpoint";
         var itemKind = runtime + "ChangePayloadItemKind";
-        var item = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-            dialect,
-            modelType,
-            "Item",
-            id
-        );
+        var item = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Item", id);
         var itemValueType = SparseChangeSetBasicsEmitter.ElementTypeOf(member);
         var isModelValue = member.Collection.ElementType.IsFragmentModel;
         var childCore = isModelValue
@@ -151,13 +129,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
             )
             : string.Empty;
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__added is not null) foreach (var element in collection"
-                + id
-                + ".__added)"
-        );
+        code.AppendLine("if (collection" + id + ".__added is not null) foreach (var element in collection" + id + ".__added)");
         code.AppendLine(
             "entry"
                 + id
@@ -178,20 +150,12 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + ".Add, BeforeIndex = -1, AfterIndex = -1"
                 + (
                     SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? ", TemporaryKey = "
-                            + SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member)
-                            + "(element)"
+                        ? ", TemporaryKey = " + SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member) + "(element)"
                         : ""
                 )
                 + " });"
         );
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__removed is not null) foreach (var removedKey in collection"
-                + id
-                + ".__removed)"
-        );
+        code.AppendLine("if (collection" + id + ".__removed is not null) foreach (var removedKey in collection" + id + ".__removed)");
         code.AppendLine(
             "entry"
                 + id
@@ -209,13 +173,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         {
             // Temporary removals and edits travel with their Guid identity;
             // unassigned permanent keys alone would collide on restore.
-            code.AppendLine(
-                "if (collection"
-                    + id
-                    + ".__removedTemp is not null) foreach (var removedTemp in collection"
-                    + id
-                    + ".__removedTemp)"
-            );
+            code.AppendLine("if (collection" + id + ".__removedTemp is not null) foreach (var removedTemp in collection" + id + ".__removedTemp)");
             code.AppendLine(
                 "entry"
                     + id
@@ -228,13 +186,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + ".Remove, BeforeIndex = -1, AfterIndex = -1 });"
             );
         }
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__edited is not null) foreach (var editedPair in collection"
-                + id
-                + ".__edited)"
-        );
+        code.AppendLine("if (collection" + id + ".__edited is not null) foreach (var editedPair in collection" + id + ".__edited)");
         code.OpenBlock();
         if (isModelValue)
         {
@@ -278,13 +230,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         code.CloseBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLine(
-                "if (collection"
-                    + id
-                    + ".__editedTemp is not null) foreach (var editedTempPair in collection"
-                    + id
-                    + ".__editedTemp)"
-            );
+            code.AppendLine("if (collection" + id + ".__editedTemp is not null) foreach (var editedTempPair in collection" + id + ".__editedTemp)");
             code.OpenBlock();
             if (isModelValue)
             {
@@ -372,12 +318,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         var runtime = dialect.RuntimeNamespace;
         var endpoint = runtime + "ChangePayloadEndpoint";
         var itemKind = runtime + "ChangePayloadItemKind";
-        var item = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-            dialect,
-            modelType,
-            "Item",
-            id
-        );
+        var item = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Item", id);
         var itemValueType = SparseChangeSetBasicsEmitter.ValueTypeOf(member);
         var isModelValue = member.Collection.ValueType?.IsFragmentModel == true;
         var childCore =
@@ -389,13 +330,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     implementationNamespace
                 )
                 : string.Empty;
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__set is not null) foreach (var setPair in collection"
-                + id
-                + ".__set)"
-        );
+        code.AppendLine("if (collection" + id + ".__set is not null) foreach (var setPair in collection" + id + ".__set)");
         code.AppendLine(
             "entry"
                 + id
@@ -413,13 +348,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + itemKind
                 + ".Add });"
         );
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__removed is not null) foreach (var removedKey in collection"
-                + id
-                + ".__removed)"
-        );
+        code.AppendLine("if (collection" + id + ".__removed is not null) foreach (var removedKey in collection" + id + ".__removed)");
         code.AppendLine(
             "entry"
                 + id
@@ -433,13 +362,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + itemKind
                 + ".Remove });"
         );
-        code.AppendLine(
-            "if (collection"
-                + id
-                + ".__edited is not null) foreach (var editedPair in collection"
-                + id
-                + ".__edited)"
-        );
+        code.AppendLine("if (collection" + id + ".__edited is not null) foreach (var editedPair in collection" + id + ".__edited)");
         code.OpenBlock();
         if (isModelValue)
         {

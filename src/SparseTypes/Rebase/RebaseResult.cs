@@ -85,51 +85,23 @@ public sealed class SparseConflict
     public SparseConflict WithPathPrefix(string memberName)
     {
         ArgumentException.ThrowIfNullOrEmpty(memberName);
-        return new SparseConflict(
-            Path.PrependMember(memberName),
-            Kind,
-            BaseValue,
-            LocalValue,
-            CurrentValue,
-            Reason
-        );
+        return new SparseConflict(Path.PrependMember(memberName), Kind, BaseValue, LocalValue, CurrentValue, Reason);
     }
 
     /// <summary>Returns a copy of this conflict with a path prefix prepended.</summary>
     /// <remarks>The result adopts the prefix root type, bubbling nested paths to their parent.</remarks>
     public SparseConflict WithPathPrefix(SparsePath prefix)
     {
-        return new SparseConflict(
-            Path.Prepend(prefix),
-            Kind,
-            BaseValue,
-            LocalValue,
-            CurrentValue,
-            Reason
-        );
+        return new SparseConflict(Path.Prepend(prefix), Kind, BaseValue, LocalValue, CurrentValue, Reason);
     }
 
     /// <summary>Returns a copy of this conflict with a typed key segment prepended.</summary>
     public SparseConflict WithKeyPrefix<TKey>(TKey key) =>
-        new(
-            Path.Prepend(new SparsePath(Path.RootType).Key(key)),
-            Kind,
-            BaseValue,
-            LocalValue,
-            CurrentValue,
-            Reason
-        );
+        new(Path.Prepend(new SparsePath(Path.RootType).Key(key)), Kind, BaseValue, LocalValue, CurrentValue, Reason);
 
     /// <summary>Returns a copy of this conflict with a positional index segment prepended.</summary>
     public SparseConflict WithIndexPrefix(int index) =>
-        new(
-            Path.Prepend(new SparsePath(Path.RootType).At(index)),
-            Kind,
-            BaseValue,
-            LocalValue,
-            CurrentValue,
-            Reason
-        );
+        new(Path.Prepend(new SparsePath(Path.RootType).At(index)), Kind, BaseValue, LocalValue, CurrentValue, Reason);
 }
 
 /// <summary>The result of rebasing a change onto a newer sparse state.</summary>

@@ -15,10 +15,7 @@ public readonly record struct Optional<T>
     public bool IsPresent { get; }
 
     /// <summary>The member value. Throws when the member is missing.</summary>
-    public T? Value =>
-        IsPresent
-            ? _value
-            : throw new InvalidOperationException("A missing optional value has no value.");
+    public T? Value => IsPresent ? _value : throw new InvalidOperationException("A missing optional value has no value.");
 
     /// <summary>A missing member.</summary>
     public static Optional<T> Missing => default;

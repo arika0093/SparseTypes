@@ -16,8 +16,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
 
     private SparseFragmentOriginEmitter? OriginEmitter { get; } = originEmitter;
 
-    public string MergeStrategyField(SparseMemberModel member) =>
-        SparseFragmentEmitHelpers.MergeStrategyField(MergeStrategyFieldPrefix, member);
+    public string MergeStrategyField(SparseMemberModel member) => SparseFragmentEmitHelpers.MergeStrategyField(MergeStrategyFieldPrefix, member);
 
     public string RebasePolicyField(SparseMemberModel member) =>
         (rebasePolicyFieldPrefix ?? SparseWellKnownNames.RebasePolicyFieldPrefix) + member.Id;
@@ -32,9 +31,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLine(
-            "/// <summary>A sparse, presence-aware representation of this model.</summary>"
-        );
+        code.AppendLine("/// <summary>A sparse, presence-aware representation of this model.</summary>");
         appendAttributes?.Invoke(code);
         code.AppendLine(accessibility + " sealed class Fragment");
         code.OpenBlock();
@@ -58,9 +55,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
         {
             code.CancellationToken.ThrowIfCancellationRequested();
             appendMemberAttributes?.Invoke(code);
-            code.AppendLine(
-                "/// <summary>Gets the sparse value for '" + member.Property.Name + "'.</summary>"
-            );
+            code.AppendLine("/// <summary>Gets the sparse value for '" + member.Property.Name + "'.</summary>");
             code.AppendIndent()
                 .Append("public ")
                 .Append(Optional)
@@ -77,12 +72,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
             .Append(
                 members.Length == 0
                     ? "true"
-                    : string.Join(
-                        " && ",
-                        members.Select(member =>
-                            "!" + SparseNaming.EscapeIdentifier(member.Property.Name) + ".IsPresent"
-                        )
-                    )
+                    : string.Join(" && ", members.Select(member => "!" + SparseNaming.EscapeIdentifier(member.Property.Name) + ".IsPresent"))
             )
             .AppendLine(";");
         code.AppendLine();
@@ -118,9 +108,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
                 .Append(member.MergeStrategyType!.Value.Name)
                 .AppendLine("();");
         }
-        foreach (
-            var member in members.Where(static member => member.ComparisonComparerType is not null)
-        )
+        foreach (var member in members.Where(static member => member.ComparisonComparerType is not null))
         {
             code.AppendIndent()
                 .Append("internal static readonly ")
@@ -135,9 +123,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
         {
             if (rebasePolicyBase is null)
             {
-                throw new System.InvalidOperationException(
-                    "A rebase policy base type is required to emit member rebase policies."
-                );
+                throw new System.InvalidOperationException("A rebase policy base type is required to emit member rebase policies.");
             }
 
             code.AppendIndent()
@@ -146,22 +132,14 @@ internal sealed class SparseFragmentDeclarationEmitter(
                 .Append("<")
                 .Append(member.Property.Type.Name)
                 .Append("> ")
-                .Append(
-                    rebasePolicyField is null
-                        ? RebasePolicyField(member)
-                        : rebasePolicyField(member)
-                )
+                .Append(rebasePolicyField is null ? RebasePolicyField(member) : rebasePolicyField(member))
                 .Append(" = new ")
                 .Append(member.RebasePolicyType!.Value.Name)
                 .AppendLine("();");
         }
     }
 
-    public void AppendBuilder(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        string accessibility = "public"
-    )
+    public void AppendBuilder(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string accessibility = "public")
     {
         code.CancellationToken.ThrowIfCancellationRequested();
         code.AppendLine("/// <summary>A mutable builder for a generated fragment.</summary>");
@@ -173,11 +151,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
             var field = "__sparse_builder_member_" + member.Id;
-            code.AppendLine(
-                "/// <summary>Gets a mutable reference to the staged value for '"
-                    + member.Property.Name
-                    + "'.</summary>"
-            );
+            code.AppendLine("/// <summary>Gets a mutable reference to the staged value for '" + member.Property.Name + "'.</summary>");
             code.AppendIndent()
                 .Append("public ref ")
                 .Append(Optional)

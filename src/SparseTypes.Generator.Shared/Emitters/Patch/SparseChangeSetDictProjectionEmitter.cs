@@ -17,8 +17,7 @@ internal static class SparseChangeSetDictProjectionEmitter
     {
         var code = target is null ? shell : target.ChangeSetOperations;
         var keyType = KeyTypeOf(member);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         // Sparse projection from canonical storage.
         if (target is null)
         {
@@ -26,12 +25,8 @@ internal static class SparseChangeSetDictProjectionEmitter
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Projects the typed dictionary transition from canonical sparse storage.</summary>"
-            );
-            code.AppendLine(
-                "internal static " + trans + " __SparseProject_" + member.Id + "(ChangeSet self)"
-            );
+            code.AppendLine("/// <summary>Projects the typed dictionary transition from canonical sparse storage.</summary>");
+            code.AppendLine("internal static " + trans + " __SparseProject_" + member.Id + "(ChangeSet self)");
         }
         code.OpenBlock();
         if (target is not null)
@@ -58,17 +53,7 @@ internal static class SparseChangeSetDictProjectionEmitter
             wholeBefore = "__SparseSnapshot_" + member.Id + "(" + wholeBefore + ")";
             wholeAfter = "__SparseSnapshot_" + member.Id + "(" + wholeAfter + ")";
         }
-        code.AppendLine(
-            "if ("
-                + KeyedWholeFlag(member)
-                + ") return __SparseBuild_"
-                + member.Id
-                + "("
-                + wholeBefore
-                + ", "
-                + wholeAfter
-                + ");"
-        );
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ") return __SparseBuild_" + member.Id + "(" + wholeBefore + ", " + wholeAfter + ");");
         // Granular: derive Added/Removed/Edited maps from stored items (no full
         // snapshots).
         AppendGranularReturn(code, member, trans, comparer);
@@ -76,11 +61,7 @@ internal static class SparseChangeSetDictProjectionEmitter
         var projectCall = target is null
             ? "__SparseProject_" + member.Id + "()"
             : target.ChangeSetOperationsType + ".__SparseProject_" + member.Id + "(this)";
-        shell.AppendLine(
-            "/// <summary>Gets the typed dictionary transition for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+        shell.AppendLine("/// <summary>Gets the typed dictionary transition for member '" + member.Property.Name + "'.</summary>");
         SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(shell, dialect.EmitJson);
         shell.AppendLine("public " + trans + " " + prop);
         shell.OpenBlock();
@@ -88,32 +69,19 @@ internal static class SparseChangeSetDictProjectionEmitter
         shell.OpenBlock();
         // Whole endpoints expose mutable container snapshots and must stay
         // independent.
-        shell.AppendLine(
-            "if (__sparse_hasWhole || " + KeyedWholeFlag(member) + ") return " + projectCall + ";"
-        );
+        shell.AppendLine("if (__sparse_hasWhole || " + KeyedWholeFlag(member) + ") return " + projectCall + ";");
         shell.AppendLine("return " + cacheName + " ?? (" + cacheName + " = " + projectCall + ");");
         shell.CloseBlock();
         shell.CloseBlock();
     }
 
-    private static void AppendGranularReturn(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        string comparer
-    )
+    private static void AppendGranularReturn(SharedIndentedBuilder code, SparseMemberModel member, string trans, string comparer)
     {
         var keyType = KeyTypeOf(member);
         var valueType = ValueTypeOf(member);
         var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
         var editedType = hasPatch ? ValueChangeSetOf(member) : valueType;
-        code.AppendLine(
-            "var __stored = "
-                + KeyedItems(member)
-                + " ?? new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>();"
-        );
+        code.AppendLine("var __stored = " + KeyedItems(member) + " ?? new global::System.Collections.Generic.List<" + trans + ".Item>();");
         code.AppendLine("int __addedCount = 0, __removedCount = 0, __editedCount = 0;");
         code.AppendLine(
             "foreach (var __it in __stored) { if (__it.IsAdded) __addedCount++; else if (__it.IsRemoved) __removedCount++; else if (__it.IsEdited) __editedCount++; }"
@@ -152,24 +120,12 @@ internal static class SparseChangeSetDictProjectionEmitter
             );
         }
 
-        code.AppendLine(
-            "return new "
-                + trans
-                + "(default, default, __added, __removed, __edited, __stored, false);"
-        );
+        code.AppendLine("return new " + trans + "(default, default, __added, __removed, __edited, __stored, false);");
     }
 
-    private static void AppendEmptyReturn(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        string comparer
-    )
+    private static void AppendEmptyReturn(SharedIndentedBuilder code, SparseMemberModel member, string trans, string comparer)
     {
-        var emptyEdited =
-            (member.Collection.ValueType?.IsFragmentModel == true)
-                ? ValueChangeSetOf(member)
-                : ValueTypeOf(member);
+        var emptyEdited = (member.Collection.ValueType?.IsFragmentModel == true) ? ValueChangeSetOf(member) : ValueTypeOf(member);
         code.AppendLine(
             "return new "
                 + trans

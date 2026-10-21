@@ -18,9 +18,7 @@ internal static class AppliedPathFactory
         {
             null => null,
             { Properties.Count: 1 } => entry.Property(key.Properties[0].Name).CurrentValue,
-            _ => key
-                .Properties.Select(property => entry.Property(property.Name).CurrentValue)
-                .ToArray(),
+            _ => key.Properties.Select(property => entry.Property(property.Name).CurrentValue).ToArray(),
         };
         return new SparseEntityAppliedPath(
             dtoPath,

@@ -1,8 +1,7 @@
 <Project>
   <PropertyGroup>
     <!-- Adds IsExternalInit for legacy reference assemblies. -->
-    <SparseTypesEmitIsExternalInit Condition="'$(SparseTypesEmitIsExternalInit)' == ''"
-      >true</SparseTypesEmitIsExternalInit>
+    <SparseTypesEmitIsExternalInit Condition="'$(SparseTypesEmitIsExternalInit)' == ''">true</SparseTypesEmitIsExternalInit>
   </PropertyGroup>
   <ItemGroup>
     <CompilerVisibleProperty Include="SparseTypesEmitIsExternalInit" />

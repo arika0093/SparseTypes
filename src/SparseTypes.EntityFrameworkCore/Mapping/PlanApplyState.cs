@@ -14,14 +14,7 @@ internal sealed class PlanApplyState
     private readonly List<SparseEntityAppliedPath>? _appliedPaths;
     private readonly Dictionary<object, Dictionary<object, string>>? _collectionScopeKeys;
 
-    public PlanApplyState(
-        DbContext context,
-        object entity,
-        EntityEntry entry,
-        ISparseChangeSet changes,
-        string path,
-        bool isNested = false
-    )
+    public PlanApplyState(DbContext context, object entity, EntityEntry entry, ISparseChangeSet changes, string path, bool isNested = false)
         : this(context, entity, entry, changes, path, isNested, null) { }
 
     public PlanApplyState(
@@ -85,8 +78,7 @@ internal sealed class PlanApplyState
     public List<SparseEntityAppliedPath>? AppliedPaths => _appliedPaths;
 
     /// <summary>Gets created-entity scope keys, when result tracking is enabled.</summary>
-    public Dictionary<object, Dictionary<object, string>>? CollectionScopeKeys =>
-        _collectionScopeKeys;
+    public Dictionary<object, Dictionary<object, string>>? CollectionScopeKeys => _collectionScopeKeys;
 
     /// <summary>Gets nested temporary-identity records keyed by parent scope.</summary>
     public Dictionary<object, NestedScopeTable>? NestedScopes { get; }
@@ -147,12 +139,7 @@ internal sealed class PlanApplyState
 
     /// <summary>Records a created child entity under its path-scoped temporary identity.</summary>
     /// <remarks>The legacy path-string bucket keeps its exact contents for compatible reads.</remarks>
-    public void RecordTemporary(
-        string path,
-        object collectionIdentity,
-        Guid temporaryKey,
-        object entity
-    )
+    public void RecordTemporary(string path, object collectionIdentity, Guid temporaryKey, object entity)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(entity);
@@ -169,10 +156,7 @@ internal sealed class PlanApplyState
 
         if (NestedScopes is null || ParentScope.IsEmpty)
         {
-            if (
-                scope.TryGetValue(temporaryKey, out var existing)
-                && !ReferenceEquals(existing, entity)
-            )
+            if (scope.TryGetValue(temporaryKey, out var existing) && !ReferenceEquals(existing, entity))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -239,8 +223,7 @@ internal sealed class PlanApplyState
     }
 
     /// <summary>Prefixes a DTO member with the current path for error messages.</summary>
-    public string DisplayPath(string dtoName) =>
-        string.IsNullOrEmpty(Path) ? dtoName : Path + "." + dtoName;
+    public string DisplayPath(string dtoName) => string.IsNullOrEmpty(Path) ? dtoName : Path + "." + dtoName;
 
     /// <summary>Attaches a pre-existing instance as unchanged without querying.</summary>
     public static EntityEntry AttachSingle(DbContext context, object entity)
@@ -258,11 +241,7 @@ internal sealed class PlanApplyState
 
     /// <summary>Returns a validation-safe entry without attaching, queuing the attach first.</summary>
     /// <remarks>Preflight keeps entries detached until writes run.</remarks>
-    public static EntityEntry ValidationEntry(
-        DbContext context,
-        object entity,
-        List<Action> actions
-    )
+    public static EntityEntry ValidationEntry(DbContext context, object entity, List<Action> actions)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(entity);
@@ -271,11 +250,7 @@ internal sealed class PlanApplyState
         return context.Entry(entity);
     }
 
-    private static Dictionary<string, List<SparseChangeRecord>> Group(
-        ISparseChangeSet changes,
-        string path,
-        bool isNested
-    )
+    private static Dictionary<string, List<SparseChangeRecord>> Group(ISparseChangeSet changes, string path, bool isNested)
     {
         var groups = new Dictionary<string, List<SparseChangeRecord>>(StringComparer.Ordinal);
         foreach (var record in changes.EnumerateChangeRecords())

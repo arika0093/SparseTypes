@@ -80,9 +80,7 @@ internal static class CollectionState
         where TDtoChild : class
         where TEntityChild : class
     {
-        var current = CollectionEntryAccess
-            .Read(context, parent, runtime.NavigationName)
-            .CurrentValue;
+        var current = CollectionEntryAccess.Read(context, parent, runtime.NavigationName).CurrentValue;
         if (current is IList list)
         {
             return list;

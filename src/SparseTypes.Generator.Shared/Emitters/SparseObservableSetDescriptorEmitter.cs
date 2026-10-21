@@ -7,11 +7,7 @@ internal static class SparseObservableSetDescriptorEmitter
 {
     /// <summary>Emits a set descriptor for HashSet/ISet/IReadOnlySet shapes.</summary>
     /// <remarks>Reads stay live over the backing set so membership honors its comparer.</remarks>
-    internal static string SetAccessor(
-        SparseMemberModel member,
-        SparseDescriptorDialect dialect,
-        SparseDescriptorEmissionContext context
-    )
+    internal static string SetAccessor(SparseMemberModel member, SparseDescriptorDialect dialect, SparseDescriptorEmissionContext context)
     {
         if (member.Property.Name == "PropertyChanged")
         {
@@ -33,26 +29,10 @@ internal static class SparseObservableSetDescriptorEmitter
         var itemType = element.Name;
         var readOnlyDeclared = member.Property.Type.NonNullableName.Contains("IReadOnlySet<");
         var hasProxy = element.IsFragmentModel && element.IsReferenceType;
-        var proxyType = hasProxy
-            ? element.NonNullableName + "." + (element.ObservableTypeName ?? "Observable")
-            : null;
+        var proxyType = hasProxy ? element.NonNullableName + "." + (element.ObservableTypeName ?? "Observable") : null;
         var isNullable = SparseObservableDescriptorEmitter.IsNullable(itemType);
-        var containsConversion = SparseObservableDescriptorEmitter.ValueConversion(
-            "item",
-            itemType,
-            "typedItem",
-            proxyType,
-            isNullable,
-            dialect
-        );
-        var mutateConversion = SparseObservableDescriptorEmitter.ValueConversion(
-            "value",
-            itemType,
-            "typedItem",
-            proxyType,
-            isNullable,
-            dialect
-        );
+        var containsConversion = SparseObservableDescriptorEmitter.ValueConversion("item", itemType, "typedItem", proxyType, isNullable, dialect);
+        var mutateConversion = SparseObservableDescriptorEmitter.ValueConversion("value", itemType, "typedItem", proxyType, isNullable, dialect);
         var notify =
             context.Member("__Raise")
             + "("
@@ -83,12 +63,7 @@ internal static class SparseObservableSetDescriptorEmitter
         {
             readOnlyLocals = "if (edit is null) return null; ";
             count = "() => edit.Count";
-            contains =
-                "item => { "
-                + itemType
-                + " typedItem; "
-                + containsConversion
-                + "return edit.Contains(typedItem); }";
+            contains = "item => { " + itemType + " typedItem; " + containsConversion + "return edit.Contains(typedItem); }";
         }
 
         return "() => { var current = "

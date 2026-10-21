@@ -47,11 +47,9 @@ public sealed class SparseField<TModel, TValue> : ComponentBase, IDisposable
         var scope =
             Scope
             ?? throw new InvalidOperationException(
-                "SparseField must be placed inside a SparseEdit for the same model type; "
-                    + "no edit scope was cascaded."
+                "SparseField must be placed inside a SparseEdit for the same model type; " + "no edit scope was cascaded."
             );
-        var path =
-            Path ?? throw new InvalidOperationException("SparseField requires a Path parameter.");
+        var path = Path ?? throw new InvalidOperationException("SparseField requires a Path parameter.");
         var session = scope.Session;
         var editContext = scope.EditContext;
         var untyped = path.UntypedPath;
@@ -92,22 +90,12 @@ public sealed class SparseField<TModel, TValue> : ComponentBase, IDisposable
     {
         if (SessionScopeContext?.OwnsSession(session) == true)
         {
-            return SessionScopeContext.TryFieldState(
-                _binding!.TypedPath.UntypedPath,
-                out state,
-                out error
-            );
+            return SessionScopeContext.TryFieldState(_binding!.TypedPath.UntypedPath, out state, out error);
         }
 
-        if (
-            scope is ISparseStateSnapshotScope snapshotScope
-            && SparseSessionInterop.HasStateSnapshot(session)
-        )
+        if (scope is ISparseStateSnapshotScope snapshotScope && SparseSessionInterop.HasStateSnapshot(session))
         {
-            if (
-                !snapshotScope.TryGetStateSnapshot(out var snapshot, out var snapshotError)
-                || snapshot is null
-            )
+            if (!snapshotScope.TryGetStateSnapshot(out var snapshot, out var snapshotError) || snapshot is null)
             {
                 state = default;
                 error = snapshotError;
@@ -128,12 +116,7 @@ public sealed class SparseField<TModel, TValue> : ComponentBase, IDisposable
             }
         }
 
-        return SparseSessionInterop.TryFieldState(
-            session,
-            _binding!.TypedPath,
-            out state,
-            out error
-        );
+        return SparseSessionInterop.TryFieldState(session, _binding!.TypedPath, out state, out error);
     }
 
     /// <inheritdoc />

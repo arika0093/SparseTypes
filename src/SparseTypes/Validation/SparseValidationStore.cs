@@ -79,11 +79,8 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     /// <param name="origin">The origin to replace; other origins at the path stay intact.</param>
     /// <param name="errors">The replacement messages or objects; empty clears that origin at the path.</param>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
-    public void SetErrors<TValue>(
-        SparsePath<TModel, TValue> path,
-        string origin,
-        IEnumerable<object?> errors
-    ) => SetErrors(path.Path, origin, errors);
+    public void SetErrors<TValue>(SparsePath<TModel, TValue> path, string origin, IEnumerable<object?> errors) =>
+        SetErrors(path.Path, origin, errors);
 
     /// <summary>Replaces the errors recorded at a descriptor path for one origin.</summary>
     /// <param name="descriptor">The descriptor whose path is recorded at; its Attributes stay for the caller to interpret.</param>
@@ -110,8 +107,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     /// <param name="origin">The origin to replace; other origins at the path stay intact.</param>
     /// <param name="message">The message to record.</param>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
-    public void SetErrors<TValue>(SparsePath<TModel, TValue> path, string origin, string message) =>
-        SetErrors(path.Path, origin, message);
+    public void SetErrors<TValue>(SparsePath<TModel, TValue> path, string origin, string message) => SetErrors(path.Path, origin, message);
 
     /// <summary>Records one message at a descriptor path for one origin, replacing that origin.</summary>
     /// <param name="descriptor">The descriptor whose path is recorded at; its Attributes stay for the caller to interpret.</param>
@@ -159,8 +155,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     /// <param name="path">The typed path to clear.</param>
     /// <param name="origin">The origin to clear, or null for every origin at the path.</param>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
-    public void ClearErrors<TValue>(SparsePath<TModel, TValue> path, string? origin = null) =>
-        ClearErrors(path.Path, origin);
+    public void ClearErrors<TValue>(SparsePath<TModel, TValue> path, string? origin = null) => ClearErrors(path.Path, origin);
 
     /// <summary>Clears errors at a descriptor path, optionally for one origin only.</summary>
     /// <param name="descriptor">The descriptor whose path is cleared.</param>
@@ -220,10 +215,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     /// <param name="conflicts">The conflicts to surface; every entry is stored, none dropped.</param>
     /// <param name="options">The origin, replace-first, and message policy; null keeps defaults.</param>
     /// <returns>The number of messages added.</returns>
-    public int AddConflicts(
-        IEnumerable<SparseConflict> conflicts,
-        SparseValidationConflictOptions? options = null
-    )
+    public int AddConflicts(IEnumerable<SparseConflict> conflicts, SparseValidationConflictOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(conflicts);
         options ??= new SparseValidationConflictOptions();
@@ -267,10 +259,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             {
                 foreach (var path in SortedPathsLocked())
                 {
-                    if (
-                        !_buckets.TryGetValue(path, out var origins)
-                        || !origins.ContainsKey(options.Origin)
-                    )
+                    if (!_buckets.TryGetValue(path, out var origins) || !origins.ContainsKey(options.Origin))
                     {
                         continue;
                     }
@@ -307,11 +296,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             for (var index = 0; index < groups.Count; index++)
             {
                 var group = groups[index];
-                sink.AppendChangedChain(
-                    group.Path,
-                    beforeByPath[group.Path],
-                    GetExactErrorsLocked(group.Path)
-                );
+                sink.AppendChangedChain(group.Path, beforeByPath[group.Path], GetExactErrorsLocked(group.Path));
             }
 
             foreach (var path in replacedOnlyPaths)
@@ -352,10 +337,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         {
             ThrowIfDisposed();
             var result = new List<object?>();
-            foreach (
-                var stored in SortedPathsLocked()
-                    .Where(stored => stored.Equals(path) || stored.StartsWith(path))
-            )
+            foreach (var stored in SortedPathsLocked().Where(stored => stored.Equals(path) || stored.StartsWith(path)))
             {
                 result.AddRange(GetExactErrorsLocked(stored));
             }
@@ -368,8 +350,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     /// <param name="path">The typed path to inspect, including its descendants.</param>
     /// <returns>The merged errors in path-text then origin order; errors keep call order.</returns>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
-    public IReadOnlyList<object?> GetPathErrors<TValue>(SparsePath<TModel, TValue> path) =>
-        GetPathErrors(path.Path);
+    public IReadOnlyList<object?> GetPathErrors<TValue>(SparsePath<TModel, TValue> path) => GetPathErrors(path.Path);
 
     /// <summary>Gets every stored error with its path and origin.</summary>
     /// <returns>The snapshot entries in path-text then origin order; errors keep call order.</returns>
@@ -427,11 +408,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             var result = new List<object?>();
             foreach (var path in SortedPathsLocked())
             {
-                if (
-                    path.Equals(query)
-                    || path.StartsWith(query)
-                    || (path.RootType == typeof(TModel) && PathTextMatches(path, propertyName))
-                )
+                if (path.Equals(query) || path.StartsWith(query) || (path.RootType == typeof(TModel) && PathTextMatches(path, propertyName)))
                 {
                     result.AddRange(GetExactErrorsLocked(path));
                 }
@@ -475,10 +452,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         {
             if (error is null)
             {
-                throw new ArgumentException(
-                    "Validation errors must not contain null entries.",
-                    nameof(errors)
-                );
+                throw new ArgumentException("Validation errors must not contain null entries.", nameof(errors));
             }
 
             materialized.Add(error);
@@ -522,10 +496,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
 
     private void RemoveBucketLocked(SparsePath path, string origin)
     {
-        if (
-            _buckets.TryGetValue(path, out var origins)
-            && origins.TryGetValue(origin, out var bucket)
-        )
+        if (_buckets.TryGetValue(path, out var origins) && origins.TryGetValue(origin, out var bucket))
         {
             origins.Remove(origin);
             _totalCount -= bucket.Count;
@@ -698,10 +669,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             || text.StartsWith(propertyName + "[", StringComparison.Ordinal);
     }
 
-    private void Raise(
-        List<string> notifications,
-        EventHandler<DataErrorsChangedEventArgs>? handler
-    )
+    private void Raise(List<string> notifications, EventHandler<DataErrorsChangedEventArgs>? handler)
     {
         if (handler is null)
         {

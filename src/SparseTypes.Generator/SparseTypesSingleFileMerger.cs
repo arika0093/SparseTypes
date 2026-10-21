@@ -30,9 +30,7 @@ internal static class SparseTypesSingleFileMerger
 
         // Bodies stay slices of their original sources; only the small
         // header lines needed for deduplication are materialized.
-        var bodies = new System.Collections.Generic.List<(string Source, int Start, int Length)>(
-            additional.Length
-        );
+        var bodies = new System.Collections.Generic.List<(string Source, int Start, int Length)>(additional.Length);
         var retainedLength = (surface.Length - bodyStart) + headerLength;
         for (var index = 0; index < additional.Length; index++)
         {
@@ -40,13 +38,7 @@ internal static class SparseTypesSingleFileMerger
             SplitFileHeader(extraSource, out var extraHeaderLength, out var extraBodyStart);
             foreach (var line in EnumerateSplitLines(extraSource, 0, extraHeaderLength))
             {
-                if (
-                    seen.Add(line)
-                    && (
-                        line.StartsWith("using ", StringComparison.Ordinal)
-                        || line.StartsWith("#pragma", StringComparison.Ordinal)
-                    )
-                )
+                if (seen.Add(line) && (line.StartsWith("using ", StringComparison.Ordinal) || line.StartsWith("#pragma", StringComparison.Ordinal)))
                 {
                     hoisted.Add(line);
                     retainedLength += line.Length + 2;
@@ -61,8 +53,7 @@ internal static class SparseTypesSingleFileMerger
         var builder = new StringBuilder(retainedLength);
         // An empty surface previously split into one blank header line, so
         // its header materialized as a single newline rather than empty.
-        var headerEndsWithLineFeed =
-            surface.Length == 0 || EndsWithLineFeed(surface, 0, headerLength);
+        var headerEndsWithLineFeed = surface.Length == 0 || EndsWithLineFeed(surface, 0, headerLength);
         if (surface.Length == 0)
         {
             builder.Append('\n');
@@ -173,12 +164,7 @@ internal static class SparseTypesSingleFileMerger
 
     // Skips a stale leading auto-generated comment plus nullable directive
     // left at the top of an extracted body, scanning only that small prefix.
-    private static void StripLeadingHeader(
-        string source,
-        int bodyStart,
-        out int start,
-        out int length
-    )
+    private static void StripLeadingHeader(string source, int bodyStart, out int start, out int length)
     {
         start = bodyStart;
         var skippedAuto = false;
@@ -234,10 +220,7 @@ internal static class SparseTypesSingleFileMerger
             return StrippableLine.Comment;
         }
 
-        if (
-            trimmedLength >= "#nullable".Length
-            && StartsWithAt(source, start, trimmedLength, "#nullable")
-        )
+        if (trimmedLength >= "#nullable".Length && StartsWithAt(source, start, trimmedLength, "#nullable"))
         {
             return StrippableLine.Nullable;
         }
@@ -247,11 +230,7 @@ internal static class SparseTypesSingleFileMerger
 
     // Enumerates non-empty lines exactly like text.Split('\r', '\n',
     // RemoveEmptyEntries) but materializes only the requested slice range.
-    private static System.Collections.Generic.IEnumerable<string> EnumerateSplitLines(
-        string text,
-        int start,
-        int length
-    )
+    private static System.Collections.Generic.IEnumerable<string> EnumerateSplitLines(string text, int start, int length)
     {
         var end = start + length;
         var offset = start;
@@ -281,6 +260,5 @@ internal static class SparseTypesSingleFileMerger
         }
     }
 
-    private static bool EndsWithLineFeed(string text, int start, int length) =>
-        length > 0 && text[start + length - 1] == '\n';
+    private static bool EndsWithLineFeed(string text, int start, int length) => length > 0 && text[start + length - 1] == '\n';
 }

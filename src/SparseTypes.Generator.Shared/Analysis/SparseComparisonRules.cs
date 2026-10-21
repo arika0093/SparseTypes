@@ -9,24 +9,14 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class SparseComparisonRules
 {
-    public static SparseComparisonRuleSet CreateRuleSet(
-        INamedTypeSymbol model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static SparseComparisonRuleSet CreateRuleSet(INamedTypeSymbol model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var attributeName = config.ComparisonAttributeMetadataName;
         if (attributeName is null)
         {
-            return new SparseComparisonRuleSet(
-                new Dictionary<ITypeSymbol, INamedTypeSymbol?>(SymbolEqualityComparer.Default)
-            );
+            return new SparseComparisonRuleSet(new Dictionary<ITypeSymbol, INamedTypeSymbol?>(SymbolEqualityComparer.Default));
         }
-        var index = SparseComparisonIndex.ForAssembly(
-            model.ContainingAssembly,
-            config,
-            cancellationToken
-        );
+        var index = SparseComparisonIndex.ForAssembly(model.ContainingAssembly, config, cancellationToken);
         if (!index.HasComparisonRules)
         {
             return BuildDirectRuleSet(model, attributeName, cancellationToken);
@@ -40,29 +30,11 @@ internal static class SparseComparisonRules
         return index.CacheRuleSet(model, rules);
     }
 
-    private static SparseComparisonRuleSet BuildDirectRuleSet(
-        INamedTypeSymbol model,
-        string attributeName,
-        CancellationToken cancellationToken
-    )
+    private static SparseComparisonRuleSet BuildDirectRuleSet(INamedTypeSymbol model, string attributeName, CancellationToken cancellationToken)
     {
-        var comparerTypes = new Dictionary<ITypeSymbol, INamedTypeSymbol?>(
-            SymbolEqualityComparer.Default
-        );
-        AddRules(
-            comparerTypes,
-            model.GetAttributes(),
-            attributeName,
-            cancellationToken,
-            overwrite: false
-        );
-        AddRules(
-            comparerTypes,
-            model.ContainingAssembly.GetAttributes(),
-            attributeName,
-            cancellationToken,
-            overwrite: false
-        );
+        var comparerTypes = new Dictionary<ITypeSymbol, INamedTypeSymbol?>(SymbolEqualityComparer.Default);
+        AddRules(comparerTypes, model.GetAttributes(), attributeName, cancellationToken, overwrite: false);
+        AddRules(comparerTypes, model.ContainingAssembly.GetAttributes(), attributeName, cancellationToken, overwrite: false);
         return new SparseComparisonRuleSet(comparerTypes);
     }
 
@@ -73,16 +45,8 @@ internal static class SparseComparisonRules
         CancellationToken cancellationToken
     )
     {
-        var comparerTypes = new Dictionary<ITypeSymbol, INamedTypeSymbol?>(
-            SymbolEqualityComparer.Default
-        );
-        AddRules(
-            comparerTypes,
-            model.GetAttributes(),
-            attributeName,
-            cancellationToken,
-            overwrite: false
-        );
+        var comparerTypes = new Dictionary<ITypeSymbol, INamedTypeSymbol?>(SymbolEqualityComparer.Default);
+        AddRules(comparerTypes, model.GetAttributes(), attributeName, cancellationToken, overwrite: false);
 
         // The index deduplicates candidate types once, avoiding a scan of every
         // root's attributes when local rules already cover those types.
@@ -90,21 +54,12 @@ internal static class SparseComparisonRules
         {
             var parentRoots = index
                 .Roots.Select((root, ordinal) => (root, ordinal))
-                .Where(candidate =>
-                    !SymbolEqualityComparer.Default.Equals(candidate.root, model)
-                    && index.ReferencesModel(candidate.ordinal, model)
-                )
+                .Where(candidate => !SymbolEqualityComparer.Default.Equals(candidate.root, model) && index.ReferencesModel(candidate.ordinal, model))
                 .Select(static candidate => candidate.root)
                 .ToArray();
             AddInheritedRules(comparerTypes, parentRoots, attributeName, cancellationToken);
         }
-        AddRules(
-            comparerTypes,
-            model.ContainingAssembly.GetAttributes(),
-            attributeName,
-            cancellationToken,
-            overwrite: false
-        );
+        AddRules(comparerTypes, model.ContainingAssembly.GetAttributes(), attributeName, cancellationToken, overwrite: false);
         return new SparseComparisonRuleSet(comparerTypes);
     }
 
@@ -128,8 +83,7 @@ internal static class SparseComparisonRules
                 cancellationToken.ThrowIfCancellationRequested();
                 if (
                     MatchesAttribute(attribute.AttributeClass, attributeName)
-                    && attribute.ConstructorArguments.FirstOrDefault().Value
-                        is ITypeSymbol valueType
+                    && attribute.ConstructorArguments.FirstOrDefault().Value is ITypeSymbol valueType
                 )
                 {
                     candidateTypes.Add(valueType);
@@ -149,20 +103,9 @@ internal static class SparseComparisonRules
             var allRootsHaveSameRule = true;
             foreach (var root in parentRoots)
             {
-                var rule = FindRule(
-                    root.GetAttributes(),
-                    attributeName,
-                    valueType,
-                    cancellationToken
-                );
+                var rule = FindRule(root.GetAttributes(), attributeName, valueType, cancellationToken);
                 var comparer = rule is null ? null : ComparerType(rule);
-                if (
-                    comparer is null
-                    || (
-                        commonComparer is not null
-                        && !SymbolEqualityComparer.Default.Equals(commonComparer, comparer)
-                    )
-                )
+                if (comparer is null || (commonComparer is not null && !SymbolEqualityComparer.Default.Equals(commonComparer, comparer)))
                 {
                     allRootsHaveSameRule = false;
                     break;
@@ -211,10 +154,7 @@ internal static class SparseComparisonRules
         {
             return false;
         }
-        var simpleClass =
-            attributeType.TypeKind == TypeKind.Class
-            && attributeType.Arity == 0
-            && attributeType.SpecialType == SpecialType.None;
+        var simpleClass = attributeType.TypeKind == TypeKind.Class && attributeType.Arity == 0 && attributeType.SpecialType == SpecialType.None;
         if (
             simpleClass
             && attributeType.NullableAnnotation != NullableAnnotation.Annotated
@@ -250,13 +190,10 @@ internal static class SparseComparisonRules
         return null;
     }
 
-    private static INamedTypeSymbol? ComparerType(AttributeData attribute) =>
-        attribute.ConstructorArguments[1].Value as INamedTypeSymbol;
+    private static INamedTypeSymbol? ComparerType(AttributeData attribute) => attribute.ConstructorArguments[1].Value as INamedTypeSymbol;
 }
 
-internal sealed class SparseComparisonRuleSet(
-    Dictionary<ITypeSymbol, INamedTypeSymbol?> comparerTypes
-)
+internal sealed class SparseComparisonRuleSet(Dictionary<ITypeSymbol, INamedTypeSymbol?> comparerTypes)
 {
     public bool TryGetComparerType(ITypeSymbol valueType, out INamedTypeSymbol? comparerType) =>
         comparerTypes.TryGetValue(valueType, out comparerType);

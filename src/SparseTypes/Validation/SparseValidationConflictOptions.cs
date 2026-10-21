@@ -28,8 +28,7 @@ public sealed record SparseValidationConflictOptions
             return MessageFactory(conflict);
         }
 
-        var message =
-            $"Conflict at '{conflict.PathText}' ({conflict.Kind}): the server kept a newer value.";
+        var message = $"Conflict at '{conflict.PathText}' ({conflict.Kind}): the server kept a newer value.";
         return string.IsNullOrEmpty(conflict.Reason) ? message : $"{message} {conflict.Reason}";
     }
 }

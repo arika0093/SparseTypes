@@ -10,11 +10,7 @@ namespace SparseTypes.Generator.CodeFixes;
 /// <summary>Fixes targeting type declarations (partial, abstract, constructors).</summary>
 internal static class SparseTypeDeclarationFixes
 {
-    public static bool TryFindTypeDeclaration(
-        SyntaxNode root,
-        Diagnostic diagnostic,
-        out TypeDeclarationSyntax? declaration
-    )
+    public static bool TryFindTypeDeclaration(SyntaxNode root, Diagnostic diagnostic, out TypeDeclarationSyntax? declaration)
     {
         declaration = null;
         if (diagnostic.Location.SourceTree is null)
@@ -23,39 +19,24 @@ internal static class SparseTypeDeclarationFixes
         }
 
         var token = root.FindToken(diagnostic.Location.SourceSpan.Start);
-        declaration = token
-            .Parent?.AncestorsAndSelf()
-            .OfType<TypeDeclarationSyntax>()
-            .FirstOrDefault();
+        declaration = token.Parent?.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().FirstOrDefault();
         return declaration is not null;
     }
 
-    public static async Task<Document> AddPartialAsync(
-        Document document,
-        TypeDeclarationSyntax declaration,
-        CancellationToken cancellationToken
-    )
+    public static async Task<Document> AddPartialAsync(Document document, TypeDeclarationSyntax declaration, CancellationToken cancellationToken)
     {
         if (declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
         {
             return document;
         }
 
-        var partialToken = SyntaxFactory
-            .Token(SyntaxKind.PartialKeyword)
-            .WithTrailingTrivia(SyntaxFactory.Space);
+        var partialToken = SyntaxFactory.Token(SyntaxKind.PartialKeyword).WithTrailingTrivia(SyntaxFactory.Space);
         var updated = declaration.AddModifiers(partialToken);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
     }
 
-    public static async Task<Document> AddPartialToChainAsync(
-        Document document,
-        TypeDeclarationSyntax mapper,
-        CancellationToken cancellationToken
-    )
+    public static async Task<Document> AddPartialToChainAsync(Document document, TypeDeclarationSyntax mapper, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null)
@@ -67,14 +48,9 @@ internal static class SparseTypeDeclarationFixes
         var current = (SyntaxNode?)mapper;
         while (current is not null)
         {
-            if (
-                current is TypeDeclarationSyntax declaration
-                && !declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
-            )
+            if (current is TypeDeclarationSyntax declaration && !declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
             {
-                var partialToken = SyntaxFactory
-                    .Token(SyntaxKind.PartialKeyword)
-                    .WithTrailingTrivia(SyntaxFactory.Space);
+                var partialToken = SyntaxFactory.Token(SyntaxKind.PartialKeyword).WithTrailingTrivia(SyntaxFactory.Space);
                 updated = updated.ReplaceNode(declaration, declaration.AddModifiers(partialToken));
             }
 
@@ -84,15 +60,9 @@ internal static class SparseTypeDeclarationFixes
         return document.WithSyntaxRoot(updated);
     }
 
-    public static async Task<Document> RemoveAbstractAsync(
-        Document document,
-        TypeDeclarationSyntax declaration,
-        CancellationToken cancellationToken
-    )
+    public static async Task<Document> RemoveAbstractAsync(Document document, TypeDeclarationSyntax declaration, CancellationToken cancellationToken)
     {
-        var abstractToken = declaration.Modifiers.FirstOrDefault(static modifier =>
-            modifier.IsKind(SyntaxKind.AbstractKeyword)
-        );
+        var abstractToken = declaration.Modifiers.FirstOrDefault(static modifier => modifier.IsKind(SyntaxKind.AbstractKeyword));
         if (abstractToken == default)
         {
             return document;
@@ -104,16 +74,10 @@ internal static class SparseTypeDeclarationFixes
         }
 
         var updated = declaration.WithModifiers(
-            SyntaxFactory.TokenList(
-                declaration.Modifiers.Where(static modifier =>
-                    !modifier.IsKind(SyntaxKind.AbstractKeyword)
-                )
-            )
+            SyntaxFactory.TokenList(declaration.Modifiers.Where(static modifier => !modifier.IsKind(SyntaxKind.AbstractKeyword)))
         );
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
     }
 
     public static async Task<Document> AddParameterlessConstructorAsync(
@@ -127,11 +91,7 @@ internal static class SparseTypeDeclarationFixes
             return document;
         }
 
-        if (
-            declaration
-                .Members.OfType<ConstructorDeclarationSyntax>()
-                .Any(static ctor => ctor.ParameterList.Parameters.Count == 0)
-        )
+        if (declaration.Members.OfType<ConstructorDeclarationSyntax>().Any(static ctor => ctor.ParameterList.Parameters.Count == 0))
         {
             return document;
         }
@@ -148,18 +108,12 @@ internal static class SparseTypeDeclarationFixes
             .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.LineFeed));
         if (hasRequiredMembers)
         {
-            var setsRequired = SyntaxFactory.Attribute(
-                SyntaxFactory.ParseName("System.Diagnostics.CodeAnalysis.SetsRequiredMembers")
-            );
-            ctor = ctor.AddAttributeLists(
-                SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(setsRequired))
-            );
+            var setsRequired = SyntaxFactory.Attribute(SyntaxFactory.ParseName("System.Diagnostics.CodeAnalysis.SetsRequiredMembers"));
+            ctor = ctor.AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(setsRequired)));
         }
 
         var updated = declaration.AddMembers(ctor);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(declaration, updated));
     }
 }

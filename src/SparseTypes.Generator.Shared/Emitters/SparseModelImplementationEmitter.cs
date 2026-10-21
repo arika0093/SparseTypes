@@ -25,28 +25,14 @@ internal static class SparseModelImplementationEmitter
     )
     {
         using var innerBuilder = new SharedIndentedBuilder(cancellationToken);
-        SparseObservableEmitter.AppendObservable(
-            innerBuilder,
-            model.ModelTypeName,
-            members,
-            runtimeNamespace,
-            descriptorDialect
-        );
+        SparseObservableEmitter.AppendObservable(innerBuilder, model.ModelTypeName, members, runtimeNamespace, descriptorDialect);
         var inner = innerBuilder.ToString();
-        if (
-            descriptorDialect is null
-            && config.DescriptorDialect is { } configured
-            && config.EffectiveEmissionFeatures.EmitObservable
-        )
+        if (descriptorDialect is null && config.DescriptorDialect is { } configured && config.EffectiveEmissionFeatures.EmitObservable)
         {
             // Thin bridge keeps child "$proxy.__SparseGet_X(path)" call sites
             // working after the graph moves to DescriptorFactory.
             var accessor = SparseObservableDescriptorEmitter.AccessorName(model.ModelTypeName);
-            var factoryRef = SparseGeneratedPlacement.GetDescriptorFactoryReference(
-                model,
-                config,
-                cancellationToken
-            );
+            var factoryRef = SparseGeneratedPlacement.GetDescriptorFactoryReference(model, config, cancellationToken);
             var bridge =
                 "    internal "
                 + configured.DescriptorSetInterface
@@ -61,10 +47,7 @@ internal static class SparseModelImplementationEmitter
             var privateIndex = inner.IndexOf(privateMarker, System.StringComparison.Ordinal);
             if (privateIndex >= 0)
             {
-                inner =
-                    inner.Substring(0, privateIndex + 1)
-                    + bridge
-                    + inner.Substring(privateIndex + 1);
+                inner = inner.Substring(0, privateIndex + 1) + bridge + inner.Substring(privateIndex + 1);
             }
             else
             {
@@ -78,10 +61,7 @@ internal static class SparseModelImplementationEmitter
         }
 
         var source = WrapInModel(model, inner, cancellationToken);
-        return new SparseGeneratedSource(
-            SparseGeneratedPlacement.ObservableHintName(model, cancellationToken),
-            source
-        );
+        return new SparseGeneratedSource(SparseGeneratedPlacement.ObservableHintName(model, cancellationToken), source);
     }
 
     /// <summary>Builds the model-nested read-only-view implementation source.</summary>
@@ -102,20 +82,11 @@ internal static class SparseModelImplementationEmitter
     )
     {
         using var innerBuilder = new SharedIndentedBuilder(cancellationToken);
-        SparseReadOnlyViewEmitter.AppendReadOnlyView(
-            innerBuilder,
-            model.ModelTypeName,
-            members,
-            readOnlyViewModels,
-            implementationNamespace
-        );
+        SparseReadOnlyViewEmitter.AppendReadOnlyView(innerBuilder, model.ModelTypeName, members, readOnlyViewModels, implementationNamespace);
         _ = readOnlyViewModels;
         var inner = innerBuilder.ToString();
         var source = WrapInModel(model, inner, cancellationToken);
-        return new SparseGeneratedSource(
-            SparseGeneratedPlacement.ReadOnlyViewHintName(model, cancellationToken),
-            source
-        );
+        return new SparseGeneratedSource(SparseGeneratedPlacement.ReadOnlyViewHintName(model, cancellationToken), source);
     }
 
     /// <summary>Builds the model-nested per-model edit-session implementation source.</summary>
@@ -134,39 +105,15 @@ internal static class SparseModelImplementationEmitter
         var family = config.EffectiveFamilyNames;
         var observableSimple = SparseObservableEmitter.ObservableTypeName(members, family);
         var readOnlySimple = SparseReadOnlyViewEmitter.ReadOnlyViewTypeName(members, family);
-        var observableRef = SparseGeneratedPlacement.GetObservableReference(
-            model,
-            observableSimple,
-            config,
-            cancellationToken
-        );
-        var readOnlyRef = SparseGeneratedPlacement.GetReadOnlyViewReference(
-            model,
-            readOnlySimple,
-            config,
-            cancellationToken
-        );
+        var observableRef = SparseGeneratedPlacement.GetObservableReference(model, observableSimple, config, cancellationToken);
+        var readOnlyRef = SparseGeneratedPlacement.GetReadOnlyViewReference(model, readOnlySimple, config, cancellationToken);
         using var code = new SharedIndentedBuilder(cancellationToken);
-        SparseRelocatedEditSessionCore.Append(
-            code,
-            model,
-            members,
-            config,
-            observableRef,
-            readOnlyRef
-        );
+        SparseRelocatedEditSessionCore.Append(code, model, members, config, observableRef, readOnlyRef);
         var source = WrapInModel(model, code.ToString(), cancellationToken);
-        return new SparseGeneratedSource(
-            SparseGeneratedPlacement.EditSessionHintName(model, cancellationToken),
-            source
-        );
+        return new SparseGeneratedSource(SparseGeneratedPlacement.EditSessionHintName(model, cancellationToken), source);
     }
 
-    private static string WrapInModel(
-        SparseModelInfo model,
-        string inner,
-        CancellationToken cancellationToken
-    )
+    private static string WrapInModel(SparseModelInfo model, string inner, CancellationToken cancellationToken)
     {
         // Mirrors the surface declaration keyword so the nested UI types land
         // in the annotated model partial (records/structs included).
@@ -174,8 +121,7 @@ internal static class SparseModelImplementationEmitter
         string keyword;
         if (model.IsStruct)
         {
-            keyword =
-                accessibility + (model.IsRecord ? "partial record struct " : "partial struct ");
+            keyword = accessibility + (model.IsRecord ? "partial record struct " : "partial struct ");
         }
         else
         {

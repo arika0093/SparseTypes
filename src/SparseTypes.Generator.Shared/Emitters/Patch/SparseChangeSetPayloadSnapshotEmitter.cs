@@ -27,12 +27,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
             if (SparseChangeSetBasicsEmitter.IsNested(member))
             {
                 var childModelType = member.ChildModel!.Value.NonNullableName;
-                var childRoot = SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
-                    dialect,
-                    childModelType,
-                    "Root",
-                    implementationNamespace
-                );
+                var childRoot = SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(dialect, childModelType, "Root", implementationNamespace);
                 var childCall = redactFlagged
                     ? childRoot + ".FromFragment(member" + member.Id + ".Value!, " + redact + ")"
                     : childRoot + ".FromFragment(member" + member.Id + ".Value!)";
@@ -45,29 +40,13 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                         + "<"
                         + childRoot
                         + "?>.Redacted() : "
-                        + SnapshotValueExpression(
-                            endpoint,
-                            runtime,
-                            childRoot + "?",
-                            "member" + member.Id,
-                            childCall
-                        )
-                    : SnapshotValueExpression(
-                        endpoint,
-                        runtime,
-                        childRoot + "?",
-                        "member" + member.Id,
-                        childCall
-                    );
+                        + SnapshotValueExpression(endpoint, runtime, childRoot + "?", "member" + member.Id, childCall)
+                    : SnapshotValueExpression(endpoint, runtime, childRoot + "?", "member" + member.Id, childCall);
                 code.AppendLine(
                     "if (member"
                         + member.Id
                         + ".IsPresent) result.Members.Add(new "
-                        + SparseChangeSetPayloadEmitter.PayloadMemberName(
-                            modelType,
-                            "Change",
-                            member.Id
-                        )
+                        + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", member.Id)
                         + " { Value = "
                         + valueExpression
                         + " });"
@@ -95,11 +74,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                     "if (value."
                         + property
                         + ".IsPresent) result.Members.Add(new "
-                        + SparseChangeSetPayloadEmitter.PayloadMemberName(
-                            modelType,
-                            "Change",
-                            member.Id
-                        )
+                        + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", member.Id)
                         + " { Value = "
                         + valueExpression
                         + " });"
@@ -108,13 +83,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
         }
     }
 
-    private static string SnapshotValueExpression(
-        string endpoint,
-        string runtime,
-        string childRoot,
-        string holder,
-        string childCall
-    ) =>
+    private static string SnapshotValueExpression(string endpoint, string runtime, string childRoot, string holder, string childCall) =>
         endpoint
         + "<"
         + childRoot

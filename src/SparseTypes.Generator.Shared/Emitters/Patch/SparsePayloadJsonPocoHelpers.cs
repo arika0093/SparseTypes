@@ -7,10 +7,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparsePayloadJsonPocoHelpers
 {
     /// <summary>Emits the shared dispatch, scalar codecs, and delegating converter.</summary>
-    internal static void AppendHelpers(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context
-    )
+    internal static void AppendHelpers(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         code.AppendLine(
             "private static bool MatchesPocoProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string wireName, string declaredName, bool hasExplicitName)"
@@ -134,19 +131,14 @@ internal static class SparsePayloadJsonPocoHelpers
     }
 
     /// <summary>Emits nullable-struct branches resolving Nullable value leaves.</summary>
-    private static void AppendNullableInfoBranches(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context
-    )
+    private static void AppendNullableInfoBranches(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         if (!context.Pocos.Any(static poco => poco.IsValueType))
         {
             return;
         }
 
-        code.AppendLine(
-            "var underlying = global::System.Nullable.GetUnderlyingType(typeof(TValue));"
-        );
+        code.AppendLine("var underlying = global::System.Nullable.GetUnderlyingType(typeof(TValue));");
         code.AppendLine("if (underlying is not null)");
         code.OpenBlock();
         for (var pocoIndex = 0; pocoIndex < context.Pocos.Length; pocoIndex++)
@@ -175,15 +167,9 @@ internal static class SparsePayloadJsonPocoHelpers
     /// <summary>Emits the internal delegating converter ahead of the private codecs.</summary>
     internal static void AppendValueConverter(SharedIndentedBuilder code)
     {
-        code.AppendLine(
-            "/// <summary>Delegating converter routing leaf values through the generated codecs.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            "internal sealed class PocoValueConverter<TValue> : global::System.Text.Json.Serialization.JsonConverter<TValue>"
-        );
+        code.AppendLine("/// <summary>Delegating converter routing leaf values through the generated codecs.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("internal sealed class PocoValueConverter<TValue> : global::System.Text.Json.Serialization.JsonConverter<TValue>");
         code.OpenBlock();
         code.AppendLine("/// <inheritdoc />");
         code.AppendLine(
@@ -191,9 +177,7 @@ internal static class SparsePayloadJsonPocoHelpers
         );
         code.OpenBlock();
         code.AppendLine("var custom = FindPocoConverter<TValue>(options);");
-        code.AppendLine(
-            "if (custom is not null) return custom.Read(ref reader, typeToConvert, options);"
-        );
+        code.AppendLine("if (custom is not null) return custom.Read(ref reader, typeToConvert, options);");
         code.AppendLine("return ReadPocoDirect<TValue>(ref reader, options);");
         code.CloseBlock();
         code.AppendLine("/// <inheritdoc />");
@@ -202,15 +186,11 @@ internal static class SparsePayloadJsonPocoHelpers
         );
         code.OpenBlock();
         code.AppendLine("var custom = FindPocoConverter<TValue>(options);");
-        code.AppendLine(
-            "if (custom is not null) { custom.Write(writer, value!, options); return; }"
-        );
+        code.AppendLine("if (custom is not null) { custom.Write(writer, value!, options); return; }");
         code.AppendLine("WritePocoDirect(writer, value, options);");
         code.CloseBlock();
         code.AppendLine("/// <summary>Gets the shared converter instance.</summary>");
-        code.AppendLine(
-            "internal static PocoValueConverter<TValue> Default { get; } = new PocoValueConverter<TValue>();"
-        );
+        code.AppendLine("internal static PocoValueConverter<TValue> Default { get; } = new PocoValueConverter<TValue>();");
         code.CloseBlock();
         code.AppendLine();
     }
@@ -219,12 +199,8 @@ internal static class SparsePayloadJsonPocoHelpers
     /// <remarks>Nullable annotations vanish for reference types but stay real for value types, so struct leaves need their own branch.</remarks>
     internal static void AppendNullableConverter(SharedIndentedBuilder code)
     {
-        code.AppendLine(
-            "/// <summary>Delegating converter routing nullable struct leaves through the generated codecs.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("/// <summary>Delegating converter routing nullable struct leaves through the generated codecs.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal sealed class PocoNullableConverter<TValue> : global::System.Text.Json.Serialization.JsonConverter<TValue?> where TValue : struct"
         );
@@ -234,13 +210,9 @@ internal static class SparsePayloadJsonPocoHelpers
             "public override TValue? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
         code.AppendLine("var custom = FindPocoConverter<TValue?>(options);");
-        code.AppendLine(
-            "if (custom is not null) return custom.Read(ref reader, typeToConvert, options);"
-        );
+        code.AppendLine("if (custom is not null) return custom.Read(ref reader, typeToConvert, options);");
         code.AppendLine("return ReadPocoDirect<TValue>(ref reader, options);");
         code.CloseBlock();
         code.AppendLine("/// <inheritdoc />");
@@ -250,15 +222,11 @@ internal static class SparsePayloadJsonPocoHelpers
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLine("var custom = FindPocoConverter<TValue?>(options);");
-        code.AppendLine(
-            "if (custom is not null) { custom.Write(writer, value, options); return; }"
-        );
+        code.AppendLine("if (custom is not null) { custom.Write(writer, value, options); return; }");
         code.AppendLine("WritePocoDirect<TValue>(writer, value.Value, options);");
         code.CloseBlock();
         code.AppendLine("/// <summary>Gets the shared converter instance.</summary>");
-        code.AppendLine(
-            "internal static PocoNullableConverter<TValue> Default { get; } = new PocoNullableConverter<TValue>();"
-        );
+        code.AppendLine("internal static PocoNullableConverter<TValue> Default { get; } = new PocoNullableConverter<TValue>();");
         code.CloseBlock();
         code.AppendLine();
     }
@@ -270,9 +238,7 @@ internal static class SparsePayloadJsonPocoHelpers
         );
         code.OpenBlock();
         code.AppendLine("var custom = FindPocoConverter<T>(options);");
-        code.AppendLine(
-            "if (custom is not null) return custom.Read(ref reader, typeof(T), options)!;"
-        );
+        code.AppendLine("if (custom is not null) return custom.Read(ref reader, typeof(T), options)!;");
         code.AppendLine("if (typeof(T) == typeof(string)) return (T)(object)reader.GetString()!;");
         code.AppendLine("if (typeof(T) == typeof(bool)) return (T)(object)reader.GetBoolean();");
         code.AppendLine("if (typeof(T) == typeof(int)) return (T)(object)reader.GetInt32();");
@@ -286,24 +252,14 @@ internal static class SparsePayloadJsonPocoHelpers
         code.AppendLine("if (typeof(T) == typeof(float)) return (T)(object)reader.GetSingle();");
         code.AppendLine("if (typeof(T) == typeof(double)) return (T)(object)reader.GetDouble();");
         code.AppendLine("if (typeof(T) == typeof(decimal)) return (T)(object)reader.GetDecimal();");
-        code.AppendLine(
-            "if (typeof(T) == typeof(global::System.Guid)) return (T)(object)reader.GetGuid();"
-        );
-        code.AppendLine(
-            "if (typeof(T) == typeof(global::System.DateTime)) return (T)(object)reader.GetDateTime();"
-        );
-        code.AppendLine(
-            "if (typeof(T) == typeof(global::System.DateTimeOffset)) return (T)(object)reader.GetDateTimeOffset();"
-        );
-        code.AppendLine(
-            "if (typeof(T) == typeof(byte[])) return (T)(object)reader.GetBytesFromBase64()!;"
-        );
+        code.AppendLine("if (typeof(T) == typeof(global::System.Guid)) return (T)(object)reader.GetGuid();");
+        code.AppendLine("if (typeof(T) == typeof(global::System.DateTime)) return (T)(object)reader.GetDateTime();");
+        code.AppendLine("if (typeof(T) == typeof(global::System.DateTimeOffset)) return (T)(object)reader.GetDateTimeOffset();");
+        code.AppendLine("if (typeof(T) == typeof(byte[])) return (T)(object)reader.GetBytesFromBase64()!;");
         code.AppendLine("if (typeof(T) == typeof(char))");
         code.OpenBlock();
         code.AppendLine("var text = reader.GetString();");
-        code.AppendLine(
-            "if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\");"
-        );
+        code.AppendLine("if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\");");
         code.AppendLine("return (T)(object)text[0];");
         code.CloseBlock();
         code.AppendLine("if (typeof(T).IsEnum)");
@@ -313,9 +269,7 @@ internal static class SparsePayloadJsonPocoHelpers
         );
         code.AppendLine("return (T)global::System.Enum.ToObject(typeof(T), reader.GetInt64());");
         code.CloseBlock();
-        code.AppendLine(
-            "try { return global::System.Text.Json.JsonSerializer.Deserialize<T>(ref reader, GetValueInfo<T>(options))!; }"
-        );
+        code.AppendLine("try { return global::System.Text.Json.JsonSerializer.Deserialize<T>(ref reader, GetValueInfo<T>(options))!; }");
         code.AppendLine(
             "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
         );
@@ -331,72 +285,34 @@ internal static class SparsePayloadJsonPocoHelpers
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLine("var custom = FindPocoConverter<T>(options);");
-        code.AppendLine(
-            "if (custom is not null) { custom.Write(writer, value!, options); return; }"
-        );
-        code.AppendLine(
-            "if (typeof(T) == typeof(string)) writer.WriteStringValue((string)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(bool)) writer.WriteBooleanValue((bool)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(int)) writer.WriteNumberValue((int)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(long)) writer.WriteNumberValue((long)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(short)) writer.WriteNumberValue((short)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(byte)) writer.WriteNumberValue((byte)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(sbyte)) writer.WriteNumberValue((sbyte)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(ushort)) writer.WriteNumberValue((ushort)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(float)) writer.WriteNumberValue((float)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(double)) writer.WriteNumberValue((double)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(decimal)) writer.WriteNumberValue((decimal)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(global::System.Guid)) writer.WriteStringValue((global::System.Guid)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(global::System.DateTime)) writer.WriteStringValue((global::System.DateTime)(object)value!);"
-        );
+        code.AppendLine("if (custom is not null) { custom.Write(writer, value!, options); return; }");
+        code.AppendLine("if (typeof(T) == typeof(string)) writer.WriteStringValue((string)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(bool)) writer.WriteBooleanValue((bool)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(int)) writer.WriteNumberValue((int)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(long)) writer.WriteNumberValue((long)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(short)) writer.WriteNumberValue((short)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(byte)) writer.WriteNumberValue((byte)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(sbyte)) writer.WriteNumberValue((sbyte)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(ushort)) writer.WriteNumberValue((ushort)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(float)) writer.WriteNumberValue((float)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(double)) writer.WriteNumberValue((double)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(decimal)) writer.WriteNumberValue((decimal)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(global::System.Guid)) writer.WriteStringValue((global::System.Guid)(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(global::System.DateTime)) writer.WriteStringValue((global::System.DateTime)(object)value!);");
         code.AppendLine(
             "else if (typeof(T) == typeof(global::System.DateTimeOffset)) writer.WriteStringValue((global::System.DateTimeOffset)(object)value!);"
         );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(byte[])) writer.WriteBase64StringValue((byte[])(object)value!);"
-        );
-        code.AppendLine(
-            "else if (typeof(T) == typeof(char)) writer.WriteStringValue(((char)(object)value!).ToString());"
-        );
+        code.AppendLine("else if (typeof(T) == typeof(byte[])) writer.WriteBase64StringValue((byte[])(object)value!);");
+        code.AppendLine("else if (typeof(T) == typeof(char)) writer.WriteStringValue(((char)(object)value!).ToString());");
         code.AppendLine("else if (typeof(T).IsEnum)");
         code.OpenBlock();
         code.AppendLine(
             "if (global::System.Enum.GetUnderlyingType(typeof(T)) == typeof(ulong)) writer.WriteNumberValue(global::System.Convert.ToUInt64(value)); else writer.WriteNumberValue(global::System.Convert.ToInt64(value));"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "else try { global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetValueInfo<T>(options)); }"
-        );
+        code.AppendLine("else try { global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetValueInfo<T>(options)); }");
         code.AppendLine(
             "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
         );

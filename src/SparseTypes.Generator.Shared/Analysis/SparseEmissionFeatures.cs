@@ -101,8 +101,7 @@ internal sealed record SparseEmissionFeatures
 
     /// <summary>Generated type names this selection emits.</summary>
     /// <remarks>Covers the family root names used for generated-name collision checks.</remarks>
-    public ImmutableArray<string> GetEmittedTypeNames() =>
-        GetEmittedTypeNames(SparseFamilyNames.Standalone);
+    public ImmutableArray<string> GetEmittedTypeNames() => GetEmittedTypeNames(SparseFamilyNames.Standalone);
 
     /// <summary>Generated type names this selection emits under one product vocabulary.</summary>
     /// <param name="family">Product family-name bindings.</param>

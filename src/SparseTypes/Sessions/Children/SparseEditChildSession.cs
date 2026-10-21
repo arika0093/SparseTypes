@@ -10,8 +10,7 @@ namespace SparseTypes;
 /// <typeparam name="TConflict">The product's structured conflict type.</typeparam>
 /// <typeparam name="TSession">The generated child-model edit-session type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
-    : ISparseEditChildSession<TModel, TPaths, TConflict, TSession>
+public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession> : ISparseEditChildSession<TModel, TPaths, TConflict, TSession>
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
     where TConflict : class
@@ -20,10 +19,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     private readonly TPaths _rootPath;
     private readonly Func<TModel, TModel> _clone;
     private TModel _baseline;
-    private readonly Func<
-        TModel,
-        (bool Accepted, TModel? Current, IReadOnlyList<TConflict>? Conflicts)
-    > _tryAccept;
+    private readonly Func<TModel, (bool Accepted, TModel? Current, IReadOnlyList<TConflict>? Conflicts)> _tryAccept;
     private readonly Func<(bool Accepted, IReadOnlyList<TConflict>? Conflicts)> _preflight;
     private readonly Func<TModel>? _confirmAccept;
     private readonly Func<bool>? _isTargetMissing;
@@ -49,10 +45,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
         TPaths rootPath,
         TModel baseline,
         Func<TModel, TModel> clone,
-        Func<
-            TModel,
-            (bool Accepted, TModel? Current, IReadOnlyList<TConflict>? Conflicts)
-        > tryAccept,
+        Func<TModel, (bool Accepted, TModel? Current, IReadOnlyList<TConflict>? Conflicts)> tryAccept,
         Action onDiscarded,
         Action detach,
         Func<(bool Accepted, IReadOnlyList<TConflict>? Conflicts)>? preflight = null,
@@ -80,13 +73,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     /// <summary>Gets whether this child session or its descendants have pending changes.</summary>
     public bool HasChanges =>
         !_isDisposed
-        && (
-            Session.HasChanges
-            || (
-                Session is ISparseEditSessionWithChildren<TModel, TConflict> children
-                && children.HasPendingChildSessions
-            )
-        );
+        && (Session.HasChanges || (Session is ISparseEditSessionWithChildren<TModel, TConflict> children && children.HasPendingChildSessions));
 
     /// <summary>Gets whether this child session left the open state.</summary>
     /// <remarks>Only an explicit dispose or parent invalidation detaches; a missing target keeps the draft open.</remarks>
@@ -120,10 +107,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
             return false;
         }
 
-        if (
-            Session is ISparseEditSessionWithChildren<TModel, TConflict> children
-            && !children.TryAcceptChildSessions(out conflicts)
-        )
+        if (Session is ISparseEditSessionWithChildren<TModel, TConflict> children && !children.TryAcceptChildSessions(out conflicts))
         {
             return false;
         }
@@ -150,9 +134,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
         ThrowIfDisposed();
         if (_confirmAccept is null)
         {
-            throw new InvalidOperationException(
-                "The child edit session does not support staged acceptance."
-            );
+            throw new InvalidOperationException("The child edit session does not support staged acceptance.");
         }
 
         var draftModel = _confirmAccept();
@@ -167,19 +149,13 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     }
 
     /// <inheritdoc />
-    public bool TryApplyPendingState(
-        TModel current,
-        out TModel? updated,
-        out IReadOnlyList<TConflict>? conflicts
-    )
+    public bool TryApplyPendingState(TModel current, out TModel? updated, out IReadOnlyList<TConflict>? conflicts)
     {
         ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(current);
         if (Session is not ISparseEditSessionWithPendingState<TModel, TConflict> pendingState)
         {
-            throw new InvalidOperationException(
-                "The child edit session does not support pending-state projection."
-            );
+            throw new InvalidOperationException("The child edit session does not support pending-state projection.");
         }
 
         return pendingState.TryApplyPendingState(current, out updated, out conflicts);
@@ -192,10 +168,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     public bool TryPreflightAcceptChanges(out IReadOnlyList<TConflict>? conflicts)
     {
         ThrowIfDisposed();
-        if (
-            Session is ISparseEditSessionWithChildStatus<TModel, TConflict> children
-            && !children.TryPreflightChildSessions(out conflicts)
-        )
+        if (Session is ISparseEditSessionWithChildStatus<TModel, TConflict> children && !children.TryPreflightChildSessions(out conflicts))
         {
             return false;
         }
@@ -254,9 +227,7 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession>
     {
         if (_isDisposed)
         {
-            throw new ObjectDisposedException(
-                nameof(SparseEditChildSession<TModel, TPaths, TConflict, TSession>)
-            );
+            throw new ObjectDisposedException(nameof(SparseEditChildSession<TModel, TPaths, TConflict, TSession>));
         }
     }
 }

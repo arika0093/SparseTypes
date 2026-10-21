@@ -89,11 +89,7 @@ internal static class SparseTypeMetadataCache
     }
 
     /// <summary>Gets the read-only list interface and element indexer, if supported.</summary>
-    internal static bool TryGetReadOnlyList(
-        Type type,
-        out Type interfaceType,
-        out PropertyInfo? indexer
-    )
+    internal static bool TryGetReadOnlyList(Type type, out Type interfaceType, out PropertyInfo? indexer)
     {
         var metadata = GetOrAdd(type);
         lock (metadata.Properties)
@@ -101,10 +97,7 @@ internal static class SparseTypeMetadataCache
             if (!metadata.ReadOnlyListInterfaceKnown)
             {
                 metadata.ReadOnlyListInterfaceKnown = true;
-                metadata.ReadOnlyListInterface = FindGenericInterface(
-                    type,
-                    typeof(IReadOnlyList<>)
-                );
+                metadata.ReadOnlyListInterface = FindGenericInterface(type, typeof(IReadOnlyList<>));
                 metadata.ReadOnlyListIndexer = metadata.ReadOnlyListInterface?.GetProperty("Item");
             }
 
@@ -115,12 +108,7 @@ internal static class SparseTypeMetadataCache
     }
 
     /// <summary>Gets the read-only dictionary interface with lookup members, if supported.</summary>
-    internal static bool TryGetReadOnlyDictionary(
-        Type type,
-        out Type interfaceType,
-        out MethodInfo? containsKey,
-        out PropertyInfo? indexer
-    )
+    internal static bool TryGetReadOnlyDictionary(Type type, out Type interfaceType, out MethodInfo? containsKey, out PropertyInfo? indexer)
     {
         var metadata = GetOrAdd(type);
         lock (metadata.Properties)
@@ -128,14 +116,9 @@ internal static class SparseTypeMetadataCache
             if (!metadata.ReadOnlyDictionaryInterfaceKnown)
             {
                 metadata.ReadOnlyDictionaryInterfaceKnown = true;
-                metadata.ReadOnlyDictionaryInterface = FindGenericInterface(
-                    type,
-                    typeof(IReadOnlyDictionary<,>)
-                );
-                metadata.ReadOnlyDictionaryContainsKey =
-                    metadata.ReadOnlyDictionaryInterface?.GetMethod("ContainsKey");
-                metadata.ReadOnlyDictionaryIndexer =
-                    metadata.ReadOnlyDictionaryInterface?.GetProperty("Item");
+                metadata.ReadOnlyDictionaryInterface = FindGenericInterface(type, typeof(IReadOnlyDictionary<,>));
+                metadata.ReadOnlyDictionaryContainsKey = metadata.ReadOnlyDictionaryInterface?.GetMethod("ContainsKey");
+                metadata.ReadOnlyDictionaryIndexer = metadata.ReadOnlyDictionaryInterface?.GetProperty("Item");
             }
 
             interfaceType = metadata.ReadOnlyDictionaryInterface!;
@@ -146,12 +129,7 @@ internal static class SparseTypeMetadataCache
     }
 
     /// <summary>Reads the read-only collection count through the cached Count property.</summary>
-    internal static bool TryGetReadOnlyCollectionCount(
-        Type type,
-        Type elementType,
-        object collection,
-        out int count
-    )
+    internal static bool TryGetReadOnlyCollectionCount(Type type, Type elementType, object collection, out int count)
     {
         var metadata = GetOrAdd(type);
         PropertyInfo? counter;
@@ -204,8 +182,7 @@ internal static class SparseTypeMetadataCache
                         candidate.IsGenericType
                         && (
                             candidate.GetGenericTypeDefinition() == typeof(IDictionary<,>)
-                            || candidate.GetGenericTypeDefinition()
-                                == typeof(IReadOnlyDictionary<,>)
+                            || candidate.GetGenericTypeDefinition() == typeof(IReadOnlyDictionary<,>)
                         )
                     )
                     {
@@ -257,10 +234,7 @@ internal static class SparseTypeMetadataCache
     {
         foreach (var candidate in type.GetInterfaces())
         {
-            if (
-                candidate.IsGenericType
-                && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            )
+            if (candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             {
                 return candidate.GetGenericArguments()[0];
             }
@@ -284,9 +258,7 @@ internal static class SparseTypeMetadataCache
 
     private static KeyReaderInfo? FindKeyReader(Type elementType)
     {
-        foreach (
-            var property in elementType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-        )
+        foreach (var property in elementType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (
                 property.CanRead
@@ -294,11 +266,7 @@ internal static class SparseTypeMetadataCache
                 && property.GetCustomAttribute<SparseKeyAttribute>(inherit: true) is not null
             )
             {
-                return new KeyReaderInfo
-                {
-                    GetKey = property.GetValue,
-                    KeyType = property.PropertyType,
-                };
+                return new KeyReaderInfo { GetKey = property.GetValue, KeyType = property.PropertyType };
             }
         }
 
@@ -307,15 +275,12 @@ internal static class SparseTypeMetadataCache
 
     private static Func<object, object?>? FindTemporaryReader(Type elementType)
     {
-        foreach (
-            var property in elementType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-        )
+        foreach (var property in elementType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (
                 property.CanRead
                 && property.GetIndexParameters().Length == 0
-                && property.GetCustomAttribute<SparseTemporaryKeyAttribute>(inherit: true)
-                    is not null
+                && property.GetCustomAttribute<SparseTemporaryKeyAttribute>(inherit: true) is not null
             )
             {
                 return property.GetValue;

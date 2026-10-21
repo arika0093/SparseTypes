@@ -12,19 +12,13 @@ namespace SparseTypes.Generator.Shared;
 /// <remarks>Resolving inherited <c>SparseCompare</c> rules needs every fragment root plus the set of models each root references.</remarks>
 internal sealed class SparseComparisonIndex
 {
-    private static readonly ConditionalWeakTable<SparseGeneratorConfig, string> ConfigurationKeys =
-        new();
+    private static readonly ConditionalWeakTable<SparseGeneratorConfig, string> ConfigurationKeys = new();
 
-    private static readonly ConditionalWeakTable<
-        IAssemblySymbol,
-        Dictionary<string, SparseComparisonIndex>
-    > Cache = new();
+    private static readonly ConditionalWeakTable<IAssemblySymbol, Dictionary<string, SparseComparisonIndex>> Cache = new();
 
     private static readonly object Gate = new();
 
-    private readonly Dictionary<INamedTypeSymbol, SparseComparisonRuleSet> _ruleSets = new(
-        SymbolEqualityComparer.Default
-    );
+    private readonly Dictionary<INamedTypeSymbol, SparseComparisonRuleSet> _ruleSets = new(SymbolEqualityComparer.Default);
 
     internal SparseComparisonRuleSet? GetCachedRuleSet(INamedTypeSymbol model)
     {
@@ -34,10 +28,7 @@ internal sealed class SparseComparisonIndex
         }
     }
 
-    internal SparseComparisonRuleSet CacheRuleSet(
-        INamedTypeSymbol model,
-        SparseComparisonRuleSet rules
-    )
+    internal SparseComparisonRuleSet CacheRuleSet(INamedTypeSymbol model, SparseComparisonRuleSet rules)
     {
         lock (_ruleSets)
         {
@@ -77,10 +68,7 @@ internal sealed class SparseComparisonIndex
 
     private ImmutableArray<ITypeSymbol> ComparisonTypes { get; }
 
-    internal bool HasUnmappedComparisonType(
-        Dictionary<ITypeSymbol, INamedTypeSymbol?> comparerTypes,
-        CancellationToken cancellationToken
-    )
+    internal bool HasUnmappedComparisonType(Dictionary<ITypeSymbol, INamedTypeSymbol?> comparerTypes, CancellationToken cancellationToken)
     {
         foreach (var valueType in ComparisonTypes)
         {
@@ -94,25 +82,15 @@ internal sealed class SparseComparisonIndex
     }
 
     /// <summary>Gets or builds the index for the model's containing assembly.</summary>
-    public static SparseComparisonIndex ForAssembly(
-        IAssemblySymbol assembly,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static SparseComparisonIndex ForAssembly(IAssemblySymbol assembly, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var key = ConfigurationKeys.GetValue(
             config,
-            static configuration =>
-                configuration.ModelAttributeMetadataName
-                + "\0"
-                + configuration.ComparisonAttributeMetadataName
+            static configuration => configuration.ModelAttributeMetadataName + "\0" + configuration.ComparisonAttributeMetadataName
         );
         lock (Gate)
         {
-            if (
-                Cache.TryGetValue(assembly, out var entries)
-                && entries.TryGetValue(key, out var hit)
-            )
+            if (Cache.TryGetValue(assembly, out var entries) && entries.TryGetValue(key, out var hit))
             {
                 return hit;
             }
@@ -130,14 +108,9 @@ internal sealed class SparseComparisonIndex
     }
 
     /// <summary>Whether the indexed root's member graph references the target model.</summary>
-    public bool ReferencesModel(int rootIndex, INamedTypeSymbol target) =>
-        Closures[rootIndex].Contains(target);
+    public bool ReferencesModel(int rootIndex, INamedTypeSymbol target) => Closures[rootIndex].Contains(target);
 
-    private static SparseComparisonIndex Build(
-        IAssemblySymbol assembly,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static SparseComparisonIndex Build(IAssemblySymbol assembly, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var roots = new List<INamedTypeSymbol>();
         HashSet<ITypeSymbol>? comparisonTypes = null;
@@ -150,12 +123,7 @@ internal sealed class SparseComparisonIndex
             }
 
             roots.Add(type);
-            comparisonTypes = CollectComparisonTypes(
-                type,
-                config.ComparisonAttributeMetadataName,
-                comparisonTypes,
-                cancellationToken
-            );
+            comparisonTypes = CollectComparisonTypes(type, config.ComparisonAttributeMetadataName, comparisonTypes, cancellationToken);
         }
 
         var closures = ImmutableArray<HashSet<INamedTypeSymbol>>.Empty;
@@ -181,10 +149,7 @@ internal sealed class SparseComparisonIndex
 
     // Type arguments are followed through framework types, while only
     // non-framework member graphs are expanded.
-    private static HashSet<INamedTypeSymbol> CollectReferences(
-        INamedTypeSymbol root,
-        CancellationToken cancellationToken
-    )
+    private static HashSet<INamedTypeSymbol> CollectReferences(INamedTypeSymbol root, CancellationToken cancellationToken)
     {
         var collected = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         var visited = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -237,10 +202,7 @@ internal sealed class SparseComparisonIndex
         }
     }
 
-    private static IEnumerable<INamedTypeSymbol> GetTypes(
-        INamespaceSymbol root,
-        CancellationToken cancellationToken
-    )
+    private static IEnumerable<INamedTypeSymbol> GetTypes(INamespaceSymbol root, CancellationToken cancellationToken)
     {
         var pending = new Stack<INamespaceOrTypeSymbol>(root.GetMembers());
         while (pending.Count > 0)
@@ -266,9 +228,7 @@ internal sealed class SparseComparisonIndex
     }
 
     private static bool HasAttribute(INamedTypeSymbol model, string attributeName) =>
-        model
-            .GetAttributes()
-            .Any(attribute => MatchesAttribute(attribute.AttributeClass, attributeName));
+        model.GetAttributes().Any(attribute => MatchesAttribute(attribute.AttributeClass, attributeName));
 
     private static bool MatchesAttribute(INamedTypeSymbol? attributeType, string attributeName)
     {
@@ -276,10 +236,7 @@ internal sealed class SparseComparisonIndex
         {
             return false;
         }
-        var simpleClass =
-            attributeType.TypeKind == TypeKind.Class
-            && attributeType.Arity == 0
-            && attributeType.SpecialType == SpecialType.None;
+        var simpleClass = attributeType.TypeKind == TypeKind.Class && attributeType.Arity == 0 && attributeType.SpecialType == SpecialType.None;
         if (
             simpleClass
             && attributeType.NullableAnnotation != NullableAnnotation.Annotated
@@ -310,10 +267,7 @@ internal sealed class SparseComparisonIndex
                 continue;
             }
             comparisonTypes ??= new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
-            if (
-                attribute.ConstructorArguments.Length > 0
-                && attribute.ConstructorArguments[0].Value is ITypeSymbol valueType
-            )
+            if (attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is ITypeSymbol valueType)
             {
                 comparisonTypes.Add(valueType);
             }

@@ -31,21 +31,12 @@ internal static class CollectionExecution
             return;
         }
 
-        var list = CollectionState.EnsureList<TDtoChild, TEntityChild>(
-            runtime,
-            context,
-            parent,
-            path
-        );
+        var list = CollectionState.EnsureList<TDtoChild, TEntityChild>(runtime, context, parent, path);
         var ownerScope = parentScope ?? CollectionScopePath.Empty;
 
         foreach (var addition in plan.Added)
         {
-            if (
-                correlation is not null
-                && addition.TemporaryKey is not null
-                && addition.TemporaryKey != Guid.Empty
-            )
+            if (correlation is not null && addition.TemporaryKey is not null && addition.TemporaryKey != Guid.Empty)
             {
                 if (!correlation.TryGetValue(path, out var scope))
                 {
@@ -55,10 +46,7 @@ internal static class CollectionExecution
 
                 if (nestedScopes is null || ownerScope.IsEmpty)
                 {
-                    if (
-                        scope.TryGetValue(addition.TemporaryKey.Value, out var existing)
-                        && !ReferenceEquals(existing, addition.Entity)
-                    )
+                    if (scope.TryGetValue(addition.TemporaryKey.Value, out var existing) && !ReferenceEquals(existing, addition.Entity))
                     {
                         throw new SparseEntityMappingException(
                             SparseEntityMappingFailure.CollectionKeyConflict,
@@ -86,24 +74,10 @@ internal static class CollectionExecution
             context.Add(addition.Entity);
             var entry = PlanApplyState.AttachSingle(context, addition.Entity);
             var scopeKey = addition.ScopeKey;
-            RecordCollectionScope(
-                collectionScopeKeys,
-                nestedScopes,
-                runtime,
-                addition.Entity,
-                scopeKey,
-                ownerScope
-            );
+            RecordCollectionScope(collectionScopeKeys, nestedScopes, runtime, addition.Entity, scopeKey, ownerScope);
             if (appliedPaths is not null)
             {
-                appliedPaths.Add(
-                    AppliedPathFactory.Create(
-                        path,
-                        entry,
-                        runtime.NavigationName,
-                        SparseEntityApplyOperationKind.Created
-                    )
-                );
+                appliedPaths.Add(AppliedPathFactory.Create(path, entry, runtime.NavigationName, SparseEntityApplyOperationKind.Created));
             }
 
             // Nested scopes qualify with the added parent's identity so the
@@ -138,9 +112,7 @@ internal static class CollectionExecution
         }
 
         var compactedDetachList =
-            plan.Removed.Count > 0
-            && runtime.RemoveKind == SparseEntityRemoveKind.Detach
-            && list.GetType() == typeof(List<TEntityChild>);
+            plan.Removed.Count > 0 && runtime.RemoveKind == SparseEntityRemoveKind.Detach && list.GetType() == typeof(List<TEntityChild>);
         if (compactedDetachList)
         {
             CompactDetachedList((List<TEntityChild>)list, plan.FinalOrder, plan.Removed, path);
@@ -183,12 +155,7 @@ internal static class CollectionExecution
         if (plan.OrderChanged && appliedPaths is not null)
         {
             appliedPaths.Add(
-                AppliedPathFactory.Create(
-                    path,
-                    context.Entry(parent),
-                    runtime.NavigationName,
-                    SparseEntityApplyOperationKind.Reordered
-                )
+                AppliedPathFactory.Create(path, context.Entry(parent), runtime.NavigationName, SparseEntityApplyOperationKind.Reordered)
             );
         }
     }
@@ -207,9 +174,7 @@ internal static class CollectionExecution
             ThrowChangedCollection(path);
         }
 
-        var expectedMembership = new Dictionary<TEntityChild, int>(
-            ReferenceEqualityComparer.Instance
-        );
+        var expectedMembership = new Dictionary<TEntityChild, int>(ReferenceEqualityComparer.Instance);
         foreach (var entity in finalOrder)
         {
             AddExpectedEntity(expectedMembership, entity);
@@ -241,10 +206,7 @@ internal static class CollectionExecution
         list.RemoveRange(finalOrder.Count, removals.Count);
     }
 
-    private static void AddExpectedEntity<TEntityChild>(
-        Dictionary<TEntityChild, int> expectedMembership,
-        TEntityChild entity
-    )
+    private static void AddExpectedEntity<TEntityChild>(Dictionary<TEntityChild, int> expectedMembership, TEntityChild entity)
         where TEntityChild : class
     {
         expectedMembership.TryGetValue(entity, out var count);
@@ -321,11 +283,7 @@ internal static class CollectionExecution
         }
     }
 
-    private static void ReorderList<TEntityChild>(
-        IList list,
-        List<TEntityChild> finalOrder,
-        string path
-    )
+    private static void ReorderList<TEntityChild>(IList list, List<TEntityChild> finalOrder, string path)
         where TEntityChild : class
     {
         if (finalOrder.Count != list.Count)
@@ -378,8 +336,7 @@ internal sealed class SyncPlan<TDtoChild, TEntityChild>
     /// <summary>Checks whether one nonempty temporary identity was already planned in this collection.</summary>
     /// <param name="temporaryKey">The temporary identity to probe.</param>
     /// <returns>Whether any planned addition carries that temporary identity.</returns>
-    public bool ContainsTemporaryKey(Guid temporaryKey) =>
-        _temporaries?.Contains(temporaryKey) ?? false;
+    public bool ContainsTemporaryKey(Guid temporaryKey) => _temporaries?.Contains(temporaryKey) ?? false;
 
     /// <summary>Registers a planned addition in the plan-local identity index.</summary>
     /// <remarks>
@@ -392,11 +349,7 @@ internal sealed class SyncPlan<TDtoChild, TEntityChild>
     /// <param name="assignedKey">The assigned key, or null for unassigned additions.</param>
     /// <param name="temporaryKey">The temporary identity, when the row carries one.</param>
     /// <param name="comparer">The collection runtime's key comparer.</param>
-    public void RegisterAddition(
-        object? assignedKey,
-        Guid? temporaryKey,
-        IEqualityComparer<object> comparer
-    )
+    public void RegisterAddition(object? assignedKey, Guid? temporaryKey, IEqualityComparer<object> comparer)
     {
         if (assignedKey is not null)
         {
@@ -423,13 +376,7 @@ internal sealed class PlannedAddition<TDtoChild, TEntityChild>
     where TEntityChild : class
 {
     /// <summary>Creates a planned addition.</summary>
-    public PlannedAddition(
-        TDtoChild dto,
-        TEntityChild entity,
-        Guid? temporaryKey,
-        object? assignedKey,
-        int sequenceHint = 0
-    )
+    public PlannedAddition(TDtoChild dto, TEntityChild entity, Guid? temporaryKey, object? assignedKey, int sequenceHint = 0)
     {
         Dto = dto;
         Entity = entity;
@@ -457,8 +404,7 @@ internal sealed class PlannedAddition<TDtoChild, TEntityChild>
     /// Gets the display key qualifying nested scopes: the assigned key, the
     /// temporary identity, or the sequence hint as a last resort.
     /// </summary>
-    public string ScopeKey =>
-        AssignedKey?.ToString() ?? TemporaryKey?.ToString() ?? SequenceHint.ToString();
+    public string ScopeKey => AssignedKey?.ToString() ?? TemporaryKey?.ToString() ?? SequenceHint.ToString();
 }
 
 /// <summary>

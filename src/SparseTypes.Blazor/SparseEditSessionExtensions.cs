@@ -21,10 +21,7 @@ public static class SparseEditSessionExtensions
     }
 
     /// <summary>Accepts the current model state and clears the associated Blazor modified state.</summary>
-    public static void AcceptChanges<TModel>(
-        this ISparseEditSession<TModel> session,
-        EditContext editContext
-    )
+    public static void AcceptChanges<TModel>(this ISparseEditSession<TModel> session, EditContext editContext)
         where TModel : class
     {
         ValidateEditContext(session, editContext);
@@ -51,10 +48,7 @@ public static class SparseEditSessionExtensions
     }
 
     /// <summary>Creates a validation store bound to the supplied session edit context.</summary>
-    public static ValidationMessageStore CreateValidationStore<TModel>(
-        this ISparseEditSession<TModel> session,
-        EditContext editContext
-    )
+    public static ValidationMessageStore CreateValidationStore<TModel>(this ISparseEditSession<TModel> session, EditContext editContext)
         where TModel : class
     {
         ValidateEditContext(session, editContext);
@@ -63,18 +57,11 @@ public static class SparseEditSessionExtensions
 
     /// <summary>Resolves a Blazor field identifier from a canonical typed path.</summary>
     /// <remarks>The typed walk carries actual key values, so distinct keys with identical display text never merge.</remarks>
-    public static FieldIdentifier Field<TModel>(
-        this ISparseEditSession<TModel> session,
-        SparsePath path
-    )
+    public static FieldIdentifier Field<TModel>(this ISparseEditSession<TModel> session, SparsePath path)
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
-        return SparseFieldPathResolver.Resolve(
-            GetSessionModel(session),
-            path,
-            GetDescriptors(session)
-        );
+        return SparseFieldPathResolver.Resolve(GetSessionModel(session), path, GetDescriptors(session));
     }
 
     /// <summary>Resolves a Blazor field identifier from a compile-time typed path.</summary>
@@ -82,18 +69,11 @@ public static class SparseEditSessionExtensions
     /// <param name="path">The typed path, for example <c>Order.SparsePath.Items.Key(id).Price</c>.</param>
     /// <typeparam name="TModel">The session model type.</typeparam>
     /// <typeparam name="TValue">The addressed value type.</typeparam>
-    public static FieldIdentifier Field<TModel, TValue>(
-        this ISparseEditSession<TModel> session,
-        SparsePath<TModel, TValue> path
-    )
+    public static FieldIdentifier Field<TModel, TValue>(this ISparseEditSession<TModel> session, SparsePath<TModel, TValue> path)
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
-        return SparseFieldPathResolver.Resolve(
-            GetSessionModel(session),
-            path.Path,
-            GetDescriptors(session)
-        );
+        return SparseFieldPathResolver.Resolve(GetSessionModel(session), path.Path, GetDescriptors(session));
     }
 
     /// <summary>Surfaces a validation message for a field belonging to this session's model.</summary>
@@ -111,10 +91,7 @@ public static class SparseEditSessionExtensions
         ArgumentNullException.ThrowIfNull(message);
         if (!IsSessionOwnedField(GetSessionModel(session), field.Model))
         {
-            throw new ArgumentException(
-                "The field must belong to the session's model.",
-                nameof(field)
-            );
+            throw new ArgumentException("The field must belong to the session's model.", nameof(field));
         }
 
         store.Add(field, message);
@@ -209,10 +186,7 @@ public static class SparseEditSessionExtensions
         ValidateEditContext(session, editContext);
         if (path.RootType != typeof(TModel))
         {
-            throw new ArgumentException(
-                "The path root does not match the session model.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path root does not match the session model.", nameof(path));
         }
 
         if (path.IsRoot)
@@ -235,20 +209,13 @@ public static class SparseEditSessionExtensions
             switch (segment.Kind)
             {
                 case SparsePathSegmentKind.Member:
-                    var property = current.GetProperty(
-                        segment.Name,
-                        BindingFlags.Instance | BindingFlags.Public
-                    );
+                    var property = current.GetProperty(segment.Name, BindingFlags.Instance | BindingFlags.Public);
                     if (property is null || property.GetIndexParameters().Length > 0)
                     {
-                        throw new ArgumentException(
-                            $"The field path '{path}' does not resolve to a public model member.",
-                            paramName
-                        );
+                        throw new ArgumentException($"The field path '{path}' does not resolve to a public model member.", paramName);
                     }
 
-                    current =
-                        Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                    current = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
                     break;
                 case SparsePathSegmentKind.Key:
                 case SparsePathSegmentKind.TemporaryKey:
@@ -261,12 +228,7 @@ public static class SparseEditSessionExtensions
         }
     }
 
-    private static Type StepBindCollection(
-        Type current,
-        SparsePath path,
-        string paramName,
-        bool keyed
-    )
+    private static Type StepBindCollection(Type current, SparsePath path, string paramName, bool keyed)
     {
         if (current == typeof(string))
         {
@@ -281,13 +243,9 @@ public static class SparseEditSessionExtensions
             }
 
             var definition = candidate.GetGenericTypeDefinition();
-            if (
-                definition == typeof(IDictionary<,>)
-                || definition == typeof(IReadOnlyDictionary<,>)
-            )
+            if (definition == typeof(IDictionary<,>) || definition == typeof(IReadOnlyDictionary<,>))
             {
-                return Nullable.GetUnderlyingType(candidate.GetGenericArguments()[1])
-                    ?? candidate.GetGenericArguments()[1];
+                return Nullable.GetUnderlyingType(candidate.GetGenericArguments()[1]) ?? candidate.GetGenericArguments()[1];
             }
         }
 
@@ -314,10 +272,7 @@ public static class SparseEditSessionExtensions
     {
         foreach (var candidate in current.GetInterfaces())
         {
-            if (
-                candidate.IsGenericType
-                && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            )
+            if (candidate.IsGenericType && candidate.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             {
                 return candidate.GetGenericArguments()[0];
             }
@@ -346,20 +301,14 @@ public static class SparseEditSessionExtensions
     private static ArgumentException InvalidBindPath(SparsePath path, string paramName) =>
         new($"The field path '{path}' does not resolve to a public model member.", paramName);
 
-    private static void ValidateEditContext<TModel>(
-        ISparseEditSession<TModel> session,
-        EditContext editContext
-    )
+    private static void ValidateEditContext<TModel>(ISparseEditSession<TModel> session, EditContext editContext)
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(editContext);
         if (!ReferenceEquals(editContext.Model, GetSessionModel(session)))
         {
-            throw new ArgumentException(
-                "The EditContext must be bound to the session's model.",
-                nameof(editContext)
-            );
+            throw new ArgumentException("The EditContext must be bound to the session's model.", nameof(editContext));
         }
     }
 
@@ -375,12 +324,7 @@ public static class SparseEditSessionExtensions
 
     private static bool TryGetReadOnlyDictionaryValues(object collection, out IEnumerable? values)
     {
-        if (
-            SparseFieldPathResolver.TryGetReadOnlyDictionaryInterface(
-                collection,
-                out var interfaceType
-            )
-        )
+        if (SparseFieldPathResolver.TryGetReadOnlyDictionaryInterface(collection, out var interfaceType))
         {
             values = interfaceType.GetProperty("Values")?.GetValue(collection) as IEnumerable;
             return values is not null;
@@ -423,11 +367,7 @@ public static class SparseEditSessionExtensions
 
     private static IEnumerable<object> EnumerateChildReferences(object parent)
     {
-        foreach (
-            var property in parent
-                .GetType()
-                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-        )
+        foreach (var property in parent.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
             if (!property.CanRead || property.GetIndexParameters().Length > 0)
             {
@@ -452,10 +392,7 @@ public static class SparseEditSessionExtensions
                 }
             }
         }
-        else if (
-            TryGetReadOnlyDictionaryValues(parent, out var readOnlyValues)
-            && readOnlyValues is not null
-        )
+        else if (TryGetReadOnlyDictionaryValues(parent, out var readOnlyValues) && readOnlyValues is not null)
         {
             // KeyValuePair enumerables expose structs only, so read-only
             // dictionary values are visited through the Values view instead.
@@ -481,6 +418,5 @@ public static class SparseEditSessionExtensions
         }
     }
 
-    private static object? ToChildReference(object? value) =>
-        value is null or string || value.GetType().IsValueType ? null : value;
+    private static object? ToChildReference(object? value) => value is null or string || value.GetType().IsValueType ? null : value;
 }

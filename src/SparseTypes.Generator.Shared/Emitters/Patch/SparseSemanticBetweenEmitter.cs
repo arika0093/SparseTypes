@@ -34,9 +34,7 @@ internal static class SparseSemanticBetweenEmitter
         code.CancellationToken.ThrowIfCancellationRequested();
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>");
             code.AppendLine(
                 "public static Patch "
                     + dialect.MethodPrefix
@@ -64,9 +62,7 @@ internal static class SparseSemanticBetweenEmitter
         bool isStatic
     )
     {
-        code.AppendLine(
-            "/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>"
-        );
+        code.AppendLine("/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>");
         code.AppendLine(
             (isStatic ? "internal static Patch " : "public static Patch ")
                 + dialect.MethodPrefix
@@ -92,18 +88,10 @@ internal static class SparseSemanticBetweenEmitter
         code.AppendLine("return patch;");
         code.CloseBlock();
         code.AppendLine("if (!before.IsPresent) return patch;");
-        code.AppendLine(
-            "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;"
-        );
+        code.AppendLine("if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;");
         code.AppendLine("if (before.Value is null || after.Value is null)");
         code.OpenBlock();
-        code.AppendLine(
-            "patch."
-                + dialect.WholeFieldName
-                + " = "
-                + dialect.WholeOperationType
-                + ".Set(after.Value);"
-        );
+        code.AppendLine("patch." + dialect.WholeFieldName + " = " + dialect.WholeOperationType + ".Set(after.Value);");
         code.AppendLine("return patch;");
         code.CloseBlock();
         code.AppendLine("var beforeFragment = before.Value!;");
@@ -114,24 +102,12 @@ internal static class SparseSemanticBetweenEmitter
             var field = dialect.MemberField(member);
             if (dialect.IsScalarMember(member))
             {
-                var operation =
-                    dialect.RuntimeNamespace
-                    + "FragmentOperation<"
-                    + dialect.ScalarValueType(member)
-                    + ">";
+                var operation = dialect.RuntimeNamespace + "FragmentOperation<" + dialect.ScalarValueType(member) + ">";
                 var beforeValue = "beforeFragment." + name + ".Value";
                 var afterValue = "afterFragment." + name + ".Value";
                 var equality = dialect.ScalarEquality(member, beforeValue, afterValue);
                 code.AppendLine("patch." + field + " = !afterFragment." + name + ".IsPresent");
-                code.AppendLine(
-                    "? (beforeFragment."
-                        + name
-                        + ".IsPresent ? "
-                        + operation
-                        + ".Remove : default("
-                        + operation
-                        + "))"
-                );
+                code.AppendLine("? (beforeFragment." + name + ".IsPresent ? " + operation + ".Remove : default(" + operation + "))");
                 code.AppendLine(
                     ": ((beforeFragment."
                         + name
@@ -148,17 +124,7 @@ internal static class SparseSemanticBetweenEmitter
             }
             else
             {
-                code.AppendLine(
-                    "patch."
-                        + field
-                        + " = "
-                        + dialect.NestedBetween(
-                            member,
-                            "beforeFragment." + name,
-                            "afterFragment." + name
-                        )
-                        + ";"
-                );
+                code.AppendLine("patch." + field + " = " + dialect.NestedBetween(member, "beforeFragment." + name, "afterFragment." + name) + ";");
             }
         }
 

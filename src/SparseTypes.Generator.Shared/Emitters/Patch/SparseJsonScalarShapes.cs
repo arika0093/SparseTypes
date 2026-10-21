@@ -36,18 +36,14 @@ internal static class SparseJsonScalarShapes
     {
         code.AppendLine("private static TKey ParseMapKey<TKey>(string name)");
         code.OpenBlock();
-        code.AppendLine(
-            "var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);"
-        );
+        code.AppendLine("var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);");
         code.AppendLine("try");
         code.OpenBlock();
         code.AppendLine("if (target == typeof(string)) return (TKey)(object)name;");
         code.AppendLine("if (target == typeof(bool)) return (TKey)(object)bool.Parse(name);");
         code.AppendLine("if (target == typeof(char))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (name.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed collection key.\");"
-        );
+        code.AppendLine("if (name.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed collection key.\");");
         code.AppendLine("return (TKey)(object)name[0];");
         code.CloseBlock();
         AppendMapKeyParse(code, "byte", "byte");
@@ -58,32 +54,22 @@ internal static class SparseJsonScalarShapes
         AppendMapKeyParse(code, "uint", "uint");
         AppendMapKeyParse(code, "long", "long");
         AppendMapKeyParse(code, "ulong", "ulong");
-        code.AppendLine(
-            "if (target == typeof(global::System.Guid)) return (TKey)(object)new global::System.Guid(name);"
-        );
+        code.AppendLine("if (target == typeof(global::System.Guid)) return (TKey)(object)new global::System.Guid(name);");
         code.CloseBlock();
         code.AppendLine("catch (global::System.FormatException exception)");
         code.OpenBlock();
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);");
         code.CloseBlock();
         code.AppendLine("catch (global::System.InvalidOperationException exception)");
         code.OpenBlock();
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);");
         code.CloseBlock();
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\");"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\");");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("private static string FormatMapKey<TKey>(TKey key)");
         code.OpenBlock();
-        code.AppendLine(
-            "var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);"
-        );
+        code.AppendLine("var target = global::System.Nullable.GetUnderlyingType(typeof(TKey)) ?? typeof(TKey);");
         code.AppendLine("if (target == typeof(string)) return (string)(object)key!;");
         code.AppendLine("if (target == typeof(bool)) return ((bool)(object)key!).ToString();");
         code.AppendLine("if (target == typeof(char)) return ((char)(object)key!).ToString();");
@@ -95,21 +81,13 @@ internal static class SparseJsonScalarShapes
         AppendMapKeyFormat(code, "uint");
         AppendMapKeyFormat(code, "long");
         AppendMapKeyFormat(code, "ulong");
-        code.AppendLine(
-            "if (target == typeof(global::System.Guid)) return ((global::System.Guid)(object)key!).ToString();"
-        );
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\");"
-        );
+        code.AppendLine("if (target == typeof(global::System.Guid)) return ((global::System.Guid)(object)key!).ToString();");
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Unsupported collection key.\");");
         code.CloseBlock();
         code.AppendLine();
     }
 
-    private static void AppendMapKeyParse(
-        SharedIndentedBuilder code,
-        string keyword,
-        string parseType
-    ) =>
+    private static void AppendMapKeyParse(SharedIndentedBuilder code, string keyword, string parseType) =>
         code.AppendLine(
             "if (target == typeof("
                 + keyword
@@ -138,16 +116,8 @@ internal static class SparseJsonScalarShapes
         );
         code.OpenBlock();
         code.AppendLine("value = default;");
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return false;"
-        );
-        code.AppendLine(
-            "var target = global::System.Nullable.GetUnderlyingType(typeof("
-                + valueParameter
-                + ")) ?? typeof("
-                + valueParameter
-                + ");"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return false;");
+        code.AppendLine("var target = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");");
         code.AppendLine("try");
         code.OpenBlock();
         AppendScalarRead(code, valueParameter, "string", "reader.GetString()!");
@@ -166,20 +136,13 @@ internal static class SparseJsonScalarShapes
         code.AppendLine("if (target == typeof(char))");
         code.OpenBlock();
         code.AppendLine("var text = reader.GetString();");
-        code.AppendLine(
-            "if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed scalar value.\");"
-        );
+        code.AppendLine("if (text is null || text.Length != 1) throw new global::System.Text.Json.JsonException(\"Malformed scalar value.\");");
         code.AppendLine("value = (" + valueParameter + "?)(object)text[0];");
         code.AppendLine("return true;");
         code.CloseBlock();
         AppendScalarRead(code, valueParameter, "global::System.Guid", "reader.GetGuid()");
         AppendScalarRead(code, valueParameter, "global::System.DateTime", "reader.GetDateTime()");
-        AppendScalarRead(
-            code,
-            valueParameter,
-            "global::System.DateTimeOffset",
-            "reader.GetDateTimeOffset()"
-        );
+        AppendScalarRead(code, valueParameter, "global::System.DateTimeOffset", "reader.GetDateTimeOffset()");
         code.AppendLine("if (target.IsEnum)");
         code.OpenBlock();
         code.AppendLine("value = ReadScalarEnum<" + valueParameter + ">(ref reader);");
@@ -191,54 +154,29 @@ internal static class SparseJsonScalarShapes
         code.CloseBlock();
     }
 
-    private static void AppendScalarRead(
-        SharedIndentedBuilder code,
-        string valueParameter,
-        string type,
-        string expression
-    ) =>
-        code.AppendLine(
-            "if (target == typeof("
-                + type
-                + ")) { value = ("
-                + valueParameter
-                + "?)(object)"
-                + expression
-                + "; return true; }"
-        );
+    private static void AppendScalarRead(SharedIndentedBuilder code, string valueParameter, string type, string expression) =>
+        code.AppendLine("if (target == typeof(" + type + ")) { value = (" + valueParameter + "?)(object)" + expression + "; return true; }");
 
     private static void AppendScalarReadCatch(SharedIndentedBuilder code, string message)
     {
         code.AppendLine("catch (global::System.FormatException exception)");
         code.OpenBlock();
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"" + message + "\", exception);"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"" + message + "\", exception);");
         code.CloseBlock();
         code.AppendLine("catch (global::System.InvalidOperationException exception)");
         code.OpenBlock();
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"" + message + "\", exception);"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"" + message + "\", exception);");
         code.CloseBlock();
     }
 
     private static void AppendReadScalarEnum(SharedIndentedBuilder code, string valueParameter)
     {
         code.AppendLine(
-            "private static "
-                + valueParameter
-                + "? ReadScalarEnum<"
-                + valueParameter
-                + ">(ref global::System.Text.Json.Utf8JsonReader reader)"
+            "private static " + valueParameter + "? ReadScalarEnum<" + valueParameter + ">(ref global::System.Text.Json.Utf8JsonReader reader)"
         );
         code.OpenBlock();
         code.AppendLine(
-            "var enumType = global::System.Nullable.GetUnderlyingType(typeof("
-                + valueParameter
-                + ")) ?? typeof("
-                + valueParameter
-                + ");"
+            "var enumType = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");"
         );
         code.AppendLine("var underlying = global::System.Enum.GetUnderlyingType(enumType);");
         code.AppendLine("try");
@@ -253,18 +191,11 @@ internal static class SparseJsonScalarShapes
         AppendEnumRead(code, valueParameter, "sbyte", "reader.GetSByte()");
         code.CloseBlock();
         AppendScalarReadCatch(code, "Malformed scalar value.");
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Unsupported enum underlying type.\");"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Unsupported enum underlying type.\");");
         code.CloseBlock();
     }
 
-    private static void AppendEnumRead(
-        SharedIndentedBuilder code,
-        string valueParameter,
-        string underlying,
-        string expression
-    ) =>
+    private static void AppendEnumRead(SharedIndentedBuilder code, string valueParameter, string underlying, string expression) =>
         code.AppendLine(
             "if (underlying == typeof("
                 + underlying
@@ -286,13 +217,7 @@ internal static class SparseJsonScalarShapes
         );
         code.OpenBlock();
         code.AppendLine("if (value is null) return false;");
-        code.AppendLine(
-            "var target = global::System.Nullable.GetUnderlyingType(typeof("
-                + valueParameter
-                + ")) ?? typeof("
-                + valueParameter
-                + ");"
-        );
+        code.AppendLine("var target = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");");
         AppendScalarWrite(code, "string", "writer.WriteStringValue((string)(object)value!);");
         AppendScalarWrite(code, "bool", "writer.WriteBooleanValue((bool)(object)value!);");
         AppendScalarWrite(code, "byte", "writer.WriteNumberValue((int)(byte)(object)value!);");
@@ -306,26 +231,10 @@ internal static class SparseJsonScalarShapes
         AppendScalarWrite(code, "float", "writer.WriteNumberValue((float)(object)value!);");
         AppendScalarWrite(code, "double", "writer.WriteNumberValue((double)(object)value!);");
         AppendScalarWrite(code, "decimal", "writer.WriteNumberValue((decimal)(object)value!);");
-        AppendScalarWrite(
-            code,
-            "char",
-            "writer.WriteStringValue(((char)(object)value!).ToString());"
-        );
-        AppendScalarWrite(
-            code,
-            "global::System.Guid",
-            "writer.WriteStringValue(((global::System.Guid)(object)value!).ToString());"
-        );
-        AppendScalarWrite(
-            code,
-            "global::System.DateTime",
-            "writer.WriteStringValue((global::System.DateTime)(object)value!);"
-        );
-        AppendScalarWrite(
-            code,
-            "global::System.DateTimeOffset",
-            "writer.WriteStringValue((global::System.DateTimeOffset)(object)value!);"
-        );
+        AppendScalarWrite(code, "char", "writer.WriteStringValue(((char)(object)value!).ToString());");
+        AppendScalarWrite(code, "global::System.Guid", "writer.WriteStringValue(((global::System.Guid)(object)value!).ToString());");
+        AppendScalarWrite(code, "global::System.DateTime", "writer.WriteStringValue((global::System.DateTime)(object)value!);");
+        AppendScalarWrite(code, "global::System.DateTimeOffset", "writer.WriteStringValue((global::System.DateTimeOffset)(object)value!);");
         code.AppendLine("if (target.IsEnum)");
         code.OpenBlock();
         code.AppendLine("WriteScalarEnum(writer, value!);");
@@ -335,11 +244,8 @@ internal static class SparseJsonScalarShapes
         code.CloseBlock();
     }
 
-    private static void AppendScalarWrite(
-        SharedIndentedBuilder code,
-        string type,
-        string statement
-    ) => code.AppendLine("if (target == typeof(" + type + ")) { " + statement + " return true; }");
+    private static void AppendScalarWrite(SharedIndentedBuilder code, string type, string statement) =>
+        code.AppendLine("if (target == typeof(" + type + ")) { " + statement + " return true; }");
 
     private static void AppendWriteScalarEnum(SharedIndentedBuilder code, string valueParameter)
     {
@@ -352,40 +258,18 @@ internal static class SparseJsonScalarShapes
         );
         code.OpenBlock();
         code.AppendLine(
-            "var enumType = global::System.Nullable.GetUnderlyingType(typeof("
-                + valueParameter
-                + ")) ?? typeof("
-                + valueParameter
-                + ");"
+            "var enumType = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");"
         );
         code.AppendLine("var underlying = global::System.Enum.GetUnderlyingType(enumType);");
-        code.AppendLine(
-            "if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(long)) writer.WriteNumberValue((long)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(short)) writer.WriteNumberValue((int)(short)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(ushort)) writer.WriteNumberValue((int)(ushort)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(byte)) writer.WriteNumberValue((int)(byte)(object)value!);"
-        );
-        code.AppendLine(
-            "else if (underlying == typeof(sbyte)) writer.WriteNumberValue((int)(sbyte)(object)value!);"
-        );
-        code.AppendLine(
-            "else throw new global::System.Text.Json.JsonException(\"Unsupported enum underlying type.\");"
-        );
+        code.AppendLine("if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(long)) writer.WriteNumberValue((long)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(ulong)) writer.WriteNumberValue((ulong)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(short)) writer.WriteNumberValue((int)(short)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(ushort)) writer.WriteNumberValue((int)(ushort)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(byte)) writer.WriteNumberValue((int)(byte)(object)value!);");
+        code.AppendLine("else if (underlying == typeof(sbyte)) writer.WriteNumberValue((int)(sbyte)(object)value!);");
+        code.AppendLine("else throw new global::System.Text.Json.JsonException(\"Unsupported enum underlying type.\");");
         code.CloseBlock();
     }
 }

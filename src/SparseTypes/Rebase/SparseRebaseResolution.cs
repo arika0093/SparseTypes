@@ -114,15 +114,12 @@ public abstract class SparseRebaseResolution<TChange>
             (unresolved ??= new List<SparseConflict>()).Add(conflict);
         }
 
-        return unresolved is null
-            ? Array.Empty<SparseConflict>()
-            : Array.AsReadOnly(unresolved.ToArray());
+        return unresolved is null ? Array.Empty<SparseConflict>() : Array.AsReadOnly(unresolved.ToArray());
     }
 
     /// <summary>Enumerates paths carrying an explicit decision.</summary>
     /// <returns>A snapshot of decided paths for generic consumers.</returns>
-    public IReadOnlyList<SparsePath> EnumerateDecidedPaths() =>
-        Array.AsReadOnly(_index.DecidedPaths());
+    public IReadOnlyList<SparsePath> EnumerateDecidedPaths() => Array.AsReadOnly(_index.DecidedPaths());
 
     /// <summary>Finds the conflict at an exact path.</summary>
     /// <param name="path">The canonical path to look up.</param>
@@ -238,10 +235,7 @@ public abstract class SparseRebaseResolution<TChange>
     {
         ValidateDecisionTarget(path, custom: false);
         RejectRedactedCoverage(path, incoming: true);
-        StoreDecision(
-            path,
-            new SparseResolutionDecision(SparseResolutionDecisionKind.UseIncoming, default)
-        );
+        StoreDecision(path, new SparseResolutionDecision(SparseResolutionDecisionKind.UseIncoming, default));
     }
 
     /// <summary>Resolves a typed path to the incoming (local) value.</summary>
@@ -258,10 +252,7 @@ public abstract class SparseRebaseResolution<TChange>
     public void UseCurrent(SparsePath path)
     {
         ValidateDecisionTarget(path, custom: false);
-        StoreDecision(
-            path,
-            new SparseResolutionDecision(SparseResolutionDecisionKind.UseCurrent, default)
-        );
+        StoreDecision(path, new SparseResolutionDecision(SparseResolutionDecisionKind.UseCurrent, default));
     }
 
     /// <summary>Resolves a typed path to the current value (keep).</summary>
@@ -340,9 +331,7 @@ public abstract class SparseRebaseResolution<TChange>
                 continue;
             }
 
-            (choices ??= new List<ResolvedChoice>(Rebase.Conflicts.Count)).Add(
-                new ResolvedChoice(conflict, DesiredFor(conflict, decision.Value))
-            );
+            (choices ??= new List<ResolvedChoice>(Rebase.Conflicts.Count)).Add(new ResolvedChoice(conflict, DesiredFor(conflict, decision.Value)));
         }
 
         if (unresolved is not null && unresolved.Count > 0)
@@ -350,15 +339,12 @@ public abstract class SparseRebaseResolution<TChange>
             resolved = default;
             failure = new RebaseResolutionFailure(
                 unresolved,
-                unresolved.Count
-                    + " conflict(s) have no resolution decision. Resolve every conflict before building."
+                unresolved.Count + " conflict(s) have no resolution decision. Resolve every conflict before building."
             );
             return false;
         }
 
-        IReadOnlyList<ResolvedChoice> resolvedChoices = choices is null
-            ? Array.Empty<ResolvedChoice>()
-            : choices;
+        IReadOnlyList<ResolvedChoice> resolvedChoices = choices is null ? Array.Empty<ResolvedChoice>() : choices;
         if (!TryCreateResolved(resolvedChoices, out resolved, out var failureReason))
         {
             resolved = default;
@@ -368,10 +354,7 @@ public abstract class SparseRebaseResolution<TChange>
                 failed.Add(choice.Conflict);
             }
 
-            failure = new RebaseResolutionFailure(
-                failed,
-                failureReason ?? "The resolution could not be applied."
-            );
+            failure = new RebaseResolutionFailure(failed, failureReason ?? "The resolution could not be applied.");
             return false;
         }
 
@@ -385,11 +368,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <param name="failureReason">A value-free reason when the build fails.</param>
     /// <returns><see langword="true"/> when the change set built.</returns>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
-    protected abstract bool TryCreateResolved(
-        IReadOnlyList<ResolvedChoice> choices,
-        out TChange? resolved,
-        out string? failureReason
-    );
+    protected abstract bool TryCreateResolved(IReadOnlyList<ResolvedChoice> choices, out TChange? resolved, out string? failureReason);
 
     /// <summary>Stores a boxed custom value for an exact conflict path.</summary>
     /// <param name="path">An exact conflict path.</param>
@@ -399,10 +378,7 @@ public abstract class SparseRebaseResolution<TChange>
     {
         ValidateDecisionTarget(path, custom: true);
         RejectRedactedCoverage(path, incoming: true);
-        StoreDecision(
-            path,
-            new SparseResolutionDecision(SparseResolutionDecisionKind.Custom, value)
-        );
+        StoreDecision(path, new SparseResolutionDecision(SparseResolutionDecisionKind.Custom, value));
     }
 
     /// <summary>Boxes a present value for storage.</summary>
@@ -410,8 +386,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <param name="value">The value, including a present null.</param>
     /// <returns>The boxed presence-aware value.</returns>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
-    protected static Optional<object?> BoxValue<T>(T? value) =>
-        Optional<object?>.Present((object?)value);
+    protected static Optional<object?> BoxValue<T>(T? value) => Optional<object?>.Present((object?)value);
 
     /// <summary>Boxes a presence-aware value for storage.</summary>
     /// <typeparam name="T">The value type.</typeparam>
@@ -419,9 +394,7 @@ public abstract class SparseRebaseResolution<TChange>
     /// <returns>The boxed presence-aware value.</returns>
     [EditorBrowsable(EditorBrowsableState.Advanced)]
     protected static Optional<object?> BoxValue<T>(Optional<T> value) =>
-        value.IsPresent
-            ? Optional<object?>.Present((object?)value.Value)
-            : Optional<object?>.Missing;
+        value.IsPresent ? Optional<object?>.Present((object?)value.Value) : Optional<object?>.Missing;
 
     private void StoreDecision(SparsePath path, SparseResolutionDecision decision)
     {
@@ -437,9 +410,7 @@ public abstract class SparseRebaseResolution<TChange>
 
         if (!_index.HasUnder(path))
         {
-            throw new InvalidOperationException(
-                "No conflict exists at or under '" + path.ToString() + "'."
-            );
+            throw new InvalidOperationException("No conflict exists at or under '" + path.ToString() + "'.");
         }
 
         if (custom)
@@ -474,10 +445,7 @@ public abstract class SparseRebaseResolution<TChange>
             _ => SparseConflictState.ResolvedCustom,
         };
 
-    private static Optional<object?> DesiredFor(
-        SparseConflict conflict,
-        SparseResolutionDecision decision
-    ) =>
+    private static Optional<object?> DesiredFor(SparseConflict conflict, SparseResolutionDecision decision) =>
         decision.Kind switch
         {
             SparseResolutionDecisionKind.UseIncoming => conflict.LocalValue,

@@ -38,9 +38,7 @@ internal static class SparseTemporaryKeyOrderEmitter
         if (nullableKey)
         {
             code.AppendLine("var " + hasNullKey + " = false;");
-            code.AppendLine(
-                elementType + " " + nullKeyValue + " = default" + (elementRef ? "!" : "") + ";"
-            );
+            code.AppendLine(elementType + " " + nullKeyValue + " = default" + (elementRef ? "!" : "") + ";");
         }
         code.AppendLine("if (" + list + " is not null)");
         code.OpenBlock();
@@ -62,65 +60,21 @@ internal static class SparseTemporaryKeyOrderEmitter
         {
             code.AppendLine("if (!__idxKey.HasValue)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (!"
-                    + hasNullKey
-                    + ") { "
-                    + hasNullKey
-                    + " = true; "
-                    + nullKeyValue
-                    + " = "
-                    + candidate
-                    + "; }"
-            );
+            code.AppendLine("if (!" + hasNullKey + ") { " + hasNullKey + " = true; " + nullKeyValue + " = " + candidate + "; }");
             code.CloseBlock();
-            code.AppendLine(
-                "else if (!"
-                    + lookup
-                    + ".ContainsKey(__idxKey.Value)) "
-                    + lookup
-                    + ".Add(__idxKey.Value, "
-                    + candidate
-                    + ");"
-            );
+            code.AppendLine("else if (!" + lookup + ".ContainsKey(__idxKey.Value)) " + lookup + ".Add(__idxKey.Value, " + candidate + ");");
         }
         else if (keyIsReferenceType)
         {
             code.AppendLine("if (__idxKey is null)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (!"
-                    + hasNullKey
-                    + ") { "
-                    + hasNullKey
-                    + " = true; "
-                    + nullKeyValue
-                    + " = "
-                    + candidate
-                    + "; }"
-            );
+            code.AppendLine("if (!" + hasNullKey + ") { " + hasNullKey + " = true; " + nullKeyValue + " = " + candidate + "; }");
             code.CloseBlock();
-            code.AppendLine(
-                "else if (!"
-                    + lookup
-                    + ".ContainsKey(__idxKey)) "
-                    + lookup
-                    + ".Add(__idxKey, "
-                    + candidate
-                    + ");"
-            );
+            code.AppendLine("else if (!" + lookup + ".ContainsKey(__idxKey)) " + lookup + ".Add(__idxKey, " + candidate + ");");
         }
         else
         {
-            code.AppendLine(
-                "if (!"
-                    + lookup
-                    + ".ContainsKey(__idxKey)) "
-                    + lookup
-                    + ".Add(__idxKey, "
-                    + candidate
-                    + ");"
-            );
+            code.AppendLine("if (!" + lookup + ".ContainsKey(__idxKey)) " + lookup + ".Add(__idxKey, " + candidate + ");");
         }
         code.CloseBlock();
         code.CloseBlock();
@@ -198,13 +152,7 @@ internal static class SparseTemporaryKeyOrderEmitter
             code.AppendLine("var " + loopVar + " = " + loopVar + "Raw;");
         }
         code.AppendLine("var __vk = " + loopVar + "." + keyProp + ";");
-        code.AppendLine(
-            "if (global::System.Collections.Generic.EqualityComparer<"
-                + keyType
-                + ">.Default.Equals(__vk, "
-                + unassigned
-                + "))"
-        );
+        code.AppendLine("if (global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default.Equals(__vk, " + unassigned + "))");
         code.OpenBlock();
         code.AppendLine(
             "var __vt = "
@@ -256,13 +204,7 @@ internal static class SparseTemporaryKeyOrderEmitter
             code.AppendLine("var " + loopVar + " = " + loopVar + "Raw;");
         }
         code.AppendLine("var __sk2 = " + loopVar + "." + keyProp + ";");
-        code.AppendLine(
-            "if (global::System.Collections.Generic.EqualityComparer<"
-                + keyType
-                + ">.Default.Equals(__sk2, "
-                + unassigned
-                + "))"
-        );
+        code.AppendLine("if (global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default.Equals(__sk2, " + unassigned + "))");
         code.OpenBlock();
         code.AppendLine(
             "var __st2 = "
@@ -320,11 +262,7 @@ internal static class SparseTemporaryKeyOrderEmitter
         // Mapped temp persisted rows join by their assigned key when the
         // submitted temp survives.
         code.AppendLine("var __qt = " + loopVar + "." + tempProp + ";");
-        code.AppendLine(
-            "bool __isMappedTemp = __qt.HasValue && __qt.Value != global::System.Guid.Empty && "
-                + subTemps
-                + ".Contains(__qt.Value);"
-        );
+        code.AppendLine("bool __isMappedTemp = __qt.HasValue && __qt.Value != global::System.Guid.Empty && " + subTemps + ".Contains(__qt.Value);");
         code.AppendLine("bool __isSubmittedKey = " + subKeys + ".Contains(__qk);");
         code.AppendLine("if (__isMappedTemp || __isSubmittedKey)");
         code.OpenBlock();
@@ -332,52 +270,28 @@ internal static class SparseTemporaryKeyOrderEmitter
         {
             code.AppendLine("if (!__qk.HasValue)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (" + workingHasNullKey + ") " + ordered + ".Add(" + workingNullKeyValue + ");"
-            );
+            code.AppendLine("if (" + workingHasNullKey + ") " + ordered + ".Add(" + workingNullKeyValue + ");");
             code.CloseBlock();
             code.AppendLine("else if (");
-            code.AppendLine(
-                workingLookup
-                    + ".TryGetValue(__qk.Value, out var __hit)) "
-                    + ordered
-                    + ".Add(__hit!);"
-            );
+            code.AppendLine(workingLookup + ".TryGetValue(__qk.Value, out var __hit)) " + ordered + ".Add(__hit!);");
         }
         else if (keyIsReferenceType)
         {
             code.AppendLine("if (__qk is null)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (" + workingHasNullKey + ") " + ordered + ".Add(" + workingNullKeyValue + ");"
-            );
+            code.AppendLine("if (" + workingHasNullKey + ") " + ordered + ".Add(" + workingNullKeyValue + ");");
             code.CloseBlock();
             code.AppendLine("else if (");
-            code.AppendLine(
-                workingLookup + ".TryGetValue(__qk, out var __hit)) " + ordered + ".Add(__hit!);"
-            );
+            code.AppendLine(workingLookup + ".TryGetValue(__qk, out var __hit)) " + ordered + ".Add(__hit!);");
         }
         else
         {
-            code.AppendLine(
-                "if ("
-                    + workingLookup
-                    + ".TryGetValue(__qk, out var __hit)) "
-                    + ordered
-                    + ".Add(__hit!);"
-            );
+            code.AppendLine("if (" + workingLookup + ".TryGetValue(__qk, out var __hit)) " + ordered + ".Add(__hit!);");
         }
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            ordered
-                + ".Add("
-                + elementType
-                + ".Fragment.From("
-                + loopVar
-                + ").ToModel()); __dirty = true;"
-        );
+        code.AppendLine(ordered + ".Add(" + elementType + ".Fragment.From(" + loopVar + ").ToModel()); __dirty = true;");
         code.CloseBlock();
         code.CloseBlock();
     }
@@ -438,21 +352,11 @@ internal static class SparseTemporaryKeyOrderEmitter
         }
         else
         {
-            code.AppendLine(
-                "if (!__orderedIndex.ContainsKey(__ok)) __orderedIndex.Add(__ok, __oi);"
-            );
+            code.AppendLine("if (!__orderedIndex.ContainsKey(__ok)) __orderedIndex.Add(__ok, __oi);");
         }
         code.CloseBlock();
-        code.AppendLine(
-            "var __after = new global::System.Collections.Generic.List<"
-                + elementType
-                + ">?["
-                + ordered
-                + ".Count];"
-        );
-        code.AppendLine(
-            "var __head = new global::System.Collections.Generic.List<" + elementType + ">();"
-        );
+        code.AppendLine("var __after = new global::System.Collections.Generic.List<" + elementType + ">?[" + ordered + ".Count];");
+        code.AppendLine("var __head = new global::System.Collections.Generic.List<" + elementType + ">();");
         code.AppendLine(
             "var __postAddKeys = new global::System.Collections.Generic.HashSet<"
                 + lookupKeyType
@@ -474,11 +378,7 @@ internal static class SparseTemporaryKeyOrderEmitter
         }
         code.AppendLine("var __nk = __n." + keyProp + ";");
         code.AppendLine(
-            "var __isUnassigned = global::System.Collections.Generic.EqualityComparer<"
-                + keyType
-                + ">.Default.Equals(__nk, "
-                + unassigned
-                + ");"
+            "var __isUnassigned = global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default.Equals(__nk, " + unassigned + ");"
         );
         code.AppendLine("if (__isUnassigned)");
         code.OpenBlock();
@@ -537,9 +437,7 @@ internal static class SparseTemporaryKeyOrderEmitter
         }
         else
         {
-            code.AppendLine(
-                "if (__orderedIndex.TryGetValue(__nk, out var __submittedIndex)) __predecessor = __submittedIndex;"
-            );
+            code.AppendLine("if (__orderedIndex.TryGetValue(__nk, out var __submittedIndex)) __predecessor = __submittedIndex;");
         }
         code.AppendLine("continue;");
         code.CloseBlock();
@@ -569,16 +467,8 @@ internal static class SparseTemporaryKeyOrderEmitter
         );
         code.AppendLine("__dirty = true;");
         code.CloseBlock();
-        code.AppendLine(
-            "var __flattened = new global::System.Collections.Generic.List<"
-                + elementType
-                + ">("
-                + ordered
-                + ".Count + __head.Count);"
-        );
-        code.AppendLine(
-            "for (var __hi = __head.Count - 1; __hi >= 0; __hi--) __flattened.Add(__head[__hi]);"
-        );
+        code.AppendLine("var __flattened = new global::System.Collections.Generic.List<" + elementType + ">(" + ordered + ".Count + __head.Count);");
+        code.AppendLine("for (var __hi = __head.Count - 1; __hi >= 0; __hi--) __flattened.Add(__head[__hi]);");
         code.AppendLine(
             "for (var __oi = 0; __oi < "
                 + ordered
@@ -610,9 +500,7 @@ internal static class SparseTemporaryKeyOrderEmitter
                 + keyType
                 + ">.Default);"
         );
-        code.AppendLine(
-            "var __existingTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
+        code.AppendLine("var __existingTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         code.AppendLine("foreach (var __knownRaw in " + working + ")");
         code.OpenBlock();
         if (elementRef)
@@ -658,14 +546,7 @@ internal static class SparseTemporaryKeyOrderEmitter
                 + unassigned
                 + ")) { if (__wt.HasValue && __wt.Value != global::System.Guid.Empty && !__existingTemps.Add(__wt.Value)) return __Fail(\"Reconciling produced a duplicate key.\"); } else if (!__existingKeys.Add(__wk)) continue;"
         );
-        code.AppendLine(
-            working
-                + ".Add("
-                + elementType
-                + ".Fragment.From("
-                + loopVar
-                + ").ToModel()); __dirty = true;"
-        );
+        code.AppendLine(working + ".Add(" + elementType + ".Fragment.From(" + loopVar + ").ToModel()); __dirty = true;");
         code.CloseBlock();
     }
 
@@ -707,11 +588,7 @@ internal static class SparseTemporaryKeyOrderEmitter
                 + seenTemps
                 + ".Add(__gt.Value)) return __Fail(\"Reconciling produced a duplicate key.\"); } }"
         );
-        code.AppendLine(
-            "else if (!"
-                + seenKeys
-                + ".Add(__gk)) return __Fail(\"Reconciling produced a duplicate key.\");"
-        );
+        code.AppendLine("else if (!" + seenKeys + ".Add(__gk)) return __Fail(\"Reconciling produced a duplicate key.\");");
         code.CloseBlock();
     }
 }

@@ -27,10 +27,7 @@ public class SparseCollectionEditor<TElement>
         ArgumentNullException.ThrowIfNull(batch);
         if (path.Segments.Count != 1 || path.Segments[0].Kind != SparsePathSegmentKind.Member)
         {
-            throw new ArgumentException(
-                "The collection path must address exactly one member.",
-                nameof(path)
-            );
+            throw new ArgumentException("The collection path must address exactly one member.", nameof(path));
         }
 
         _descriptors = descriptors;
@@ -67,15 +64,13 @@ public class SparseCollectionEditor<TElement>
     public Type? KeyType => TryResolveArray(out var array, out _) ? array.KeyType : null;
 
     /// <summary>Gets the single key property name, or empty for unkeyed collections.</summary>
-    public IReadOnlyList<string> KeyPropertyNames =>
-        TryResolveArray(out var array, out _) ? array.KeyPropertyNames : Array.Empty<string>();
+    public IReadOnlyList<string> KeyPropertyNames => TryResolveArray(out var array, out _) ? array.KeyPropertyNames : Array.Empty<string>();
 
     /// <summary>Reports whether the collection is currently readable.</summary>
     /// <param name="error">The resolution failure, or <c>None</c> when readable.</param>
     /// <returns>True when the member resolves to a live sequence.</returns>
     /// <remarks>Immutable collections stay readable; only edits report <c>NotMutable</c>.</remarks>
-    public bool IsAvailable(out SparseCollectionEditError error) =>
-        TryResolveArray(out _, out error);
+    public bool IsAvailable(out SparseCollectionEditError error) => TryResolveArray(out _, out error);
 
     /// <summary>Reads the underlying model at a position.</summary>
     /// <param name="index">The zero-based position.</param>
@@ -250,9 +245,7 @@ public class SparseCollectionEditor<TElement>
             return true;
         }
 
-        error = array.CanRemove
-            ? SparseCollectionEditError.IndexOutOfRange
-            : SparseCollectionEditError.NotMutable;
+        error = array.CanRemove ? SparseCollectionEditError.IndexOutOfRange : SparseCollectionEditError.NotMutable;
         return false;
     }
 
@@ -290,9 +283,7 @@ public class SparseCollectionEditor<TElement>
             return true;
         }
 
-        error = array.CanMove
-            ? SparseCollectionEditError.IndexOutOfRange
-            : SparseCollectionEditError.NotMutable;
+        error = array.CanMove ? SparseCollectionEditError.IndexOutOfRange : SparseCollectionEditError.NotMutable;
         return false;
     }
 
@@ -318,9 +309,7 @@ public class SparseCollectionEditor<TElement>
         {
             // A supported shape without a live accessor means the member is
             // null; an unsupported shape means the member is no sequence.
-            error = member.Shape.HasArray
-                ? SparseCollectionEditError.NullCollection
-                : SparseCollectionEditError.NotACollection;
+            error = member.Shape.HasArray ? SparseCollectionEditError.NullCollection : SparseCollectionEditError.NotACollection;
             return false;
         }
 
@@ -329,11 +318,7 @@ public class SparseCollectionEditor<TElement>
         return true;
     }
 
-    private static SparseCollectionEditError DiagnoseMutationFailure(
-        bool canMutate,
-        IArrayDescriptor array,
-        TElement? item
-    )
+    private static SparseCollectionEditError DiagnoseMutationFailure(bool canMutate, IArrayDescriptor array, TElement? item)
     {
         // The descriptor already validated indexes and rejected duplicates
         // atomically without notifying; only the cause is left to report.
@@ -344,9 +329,7 @@ public class SparseCollectionEditor<TElement>
 
         if (item is null)
         {
-            return array.IsItemNullable
-                ? SparseCollectionEditError.DuplicateKey
-                : SparseCollectionEditError.InvalidItem;
+            return array.IsItemNullable ? SparseCollectionEditError.DuplicateKey : SparseCollectionEditError.InvalidItem;
         }
 
         if (!array.ItemType.IsInstanceOfType(item) && !array.ItemViewType.IsInstanceOfType(item))

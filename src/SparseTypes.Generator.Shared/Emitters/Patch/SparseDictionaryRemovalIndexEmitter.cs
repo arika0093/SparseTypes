@@ -3,26 +3,15 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Emits an index into the ordered dictionary removal list.</summary>
 internal static class SparseDictionaryRemovalIndexEmitter
 {
-    internal static void Emit(
-        SharedIndentedBuilder code,
-        string keyType,
-        string comparer,
-        string? implementationNamespace = null
-    )
+    internal static void Emit(SharedIndentedBuilder code, string keyType, string comparer, string? implementationNamespace = null)
     {
         // Generated-Once: with an explicit namespace the kernels live once per
         // compilation.
         if (!string.IsNullOrEmpty(implementationNamespace))
         {
-            var prefix =
-                SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace!)
-                + "<"
-                + keyType
-                + ">";
+            var prefix = SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace!) + "<" + keyType + ">";
             code.AppendLine(
-                "internal void __SparseReserveRemovals(int count) => "
-                    + prefix
-                    + ".ReserveRemovals(ref __removed, ref __removedLookup, count);"
+                "internal void __SparseReserveRemovals(int count) => " + prefix + ".ReserveRemovals(ref __removed, ref __removedLookup, count);"
             );
             return;
         }
@@ -42,17 +31,8 @@ internal static class SparseDictionaryRemovalIndexEmitter
         // insert and capacity growth live once per compilation.
         if (!string.IsNullOrEmpty(implementationNamespace) && keyType is not null)
         {
-            var prefix =
-                SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace!)
-                + "<"
-                + keyType
-                + ">";
-            code.AppendLine(
-                prefix
-                    + ".AddRemoval(__removed!, ref __removedLookup, key, "
-                    + (keepReservedIndex ? "true" : "false")
-                    + ");"
-            );
+            var prefix = SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace!) + "<" + keyType + ">";
+            code.AppendLine(prefix + ".AddRemoval(__removed!, ref __removedLookup, key, " + (keepReservedIndex ? "true" : "false") + ");");
             return;
         }
 
@@ -60,10 +40,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
     }
 
     internal static string SharedPrefix(string keyType, string implementationNamespace) =>
-        SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace)
-        + "<"
-        + keyType
-        + ">";
+        SparseGeneratedOnceNames.QualifiedRemovalIndex(implementationNamespace) + "<" + keyType + ">";
 
     private static void EmitLegacy(SharedIndentedBuilder code, string keyType, string comparer)
     {
@@ -73,9 +50,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
         // the ordered list. Keep the full scan on an indexed hit (order and
         // duplicate cleanup) and when no index exists.
         code.AppendLine("var slots = __removedLookup;");
-        code.AppendLine(
-            "if (slots is not null && slots[__SparseRemovedSlot(key, slots)] == 0) return;"
-        );
+        code.AppendLine("if (slots is not null && slots[__SparseRemovedSlot(key, slots)] == 0) return;");
         code.AppendLine("for (int index = __removed!.Count - 1; index >= 0; index--)");
         code.OpenBlock();
         code.AppendLine("if (!" + comparer + ".Equals(__removed[index], key)) continue;");
@@ -87,9 +62,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
         code.OpenBlock();
         code.AppendLine("int mask = slots.Length - 1;");
         code.AppendLine("int slot = " + comparer + ".GetHashCode(key!) & mask;");
-        code.AppendLine(
-            "while (slots[slot] != 0 && !" + comparer + ".Equals(__removed![slots[slot] - 1], key))"
-        );
+        code.AppendLine("while (slots[slot] != 0 && !" + comparer + ".Equals(__removed![slots[slot] - 1], key))");
         code.OpenBlock();
         code.AppendLine("slot = (slot + 1) & mask;");
         code.CloseBlock();
@@ -120,9 +93,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
         code.AppendLine("internal void __SparseReserveRemovals(int count)");
         code.OpenBlock();
         code.AppendLine("if (count <= 0) return;");
-        code.AppendLine(
-            "__removed = new global::System.Collections.Generic.List<" + keyType + ">(count);"
-        );
+        code.AppendLine("__removed = new global::System.Collections.Generic.List<" + keyType + ">(count);");
         code.AppendLine("if (count >= 32)");
         code.OpenBlock();
         code.AppendLine("int capacity = 64;");
@@ -136,25 +107,15 @@ internal static class SparseDictionaryRemovalIndexEmitter
         EmitIndexedAdd(code, keyType);
     }
 
-    internal static void EmitLegacyAdd(
-        SharedIndentedBuilder code,
-        string comparer,
-        bool keepReservedIndex
-    )
+    internal static void EmitLegacyAdd(SharedIndentedBuilder code, string comparer, bool keepReservedIndex)
     {
-        var condition = keepReservedIndex
-            ? "__removedLookup is not null || __removed!.Count >= 32"
-            : "__removed!.Count >= 32";
+        var condition = keepReservedIndex ? "__removedLookup is not null || __removed!.Count >= 32" : "__removed!.Count >= 32";
         code.AppendLine("if (" + condition + ")");
         code.OpenBlock();
         code.AppendLine("__SparseAddIndexedRemoval(key);");
         code.AppendLine("return;");
         code.CloseBlock();
-        code.AppendLine(
-            "foreach (var existing in __removed!) if ("
-                + comparer
-                + ".Equals(existing, key)) return;"
-        );
+        code.AppendLine("foreach (var existing in __removed!) if (" + comparer + ".Equals(existing, key)) return;");
         code.AppendLine("__removed.Add(key);");
         if (!keepReservedIndex)
         {

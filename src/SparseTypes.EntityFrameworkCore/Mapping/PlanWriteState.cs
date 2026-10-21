@@ -12,13 +12,7 @@ internal sealed class PlanWriteState
     private readonly List<SparseEntityAppliedPath>? _appliedPaths;
     private readonly Dictionary<object, Dictionary<object, string>>? _collectionScopeKeys;
 
-    public PlanWriteState(
-        DbContext context,
-        object entity,
-        EntityEntry entry,
-        object afterSnapshot,
-        string path
-    )
+    public PlanWriteState(DbContext context, object entity, EntityEntry entry, object afterSnapshot, string path)
         : this(context, entity, entry, afterSnapshot, path, null) { }
 
     public PlanWriteState(
@@ -67,8 +61,7 @@ internal sealed class PlanWriteState
     public List<SparseEntityAppliedPath>? AppliedPaths => _appliedPaths;
 
     /// <summary>Gets created-entity scope keys, when result tracking is enabled.</summary>
-    public Dictionary<object, Dictionary<object, string>>? CollectionScopeKeys =>
-        _collectionScopeKeys;
+    public Dictionary<object, Dictionary<object, string>>? CollectionScopeKeys => _collectionScopeKeys;
 
     /// <summary>Gets nested temporary-identity records keyed by parent scope.</summary>
     public Dictionary<object, NestedScopeTable>? NestedScopes { get; }
@@ -103,13 +96,7 @@ internal sealed class PlanWriteState
     }
 
     /// <summary>Records the exact path segment used for a created collection element.</summary>
-    public void RecordCollectionScope(
-        string path,
-        object collectionIdentity,
-        object entity,
-        string scopeKey,
-        CollectionScopePath scope
-    )
+    public void RecordCollectionScope(string path, object collectionIdentity, object entity, string scopeKey, CollectionScopePath scope)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(entity);
@@ -143,12 +130,7 @@ internal sealed class PlanWriteState
 
     /// <summary>Records a created child entity under its path-scoped temporary identity.</summary>
     /// <remarks>The legacy path-string bucket keeps its exact contents for compatible reads.</remarks>
-    public void RecordTemporary(
-        string path,
-        object collectionIdentity,
-        Guid temporaryKey,
-        object entity
-    )
+    public void RecordTemporary(string path, object collectionIdentity, Guid temporaryKey, object entity)
     {
         ArgumentNullException.ThrowIfNull(path);
         ArgumentNullException.ThrowIfNull(entity);
@@ -165,10 +147,7 @@ internal sealed class PlanWriteState
 
         if (NestedScopes is null || ParentScope.IsEmpty)
         {
-            if (
-                scope.TryGetValue(temporaryKey, out var existing)
-                && !ReferenceEquals(existing, entity)
-            )
+            if (scope.TryGetValue(temporaryKey, out var existing) && !ReferenceEquals(existing, entity))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -197,6 +176,5 @@ internal sealed class PlanWriteState
     public string Path { get; }
 
     /// <summary>Prefixes a DTO member with the current path for error messages.</summary>
-    public string DisplayPath(string dtoName) =>
-        string.IsNullOrEmpty(Path) ? dtoName : Path + "." + dtoName;
+    public string DisplayPath(string dtoName) => string.IsNullOrEmpty(Path) ? dtoName : Path + "." + dtoName;
 }

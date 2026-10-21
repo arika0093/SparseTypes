@@ -32,10 +32,7 @@ internal static class SparseEntityMapperBridgeEmitter
             TypeDeclarationSyntax? declaration = null;
             foreach (var reference in level.DeclaringSyntaxReferences)
             {
-                if (
-                    reference.GetSyntax() is TypeDeclarationSyntax candidate
-                    && candidate.Modifiers.Any(SyntaxKind.PartialKeyword)
-                )
+                if (reference.GetSyntax() is TypeDeclarationSyntax candidate && candidate.Modifiers.Any(SyntaxKind.PartialKeyword))
                 {
                     declaration = candidate;
                     break;
@@ -53,18 +50,8 @@ internal static class SparseEntityMapperBridgeEmitter
 
         var entityName = entityType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var dtoName = dtoType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var mappingContract =
-            "global::SparseTypes.EntityFrameworkCore.IEntityModelMapping<"
-            + entityName
-            + ", "
-            + dtoName
-            + ">";
-        var builderType =
-            "global::SparseTypes.EntityFrameworkCore.SparseEntityMapBuilder<"
-            + entityName
-            + ", "
-            + dtoName
-            + ">";
+        var mappingContract = "global::SparseTypes.EntityFrameworkCore.IEntityModelMapping<" + entityName + ", " + dtoName + ">";
+        var builderType = "global::SparseTypes.EntityFrameworkCore.SparseEntityMapBuilder<" + entityName + ", " + dtoName + ">";
         var mapperFullName = mapper.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         for (var index = 0; index < levels.Count; index++)
         {
@@ -75,9 +62,7 @@ internal static class SparseEntityMapperBridgeEmitter
                 .Append("partial ")
                 .Append(declaration.Keyword.ValueText)
                 .Append(' ')
-                .Append(
-                    SparseEntityMapperEmitter.EscapeIdentifier(declaration.Identifier.ValueText)
-                );
+                .Append(SparseEntityMapperEmitter.EscapeIdentifier(declaration.Identifier.ValueText));
             if (isInnermost)
             {
                 code.Append(" : ").Append(mappingContract);
@@ -88,36 +73,20 @@ internal static class SparseEntityMapperBridgeEmitter
         }
 
         var body = indent + levels.Count;
-        AppendIndent(code, body)
-            .AppendLine(
-                "/// <summary>Synchronizes concurrent plan builds on one mapping instance.</summary>"
-            );
+        AppendIndent(code, body).AppendLine("/// <summary>Synchronizes concurrent plan builds on one mapping instance.</summary>");
         AppendIndent(code, body).AppendLine("private readonly object __sparse_map_lock = new();");
-        AppendIndent(code, body)
-            .Append("private ")
-            .Append(builderType)
-            .AppendLine("? __sparse_map_scope = null;");
-        AppendIndent(code, body)
-            .AppendLine(
-                "/// <summary>Gets the builder active for the current plan build.</summary>"
-            );
-        AppendIndent(code, body)
-            .AppendLine(
-                "/// <remarks>Usable only during synchronous <c>Configure</c>; never retained.</remarks>"
-            );
+        AppendIndent(code, body).Append("private ").Append(builderType).AppendLine("? __sparse_map_scope = null;");
+        AppendIndent(code, body).AppendLine("/// <summary>Gets the builder active for the current plan build.</summary>");
+        AppendIndent(code, body).AppendLine("/// <remarks>Usable only during synchronous <c>Configure</c>; never retained.</remarks>");
         AppendIndent(code, body).Append("private ").Append(builderType).AppendLine(" Map");
         AppendIndent(code, body).AppendLine("{");
         AppendIndent(code, body + 1).AppendLine("get");
         AppendIndent(code, body + 1).AppendLine("{");
         AppendIndent(code, body + 2).AppendLine("var scope = __sparse_map_scope;");
         AppendIndent(code, body + 2)
-            .Append(
-                "if (scope is null) throw new global::System.InvalidOperationException(\"Sparse mapper '"
-            )
+            .Append("if (scope is null) throw new global::System.InvalidOperationException(\"Sparse mapper '")
             .Append(mapperFullName.Replace("\"", "\"\""))
-            .AppendLine(
-                " exposes Map only during Configure. Do not retain or access it outside the synchronous Configure call.\");"
-            );
+            .AppendLine(" exposes Map only during Configure. Do not retain or access it outside the synchronous Configure call.\");");
         AppendIndent(code, body + 2).AppendLine("return scope;");
         AppendIndent(code, body + 1).AppendLine("}");
         AppendIndent(code, body).AppendLine("}");
@@ -127,12 +96,7 @@ internal static class SparseEntityMapperBridgeEmitter
                     + companionName
                     + "))]"
             );
-        AppendIndent(code, body)
-            .Append("void ")
-            .Append(mappingContract)
-            .Append(".Configure(")
-            .Append(builderType)
-            .AppendLine(" builder)");
+        AppendIndent(code, body).Append("void ").Append(mappingContract).Append(".Configure(").Append(builderType).AppendLine(" builder)");
         AppendIndent(code, body).AppendLine("{");
         if (!hasConfigure)
         {
@@ -146,9 +110,7 @@ internal static class SparseEntityMapperBridgeEmitter
             AppendIndent(code, body + 1).AppendLine("lock (__sparse_map_lock)");
             AppendIndent(code, body + 1).AppendLine("{");
             AppendIndent(code, body + 2)
-                .Append(
-                    "if (__sparse_map_scope is not null) throw new global::System.InvalidOperationException(\"Sparse mapper '"
-                )
+                .Append("if (__sparse_map_scope is not null) throw new global::System.InvalidOperationException(\"Sparse mapper '")
                 .Append(mapperFullName.Replace("\"", "\"\""))
                 .AppendLine(" does not support reentrant Configure calls.\");");
             AppendIndent(code, body + 2).AppendLine("__sparse_map_scope = builder;");

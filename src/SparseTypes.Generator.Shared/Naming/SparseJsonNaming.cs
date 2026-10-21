@@ -10,15 +10,10 @@ internal static class SparseJsonNaming
     public const int JsonIgnoreNever = 0;
     public const int JsonIgnoreAlways = 1;
 
-    public const string JsonPropertyNameAttribute =
-        "System.Text.Json.Serialization.JsonPropertyNameAttribute";
+    public const string JsonPropertyNameAttribute = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
     public const string JsonIgnoreAttribute = "System.Text.Json.Serialization.JsonIgnoreAttribute";
 
-    public static string GetJsonPropertyName(
-        IPropertySymbol property,
-        CancellationToken cancellationToken,
-        out bool isExplicit
-    )
+    public static string GetJsonPropertyName(IPropertySymbol property, CancellationToken cancellationToken, out bool isExplicit)
     {
         foreach (var attribute in property.GetAttributes())
         {
@@ -37,10 +32,7 @@ internal static class SparseJsonNaming
         return property.Name;
     }
 
-    public static int GetJsonIgnoreCondition(
-        IPropertySymbol property,
-        CancellationToken cancellationToken
-    )
+    public static int GetJsonIgnoreCondition(IPropertySymbol property, CancellationToken cancellationToken)
     {
         foreach (var attribute in property.GetAttributes())
         {
@@ -69,10 +61,7 @@ internal static class SparseJsonNaming
                     string.Equals(argument.Key, "Condition", System.StringComparison.Ordinal)
                 );
 
-                if (
-                    !hasExplicitCondition
-                    && TryParseCondition(attribute.ConstructorArguments[0], out var ctorCondition)
-                )
+                if (!hasExplicitCondition && TryParseCondition(attribute.ConstructorArguments[0], out var ctorCondition))
                 {
                     condition = ctorCondition;
                 }
@@ -103,10 +92,7 @@ internal static class SparseJsonNaming
         {
             // All remaining unsigned/signed integral forms fit in long, so this
             // conversion cannot fail.
-            var numeric = System.Convert.ToInt64(
-                constant.Value,
-                System.Globalization.CultureInfo.InvariantCulture
-            );
+            var numeric = System.Convert.ToInt64(constant.Value, System.Globalization.CultureInfo.InvariantCulture);
             if (numeric >= 0 && numeric <= 3)
             {
                 condition = (int)numeric;

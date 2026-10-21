@@ -30,9 +30,7 @@ internal static class SparseObservableDictionaryDescriptorEmitter
         var keyTypeDecl = member.Collection.ElementType.NonNullableName;
         var valueTypeDecl = valueType.NonNullableName;
         var hasProxy = valueType.IsFragmentModel && valueType.IsReferenceType;
-        var viewType = hasProxy
-            ? valueTypeDecl + "." + (valueType.ObservableTypeName ?? "Observable")
-            : valueTypeDecl;
+        var viewType = hasProxy ? valueTypeDecl + "." + (valueType.ObservableTypeName ?? "Observable") : valueTypeDecl;
         var keyCast = dialect.DescriptorValueType + ".TryGet<" + keyType + ">";
         var changed =
             "() => { "
@@ -46,16 +44,7 @@ internal static class SparseObservableDictionaryDescriptorEmitter
             + "(); }";
         string WrapValue(string variable) =>
             hasProxy
-                ? variable
-                    + " is null ? null : new "
-                    + viewType
-                    + "("
-                    + variable
-                    + ", "
-                    + changed
-                    + ", "
-                    + context.Member("__onRawModelAccess")
-                    + ")"
+                ? variable + " is null ? null : new " + viewType + "(" + variable + ", " + changed + ", " + context.Member("__onRawModelAccess") + ")"
                 : variable;
         var childAccessor = hasProxy
             ? "GetValueDescriptors = key => { if (key is null || !"
@@ -145,16 +134,12 @@ internal static class SparseObservableDictionaryDescriptorEmitter
                 + "(key, out var typedKey) || !"
                 + context.Member(property)
                 + "!.TryGetValue(typedKey, out var item) || item is null) return null; return item."
-                + SparseObservableDescriptorEmitter.AccessorName(
-                    member.Collection.ValueType.Value.NonNullableName
-                )
+                + SparseObservableDescriptorEmitter.AccessorName(member.Collection.ValueType.Value.NonNullableName)
                 + "("
                 + path
                 + ".Key(typedKey)); }, "
             : string.Empty;
-        var viewTypeName = names.HasElementProxy
-            ? names.ViewType.TrimEnd('?')
-            : member.Collection.ValueType.Value.NonNullableName;
+        var viewTypeName = names.HasElementProxy ? names.ViewType.TrimEnd('?') : member.Collection.ValueType.Value.NonNullableName;
         // Identity resolver for retained value descriptors: the unwrapped model
         // for a key, or null when the key is absent or unconvertible.
         var valueResolver = names.HasElementProxy

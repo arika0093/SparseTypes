@@ -42,11 +42,7 @@ public sealed class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
             {
                 // Created through trusted framework access, so the observable
                 // change cache stays intact for later HasChanges reads.
-                _context = new SparseEditContext<TModel, TPaths>(
-                    Session,
-                    Session.Paths,
-                    Session.CreateEditContext()
-                );
+                _context = new SparseEditContext<TModel, TPaths>(Session, Session.Paths, Session.CreateEditContext());
                 Subscribe(Session);
             }
             else
@@ -104,10 +100,7 @@ public sealed class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
             notifier.PropertyChanged += OnSessionChanged;
         }
 
-        _unsubscribeHistoryChanged = SparseSessionInterop.SubscribeHistoryChanged(
-            session,
-            OnHistoryAvailabilityChanged
-        );
+        _unsubscribeHistoryChanged = SparseSessionInterop.SubscribeHistoryChanged(session, OnHistoryAvailabilityChanged);
         WireHistory(SparseSessionInterop.TryGetHistory(session));
     }
 

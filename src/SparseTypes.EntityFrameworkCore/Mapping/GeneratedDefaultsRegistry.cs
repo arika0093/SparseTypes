@@ -17,10 +17,7 @@ public static class GeneratedDefaultsRegistry
     /// <param name="mapperType">The mapper implementation type.</param>
     /// <param name="registerDefaults">The generated defaults registration callback.</param>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static void Register<TEntity, TDto>(
-        Type mapperType,
-        Action<SparseEntityMapBuilder<TEntity, TDto>> registerDefaults
-    )
+    public static void Register<TEntity, TDto>(Type mapperType, Action<SparseEntityMapBuilder<TEntity, TDto>> registerDefaults)
         where TEntity : class
         where TDto : class
     {
@@ -31,35 +28,20 @@ public static class GeneratedDefaultsRegistry
             typeof(TEntity),
             typeof(TDto),
             builder => registerDefaults((SparseEntityMapBuilder<TEntity, TDto>)builder),
-            services =>
-                SparseEntityMapperServiceCollectionExtensions.AddMapper<TEntity, TDto>(
-                    services,
-                    mapperType
-                ),
-            static (serviceProvider, context) =>
-                SparseEntityMapperServiceCollectionExtensions.ValidatePlan<TEntity, TDto>(
-                    serviceProvider,
-                    context
-                )
+            services => SparseEntityMapperServiceCollectionExtensions.AddMapper<TEntity, TDto>(services, mapperType),
+            static (serviceProvider, context) => SparseEntityMapperServiceCollectionExtensions.ValidatePlan<TEntity, TDto>(serviceProvider, context)
         );
         if (!Registrations.TryAdd(mapperType, registration))
         {
-            throw new InvalidOperationException(
-                $"Generated defaults were registered more than once for '{mapperType}'."
-            );
+            throw new InvalidOperationException($"Generated defaults were registered more than once for '{mapperType}'.");
         }
     }
 
-    internal static IReadOnlyCollection<Type> GetRegisteredMapperTypes() =>
-        Registrations.Keys.ToArray();
+    internal static IReadOnlyCollection<Type> GetRegisteredMapperTypes() => Registrations.Keys.ToArray();
 
-    internal static IReadOnlyCollection<Registration> GetRegistrations() =>
-        Registrations.Values.ToArray();
+    internal static IReadOnlyCollection<Registration> GetRegistrations() => Registrations.Values.ToArray();
 
-    internal static bool TryApply<TEntity, TDto>(
-        Type mapperType,
-        SparseEntityMapBuilder<TEntity, TDto> builder
-    )
+    internal static bool TryApply<TEntity, TDto>(Type mapperType, SparseEntityMapBuilder<TEntity, TDto> builder)
         where TEntity : class
         where TDto : class
     {
@@ -70,9 +52,7 @@ public static class GeneratedDefaultsRegistry
 
         if (registration.EntityType != typeof(TEntity) || registration.DtoType != typeof(TDto))
         {
-            throw new InvalidOperationException(
-                $"Generated defaults for '{mapperType}' target a different entity/DTO pair."
-            );
+            throw new InvalidOperationException($"Generated defaults for '{mapperType}' target a different entity/DTO pair.");
         }
 
         builder.RunGenerated(() => registration.Apply(builder));

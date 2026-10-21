@@ -23,9 +23,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         code.AppendLine(
             "/// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>"
         );
-        code.AppendLine(
-            "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
-        );
+        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
         code.AppendLine("/// <returns>The transport core.</returns>");
         code.AppendLine(
             "internal "
@@ -48,58 +46,32 @@ internal static class SparseChangeSetPayloadTransferEmitter
         var endpoint = runtime + "ChangePayloadEndpoint";
         var payloadCore = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
         var payloadRoot = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Root");
-        var payloadChange = SparseChangeSetPayloadEmitter.PayloadTypeName(
-            dialect,
-            modelType,
-            "Change"
-        );
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadTypeName(
-            dialect,
-            modelType,
-            "RootChange"
-        );
+        var payloadChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Change");
+        var rootChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "RootChange");
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Converts this change set into its serializable payload envelope.</summary>"
-            );
+            code.AppendLine("/// <summary>Converts this change set into its serializable payload envelope.</summary>");
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
-            code.AppendLine(
-                "public ChangePayload ToPayload() => "
-                    + target.ChangeSetOperationsType
-                    + ".ToPayload(this);"
-            );
+            code.AppendLine("public ChangePayload ToPayload() => " + target.ChangeSetOperationsType + ".ToPayload(this);");
             code = target.ChangeSetOperations;
-            code.AppendLine(
-                "/// <summary>Converts a change set into its serializable payload envelope.</summary>"
-            );
+            code.AppendLine("/// <summary>Converts a change set into its serializable payload envelope.</summary>");
             code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("internal static ChangePayload ToPayload(ChangeSet self)");
             code.OpenBlock();
             AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "self.IsEmpty");
-            code.AppendLine(
-                "return new ChangePayload { Version = "
-                    + versionLiteral
-                    + ", Changes = ToPayloadChanges(self, false) };"
-            );
+            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Changes = ToPayloadChanges(self, false) };");
             code.CloseBlock();
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Converts this change set into its serializable payload envelope.</summary>"
-            );
+            code.AppendLine("/// <summary>Converts this change set into its serializable payload envelope.</summary>");
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("public ChangePayload ToPayload()");
             code.OpenBlock();
             AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "IsEmpty");
-            code.AppendLine(
-                "return new ChangePayload { Version = "
-                    + versionLiteral
-                    + ", Changes = ToPayloadChanges(false) };"
-            );
+            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Changes = ToPayloadChanges(false) };");
             code.CloseBlock();
         }
         code.AppendLine("/// <summary>Builds the transport changes for this change set.</summary>");
@@ -111,9 +83,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
         }
 
-        code.AppendLine(
-            "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
-        );
+        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
         code.AppendLine("/// <returns>The transport changes.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
@@ -133,11 +103,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
             "var changes = new global::System.Collections.Generic.List<"
                 + payloadChange
                 + ">"
-                + (
-                    members.Length <= MaxPrecountedMembers
-                        ? "(__sparse_hasWhole ? 1 : " + PayloadCapacity(members) + ")"
-                        : "()"
-                )
+                + (members.Length <= MaxPrecountedMembers ? "(__sparse_hasWhole ? 1 : " + PayloadCapacity(members) + ")" : "()")
                 + ";"
         );
         code.AppendLine("if (__sparse_hasWhole)");
@@ -165,18 +131,11 @@ internal static class SparseChangeSetPayloadTransferEmitter
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
             var id = member.Id;
-            var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-                dialect,
-                modelType,
-                "Change",
-                id
-            );
+            var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
             if (SparseChangeSetBasicsEmitter.IsNested(member))
             {
                 var redact = member.RedactBefore ? "true" : "redactBefores";
-                code.AppendLine(
-                    "if (" + SparseChangeSetBasicsEmitter.NestedField(member) + " is not null)"
-                );
+                code.AppendLine("if (" + SparseChangeSetBasicsEmitter.NestedField(member) + " is not null)");
                 code.OpenBlock();
                 code.AppendLine(
                     "changes.Add(new "
@@ -189,10 +148,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 );
                 code.CloseBlock();
             }
-            else if (
-                SparseChangeSetBasicsEmitter.IsKeyed(member)
-                || SparseChangeSetBasicsEmitter.IsDict(member)
-            )
+            else if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
             {
                 code.AppendLine("if (" + SparseChangeSetBasicsEmitter.HasField(member) + ")");
                 code.OpenBlock();
@@ -241,9 +197,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 var omitItemEndpoints = "";
                 if (isModelValue)
                 {
-                    omitItemEndpoints = SparseChangeSetBasicsEmitter.IsKeyed(member)
-                        ? "item.IsEdited || item.IsReordered || "
-                        : "item.IsEdited || ";
+                    omitItemEndpoints = SparseChangeSetBasicsEmitter.IsKeyed(member) ? "item.IsEdited || item.IsReordered || " : "item.IsEdited || ";
                 }
 
                 var beforeEndpoint =
@@ -261,26 +215,13 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     + itemValueType
                     + ">.FromOptional(item.Before)))";
                 var afterEndpoint =
-                    "("
-                    + omitItemEndpoints
-                    + "!item.After.IsPresent ? null : "
-                    + endpoint
-                    + "<"
-                    + itemValueType
-                    + ">.FromOptional(item.After))";
+                    "(" + omitItemEndpoints + "!item.After.IsPresent ? null : " + endpoint + "<" + itemValueType + ">.FromOptional(item.After))";
                 code.AppendLine("entry.Items.Capacity = " + itemField + "?.Count ?? 0;");
-                code.AppendLine(
-                    "if (" + itemField + " is not null) foreach (var item in " + itemField + ")"
-                );
+                code.AppendLine("if (" + itemField + " is not null) foreach (var item in " + itemField + ")");
                 code.OpenBlock();
                 code.AppendLine(
                     "var mapped = new "
-                        + SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-                            dialect,
-                            modelType,
-                            "Item",
-                            id
-                        )
+                        + SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Item", id)
                         + " { Key = item.Key, Before = "
                         + beforeEndpoint
                         + ", After = "
@@ -307,39 +248,19 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 }
                 if (isModelValue)
                 {
-                    code.AppendLine(
-                        "if (item.IsEdited) mapped.Edit = item.Edit.ToPayloadCore("
-                            + redactBefore
-                            + ");"
-                    );
+                    code.AppendLine("if (item.IsEdited) mapped.Edit = item.Edit.ToPayloadCore(" + redactBefore + ");");
                 }
 
                 code.AppendLine("entry.Items.Add(mapped);");
                 code.CloseBlock();
                 if (SparseChangeSetBasicsEmitter.IsKeyed(member))
                 {
-                    code.AppendLine(
-                        "entry.BeforeOrder = "
-                            + SparseChangeSetBasicsEmitter.KeyedBeforeOrder(member)
-                            + ";"
-                    );
-                    code.AppendLine(
-                        "entry.AfterOrder = "
-                            + SparseChangeSetBasicsEmitter.KeyedAfterOrder(member)
-                            + ";"
-                    );
+                    code.AppendLine("entry.BeforeOrder = " + SparseChangeSetBasicsEmitter.KeyedBeforeOrder(member) + ";");
+                    code.AppendLine("entry.AfterOrder = " + SparseChangeSetBasicsEmitter.KeyedAfterOrder(member) + ";");
                     if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                     {
-                        code.AppendLine(
-                            "entry.TempBeforeOrder = "
-                                + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member)
-                                + ";"
-                        );
-                        code.AppendLine(
-                            "entry.TempAfterOrder = "
-                                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
-                                + ";"
-                        );
+                        code.AppendLine("entry.TempBeforeOrder = " + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member) + ";");
+                        code.AppendLine("entry.TempAfterOrder = " + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member) + ";");
                     }
                 }
                 code.CloseBlock();
@@ -408,9 +329,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
         }
 
-        code.AppendLine(
-            "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
-        );
+        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
         code.AppendLine("/// <returns>The transport core.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
@@ -425,25 +344,11 @@ internal static class SparseChangeSetPayloadTransferEmitter
         );
         code.AppendLine();
         code.AppendLine(
-            "private static "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + "> __SparsePayloadRoot("
-                + runtime
-                + "Optional<Fragment?> value, bool redactBefores)"
+            "private static " + endpoint + "<" + payloadRoot + "> __SparsePayloadRoot(" + runtime + "Optional<Fragment?> value, bool redactBefores)"
         );
         code.OpenBlock();
         code.AppendLine(
-            "if (!value.IsPresent) return "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + ">.FromOptional("
-                + runtime
-                + "Optional<"
-                + payloadRoot
-                + ">.Missing);"
+            "if (!value.IsPresent) return " + endpoint + "<" + payloadRoot + ">.FromOptional(" + runtime + "Optional<" + payloadRoot + ">.Missing);"
         );
         code.AppendLine(
             "if (value.Value is null) return "
@@ -458,18 +363,14 @@ internal static class SparseChangeSetPayloadTransferEmitter
         );
         // Endpoint-redact it so the mixed partition routes the whole change
         // blind instead of failing fragment conversion.
-        var wholeBeforeRedacted = members.Any(static member =>
-            !member.Property.IsJsonIgnored && member.RedactBefore
-        );
+        var wholeBeforeRedacted = members.Any(static member => !member.Property.IsJsonIgnored && member.RedactBefore);
         if (wholeBeforeRedacted)
         {
             code.AppendLine("return " + endpoint + "<" + payloadRoot + ">.Redacted();");
         }
         else
         {
-            code.AppendLine(
-                "if (redactBefores) return " + endpoint + "<" + payloadRoot + ">.Redacted();"
-            );
+            code.AppendLine("if (redactBefores) return " + endpoint + "<" + payloadRoot + ">.Redacted();");
             code.AppendLine(
                 "return "
                     + endpoint
@@ -486,29 +387,11 @@ internal static class SparseChangeSetPayloadTransferEmitter
         }
         code.CloseBlock();
         code.AppendLine();
-        code.AppendLine(
-            "/// <summary>Builds an undisclosed-free after snapshot for a whole-root change.</summary>"
-        );
-        code.AppendLine(
-            "private static "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + "> __SparsePayloadRootAfter("
-                + runtime
-                + "Optional<Fragment?> value)"
-        );
+        code.AppendLine("/// <summary>Builds an undisclosed-free after snapshot for a whole-root change.</summary>");
+        code.AppendLine("private static " + endpoint + "<" + payloadRoot + "> __SparsePayloadRootAfter(" + runtime + "Optional<Fragment?> value)");
         code.OpenBlock();
         code.AppendLine(
-            "if (!value.IsPresent) return "
-                + endpoint
-                + "<"
-                + payloadRoot
-                + ">.FromOptional("
-                + runtime
-                + "Optional<"
-                + payloadRoot
-                + ">.Missing);"
+            "if (!value.IsPresent) return " + endpoint + "<" + payloadRoot + ">.FromOptional(" + runtime + "Optional<" + payloadRoot + ">.Missing);"
         );
         code.AppendLine(
             "if (value.Value is null) return "
@@ -537,12 +420,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         code.CloseBlock();
     }
 
-    private static void AppendEmptyPayloadFastPath(
-        SharedIndentedBuilder code,
-        string payloadChange,
-        string versionLiteral,
-        string isEmptyExpression
-    )
+    private static void AppendEmptyPayloadFastPath(SharedIndentedBuilder code, string payloadChange, string versionLiteral, string isEmptyExpression)
     {
         code.AppendLine("if (" + isEmptyExpression + ")");
         code.OpenBlock();

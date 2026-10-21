@@ -24,42 +24,20 @@ internal sealed class SparseFragmentCoreEmitter
         SparseFragmentOriginEmitter? originEmitter = null
     )
     {
-        _declaration = new(
-            optional,
-            mergeStrategyFieldPrefix,
-            rebasePolicyFieldPrefix,
-            originEmitter
-        );
+        _declaration = new(optional, mergeStrategyFieldPrefix, rebasePolicyFieldPrefix, originEmitter);
         _conversion = new(optional, cloneContext, referenceComparer, expressions);
-        _merge = new(
-            optional,
-            mergeStrategyFieldPrefix,
-            referenceComparer,
-            expressions,
-            fieldQualifier,
-            originEmitter
-        );
+        _merge = new(optional, mergeStrategyFieldPrefix, referenceComparer, expressions, fieldQualifier, originEmitter);
         _clone = new(optional, cloneContext, referenceComparer, expressions, originEmitter);
         _origins = originEmitter;
     }
 
-    public static bool RequiresPortableSetView(
-        bool bclHashSetImplementsReadOnlySet,
-        IEnumerable<string?> namedTypeDefinitions
-    ) =>
-        SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(
-            bclHashSetImplementsReadOnlySet,
-            namedTypeDefinitions
-        );
+    public static bool RequiresPortableSetView(bool bclHashSetImplementsReadOnlySet, IEnumerable<string?> namedTypeDefinitions) =>
+        SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(bclHashSetImplementsReadOnlySet, namedTypeDefinitions);
 
-    public string MergeStrategyField(SparseMemberModel member) =>
-        _declaration.MergeStrategyField(member);
+    public string MergeStrategyField(SparseMemberModel member) => _declaration.MergeStrategyField(member);
 
-    public void AppendBuilder(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        string accessibility = "public"
-    ) => _declaration.AppendBuilder(code, members, accessibility);
+    public void AppendBuilder(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string accessibility = "public") =>
+        _declaration.AppendBuilder(code, members, accessibility);
 
     public static void AppendDeclaration(
         SharedIndentedBuilder code,
@@ -85,15 +63,7 @@ internal sealed class SparseFragmentCoreEmitter
         System.Action<SharedIndentedBuilder>? appendMemberAttributes = null,
         string? rebasePolicyBase = null,
         System.Func<SparseMemberModel, string>? rebasePolicyField = null
-    ) =>
-        _declaration.AppendMembers(
-            code,
-            members,
-            mergeStrategy,
-            appendMemberAttributes,
-            rebasePolicyBase,
-            rebasePolicyField
-        );
+    ) => _declaration.AppendMembers(code, members, mergeStrategy, appendMemberAttributes, rebasePolicyBase, rebasePolicyField);
 
     public void AppendMemberCaches(
         SharedIndentedBuilder code,
@@ -101,25 +71,10 @@ internal sealed class SparseFragmentCoreEmitter
         string mergeStrategy,
         string? rebasePolicyBase = null,
         System.Func<SparseMemberModel, string>? rebasePolicyField = null
-    ) =>
-        _declaration.AppendMemberCaches(
-            code,
-            members,
-            mergeStrategy,
-            rebasePolicyBase,
-            rebasePolicyField
-        );
+    ) => _declaration.AppendMemberCaches(code, members, mergeStrategy, rebasePolicyBase, rebasePolicyField);
 
-    public static void AppendCollectionCloneHelpers(
-        SharedIndentedBuilder code,
-        bool includePortableSetView,
-        bool hashSetSupportsCapacity
-    ) =>
-        SparseFragmentCollectionCloneEmitter.AppendCollectionCloneHelpers(
-            code,
-            includePortableSetView,
-            hashSetSupportsCapacity
-        );
+    public static void AppendCollectionCloneHelpers(SharedIndentedBuilder code, bool includePortableSetView, bool hashSetSupportsCapacity) =>
+        SparseFragmentCollectionCloneEmitter.AppendCollectionCloneHelpers(code, includePortableSetView, hashSetSupportsCapacity);
 
     public void AppendDeepClone(
         SharedIndentedBuilder code,
@@ -130,29 +85,13 @@ internal sealed class SparseFragmentCoreEmitter
         bool modelIsReferenceType = true,
         string? operationsType = null,
         string receiver = "this."
-    ) =>
-        _clone.AppendDeepClone(
-            code,
-            modelType,
-            members,
-            usesPocoCloning,
-            constructor,
-            modelIsReferenceType,
-            operationsType,
-            receiver
-        );
+    ) => _clone.AppendDeepClone(code, modelType, members, usesPocoCloning, constructor, modelIsReferenceType, operationsType, receiver);
 
-    public static void AppendDeepClonePublicFacade(
-        SharedIndentedBuilder code,
-        string modelType,
-        string operationsType
-    ) => SparseFragmentCloneEmitter.AppendDeepClonePublicFacade(code, modelType, operationsType);
+    public static void AppendDeepClonePublicFacade(SharedIndentedBuilder code, string modelType, string operationsType) =>
+        SparseFragmentCloneEmitter.AppendDeepClonePublicFacade(code, modelType, operationsType);
 
-    public static void AppendDeepCloneInternalFacade(
-        SharedIndentedBuilder code,
-        string modelType,
-        string operationsType
-    ) => SparseFragmentCloneEmitter.AppendDeepCloneInternalFacade(code, modelType, operationsType);
+    public static void AppendDeepCloneInternalFacade(SharedIndentedBuilder code, string modelType, string operationsType) =>
+        SparseFragmentCloneEmitter.AppendDeepCloneInternalFacade(code, modelType, operationsType);
 
     public void AppendPocoCloneHelper(
         SharedIndentedBuilder code,
@@ -162,16 +101,7 @@ internal sealed class SparseFragmentCoreEmitter
         ModelConstructorBinding? constructor = null,
         string? operationsType = null,
         string helperAccessibility = "private"
-    ) =>
-        _clone.AppendPocoCloneHelper(
-            code,
-            typeName,
-            cloneHelperName,
-            members,
-            constructor,
-            operationsType,
-            helperAccessibility
-        );
+    ) => _clone.AppendPocoCloneHelper(code, typeName, cloneHelperName, members, constructor, operationsType, helperAccessibility);
 
     public void AppendFromModel(
         SharedIndentedBuilder code,
@@ -180,28 +110,14 @@ internal sealed class SparseFragmentCoreEmitter
         bool modelIsReferenceType,
         bool usesPocoCloning,
         string? operationsType = null
-    ) =>
-        _conversion.AppendFromModel(
-            code,
-            modelType,
-            members,
-            modelIsReferenceType,
-            usesPocoCloning,
-            operationsType
-        );
+    ) => _conversion.AppendFromModel(code, modelType, members, modelIsReferenceType, usesPocoCloning, operationsType);
 
     public static void AppendFromModelInternalFacade(
         SharedIndentedBuilder code,
         string modelType,
         string operationsType,
         bool requiresFromCycleContext
-    ) =>
-        SparseFragmentConversionEmitter.AppendFromModelInternalFacade(
-            code,
-            modelType,
-            operationsType,
-            requiresFromCycleContext
-        );
+    ) => SparseFragmentConversionEmitter.AppendFromModelInternalFacade(code, modelType, operationsType, requiresFromCycleContext);
 
     public void AppendFromModelPublicBody(
         SharedIndentedBuilder code,
@@ -209,14 +125,7 @@ internal sealed class SparseFragmentCoreEmitter
         ImmutableArray<SparseMemberModel> members,
         bool modelIsReferenceType,
         bool requiresContext
-    ) =>
-        _conversion.AppendFromModelPublicBody(
-            code,
-            modelType,
-            members,
-            modelIsReferenceType,
-            requiresContext
-        );
+    ) => _conversion.AppendFromModelPublicBody(code, modelType, members, modelIsReferenceType, requiresContext);
 
     public void AppendFromModelInternalBody(
         SharedIndentedBuilder code,
@@ -231,14 +140,7 @@ internal sealed class SparseFragmentCoreEmitter
         ImmutableArray<SparseMemberModel> members,
         ModelConstructorBinding? constructor = null,
         string bridgeAccessibility = "private"
-    ) =>
-        SparseFragmentConversionEmitter.AppendRootProjectionConstructor(
-            code,
-            modelName,
-            members,
-            constructor,
-            bridgeAccessibility
-        );
+    ) => SparseFragmentConversionEmitter.AppendRootProjectionConstructor(code, modelName, members, constructor, bridgeAccessibility);
 
     public static void AppendToModel(
         SharedIndentedBuilder code,
@@ -248,16 +150,7 @@ internal sealed class SparseFragmentCoreEmitter
         ModelConstructorBinding? constructor = null,
         string? operationsType = null,
         string receiver = ""
-    ) =>
-        SparseFragmentConversionEmitter.AppendToModel(
-            code,
-            modelType,
-            members,
-            hasRootProjectionConstructor,
-            constructor,
-            operationsType,
-            receiver
-        );
+    ) => SparseFragmentConversionEmitter.AppendToModel(code, modelType, members, hasRootProjectionConstructor, constructor, operationsType, receiver);
 
     public void AppendMerge(
         SharedIndentedBuilder code,
@@ -281,18 +174,8 @@ internal sealed class SparseFragmentCoreEmitter
         string? operationsType = null
     ) => _merge.AppendDiff(code, modelType, members, modelIsReferenceType, operationsType);
 
-    public static void AppendDiffInternalFacade(
-        SharedIndentedBuilder code,
-        string modelType,
-        string operationsType,
-        bool requiresDiffContext
-    ) =>
-        SparseFragmentMergeEmitter.AppendDiffInternalFacade(
-            code,
-            modelType,
-            operationsType,
-            requiresDiffContext
-        );
+    public static void AppendDiffInternalFacade(SharedIndentedBuilder code, string modelType, string operationsType, bool requiresDiffContext) =>
+        SparseFragmentMergeEmitter.AppendDiffInternalFacade(code, modelType, operationsType, requiresDiffContext);
 
     public void AppendDiffPublicBody(
         SharedIndentedBuilder code,
@@ -301,18 +184,8 @@ internal sealed class SparseFragmentCoreEmitter
         bool modelIsReferenceType
     ) => _merge.AppendDiffPublicBody(code, modelType, members, modelIsReferenceType);
 
-    public static void AppendDiffInternalBody(
-        SharedIndentedBuilder code,
-        string modelType,
-        bool modelIsReferenceType,
-        bool requiresDiffContext
-    ) =>
-        SparseFragmentMergeEmitter.AppendDiffInternalBody(
-            code,
-            modelType,
-            modelIsReferenceType,
-            requiresDiffContext
-        );
+    public static void AppendDiffInternalBody(SharedIndentedBuilder code, string modelType, bool modelIsReferenceType, bool requiresDiffContext) =>
+        SparseFragmentMergeEmitter.AppendDiffInternalBody(code, modelType, modelIsReferenceType, requiresDiffContext);
 
     public void AppendDiffPrivateBodies(
         SharedIndentedBuilder code,
@@ -327,14 +200,7 @@ internal sealed class SparseFragmentCoreEmitter
         ImmutableArray<SparseMemberModel> members,
         ModelConstructorBinding? constructor = null,
         bool modelIsReferenceType = true
-    ) =>
-        _clone.AppendDeepCloneOperationsPublic(
-            code,
-            modelType,
-            members,
-            constructor,
-            modelIsReferenceType
-        );
+    ) => _clone.AppendDeepCloneOperationsPublic(code, modelType, members, constructor, modelIsReferenceType);
 
     public void AppendDeepCloneOperationsInternal(
         SharedIndentedBuilder code,
@@ -342,50 +208,27 @@ internal sealed class SparseFragmentCoreEmitter
         ImmutableArray<SparseMemberModel> members,
         ModelConstructorBinding? constructor = null,
         bool modelIsReferenceType = true
-    ) =>
-        _clone.AppendDeepCloneOperationsInternal(
-            code,
-            modelType,
-            members,
-            constructor,
-            modelIsReferenceType
-        );
+    ) => _clone.AppendDeepCloneOperationsInternal(code, modelType, members, constructor, modelIsReferenceType);
 
-    public void AppendFragmentClone(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        bool usesPocoCloning
-    ) => _clone.AppendFragmentClone(code, members, usesPocoCloning);
+    public void AppendFragmentClone(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, bool usesPocoCloning) =>
+        _clone.AppendFragmentClone(code, members, usesPocoCloning);
 
-    public void AppendFragmentClonePublic(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        bool usesPocoCloning
-    ) => _clone.AppendFragmentClonePublic(code, members, usesPocoCloning);
+    public void AppendFragmentClonePublic(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, bool usesPocoCloning) =>
+        _clone.AppendFragmentClonePublic(code, members, usesPocoCloning);
 
-    public void AppendFragmentCloneInternal(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members
-    ) => _clone.AppendFragmentCloneInternal(code, members);
+    public void AppendFragmentCloneInternal(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members) =>
+        _clone.AppendFragmentCloneInternal(code, members);
 
-    public void AppendFragmentCloneInternalMethod(SharedIndentedBuilder code) =>
-        _clone.AppendFragmentCloneInternalMethod(code);
+    public void AppendFragmentCloneInternalMethod(SharedIndentedBuilder code) => _clone.AppendFragmentCloneInternalMethod(code);
 
-    public void AppendFragmentClonePrivateCtor(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members
-    ) => _clone.AppendFragmentClonePrivateCtor(code, members);
+    public void AppendFragmentClonePrivateCtor(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members) =>
+        _clone.AppendFragmentClonePrivateCtor(code, members);
 
-    public void AppendOriginOperations(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members
-    ) => _origins?.AppendOriginOperations(code, members);
+    public void AppendOriginOperations(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members) =>
+        _origins?.AppendOriginOperations(code, members);
 
-    public void AppendOriginPathCacheFields(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        string modelType
-    ) => _origins?.AppendOriginPathCacheFields(code, members, modelType);
+    public void AppendOriginPathCacheFields(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string modelType) =>
+        _origins?.AppendOriginPathCacheFields(code, members, modelType);
 
     public void AppendOriginEnumerationIterator(
         SharedIndentedBuilder code,

@@ -18,11 +18,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
     /// <param name="batch">The session batch runner (for example <c>session.BatchEdit</c>).</param>
     /// <exception cref="ArgumentNullException">A dependency is null.</exception>
     /// <exception cref="ArgumentException">The path does not address one member.</exception>
-    public SparseKeyedCollectionEditor(
-        IDescriptorSet descriptors,
-        SparsePath path,
-        Action<Action> batch
-    )
+    public SparseKeyedCollectionEditor(IDescriptorSet descriptors, SparsePath path, Action<Action> batch)
         : base(descriptors, path, batch) { }
 
     /// <summary>Finds the current position of an assigned key.</summary>
@@ -150,11 +146,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
     /// <param name="value">The element model, or default on failure.</param>
     /// <param name="error">The failure reason, or <c>None</c> on success.</param>
     /// <returns>True when the row was read.</returns>
-    public bool TryGetByTemporaryKey(
-        Guid temporaryKey,
-        out TElement? value,
-        out SparseCollectionEditError error
-    )
+    public bool TryGetByTemporaryKey(Guid temporaryKey, out TElement? value, out SparseCollectionEditError error)
     {
         value = default;
         if (!TryResolveArray(out var array, out error))
@@ -219,9 +211,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
             return true;
         }
 
-        error = array.CanRemove
-            ? SparseCollectionEditError.UnknownKey
-            : SparseCollectionEditError.NotMutable;
+        error = array.CanRemove ? SparseCollectionEditError.UnknownKey : SparseCollectionEditError.NotMutable;
         return false;
     }
 
@@ -314,16 +304,13 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
         return TryMove(index, newIndex, out error);
     }
 
-    private static bool IsUsableKeyedArray(IArrayDescriptor array) =>
-        array.IsKeyed && array.KeyType == typeof(TKey);
+    private static bool IsUsableKeyedArray(IArrayDescriptor array) => array.IsKeyed && array.KeyType == typeof(TKey);
 
     private static void RequireUsableKey(IArrayDescriptor array)
     {
         if (!array.IsKeyed)
         {
-            throw new InvalidOperationException(
-                "The addressed collection carries no stable keyed identity."
-            );
+            throw new InvalidOperationException("The addressed collection carries no stable keyed identity.");
         }
 
         if (array.KeyType != typeof(TKey))

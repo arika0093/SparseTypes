@@ -20,11 +20,7 @@ public interface ISparseEntityMapper<TEntity, TDto>
     /// <param name="entity">The tracked entity to update.</param>
     /// <param name="changes">The accepted change set to apply.</param>
     /// <returns>The result describing created entities and applied paths.</returns>
-    SparseEntityApplyResult ApplyWithResult(
-        DbContext context,
-        TEntity entity,
-        ISparseChangeSet<TDto> changes
-    );
+    SparseEntityApplyResult ApplyWithResult(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes);
 
     /// <summary>Projects an entity into its mapped DTO.</summary>
     /// <param name="context">The context whose model selects the mapping plan.</param>
@@ -40,10 +36,5 @@ public interface ISparseEntityMapper<TEntity, TDto>
     /// <param name="result">The result returned by <see cref="ApplyWithResult"/>.</param>
     /// <param name="baseline">The prior DTO containing temporary identities to preserve.</param>
     /// <param name="authoritative">The current DTO to update with resolved identities.</param>
-    void AssignTemporaryKeys(
-        DbContext context,
-        SparseEntityApplyResult result,
-        TDto baseline,
-        TDto authoritative
-    );
+    void AssignTemporaryKeys(DbContext context, SparseEntityApplyResult result, TDto baseline, TDto authoritative);
 }

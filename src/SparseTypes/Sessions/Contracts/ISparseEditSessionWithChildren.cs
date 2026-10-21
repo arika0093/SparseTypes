@@ -33,11 +33,9 @@ public interface ISparseEditSessionWithChildren<TModel, TConflict>
     /// <typeparam name="TChildSession">The generated child-model edit-session type.</typeparam>
     /// <param name="path">The generated path to the child model.</param>
     /// <returns>The child session connected to this session.</returns>
-    ISparseEditChildSession<TChild, TChildPaths, TConflict, TChildSession> OpenChildSession<
-        TChild,
-        TChildPaths,
-        TChildSession
-    >(ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path)
+    ISparseEditChildSession<TChild, TChildPaths, TConflict, TChildSession> OpenChildSession<TChild, TChildPaths, TChildSession>(
+        ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path
+    )
         where TChild : class
         where TChildPaths : ISparseTypedPath<TChild, TChild>
         where TChildSession : ISparseEditSessionWithPaths<TChild, TChildPaths>;

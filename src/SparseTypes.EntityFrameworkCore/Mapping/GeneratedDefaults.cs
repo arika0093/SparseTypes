@@ -29,8 +29,7 @@ internal static class GeneratedDefaults
             var attributeType = attribute.GetType();
             if (
                 attributeType.IsGenericType
-                && attributeType.GetGenericTypeDefinition().FullName
-                    == "SparseTypes.EntityFrameworkCore.SparseFragmentMapperAttribute`2"
+                && attributeType.GetGenericTypeDefinition().FullName == "SparseTypes.EntityFrameworkCore.SparseFragmentMapperAttribute`2"
             )
             {
                 return true;

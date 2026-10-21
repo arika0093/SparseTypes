@@ -11,11 +11,7 @@ namespace SparseTypes.Generator.Shared;
 /// <remarks>Each analysis phase is owned by a focused component.</remarks>
 internal static class SparseModelAnalyzer
 {
-    public static SparseGenerationAnalysis Analyze(
-        INamedTypeSymbol model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static SparseGenerationAnalysis Analyze(INamedTypeSymbol model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var location = model.Locations.FirstOrDefault();
@@ -24,47 +20,24 @@ internal static class SparseModelAnalyzer
             .OfType<TypeDeclarationSyntax>()
             .FirstOrDefault();
 
-        switch (
-            SparseShapeValidation.ValidateRootShape(model, declaration, config, cancellationToken)
-        )
+        switch (SparseShapeValidation.ValidateRootShape(model, declaration, config, cancellationToken))
         {
             case SparseRootShapeProblem.MustBePartial:
                 return Failure(config.EffectiveDiagnosticIds.MustBePartial, location, model.Name);
             case SparseRootShapeProblem.RefLikeModel:
             case SparseRootShapeProblem.FileLocalModel:
             case SparseRootShapeProblem.UnsupportedModel:
-                return Failure(
-                    config.EffectiveDiagnosticIds.UnsupportedModel,
-                    location,
-                    model.Name
-                );
+                return Failure(config.EffectiveDiagnosticIds.UnsupportedModel, location, model.Name);
             case SparseRootShapeProblem.MissingConstructor:
-                return Failure(
-                    config.EffectiveDiagnosticIds.MissingConstructor,
-                    location,
-                    model.Name
-                );
+                return Failure(config.EffectiveDiagnosticIds.MissingConstructor, location, model.Name);
         }
 
-        var members = SparseModelDiscovery
-            .GetMembers(model, config, cancellationToken)
-            .ToImmutableArray();
+        var members = SparseModelDiscovery.GetMembers(model, config, cancellationToken).ToImmutableArray();
         var diagnostics = ImmutableArray.CreateBuilder<SparseGeneratorDiagnostic>();
 
-        SparseModelDiagnostics.CollectMemberDiagnostics(
-            model,
-            members,
-            config,
-            diagnostics,
-            cancellationToken
-        );
+        SparseModelDiagnostics.CollectMemberDiagnostics(model, members, config, diagnostics, cancellationToken);
 
-        var memberModels = SparseModelDiscovery.CreateMemberModels(
-            members,
-            config,
-            cancellationToken,
-            model
-        );
+        var memberModels = SparseModelDiscovery.CreateMemberModels(members, config, cancellationToken, model);
 
         // Whole-member reconciliation cannot target nested, keyed, dictionary,
         // or merge-collection members.
@@ -73,12 +46,7 @@ internal static class SparseModelAnalyzer
             cancellationToken.ThrowIfCancellationRequested();
             if (
                 members[index].RebasePolicyType is not null
-                && !SparseMergeValidation.IsValidRebasePolicy(
-                    members[index],
-                    memberModels[index],
-                    config,
-                    cancellationToken
-                )
+                && !SparseMergeValidation.IsValidRebasePolicy(members[index], memberModels[index], config, cancellationToken)
             )
             {
                 diagnostics.Add(
@@ -99,34 +67,18 @@ internal static class SparseModelAnalyzer
             if (!string.IsNullOrWhiteSpace(containerPrefix))
             {
                 reservedNames = reservedNames.Add(
-                    containerPrefix
-                        + "_"
-                        + SparseNaming.GetStableTypeHash(
-                            SparseNaming.NonNullableTypeName(model),
-                            cancellationToken
-                        )
+                    containerPrefix + "_" + SparseNaming.GetStableTypeHash(SparseNaming.NonNullableTypeName(model), cancellationToken)
                 );
             }
         }
-        var reservedCollision = SparseShapeValidation.FindFirstReservedNameCollision(
-            memberModels,
-            reservedNames
-        );
+        var reservedCollision = SparseShapeValidation.FindFirstReservedNameCollision(memberModels, reservedNames);
         reservedCollision ??= model
             .GetTypeMembers()
-            .FirstOrDefault(type =>
-                reservedNames.Contains(type.Name, global::System.StringComparer.Ordinal)
-            )
+            .FirstOrDefault(type => reservedNames.Contains(type.Name, global::System.StringComparer.Ordinal))
             ?.Name;
         if (reservedCollision is not null)
         {
-            diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.GeneratedNameCollision,
-                    null,
-                    reservedCollision
-                )
-            );
+            diagnostics.Add(new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.GeneratedNameCollision, null, reservedCollision));
         }
 
         // The top-level ModelJson helper lives in the model's namespace, so a
@@ -136,18 +88,10 @@ internal static class SparseModelAnalyzer
         if (config.EffectiveEmissionFeatures.EmitChangePayload)
         {
             var helperName = model.Name + "Json";
-            var helperCollision = model
-                .ContainingNamespace.GetTypeMembers(helperName)
-                .FirstOrDefault(static type => type.Arity == 0);
+            var helperCollision = model.ContainingNamespace.GetTypeMembers(helperName).FirstOrDefault(static type => type.Arity == 0);
             if (helperCollision is not null)
             {
-                diagnostics.Add(
-                    new SparseGeneratorDiagnostic(
-                        config.EffectiveDiagnosticIds.GeneratedNameCollision,
-                        null,
-                        helperName
-                    )
-                );
+                diagnostics.Add(new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.GeneratedNameCollision, null, helperName));
             }
         }
 
@@ -156,28 +100,15 @@ internal static class SparseModelAnalyzer
         foreach (var duplicate in SparseShapeValidation.FindDuplicateWireNames(memberModels))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var owner = SparseShapeValidation.FindWireNameOwner(
-                members,
-                duplicate,
-                cancellationToken
-            );
+            var owner = SparseShapeValidation.FindWireNameOwner(members, duplicate, cancellationToken);
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.DuplicateJsonPropertyName,
-                    owner?.Locations.FirstOrDefault(),
-                    duplicate
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.DuplicateJsonPropertyName, owner?.Locations.FirstOrDefault(), duplicate)
             );
         }
 
         // Feature dependencies, product policy names and generated-name
         // collisions covering emitted families and declared product names.
-        SparseDownstreamPolicy.ValidateEmissionPlan(
-            memberModels,
-            config,
-            diagnostics,
-            cancellationToken
-        );
+        SparseDownstreamPolicy.ValidateEmissionPlan(memberModels, config, diagnostics, cancellationToken);
 
         // Only errors fail the model; advisory warnings still generate.
         if (diagnostics.Any(static diagnostic => !diagnostic.IsWarning))
@@ -200,47 +131,25 @@ internal static class SparseModelAnalyzer
             + config.HintNameSuffix;
         var pocoCloneModels = SparseModelDiscovery
             .GetPocoCloneTypes(members, config, cancellationToken)
-            .Select(pocoType =>
-                SparseModelDiscovery.CreatePocoCloneModel(pocoType, config, cancellationToken)
-            )
+            .Select(pocoType => SparseModelDiscovery.CreatePocoCloneModel(pocoType, config, cancellationToken))
             .ToImmutableArray();
-        var readOnlyViewModels = SparseReadOnlyViewModelDiscovery.GetReadOnlyViewModels(
-            members,
-            config,
-            cancellationToken
-        );
+        var readOnlyViewModels = SparseReadOnlyViewModelDiscovery.GetReadOnlyViewModels(members, config, cancellationToken);
         var structuralModels = SparseModelDiscovery
             .CollectStructuralTypes(members, config, cancellationToken)
-            .Select(type =>
-                SparseModelDiscovery.CreateStructuralModel(type, config, cancellationToken)
-            )
+            .Select(type => SparseModelDiscovery.CreateStructuralModel(type, config, cancellationToken))
             .ToImmutableArray();
-        var promotedModels = SparseModelDiscovery.CreatePromotedModels(
-            members,
-            config,
-            cancellationToken
-        );
-        var (payloadJsonPocos, payloadJsonPocoDiagnostics) = CollectPayloadJsonPocos(
-            members,
-            config,
-            cancellationToken
-        );
+        var promotedModels = SparseModelDiscovery.CreatePromotedModels(members, config, cancellationToken);
+        var (payloadJsonPocos, payloadJsonPocoDiagnostics) = CollectPayloadJsonPocos(members, config, cancellationToken);
         diagnostics.AddRange(payloadJsonPocoDiagnostics);
         var capabilityDiagnostics = ImmutableArray<SparseGeneratorDiagnostic>.Empty;
         if (
             !model.IsValueType
-            && members.FirstOrDefault(static member =>
-                member.Property.SetMethod is null || member.Property.SetMethod.IsInitOnly
-            )
+            && members.FirstOrDefault(static member => member.Property.SetMethod is null || member.Property.SetMethod.IsInitOnly)
                 is { } immutableMember
         )
         {
             capabilityDiagnostics = ImmutableArray.Create(
-                new SparseGeneratorDiagnostic(
-                    "SPF026",
-                    immutableMember.Property.Locations.FirstOrDefault(),
-                    model.Name
-                )
+                new SparseGeneratorDiagnostic("SPF026", immutableMember.Property.Locations.FirstOrDefault(), model.Name)
             );
         }
 
@@ -258,10 +167,7 @@ internal static class SparseModelAnalyzer
         );
     }
 
-    private static (
-        ImmutableArray<SparsePayloadJsonPocoModel> Pocos,
-        ImmutableArray<SparseGeneratorDiagnostic> Diagnostics
-    ) CollectPayloadJsonPocos(
+    private static (ImmutableArray<SparsePayloadJsonPocoModel> Pocos, ImmutableArray<SparseGeneratorDiagnostic> Diagnostics) CollectPayloadJsonPocos(
         ImmutableArray<SparseSymbolMemberModel> members,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken
@@ -271,20 +177,13 @@ internal static class SparseModelAnalyzer
         // diagnostics, byte-identical output.
         if (!SparsePayloadJsonPocoDiscovery.IsEnabledFor(config))
         {
-            return (
-                ImmutableArray<SparsePayloadJsonPocoModel>.Empty,
-                ImmutableArray<SparseGeneratorDiagnostic>.Empty
-            );
+            return (ImmutableArray<SparsePayloadJsonPocoModel>.Empty, ImmutableArray<SparseGeneratorDiagnostic>.Empty);
         }
 
         return SparsePayloadJsonPocoDiscovery.Collect(members, config, cancellationToken);
     }
 
-    private static SparseGenerationAnalysis Failure(
-        string descriptorId,
-        Location? location,
-        string argument
-    ) =>
+    private static SparseGenerationAnalysis Failure(string descriptorId, Location? location, string argument) =>
         new(
             null,
             ImmutableArray<SparseMemberModel>.Empty,

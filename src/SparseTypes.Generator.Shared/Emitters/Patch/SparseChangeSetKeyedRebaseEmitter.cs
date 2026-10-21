@@ -39,8 +39,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         var elementCs = ElementChangeSetOf(member);
         var elementFrag = ElementFragmentOf(member);
         var optElement = runtime + "Optional<" + elementType + ">";
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var facade = dialect.RuntimeFacade;
         var conflict = dialect.ConflictType;
         var conflictKind = dialect.ConflictKindType;
@@ -90,15 +89,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         // unless already applied, else keep whole.
         code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "if (Fragment.__SparseEqual_"
-                + id
-                + "("
-                + KeyedWholeAfter(member)
-                + ", __curM"
-                + id
-                + ")) { }"
-        );
+        code.AppendLine("if (Fragment.__SparseEqual_" + id + "(" + KeyedWholeAfter(member) + ", __curM" + id + ")) { }");
         code.AppendLine(
             "else if (Fragment.__SparseEqual_"
                 + id
@@ -136,9 +127,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + ", \"The member conflicts with a concurrent change.\")); }"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)"
-        );
+        code.AppendLine("else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)");
         code.OpenBlock();
         code.AppendLine(
             "__conflicts.Add(new "
@@ -160,42 +149,15 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         code.OpenBlock();
         // Current map + order (transient, not retained).
         code.AppendLine(
-            "var __cmap"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementType
-                + ">("
-                + comparer
-                + ");"
+            "var __cmap" + id + " = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">(" + comparer + ");"
         );
-        code.AppendLine(
-            "var __corder"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">();"
-        );
+        code.AppendLine("var __corder" + id + " = new global::System.Collections.Generic.List<" + keyType + ">();");
         // Current-position index built in the same pass as the map/order so
         // per-item position lookups below stay indexed instead of scanning.
-        code.AppendLine(
-            "var __cpos"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", int>("
-                + comparer
-                + ");"
-        );
+        code.AppendLine("var __cpos" + id + " = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(" + comparer + ");");
         if (hasTempRebase)
         {
-            SparseChangeSetKeyedTempRebaseEmitter.AppendTempCurrentWalk(
-                code,
-                member,
-                elementType,
-                id
-            );
+            SparseChangeSetKeyedTempRebaseEmitter.AppendTempCurrentWalk(code, member, elementType, id);
         }
         else
         {
@@ -208,10 +170,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + (
                         SparseKeyedCollectionEmitter.HasUnassignedKey(member)
                             ? "if ("
-                                + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                                    member,
-                                    "__ck"
-                                )
+                                + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__ck")
                                 + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the current baseline of a keyed ChangeSet.\"); "
                             : ""
                     )
@@ -226,30 +185,10 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             );
         }
 
-        code.AppendLine(
-            "var __rebaseCurrentOrder"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(__corder"
-                + id
-                + ");"
-        );
-        code.AppendLine(
-            "var __rlist"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>();"
-        );
+        code.AppendLine("var __rebaseCurrentOrder" + id + " = new global::System.Collections.Generic.List<" + keyType + ">(__corder" + id + ");");
+        code.AppendLine("var __rlist" + id + " = new global::System.Collections.Generic.List<" + trans + ".Item>();");
         code.AppendLine("bool __any" + id + " = false;");
-        code.AppendLine(
-            "if ("
-                + KeyedItems(member)
-                + " is not null) foreach (var __it in "
-                + KeyedItems(member)
-                + ")"
-        );
+        code.AppendLine("if (" + KeyedItems(member) + " is not null) foreach (var __it in " + KeyedItems(member) + ")");
         code.OpenBlock();
         if (hasTempRebase)
         {
@@ -492,30 +431,14 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         );
         code.AppendLine("else");
         code.OpenBlock();
+        code.AppendLine("var __nr = __it.Edit.RebaseOnto(" + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__cev)));");
         code.AppendLine(
-            "var __nr = __it.Edit.RebaseOnto("
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__cev)));"
-        );
-        code.AppendLine(
-            "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member("
-                + lit
-                + ").Key(__it.Key)));"
+            "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member(" + lit + ").Key(__it.Key)));"
         );
         code.AppendLine("if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
         code.OpenBlock();
         code.AppendLine(
-            "var __applied = __nr.Rebased.ToPatch().Apply("
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__cev)));"
+            "var __applied = __nr.Rebased.ToPatch().Apply(" + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__cev)));"
         );
         code.AppendLine("if (__applied.IsPresent && __applied.Value is not null)");
         code.OpenBlock();
@@ -640,11 +563,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
         code.AppendLine(
             "if ("
-                + (
-                    SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? "__unassignedOnlyAdds" + id + " || ("
-                        : ""
-                )
+                + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "__unassignedOnlyAdds" + id + " || (" : "")
                 + KeyedBeforeOrder(member)
                 + " is not null && "
                 + KeyedAfterOrder(member)
@@ -659,11 +578,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + "))"
                 + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? ")" : "")
                 + " { "
-                + (
-                    SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? "if (!__unassignedOnlyAdds" + id + ") { "
-                        : ""
-                )
+                + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "if (!__unassignedOnlyAdds" + id + ") { " : "")
                 + "__nbO"
                 + id
                 + " = new global::System.Collections.Generic.List<"
@@ -682,11 +597,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         );
         code.AppendLine(
             "else if ("
-                + (
-                    SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? "!__unassignedOnlyAdds" + id + " && "
-                        : ""
-                )
+                + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "!__unassignedOnlyAdds" + id + " && " : "")
                 + KeyedBeforeOrder(member)
                 + " is not null && "
                 + KeyedAfterOrder(member)

@@ -20,21 +20,13 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
         ArgumentNullException.ThrowIfNull(entityProperty);
         if (!dtoProperty.CanRead)
         {
-            throw MappingError(
-                $"The DTO type '{typeof(TDto).Name}' has no readable collection property '{dtoProperty.Name}'."
-            );
+            throw MappingError($"The DTO type '{typeof(TDto).Name}' has no readable collection property '{dtoProperty.Name}'.");
         }
 
         _entityProperty = entityProperty;
         var parameter = Expression.Parameter(typeof(TDto), "dto");
         _dtoGetter = Expression
-            .Lambda<Func<TDto, TDtoCollection?>>(
-                Expression.Convert(
-                    Expression.Property(parameter, dtoProperty),
-                    typeof(TDtoCollection)
-                ),
-                parameter
-            )
+            .Lambda<Func<TDto, TDtoCollection?>>(Expression.Convert(Expression.Property(parameter, dtoProperty), typeof(TDtoCollection)), parameter)
             .Compile();
     }
 
@@ -49,12 +41,7 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
 
         var entityElement = _entityProperty.GetElementType()?.ClrType;
         var dtoElement = GetElementType(typeof(TDtoCollection));
-        if (
-            entityElement is null
-            || dtoElement is null
-            || entityElement != dtoElement
-            || !PlanBuildSession.IsScalarType(entityElement)
-        )
+        if (entityElement is null || dtoElement is null || entityElement != dtoElement || !PlanBuildSession.IsScalarType(entityElement))
         {
             throw MappingError(
                 $"The DTO and entity collections for '{DtoName}' must have the same scalar element type. Collection element conversions are not supported."
@@ -63,10 +50,7 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
 
         try
         {
-            _copyCollection = PrimitiveCollectionFactory.Create(
-                _entityProperty.ClrType,
-                entityElement
-            );
+            _copyCollection = PrimitiveCollectionFactory.Create(_entityProperty.ClrType, entityElement);
         }
         catch (InvalidOperationException exception)
         {
@@ -75,9 +59,7 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
 
         if (_entityProperty.DeclaringType is not IEntityType entityType)
         {
-            throw MappingError(
-                $"The entity member '{_entityProperty.Name}' is not declared directly on an entity type."
-            );
+            throw MappingError($"The entity member '{_entityProperty.Name}' is not declared directly on an entity type.");
         }
 
         session.Claim(entityType, _entityProperty.Name, DtoName);
@@ -129,18 +111,14 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
                         state.DisplayPath(DtoName),
                         state.Entry,
                         _entityProperty.Name,
-                        replacement is null
-                            ? SparseEntityApplyOperationKind.SetNull
-                            : SparseEntityApplyOperationKind.Set
+                        replacement is null ? SparseEntityApplyOperationKind.SetNull : SparseEntityApplyOperationKind.Set
                     )
                 );
             });
         }
         else
         {
-            actions.Add(() =>
-                state.Entry.Property(_entityProperty.Name).CurrentValue = replacement
-            );
+            actions.Add(() => state.Entry.Property(_entityProperty.Name).CurrentValue = replacement);
         }
     }
 
@@ -158,50 +136,33 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
                         state.DisplayPath(DtoName),
                         state.Entry,
                         _entityProperty.Name,
-                        replacement is null
-                            ? SparseEntityApplyOperationKind.SetNull
-                            : SparseEntityApplyOperationKind.Set
+                        replacement is null ? SparseEntityApplyOperationKind.SetNull : SparseEntityApplyOperationKind.Set
                     )
                 );
             });
         }
         else
         {
-            actions.Add(() =>
-                state.Entry.Property(_entityProperty.Name).CurrentValue = replacement
-            );
+            actions.Add(() => state.Entry.Property(_entityProperty.Name).CurrentValue = replacement);
         }
     }
 
-    public override Expression? BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    )
+    public override Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
     {
         if (!context.TryBuildMemberPath(entity, [_entityProperty.Name], dtoPath, out var source))
         {
             return null;
         }
 
-        var dtoProperty = typeof(TDto).GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var dtoProperty = typeof(TDto).GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
         var elementType = _entityProperty.GetElementType()?.ClrType;
         if (dtoProperty is null || elementType is null)
         {
-            context.AddError(
-                dtoPath,
-                $"The primitive collection '{DtoName}' has no usable DTO property or EF element type."
-            );
+            context.AddError(dtoPath, $"The primitive collection '{DtoName}' has no usable DTO property or EF element type.");
             return null;
         }
 
-        if (
-            !dtoProperty.PropertyType.IsAssignableFrom(source.Type)
-            || GetElementType(dtoProperty.PropertyType) != elementType
-        )
+        if (!dtoProperty.PropertyType.IsAssignableFrom(source.Type) || GetElementType(dtoProperty.PropertyType) != elementType)
         {
             context.AddError(
                 dtoPath,
@@ -279,9 +240,7 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
                 }
                 else
                 {
-                    actions.Add(() =>
-                        state.Entry.Property(_entityProperty.Name).CurrentValue = null
-                    );
+                    actions.Add(() => state.Entry.Property(_entityProperty.Name).CurrentValue = null);
                 }
                 return;
             default:
@@ -302,16 +261,13 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
         return collectionType
             .GetInterfaces()
             .Append(collectionType)
-            .Where(static type =>
-                type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>)
-            )
+            .Where(static type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             .Select(static type => type.GetGenericArguments()[0])
             .Distinct()
             .SingleOrDefault();
     }
 
-    private SparseEntityMappingException MappingError(string message) =>
-        new(SparseEntityMappingFailure.MetadataMismatch, DtoName, message);
+    private SparseEntityMappingException MappingError(string message) => new(SparseEntityMappingFailure.MetadataMismatch, DtoName, message);
 
     private static SparseEntityMappingException MappingError(string path, string message) =>
         new(SparseEntityMappingFailure.MetadataMismatch, path, message);
@@ -319,11 +275,10 @@ internal sealed class PrimitiveCollectionNode<TDto, TDtoCollection> : MemberNode
 
 internal static class PrimitiveCollectionFactory
 {
-    private static readonly MethodInfo MutableCollectionCopier =
-        typeof(PrimitiveCollectionFactory).GetMethod(
-            nameof(CopyToMutableCollection),
-            BindingFlags.Public | BindingFlags.Static
-        )!;
+    private static readonly MethodInfo MutableCollectionCopier = typeof(PrimitiveCollectionFactory).GetMethod(
+        nameof(CopyToMutableCollection),
+        BindingFlags.Public | BindingFlags.Static
+    )!;
 
     public static Func<object, object> Create(Type targetType, Type elementType)
     {
@@ -335,16 +290,9 @@ internal static class PrimitiveCollectionFactory
             var cast = Expression.Convert(source, enumerableType);
             var toArray = typeof(Enumerable)
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                .Single(method =>
-                    method.Name == nameof(Enumerable.ToArray) && method.IsGenericMethodDefinition
-                )
+                .Single(method => method.Name == nameof(Enumerable.ToArray) && method.IsGenericMethodDefinition)
                 .MakeGenericMethod(elementType);
-            return Expression
-                .Lambda<Func<object, object>>(
-                    Expression.Convert(Expression.Call(toArray, cast), typeof(object)),
-                    source
-                )
-                .Compile();
+            return Expression.Lambda<Func<object, object>>(Expression.Convert(Expression.Call(toArray, cast), typeof(object)), source).Compile();
         }
 
         if (targetType.IsAssignableFrom(listType))
@@ -358,25 +306,16 @@ internal static class PrimitiveCollectionFactory
         {
             var source = Expression.Parameter(typeof(object), "source");
             var instance = Expression.New(constructor, Expression.Convert(source, enumerable));
-            return Expression
-                .Lambda<Func<object, object>>(Expression.Convert(instance, typeof(object)), source)
-                .Compile();
+            return Expression.Lambda<Func<object, object>>(Expression.Convert(instance, typeof(object)), source).Compile();
         }
 
         var collectionInterface = typeof(ICollection<>).MakeGenericType(elementType);
         var emptyConstructor = targetType.GetConstructor(Type.EmptyTypes);
-        if (
-            emptyConstructor is not null
-            && collectionInterface.IsAssignableFrom(targetType)
-            && targetType.IsClass
-            && !targetType.IsAbstract
-        )
+        if (emptyConstructor is not null && collectionInterface.IsAssignableFrom(targetType) && targetType.IsClass && !targetType.IsAbstract)
         {
             var method = MutableCollectionCopier.MakeGenericMethod(elementType, targetType);
             var source = Expression.Parameter(typeof(object), "source");
-            return Expression
-                .Lambda<Func<object, object>>(Expression.Call(method, source), source)
-                .Compile();
+            return Expression.Lambda<Func<object, object>>(Expression.Call(method, source), source).Compile();
         }
 
         throw new InvalidOperationException(
@@ -390,13 +329,10 @@ internal static class PrimitiveCollectionFactory
             .GetMethod(nameof(CopyToList), BindingFlags.Public | BindingFlags.Static)!
             .MakeGenericMethod(elementType);
         var source = Expression.Parameter(typeof(object), "source");
-        return Expression
-            .Lambda<Func<object, object>>(Expression.Call(method, source), source)
-            .Compile();
+        return Expression.Lambda<Func<object, object>>(Expression.Call(method, source), source).Compile();
     }
 
-    public static object CopyToList<TElement>(object source) =>
-        new List<TElement>((IEnumerable<TElement>)source);
+    public static object CopyToList<TElement>(object source) => new List<TElement>((IEnumerable<TElement>)source);
 
     public static object CopyToMutableCollection<TElement, TCollection>(object source)
         where TCollection : class, ICollection<TElement>, new()

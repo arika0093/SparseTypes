@@ -15,19 +15,12 @@ internal static class SparseFragmentPatchAlgebraEmitter
     )
     {
         _ = modelType;
-        var prefix = SparseNaming.PatchApiPrefix(
-            members.Select(static member => member.Property.Name)
-        );
+        var prefix = SparseNaming.PatchApiPrefix(members.Select(static member => member.Property.Name));
         var runtime = dialect.RuntimeNamespace;
         var optionalFragment = runtime + "Optional<Fragment?>";
         var wholeOperation = runtime + "FragmentOperation<Fragment?>";
         var kind = runtime + "FragmentOperationKind";
-        var expressions = new SparseFragmentExpressions(
-            "__sparse_patch_context",
-            dialect.RuntimeFacade,
-            dialect.RuntimeFacade,
-            runtime + "Optional"
-        );
+        var expressions = new SparseFragmentExpressions("__sparse_patch_context", dialect.RuntimeFacade, dialect.RuntimeFacade, runtime + "Optional");
 
         SparseSemanticBetweenEmitter.AppendBetweenMethod(
             code,
@@ -39,9 +32,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
                 "__sparse_whole",
                 prefix,
                 dialect.MemberField,
-                static member =>
-                    member.ChildModel is null
-                    && !SparseFragmentPatchEmitter.IsCollectionPatch(member),
+                static member => member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member),
                 member => SparseFragmentPatchEmitter.GetMemberValueType(dialect, member),
                 (member, beforeValue, afterValue) =>
                 {
@@ -78,20 +69,8 @@ internal static class SparseFragmentPatchAlgebraEmitter
                 },
                 (member, before, after) =>
                     SparseFragmentPatchEmitter.IsCollectionPatch(member)
-                        ? SparseFragmentPatchEmitter.GetCollectionPatchName(dialect, member)
-                            + ".Between("
-                            + before
-                            + ", "
-                            + after
-                            + ")"
-                        : dialect.ChildPatchName(member)
-                            + "."
-                            + member.ChildModel!.Value.PatchApiPrefix
-                            + "Between("
-                            + before
-                            + ", "
-                            + after
-                            + ")"
+                        ? SparseFragmentPatchEmitter.GetCollectionPatchName(dialect, member) + ".Between(" + before + ", " + after + ")"
+                        : dialect.ChildPatchName(member) + "." + member.ChildModel!.Value.PatchApiPrefix + "Between(" + before + ", " + after + ")"
             ),
             target
         );
@@ -115,13 +94,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
             code.AppendLine("/// <param name=\"next\">Patch applied after.</param>");
             code.AppendLine("/// <returns>The composed patch.</returns>");
             code.AppendLine(
-                "public Patch "
-                    + prefix
-                    + "Compose(Patch next) => "
-                    + target.PatchOperationsType
-                    + "."
-                    + prefix
-                    + "Compose(this, next);"
+                "public Patch " + prefix + "Compose(Patch next) => " + target.PatchOperationsType + "." + prefix + "Compose(this, next);"
             );
             code.AppendLine("/// <summary>Composes two patches.</summary>");
             code.AppendLine("/// <param name=\"first\">Patch applied first.</param>");
@@ -147,9 +120,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
         code.AppendLine("/// <returns>The composed patch.</returns>");
         code.AppendLine("public static Patch " + prefix + "Compose(Patch first, Patch second)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (first is null) throw new global::System.ArgumentNullException(nameof(first));"
-        );
+        code.AppendLine("if (first is null) throw new global::System.ArgumentNullException(nameof(first));");
         code.AppendLine("return first." + prefix + "Compose(second);");
         code.CloseBlock();
     }
@@ -178,55 +149,29 @@ internal static class SparseFragmentPatchAlgebraEmitter
         code.OpenBlock();
         if (receiver.Length != 0)
         {
-            code.AppendLine(
-                "if (self is null) throw new global::System.ArgumentNullException(nameof(self));"
-            );
+            code.AppendLine("if (self is null) throw new global::System.ArgumentNullException(nameof(self));");
         }
 
-        code.AppendLine(
-            "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
-        );
+        code.AppendLine("if (next is null) throw new global::System.ArgumentNullException(nameof(next));");
         code.AppendLine("var result = new Patch();");
         code.AppendLine("if (next." + dialect.WholeFieldName + ".Kind != " + kind + ".Keep)");
         code.OpenBlock();
-        code.AppendLine(
-            "result." + dialect.WholeFieldName + " = next." + dialect.WholeFieldName + ";"
-        );
+        code.AppendLine("result." + dialect.WholeFieldName + " = next." + dialect.WholeFieldName + ";");
         foreach (var member in members)
         {
-            code.AppendLine(
-                "result."
-                    + dialect.MemberField(member)
-                    + " = next."
-                    + dialect.MemberField(member)
-                    + ";"
-            );
+            code.AppendLine("result." + dialect.MemberField(member) + " = next." + dialect.MemberField(member) + ";");
         }
 
         code.AppendLine("return result;");
         code.CloseBlock();
-        code.AppendLine(
-            "result." + dialect.WholeFieldName + " = " + owner + "." + dialect.WholeFieldName + ";"
-        );
+        code.AppendLine("result." + dialect.WholeFieldName + " = " + owner + "." + dialect.WholeFieldName + ";");
         foreach (var member in members)
         {
             var field = dialect.MemberField(member);
             if (member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member))
             {
                 code.AppendLine(
-                    "result."
-                        + field
-                        + " = next."
-                        + field
-                        + ".Kind == "
-                        + kind
-                        + ".Keep ? "
-                        + owner
-                        + "."
-                        + field
-                        + " : next."
-                        + field
-                        + ";"
+                    "result." + field + " = next." + field + ".Kind == " + kind + ".Keep ? " + owner + "." + field + " : next." + field + ";"
                 );
             }
             else if (SparseFragmentPatchEmitter.IsCollectionPatch(member))
@@ -289,12 +234,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
         code.CloseBlock();
     }
 
-    private static void AppendInvert(
-        SharedIndentedBuilder code,
-        string optionalFragment,
-        string prefix,
-        SparseOperationTarget? target
-    )
+    private static void AppendInvert(SharedIndentedBuilder code, string optionalFragment, string prefix, SparseOperationTarget? target)
     {
         if (target is not null)
         {
@@ -313,16 +253,8 @@ internal static class SparseFragmentPatchAlgebraEmitter
                     + "Invert(this, baseline);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLine(
-                "/// <summary>Inverts a patch relative to the sparse state it was applied to.</summary>"
-            );
-            ops.AppendLine(
-                "internal static Patch "
-                    + prefix
-                    + "Invert(Patch self, "
-                    + optionalFragment
-                    + " baseline)"
-            );
+            ops.AppendLine("/// <summary>Inverts a patch relative to the sparse state it was applied to.</summary>");
+            ops.AppendLine("internal static Patch " + prefix + "Invert(Patch self, " + optionalFragment + " baseline)");
             ops.OpenBlock();
             ops.AppendLine("var applied = Apply(self, baseline);");
             ops.AppendLine("return " + prefix + "Between(applied, baseline);");

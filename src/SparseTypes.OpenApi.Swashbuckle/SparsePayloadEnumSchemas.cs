@@ -97,11 +97,7 @@ internal static class SparsePayloadEnumSchemas
             foreach (var entry in concrete.Properties)
             {
                 if (
-                    string.Equals(
-                        entry.Key,
-                        SparseTypes.ChangePayloadWire.StateProperty,
-                        StringComparison.Ordinal
-                    )
+                    string.Equals(entry.Key, SparseTypes.ChangePayloadWire.StateProperty, StringComparison.Ordinal)
                     && TryResolveTarget(entry.Value, out var stateTarget)
                     && stateTarget is OpenApiSchema stateSchema
                 )
@@ -175,7 +171,6 @@ internal static class SparsePayloadEnumSchemas
 
         public bool Equals(IOpenApiSchema? x, IOpenApiSchema? y) => ReferenceEquals(x, y);
 
-        public int GetHashCode(IOpenApiSchema obj) =>
-            System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        public int GetHashCode(IOpenApiSchema obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }

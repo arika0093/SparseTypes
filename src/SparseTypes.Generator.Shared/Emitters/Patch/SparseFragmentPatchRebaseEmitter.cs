@@ -7,8 +7,7 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Emits the standalone three-way rebase with structured conflicts.</summary>
 internal static class SparseFragmentPatchRebaseEmitter
 {
-    private static string EqualMethod(SparseMemberModel member) =>
-        "Fragment.__SparseEqual_" + member.Id;
+    private static string EqualMethod(SparseMemberModel member) => "Fragment.__SparseEqual_" + member.Id;
 
     public static void AppendPatchRebase(
         SharedIndentedBuilder code,
@@ -21,9 +20,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         var into = target?.PatchOperations ?? code;
         var runtime = dialect.RuntimeNamespace;
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
-        var prefix = SparseNaming.PatchApiPrefix(
-            members.Select(static member => member.Property.Name)
-        );
+        var prefix = SparseNaming.PatchApiPrefix(members.Select(static member => member.Property.Name));
         var optionalFragment = runtime + "Optional<Fragment?>";
         var kind = runtime + "FragmentOperationKind";
         var conflict = dialect.ConflictType;
@@ -35,9 +32,7 @@ internal static class SparseFragmentPatchRebaseEmitter
 
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>"
-            );
+            code.AppendLine("/// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>");
             code.AppendLine(
                 "public static "
                     + rebaseResult
@@ -98,15 +93,7 @@ internal static class SparseFragmentPatchRebaseEmitter
             }
             else
             {
-                AppendScalarMemberRebase(
-                    into,
-                    member,
-                    kind,
-                    conflict,
-                    conflictKind,
-                    dialect,
-                    modeType
-                );
+                AppendScalarMemberRebase(into, member, kind, conflict, conflictKind, dialect, modeType);
             }
 
             into.CloseBlock();
@@ -161,9 +148,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         bool isRelocated = false
     )
     {
-        code.AppendLine(
-            "/// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>"
-        );
+        code.AppendLine("/// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>");
         code.AppendLine(
             (isRelocated ? "internal static " : "public static ")
                 + rebaseResult
@@ -178,12 +163,8 @@ internal static class SparseFragmentPatchRebaseEmitter
                 + "? options = null)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (local is null) throw new global::System.ArgumentNullException(nameof(local));"
-        );
-        code.AppendLine(
-            "if (local.__SparseIsEmpty()) return " + rebaseResult + ".Success(new Patch());"
-        );
+        code.AppendLine("if (local is null) throw new global::System.ArgumentNullException(nameof(local));");
+        code.AppendLine("if (local.__SparseIsEmpty()) return " + rebaseResult + ".Success(new Patch());");
         code.AppendLine("var result = new Patch();");
         code.AppendLine("var conflicts = new " + conflictList + "();");
         code.AppendLine("if (__SparseIsRedacted(options, \"\"))");
@@ -270,13 +251,7 @@ internal static class SparseFragmentPatchRebaseEmitter
 
         var pathLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
         code.AppendLine(
-            "if (local."
-                + field
-                + " is not null && !local."
-                + field
-                + ".__SparseIsEmpty() && __SparseIsRedacted(options, "
-                + pathLit
-                + "))"
+            "if (local." + field + " is not null && !local." + field + ".__SparseIsEmpty() && __SparseIsRedacted(options, " + pathLit + "))"
         );
         code.OpenBlock();
         code.AppendLine("if (__SparseRejectsRedacted(options))");
@@ -296,13 +271,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine(
-            "if (local."
-                + field
-                + " is not null && !local."
-                + field
-                + ".__SparseIsEmpty() && !__SparseIsRedacted(options, "
-                + pathLit
-                + "))"
+            "if (local." + field + " is not null && !local." + field + ".__SparseIsEmpty() && !__SparseIsRedacted(options, " + pathLit + "))"
         );
         code.OpenBlock();
         code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
@@ -336,9 +305,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.OpenBlock();
         code.AppendLine("result." + field + " = local." + field + ";");
         code.CloseBlock();
-        code.AppendLine(
-            "else if (" + baseMember + ".IsPresent && " + currentMember + ".IsPresent)"
-        );
+        code.AppendLine("else if (" + baseMember + ".IsPresent && " + currentMember + ".IsPresent)");
         code.OpenBlock();
         code.AppendLine(
             "var nested = "
@@ -355,15 +322,11 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.AppendLine("foreach (var nestedConflict in nested.Conflicts)");
         code.OpenBlock();
         code.AppendLine(
-            "conflicts.Add(nestedConflict.WithPathPrefix(__SparseRootPath.Member("
-                + SymbolDisplay.FormatLiteral(member.Property.Name, true)
-                + ")));"
+            "conflicts.Add(nestedConflict.WithPathPrefix(__SparseRootPath.Member(" + SymbolDisplay.FormatLiteral(member.Property.Name, true) + ")));"
         );
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!" + equality + "(" + desiredMember + ", " + currentMember + "))"
-        );
+        code.AppendLine("else if (!" + equality + "(" + desiredMember + ", " + currentMember + "))");
         code.OpenBlock();
         code.AppendLine(
             "conflicts.Add(new "
@@ -402,13 +365,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         var pathLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
 
         code.AppendLine(
-            "if (local."
-                + field
-                + " is not null && !local."
-                + field
-                + ".__SparseIsEmpty() && __SparseIsRedacted(options, "
-                + pathLit
-                + "))"
+            "if (local." + field + " is not null && !local." + field + ".__SparseIsEmpty() && __SparseIsRedacted(options, " + pathLit + "))"
         );
         code.OpenBlock();
         code.AppendLine("if (__SparseRejectsRedacted(options))");
@@ -428,27 +385,17 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine(
-            "if (local."
-                + field
-                + " is not null && !local."
-                + field
-                + ".__SparseIsEmpty() && !__SparseIsRedacted(options, "
-                + pathLit
-                + "))"
+            "if (local." + field + " is not null && !local." + field + ".__SparseIsEmpty() && !__SparseIsRedacted(options, " + pathLit + "))"
         );
         code.OpenBlock();
         code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
         code.AppendLine("var " + currentMember + " = currentFragment." + name + ";");
-        code.AppendLine(
-            "var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");"
-        );
+        code.AppendLine("var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");");
         code.AppendLine("if (" + equality + "(" + baseMember + ", " + currentMember + "))");
         code.OpenBlock();
         code.AppendLine("result." + field + " = local." + field + ";");
         code.CloseBlock();
-        code.AppendLine(
-            "else if (" + baseMember + ".IsPresent && " + currentMember + ".IsPresent)"
-        );
+        code.AppendLine("else if (" + baseMember + ".IsPresent && " + currentMember + ".IsPresent)");
         code.OpenBlock();
         code.AppendLine(
             "var nested = "
@@ -469,15 +416,11 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.AppendLine("foreach (var nestedConflict in nested.Conflicts)");
         code.OpenBlock();
         code.AppendLine(
-            "conflicts.Add(nestedConflict.WithPathPrefix(__SparseRootPath.Member("
-                + SymbolDisplay.FormatLiteral(member.Property.Name, true)
-                + ")));"
+            "conflicts.Add(nestedConflict.WithPathPrefix(__SparseRootPath.Member(" + SymbolDisplay.FormatLiteral(member.Property.Name, true) + ")));"
         );
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!" + equality + "(" + desiredMember + ", " + currentMember + "))"
-        );
+        code.AppendLine("else if (!" + equality + "(" + desiredMember + ", " + currentMember + "))");
         code.OpenBlock();
         code.AppendLine(
             "conflicts.Add(new "
@@ -547,15 +490,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         else if (member.MergeMode is SparseMergeModes.Append or SparseMergeModes.SetUnion)
         {
             var mergePathLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
-            code.AppendLine(
-                "if (local."
-                    + field
-                    + ".Kind != "
-                    + kind
-                    + ".Keep && __SparseIsRedacted(options, "
-                    + mergePathLit
-                    + "))"
-            );
+            code.AppendLine("if (local." + field + ".Kind != " + kind + ".Keep && __SparseIsRedacted(options, " + mergePathLit + "))");
             code.OpenBlock();
             code.AppendLine("if (__SparseRejectsRedacted(options))");
             code.OpenBlock();
@@ -573,21 +508,11 @@ internal static class SparseFragmentPatchRebaseEmitter
             code.AppendLine("result." + field + " = local." + field + ";");
             code.CloseBlock();
             code.CloseBlock();
-            code.AppendLine(
-                "if (local."
-                    + field
-                    + ".Kind != "
-                    + kind
-                    + ".Keep && !__SparseIsRedacted(options, "
-                    + mergePathLit
-                    + "))"
-            );
+            code.AppendLine("if (local." + field + ".Kind != " + kind + ".Keep && !__SparseIsRedacted(options, " + mergePathLit + "))");
             code.OpenBlock();
             code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
             code.AppendLine("var " + currentMember + " = currentFragment." + name + ";");
-            code.AppendLine(
-                "var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");"
-            );
+            code.AppendLine("var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");");
             code.AppendLine("var handled = false;");
             code.AppendLine(
                 "if ("
@@ -606,44 +531,21 @@ internal static class SparseFragmentPatchRebaseEmitter
             );
             code.OpenBlock();
             code.AppendLine("handled = true;");
-            if (
-                member.MergeMode == SparseMergeModes.SetUnion
-                && member.Collection.CloneKind == SparseCloneCollectionKind.Set
-            )
+            if (member.MergeMode == SparseMergeModes.SetUnion && member.Collection.CloneKind == SparseCloneCollectionKind.Set)
             {
-                SparseFragmentPatchCollectionRebaseEmitter.AppendTypedSetUnionRebase(
-                    code,
-                    member,
-                    field,
-                    operation,
-                    dialect
-                );
+                SparseFragmentPatchCollectionRebaseEmitter.AppendTypedSetUnionRebase(code, member, field, operation, dialect);
             }
             else if (
                 member.MergeMode is SparseMergeModes.Append or SparseMergeModes.SetUnion
-                && member.Collection.CloneKind
-                    is SparseCloneCollectionKind.Array
-                        or SparseCloneCollectionKind.List
+                && member.Collection.CloneKind is SparseCloneCollectionKind.Array or SparseCloneCollectionKind.List
                 && member.Collection.ElementType.UsesDefaultScalarEquality
             )
             {
-                SparseFragmentPatchCollectionRebaseEmitter.AppendTypedSequenceRebase(
-                    code,
-                    member,
-                    field,
-                    operation,
-                    dialect
-                );
+                SparseFragmentPatchCollectionRebaseEmitter.AppendTypedSequenceRebase(code, member, field, operation, dialect);
             }
             else
             {
-                SparseFragmentPatchCollectionRebaseEmitter.AppendBoxedCollectionRebase(
-                    code,
-                    member,
-                    field,
-                    operation,
-                    dialect
-                );
+                SparseFragmentPatchCollectionRebaseEmitter.AppendBoxedCollectionRebase(code, member, field, operation, dialect);
             }
             code.CloseBlock();
             code.AppendLine("else");
@@ -688,16 +590,8 @@ internal static class SparseFragmentPatchRebaseEmitter
             code.OpenBlock();
             code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
             code.AppendLine("var " + currentMember + " = currentFragment." + name + ";");
-            code.AppendLine(
-                "var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");"
-            );
-            code.AppendLine(
-                "var __mode"
-                    + member.Id
-                    + " = options is null ? "
-                    + modeType
-                    + ".Default : options.DefaultRebaseMode;"
-            );
+            code.AppendLine("var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");");
+            code.AppendLine("var __mode" + member.Id + " = options is null ? " + modeType + ".Default : options.DefaultRebaseMode;");
             code.AppendLine("if (__SparseIsRedacted(options, " + plainPathLit + "))");
             code.OpenBlock();
             code.AppendLine("if (__SparseRejectsRedacted(options))");
@@ -746,17 +640,7 @@ internal static class SparseFragmentPatchRebaseEmitter
                 code.OpenBlock();
                 code.AppendLine("result." + field + " = local." + field + ";");
                 code.CloseBlock();
-                code.AppendLine(
-                    "else if (__scalarConflict"
-                        + member.Id
-                        + " && !"
-                        + equality
-                        + "("
-                        + desiredMember
-                        + ", "
-                        + baseMember
-                        + "))"
-                );
+                code.AppendLine("else if (__scalarConflict" + member.Id + " && !" + equality + "(" + desiredMember + ", " + baseMember + "))");
                 code.OpenBlock();
                 code.AppendLine(
                     "conflicts.Add(new "
@@ -794,17 +678,7 @@ internal static class SparseFragmentPatchRebaseEmitter
             code.AppendLine("result." + field + " = local." + field + ";");
             code.CloseBlock();
             code.AppendLine(
-                "else if (__mode"
-                    + member.Id
-                    + " != "
-                    + modeType
-                    + ".PreferCurrent && "
-                    + equality
-                    + "("
-                    + baseMember
-                    + ", "
-                    + currentMember
-                    + "))"
+                "else if (__mode" + member.Id + " != " + modeType + ".PreferCurrent && " + equality + "(" + baseMember + ", " + currentMember + "))"
             );
             code.OpenBlock();
             code.AppendLine("result." + field + " = local." + field + ";");

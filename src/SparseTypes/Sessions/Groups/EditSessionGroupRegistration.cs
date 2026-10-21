@@ -89,8 +89,7 @@ public sealed class EditSessionSectionHandle<TModel, TChangeSet>
     public string SectionId => Section.SectionId;
 
     /// <summary>Gets the registered typed edit session.</summary>
-    public ISparseEditSession<TModel, TChangeSet> Session =>
-        (ISparseEditSession<TModel, TChangeSet>)Section.Session;
+    public ISparseEditSession<TModel, TChangeSet> Session => (ISparseEditSession<TModel, TChangeSet>)Section.Session;
 
     internal EditSessionGroup Owner { get; }
 

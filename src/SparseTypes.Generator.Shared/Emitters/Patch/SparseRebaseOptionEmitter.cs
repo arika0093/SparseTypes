@@ -7,32 +7,20 @@ internal static class SparseRebaseOptionEmitter
     internal static string OptionsType(SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
         SparseFragmentPatchEmitter.GetRebaseOptionsType(dialect);
 
-    internal static string ModeType(SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
-        SparseFragmentPatchEmitter.GetRebaseModeType(dialect);
+    internal static string ModeType(SparseFragmentPatchEmitter.SparsePatchDialect dialect) => SparseFragmentPatchEmitter.GetRebaseModeType(dialect);
 
-    internal static string RedactedKind(SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
-        dialect.ConflictKindType + ".RedactedBefore";
+    internal static string RedactedKind(SparseFragmentPatchEmitter.SparsePatchDialect dialect) => dialect.ConflictKindType + ".RedactedBefore";
 
-    internal const string RedactedReason =
-        "The change carries a redacted before-state and strict rebase rejects it.";
+    internal const string RedactedReason = "The change carries a redacted before-state and strict rebase rejects it.";
 
-    internal static void AppendHelpers(
-        SharedIndentedBuilder code,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    )
+    internal static void AppendHelpers(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var options = OptionsType(dialect);
+        code.AppendLine("/// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>");
         code.AppendLine(
-            "/// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>"
+            "private static bool __SparseIsRedacted(" + options + "? options, string path) => options is not null && options.IsRedactedBefore(path);"
         );
-        code.AppendLine(
-            "private static bool __SparseIsRedacted("
-                + options
-                + "? options, string path) => options is not null && options.IsRedactedBefore(path);"
-        );
-        code.AppendLine(
-            "/// <summary>Whether strict rebase rejects redacted-before members.</summary>"
-        );
+        code.AppendLine("/// <summary>Whether strict rebase rejects redacted-before members.</summary>");
         code.AppendLine(
             "private static bool __SparseRejectsRedacted("
                 + options

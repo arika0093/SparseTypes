@@ -32,9 +32,7 @@ internal static class FragmentComparisonPrimitives
 
         if (left is IList || right is IList)
         {
-            return left is IList leftList
-                && right is IList rightList
-                && AreListsEqual(leftList, rightList);
+            return left is IList leftList && right is IList rightList && AreListsEqual(leftList, rightList);
         }
 
         if (left is IEnumerable leftItems && right is IEnumerable rightItems)

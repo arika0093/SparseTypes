@@ -18,12 +18,7 @@ internal enum CollectionScopeKind
 
 /// <summary>Identifies one parent collection element for nested correlation.</summary>
 /// <remarks>A value of this type is a lookup token, never a dictionary key.</remarks>
-internal readonly record struct CollectionScopeIdentity(
-    CollectionScopeKind Kind,
-    object? Key,
-    Guid Temp,
-    IEqualityComparer<object>? KeyComparer
-)
+internal readonly record struct CollectionScopeIdentity(CollectionScopeKind Kind, object? Key, Guid Temp, IEqualityComparer<object>? KeyComparer)
 {
     /// <summary>Gets the identity for a parent without a stable scope.</summary>
     public static CollectionScopeIdentity Unscoped => default;
@@ -31,27 +26,19 @@ internal readonly record struct CollectionScopeIdentity(
     /// <summary>Creates the identity for a parent with a stable assigned key.</summary>
     /// <param name="key">The parent DTO key value.</param>
     /// <param name="comparer">The parent collection's key comparer.</param>
-    public static CollectionScopeIdentity Assigned(
-        object key,
-        IEqualityComparer<object>? comparer
-    ) => new(CollectionScopeKind.Assigned, key, Guid.Empty, comparer);
+    public static CollectionScopeIdentity Assigned(object key, IEqualityComparer<object>? comparer) =>
+        new(CollectionScopeKind.Assigned, key, Guid.Empty, comparer);
 
     /// <summary>Creates the identity for a parent with a temporary identity.</summary>
     /// <param name="temporary">The parent temporary identity.</param>
-    public static CollectionScopeIdentity Temporary(Guid temporary) =>
-        new(CollectionScopeKind.Temporary, null, temporary, null);
+    public static CollectionScopeIdentity Temporary(Guid temporary) => new(CollectionScopeKind.Temporary, null, temporary, null);
 
     /// <summary>Derives the scope for a collection element from its identities.</summary>
     /// <param name="key">The element DTO key, when known.</param>
     /// <param name="assigned">Whether the key is an assigned (non-sentinel) identity.</param>
     /// <param name="temporary">The element temporary identity, when present.</param>
     /// <param name="comparer">The owning collection's key comparer.</param>
-    public static CollectionScopeIdentity ForElement(
-        object? key,
-        bool assigned,
-        Guid? temporary,
-        IEqualityComparer<object>? comparer
-    )
+    public static CollectionScopeIdentity ForElement(object? key, bool assigned, Guid? temporary, IEqualityComparer<object>? comparer)
     {
         if (key is not null && assigned)
         {
@@ -168,9 +155,7 @@ internal sealed class NestedScopeTable
                 // Only candidate-scope members here: the current-scope union
                 // is small by construction, unlike the full complement the
                 // previous materialization built per call.
-                (known ??= new HashSet<object>(ReferenceEqualityComparer.Instance)).UnionWith(
-                    slot.Members
-                );
+                (known ??= new HashSet<object>(ReferenceEqualityComparer.Instance)).UnionWith(slot.Members);
             }
         }
 

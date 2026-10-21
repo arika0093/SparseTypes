@@ -65,23 +65,10 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
     {
         var baselineItems = baseline is null ? null : Runtime.SnapshotReader(baseline);
         var authoritativeItems = Runtime.SnapshotReader(authoritative);
-        Runtime.AssignTemporaryKeys(
-            context,
-            baselineItems,
-            authoritativeItems,
-            result,
-            path,
-            assignments,
-            parentScopes
-        );
+        Runtime.AssignTemporaryKeys(context, baselineItems, authoritativeItems, result, path, assignments, parentScopes);
     }
 
-    public override void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    )
+    public override void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot)
     {
         if (writeAll)
         {
@@ -98,9 +85,7 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
         var filterEdits =
             !view.OrderChanged
             && view.Items.Count > 0
-            && view.Items.All(static item =>
-                item.IsEdited && !item.IsAdded && !item.IsRemoved && !item.IsReordered
-            );
+            && view.Items.All(static item => item.IsEdited && !item.IsAdded && !item.IsRemoved && !item.IsReordered);
         var keys = filterEdits ? view.Items.Select(static item => item.Key).ToList() : null;
         collector.PushCollection(
             runtime.NavigationName,
@@ -119,12 +104,7 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
             {
                 if (item.IsEdited && item.Edit is not null)
                 {
-                    runtime.ChildPlan.CollectIncludes(
-                        item.Edit,
-                        collector,
-                        writeAll: false,
-                        afterSnapshot: null
-                    );
+                    runtime.ChildPlan.CollectIncludes(item.Edit, collector, writeAll: false, afterSnapshot: null);
                 }
             }
         }
@@ -134,31 +114,17 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
         }
     }
 
-    public override Expression? BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    )
+    public override Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
     {
         var runtime = Runtime;
-        if (
-            !context.TryBuildMemberPath(
-                entity,
-                [runtime.NavigationName],
-                dtoPath,
-                out var collection
-            )
-        )
+        if (!context.TryBuildMemberPath(entity, [runtime.NavigationName], dtoPath, out var collection))
         {
             return null;
         }
 
         var childParameter = Expression.Parameter(typeof(TEntityChild), "child");
         var enumerableType = typeof(IEnumerable<TEntityChild>);
-        Expression sequence =
-            collection.Type == enumerableType
-                ? collection
-                : Expression.Convert(collection, enumerableType);
+        Expression sequence = collection.Type == enumerableType ? collection : Expression.Convert(collection, enumerableType);
         var canProject = true;
 
         if (runtime.RemoveKind == SparseEntityRemoveKind.SoftDelete)
@@ -172,25 +138,11 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
                 );
                 canProject = false;
             }
-            else if (
-                context.TryInlineRead(
-                    runtime.IsDeletedExpression,
-                    childParameter,
-                    typeof(bool),
-                    dtoPath,
-                    out var isDeleted
-                )
-            )
+            else if (context.TryInlineRead(runtime.IsDeletedExpression, childParameter, typeof(bool), dtoPath, out var isDeleted))
             {
-                var predicate = Expression.Lambda(
-                    typeof(Func<TEntityChild, bool>),
-                    Expression.Not(isDeleted),
-                    childParameter
-                );
+                var predicate = Expression.Lambda(typeof(Func<TEntityChild, bool>), Expression.Not(isDeleted), childParameter);
                 sequence = Expression.Call(
-                    ReadProjectionBuildContext.ProjectionEnumerableMethods.Where.MakeGenericMethod(
-                        typeof(TEntityChild)
-                    ),
+                    ReadProjectionBuildContext.ProjectionEnumerableMethods.Where.MakeGenericMethod(typeof(TEntityChild)),
                     sequence,
                     predicate
                 );
@@ -223,16 +175,9 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
             )
             {
                 var keyType = runtime.OrderSelectorExpression.ReturnType;
-                var keySelector = Expression.Lambda(
-                    typeof(Func<,>).MakeGenericType(typeof(TEntityChild), keyType),
-                    orderKey,
-                    childParameter
-                );
+                var keySelector = Expression.Lambda(typeof(Func<,>).MakeGenericType(typeof(TEntityChild), keyType), orderKey, childParameter);
                 sequence = Expression.Call(
-                    ReadProjectionBuildContext.ProjectionEnumerableMethods.OrderBy.MakeGenericMethod(
-                        typeof(TEntityChild),
-                        keyType
-                    ),
+                    ReadProjectionBuildContext.ProjectionEnumerableMethods.OrderBy.MakeGenericMethod(typeof(TEntityChild), keyType),
                     sequence,
                     keySelector
                 );
@@ -244,42 +189,20 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
         }
 
         var childProjection = runtime.ChildPlan.BuildProjection(childParameter, context, dtoPath);
-        var selector = Expression.Lambda(
-            typeof(Func<,>).MakeGenericType(typeof(TEntityChild), typeof(TDtoChild)),
-            childProjection,
-            childParameter
-        );
+        var selector = Expression.Lambda(typeof(Func<,>).MakeGenericType(typeof(TEntityChild), typeof(TDtoChild)), childProjection, childParameter);
         var selected = Expression.Call(
-            ReadProjectionBuildContext.ProjectionEnumerableMethods.Select.MakeGenericMethod(
-                typeof(TEntityChild),
-                typeof(TDtoChild)
-            ),
+            ReadProjectionBuildContext.ProjectionEnumerableMethods.Select.MakeGenericMethod(typeof(TEntityChild), typeof(TDtoChild)),
             sequence,
             selector
         );
-        var dtoProperty = typeof(TDto).GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var dtoProperty = typeof(TDto).GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
         if (dtoProperty is null || !dtoProperty.CanWrite)
         {
-            context.AddError(
-                dtoPath,
-                $"The DTO collection member '{DtoName}' has no writable property for projection."
-            );
+            context.AddError(dtoPath, $"The DTO collection member '{DtoName}' has no writable property for projection.");
             return null;
         }
 
-        if (
-            !context.TryMaterializeCollection(
-                selected,
-                typeof(TDtoChild),
-                dtoProperty.PropertyType,
-                dtoPath,
-                out var materialized,
-                out var empty
-            )
-        )
+        if (!context.TryMaterializeCollection(selected, typeof(TDtoChild), dtoProperty.PropertyType, dtoPath, out var materialized, out var empty))
         {
             canProject = false;
         }
@@ -289,11 +212,7 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
             return null;
         }
 
-        return Expression.Condition(
-            Expression.Equal(collection, Expression.Constant(null, collection.Type)),
-            empty,
-            materialized
-        );
+        return Expression.Condition(Expression.Equal(collection, Expression.Constant(null, collection.Type)), empty, materialized);
     }
 
     private CollectionRuntime<TDtoChild, TEntityChild> Runtime =>

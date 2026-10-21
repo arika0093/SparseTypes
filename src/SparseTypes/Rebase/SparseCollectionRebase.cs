@@ -39,8 +39,7 @@ internal static class SparseCollectionRebase
             if (!SequenceEqual(current, before, equal) && !SequenceEqual(current, desired, equal))
             {
                 rebased = [];
-                reason =
-                    "The configuration edit conflicts with a concurrent change to an append-merged member.";
+                reason = "The configuration edit conflicts with a concurrent change to an append-merged member.";
                 return false;
             }
 
@@ -52,8 +51,7 @@ internal static class SparseCollectionRebase
         if (!HasPrefix(current, before, equal))
         {
             rebased = [];
-            reason =
-                "The configuration edit cannot reapply its append because the existing collection prefix changed.";
+            reason = "The configuration edit cannot reapply its append because the existing collection prefix changed.";
             return false;
         }
 
@@ -107,15 +105,10 @@ internal static class SparseCollectionRebase
                 hasRemoved = true;
             }
         }
-        if (
-            hasRemoved
-            && !SequenceEqual(current, before, equal)
-            && !SequenceEqual(current, desired, equal)
-        )
+        if (hasRemoved && !SequenceEqual(current, before, equal) && !SequenceEqual(current, desired, equal))
         {
             rebased = [];
-            reason =
-                "The configuration edit conflicts with a concurrent change to a set-union member.";
+            reason = "The configuration edit conflicts with a concurrent change to a set-union member.";
             return false;
         }
 
@@ -160,26 +153,16 @@ internal static class SparseCollectionRebase
         ArgumentNullException.ThrowIfNull(desired);
         ArgumentNullException.ThrowIfNull(current);
 
-        var localComparer =
-            TryGetSetComparer(desired) ?? TryGetSetComparer(before) ?? EqualityComparer<T>.Default;
-        var currentComparer =
-            TryGetSetComparer(current)
-            ?? TryGetSetComparer(desired)
-            ?? TryGetSetComparer(before)
-            ?? EqualityComparer<T>.Default;
+        var localComparer = TryGetSetComparer(desired) ?? TryGetSetComparer(before) ?? EqualityComparer<T>.Default;
+        var currentComparer = TryGetSetComparer(current) ?? TryGetSetComparer(desired) ?? TryGetSetComparer(before) ?? EqualityComparer<T>.Default;
 
         var borrowedDesired = desired.GetType() == typeof(HashSet<T>);
-        var desiredLookup = borrowedDesired
-            ? (HashSet<T>)desired
-            : new HashSet<T>(desired, localComparer);
+        var desiredLookup = borrowedDesired ? (HashSet<T>)desired : new HashSet<T>(desired, localComparer);
         var hasRemoved = before.Any(value => !desiredLookup.Contains(value));
 
         if (hasRemoved)
         {
-            if (
-                SparseCoreRuntime.AreSetEqual(current, before)
-                || SparseCoreRuntime.AreSetEqual(current, desired)
-            )
+            if (SparseCoreRuntime.AreSetEqual(current, before) || SparseCoreRuntime.AreSetEqual(current, desired))
             {
                 rebased = new HashSet<T>(desired, TryGetSetComparer(desired) ?? localComparer);
                 reason = null;
@@ -187,16 +170,11 @@ internal static class SparseCollectionRebase
             }
 
             rebased = new HashSet<T>(currentComparer);
-            reason =
-                "The configuration edit conflicts with a concurrent change to a set-union member.";
+            reason = "The configuration edit conflicts with a concurrent change to a set-union member.";
             return false;
         }
 
-        if (
-            borrowedDesired
-            && before.GetType() == typeof(HashSet<T>)
-            && ReferenceEquals(((HashSet<T>)before).Comparer, localComparer)
-        )
+        if (borrowedDesired && before.GetType() == typeof(HashSet<T>) && ReferenceEquals(((HashSet<T>)before).Comparer, localComparer))
         {
             var beforeLookup = (HashSet<T>)before;
             var nativeResult = new HashSet<T>(current, currentComparer);
@@ -263,14 +241,10 @@ internal static class SparseCollectionRebase
 
         if (!HasPrefix(desired, before, comparer))
         {
-            if (
-                !SequenceEqual(current, before, comparer)
-                && !SequenceEqual(current, desired, comparer)
-            )
+            if (!SequenceEqual(current, before, comparer) && !SequenceEqual(current, desired, comparer))
             {
                 rebased = [];
-                reason =
-                    "The configuration edit conflicts with a concurrent change to an append-merged member.";
+                reason = "The configuration edit conflicts with a concurrent change to an append-merged member.";
                 return false;
             }
 
@@ -282,8 +256,7 @@ internal static class SparseCollectionRebase
         if (!HasPrefix(current, before, comparer))
         {
             rebased = [];
-            reason =
-                "The configuration edit cannot reapply its append because the existing collection prefix changed.";
+            reason = "The configuration edit cannot reapply its append because the existing collection prefix changed.";
             return false;
         }
 
@@ -324,14 +297,10 @@ internal static class SparseCollectionRebase
 
         if (!HasPrefix(desired, before, comparer))
         {
-            if (
-                !SequenceEqual(current, before, comparer)
-                && !SequenceEqual(current, desired, comparer)
-            )
+            if (!SequenceEqual(current, before, comparer) && !SequenceEqual(current, desired, comparer))
             {
                 rebased = [];
-                reason =
-                    "The configuration edit conflicts with a concurrent change to an append-merged member.";
+                reason = "The configuration edit conflicts with a concurrent change to an append-merged member.";
                 return false;
             }
 
@@ -343,8 +312,7 @@ internal static class SparseCollectionRebase
         if (!HasPrefix(current, before, comparer))
         {
             rebased = [];
-            reason =
-                "The configuration edit cannot reapply its append because the existing collection prefix changed.";
+            reason = "The configuration edit cannot reapply its append because the existing collection prefix changed.";
             return false;
         }
 
@@ -384,17 +352,7 @@ internal static class SparseCollectionRebase
         out string? reason
     )
     {
-        if (
-            !TryPrepareSequenceSetUnion(
-                before,
-                desired,
-                current,
-                comparer,
-                out var initial,
-                out var additions,
-                out reason
-            )
-        )
+        if (!TryPrepareSequenceSetUnion(before, desired, current, comparer, out var initial, out var additions, out reason))
         {
             rebased = [];
             return false;
@@ -433,17 +391,7 @@ internal static class SparseCollectionRebase
         out string? reason
     )
     {
-        if (
-            !TryPrepareSequenceSetUnion(
-                before,
-                desired,
-                current,
-                comparer,
-                out var initial,
-                out var additions,
-                out reason
-            )
-        )
+        if (!TryPrepareSequenceSetUnion(before, desired, current, comparer, out var initial, out var additions, out reason))
         {
             rebased = [];
             return false;
@@ -512,13 +460,9 @@ internal static class SparseCollectionRebase
 
         if (hasRemoved)
         {
-            if (
-                !SequenceEqual(current, before, comparer)
-                && !SequenceEqual(current, desired, comparer)
-            )
+            if (!SequenceEqual(current, before, comparer) && !SequenceEqual(current, desired, comparer))
             {
-                reason =
-                    "The configuration edit conflicts with a concurrent change to a set-union member.";
+                reason = "The configuration edit conflicts with a concurrent change to a set-union member.";
                 return false;
             }
 
@@ -555,14 +499,9 @@ internal static class SparseCollectionRebase
         }
     }
 
-    private static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) =>
-        value is HashSet<T> hashSet ? hashSet.Comparer : null;
+    private static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) => value is HashSet<T> hashSet ? hashSet.Comparer : null;
 
-    private static bool HasPrefix(
-        IReadOnlyList<object?> candidate,
-        IReadOnlyList<object?> prefix,
-        Func<object?, object?, bool> equal
-    )
+    private static bool HasPrefix(IReadOnlyList<object?> candidate, IReadOnlyList<object?> prefix, Func<object?, object?, bool> equal)
     {
         if (candidate.Count < prefix.Count)
         {
@@ -580,11 +519,7 @@ internal static class SparseCollectionRebase
         return true;
     }
 
-    private static bool HasPrefix<T>(
-        IReadOnlyList<T> candidate,
-        IReadOnlyList<T> prefix,
-        IEqualityComparer<T> comparer
-    )
+    private static bool HasPrefix<T>(IReadOnlyList<T> candidate, IReadOnlyList<T> prefix, IEqualityComparer<T> comparer)
     {
         if (candidate.Count < prefix.Count)
         {
@@ -602,11 +537,7 @@ internal static class SparseCollectionRebase
         return true;
     }
 
-    private static bool SequenceEqual<T>(
-        IReadOnlyList<T> left,
-        IReadOnlyList<T> right,
-        IEqualityComparer<T> comparer
-    )
+    private static bool SequenceEqual<T>(IReadOnlyList<T> left, IReadOnlyList<T> right, IEqualityComparer<T> comparer)
     {
         if (left.Count != right.Count)
         {
@@ -624,11 +555,7 @@ internal static class SparseCollectionRebase
         return true;
     }
 
-    private static bool SequenceEqual(
-        IReadOnlyList<object?> left,
-        IReadOnlyList<object?> right,
-        Func<object?, object?, bool> equal
-    )
+    private static bool SequenceEqual(IReadOnlyList<object?> left, IReadOnlyList<object?> right, Func<object?, object?, bool> equal)
     {
         if (left.Count != right.Count)
         {

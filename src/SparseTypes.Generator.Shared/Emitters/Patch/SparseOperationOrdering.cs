@@ -97,16 +97,9 @@ internal static class SparseOperationOrdering
             var line = ReadLine(operations, start);
             if (line.TrimmedStart < line.End)
             {
-                var signature =
-                    line.Kind is LineKind.Public or LineKind.Internal or LineKind.Private;
+                var signature = line.Kind is LineKind.Public or LineKind.Internal or LineKind.Private;
                 var topLevel = line.TrimmedStart - start == topIndent;
-                if (
-                    blockStart < 0
-                    || (
-                        topLevel
-                        && (signature || (line.Kind == LineKind.Documentation && hasSignature))
-                    )
-                )
+                if (blockStart < 0 || (topLevel && (signature || (line.Kind == LineKind.Documentation && hasSignature))))
                 {
                     if (blockStart >= 0)
                     {
@@ -196,8 +189,7 @@ internal static class SparseOperationOrdering
     }
 
     private static bool HasPrefix(string source, int start, int end, string prefix) =>
-        end - start >= prefix.Length
-        && string.CompareOrdinal(source, start, prefix, 0, prefix.Length) == 0;
+        end - start >= prefix.Length && string.CompareOrdinal(source, start, prefix, 0, prefix.Length) == 0;
 
     private static void AppendBlock(StringBuilder result, string source, int start, int end)
     {
@@ -222,13 +214,7 @@ internal static class SparseOperationOrdering
         }
     }
 
-    private static void AppendBlock(
-        SharedIndentedBuilder code,
-        string source,
-        int start,
-        int end,
-        ref bool hasLine
-    )
+    private static void AppendBlock(SharedIndentedBuilder code, string source, int start, int end, ref bool hasLine)
     {
         while (start < end)
         {

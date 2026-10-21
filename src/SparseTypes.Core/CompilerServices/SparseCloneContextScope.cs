@@ -14,8 +14,7 @@ public sealed class SparseCloneContextScope : IDisposable
 
     /// <summary>Gets the dictionary owned by this scope.</summary>
     /// <exception cref="ObjectDisposedException">The scope has been disposed.</exception>
-    public Dictionary<object, object> Context =>
-        _context ?? throw new ObjectDisposedException(nameof(SparseCloneContextScope));
+    public Dictionary<object, object> Context => _context ?? throw new ObjectDisposedException(nameof(SparseCloneContextScope));
 
     /// <summary>Clears references and returns a bounded context for reuse on the current thread.</summary>
     public void Dispose()

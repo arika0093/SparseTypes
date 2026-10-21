@@ -13,11 +13,7 @@ public static class SparseOptionalEquality
     /// <param name="right">The second optional value.</param>
     /// <param name="valueEquals">Compares the present optional values.</param>
     /// <returns>True when presence and the present values are equal.</returns>
-    public static bool AreEqual<T>(
-        Optional<T> left,
-        Optional<T> right,
-        Func<Optional<T>, Optional<T>, bool> valueEquals
-    )
+    public static bool AreEqual<T>(Optional<T> left, Optional<T> right, Func<Optional<T>, Optional<T>, bool> valueEquals)
     {
         ArgumentNullException.ThrowIfNull(valueEquals);
         if (!left.IsPresent)

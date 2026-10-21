@@ -10,11 +10,7 @@ namespace SparseTypes.Generator.CodeFixes;
 /// <summary>Fixes targeting members and their attributes.</summary>
 internal static class SparseMemberAttributeFixes
 {
-    public static bool TryFindProperty(
-        SyntaxNode root,
-        Diagnostic diagnostic,
-        out PropertyDeclarationSyntax? property
-    )
+    public static bool TryFindProperty(SyntaxNode root, Diagnostic diagnostic, out PropertyDeclarationSyntax? property)
     {
         property = null;
         if (diagnostic.Location.SourceTree is null)
@@ -23,18 +19,11 @@ internal static class SparseMemberAttributeFixes
         }
 
         var token = root.FindToken(diagnostic.Location.SourceSpan.Start);
-        property = token
-            .Parent?.AncestorsAndSelf()
-            .OfType<PropertyDeclarationSyntax>()
-            .FirstOrDefault();
+        property = token.Parent?.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>().FirstOrDefault();
         return property is not null;
     }
 
-    public static bool TryFindAttribute(
-        PropertyDeclarationSyntax property,
-        string attributeShortName,
-        out AttributeSyntax? attribute
-    )
+    public static bool TryFindAttribute(PropertyDeclarationSyntax property, string attributeShortName, out AttributeSyntax? attribute)
     {
         attribute = null;
         foreach (var list in property.AttributeLists)
@@ -72,19 +61,13 @@ internal static class SparseMemberAttributeFixes
             SyntaxFactory.ParseName("global::SparseTypes.SparseMerge"),
             SyntaxFactory.AttributeArgumentList(
                 SyntaxFactory.SingletonSeparatedList(
-                    SyntaxFactory.AttributeArgument(
-                        SyntaxFactory.ParseExpression("global::SparseTypes.MergeMode.Replace")
-                    )
+                    SyntaxFactory.AttributeArgument(SyntaxFactory.ParseExpression("global::SparseTypes.MergeMode.Replace"))
                 )
             )
         );
-        var updated = property.AddAttributeLists(
-            SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(merge))
-        );
+        var updated = property.AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(merge)));
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
     }
 
     public static async Task<Document> AddCloneReferenceSafeAsync(
@@ -98,23 +81,13 @@ internal static class SparseMemberAttributeFixes
             return document;
         }
 
-        var marker = SyntaxFactory.Attribute(
-            SyntaxFactory.ParseName("global::SparseTypes.SparseCloneReferenceSafe")
-        );
-        var updated = property.AddAttributeLists(
-            SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(marker))
-        );
+        var marker = SyntaxFactory.Attribute(SyntaxFactory.ParseName("global::SparseTypes.SparseCloneReferenceSafe"));
+        var updated = property.AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(marker)));
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
     }
 
-    public static async Task<Document> RemoveAttributeAsync(
-        Document document,
-        AttributeSyntax attribute,
-        CancellationToken cancellationToken
-    )
+    public static async Task<Document> RemoveAttributeAsync(Document document, AttributeSyntax attribute, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null)
@@ -162,8 +135,7 @@ internal static class SparseMemberAttributeFixes
             return document;
         }
 
-        return await RemoveAttributeAsync(document, attribute, cancellationToken)
-            .ConfigureAwait(false);
+        return await RemoveAttributeAsync(document, attribute, cancellationToken).ConfigureAwait(false);
     }
 
     public static async Task<Document> RemoveSparseIgnoreAsync(
@@ -177,15 +149,10 @@ internal static class SparseMemberAttributeFixes
             return document;
         }
 
-        return await RemoveAttributeAsync(document, attribute, cancellationToken)
-            .ConfigureAwait(false);
+        return await RemoveAttributeAsync(document, attribute, cancellationToken).ConfigureAwait(false);
     }
 
-    public static async Task<Document> StripAttributeArgumentsAsync(
-        Document document,
-        AttributeSyntax attribute,
-        CancellationToken cancellationToken
-    )
+    public static async Task<Document> StripAttributeArgumentsAsync(Document document, AttributeSyntax attribute, CancellationToken cancellationToken)
     {
         if (attribute.ArgumentList is null)
         {
@@ -194,9 +161,7 @@ internal static class SparseMemberAttributeFixes
 
         var updated = attribute.WithArgumentList(null);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(attribute, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(attribute, updated));
     }
 
     public static async Task<Document> RemoveUnassignedArgumentAsync(
@@ -210,18 +175,12 @@ internal static class SparseMemberAttributeFixes
             return document;
         }
 
-        var remaining = attribute.ArgumentList.Arguments.Where(static argument =>
-            !argument.ToString().Contains("Unassigned")
-        );
+        var remaining = attribute.ArgumentList.Arguments.Where(static argument => !argument.ToString().Contains("Unassigned"));
         AttributeSyntax updated = remaining.Any()
-            ? attribute.WithArgumentList(
-                SyntaxFactory.AttributeArgumentList(SyntaxFactory.SeparatedList(remaining))
-            )
+            ? attribute.WithArgumentList(SyntaxFactory.AttributeArgumentList(SyntaxFactory.SeparatedList(remaining)))
             : attribute.WithArgumentList(null);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(attribute, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(attribute, updated));
     }
 
     public static async Task<Document> RemovePropertyInitializerAsync(
@@ -237,9 +196,7 @@ internal static class SparseMemberAttributeFixes
 
         var updated = property.WithInitializer(null).WithSemicolonToken(default);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
     }
 
     public static async Task<Document> RemoveRequiredModifierAsync(
@@ -254,16 +211,10 @@ internal static class SparseMemberAttributeFixes
         }
 
         var updated = property.WithModifiers(
-            SyntaxFactory.TokenList(
-                property.Modifiers.Where(static modifier =>
-                    !modifier.IsKind(SyntaxKind.RequiredKeyword)
-                )
-            )
+            SyntaxFactory.TokenList(property.Modifiers.Where(static modifier => !modifier.IsKind(SyntaxKind.RequiredKeyword)))
         );
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
     }
 
     public static async Task<Document> MakePropertyPublicAsync(
@@ -284,31 +235,21 @@ internal static class SparseMemberAttributeFixes
             && !modifier.IsKind(SyntaxKind.InternalKeyword)
             && !modifier.IsKind(SyntaxKind.ProtectedKeyword)
         );
-        var updated = property.WithModifiers(
-            SyntaxFactory
-                .TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword))
-                .AddRange(withoutAccess)
-        );
-        AccessorDeclarationSyntax? getter = property.AccessorList?.Accessors.FirstOrDefault(
-            static accessor => accessor.IsKind(SyntaxKind.GetAccessorDeclaration)
+        var updated = property.WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)).AddRange(withoutAccess));
+        AccessorDeclarationSyntax? getter = property.AccessorList?.Accessors.FirstOrDefault(static accessor =>
+            accessor.IsKind(SyntaxKind.GetAccessorDeclaration)
         );
         if (getter?.Modifiers.Any() == true && property.AccessorList is not null)
         {
             var accessorList = property.AccessorList;
             var accessors = accessorList.Accessors.Select(accessor =>
-                accessor.IsKind(SyntaxKind.GetAccessorDeclaration)
-                    ? accessor.WithModifiers(SyntaxFactory.TokenList())
-                    : accessor
+                accessor.IsKind(SyntaxKind.GetAccessorDeclaration) ? accessor.WithModifiers(SyntaxFactory.TokenList()) : accessor
             );
-            updated = updated.WithAccessorList(
-                accessorList.WithAccessors(SyntaxFactory.List(accessors))
-            );
+            updated = updated.WithAccessorList(accessorList.WithAccessors(SyntaxFactory.List(accessors)));
         }
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        return root is null
-            ? document
-            : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
+        return root is null ? document : document.WithSyntaxRoot(root.ReplaceNode(property, updated));
     }
 
     public static async Task<Document> KeepFirstKeyAttributeAsync(
@@ -320,9 +261,7 @@ internal static class SparseMemberAttributeFixes
     {
         var matches = keyOwner
             .Members.OfType<PropertyDeclarationSyntax>()
-            .SelectMany(static property =>
-                property.AttributeLists.SelectMany(static list => list.Attributes)
-            )
+            .SelectMany(static property => property.AttributeLists.SelectMany(static list => list.Attributes))
             .Where(attribute =>
             {
                 var name = attribute.Name.ToString();
@@ -340,8 +279,7 @@ internal static class SparseMemberAttributeFixes
         var current = document;
         foreach (var match in matches)
         {
-            current = await RemoveAttributeAsync(current, match, cancellationToken)
-                .ConfigureAwait(false);
+            current = await RemoveAttributeAsync(current, match, cancellationToken).ConfigureAwait(false);
             // Refresh the node reference after each edit.
             var root = await current.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             if (root is null)

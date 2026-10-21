@@ -24,8 +24,7 @@ internal static class SparseCollectionMerger
         };
 
     /// <summary>Merges ordered contributions, retaining the first occurrence of each value.</summary>
-    public static T[] MergeDistinctArray<T>(IEnumerable<T> lower, IEnumerable<T> higher) =>
-        MergeDistinctList(lower, higher).ToArray();
+    public static T[] MergeDistinctArray<T>(IEnumerable<T> lower, IEnumerable<T> higher) => MergeDistinctList(lower, higher).ToArray();
 
     /// <summary>Merges ordered contributions, retaining the first occurrence of each value.</summary>
     public static List<T> MergeDistinctList<T>(IEnumerable<T> lower, IEnumerable<T> higher)
@@ -84,10 +83,7 @@ internal static class SparseCollectionMerger
         ArgumentNullException.ThrowIfNull(lower);
         ArgumentNullException.ThrowIfNull(higher);
 
-        var comparer =
-            (lower as HashSet<T>)?.Comparer
-            ?? (higher as HashSet<T>)?.Comparer
-            ?? EqualityComparer<T>.Default;
+        var comparer = (lower as HashSet<T>)?.Comparer ?? (higher as HashSet<T>)?.Comparer ?? EqualityComparer<T>.Default;
         var result = new HashSet<T>(lower, comparer);
         result.UnionWith(higher);
         return result;

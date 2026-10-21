@@ -27,28 +27,9 @@ internal static class SparseCollectionProvenance
         return mode switch
         {
             // Default collections merge by whole-value replacement.
-            MergeMode.Default or MergeMode.Replace => TryExplainReplace(
-                contributions,
-                effective,
-                comparer,
-                out _,
-                out origins,
-                out reason
-            ),
-            MergeMode.Append => TryExplainAppend(
-                contributions,
-                effective,
-                comparer,
-                out origins,
-                out reason
-            ),
-            MergeMode.SetUnion => TryExplainSetUnion(
-                contributions,
-                effective,
-                comparer,
-                out origins,
-                out reason
-            ),
+            MergeMode.Default or MergeMode.Replace => TryExplainReplace(contributions, effective, comparer, out _, out origins, out reason),
+            MergeMode.Append => TryExplainAppend(contributions, effective, comparer, out origins, out reason),
+            MergeMode.SetUnion => TryExplainSetUnion(contributions, effective, comparer, out origins, out reason),
             MergeMode.Deep => Fail(
                 "Deep merge has no flat collection provenance; it merges nested models member by member.",
                 out origins,
@@ -91,11 +72,7 @@ internal static class SparseCollectionProvenance
                 return true;
             }
 
-            return Fail(
-                "The effective value is present but no contribution is present.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective value is present but no contribution is present.", out origins, out reason);
         }
 
         var winning = contributions[winner];
@@ -108,11 +85,7 @@ internal static class SparseCollectionProvenance
                 return true;
             }
 
-            return Fail(
-                "The winning contribution is a present null reset but the effective value is not a present null.",
-                out origins,
-                out reason
-            );
+            return Fail("The winning contribution is a present null reset but the effective value is not a present null.", out origins, out reason);
         }
 
         if (!effective.IsPresent || effective.Value is null)
@@ -127,11 +100,7 @@ internal static class SparseCollectionProvenance
         comparer ??= EqualityComparer<T>.Default;
         if (!SequenceEqual(winning.Value, effective.Value, comparer))
         {
-            return Fail(
-                "The effective value does not equal the highest present contribution for Replace.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective value does not equal the highest present contribution for Replace.", out origins, out reason);
         }
 
         origins = new int[effective.Value.Count];
@@ -170,11 +139,7 @@ internal static class SparseCollectionProvenance
                 return true;
             }
 
-            return Fail(
-                "The effective value is present but no contribution is present.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective value is present but no contribution is present.", out origins, out reason);
         }
 
         if (contributions[highest].Value is null)
@@ -195,11 +160,7 @@ internal static class SparseCollectionProvenance
 
         if (!effective.IsPresent || effective.Value is null)
         {
-            return Fail(
-                "The append merge has present collections but the effective value is not a present collection.",
-                out origins,
-                out reason
-            );
+            return Fail("The append merge has present collections but the effective value is not a present collection.", out origins, out reason);
         }
 
         comparer ??= EqualityComparer<T>.Default;
@@ -284,11 +245,7 @@ internal static class SparseCollectionProvenance
                 return true;
             }
 
-            return Fail(
-                "The effective value is present but no contribution is present.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective value is present but no contribution is present.", out origins, out reason);
         }
 
         if (contributions[highest].Value is null)
@@ -309,11 +266,7 @@ internal static class SparseCollectionProvenance
 
         if (!effective.IsPresent || effective.Value is null)
         {
-            return Fail(
-                "The set-union merge has present collections but the effective value is not a present collection.",
-                out origins,
-                out reason
-            );
+            return Fail("The set-union merge has present collections but the effective value is not a present collection.", out origins, out reason);
         }
 
         comparer ??= EqualityComparer<T>.Default;
@@ -335,10 +288,7 @@ internal static class SparseCollectionProvenance
             {
                 if (!originsByValue.ContainsKey(value))
                 {
-                    if (
-                        distinctCount >= effective.Value.Count
-                        || !comparer.Equals(value, effective.Value[distinctCount])
-                    )
+                    if (distinctCount >= effective.Value.Count || !comparer.Equals(value, effective.Value[distinctCount]))
                     {
                         return Fail(
                             "The effective value is not the insertion-ordered distinct union of the present contributions after the last reset.",
@@ -399,11 +349,7 @@ internal static class SparseCollectionProvenance
                 return true;
             }
 
-            return Fail(
-                "The effective value is present but no contribution is present.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective value is present but no contribution is present.", out origins, out reason);
         }
 
         if (contributions[highest].Value is null)
@@ -424,21 +370,13 @@ internal static class SparseCollectionProvenance
 
         if (!effective.IsPresent || effective.Value is null)
         {
-            return Fail(
-                "The set-union merge has present collections but the effective value is not a present collection.",
-                out origins,
-                out reason
-            );
+            return Fail("The set-union merge has present collections but the effective value is not a present collection.", out origins, out reason);
         }
 
         var reset = LastResetSet(contributions);
         var effectiveComparer = TryGetSetComparer(effective.Value);
         var activeComparer = FirstActiveSetComparer(contributions, reset + 1);
-        if (
-            effectiveComparer is not null
-            && activeComparer is not null
-            && !effectiveComparer.Equals(activeComparer)
-        )
+        if (effectiveComparer is not null && activeComparer is not null && !effectiveComparer.Equals(activeComparer))
         {
             return Fail(
                 "The effective set comparer differs from the contributions comparer; the comparer is part of the set value.",
@@ -452,16 +390,10 @@ internal static class SparseCollectionProvenance
         var effectiveSet = effective.Value as HashSet<T>;
         var effectiveValues = effectiveSet is null ? effective.Value.ToArray() : null;
         var effectiveCount = effectiveSet?.Count ?? effectiveValues!.Length;
-        var distinctEffective = effectiveValues is null
-            ? null
-            : new HashSet<T>(effectiveValues, comparer);
+        var distinctEffective = effectiveValues is null ? null : new HashSet<T>(effectiveValues, comparer);
         if (distinctEffective is not null && distinctEffective.Count != effectiveCount)
         {
-            return Fail(
-                "The effective set contains duplicate elements under its comparer.",
-                out origins,
-                out reason
-            );
+            return Fail("The effective set contains duplicate elements under its comparer.", out origins, out reason);
         }
 
         // Each distinct value records the lowest contribution index that
@@ -486,10 +418,7 @@ internal static class SparseCollectionProvenance
 
         if (
             originsByValue.Count != effectiveCount
-            || (
-                distinctEffective is not null
-                && !distinctEffective.All(value => originsByValue.ContainsKey(value))
-            )
+            || (distinctEffective is not null && !distinctEffective.All(value => originsByValue.ContainsKey(value)))
         )
         {
             return Fail(
@@ -525,11 +454,7 @@ internal static class SparseCollectionProvenance
             // tracked.
             if (!originsByValue.TryGetValue(effectiveValues[position], out var origin))
             {
-                return Fail(
-                    "The effective value contains an element supplied by no contribution.",
-                    out origins,
-                    out reason
-                );
+                return Fail("The effective value contains an element supplied by no contribution.", out origins, out reason);
             }
 
             origins[position] = origin;
@@ -600,11 +525,7 @@ internal static class SparseCollectionProvenance
         return -1;
     }
 
-    private static bool SequenceEqual<T>(
-        IReadOnlyList<T> left,
-        IReadOnlyList<T> right,
-        IEqualityComparer<T> comparer
-    )
+    private static bool SequenceEqual<T>(IReadOnlyList<T> left, IReadOnlyList<T> right, IEqualityComparer<T> comparer)
     {
         if (left.Count != right.Count)
         {
@@ -622,10 +543,7 @@ internal static class SparseCollectionProvenance
         return true;
     }
 
-    private static IEqualityComparer<T>? FirstActiveSetComparer<T>(
-        IReadOnlyList<Optional<IEnumerable<T>?>> contributions,
-        int start
-    )
+    private static IEqualityComparer<T>? FirstActiveSetComparer<T>(IReadOnlyList<Optional<IEnumerable<T>?>> contributions, int start)
     {
         for (var index = start; index < contributions.Count; index++)
         {
@@ -648,6 +566,5 @@ internal static class SparseCollectionProvenance
     /// <summary>Discovers the comparer carried by a set-shaped value, if any.</summary>
     /// <remarks>Shared with live origin attribution so set-union membership and set-union attribution agree on equality.</remarks>
     /// <param name="value">The set-shaped value.</param>
-    internal static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) =>
-        value is HashSet<T> hashSet ? hashSet.Comparer : null;
+    internal static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) => value is HashSet<T> hashSet ? hashSet.Comparer : null;
 }

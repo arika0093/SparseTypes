@@ -36,26 +36,17 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
 
     /// <summary>Gets or sets the content rendered in the child edit scope.</summary>
     [Parameter]
-    public RenderFragment<
-        SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession>
-    >? ChildContent { get; set; }
+    public RenderFragment<SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession>>? ChildContent { get; set; }
 
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
         var parent =
-            ParentSession
-            ?? throw new InvalidOperationException(
-                "SparseChildEdit must be placed inside a SparseSessionScope for its parent model."
-            );
+            ParentSession ?? throw new InvalidOperationException("SparseChildEdit must be placed inside a SparseSessionScope for its parent model.");
         var scope =
-            ScopeContext
-            ?? throw new InvalidOperationException(
-                "SparseChildEdit requires the ScopeContext from its owning SparseSessionScope."
-            );
-        var path =
-            Path ?? throw new InvalidOperationException("SparseChildEdit requires a child Path.");
+            ScopeContext ?? throw new InvalidOperationException("SparseChildEdit requires the ScopeContext from its owning SparseSessionScope.");
+        var path = Path ?? throw new InvalidOperationException("SparseChildEdit requires a child Path.");
         if (!scope.OwnsSession(parent))
         {
             _context = null;
@@ -74,9 +65,7 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
         {
             if (parent is not ISparseEditSessionWithChildren<TParent, TConflict> parentWithChildren)
             {
-                throw new InvalidOperationException(
-                    $"The parent session type '{parent.GetType()}' does not support child sessions."
-                );
+                throw new InvalidOperationException($"The parent session type '{parent.GetType()}' does not support child sessions.");
             }
 
             if (!scope.TryOpenChildSession(parentWithChildren, path, out _context))
@@ -99,12 +88,7 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
     /// <summary>Resolves the live child context without ever reading a disposed one.</summary>
     /// <remarks>Shares the scope check with <see cref="OnParametersSet"/> but reports transient states (teardown, replaced target, mid-disposal scope) as null instead of throwing; the rebind render that follows fills the subtree back in. Opening here is side-effect free for rendering: it only registers the retained child, never notifies.</remarks>
     /// <returns>The current context, or null when the subtree must stay blank for this batch.</returns>
-    private SparseChildEditContext<
-        TChild,
-        TChildPaths,
-        TConflict,
-        TChildSession
-    >? TryResolveCurrentContext()
+    private SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession>? TryResolveCurrentContext()
     {
         var scope = ScopeContext;
         var parent = ParentSession;
@@ -121,11 +105,7 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
 
         try
         {
-            if (
-                !scope.TryOpenChildSession(parentWithChildren, path, out var resolved)
-                || resolved is null
-                || resolved.IsDisposed
-            )
+            if (!scope.TryOpenChildSession(parentWithChildren, path, out var resolved) || resolved is null || resolved.IsDisposed)
             {
                 return null;
             }
@@ -167,16 +147,8 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
         }
 
         builder.OpenComponent<CascadingValue<SparseChildEditMode?>>(0);
-        builder.AddAttribute(
-            1,
-            nameof(CascadingValue<SparseChildEditMode?>.Value),
-            context.DescendantScopeContext.Mode
-        );
-        builder.AddAttribute(
-            2,
-            nameof(CascadingValue<SparseChildEditMode?>.Name),
-            SparseSessionScope<TChild>.ModeCascadeName
-        );
+        builder.AddAttribute(1, nameof(CascadingValue<SparseChildEditMode?>.Value), context.DescendantScopeContext.Mode);
+        builder.AddAttribute(2, nameof(CascadingValue<SparseChildEditMode?>.Name), SparseSessionScope<TChild>.ModeCascadeName);
         builder.AddAttribute(
             3,
             nameof(CascadingValue<SparseChildEditMode?>.ChildContent),
@@ -200,76 +172,43 @@ public class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TChildSess
                         (RenderFragment)(
                             stateScopeBuilder =>
                             {
-                                stateScopeBuilder.OpenComponent<
-                                    CascadingValue<ISparseEditSession<TChild>>
-                                >(0);
-                                stateScopeBuilder.AddAttribute(
-                                    1,
-                                    nameof(CascadingValue<ISparseEditSession<TChild>>.Value),
-                                    context.Session
-                                );
+                                stateScopeBuilder.OpenComponent<CascadingValue<ISparseEditSession<TChild>>>(0);
+                                stateScopeBuilder.AddAttribute(1, nameof(CascadingValue<ISparseEditSession<TChild>>.Value), context.Session);
                                 stateScopeBuilder.AddAttribute(
                                     2,
                                     nameof(CascadingValue<ISparseEditSession<TChild>>.ChildContent),
                                     (RenderFragment)(
                                         sessionBuilder =>
                                         {
-                                            sessionBuilder.OpenComponent<
-                                                CascadingValue<SparseSessionScopeContext<TChild>?>
-                                            >(0);
+                                            sessionBuilder.OpenComponent<CascadingValue<SparseSessionScopeContext<TChild>?>>(0);
                                             sessionBuilder.AddAttribute(
                                                 1,
-                                                nameof(
-                                                    CascadingValue<SparseSessionScopeContext<TChild>?>.Value
-                                                ),
+                                                nameof(CascadingValue<SparseSessionScopeContext<TChild>?>.Value),
                                                 context.DescendantScopeContext
                                             );
                                             sessionBuilder.AddAttribute(
                                                 2,
-                                                nameof(
-                                                    CascadingValue<SparseSessionScopeContext<TChild>?>.ChildContent
-                                                ),
+                                                nameof(CascadingValue<SparseSessionScopeContext<TChild>?>.ChildContent),
                                                 (RenderFragment)(
                                                     scopeBuilder =>
                                                     {
-                                                        scopeBuilder.OpenComponent<
-                                                            SparseEdit<TChild, TChildPaths>
-                                                        >(0);
+                                                        scopeBuilder.OpenComponent<SparseEdit<TChild, TChildPaths>>(0);
                                                         scopeBuilder.AddAttribute(
                                                             1,
-                                                            nameof(
-                                                                SparseEdit<
-                                                                    TChild,
-                                                                    TChildPaths
-                                                                >.Session
-                                                            ),
+                                                            nameof(SparseEdit<TChild, TChildPaths>.Session),
                                                             context.Session
                                                         );
                                                         scopeBuilder.AddAttribute(
                                                             2,
-                                                            nameof(
-                                                                SparseEdit<
-                                                                    TChild,
-                                                                    TChildPaths
-                                                                >.ChildContent
-                                                            ),
-                                                            (RenderFragment<
-                                                                SparseEditContext<
-                                                                    TChild,
-                                                                    TChildPaths
-                                                                >
-                                                            >)(
+                                                            nameof(SparseEdit<TChild, TChildPaths>.ChildContent),
+                                                            (RenderFragment<SparseEditContext<TChild, TChildPaths>>)(
                                                                 _ =>
                                                                     childBuilder =>
                                                                     {
-                                                                        var current =
-                                                                            TryResolveCurrentContext();
+                                                                        var current = TryResolveCurrentContext();
                                                                         if (current is not null)
                                                                         {
-                                                                            childBuilder.AddContent(
-                                                                                0,
-                                                                                content(current)
-                                                                            );
+                                                                            childBuilder.AddContent(0, content(current));
                                                                         }
                                                                     }
                                                             )

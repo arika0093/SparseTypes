@@ -41,18 +41,12 @@ internal static class SparseChangeSetEmitter
         var runtime = dialect.RuntimeNamespace;
         var optionalFragment = runtime + "Optional<Fragment?>";
         var rebaseResult = dialect.RebaseResult("ChangeSet");
-        var prefix = SparseNaming.PatchApiPrefix(
-            members.Select(static member => member.Property.Name)
-        );
+        var prefix = SparseNaming.PatchApiPrefix(members.Select(static member => member.Property.Name));
         var rebase = "Patch." + prefix + "Rebase";
         code.AppendLine(
             "/// <summary>Baseline-aware transition between two states. Validates before-states and supports compose and rebase.</summary>"
         );
-        code.AppendLine(
-            accessibility
-                + " sealed partial class ChangeSet"
-                + SparseChangeSetContractEmitter.ChangeSetBases(dialect, modelType)
-        );
+        code.AppendLine(accessibility + " sealed partial class ChangeSet" + SparseChangeSetContractEmitter.ChangeSetBases(dialect, modelType));
         code.OpenBlock();
         // State-bound bodies live in the private nested __Core with direct
         // private-state access.
@@ -60,107 +54,36 @@ internal static class SparseChangeSetEmitter
         if (target is not null)
         {
             changeSetCore = new SharedIndentedBuilder(code.CancellationToken);
-            target = new SparseOperationTarget(
-                target.PatchOperations,
-                changeSetCore,
-                target.PatchOperationsType,
-                "__Core"
-            );
+            target = new SparseOperationTarget(target.PatchOperations, changeSetCore, target.PatchOperationsType, "__Core");
         }
         // Public-first order: internal probes precede private canonical
         // storage.
-        using var surfaceDeferred = changeSetCore is null
-            ? null
-            : new SharedIndentedBuilder(code.CancellationToken);
-        using var privateDeferred = changeSetCore is null
-            ? null
-            : new SharedIndentedBuilder(code.CancellationToken);
+        using var surfaceDeferred = changeSetCore is null ? null : new SharedIndentedBuilder(code.CancellationToken);
+        using var privateDeferred = changeSetCore is null ? null : new SharedIndentedBuilder(code.CancellationToken);
         var storageCode = privateDeferred ?? code;
         var storage = new SparseChangeSetStorageLayout(members, runtime);
         SparseChangeSetBasicsEmitter.AppendFields(storageCode, members, dialect, storage);
-        SparseChangeSetBasicsEmitter.AppendConstructor(
-            storageCode,
-            members,
-            runtime,
-            optionalFragment,
-            dialect,
-            storage
-        );
+        SparseChangeSetBasicsEmitter.AppendConstructor(storageCode, members, runtime, optionalFragment, dialect, storage);
         SparseChangeSetBasicsEmitter.AppendIsEmpty(code, members);
         SparseChangeSetBasicsEmitter.AppendEmpty(code, members);
         SparseChangeSetContractEmitter.AppendChangeSetContract(code, members, dialect);
-        SparseChangeSetBetweenEmitter.AppendBetween(
-            code,
-            members,
-            runtime,
-            optionalFragment,
-            dialect,
-            target
-        );
+        SparseChangeSetBetweenEmitter.AppendBetween(code, members, runtime, optionalFragment, dialect, target);
         if (modelType is not null)
         {
-            SparseChangeSetBetweenEmitter.AppendModelBetween(
-                code,
-                members,
-                modelType,
-                modelIsReferenceType,
-                optionalFragment,
-                runtime,
-                target
-            );
+            SparseChangeSetBetweenEmitter.AppendModelBetween(code, members, modelType, modelIsReferenceType, optionalFragment, runtime, target);
         }
-        SparseChangeSetPatchSyncEmitter.AppendFromPatch(
-            code,
-            members,
-            optionalFragment,
-            modelType,
-            target
-        );
-        SparseChangeSetPatchSyncEmitter.AppendToPatch(
-            code,
-            members,
-            runtime,
-            prefix,
-            dialect,
-            target
-        );
-        SparseChangeSetPatchSyncEmitter.AppendInvert(
-            code,
-            members,
-            runtime,
-            optionalFragment,
-            target
-        );
+        SparseChangeSetPatchSyncEmitter.AppendFromPatch(code, members, optionalFragment, modelType, target);
+        SparseChangeSetPatchSyncEmitter.AppendToPatch(code, members, runtime, prefix, dialect, target);
+        SparseChangeSetPatchSyncEmitter.AppendInvert(code, members, runtime, optionalFragment, target);
         SparseChangeSetPatchSyncEmitter.AppendApplyToBaseline(code, optionalFragment, target);
-        SparseChangeSetComposeEmitter.AppendCompose(
-            code,
-            members,
-            runtime,
-            optionalFragment,
-            dialect,
-            target
-        );
+        SparseChangeSetComposeEmitter.AppendCompose(code, members, runtime, optionalFragment, dialect, target);
         if (surfaceDeferred is not null)
         {
-            SparseChangeSetMatchEmitter.AppendMatchHelpers(
-                surfaceDeferred,
-                members,
-                runtime,
-                optionalFragment,
-                dialect,
-                target
-            );
+            SparseChangeSetMatchEmitter.AppendMatchHelpers(surfaceDeferred, members, runtime, optionalFragment, dialect, target);
         }
         else
         {
-            SparseChangeSetMatchEmitter.AppendMatchHelpers(
-                code,
-                members,
-                runtime,
-                optionalFragment,
-                dialect,
-                target
-            );
+            SparseChangeSetMatchEmitter.AppendMatchHelpers(code, members, runtime, optionalFragment, dialect, target);
         }
         SparseChangeSetRebaseEmitter.AppendRebase(
             code,
@@ -178,80 +101,29 @@ internal static class SparseChangeSetEmitter
         );
         // The emitted model-targeted ApplyInPlace checks the before-state
         // first.
-        var keyedProjectionFields = SparseChangeSetTransitionEmitter.AppendTypedSurface(
-            code,
-            members,
-            dialect,
-            target
-        );
+        var keyedProjectionFields = SparseChangeSetTransitionEmitter.AppendTypedSurface(code, members, dialect, target);
         SparseChangeSetEnumeratorEmitter.Append(code, members, dialect, target, modelType);
         SparseChangeSetPathEmitter.Append(code, dialect, target);
         // Resolution infrastructure is internal-only: it trails the public
         // surface (including payload facades below) to keep public-first order.
-        using var resolutionInfra = target is null
-            ? new SharedIndentedBuilder(code.CancellationToken)
-            : null;
+        using var resolutionInfra = target is null ? new SharedIndentedBuilder(code.CancellationToken) : null;
         if (modelType is not null)
         {
-            SparseRebaseResolutionEmitter.AppendResolution(
-                code,
-                members,
-                dialect,
-                modelType,
-                target,
-                resolutionInfra,
-                surfaceDeferred
-            );
+            SparseRebaseResolutionEmitter.AppendResolution(code, members, dialect, modelType, target, resolutionInfra, surfaceDeferred);
         }
         else
         {
-            SparseRebaseResolutionEmitter.AppendForwarderOnly(
-                code,
-                members,
-                dialect,
-                target,
-                resolutionInfra,
-                surfaceDeferred
-            );
+            SparseRebaseResolutionEmitter.AppendForwarderOnly(code, members, dialect, target, resolutionInfra, surfaceDeferred);
         }
         if (plan.EmitChangePayload)
         {
-            SparseChangeSetPayloadTransferEmitter.AppendToPayload(
-                code,
-                members,
-                dialect,
-                modelType,
-                target
-            );
-            SparseChangePayloadReaderEmitter.AppendFromPayload(
-                code,
-                members,
-                dialect,
-                modelType,
-                target
-            );
-            SparseChangePayloadPatchSyncEmitter.AppendPatchFromCore(
-                code,
-                members,
-                dialect,
-                modelType,
-                target
-            );
-            SparseChangeSetMixedEmitter.AppendMixedPartition(
-                code,
-                members,
-                dialect,
-                modelType,
-                target
-            );
+            SparseChangeSetPayloadTransferEmitter.AppendToPayload(code, members, dialect, modelType, target);
+            SparseChangePayloadReaderEmitter.AppendFromPayload(code, members, dialect, modelType, target);
+            SparseChangePayloadPatchSyncEmitter.AppendPatchFromCore(code, members, dialect, modelType, target);
+            SparseChangeSetMixedEmitter.AppendMixedPartition(code, members, dialect, modelType, target);
             if (surfaceDeferred is not null && target is not null && modelType is not null)
             {
-                SparseChangeSetPayloadTransferEmitter.AppendToPayloadCoreBridge(
-                    surfaceDeferred,
-                    dialect,
-                    modelType,
-                    target
-                );
+                SparseChangeSetPayloadTransferEmitter.AppendToPayloadCoreBridge(surfaceDeferred, dialect, modelType, target);
             }
         }
         if (surfaceDeferred is not null)
@@ -273,9 +145,7 @@ internal static class SparseChangeSetEmitter
         storage.AppendPrivateFields(code);
         if (changeSetCore is not null)
         {
-            code.AppendLine(
-                "/// <summary>State-bound ChangeSet algorithms with direct private-state access.</summary>"
-            );
+            code.AppendLine("/// <summary>State-bound ChangeSet algorithms with direct private-state access.</summary>");
             code.AppendLine("private static class __Core");
             code.OpenBlock();
             SparseOperationOrdering.AppendInternalFirst(code, changeSetCore.ToString());

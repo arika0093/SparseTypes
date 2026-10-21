@@ -22,9 +22,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         var id = member.Id;
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
         var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-        var isModelValue = isKeyed
-            ? member.Collection.ElementType.IsFragmentModel
-            : member.Collection.ValueType?.IsFragmentModel == true;
+        var isModelValue = isKeyed ? member.Collection.ElementType.IsFragmentModel : member.Collection.ValueType?.IsFragmentModel == true;
         code.AppendLine(
             "if (item.Items is null) { errors.Add(new "
                 + error
@@ -54,18 +52,8 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             "errors",
             "__validateWholeBeforeBad" + id
         );
-        SparseChangeSetPayloadValidateEmitter.AppendEndpointValidate(
-            code,
-            "item.After",
-            path,
-            error,
-            kind,
-            "errors",
-            "__validateWholeAfterBad" + id
-        );
-        code.AppendLine(
-            "if (__validateWholeBeforeBad" + id + " || __validateWholeAfterBad" + id + ") break;"
-        );
+        SparseChangeSetPayloadValidateEmitter.AppendEndpointValidate(code, "item.After", path, error, kind, "errors", "__validateWholeAfterBad" + id);
+        code.AppendLine("if (__validateWholeBeforeBad" + id + " || __validateWholeAfterBad" + id + ") break;");
         code.AppendLine(
             "if (item.After.IsRedacted) { errors.Add(new "
                 + error
@@ -129,34 +117,14 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         );
         code.AppendLine("break;");
         code.CloseBlock();
-        code.AppendLine(
-            "var __validateSeenKeys"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">();"
-        );
+        code.AppendLine("var __validateSeenKeys" + id + " = new global::System.Collections.Generic.HashSet<" + keyType + ">();");
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLine(
-                "var __validateSeenTemps"
-                    + id
-                    + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-            );
+            code.AppendLine("var __validateSeenTemps" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         }
         code.AppendLine("foreach (var changeItem in item.Items)");
         code.OpenBlock();
-        AppendItemValidate(
-            code,
-            member,
-            dialect,
-            path,
-            runtime,
-            error,
-            kind,
-            isKeyed,
-            isModelValue
-        );
+        AppendItemValidate(code, member, dialect, path, runtime, error, kind, isKeyed, isModelValue);
         code.CloseBlock();
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
@@ -203,10 +171,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                     + " = 0; foreach (var __validateAfterKey"
                     + id
                     + " in item.AfterOrder) if ("
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                        member,
-                        "__validateAfterKey" + id
-                    )
+                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__validateAfterKey" + id)
                     + ") __validateUnassignedSlots"
                     + id
                     + "++; if (__validateUnassignedSlots"
@@ -279,9 +244,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         // Value-free endpoints must not smuggle values; reuse the endpoint
         // check so validation and conversion cannot disagree.
         code.AppendLine("bool __validateItemEndpointBad" + id + " = false;");
-        code.AppendLine(
-            "var __validateItemBeforeMsg" + id + " = changeItem.Before?.GetInvariantError();"
-        );
+        code.AppendLine("var __validateItemBeforeMsg" + id + " = changeItem.Before?.GetInvariantError();");
         code.AppendLine(
             "if (__validateItemBeforeMsg"
                 + id
@@ -297,9 +260,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 + id
                 + " = true; }"
         );
-        code.AppendLine(
-            "var __validateItemAfterMsg" + id + " = changeItem.After?.GetInvariantError();"
-        );
+        code.AppendLine("var __validateItemAfterMsg" + id + " = changeItem.After?.GetInvariantError();");
         code.AppendLine(
             "if (__validateItemAfterMsg"
                 + id
@@ -362,11 +323,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             );
         }
         code.AppendLine(
-            "var __validateItemPath"
-                + id
-                + " = "
-                + path
-                + " + \"[\" + (((object?)changeItem.Key is null) ? \"?\" : (object?)changeItem.Key) + \"]\";"
+            "var __validateItemPath" + id + " = " + path + " + \"[\" + (((object?)changeItem.Key is null) ? \"?\" : (object?)changeItem.Key) + \"]\";"
         );
         var itemPath = "__validateItemPath" + id;
         if (!member.RedactBefore)
@@ -400,11 +357,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             // endpoints and carry a payload.
             code.AppendLine("if (changeItem.Before is not null && changeItem.Before.IsRedacted)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (changeItem.Kind == "
-                    + itemKind
-                    + ".Remove && changeItem.Edit is null) continue;"
-            );
+            code.AppendLine("if (changeItem.Kind == " + itemKind + ".Remove && changeItem.Edit is null) continue;");
             code.AppendLine(
                 "errors.Add(new "
                     + error
@@ -447,16 +400,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             code.AppendLine("continue;");
             code.CloseBlock();
         }
-        AppendItemShapeValidate(
-            code,
-            member,
-            itemPath,
-            runtime,
-            error,
-            kind,
-            isKeyed,
-            isModelValue
-        );
+        AppendItemShapeValidate(code, member, itemPath, runtime, error, kind, isKeyed, isModelValue);
     }
 
     private static void AppendItemShapeValidate(
@@ -586,11 +530,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 );
             }
 
-            code.AppendLine(
-                "if (changeItem.Edit is not null) changeItem.Edit.__SparseValidateInto(errors, "
-                    + itemPath
-                    + " + \".\");"
-            );
+            code.AppendLine("if (changeItem.Edit is not null) changeItem.Edit.__SparseValidateInto(errors, " + itemPath + " + \".\");");
         }
         else
         {

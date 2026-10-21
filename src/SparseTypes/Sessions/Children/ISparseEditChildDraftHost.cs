@@ -35,12 +35,7 @@ public interface ISparseEditChildDraftHost<TSession, TConflict>
     /// <param name="writeModelValue">Writes the updated value into the existing model instance.</param>
     /// <param name="conflicts">Structured conflicts when the rebase cannot be accepted.</param>
     /// <returns>True when the draft was accepted; otherwise false.</returns>
-    bool TryAcceptChildDraft<TChild>(
-        TSession fork,
-        SparsePath path,
-        Action<TChild, TChild> writeModelValue,
-        out IReadOnlyList<TConflict>? conflicts
-    )
+    bool TryAcceptChildDraft<TChild>(TSession fork, SparsePath path, Action<TChild, TChild> writeModelValue, out IReadOnlyList<TConflict>? conflicts)
         where TChild : class;
 
     /// <summary>Checks whether a child draft can be accepted without mutating either session.</summary>
@@ -49,11 +44,7 @@ public interface ISparseEditChildDraftHost<TSession, TConflict>
     /// <param name="path">The path to the child model.</param>
     /// <param name="conflicts">Structured conflicts when the rebase cannot be accepted.</param>
     /// <returns>True when the draft is conflict-free; otherwise false.</returns>
-    bool TryPreflightChildDraft<TChild>(
-        TSession fork,
-        SparsePath path,
-        out IReadOnlyList<TConflict>? conflicts
-    )
+    bool TryPreflightChildDraft<TChild>(TSession fork, SparsePath path, out IReadOnlyList<TConflict>? conflicts)
         where TChild : class;
 
     /// <summary>Confirms a parent commit by advancing the fork baseline to the accepted value.</summary>
@@ -61,10 +52,6 @@ public interface ISparseEditChildDraftHost<TSession, TConflict>
     /// <param name="fork">The independent session holding the draft.</param>
     /// <param name="path">The path to the child model.</param>
     /// <param name="writeModelValue">Writes the current value into the fork's existing model instance.</param>
-    void ConfirmChildDraft<TChild>(
-        TSession fork,
-        SparsePath path,
-        Action<TChild, TChild> writeModelValue
-    )
+    void ConfirmChildDraft<TChild>(TSession fork, SparsePath path, Action<TChild, TChild> writeModelValue)
         where TChild : class;
 }

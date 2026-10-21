@@ -5,14 +5,9 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetKeyedTempTransitionEmitter
 {
     /// <summary>Emits the TemporaryKey property of a keyed transition item.</summary>
-    internal static void AppendItemTemporaryKeyProperty(
-        SharedIndentedBuilder code,
-        SparseMemberModel member
-    )
+    internal static void AppendItemTemporaryKeyProperty(SharedIndentedBuilder code, SparseMemberModel member)
     {
-        code.AppendLine(
-            "/// <summary>Gets the temporary identity for unassigned entries.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the temporary identity for unassigned entries.</summary>");
         code.AppendLine(
             "/// <remarks>Non-null only when the entry key is unassigned and the element type opts into temporary identity; assigned keys always take precedence.</remarks>"
         );
@@ -24,20 +19,13 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     }
 
     /// <summary>Emits the temporary-identity lookup of a keyed transition.</summary>
-    internal static void AppendGetTemporaryChange(
-        SharedIndentedBuilder code,
-        SparseMemberModel member
-    )
+    internal static void AppendGetTemporaryChange(SharedIndentedBuilder code, SparseMemberModel member)
     {
-        code.AppendLine(
-            "/// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>"
-        );
+        code.AppendLine("/// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>");
         code.AppendLine(
             "/// <remarks>Only entries with an unassigned permanent key participate: a valid assigned key always wins, so assigned entries are never returned here even when they retain a temporary value. Unknown, empty, or temporary-less entries return <see cref=\"Item.Empty\"/>. Non-empty results are the same instances produced by enumeration.</remarks>"
         );
-        code.AppendLine(
-            "/// <param name=\"temporaryKey\">The temporary identity to look up.</param>"
-        );
+        code.AppendLine("/// <param name=\"temporaryKey\">The temporary identity to look up.</param>");
         code.AppendLine("/// <returns>The typed change for the identity.</returns>");
         code.AppendLine("public Item GetTemporaryChange(global::System.Guid temporaryKey)");
         code.OpenBlock();
@@ -51,9 +39,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "_items[__index].Key")
                 + ") __lookupCount++;"
         );
-        code.AppendLine(
-            "__lookup = new global::System.Collections.Generic.Dictionary<global::System.Guid, Item>(__lookupCount);"
-        );
+        code.AppendLine("__lookup = new global::System.Collections.Generic.Dictionary<global::System.Guid, Item>(__lookupCount);");
         code.AppendLine("foreach (var __item in _items)");
         code.AppendLine(
             "if (__item.TemporaryKey.HasValue && "
@@ -62,78 +48,44 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         );
         code.AppendLine("_temporaryLookup = __lookup;");
         code.CloseBlock();
-        code.AppendLine(
-            "return __lookup.TryGetValue(temporaryKey, out var __found) ? __found : Item.Empty;"
-        );
+        code.AppendLine("return __lookup.TryGetValue(temporaryKey, out var __found) ? __found : Item.Empty;");
         code.CloseBlock();
     }
 
     /// <summary>Emits the temporary-lookup backing field of a keyed transition.</summary>
     internal static void AppendTemporaryLookupField(SharedIndentedBuilder code)
     {
-        code.AppendLine(
-            "private global::System.Collections.Generic.Dictionary<global::System.Guid, Item>? _temporaryLookup;"
-        );
+        code.AppendLine("private global::System.Collections.Generic.Dictionary<global::System.Guid, Item>? _temporaryLookup;");
     }
 
     /// <summary>Emits the ChangeSet-side temporary-identity extractor.</summary>
-    internal static void AppendTemporaryKeyExtractor(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string elementType,
-        bool documented
-    )
+    internal static void AppendTemporaryKeyExtractor(SharedIndentedBuilder code, SparseMemberModel member, string elementType, bool documented)
     {
         if (documented)
         {
-            code.AppendLine(
-                "/// <summary>Extracts the temporary identity for a keyed transition element.</summary>"
-            );
+            code.AppendLine("/// <summary>Extracts the temporary identity for a keyed transition element.</summary>");
         }
-        code.AppendLine(
-            "private static global::System.Guid? __SparseTemporaryKeyOf_ChangeSet_"
-                + member.Id
-                + "("
-                + elementType
-                + " element)"
-        );
+        code.AppendLine("private static global::System.Guid? __SparseTemporaryKeyOf_ChangeSet_" + member.Id + "(" + elementType + " element)");
         code.OpenBlock();
         code.AppendLine(
             "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no temporary identity.\");"
         );
-        code.AppendLine(
-            "return element." + SparseKeyedCollectionEmitter.TemporaryKeyProperty(member) + ";"
-        );
+        code.AppendLine("return element." + SparseKeyedCollectionEmitter.TemporaryKeyProperty(member) + ";");
         code.CloseBlock();
     }
 
     /// <summary>Emits whole-path temporary capture declarations.</summary>
     internal static void AppendBuildTempDeclarations(SharedIndentedBuilder code, string elementType)
     {
-        code.AppendLine(
-            "var __seenBuildTemp = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
-        code.AppendLine(
-            "var __unassignedBefore = new global::System.Collections.Generic.List<"
-                + elementType
-                + ">();"
-        );
-        code.AppendLine(
-            "var __unassignedTempBefore = new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
-        code.AppendLine(
-            "var __unassignedTempBeforeIndex = new global::System.Collections.Generic.List<int>();"
-        );
-        code.AppendLine(
-            "var __unassignedTempAfter = new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
+        code.AppendLine("var __seenBuildTemp = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
+        code.AppendLine("var __unassignedBefore = new global::System.Collections.Generic.List<" + elementType + ">();");
+        code.AppendLine("var __unassignedTempBefore = new global::System.Collections.Generic.List<global::System.Guid>();");
+        code.AppendLine("var __unassignedTempBeforeIndex = new global::System.Collections.Generic.List<int>();");
+        code.AppendLine("var __unassignedTempAfter = new global::System.Collections.Generic.List<global::System.Guid>();");
     }
 
     /// <summary>Emits the whole-path before-walk temporary branch.</summary>
-    internal static void AppendBuildTempBeforeBranch(
-        SharedIndentedBuilder code,
-        SparseMemberModel member
-    )
+    internal static void AppendBuildTempBeforeBranch(SharedIndentedBuilder code, SparseMemberModel member)
     {
         // Whole-transition snapshots may carry temporary identities as data.
         code.AppendLine(
@@ -146,10 +98,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     }
 
     /// <summary>Emits the whole-path after-walk temporary branch.</summary>
-    internal static void AppendBuildTempAfterBranch(
-        SharedIndentedBuilder code,
-        SparseMemberModel member
-    )
+    internal static void AppendBuildTempAfterBranch(SharedIndentedBuilder code, SparseMemberModel member)
     {
         code.AppendLine(
             "if ("

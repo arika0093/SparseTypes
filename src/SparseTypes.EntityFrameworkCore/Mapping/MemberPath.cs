@@ -26,13 +26,7 @@ internal sealed class MemberPath
         var current = selector.Body;
         while (true)
         {
-            if (
-                current is UnaryExpression unary
-                && (
-                    unary.NodeType == ExpressionType.Convert
-                    || unary.NodeType == ExpressionType.ConvertChecked
-                )
-            )
+            if (current is UnaryExpression unary && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
             {
                 current = unary.Operand;
                 continue;

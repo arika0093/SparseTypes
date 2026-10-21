@@ -48,17 +48,12 @@ public sealed class SparseSessionScope<TModel> : ComponentBase, IDisposable
     {
         base.OnParametersSet();
         var mode = ResolveMode(Mode, ParentMode);
-        if (
-            !ReferenceEquals(_subscribedSession, Session)
-            || !ReferenceEquals(_activeParentStateScope, ParentStateScope)
-        )
+        if (!ReferenceEquals(_subscribedSession, Session) || !ReferenceEquals(_activeParentStateScope, ParentStateScope))
         {
             Unsubscribe();
             UnsubscribeScopeContext();
             _scopeContext?.DisposeChildren();
-            _scopeContext = Session is null
-                ? null
-                : new SparseSessionScopeContext<TModel>(Session, mode, ParentStateScope);
+            _scopeContext = Session is null ? null : new SparseSessionScopeContext<TModel>(Session, mode, ParentStateScope);
             if (_scopeContext is not null)
             {
                 _scopeContext.Changed += OnChildSessionChanged;
@@ -80,19 +75,12 @@ public sealed class SparseSessionScope<TModel> : ComponentBase, IDisposable
         _effectiveMode = mode;
     }
 
-    private static SparseChildEditMode ResolveMode(
-        SparseChildEditMode? mode,
-        SparseChildEditMode? parentMode
-    )
+    private static SparseChildEditMode ResolveMode(SparseChildEditMode? mode, SparseChildEditMode? parentMode)
     {
         var effectiveMode = mode ?? parentMode ?? SparseChildEditMode.Draft;
         if (!Enum.IsDefined(typeof(SparseChildEditMode), effectiveMode))
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(mode),
-                effectiveMode,
-                "Unknown child edit mode."
-            );
+            throw new ArgumentOutOfRangeException(nameof(mode), effectiveMode, "Unknown child edit mode.");
         }
 
         return effectiveMode;
@@ -111,51 +99,31 @@ public sealed class SparseSessionScope<TModel> : ComponentBase, IDisposable
                 modeBuilder =>
                 {
                     modeBuilder.OpenComponent<CascadingValue<SparsePassThroughStateScope?>>(0);
-                    modeBuilder.AddAttribute(
-                        1,
-                        nameof(CascadingValue<SparsePassThroughStateScope?>.Value),
-                        _scopeContext?.StateScope
-                    );
-                    modeBuilder.AddAttribute(
-                        2,
-                        nameof(CascadingValue<SparsePassThroughStateScope?>.Name),
-                        StateScopeCascadeName
-                    );
+                    modeBuilder.AddAttribute(1, nameof(CascadingValue<SparsePassThroughStateScope?>.Value), _scopeContext?.StateScope);
+                    modeBuilder.AddAttribute(2, nameof(CascadingValue<SparsePassThroughStateScope?>.Name), StateScopeCascadeName);
                     modeBuilder.AddAttribute(
                         3,
                         nameof(CascadingValue<SparsePassThroughStateScope?>.ChildContent),
                         (RenderFragment)(
                             stateScopeBuilder =>
                             {
-                                stateScopeBuilder.OpenComponent<
-                                    CascadingValue<ISparseEditSession<TModel>>
-                                >(0);
-                                stateScopeBuilder.AddAttribute(
-                                    1,
-                                    nameof(CascadingValue<ISparseEditSession<TModel>>.Value),
-                                    Session
-                                );
+                                stateScopeBuilder.OpenComponent<CascadingValue<ISparseEditSession<TModel>>>(0);
+                                stateScopeBuilder.AddAttribute(1, nameof(CascadingValue<ISparseEditSession<TModel>>.Value), Session);
                                 stateScopeBuilder.AddAttribute(
                                     2,
                                     nameof(CascadingValue<ISparseEditSession<TModel>>.ChildContent),
                                     (RenderFragment)(
                                         sessionBuilder =>
                                         {
-                                            sessionBuilder.OpenComponent<
-                                                CascadingValue<SparseSessionScopeContext<TModel>?>
-                                            >(0);
+                                            sessionBuilder.OpenComponent<CascadingValue<SparseSessionScopeContext<TModel>?>>(0);
                                             sessionBuilder.AddAttribute(
                                                 1,
-                                                nameof(
-                                                    CascadingValue<SparseSessionScopeContext<TModel>?>.Value
-                                                ),
+                                                nameof(CascadingValue<SparseSessionScopeContext<TModel>?>.Value),
                                                 _scopeContext
                                             );
                                             sessionBuilder.AddAttribute(
                                                 2,
-                                                nameof(
-                                                    CascadingValue<SparseSessionScopeContext<TModel>?>.ChildContent
-                                                ),
+                                                nameof(CascadingValue<SparseSessionScopeContext<TModel>?>.ChildContent),
                                                 ChildContent
                                             );
                                             sessionBuilder.CloseComponent();

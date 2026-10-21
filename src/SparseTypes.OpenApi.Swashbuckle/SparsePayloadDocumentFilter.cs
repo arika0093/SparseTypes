@@ -7,9 +7,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace SparseTypes.OpenApi.Swashbuckle;
 
-internal sealed class SparsePayloadDocumentFilter(
-    System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets
-) : IDocumentFilter
+internal sealed class SparsePayloadDocumentFilter(System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets) : IDocumentFilter
 {
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
@@ -31,9 +29,7 @@ internal sealed class SparsePayloadDocumentFilter(
                     continue;
                 }
 
-                throw new InvalidOperationException(
-                    $"SparseTypes schema name collision for '{type}'."
-                );
+                throw new InvalidOperationException($"SparseTypes schema name collision for '{type}'.");
             }
             names.Add(name, type);
             // Reserve the curated name so later generator passes resolve the
@@ -86,8 +82,7 @@ internal sealed class SparsePayloadDocumentFilter(
         {
             foreach (var property in properties.EnumerateObject())
             {
-                (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] =
-                    ConvertSchema(property.Value, document);
+                (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] = ConvertSchema(property.Value, document);
             }
         }
 
@@ -117,10 +112,7 @@ internal sealed class SparsePayloadDocumentFilter(
                         item =>
                         {
                             var path = item.Value.GetString()!;
-                            return new OpenApiSchemaReference(
-                                path[(path.LastIndexOf('/') + 1)..],
-                                document
-                            );
+                            return new OpenApiSchemaReference(path[(path.LastIndexOf('/') + 1)..], document);
                         },
                         StringComparer.Ordinal
                     ),

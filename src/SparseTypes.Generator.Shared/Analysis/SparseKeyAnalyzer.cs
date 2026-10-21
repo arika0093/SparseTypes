@@ -32,15 +32,10 @@ internal sealed record SparseKeyInfo(
 internal static class SparseKeyAnalyzer
 {
     /// <summary>Determines whether an element type declares any key metadata.</summary>
-    public static bool HasKeyDeclaration(
-        INamedTypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool HasKeyDeclaration(INamedTypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return FindKeyProperties(element, config, cancellationToken).Count > 0
-            || HasTypeLevelAttribute(element, config, cancellationToken);
+        return FindKeyProperties(element, config, cancellationToken).Count > 0 || HasTypeLevelAttribute(element, config, cancellationToken);
     }
 
     /// <summary>Strictly discovers the usable key of an element type, if any.</summary>
@@ -129,11 +124,7 @@ internal static class SparseKeyAnalyzer
         if (marks.Count > 1)
         {
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.MultiplePropertyKeys,
-                    element.Locations.FirstOrDefault(),
-                    element.Name
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.MultiplePropertyKeys, element.Locations.FirstOrDefault(), element.Name)
             );
         }
 
@@ -144,11 +135,7 @@ internal static class SparseKeyAnalyzer
             if (SparseModelDiscovery.IsSparseIgnored(property, config))
             {
                 diagnostics.Add(
-                    new SparseGeneratorDiagnostic(
-                        config.EffectiveDiagnosticIds.SparseIgnoreOnKey,
-                        property.Locations.FirstOrDefault(),
-                        property.Name
-                    )
+                    new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.SparseIgnoreOnKey, property.Locations.FirstOrDefault(), property.Name)
                 );
             }
 
@@ -220,18 +207,10 @@ internal static class SparseKeyAnalyzer
     {
         var diagnostics = ImmutableArray.CreateBuilder<SparseGeneratorDiagnostic>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (
-            var promoted in SparsePromotedDiscovery.CollectPromotedTypes(
-                rootMembers,
-                config,
-                cancellationToken
-            )
-        )
+        foreach (var promoted in SparsePromotedDiscovery.CollectPromotedTypes(rootMembers, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (
-                var member in SparseModelDiscovery.GetMembers(promoted, config, cancellationToken)
-            )
+            foreach (var member in SparseModelDiscovery.GetMembers(promoted, config, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 AddMemberKeyDiagnostics(member, config, seen, diagnostics, cancellationToken);
@@ -263,12 +242,7 @@ internal static class SparseKeyAnalyzer
         foreach (var diagnostic in CollectDiagnostics(element, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var key =
-                diagnostic.DescriptorId
-                + "|"
-                + diagnostic.Argument1
-                + "|"
-                + diagnostic.Location?.SourceSpan.ToString();
+            var key = diagnostic.DescriptorId + "|" + diagnostic.Argument1 + "|" + diagnostic.Location?.SourceSpan.ToString();
             if (seen.Add(key))
             {
                 diagnostics.Add(diagnostic);
@@ -277,21 +251,10 @@ internal static class SparseKeyAnalyzer
 
         // Temporary-identity declarations on the same element validate together
         // with the key so promoted nested models fail the root precisely.
-        foreach (
-            var diagnostic in SparseTemporaryKeyAnalyzer.CollectDiagnostics(
-                element,
-                config,
-                cancellationToken
-            )
-        )
+        foreach (var diagnostic in SparseTemporaryKeyAnalyzer.CollectDiagnostics(element, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var key =
-                diagnostic.DescriptorId
-                + "|"
-                + diagnostic.Argument1
-                + "|"
-                + diagnostic.Location?.SourceSpan.ToString();
+            var key = diagnostic.DescriptorId + "|" + diagnostic.Argument1 + "|" + diagnostic.Location?.SourceSpan.ToString();
             if (seen.Add(key))
             {
                 diagnostics.Add(diagnostic);
@@ -301,11 +264,7 @@ internal static class SparseKeyAnalyzer
 
     /// <summary>Determines whether a member is a keyed-sequence candidate needing a key.</summary>
     /// <remarks>Honors the unkeyed-sequence escape hatch.</remarks>
-    public static bool RequiresKeyedSemantics(
-        SparseSymbolMemberModel member,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool RequiresKeyedSemantics(SparseSymbolMemberModel member, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (
@@ -317,11 +276,7 @@ internal static class SparseKeyAnalyzer
             return false;
         }
 
-        return SparseCollectionAnalyzer.ClassifySemantic(
-                member.Collection,
-                config,
-                cancellationToken
-            ) == SparseCollectionSemantic.KeyedSequence;
+        return SparseCollectionAnalyzer.ClassifySemantic(member.Collection, config, cancellationToken) == SparseCollectionSemantic.KeyedSequence;
     }
 
     /// <summary>Discovers the unassigned sentinel of a single key declaration, if any.</summary>
@@ -399,23 +354,13 @@ internal static class SparseKeyAnalyzer
         return attributes;
     }
 
-    private static bool HasTypeLevelAttribute(
-        INamedTypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => FindTypeLevelAttributes(element, config, cancellationToken).Count > 0;
+    private static bool HasTypeLevelAttribute(INamedTypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        FindTypeLevelAttributes(element, config, cancellationToken).Count > 0;
 
-    private static IEnumerable<IPropertySymbol> GetAllProperties(
-        INamedTypeSymbol model,
-        CancellationToken cancellationToken
-    )
+    private static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol model, CancellationToken cancellationToken)
     {
         var hierarchy = new Stack<INamedTypeSymbol>();
-        for (
-            var current = model;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = model; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             cancellationToken.ThrowIfCancellationRequested();
             hierarchy.Push(current);
@@ -436,18 +381,11 @@ internal static class SparseKeyAnalyzer
         return properties.Values;
     }
 
-    private static bool TryGetUnassignedExpression(
-        AttributeData attribute,
-        ITypeSymbol keyType,
-        out string? expression,
-        out string? error
-    )
+    private static bool TryGetUnassignedExpression(AttributeData attribute, ITypeSymbol keyType, out string? expression, out string? error)
     {
         expression = null;
         error = null;
-        var named = attribute.NamedArguments.FirstOrDefault(static argument =>
-            argument.Key == "Unassigned"
-        );
+        var named = attribute.NamedArguments.FirstOrDefault(static argument => argument.Key == "Unassigned");
         if (named.Key is null)
         {
             if (IsNullableKeyType(keyType))
@@ -471,10 +409,7 @@ internal static class SparseKeyAnalyzer
             return false;
         }
 
-        if (
-            sourceType is null
-            || constant.Kind is not (TypedConstantKind.Primitive or TypedConstantKind.Enum)
-        )
+        if (sourceType is null || constant.Kind is not (TypedConstantKind.Primitive or TypedConstantKind.Enum))
         {
             error = "Unassigned must be a constant convertible to the key property type.";
             return false;
@@ -484,11 +419,7 @@ internal static class SparseKeyAnalyzer
         if (
             sourceType.SpecialType != conversionTarget.SpecialType
             && !SymbolEqualityComparer.Default.Equals(sourceType, conversionTarget)
-            && !CanConvertNumericConstant(
-                constant.Value,
-                sourceType.SpecialType,
-                conversionTarget.SpecialType
-            )
+            && !CanConvertNumericConstant(constant.Value, sourceType.SpecialType, conversionTarget.SpecialType)
         )
         {
             error = "Unassigned is not convertible to the key property type.";
@@ -498,15 +429,9 @@ internal static class SparseKeyAnalyzer
         var literal = constant.Value switch
         {
             string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
-            char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
-                character,
-                true
-            ),
+            char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character, true),
             bool boolean => boolean ? "true" : "false",
-            _ => Convert.ToString(
-                constant.Value,
-                System.Globalization.CultureInfo.InvariantCulture
-            )!,
+            _ => Convert.ToString(constant.Value, System.Globalization.CultureInfo.InvariantCulture)!,
         };
         if (constant.Value is long)
         {
@@ -533,11 +458,7 @@ internal static class SparseKeyAnalyzer
         return true;
     }
 
-    private static bool CanConvertNumericConstant(
-        object value,
-        SpecialType sourceType,
-        SpecialType targetType
-    )
+    private static bool CanConvertNumericConstant(object value, SpecialType sourceType, SpecialType targetType)
     {
         var runtimeType = targetType switch
         {
@@ -561,11 +482,7 @@ internal static class SparseKeyAnalyzer
 
         try
         {
-            _ = Convert.ChangeType(
-                value,
-                runtimeType,
-                System.Globalization.CultureInfo.InvariantCulture
-            );
+            _ = Convert.ChangeType(value, runtimeType, System.Globalization.CultureInfo.InvariantCulture);
             return true;
         }
         catch (Exception)
@@ -596,25 +513,17 @@ internal static class SparseKeyAnalyzer
             return true;
         }
 
-        return type is INamedTypeSymbol named
-            && SparseCollectionAnalyzer.GetCollectionInfo(named).CloneKind
-                != SparseCloneCollectionKind.Unsupported;
+        return type is INamedTypeSymbol named && SparseCollectionAnalyzer.GetCollectionInfo(named).CloneKind != SparseCloneCollectionKind.Unsupported;
     }
 
-    private static bool IsNullableKeyType(ITypeSymbol type) =>
-        type.NullableAnnotation == NullableAnnotation.Annotated || IsNullableValueType(type);
+    private static bool IsNullableKeyType(ITypeSymbol type) => type.NullableAnnotation == NullableAnnotation.Annotated || IsNullableValueType(type);
 
-    private static bool IsNullableValueType(ITypeSymbol type) =>
-        NullableUnderlyingType(type) is not null;
+    private static bool IsNullableValueType(ITypeSymbol type) => NullableUnderlyingType(type) is not null;
 
     private static ITypeSymbol? NullableUnderlyingType(ITypeSymbol type) =>
-        type is INamedTypeSymbol named
-        && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-            ? named.TypeArguments[0]
-            : null;
+        type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T ? named.TypeArguments[0] : null;
 
-    private static bool HasAttributeArguments(AttributeData attribute) =>
-        attribute.ConstructorArguments.Length > 0;
+    private static bool HasAttributeArguments(AttributeData attribute) => attribute.ConstructorArguments.Length > 0;
 
     private static bool IsPubliclyReadableInstance(IPropertySymbol property) =>
         !property.IsStatic
@@ -622,22 +531,11 @@ internal static class SparseKeyAnalyzer
         && property.DeclaredAccessibility == Accessibility.Public
         && property.GetMethod?.DeclaredAccessibility == Accessibility.Public;
 
-    private static string? TemporaryKeyProperty(
-        INamedTypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static string? TemporaryKeyProperty(INamedTypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         // Temporary identity is advisory here: shape diagnostics belong to
         // SparseTemporaryKeyAnalyzer.
-        if (
-            SparseTemporaryKeyAnalyzer.TryGetTemporaryKeyProperty(
-                element,
-                config,
-                cancellationToken,
-                out var propertyName
-            )
-        )
+        if (SparseTemporaryKeyAnalyzer.TryGetTemporaryKeyProperty(element, config, cancellationToken, out var propertyName))
         {
             return propertyName;
         }
@@ -645,12 +543,8 @@ internal static class SparseKeyAnalyzer
         return null;
     }
 
-    private static Location? AttributeLocation(
-        AttributeData attribute,
-        INamedTypeSymbol fallback
-    ) =>
-        attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()
-        ?? fallback.Locations.FirstOrDefault();
+    private static Location? AttributeLocation(AttributeData attribute, INamedTypeSymbol fallback) =>
+        attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation() ?? fallback.Locations.FirstOrDefault();
 
     private static string NonNullableTypeName(ITypeSymbol type)
     {

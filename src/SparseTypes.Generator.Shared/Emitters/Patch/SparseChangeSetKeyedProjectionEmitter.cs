@@ -34,8 +34,7 @@ internal static class SparseChangeSetKeyedProjectionEmitter
     {
         var code = target is null ? shell : target.ChangeSetOperations;
         var keyType = KeyTypeOf(member);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var elementType = ElementTypeOf(member);
         var elementCs = ElementChangeSetOf(member);
         var facade = dialect.RuntimeFacade;
@@ -47,12 +46,8 @@ internal static class SparseChangeSetKeyedProjectionEmitter
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Projects the typed keyed transition from canonical sparse storage.</summary>"
-            );
-            code.AppendLine(
-                "internal static " + trans + " __SparseProject_" + member.Id + "(ChangeSet self)"
-            );
+            code.AppendLine("/// <summary>Projects the typed keyed transition from canonical sparse storage.</summary>");
+            code.AppendLine("internal static " + trans + " __SparseProject_" + member.Id + "(ChangeSet self)");
         }
         code.OpenBlock();
         if (target is not null)
@@ -99,24 +94,8 @@ internal static class SparseChangeSetKeyedProjectionEmitter
             wholeBefore = "__SparseSnapshot_" + member.Id + "(" + wholeBefore + ")";
             wholeAfter = "__SparseSnapshot_" + member.Id + "(" + wholeAfter + ")";
         }
-        code.AppendLine(
-            "if ("
-                + KeyedWholeFlag(member)
-                + ") return __SparseBuild_"
-                + member.Id
-                + "("
-                + wholeBefore
-                + ", "
-                + wholeAfter
-                + ");"
-        );
-        code.AppendLine(
-            "var __stored = "
-                + KeyedItems(member)
-                + " ?? new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>();"
-        );
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ") return __SparseBuild_" + member.Id + "(" + wholeBefore + ", " + wholeAfter + ");");
+        code.AppendLine("var __stored = " + KeyedItems(member) + " ?? new global::System.Collections.Generic.List<" + trans + ".Item>();");
         code.AppendLine("int __addedCount = 0, __removedCount = 0, __editedCount = 0;");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -170,20 +149,12 @@ internal static class SparseChangeSetKeyedProjectionEmitter
                 + KeyedOrderChangedExpression(member, facade)
                 + ");"
         );
-        code.AppendLine(
-            "return new "
-                + trans
-                + "(default, default, __added, __removed, __edited, __bO, __aO, __oc, __stored, false);"
-        );
+        code.AppendLine("return new " + trans + "(default, default, __added, __removed, __edited, __bO, __aO, __oc, __stored, false);");
         code.CloseBlock();
         var projectCall = target is null
             ? "__SparseProject_" + member.Id + "()"
             : target.ChangeSetOperationsType + ".__SparseProject_" + member.Id + "(this)";
-        shell.AppendLine(
-            "/// <summary>Gets the typed keyed transition for member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+        shell.AppendLine("/// <summary>Gets the typed keyed transition for member '" + member.Property.Name + "'.</summary>");
         SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(shell, dialect.EmitJson);
         shell.AppendLine("public " + trans + " " + prop);
         shell.OpenBlock();
@@ -191,9 +162,7 @@ internal static class SparseChangeSetKeyedProjectionEmitter
         shell.OpenBlock();
         // Whole endpoints expose mutable container snapshots and must stay
         // independent.
-        shell.AppendLine(
-            "if (__sparse_hasWhole || " + KeyedWholeFlag(member) + ") return " + projectCall + ";"
-        );
+        shell.AppendLine("if (__sparse_hasWhole || " + KeyedWholeFlag(member) + ") return " + projectCall + ";");
         shell.AppendLine("return " + cacheName + " ?? (" + cacheName + " = " + projectCall + ");");
         shell.CloseBlock();
         shell.CloseBlock();

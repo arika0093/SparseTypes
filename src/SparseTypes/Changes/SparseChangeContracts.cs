@@ -48,10 +48,7 @@ public interface ISparseChangeSet
     /// <param name="change">The transition when the member is atomic with value type <typeparamref name="T"/>.</param>
     /// <returns>True on an exact member and value-type match; otherwise false.</returns>
     /// <typeparam name="T">The expected member value type.</typeparam>
-    bool TryGetValueChange<T>(
-        string memberName,
-        [NotNullWhen(true)] out ISparseValueChange<T>? change
-    );
+    bool TryGetValueChange<T>(string memberName, [NotNullWhen(true)] out ISparseValueChange<T>? change);
 
     /// <summary>Gets the keyed-sequence transition for a keyed collection member.</summary>
     /// <param name="memberName">The member CLR name.</param>
@@ -185,8 +182,7 @@ public interface ISparseKeyedItemChange<TKey, TElement, TElementChange>
 /// <typeparam name="TElement">The element type.</typeparam>
 /// <typeparam name="TElementChange">The element change-set type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ISparseTemporaryKeyedChange<TKey, TElement, TElementChange>
-    : ISparseKeyedChange<TKey, TElement, TElementChange>
+public interface ISparseTemporaryKeyedChange<TKey, TElement, TElementChange> : ISparseKeyedChange<TKey, TElement, TElementChange>
 {
     /// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>
     /// <param name="temporaryKey">The temporary identity to look up.</param>
@@ -264,8 +260,7 @@ public interface ISparseDictionaryItemChange<TKey, TValue>
 /// <typeparam name="TValue">The dictionary value type.</typeparam>
 /// <typeparam name="TEdit">The value change-set type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ISparseStructuralDictionaryItemChange<TKey, TValue, TEdit>
-    : ISparseDictionaryItemChange<TKey, TValue>
+public interface ISparseStructuralDictionaryItemChange<TKey, TValue, TEdit> : ISparseDictionaryItemChange<TKey, TValue>
 {
     /// <summary>Gets the nested transition for the edited entry.</summary>
     TEdit Edit { get; }

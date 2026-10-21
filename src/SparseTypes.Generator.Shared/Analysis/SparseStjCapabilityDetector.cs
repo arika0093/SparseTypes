@@ -14,10 +14,7 @@ internal static class SparseStjCapabilityDetector
         var serializer = SafeGet(compilation, "System.Text.Json.JsonSerializer");
         var converter = SafeGet(compilation, "System.Text.Json.Serialization.JsonConverter`1");
         var hasSystemTextJson =
-            serializer is not null
-            && converter is not null
-            && IsUsableType(serializer, compilation)
-            && IsUsableType(converter, compilation);
+            serializer is not null && converter is not null && IsUsableType(serializer, compilation) && IsUsableType(converter, compilation);
         if (!hasSystemTextJson)
         {
             return SparseStjCapabilities.None;
@@ -26,10 +23,7 @@ internal static class SparseStjCapabilityDetector
         var reader = SafeGet(compilation, "System.Text.Json.Utf8JsonReader");
         var writer = SafeGet(compilation, "System.Text.Json.Utf8JsonWriter");
         var options = SafeGet(compilation, "System.Text.Json.JsonSerializerOptions");
-        var genericTypeInfo = SafeGet(
-            compilation,
-            "System.Text.Json.Serialization.Metadata.JsonTypeInfo`1"
-        );
+        var genericTypeInfo = SafeGet(compilation, "System.Text.Json.Serialization.Metadata.JsonTypeInfo`1");
         var typeInfo = SafeGet(compilation, "System.Text.Json.Serialization.Metadata.JsonTypeInfo");
         var hasTypeInfo =
             serializer is not null
@@ -43,25 +37,12 @@ internal static class SparseStjCapabilityDetector
             && typeInfo.IsAccessibleTo(compilation)
             && HasBaseType(genericTypeInfo, typeInfo)
             && HasJsonTypeInfoLookup(compilation, options, typeInfo)
-            && HasSerializerTypeInfoOverloads(
-                compilation,
-                serializer,
-                reader,
-                writer,
-                genericTypeInfo,
-                typeInfo
-            );
+            && HasSerializerTypeInfoOverloads(compilation, serializer, reader, writer, genericTypeInfo, typeInfo);
 
         return new SparseStjCapabilities(
             HasSystemTextJson: true,
-            HasJsonPropertyName: HasAttributeWithStringCtor(
-                compilation,
-                "System.Text.Json.Serialization.JsonPropertyNameAttribute"
-            ),
-            HasJsonPropertyOrder: HasAttributeWithIntCtor(
-                compilation,
-                "System.Text.Json.Serialization.JsonPropertyOrderAttribute"
-            ),
+            HasJsonPropertyName: HasAttributeWithStringCtor(compilation, "System.Text.Json.Serialization.JsonPropertyNameAttribute"),
+            HasJsonPropertyOrder: HasAttributeWithIntCtor(compilation, "System.Text.Json.Serialization.JsonPropertyOrderAttribute"),
             HasJsonIgnore: HasJsonIgnore(compilation),
             HasJsonPolymorphic: HasPolymorphic(compilation),
             HasJsonDerivedType: HasDerivedType(compilation),
@@ -69,13 +50,7 @@ internal static class SparseStjCapabilityDetector
             HasJsonConverter: HasJsonConverter(compilation, converter),
             HasUtf8JsonReaderWriter: HasUtf8Surface(compilation, reader, writer, options),
             HasJsonTypeInfo: hasTypeInfo,
-            HasPayloadJsonResolver: SparsePayloadJsonResolverCapabilityDetector.Probe(
-                compilation,
-                reader,
-                writer,
-                options,
-                genericTypeInfo
-            )
+            HasPayloadJsonResolver: SparsePayloadJsonResolverCapabilityDetector.Probe(compilation, reader, writer, options, genericTypeInfo)
         );
     }
 
@@ -96,24 +71,12 @@ internal static class SparseStjCapabilityDetector
         symbol.TypeKind == TypeKind.Class && symbol.IsAccessibleTo(compilation);
 
     private static bool HasAttributeWithStringCtor(Compilation compilation, string metadataName) =>
-        HasAttributeCtor(
-            compilation,
-            metadataName,
-            [compilation.GetSpecialType(SpecialType.System_String)]
-        );
+        HasAttributeCtor(compilation, metadataName, [compilation.GetSpecialType(SpecialType.System_String)]);
 
     private static bool HasAttributeWithIntCtor(Compilation compilation, string metadataName) =>
-        HasAttributeCtor(
-            compilation,
-            metadataName,
-            [compilation.GetSpecialType(SpecialType.System_Int32)]
-        );
+        HasAttributeCtor(compilation, metadataName, [compilation.GetSpecialType(SpecialType.System_Int32)]);
 
-    private static bool HasAttributeCtor(
-        Compilation compilation,
-        string metadataName,
-        ITypeSymbol[] parameterTypes
-    )
+    private static bool HasAttributeCtor(Compilation compilation, string metadataName, ITypeSymbol[] parameterTypes)
     {
         var attribute = SafeGet(compilation, metadataName);
         if (!IsUsableAttribute(attribute, compilation))
@@ -150,33 +113,20 @@ internal static class SparseStjCapabilityDetector
             return false;
         }
 
-        if (
-            !HasEnumMember(condition, "WhenWritingNull", compilation)
-            || !HasEnumMember(condition, "WhenWritingDefault", compilation)
-        )
+        if (!HasEnumMember(condition, "WhenWritingNull", compilation) || !HasEnumMember(condition, "WhenWritingDefault", compilation))
         {
             return false;
         }
 
-        return HasAttributeCtor(
-                compilation,
-                "System.Text.Json.Serialization.JsonIgnoreAttribute",
-                []
-            ) && HasWritableAttributeProperty(attribute!, compilation, "Condition", condition);
+        return HasAttributeCtor(compilation, "System.Text.Json.Serialization.JsonIgnoreAttribute", [])
+            && HasWritableAttributeProperty(attribute!, compilation, "Condition", condition);
     }
 
     private static bool HasPolymorphic(Compilation compilation)
     {
-        var attribute = SafeGet(
-            compilation,
-            "System.Text.Json.Serialization.JsonPolymorphicAttribute"
-        );
+        var attribute = SafeGet(compilation, "System.Text.Json.Serialization.JsonPolymorphicAttribute");
         return IsUsableAttribute(attribute, compilation)
-            && HasAttributeCtor(
-                compilation,
-                "System.Text.Json.Serialization.JsonPolymorphicAttribute",
-                []
-            )
+            && HasAttributeCtor(compilation, "System.Text.Json.Serialization.JsonPolymorphicAttribute", [])
             && HasWritableAttributeProperty(
                 attribute!,
                 compilation,
@@ -187,10 +137,7 @@ internal static class SparseStjCapabilityDetector
 
     private static bool HasDerivedType(Compilation compilation)
     {
-        var attribute = SafeGet(
-            compilation,
-            "System.Text.Json.Serialization.JsonDerivedTypeAttribute"
-        );
+        var attribute = SafeGet(compilation, "System.Text.Json.Serialization.JsonDerivedTypeAttribute");
         if (!IsUsableAttribute(attribute, compilation))
         {
             return false;
@@ -207,11 +154,7 @@ internal static class SparseStjCapabilityDetector
 
     private static bool HasJsonConverter(Compilation compilation, INamedTypeSymbol? converter)
     {
-        if (
-            converter is null
-            || converter.TypeParameters.Length != 1
-            || !IsUsableType(converter, compilation)
-        )
+        if (converter is null || converter.TypeParameters.Length != 1 || !IsUsableType(converter, compilation))
         {
             return false;
         }
@@ -233,13 +176,8 @@ internal static class SparseStjCapabilityDetector
 
     private static bool HasUnmappedMemberHandling(Compilation compilation)
     {
-        var handling = SafeGet(
-            compilation,
-            "System.Text.Json.Serialization.JsonUnmappedMemberHandling"
-        );
-        return handling is not null
-            && handling.IsAccessibleTo(compilation)
-            && HasEnumMember(handling, "Disallow", compilation);
+        var handling = SafeGet(compilation, "System.Text.Json.Serialization.JsonUnmappedMemberHandling");
+        return handling is not null && handling.IsAccessibleTo(compilation) && HasEnumMember(handling, "Disallow", compilation);
     }
 
     private static bool HasReadWriteOverrides(
@@ -263,11 +201,7 @@ internal static class SparseStjCapabilityDetector
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, valueType)
                 && method.Parameters.Length == 3
                 && ParameterMatches(method.Parameters[0], reader, RefKind.Ref)
-                && ParameterMatches(
-                    method.Parameters[1],
-                    SafeGet(compilation, "System.Type"),
-                    RefKind.None
-                )
+                && ParameterMatches(method.Parameters[1], SafeGet(compilation, "System.Type"), RefKind.None)
                 && ParameterMatches(method.Parameters[2], options, RefKind.None)
             )
             {
@@ -296,20 +230,12 @@ internal static class SparseStjCapabilityDetector
         return foundRead && foundWrite;
     }
 
-    private static bool HasUtf8Surface(
-        Compilation compilation,
-        INamedTypeSymbol? reader,
-        INamedTypeSymbol? writer,
-        INamedTypeSymbol? options
-    )
+    private static bool HasUtf8Surface(Compilation compilation, INamedTypeSymbol? reader, INamedTypeSymbol? writer, INamedTypeSymbol? options)
     {
         var tokens = SafeGet(compilation, "System.Text.Json.JsonTokenType");
         var exception = SafeGet(compilation, "System.Text.Json.JsonException");
         var namingPolicy = SafeGet(compilation, "System.Text.Json.JsonNamingPolicy");
-        var unmapped = SafeGet(
-            compilation,
-            "System.Text.Json.Serialization.JsonUnmappedMemberHandling"
-        );
+        var unmapped = SafeGet(compilation, "System.Text.Json.Serialization.JsonUnmappedMemberHandling");
         if (
             reader is null
             || writer is null
@@ -338,20 +264,8 @@ internal static class SparseStjCapabilityDetector
             && HasEnumMember(tokens, "StartObject", compilation)
             && HasEnumMember(tokens, "Null", compilation)
             && HasInstanceProperty(reader, "TokenType", tokens, compilation)
-            && HasInstanceMethod(
-                reader,
-                "Read",
-                compilation.GetSpecialType(SpecialType.System_Boolean),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetString",
-                compilation.GetSpecialType(SpecialType.System_String),
-                compilation,
-                []
-            )
+            && HasInstanceMethod(reader, "Read", compilation.GetSpecialType(SpecialType.System_Boolean), compilation, [])
+            && HasInstanceMethod(reader, "GetString", compilation.GetSpecialType(SpecialType.System_String), compilation, [])
             && HasInstanceMethod(
                 reader,
                 "ValueTextEquals",
@@ -359,27 +273,9 @@ internal static class SparseStjCapabilityDetector
                 compilation,
                 [readOnlySpan.Construct(byteType)]
             )
-            && HasInstanceMethod(
-                reader,
-                "Skip",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                writer,
-                "WriteStartObject",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                writer,
-                "WriteEndObject",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                []
-            )
+            && HasInstanceMethod(reader, "Skip", compilation.GetSpecialType(SpecialType.System_Void), compilation, [])
+            && HasInstanceMethod(writer, "WriteStartObject", compilation.GetSpecialType(SpecialType.System_Void), compilation, [])
+            && HasInstanceMethod(writer, "WriteEndObject", compilation.GetSpecialType(SpecialType.System_Void), compilation, [])
             && HasInstanceMethod(
                 writer,
                 "WritePropertyName",
@@ -387,22 +283,13 @@ internal static class SparseStjCapabilityDetector
                 compilation,
                 [compilation.GetSpecialType(SpecialType.System_String)]
             )
-            && HasInstanceMethod(
-                writer,
-                "WriteNullValue",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                []
-            )
+            && HasInstanceMethod(writer, "WriteNullValue", compilation.GetSpecialType(SpecialType.System_Void), compilation, [])
             && HasInstanceMethod(
                 writer,
                 "WriteString",
                 compilation.GetSpecialType(SpecialType.System_Void),
                 compilation,
-                [
-                    compilation.GetSpecialType(SpecialType.System_String),
-                    compilation.GetSpecialType(SpecialType.System_String),
-                ]
+                [compilation.GetSpecialType(SpecialType.System_String), compilation.GetSpecialType(SpecialType.System_String)]
             )
             && HasInstanceMethod(
                 writer,
@@ -412,12 +299,7 @@ internal static class SparseStjCapabilityDetector
                 [compilation.GetSpecialType(SpecialType.System_String)]
             )
             && HasInstanceProperty(options, "PropertyNamingPolicy", namingPolicy, compilation)
-            && HasInstanceProperty(
-                options,
-                "PropertyNameCaseInsensitive",
-                compilation.GetSpecialType(SpecialType.System_Boolean),
-                compilation
-            )
+            && HasInstanceProperty(options, "PropertyNameCaseInsensitive", compilation.GetSpecialType(SpecialType.System_Boolean), compilation)
             && HasInstanceProperty(options, "UnmappedMemberHandling", unmapped, compilation)
             && HasInstanceMethod(
                 namingPolicy,
@@ -427,22 +309,13 @@ internal static class SparseStjCapabilityDetector
                 [compilation.GetSpecialType(SpecialType.System_String)]
             )
             && HasConstructor(exception, compilation, [])
-            && HasConstructor(
-                exception,
-                compilation,
-                [compilation.GetSpecialType(SpecialType.System_String)]
-            )
+            && HasConstructor(exception, compilation, [compilation.GetSpecialType(SpecialType.System_String)])
             && HasScalarCodecSurface(compilation, reader, writer, exception);
     }
 
     /// <summary>Whether the reader and writer expose the scalar codec members used by generated converters.</summary>
     /// <remarks>Generated fragment, payload, and bridge converters read and write every covered scalar directly.</remarks>
-    private static bool HasScalarCodecSurface(
-        Compilation compilation,
-        INamedTypeSymbol reader,
-        INamedTypeSymbol writer,
-        INamedTypeSymbol exception
-    )
+    private static bool HasScalarCodecSurface(Compilation compilation, INamedTypeSymbol reader, INamedTypeSymbol writer, INamedTypeSymbol exception)
     {
         var guid = SafeGet(compilation, "System.Guid");
         var dateTime = SafeGet(compilation, "System.DateTime");
@@ -461,90 +334,18 @@ internal static class SparseStjCapabilityDetector
             return false;
         }
 
-        return HasInstanceMethod(
-                reader,
-                "GetBoolean",
-                compilation.GetSpecialType(SpecialType.System_Boolean),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetByte",
-                compilation.GetSpecialType(SpecialType.System_Byte),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetSByte",
-                compilation.GetSpecialType(SpecialType.System_SByte),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetInt16",
-                compilation.GetSpecialType(SpecialType.System_Int16),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetUInt16",
-                compilation.GetSpecialType(SpecialType.System_UInt16),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetInt32",
-                compilation.GetSpecialType(SpecialType.System_Int32),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetUInt32",
-                compilation.GetSpecialType(SpecialType.System_UInt32),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetInt64",
-                compilation.GetSpecialType(SpecialType.System_Int64),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetUInt64",
-                compilation.GetSpecialType(SpecialType.System_UInt64),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetSingle",
-                compilation.GetSpecialType(SpecialType.System_Single),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetDouble",
-                compilation.GetSpecialType(SpecialType.System_Double),
-                compilation,
-                []
-            )
-            && HasInstanceMethod(
-                reader,
-                "GetDecimal",
-                compilation.GetSpecialType(SpecialType.System_Decimal),
-                compilation,
-                []
-            )
+        return HasInstanceMethod(reader, "GetBoolean", compilation.GetSpecialType(SpecialType.System_Boolean), compilation, [])
+            && HasInstanceMethod(reader, "GetByte", compilation.GetSpecialType(SpecialType.System_Byte), compilation, [])
+            && HasInstanceMethod(reader, "GetSByte", compilation.GetSpecialType(SpecialType.System_SByte), compilation, [])
+            && HasInstanceMethod(reader, "GetInt16", compilation.GetSpecialType(SpecialType.System_Int16), compilation, [])
+            && HasInstanceMethod(reader, "GetUInt16", compilation.GetSpecialType(SpecialType.System_UInt16), compilation, [])
+            && HasInstanceMethod(reader, "GetInt32", compilation.GetSpecialType(SpecialType.System_Int32), compilation, [])
+            && HasInstanceMethod(reader, "GetUInt32", compilation.GetSpecialType(SpecialType.System_UInt32), compilation, [])
+            && HasInstanceMethod(reader, "GetInt64", compilation.GetSpecialType(SpecialType.System_Int64), compilation, [])
+            && HasInstanceMethod(reader, "GetUInt64", compilation.GetSpecialType(SpecialType.System_UInt64), compilation, [])
+            && HasInstanceMethod(reader, "GetSingle", compilation.GetSpecialType(SpecialType.System_Single), compilation, [])
+            && HasInstanceMethod(reader, "GetDouble", compilation.GetSpecialType(SpecialType.System_Double), compilation, [])
+            && HasInstanceMethod(reader, "GetDecimal", compilation.GetSpecialType(SpecialType.System_Decimal), compilation, [])
             && HasInstanceMethod(reader, "GetGuid", guid, compilation, [])
             && HasInstanceMethod(reader, "GetDateTime", dateTime, compilation, [])
             && HasInstanceMethod(reader, "GetDateTimeOffset", dateTimeOffset, compilation, [])
@@ -604,34 +405,14 @@ internal static class SparseStjCapabilityDetector
                 compilation,
                 [compilation.GetSpecialType(SpecialType.System_Decimal)]
             )
-            && HasInstanceMethod(
-                writer,
-                "WriteStringValue",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                [dateTime]
-            )
-            && HasInstanceMethod(
-                writer,
-                "WriteStringValue",
-                compilation.GetSpecialType(SpecialType.System_Void),
-                compilation,
-                [dateTimeOffset]
-            )
-            && HasConstructor(
-                exception,
-                compilation,
-                [compilation.GetSpecialType(SpecialType.System_String), systemException]
-            );
+            && HasInstanceMethod(writer, "WriteStringValue", compilation.GetSpecialType(SpecialType.System_Void), compilation, [dateTime])
+            && HasInstanceMethod(writer, "WriteStringValue", compilation.GetSpecialType(SpecialType.System_Void), compilation, [dateTimeOffset])
+            && HasConstructor(exception, compilation, [compilation.GetSpecialType(SpecialType.System_String), systemException]);
     }
 
     /// <summary>Whether trim-safe metadata lookup and all emitted serializer overloads are available.</summary>
     /// <remarks>Uses declared-type metadata when available.</remarks>
-    private static bool HasJsonTypeInfoLookup(
-        Compilation compilation,
-        INamedTypeSymbol options,
-        INamedTypeSymbol typeInfo
-    )
+    private static bool HasJsonTypeInfoLookup(Compilation compilation, INamedTypeSymbol options, INamedTypeSymbol typeInfo)
     {
         var found = false;
         foreach (var member in options.GetMembers("GetTypeInfo"))
@@ -640,11 +421,7 @@ internal static class SparseStjCapabilityDetector
                 member is IMethodSymbol method
                 && IsUsableMethod(method, compilation, isStatic: false, genericArity: 0)
                 && method.Parameters.Length == 1
-                && ParameterMatches(
-                    method.Parameters[0],
-                    SafeGet(compilation, "System.Type"),
-                    RefKind.None
-                )
+                && ParameterMatches(method.Parameters[0], SafeGet(compilation, "System.Type"), RefKind.None)
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, typeInfo)
             )
             {
@@ -679,11 +456,7 @@ internal static class SparseStjCapabilityDetector
             if (
                 method.Parameters.Length == 2
                 && ParameterMatches(method.Parameters[0], reader, RefKind.Ref)
-                && ParameterMatches(
-                    method.Parameters[1],
-                    genericTypeInfo.Construct(valueType),
-                    RefKind.None
-                )
+                && ParameterMatches(method.Parameters[1], genericTypeInfo.Construct(valueType), RefKind.None)
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, valueType)
             )
             {
@@ -703,11 +476,7 @@ internal static class SparseStjCapabilityDetector
                 method.Parameters.Length == 3
                 && ParameterMatches(method.Parameters[0], writer, RefKind.None)
                 && ParameterMatches(method.Parameters[1], valueType, RefKind.None)
-                && ParameterMatches(
-                    method.Parameters[2],
-                    genericTypeInfo.Construct(valueType),
-                    RefKind.None
-                )
+                && ParameterMatches(method.Parameters[2], genericTypeInfo.Construct(valueType), RefKind.None)
                 && method.ReturnsVoid
             )
             {
@@ -723,10 +492,7 @@ internal static class SparseStjCapabilityDetector
                 && method.Parameters.Length == 2
                 && ParameterMatches(method.Parameters[0], reader, RefKind.Ref)
                 && ParameterMatches(method.Parameters[1], typeInfo, RefKind.None)
-                && SymbolEqualityComparer.Default.Equals(
-                    method.ReturnType,
-                    compilation.GetSpecialType(SpecialType.System_Object)
-                )
+                && SymbolEqualityComparer.Default.Equals(method.ReturnType, compilation.GetSpecialType(SpecialType.System_Object))
             )
             {
                 hasDeserialize = true;
@@ -740,11 +506,7 @@ internal static class SparseStjCapabilityDetector
                 && IsUsableMethod(method, compilation, true, 0)
                 && method.Parameters.Length == 3
                 && ParameterMatches(method.Parameters[0], writer, RefKind.None)
-                && ParameterMatches(
-                    method.Parameters[1],
-                    compilation.GetSpecialType(SpecialType.System_Object),
-                    RefKind.None
-                )
+                && ParameterMatches(method.Parameters[1], compilation.GetSpecialType(SpecialType.System_Object), RefKind.None)
                 && ParameterMatches(method.Parameters[2], typeInfo, RefKind.None)
                 && method.ReturnsVoid
             )
@@ -756,12 +518,7 @@ internal static class SparseStjCapabilityDetector
         return hasGenericDeserialize && hasGenericSerialize && hasDeserialize && hasSerialize;
     }
 
-    internal static bool HasInstanceProperty(
-        INamedTypeSymbol type,
-        string name,
-        ITypeSymbol propertyType,
-        Compilation compilation
-    )
+    internal static bool HasInstanceProperty(INamedTypeSymbol type, string name, ITypeSymbol propertyType, Compilation compilation)
     {
         foreach (var member in type.GetMembers(name))
         {
@@ -781,12 +538,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    internal static bool HasWritableInstanceProperty(
-        INamedTypeSymbol type,
-        string name,
-        ITypeSymbol propertyType,
-        Compilation compilation
-    )
+    internal static bool HasWritableInstanceProperty(INamedTypeSymbol type, string name, ITypeSymbol propertyType, Compilation compilation)
     {
         foreach (var member in type.GetMembers(name))
         {
@@ -806,12 +558,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool HasWritableAttributeProperty(
-        INamedTypeSymbol attribute,
-        Compilation compilation,
-        string name,
-        ITypeSymbol propertyType
-    )
+    private static bool HasWritableAttributeProperty(INamedTypeSymbol attribute, Compilation compilation, string name, ITypeSymbol propertyType)
     {
         foreach (var member in attribute.GetMembers(name))
         {
@@ -857,11 +604,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    internal static bool HasConstructor(
-        INamedTypeSymbol type,
-        Compilation compilation,
-        ITypeSymbol[] parameterTypes
-    )
+    internal static bool HasConstructor(INamedTypeSymbol type, Compilation compilation, ITypeSymbol[] parameterTypes)
     {
         foreach (var ctor in type.InstanceConstructors)
         {
@@ -878,10 +621,7 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    private static bool ParametersMatch(
-        System.Collections.Immutable.ImmutableArray<IParameterSymbol> parameters,
-        ITypeSymbol[] parameterTypes
-    )
+    private static bool ParametersMatch(System.Collections.Immutable.ImmutableArray<IParameterSymbol> parameters, ITypeSymbol[] parameterTypes)
     {
         if (parameters.Length != parameterTypes.Length)
         {
@@ -899,34 +639,15 @@ internal static class SparseStjCapabilityDetector
         return true;
     }
 
-    internal static bool ParameterMatches(
-        IParameterSymbol parameter,
-        ITypeSymbol? type,
-        RefKind refKind
-    ) =>
-        type is not null
-        && parameter.RefKind == refKind
-        && SymbolEqualityComparer.Default.Equals(parameter.Type, type);
+    internal static bool ParameterMatches(IParameterSymbol parameter, ITypeSymbol? type, RefKind refKind) =>
+        type is not null && parameter.RefKind == refKind && SymbolEqualityComparer.Default.Equals(parameter.Type, type);
 
-    internal static bool IsUsableMethod(
-        IMethodSymbol method,
-        Compilation compilation,
-        bool isStatic,
-        int genericArity
-    ) =>
-        method.MethodKind == MethodKind.Ordinary
-        && method.IsStatic == isStatic
-        && method.Arity == genericArity
-        && method.IsAccessibleTo(compilation);
+    internal static bool IsUsableMethod(IMethodSymbol method, Compilation compilation, bool isStatic, int genericArity) =>
+        method.MethodKind == MethodKind.Ordinary && method.IsStatic == isStatic && method.Arity == genericArity && method.IsAccessibleTo(compilation);
 
     private static bool IsUsableAttribute(INamedTypeSymbol? type, Compilation compilation)
     {
-        if (
-            type is null
-            || type.TypeKind != TypeKind.Class
-            || type.IsAbstract
-            || !type.IsAccessibleTo(compilation)
-        )
+        if (type is null || type.TypeKind != TypeKind.Class || type.IsAbstract || !type.IsAccessibleTo(compilation))
         {
             return false;
         }
@@ -948,19 +669,11 @@ internal static class SparseStjCapabilityDetector
         return false;
     }
 
-    internal static bool HasEnumMember(
-        INamedTypeSymbol enumType,
-        string name,
-        Compilation compilation
-    )
+    internal static bool HasEnumMember(INamedTypeSymbol enumType, string name, Compilation compilation)
     {
         foreach (var member in enumType.GetMembers(name))
         {
-            if (
-                member is IFieldSymbol field
-                && field.HasConstantValue
-                && field.IsAccessibleTo(compilation)
-            )
+            if (member is IFieldSymbol field && field.HasConstantValue && field.IsAccessibleTo(compilation))
             {
                 return true;
             }

@@ -10,8 +10,7 @@ internal static class SparseSemanticReference
     /// <param name="host">Containing type name for the child model.</param>
     /// <param name="family">Product family-name bindings.</param>
     /// <returns>The qualified child state type name.</returns>
-    public static string ChildFragmentType(string host, SparseFamilyNames family) =>
-        host + "." + family.Fragment;
+    public static string ChildFragmentType(string host, SparseFamilyNames family) => host + "." + family.Fragment;
 
     /// <summary>Derives the child operation (patch-role) type name from a child state type name.</summary>
     /// <remarks>Replaces a trailing state-role suffix with the operation-role name.</remarks>
@@ -35,33 +34,22 @@ internal static class SparseSemanticReference
     /// <param name="discoveredViewName">Collision-resolved view name from analysis, if any.</param>
     /// <param name="family">Product family-name bindings.</param>
     /// <returns>The child observable-view type name.</returns>
-    public static string ChildObservableType(
-        string host,
-        string childFragmentType,
-        string? discoveredViewName,
-        SparseFamilyNames family
-    ) =>
-        discoveredViewName is not null
-            ? host + "." + discoveredViewName
-            : ReplaceRoleSuffix(childFragmentType, family.Fragment, family.Observable);
+    public static string ChildObservableType(string host, string childFragmentType, string? discoveredViewName, SparseFamilyNames family) =>
+        discoveredViewName is not null ? host + "." + discoveredViewName : ReplaceRoleSuffix(childFragmentType, family.Fragment, family.Observable);
 
     /// <summary>Resolves a collision-aware observable root name for one member set.</summary>
     /// <param name="memberNames">Source member names competing for the name.</param>
     /// <param name="family">Product family-name bindings.</param>
     /// <returns>The usable observable root name.</returns>
-    public static string ObservableRootName(
-        IEnumerable<string> memberNames,
-        SparseFamilyNames family
-    ) => SparseGeneratedPlacement.ResolveUiTypeName(family.Observable, memberNames);
+    public static string ObservableRootName(IEnumerable<string> memberNames, SparseFamilyNames family) =>
+        SparseGeneratedPlacement.ResolveUiTypeName(family.Observable, memberNames);
 
     /// <summary>Resolves a collision-aware read-only-view root name for one member set.</summary>
     /// <param name="memberNames">Source member names competing for the name.</param>
     /// <param name="family">Product family-name bindings.</param>
     /// <returns>The usable read-only-view root name.</returns>
-    public static string ReadOnlyViewRootName(
-        IEnumerable<string> memberNames,
-        SparseFamilyNames family
-    ) => SparseGeneratedPlacement.ResolveUiTypeName(family.ReadOnlyView, memberNames);
+    public static string ReadOnlyViewRootName(IEnumerable<string> memberNames, SparseFamilyNames family) =>
+        SparseGeneratedPlacement.ResolveUiTypeName(family.ReadOnlyView, memberNames);
 
     private static string ReplaceRoleSuffix(string typeName, string fromRole, string toRole)
     {

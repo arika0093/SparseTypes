@@ -2,13 +2,7 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class SparseFragmentOriginEnumerationEmitter
 {
-    internal static void AppendMember(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int position,
-        string self,
-        string originEntryType
-    )
+    internal static void AppendMember(SharedIndentedBuilder code, SparseMemberModel member, int position, string self, string originEntryType)
     {
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
         var prefix = "__SparseOriginMemberPath" + member.Id;
@@ -23,15 +17,7 @@ internal static class SparseFragmentOriginEnumerationEmitter
             code.CloseBlock();
             code.AppendLine("else");
             code.OpenBlock();
-            code.AppendLine(
-                "foreach (var __sparse_child_"
-                    + member.Id
-                    + " in "
-                    + self
-                    + "."
-                    + name
-                    + ".Value!.EnumerateOrigins())"
-            );
+            code.AppendLine("foreach (var __sparse_child_" + member.Id + " in " + self + "." + name + ".Value!.EnumerateOrigins())");
             code.OpenBlock();
             code.AppendLine(
                 "yield return new "
@@ -55,15 +41,7 @@ internal static class SparseFragmentOriginEnumerationEmitter
             code.CloseBlock();
             code.AppendLine("else");
             code.OpenBlock();
-            code.AppendLine(
-                "var __sparse_values_"
-                    + member.Id
-                    + " = global::System.Linq.Enumerable.ToArray("
-                    + self
-                    + "."
-                    + name
-                    + ".Value!);"
-            );
+            code.AppendLine("var __sparse_values_" + member.Id + " = global::System.Linq.Enumerable.ToArray(" + self + "." + name + ".Value!);");
             code.AppendLine(
                 "var __sparse_elements_"
                     + member.Id
@@ -134,19 +112,6 @@ internal static class SparseFragmentOriginEnumerationEmitter
         code.CloseBlock();
     }
 
-    private static void AppendYield(
-        SharedIndentedBuilder code,
-        string originEntryType,
-        string path,
-        string attribution
-    ) =>
-        code.AppendLine(
-            "yield return new "
-                + originEntryType
-                + " { Path = "
-                + path
-                + ", Origin = "
-                + attribution
-                + " };"
-        );
+    private static void AppendYield(SharedIndentedBuilder code, string originEntryType, string path, string attribution) =>
+        code.AppendLine("yield return new " + originEntryType + " { Path = " + path + ", Origin = " + attribution + " };");
 }

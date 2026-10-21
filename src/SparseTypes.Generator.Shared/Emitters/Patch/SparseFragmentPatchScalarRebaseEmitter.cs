@@ -20,31 +20,18 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
     {
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
         var operationType =
-            SparseFragmentPatchEmitter.Operation(dialect)
-            + "<"
-            + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member)
-            + ">";
+            SparseFragmentPatchEmitter.Operation(dialect) + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
         // A member-level rebase policy wins over the merge strategy's
         // TryRebase; the strategy still owns Merge.
-        var reconcilerField =
-            "Fragment." + SparseFragmentPatchEmitter.GetMergeStrategyField(dialect, member);
+        var reconcilerField = "Fragment." + SparseFragmentPatchEmitter.GetMergeStrategyField(dialect, member);
         var reconcilerFallback = "The custom merge strategy could not rebase the member.";
         if (member.RebasePolicyType is not null)
         {
-            reconcilerField =
-                "Fragment." + SparseFragmentPatchEmitter.GetRebasePolicyField(dialect, member);
+            reconcilerField = "Fragment." + SparseFragmentPatchEmitter.GetRebasePolicyField(dialect, member);
             reconcilerFallback = "The custom rebase policy could not rebase the member.";
         }
         var reconcilerPathLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
-        code.AppendLine(
-            "if (local."
-                + field
-                + ".Kind != "
-                + kind
-                + ".Keep && __SparseIsRedacted(options, "
-                + reconcilerPathLit
-                + "))"
-        );
+        code.AppendLine("if (local." + field + ".Kind != " + kind + ".Keep && __SparseIsRedacted(options, " + reconcilerPathLit + "))");
         code.OpenBlock();
         code.AppendLine("if (__SparseRejectsRedacted(options))");
         code.OpenBlock();
@@ -63,21 +50,11 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
         code.CloseBlock();
         code.CloseBlock();
         // Custom strategies observe every member edit (Set and Remove).
-        code.AppendLine(
-            "if (local."
-                + field
-                + ".Kind != "
-                + kind
-                + ".Keep && !__SparseIsRedacted(options, "
-                + reconcilerPathLit
-                + "))"
-        );
+        code.AppendLine("if (local." + field + ".Kind != " + kind + ".Keep && !__SparseIsRedacted(options, " + reconcilerPathLit + "))");
         code.OpenBlock();
         code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
         code.AppendLine("var " + currentMember + " = currentFragment." + name + ";");
-        code.AppendLine(
-            "var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");"
-        );
+        code.AppendLine("var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");");
         var strategyField = reconcilerField;
         var strategyFallback = reconcilerFallback;
         code.AppendLine(

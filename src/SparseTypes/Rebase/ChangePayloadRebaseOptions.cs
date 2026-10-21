@@ -67,15 +67,7 @@ public sealed record ChangePayloadRebaseOptions
             }
         }
 
-        return nested is null
-            ? this with
-            {
-                RedactedBeforePaths = Array.Empty<string>(),
-            }
-            : this with
-            {
-                RedactedBeforePaths = nested,
-            };
+        return nested is null ? this with { RedactedBeforePaths = Array.Empty<string>() } : this with { RedactedBeforePaths = nested };
     }
 
     private static bool IsRedactionMatch(string? entry, string pathText)
@@ -91,10 +83,6 @@ public sealed record ChangePayloadRebaseOptions
         }
 
         return string.Equals(entry, pathText, StringComparison.Ordinal)
-            || (
-                pathText.StartsWith(entry, StringComparison.Ordinal)
-                && pathText.Length > entry.Length
-                && pathText[entry.Length] == '.'
-            );
+            || (pathText.StartsWith(entry, StringComparison.Ordinal) && pathText.Length > entry.Length && pathText[entry.Length] == '.');
     }
 }

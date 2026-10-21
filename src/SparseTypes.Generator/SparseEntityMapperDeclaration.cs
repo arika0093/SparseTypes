@@ -28,8 +28,7 @@ internal static class SparseEntityMapperDeclaration
             if (
                 attribute.AttributeClass?.OriginalDefinition is not { } definition
                 || definition.MetadataName != "SparseFragmentMapperAttribute`2"
-                || definition.ContainingNamespace.ToDisplayString()
-                    != "SparseTypes.EntityFrameworkCore"
+                || definition.ContainingNamespace.ToDisplayString() != "SparseTypes.EntityFrameworkCore"
             )
             {
                 continue;
@@ -67,11 +66,7 @@ internal static class SparseEntityMapperDeclaration
         return true;
     }
 
-    internal static ImmutableArray<Error> Validate(
-        INamedTypeSymbol mapper,
-        INamedTypeSymbol entityType,
-        INamedTypeSymbol dtoType
-    )
+    internal static ImmutableArray<Error> Validate(INamedTypeSymbol mapper, INamedTypeSymbol entityType, INamedTypeSymbol dtoType)
     {
         var errors = ImmutableArray.CreateBuilder<Error>();
         var location = mapper.Locations.FirstOrDefault();
@@ -89,25 +84,15 @@ internal static class SparseEntityMapperDeclaration
 
         if (mapper.IsAbstract)
         {
-            Fail(
-                location,
-                $"Entity mapper '{mapperName}' must be a non-abstract class so the generator can instantiate it"
-            );
+            Fail(location, $"Entity mapper '{mapperName}' must be a non-abstract class so the generator can instantiate it");
         }
 
         if (mapper.IsGenericType)
         {
-            Fail(
-                location,
-                $"Entity mapper '{mapperName}' must not be generic; generic mapper shapes are not supported"
-            );
+            Fail(location, $"Entity mapper '{mapperName}' must not be generic; generic mapper shapes are not supported");
         }
 
-        for (
-            var enclosing = mapper.ContainingType;
-            enclosing is not null;
-            enclosing = enclosing.ContainingType
-        )
+        for (var enclosing = mapper.ContainingType; enclosing is not null; enclosing = enclosing.ContainingType)
         {
             if (enclosing.IsGenericType)
             {
@@ -136,8 +121,7 @@ internal static class SparseEntityMapperDeclaration
 
         var manual = mapper.AllInterfaces.FirstOrDefault(static candidate =>
             candidate.OriginalDefinition.MetadataName == "IEntityModelMapping`2"
-            && candidate.OriginalDefinition.ContainingNamespace.ToDisplayString()
-                == "SparseTypes.EntityFrameworkCore"
+            && candidate.OriginalDefinition.ContainingNamespace.ToDisplayString() == "SparseTypes.EntityFrameworkCore"
         );
         if (manual is not null)
         {
@@ -149,17 +133,10 @@ internal static class SparseEntityMapperDeclaration
 
         if (!IsPartialChain(mapper))
         {
-            Fail(
-                location,
-                $"Entity mapper '{mapperName}' and every enclosing type must be declared partial"
-            );
+            Fail(location, $"Entity mapper '{mapperName}' and every enclosing type must be declared partial");
         }
 
-        var collision = mapper
-            .GetMembers("Map")
-            .FirstOrDefault(member =>
-                SymbolEqualityComparer.Default.Equals(member.ContainingType, mapper)
-            );
+        var collision = mapper.GetMembers("Map").FirstOrDefault(member => SymbolEqualityComparer.Default.Equals(member.ContainingType, mapper));
         if (collision is not null)
         {
             Fail(
@@ -185,12 +162,7 @@ internal static class SparseEntityMapperDeclaration
         {
             var configure = configures[0];
             var at = configure.Locations.FirstOrDefault() ?? location;
-            if (
-                configure.IsStatic
-                || configure.Parameters.Length != 0
-                || configure.TypeParameters.Length != 0
-                || !configure.ReturnsVoid
-            )
+            if (configure.IsStatic || configure.Parameters.Length != 0 || configure.TypeParameters.Length != 0 || !configure.ReturnsVoid)
             {
                 Fail(
                     at,
@@ -207,8 +179,7 @@ internal static class SparseEntityMapperDeclaration
         for (var current = mapper; current is not null; current = current.ContainingType)
         {
             var found = current.DeclaringSyntaxReferences.Any(static reference =>
-                reference.GetSyntax() is TypeDeclarationSyntax declaration
-                && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+                reference.GetSyntax() is TypeDeclarationSyntax declaration && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
             );
             if (!found)
             {

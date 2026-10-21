@@ -12,9 +12,7 @@ internal static class SparseSessionInterop
         ArgumentNullException.ThrowIfNull(session);
         if (session is not ISparseEditSessionWithHistory owner)
         {
-            throw new InvalidOperationException(
-                $"The session type '{session.GetType()}' does not provide EnableHistory."
-            );
+            throw new InvalidOperationException($"The session type '{session.GetType()}' does not provide EnableHistory.");
         }
 
         owner.EnableHistory(null);
@@ -26,9 +24,7 @@ internal static class SparseSessionInterop
         ArgumentNullException.ThrowIfNull(session);
         if (session is not ISparseEditSessionWithHistory owner)
         {
-            throw new InvalidOperationException(
-                $"The session type '{session.GetType()}' does not provide DisableHistory."
-            );
+            throw new InvalidOperationException($"The session type '{session.GetType()}' does not provide DisableHistory.");
         }
 
         owner.DisableHistory();
@@ -114,11 +110,7 @@ internal static class SparseSessionInterop
     /// members, so sessions without the surface fail through an explicit typed
     /// contract and callers keep the live per-field query path.
     /// </remarks>
-    internal static bool TryCaptureStateSnapshot(
-        object session,
-        out SparseChangeSetQueryView? snapshot,
-        out string? error
-    )
+    internal static bool TryCaptureStateSnapshot(object session, out SparseChangeSetQueryView? snapshot, out string? error)
     {
         ArgumentNullException.ThrowIfNull(session);
         if (session is not ISparseEditSessionWithStateSnapshot provider)
@@ -144,11 +136,7 @@ internal static class SparseSessionInterop
 
     /// <summary>Queries the live collection state for a root collection path.</summary>
     /// <returns>True with the view on success; false with a null view when unavailable.</returns>
-    internal static bool TryCollectionState(
-        object session,
-        SparsePath path,
-        out SparseCollectionState? state
-    )
+    internal static bool TryCollectionState(object session, SparsePath path, out SparseCollectionState? state)
     {
         ArgumentNullException.ThrowIfNull(session);
         if (session is not ISparseEditSessionWithCollectionState provider)
@@ -171,27 +159,17 @@ internal static class SparseSessionInterop
         }
     }
 
-    internal static SparseCollectionEditor<TElement> CreateCollectionEditor<TElement>(
-        object session,
-        SparsePath path
-    )
+    internal static SparseCollectionEditor<TElement> CreateCollectionEditor<TElement>(object session, SparsePath path)
     {
         ArgumentNullException.ThrowIfNull(session);
-        if (
-            session is not ISparseEditSessionWithDescriptors descriptorSession
-            || descriptorSession.Descriptors is not IDescriptorSet descriptors
-        )
+        if (session is not ISparseEditSessionWithDescriptors descriptorSession || descriptorSession.Descriptors is not IDescriptorSet descriptors)
         {
-            throw new InvalidOperationException(
-                $"The session type '{session.GetType()}' does not expose generated descriptors."
-            );
+            throw new InvalidOperationException($"The session type '{session.GetType()}' does not expose generated descriptors.");
         }
 
         if (session is not ISparseEditSessionWithBatchEdit batch)
         {
-            throw new InvalidOperationException(
-                $"The session type '{session.GetType()}' does not provide BatchEdit(Action)."
-            );
+            throw new InvalidOperationException($"The session type '{session.GetType()}' does not provide BatchEdit(Action).");
         }
 
         return descriptors.EditCollection<TElement>(path, mutation => batch.BatchEdit(mutation));
@@ -214,13 +192,9 @@ internal static class SparseSessionInterop
         temporaryKey = null;
         isKeyed = false;
 
-        if (
-            session is not ISparseEditSessionWithDescriptors descriptorSession
-            || descriptorSession.Descriptors is not IDescriptorSet descriptors
-        )
+        if (session is not ISparseEditSessionWithDescriptors descriptorSession || descriptorSession.Descriptors is not IDescriptorSet descriptors)
         {
-            error =
-                $"The session type '{session.GetType()}' does not expose generated descriptors.";
+            error = $"The session type '{session.GetType()}' does not expose generated descriptors.";
             return false;
         }
 
@@ -250,11 +224,7 @@ internal static class SparseSessionInterop
         {
             foreach (var descriptor in itemDescriptors.Members)
             {
-                if (
-                    !descriptor.Attributes.Any(attribute =>
-                        attribute is SparseTemporaryKeyAttribute
-                    )
-                )
+                if (!descriptor.Attributes.Any(attribute => attribute is SparseTemporaryKeyAttribute))
                 {
                     continue;
                 }
@@ -291,8 +261,7 @@ internal static class SparseSessionInterop
             return true;
         }
 
-        error =
-            $"The keyed collection row at index {index} has neither an assigned key nor a declared temporary identity.";
+        error = $"The keyed collection row at index {index} has neither an assigned key nor a declared temporary identity.";
         return false;
     }
 }

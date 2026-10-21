@@ -32,8 +32,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
     {
         var runtime = dialect.RuntimeNamespace;
         var keyType = KeyTypeOf(member);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var elementType = ElementTypeOf(member);
         var listType = member.Property.Type.Name;
         var optList = runtime + "Optional<" + listType + ">";
@@ -57,9 +56,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
         );
         code.OpenBlock();
         code.AppendLine("var __comparer = " + comparer + ";");
-        code.AppendLine(
-            "bool __beforeHas = before.IsPresent && (object?)before.Value is not null;"
-        );
+        code.AppendLine("bool __beforeHas = before.IsPresent && (object?)before.Value is not null;");
         code.AppendLine("bool __afterHas = after.IsPresent && (object?)after.Value is not null;");
         code.AppendLine("if (!__beforeHas && !__afterHas)");
         code.OpenBlock();
@@ -84,22 +81,11 @@ internal static class SparseChangeSetKeyedBuildEmitter
                 + ".Item>(), __eq);"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "var __beforeOrder = new global::System.Collections.Generic.List<" + keyType + ">();"
-        );
-        code.AppendLine(
-            "var __beforeMap = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementType
-                + ">(__comparer);"
-        );
+        code.AppendLine("var __beforeOrder = new global::System.Collections.Generic.List<" + keyType + ">();");
+        code.AppendLine("var __beforeMap = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">(__comparer);");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempDeclarations(
-                code,
-                elementType
-            );
+            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempDeclarations(code, elementType);
         }
         code.AppendLine("if (__beforeHas) foreach (var __item in before.Value!)");
         code.OpenBlock();
@@ -118,26 +104,12 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
 
-        code.AppendLine(
-            SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap", "__k", "__item")
-        );
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap", "__k", "__item"));
         code.AppendLine("__beforeOrder.Add(__k);");
         code.CloseBlock();
-        code.AppendLine(
-            "var __afterOrder = new global::System.Collections.Generic.List<" + keyType + ">();"
-        );
-        code.AppendLine(
-            "var __afterMap = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementType
-                + ">(__comparer);"
-        );
-        code.AppendLine(
-            "var __unassignedAfter = new global::System.Collections.Generic.List<"
-                + elementType
-                + ">();"
-        );
+        code.AppendLine("var __afterOrder = new global::System.Collections.Generic.List<" + keyType + ">();");
+        code.AppendLine("var __afterMap = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">(__comparer);");
+        code.AppendLine("var __unassignedAfter = new global::System.Collections.Generic.List<" + elementType + ">();");
         code.AppendLine("if (__afterHas) foreach (var __item in after.Value!)");
         code.OpenBlock();
         code.AppendLine("var __k = __SparseKeyOf_ChangeSet_" + member.Id + "(__item);");
@@ -157,9 +129,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
         code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap", "__k", "__item"));
         code.AppendLine("__afterOrder.Add(__k!);");
         code.CloseBlock();
-        code.AppendLine(
-            "var __added = new global::System.Collections.Generic.List<" + elementType + ">();"
-        );
+        code.AppendLine("var __added = new global::System.Collections.Generic.List<" + elementType + ">();");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             code.AppendLine(
@@ -170,14 +140,10 @@ internal static class SparseChangeSetKeyedBuildEmitter
         }
         else
         {
-            code.AppendLine(
-                "foreach (var __k in __afterOrder) if (!__beforeMap.ContainsKey(__k)) __added.Add(__afterMap[__k]);"
-            );
+            code.AppendLine("foreach (var __k in __afterOrder) if (!__beforeMap.ContainsKey(__k)) __added.Add(__afterMap[__k]);");
         }
 
-        code.AppendLine(
-            "var __removed = new global::System.Collections.Generic.List<" + elementType + ">();"
-        );
+        code.AppendLine("var __removed = new global::System.Collections.Generic.List<" + elementType + ">();");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             code.AppendLine(
@@ -185,27 +151,17 @@ internal static class SparseChangeSetKeyedBuildEmitter
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                     + " && !__afterMap.ContainsKey(__k)) __removed.Add(__beforeMap[__k]);"
             );
-            code.AppendLine(
-                "var __afterTempSet = new global::System.Collections.Generic.HashSet<global::System.Guid>(__unassignedTempAfter);"
-            );
+            code.AppendLine("var __afterTempSet = new global::System.Collections.Generic.HashSet<global::System.Guid>(__unassignedTempAfter);");
             code.AppendLine(
                 "for (var __tbi = 0; __tbi < __unassignedBefore.Count; __tbi++) if (!__afterTempSet.Contains(__unassignedTempBefore[__tbi])) __removed.Add(__unassignedBefore[__tbi]);"
             );
         }
         else
         {
-            code.AppendLine(
-                "foreach (var __k in __beforeOrder) if (!__afterMap.ContainsKey(__k)) __removed.Add(__beforeMap[__k]);"
-            );
+            code.AppendLine("foreach (var __k in __beforeOrder) if (!__afterMap.ContainsKey(__k)) __removed.Add(__beforeMap[__k]);");
         }
 
-        code.AppendLine(
-            "var __edited = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementCs
-                + ">(__comparer);"
-        );
+        code.AppendLine("var __edited = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementCs + ">(__comparer);");
         code.AppendLine("foreach (var __k in __beforeMap.Keys)");
         code.OpenBlock();
         code.AppendLine("if (!__afterMap.TryGetValue(__k, out var __afterItem)) continue;");
@@ -229,84 +185,43 @@ internal static class SparseChangeSetKeyedBuildEmitter
         );
         code.AppendLine("if (!__nested.IsEmpty) __edited[__k] = __nested;");
         code.CloseBlock();
-        code.AppendLine(
-            "bool __orderChanged = !"
-                + facade
-                + ".KeyOrderEquals<"
-                + keyType
-                + ">(__beforeOrder, __afterOrder);"
-        );
-        code.AppendLine(
-            "bool __empty = __added.Count == 0 && __removed.Count == 0 && __edited.Count == 0 && !__orderChanged;"
-        );
+        code.AppendLine("bool __orderChanged = !" + facade + ".KeyOrderEquals<" + keyType + ">(__beforeOrder, __afterOrder);");
+        code.AppendLine("bool __empty = __added.Count == 0 && __removed.Count == 0 && __edited.Count == 0 && !__orderChanged;");
         // Surviving-rank reorder set (relative order, not absolute index
         // shifts).
-        code.AppendLine(
-            "var __beforeRank = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", int>(__comparer);"
-        );
-        code.AppendLine(
-            "{ var __r = 0; foreach (var __k in __beforeOrder) if (__afterMap.ContainsKey(__k)) __beforeRank[__k] = __r++; }"
-        );
-        code.AppendLine(
-            "var __afterRank = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", int>(__comparer);"
-        );
+        code.AppendLine("var __beforeRank = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(__comparer);");
+        code.AppendLine("{ var __r = 0; foreach (var __k in __beforeOrder) if (__afterMap.ContainsKey(__k)) __beforeRank[__k] = __r++; }");
+        code.AppendLine("var __afterRank = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(__comparer);");
         code.AppendLine(
             "{ var __r = 0; foreach (var __k in __afterOrder) if ("
                 + (
                     SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? "!"
-                            + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
-                            + " && "
+                        ? "!" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k") + " && "
                         : ""
                 )
                 + "__beforeMap.ContainsKey(__k!)) __afterRank[__k!] = __r++; }"
         );
-        code.AppendLine(
-            "var __reordered = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">(__comparer);"
-        );
+        code.AppendLine("var __reordered = new global::System.Collections.Generic.HashSet<" + keyType + ">(__comparer);");
         code.AppendLine(
             "foreach (var __kv in __beforeRank) if (__afterRank.TryGetValue(__kv.Key, out var __ar) && __ar != __kv.Value) __reordered.Add(__kv.Key);"
         );
-        code.AppendLine(
-            "var __beforeIndex = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", int>(__comparer);"
-        );
-        code.AppendLine(
-            "for (var __i = 0; __i < __beforeOrder.Count; __i++) __beforeIndex[__beforeOrder[__i]] = __i;"
-        );
-        code.AppendLine(
-            "var __afterIndex = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", int>(__comparer);"
-        );
+        code.AppendLine("var __beforeIndex = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(__comparer);");
+        code.AppendLine("for (var __i = 0; __i < __beforeOrder.Count; __i++) __beforeIndex[__beforeOrder[__i]] = __i;");
+        code.AppendLine("var __afterIndex = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(__comparer);");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             code.AppendLine(
                 "for (var __i = 0; __i < __afterOrder.Count; __i++) if (!"
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                        member,
-                        "__afterOrder[__i]"
-                    )
+                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__afterOrder[__i]")
                     + ") __afterIndex[__afterOrder[__i]] = __i;"
             );
         }
         else
         {
-            code.AppendLine(
-                "for (var __i = 0; __i < __afterOrder.Count; __i++) __afterIndex[__afterOrder[__i]] = __i;"
-            );
+            code.AppendLine("for (var __i = 0; __i < __afterOrder.Count; __i++) __afterIndex[__afterOrder[__i]] = __i;");
         }
 
-        code.AppendLine(
-            "var __items = new global::System.Collections.Generic.List<" + trans + ".Item>();"
-        );
+        code.AppendLine("var __items = new global::System.Collections.Generic.List<" + trans + ".Item>();");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             code.AppendLine("var __afterPosition = 0; var __unassignedPosition = 0;");
@@ -316,15 +231,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
         code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempAddBranch(
-                code,
-                member,
-                trans,
-                runtime,
-                elementCs,
-                elementFrag,
-                elementType
-            );
+            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempAddBranch(code, member, trans, runtime, elementCs, elementFrag, elementType);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -370,28 +277,10 @@ internal static class SparseChangeSetKeyedBuildEmitter
                 + ".From(__b!)) : default;"
         );
         code.AppendLine(
-            runtime
-                + "Optional<"
-                + elementFrag
-                + "?> __ea = "
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__a));"
+            runtime + "Optional<" + elementFrag + "?> __ea = " + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__a));"
         );
-        code.AppendLine(
-            "var __fullEdit = __isEdited ? __edit! : " + elementCs + ".Between(__eb, __ea);"
-        );
-        code.AppendLine(
-            optElement
-                + " __ib = __inBefore ? "
-                + runtime
-                + "Optional<"
-                + elementType
-                + ">.Present(__b!) : default;"
-        );
+        code.AppendLine("var __fullEdit = __isEdited ? __edit! : " + elementCs + ".Between(__eb, __ea);");
+        code.AppendLine(optElement + " __ib = __inBefore ? " + runtime + "Optional<" + elementType + ">.Present(__b!) : default;");
         code.AppendLine("int __bi = __beforeIndex.TryGetValue(__k, out var __bv) ? __bv : -1;");
         code.AppendLine("int __ai = __afterIndex.TryGetValue(__k, out var __av) ? __av : -1;");
         code.AppendLine(
@@ -409,25 +298,12 @@ internal static class SparseChangeSetKeyedBuildEmitter
         code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLine(
-                "if ("
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
-                    + ") continue;"
-            );
+            code.AppendLine("if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k") + ") continue;");
         }
         code.AppendLine("if (__afterMap.ContainsKey(__k)) continue;");
         code.AppendLine("var __b = __beforeMap[__k];");
         code.AppendLine(
-            runtime
-                + "Optional<"
-                + elementFrag
-                + "?> __eb = "
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__b));"
+            runtime + "Optional<" + elementFrag + "?> __eb = " + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__b));"
         );
         code.AppendLine("var __fullEdit = " + elementCs + ".Between(__eb, default);");
         code.AppendLine("int __bi = __beforeIndex.TryGetValue(__k, out var __bv) ? __bv : -1;");
@@ -443,20 +319,10 @@ internal static class SparseChangeSetKeyedBuildEmitter
         code.CloseBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempRemovedLoop(
-                code,
-                member,
-                trans,
-                runtime,
-                elementCs,
-                elementFrag,
-                elementType
-            );
+            SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempRemovedLoop(code, member, trans, runtime, elementCs, elementFrag, elementType);
         }
         code.AppendLine(
-            "return new "
-                + trans
-                + "(before, after, __added, __removed, __edited, __beforeOrder, __afterOrder, __orderChanged, __items, __empty);"
+            "return new " + trans + "(before, after, __added, __removed, __edited, __beforeOrder, __afterOrder, __orderChanged, __items, __empty);"
         );
         code.CloseBlock();
     }

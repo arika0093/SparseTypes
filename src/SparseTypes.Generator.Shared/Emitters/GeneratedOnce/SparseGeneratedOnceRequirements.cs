@@ -37,8 +37,7 @@ internal sealed record SparseGeneratedOnceRequirements
         };
 
     /// <summary>Whether any read-only adapter is required.</summary>
-    public bool NeedsReadOnlyAdapters =>
-        NeedsReadOnlyCollection || NeedsReadOnlyDictionary || NeedsReadOnlyEntries;
+    public bool NeedsReadOnlyAdapters => NeedsReadOnlyCollection || NeedsReadOnlyDictionary || NeedsReadOnlyEntries;
 
     /// <summary>Combines two requirement sets.</summary>
     /// <param name="other">Other set.</param>
@@ -66,8 +65,7 @@ internal sealed record SparseGeneratedOnceRequirements
         // Sequences need the list adapter, dictionaries need all three (Keys
         // reuses the list adapter; key mapping may need entries).
         var needsCollection =
-            members.Any(static member => IsSequence(member))
-            || members.Any(static member => member.Collection.ValueType is not null);
+            members.Any(static member => IsSequence(member)) || members.Any(static member => member.Collection.ValueType is not null);
         var needsDictionary = members.Any(static member => member.Collection.ValueType is not null);
         var needsEntries = needsDictionary;
 
@@ -114,15 +112,11 @@ internal sealed record SparseGeneratedOnceRequirements
     )
     {
         var needsClone =
-            members.Any(static member =>
-                member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported
-            )
+            members.Any(static member => member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported)
             || (
                 !pocoCloneModels.IsDefault
                 && pocoCloneModels.Any(static poco =>
-                    poco.Members.Any(static member =>
-                        member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported
-                    )
+                    poco.Members.Any(static member => member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported)
                 )
             );
         // Require the portable bridge only for IReadOnlySet members when the
@@ -134,11 +128,7 @@ internal sealed record SparseGeneratedOnceRequirements
                 members.Any(static member => IsReadOnlySet(member.Collection.NamedTypeDefinition))
                 || (
                     !pocoCloneModels.IsDefault
-                    && pocoCloneModels.Any(static poco =>
-                        poco.Members.Any(static member =>
-                            IsReadOnlySet(member.Collection.NamedTypeDefinition)
-                        )
-                    )
+                    && pocoCloneModels.Any(static poco => poco.Members.Any(static member => IsReadOnlySet(member.Collection.NamedTypeDefinition)))
                 )
             );
         return new SparseGeneratedOnceRequirements
@@ -168,9 +158,7 @@ internal sealed record SparseGeneratedOnceRequirements
     )
     {
         var readOnly = emitReadOnlyViews ? ForReadOnlyView(members, readOnlyViewModels) : Empty;
-        return readOnly
-            .Union(ForCloneKernels(members, pocoCloneModels, bclHashSetImplementsReadOnlySet))
-            .Union(ForRemovalIndex(members));
+        return readOnly.Union(ForCloneKernels(members, pocoCloneModels, bclHashSetImplementsReadOnlySet)).Union(ForRemovalIndex(members));
     }
 
     /// <summary>Computes removal-index needs for one model.</summary>
@@ -180,9 +168,7 @@ internal sealed record SparseGeneratedOnceRequirements
     /// </remarks>
     /// <param name="members">Model members.</param>
     /// <returns>Requirements for the model.</returns>
-    public static SparseGeneratedOnceRequirements ForRemovalIndex(
-        ImmutableArray<SparseMemberModel> members
-    )
+    public static SparseGeneratedOnceRequirements ForRemovalIndex(ImmutableArray<SparseMemberModel> members)
     {
         var needs = members.Any(static member =>
             !(member.HasExplicitMergeMode && member.MergeMode == SparseMergeModes.Replace)
@@ -199,6 +185,5 @@ internal sealed record SparseGeneratedOnceRequirements
         };
     }
 
-    private static bool IsReadOnlySet(string? namedTypeDefinition) =>
-        namedTypeDefinition == SparseWellKnownNames.ReadOnlySetTypeDefinition;
+    private static bool IsReadOnlySet(string? namedTypeDefinition) => namedTypeDefinition == SparseWellKnownNames.ReadOnlySetTypeDefinition;
 }

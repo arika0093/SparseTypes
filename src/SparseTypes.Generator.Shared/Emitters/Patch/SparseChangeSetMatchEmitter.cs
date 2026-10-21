@@ -64,13 +64,7 @@ internal static class SparseChangeSetMatchEmitter
                         + (side == "Before" ? "before" : "after")
                         + " on every changed path.</summary>"
                 );
-                code.AppendLine(
-                    "internal static bool __Sparse"
-                        + side
-                        + "Matches(ChangeSet self, "
-                        + optionalFragment
-                        + " state)"
-                );
+                code.AppendLine("internal static bool __Sparse" + side + "Matches(ChangeSet self, " + optionalFragment + " state)");
             }
             else
             {
@@ -79,9 +73,7 @@ internal static class SparseChangeSetMatchEmitter
                         + (side == "Before" ? "before" : "after")
                         + " on every changed path.</summary>"
                 );
-                code.AppendLine(
-                    "internal bool __Sparse" + side + "Matches(" + optionalFragment + " state)"
-                );
+                code.AppendLine("internal bool __Sparse" + side + "Matches(" + optionalFragment + " state)");
             }
             code.OpenBlock();
             if (target is not null)
@@ -89,12 +81,8 @@ internal static class SparseChangeSetMatchEmitter
                 AppendSelfAliases(code, members);
             }
             var __hasSparseMatch = members.Any(static m => IsKeyed(m) || IsDict(m));
-            code.AppendLine(
-                target is null ? "if (IsEmpty) return true;" : "if (self.IsEmpty) return true;"
-            );
-            code.AppendLine(
-                "if (__sparse_hasWhole) return Fragment.__SparseAreEqual(" + field + ", state);"
-            );
+            code.AppendLine(target is null ? "if (IsEmpty) return true;" : "if (self.IsEmpty) return true;");
+            code.AppendLine("if (__sparse_hasWhole) return Fragment.__SparseAreEqual(" + field + ", state);");
             code.AppendLine("if (!state.IsPresent || state.Value is null) return false;");
             code.AppendLine("var __st = state.Value!;");
             if (__hasSparseMatch)
@@ -128,15 +116,7 @@ internal static class SparseChangeSetMatchEmitter
                     var own = side == "Before" ? BeforeField(member) : AfterField(member);
                     code.AppendLine("if (" + HasField(member) + ")");
                     code.OpenBlock();
-                    code.AppendLine(
-                        "if (!Fragment.__SparseEqual_"
-                            + member.Id
-                            + "(__st."
-                            + esc
-                            + ", "
-                            + own
-                            + ")) return false;"
-                    );
+                    code.AppendLine("if (!Fragment.__SparseEqual_" + member.Id + "(__st." + esc + ", " + own + ")) return false;");
                     code.CloseBlock();
                 }
             }
@@ -163,8 +143,7 @@ internal static class SparseChangeSetMatchEmitter
         var id = member.Id;
         var isKeyed = IsKeyed(member);
         var keyType = KeyTypeOf(member);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var facade = dialect.RuntimeFacade;
         var ownWhole = side == "Before" ? KeyedWholeBefore(member) : KeyedWholeAfter(member);
         var ownOrder = side == "Before" ? KeyedBeforeOrder(member) : KeyedAfterOrder(member);
@@ -173,70 +152,26 @@ internal static class SparseChangeSetMatchEmitter
         // Whole presence/null transitions compare full endpoints.
         code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!Fragment.__SparseEqual_"
-                + id
-                + "(__st."
-                + esc
-                + ", "
-                + ownWhole
-                + ")) return false;"
-        );
+        code.AppendLine("if (!Fragment.__SparseEqual_" + id + "(__st." + esc + ", " + ownWhole + ")) return false;");
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine("var __cur" + id + " = __st." + esc + ";");
-        code.AppendLine(
-            "if (!__cur"
-                + id
-                + ".IsPresent || (object?)__cur"
-                + id
-                + ".Value is null) return false;"
-        );
+        code.AppendLine("if (!__cur" + id + ".IsPresent || (object?)__cur" + id + ".Value is null) return false;");
         if (isKeyed)
         {
             // Order interacts only where stored (orderChanged); otherwise
             // membership only.
             code.AppendLine("if (" + ownOrder + " is not null)");
             code.OpenBlock();
-            code.AppendLine(
-                "var __curOrder"
-                    + id
-                    + " = new global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">();"
-            );
-            code.AppendLine(
-                "foreach (var __e in __cur"
-                    + id
-                    + ".Value!) __curOrder"
-                    + id
-                    + ".Add(__SparseKeyOf_ChangeSet_"
-                    + id
-                    + "(__e));"
-            );
-            code.AppendLine(
-                "if (!"
-                    + facade
-                    + ".KeyOrderEquals<"
-                    + keyType
-                    + ">(__curOrder"
-                    + id
-                    + ", "
-                    + ownOrder
-                    + ")) return false;"
-            );
+            code.AppendLine("var __curOrder" + id + " = new global::System.Collections.Generic.List<" + keyType + ">();");
+            code.AppendLine("foreach (var __e in __cur" + id + ".Value!) __curOrder" + id + ".Add(__SparseKeyOf_ChangeSet_" + id + "(__e));");
+            code.AppendLine("if (!" + facade + ".KeyOrderEquals<" + keyType + ">(__curOrder" + id + ", " + ownOrder + ")) return false;");
             code.CloseBlock();
         }
         // Per-key endpoint checks from stored items (no full snapshot
         // retention).
-        code.AppendLine(
-            "if ("
-                + KeyedItems(member)
-                + " is not null) foreach (var __it in "
-                + KeyedItems(member)
-                + ")"
-        );
+        code.AppendLine("if (" + KeyedItems(member) + " is not null) foreach (var __it in " + KeyedItems(member) + ")");
         code.OpenBlock();
         if (isKeyed)
         {
@@ -244,23 +179,9 @@ internal static class SparseChangeSetMatchEmitter
             // Nested match helpers validate only the child paths represented by
             // Edit.
             var mismatchBefore =
-                "!"
-                + "__it.Edit.__SparseBeforeMatches("
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__e)))";
+                "!" + "__it.Edit.__SparseBeforeMatches(" + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__e)))";
             var mismatchAfter =
-                "!"
-                + "__it.Edit.__SparseAfterMatches("
-                + runtime
-                + "Optional<"
-                + elementFrag
-                + "?>.Present("
-                + elementFrag
-                + ".From(__e)))";
+                "!" + "__it.Edit.__SparseAfterMatches(" + runtime + "Optional<" + elementFrag + "?>.Present(" + elementFrag + ".From(__e)))";
             // Emitter-side branch on Before/After avoids unreachable runtime
             // string comparisons in generated code.
             if (side == "Before")
@@ -313,14 +234,7 @@ internal static class SparseChangeSetMatchEmitter
         code.CloseBlock();
     }
 
-    internal static void EmitDictMatchProbes(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id,
-        string side,
-        string runtime,
-        string facade
-    )
+    internal static void EmitDictMatchProbes(SharedIndentedBuilder code, SparseMemberModel member, int id, string side, string runtime, string facade)
     {
         var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
         var valueFrag = hasPatch ? ValueFragmentOf(member) : null;

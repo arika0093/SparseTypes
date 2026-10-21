@@ -21,10 +21,7 @@ public static class SparseOpenApiServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         var schemas = new TPayload().GetSparsePayloadSchemas();
         services.AddSingleton<SparsePayloadSchemaSet>(new SparsePayloadSchemaSet(schemas));
-        var registry = services
-            .Select(static descriptor => descriptor.ImplementationInstance)
-            .OfType<SparseSchemaNameRegistry>()
-            .LastOrDefault();
+        var registry = services.Select(static descriptor => descriptor.ImplementationInstance).OfType<SparseSchemaNameRegistry>().LastOrDefault();
         if (registry is null)
         {
             registry = new SparseSchemaNameRegistry();
@@ -68,10 +65,7 @@ internal sealed class SparseSchemaNameRegistry
     private string? Resolve(Type type) => _names.TryGetValue(type, out var name) ? name : null;
 }
 
-internal sealed class SparsePayloadSchemaSet(
-    System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas
-)
+internal sealed class SparsePayloadSchemaSet(System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
 {
-    public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> Schemas { get; } =
-        schemas;
+    public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> Schemas { get; } = schemas;
 }

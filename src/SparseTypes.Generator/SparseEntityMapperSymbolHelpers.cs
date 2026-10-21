@@ -16,10 +16,7 @@ internal static class SparseEntityMapperSymbolHelpers
 
         if (
             accessibility is Accessibility.Internal or Accessibility.ProtectedOrInternal
-            && SymbolEqualityComparer.Default.Equals(
-                symbol.ContainingAssembly,
-                mapper.ContainingAssembly
-            )
+            && SymbolEqualityComparer.Default.Equals(symbol.ContainingAssembly, mapper.ContainingAssembly)
         )
         {
             return DeclaringTypesAccessible(symbol, mapper);
@@ -38,9 +35,7 @@ internal static class SparseEntityMapperSymbolHelpers
                 return true;
             case INamedTypeSymbol named:
                 return IsAccessibleFromCompanion(named.OriginalDefinition, mapper)
-                    && named.TypeArguments.All(argument =>
-                        IsTypeAccessibleFromCompanion(argument, mapper)
-                    );
+                    && named.TypeArguments.All(argument => IsTypeAccessibleFromCompanion(argument, mapper));
             case ITypeParameterSymbol:
                 return true;
             case IPointerTypeSymbol pointer:
@@ -52,11 +47,7 @@ internal static class SparseEntityMapperSymbolHelpers
 
     private static bool DeclaringTypesAccessible(ISymbol symbol, INamedTypeSymbol mapper)
     {
-        for (
-            var containing = symbol.ContainingType;
-            containing is not null;
-            containing = containing.ContainingType
-        )
+        for (var containing = symbol.ContainingType; containing is not null; containing = containing.ContainingType)
         {
             var access = containing.DeclaredAccessibility;
             if (access == Accessibility.Public)
@@ -66,10 +57,7 @@ internal static class SparseEntityMapperSymbolHelpers
 
             if (
                 access is Accessibility.Internal or Accessibility.ProtectedOrInternal
-                && SymbolEqualityComparer.Default.Equals(
-                    containing.ContainingAssembly,
-                    mapper.ContainingAssembly
-                )
+                && SymbolEqualityComparer.Default.Equals(containing.ContainingAssembly, mapper.ContainingAssembly)
             )
             {
                 continue;
@@ -83,17 +71,9 @@ internal static class SparseEntityMapperSymbolHelpers
 
     // Entity selectors use the same access rules as DTO selectors. Public
     // fields are readable, but nested Object navigation requires properties.
-    internal static ISymbol? FindAccessibleEntityMember(
-        INamedTypeSymbol entityType,
-        string name,
-        INamedTypeSymbol mapper
-    )
+    internal static ISymbol? FindAccessibleEntityMember(INamedTypeSymbol entityType, string name, INamedTypeSymbol mapper)
     {
-        for (
-            var current = entityType;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = entityType; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             foreach (var member in current.GetMembers(name))
             {
@@ -114,11 +94,7 @@ internal static class SparseEntityMapperSymbolHelpers
                     return property;
                 }
 
-                if (
-                    member is IFieldSymbol field
-                    && IsAccessibleFromCompanion(field, mapper)
-                    && IsTypeAccessibleFromCompanion(field.Type, mapper)
-                )
+                if (member is IFieldSymbol field && IsAccessibleFromCompanion(field, mapper) && IsTypeAccessibleFromCompanion(field.Type, mapper))
                 {
                     return field;
                 }
@@ -130,10 +106,7 @@ internal static class SparseEntityMapperSymbolHelpers
 
     // The generated temporary-key assignment runs as an ordinary runtime
     // delegate outside construction.
-    internal static bool IsTemporarySetterUsable(
-        IPropertySymbol? temporaryProperty,
-        INamedTypeSymbol mapper
-    ) =>
+    internal static bool IsTemporarySetterUsable(IPropertySymbol? temporaryProperty, INamedTypeSymbol mapper) =>
         temporaryProperty is not null
         && !temporaryProperty.IsStatic
         && !temporaryProperty.IsIndexer
@@ -143,11 +116,7 @@ internal static class SparseEntityMapperSymbolHelpers
 
     internal static ISymbol? FindEntityMember(INamedTypeSymbol entityType, string name)
     {
-        for (
-            var current = entityType;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = entityType; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             foreach (var member in current.GetMembers(name))
             {
@@ -182,9 +151,7 @@ internal static class SparseEntityMapperSymbolHelpers
     internal static bool IsScalarType(ITypeSymbol type)
     {
         var underlying =
-            type is INamedTypeSymbol named
-            && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-            && named.TypeArguments.Length == 1
+            type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T && named.TypeArguments.Length == 1
                 ? named.TypeArguments[0]
                 : type;
         switch (underlying.SpecialType)
@@ -229,9 +196,7 @@ internal static class SparseEntityMapperSymbolHelpers
             }
         }
 
-        return underlying is IArrayTypeSymbol array
-            && array.ElementType.SpecialType == SpecialType.System_Byte
-            && array.Rank == 1;
+        return underlying is IArrayTypeSymbol array && array.ElementType.SpecialType == SpecialType.System_Byte && array.Rank == 1;
     }
 
     internal static ITypeSymbol? CollectionElementType(ITypeSymbol? type) =>
@@ -249,22 +214,15 @@ internal static class SparseEntityMapperSymbolHelpers
             return false;
         }
 
-        if (
-            type is IArrayTypeSymbol array
-            && array.ElementType.SpecialType == SpecialType.System_Byte
-            && array.Rank == 1
-        )
+        if (type is IArrayTypeSymbol array && array.ElementType.SpecialType == SpecialType.System_Byte && array.Rank == 1)
         {
             return false;
         }
 
-        return type.AllInterfaces.Any(static iface =>
-            iface.OriginalDefinition.SpecialType == SpecialType.System_Collections_IEnumerable
-        );
+        return type.AllInterfaces.Any(static iface => iface.OriginalDefinition.SpecialType == SpecialType.System_Collections_IEnumerable);
     }
 
     // Keep scalar compatibility identical to the runtime plan's symbol
     // comparison.
-    internal static bool SameType(ITypeSymbol left, ITypeSymbol right) =>
-        SymbolEqualityComparer.Default.Equals(left, right);
+    internal static bool SameType(ITypeSymbol left, ITypeSymbol right) => SymbolEqualityComparer.Default.Equals(left, right);
 }

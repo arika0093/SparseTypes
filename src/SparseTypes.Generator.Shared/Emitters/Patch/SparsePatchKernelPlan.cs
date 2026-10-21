@@ -67,21 +67,14 @@ internal static class SparsePatchKernelCapabilities
     /// <param name="hasDictionaries">Whether dictionaries occur.</param>
     /// <param name="hasChangeAlgebra">Whether compose/invert/rebase is emitted.</param>
     /// <returns>The de-duplicated kernel set.</returns>
-    public static SparsePatchKernelKind ForCompilation(
-        bool hasKeyedCollections,
-        bool hasDictionaries,
-        bool hasChangeAlgebra
-    )
+    public static SparsePatchKernelKind ForCompilation(bool hasKeyedCollections, bool hasDictionaries, bool hasChangeAlgebra)
     {
         if (!hasChangeAlgebra && !hasKeyedCollections && !hasDictionaries)
         {
             return SparsePatchKernelKind.None;
         }
 
-        var kind =
-            SparsePatchKernelKind.PathKernels
-            | SparsePatchKernelKind.EmptyIdentities
-            | SparsePatchKernelKind.ConflictPaths;
+        var kind = SparsePatchKernelKind.PathKernels | SparsePatchKernelKind.EmptyIdentities | SparsePatchKernelKind.ConflictPaths;
         if (hasKeyedCollections || hasDictionaries)
         {
             kind |= SparsePatchKernelKind.KeyedMembership | SparsePatchKernelKind.OrderTransitions;
@@ -109,9 +102,7 @@ internal static class SparsePatchKernelEmitter
         code.AppendLine(string.Empty);
         code.AppendLine("namespace " + rootNamespace);
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Model-independent patch operation kernels (Generated-Once).</summary>"
-        );
+        code.AppendLine("/// <summary>Model-independent patch operation kernels (Generated-Once).</summary>");
         code.AppendLine("internal static class PatchOperationKernels");
         code.OpenBlock();
         if ((kinds & SparsePatchKernelKind.EmptyIdentities) != 0)
@@ -123,21 +114,15 @@ internal static class SparsePatchKernelEmitter
 
         if ((kinds & SparsePatchKernelKind.KeyedMembership) != 0)
         {
-            code.AppendLine(
-                "internal static int IndexOfKey<TKey>(IReadOnlyList<TKey> keys, TKey key, IEqualityComparer<TKey>? comparer = null)"
-            );
+            code.AppendLine("internal static int IndexOfKey<TKey>(IReadOnlyList<TKey> keys, TKey key, IEqualityComparer<TKey>? comparer = null)");
             code.OpenBlock();
             code.AppendLine("comparer ??= EqualityComparer<TKey>.Default;");
-            code.AppendLine(
-                "for (var i = 0; i < keys.Count; i++) if (comparer.Equals(keys[i], key)) return i;"
-            );
+            code.AppendLine("for (var i = 0; i < keys.Count; i++) if (comparer.Equals(keys[i], key)) return i;");
             code.AppendLine("return -1;");
             code.CloseBlock();
         }
 
-        if (
-            (kinds & (SparsePatchKernelKind.PathKernels | SparsePatchKernelKind.ConflictPaths)) != 0
-        )
+        if ((kinds & (SparsePatchKernelKind.PathKernels | SparsePatchKernelKind.ConflictPaths)) != 0)
         {
             code.AppendLine(
                 "internal static string EscapeKeySegment(string keyText) => \"\\\"\" + keyText.Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"\";"

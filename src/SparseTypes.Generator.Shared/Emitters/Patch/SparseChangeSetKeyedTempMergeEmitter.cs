@@ -9,12 +9,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
     /// Temporary baselines stay composable: temp items correlate by Guid in
     /// the pair merge instead of failing here.
     /// </remarks>
-    internal static void AppendWholeBeforeGuard(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id,
-        bool hasTempCompose
-    )
+    internal static void AppendWholeBeforeGuard(SharedIndentedBuilder code, SparseMemberModel member, int id, bool hasTempCompose)
     {
         var check =
             "if (__second"
@@ -24,10 +19,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
             + ") { var __nextBefore = next."
             + SparseChangeSetBasicsEmitter.KeyedWholeBefore(member)
             + "; if (__nextBefore.IsPresent && (object?)__nextBefore.Value is not null) foreach (var __item in __nextBefore.Value!) if ("
-            + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                member,
-                "__SparseKeyOf_ChangeSet_" + id + "(__item)"
-            )
+            + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__SparseKeyOf_ChangeSet_" + id + "(__item)")
             + ") throw new global::System.InvalidOperationException(\"A ChangeSet whose before-state contains an unassigned key cannot be composed.\"); } else if (next."
             + SparseChangeSetBasicsEmitter.KeyedBeforeOrder(member)
             + " is not null) foreach (var __baselineKey in next."
@@ -46,12 +38,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
     }
 
     /// <summary>Emits the granular before-state guard, temp-aware.</summary>
-    internal static void AppendGranularBeforeGuard(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id,
-        bool hasTempCompose
-    )
+    internal static void AppendGranularBeforeGuard(SharedIndentedBuilder code, SparseMemberModel member, int id, bool hasTempCompose)
     {
         var granularCheck =
             "if (next."
@@ -72,35 +59,12 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
     }
 
     /// <summary>Emits temp map declarations plus the temp-presence scan.</summary>
-    internal static void AppendTempLocals(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        int id
-    )
+    internal static void AppendTempLocals(SharedIndentedBuilder code, SparseMemberModel member, string trans, int id)
     {
         code.AppendLine("bool __hasTemp" + id + " = false;");
-        code.AppendLine(
-            "var __tmap1"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + trans
-                + ".Item>();"
-        );
-        code.AppendLine(
-            "var __tmap2"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + trans
-                + ".Item>();"
-        );
-        code.AppendLine(
-            "var __tnet"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + trans
-                + ".Item>();"
-        );
+        code.AppendLine("var __tmap1" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + trans + ".Item>();");
+        code.AppendLine("var __tmap2" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + trans + ".Item>();");
+        code.AppendLine("var __tnet" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + trans + ".Item>();");
         code.AppendLine("if (" + SparseChangeSetBasicsEmitter.KeyedItems(member) + " is not null)");
         code.AppendLine(
             "foreach (var __it in "
@@ -109,13 +73,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
                 + id
                 + " = true; break; }"
         );
-        code.AppendLine(
-            "if (!__hasTemp"
-                + id
-                + " && next."
-                + SparseChangeSetBasicsEmitter.KeyedItems(member)
-                + " is not null)"
-        );
+        code.AppendLine("if (!__hasTemp" + id + " && next." + SparseChangeSetBasicsEmitter.KeyedItems(member) + " is not null)");
         code.AppendLine(
             "foreach (var __it in next."
                 + SparseChangeSetBasicsEmitter.KeyedItems(member)
@@ -218,33 +176,13 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
 
     /// <summary>Emits temp-aware item enumeration for composed transitions.</summary>
     /// <remarks>Sentinel slots in the composed after-order consume the composed temp order one-to-one.</remarks>
-    internal static void AppendTempAssembly(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        int id
-    )
+    internal static void AppendTempAssembly(SharedIndentedBuilder code, SparseMemberModel member, string trans, int id)
     {
         var isUnassignedKey = SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k");
-        var isUnassignedSlot = SparseKeyedCollectionEmitter.IsUnassignedExpression(
-            member,
-            "__nbO" + id + "[__i]"
-        );
-        code.AppendLine(
-            "var __tbiMap"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>();"
-        );
-        code.AppendLine(
-            "var __firstTempBefore"
-                + id
-                + " = "
-                + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "if (__nbO" + id + " is not null && __firstTempBefore" + id + " is not null)"
-        );
+        var isUnassignedSlot = SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__nbO" + id + "[__i]");
+        code.AppendLine("var __tbiMap" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>();");
+        code.AppendLine("var __firstTempBefore" + id + " = " + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member) + ";");
+        code.AppendLine("if (__nbO" + id + " is not null && __firstTempBefore" + id + " is not null)");
         code.AppendLine(
             "{ var __ti = 0; for (var __i = 0; __i < __nbO"
                 + id
@@ -290,13 +228,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         );
         code.AppendLine("__slot" + id + "++; continue;");
         code.CloseBlock();
-        code.AppendLine(
-            "if (__net"
-                + id
-                + ".TryGetValue(__k, out var __e) && !__e.IsRemoved) __elist"
-                + id
-                + ".Add(__e);"
-        );
+        code.AppendLine("if (__net" + id + ".TryGetValue(__k, out var __e) && !__e.IsRemoved) __elist" + id + ".Add(__e);");
         code.AppendLine("__slot" + id + "++;");
         code.CloseBlock();
         code.AppendLine(
@@ -327,13 +259,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            "foreach (var __kv in __net"
-                + id
-                + ") if (!__kv.Value.IsRemoved) __elist"
-                + id
-                + ".Add(__kv.Value);"
-        );
+        code.AppendLine("foreach (var __kv in __net" + id + ") if (!__kv.Value.IsRemoved) __elist" + id + ".Add(__kv.Value);");
         code.AppendLine(
             "foreach (var __tkv in __tnet"
                 + id
@@ -347,13 +273,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         code.AppendLine("if (__nbO" + id + " is not null)");
         code.OpenBlock();
         code.AppendLine(
-            "foreach (var __k in __nbO"
-                + id
-                + ") if (__net"
-                + id
-                + ".TryGetValue(__k, out var __e) && __e.IsRemoved) __elist"
-                + id
-                + ".Add(__e);"
+            "foreach (var __k in __nbO" + id + ") if (__net" + id + ".TryGetValue(__k, out var __e) && __e.IsRemoved) __elist" + id + ".Add(__e);"
         );
         code.AppendLine(
             "if (__firstTempBefore"
@@ -373,13 +293,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            "foreach (var __kv in __net"
-                + id
-                + ") if (__kv.Value.IsRemoved) __elist"
-                + id
-                + ".Add(__kv.Value);"
-        );
+        code.AppendLine("foreach (var __kv in __net" + id + ") if (__kv.Value.IsRemoved) __elist" + id + ".Add(__kv.Value);");
         code.AppendLine(
             "foreach (var __tkv in __tnet"
                 + id
@@ -393,22 +307,11 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
     }
 
     /// <remarks>The composed after-temp order is the second after-temp order plus first-only additions.</remarks>
-    internal static void AppendTempOrderFinalize(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string keyType,
-        int id
-    )
+    internal static void AppendTempOrderFinalize(SharedIndentedBuilder code, SparseMemberModel member, string keyType, int id)
     {
         var sentinel = member.Collection.UnassignedKeyExpression ?? "default!";
         var isUnassigned = SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k");
-        code.AppendLine(
-            "__cb"
-                + id
-                + "_tbO = "
-                + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member)
-                + ";"
-        );
+        code.AppendLine("__cb" + id + "_tbO = " + SparseChangeSetBasicsEmitter.KeyedTempBeforeOrder(member) + ";");
         code.AppendLine(
             "__cb"
                 + id
@@ -420,35 +323,21 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         );
         code.AppendLine("if (__hasTemp" + id + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "var __secondTempAfter"
-                + id
-                + " = next."
-                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
-                + ";"
-        );
+        code.AppendLine("var __secondTempAfter" + id + " = next." + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member) + ";");
         code.AppendLine(
             "if (__secondTempAfter"
                 + id
                 + " is null) throw new global::System.InvalidOperationException(\"ChangeSet composition requires temporary orders for temporary changes.\");"
         );
         code.AppendLine(
-            "var __cb"
-                + id
-                + "_taOlist = new global::System.Collections.Generic.List<global::System.Guid>(__secondTempAfter"
-                + id
-                + ");"
+            "var __cb" + id + "_taOlist = new global::System.Collections.Generic.List<global::System.Guid>(__secondTempAfter" + id + ");"
         );
         // Membership set over the same source order keeps net-addition
         // assembly linear; the list stays the authoritative output order.
         // The __slotted set below intentionally re-reads the original
         // second order so newly appended IDs still earn sentinel slots.
         code.AppendLine(
-            "var __cb"
-                + id
-                + "_taOseen = new global::System.Collections.Generic.HashSet<global::System.Guid>(__secondTempAfter"
-                + id
-                + ");"
+            "var __cb" + id + "_taOseen = new global::System.Collections.Generic.HashSet<global::System.Guid>(__secondTempAfter" + id + ");"
         );
         code.AppendLine(
             "foreach (var __tkv in __tnet"
@@ -465,11 +354,7 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         // Second-after branch: slots already cover every composed temp; only
         // degenerate first-only additions (absent from second temps) append.
         code.AppendLine(
-            "var __slotted"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__secondTempAfter"
-                + id
-                + ");"
+            "var __slotted" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__secondTempAfter" + id + ");"
         );
         code.AppendLine(
             "foreach (var __tkv in __tnet"
@@ -487,34 +372,10 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
         code.OpenBlock();
         // First-after fallback: drop removed-temp slots, append second-only
         // adds.
-        code.AppendLine(
-            "var __tremoved"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
-        code.AppendLine(
-            "foreach (var __tkv in __tnet"
-                + id
-                + ") if (__tkv.Value.IsRemoved) __tremoved"
-                + id
-                + ".Add(__tkv.Key);"
-        );
-        code.AppendLine(
-            "var __firstTempAfter"
-                + id
-                + " = "
-                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "var __fixed"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(__naO"
-                + id
-                + ".Count);"
-        );
+        code.AppendLine("var __tremoved" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
+        code.AppendLine("foreach (var __tkv in __tnet" + id + ") if (__tkv.Value.IsRemoved) __tremoved" + id + ".Add(__tkv.Key);");
+        code.AppendLine("var __firstTempAfter" + id + " = " + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member) + ";");
+        code.AppendLine("var __fixed" + id + " = new global::System.Collections.Generic.List<" + keyType + ">(__naO" + id + ".Count);");
         code.AppendLine(
             "{ var __ti = 0; foreach (var __k in __naO"
                 + id

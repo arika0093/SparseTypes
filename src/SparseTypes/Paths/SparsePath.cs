@@ -84,8 +84,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
 
     /// <summary>Appends a temporary-identity segment for an unassigned keyed entry.</summary>
     /// <param name="temporaryKey">The stable temporary identity.</param>
-    public SparsePath TemporaryKey(Guid temporaryKey) =>
-        Append(SparsePathSegment.TemporaryKeyOf(temporaryKey));
+    public SparsePath TemporaryKey(Guid temporaryKey) => Append(SparsePathSegment.TemporaryKeyOf(temporaryKey));
 
     /// <summary>Appends a positional index segment.</summary>
     /// <param name="index">The zero-based position.</param>
@@ -113,13 +112,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
 
         var combined = new SparsePathSegment[SegmentsArray.Length + suffix.SegmentsArray.Length];
         Array.Copy(SegmentsArray, combined, SegmentsArray.Length);
-        Array.Copy(
-            suffix.SegmentsArray,
-            0,
-            combined,
-            SegmentsArray.Length,
-            suffix.SegmentsArray.Length
-        );
+        Array.Copy(suffix.SegmentsArray, 0, combined, SegmentsArray.Length, suffix.SegmentsArray.Length);
         return new SparsePath(combined, RootType);
     }
 
@@ -281,16 +274,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
                         break;
                     case SparsePathSegmentKind.TemporaryKey:
                         builder.Append("[temp:\"");
-                        builder.Append(
-                            EscapeKey(
-                                KeyText(
-                                    segment.TemporaryKey?.ToString(
-                                        "D",
-                                        CultureInfo.InvariantCulture
-                                    )
-                                )
-                            )
-                        );
+                        builder.Append(EscapeKey(KeyText(segment.TemporaryKey?.ToString("D", CultureInfo.InvariantCulture))));
                         builder.Append("\"]");
                         break;
                     default:
@@ -403,8 +387,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <param name="text">The path text.</param>
     /// <param name="path">The parsed path, or the default value when parsing fails.</param>
     /// <typeparam name="TModel">The root model type.</typeparam>
-    public static bool TryParse<TModel>(string? text, out SparsePath path) =>
-        TryParse(typeof(TModel), text, out path);
+    public static bool TryParse<TModel>(string? text, out SparsePath path) => TryParse(typeof(TModel), text, out path);
 
     private static bool TryParseBracket(string text, ref int index, out SparsePathSegment segment)
     {
@@ -452,13 +435,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
                         case 'u':
                             if (
                                 index + 5 < text.Length
-                                && TryParseHex(
-                                    text[index + 2],
-                                    text[index + 3],
-                                    text[index + 4],
-                                    text[index + 5],
-                                    out var code
-                                )
+                                && TryParseHex(text[index + 2], text[index + 3], text[index + 4], text[index + 5], out var code)
                             )
                             {
                                 builder.Append((char)code);
@@ -573,9 +550,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return formattable.ToString(null, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
-        return key.GetType().ToString()
-            + ":"
-            + (Convert.ToString(key, CultureInfo.InvariantCulture) ?? string.Empty);
+        return key.GetType().ToString() + ":" + (Convert.ToString(key, CultureInfo.InvariantCulture) ?? string.Empty);
     }
 
     internal static string EscapeKey(string value)

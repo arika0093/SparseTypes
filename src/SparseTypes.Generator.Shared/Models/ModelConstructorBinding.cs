@@ -9,11 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace SparseTypes.Generator.Shared;
 
-internal readonly record struct ConstructorParameterBinding(
-    string PropertyName,
-    string DefaultExpression,
-    bool HasExplicitDefaultValue
-);
+internal readonly record struct ConstructorParameterBinding(string PropertyName, string DefaultExpression, bool HasExplicitDefaultValue);
 
 /// <summary>Constructor parameters bound by property name and exact type.</summary>
 internal sealed record ModelConstructorBinding(
@@ -22,8 +18,7 @@ internal sealed record ModelConstructorBinding(
     bool IsImplicitParameterlessClassConstructor = false
 )
 {
-    public static ModelConstructorBinding Parameterless { get; } =
-        new(ImmutableArray<ConstructorParameterBinding>.Empty);
+    public static ModelConstructorBinding Parameterless { get; } = new(ImmutableArray<ConstructorParameterBinding>.Empty);
 
     public bool Equals(ModelConstructorBinding? other) =>
         other is not null
@@ -33,8 +28,7 @@ internal sealed record ModelConstructorBinding(
 
     public override int GetHashCode()
     {
-        var hash =
-            (SetsRequiredMembers ? 1 : 0) + (IsImplicitParameterlessClassConstructor ? 2 : 0);
+        var hash = (SetsRequiredMembers ? 1 : 0) + (IsImplicitParameterlessClassConstructor ? 2 : 0);
         foreach (var parameter in Parameters)
         {
             hash = unchecked(hash * 31 + parameter.GetHashCode());
@@ -43,16 +37,11 @@ internal sealed record ModelConstructorBinding(
         return hash;
     }
 
-    public static ModelConstructorBinding? AnalyzeRoot(
-        INamedTypeSymbol model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => Analyze(model, config, allowNonPublicConstructors: true, cancellationToken);
+    public static ModelConstructorBinding? AnalyzeRoot(INamedTypeSymbol model, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        Analyze(model, config, allowNonPublicConstructors: true, cancellationToken);
 
-    public static ModelConstructorBinding? AnalyzeRoot(
-        INamedTypeSymbol model,
-        CancellationToken cancellationToken
-    ) => Analyze(model, null, allowNonPublicConstructors: true, cancellationToken);
+    public static ModelConstructorBinding? AnalyzeRoot(INamedTypeSymbol model, CancellationToken cancellationToken) =>
+        Analyze(model, null, allowNonPublicConstructors: true, cancellationToken);
 
     public static ModelConstructorBinding? AnalyzeStructural(
         INamedTypeSymbol model,
@@ -60,10 +49,8 @@ internal sealed record ModelConstructorBinding(
         CancellationToken cancellationToken
     ) => Analyze(model, config, allowNonPublicConstructors: false, cancellationToken);
 
-    public static ModelConstructorBinding? AnalyzeStructural(
-        INamedTypeSymbol model,
-        CancellationToken cancellationToken
-    ) => Analyze(model, null, allowNonPublicConstructors: false, cancellationToken);
+    public static ModelConstructorBinding? AnalyzeStructural(INamedTypeSymbol model, CancellationToken cancellationToken) =>
+        Analyze(model, null, allowNonPublicConstructors: false, cancellationToken);
 
     private static ModelConstructorBinding? Analyze(
         INamedTypeSymbol model,
@@ -74,19 +61,13 @@ internal sealed record ModelConstructorBinding(
     {
         var properties = SparseModelDiscovery
             .GetReadableProperties(model, config, cancellationToken, includeSparseIgnored: true)
-            .Where(static property =>
-                property.SetMethod is null
-                || property.SetMethod.DeclaredAccessibility == Accessibility.Public
-            )
+            .Where(static property => property.SetMethod is null || property.SetMethod.DeclaredAccessibility == Accessibility.Public)
             .ToArray();
         // Indexed lazily so the parameterless fast path pays nothing.
         Dictionary<string, List<IPropertySymbol>>? propertyIndex = null;
         foreach (
             var constructor in model
-                .InstanceConstructors.Where(constructor =>
-                    allowNonPublicConstructors
-                    || constructor.DeclaredAccessibility == Accessibility.Public
-                )
+                .InstanceConstructors.Where(constructor => allowNonPublicConstructors || constructor.DeclaredAccessibility == Accessibility.Public)
                 .OrderBy(static constructor => constructor.Parameters.Length)
                 .ThenBy(static constructor => constructor.ToDisplayString(), StringComparer.Ordinal)
         )
@@ -96,23 +77,16 @@ internal sealed record ModelConstructorBinding(
             var setsRequiredMembers = constructor
                 .GetAttributes()
                 .Any(static attribute =>
-                    attribute.AttributeClass?.ToDisplayString()
-                    == "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute"
+                    attribute.AttributeClass?.ToDisplayString() == "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute"
                 );
             if (constructorParameters.IsEmpty)
             {
                 if (model.TypeKind == TypeKind.Class && constructor.IsImplicitlyDeclared)
                 {
-                    return new(
-                        ImmutableArray<ConstructorParameterBinding>.Empty,
-                        setsRequiredMembers,
-                        true
-                    );
+                    return new(ImmutableArray<ConstructorParameterBinding>.Empty, setsRequiredMembers, true);
                 }
 
-                return setsRequiredMembers
-                    ? new(ImmutableArray<ConstructorParameterBinding>.Empty, true)
-                    : Parameterless;
+                return setsRequiredMembers ? new(ImmutableArray<ConstructorParameterBinding>.Empty, true) : Parameterless;
             }
             var parameters = ImmutableArray.CreateBuilder<ConstructorParameterBinding>();
             foreach (var parameter in constructorParameters)
@@ -124,13 +98,7 @@ internal sealed record ModelConstructorBinding(
                     break;
                 }
 
-                parameters.Add(
-                    new ConstructorParameterBinding(
-                        match.Name,
-                        DefaultExpression(parameter),
-                        parameter.HasExplicitDefaultValue
-                    )
-                );
+                parameters.Add(new ConstructorParameterBinding(match.Name, DefaultExpression(parameter), parameter.HasExplicitDefaultValue));
             }
             if (parameters.Count == constructorParameters.Length)
             {
@@ -143,9 +111,7 @@ internal sealed record ModelConstructorBinding(
     // Buckets share a case-insensitive name; the parameter type then selects
     // within the bucket, so same-name/different-type candidates still bind
     // while same-name/same-type candidates stay ambiguous.
-    private static Dictionary<string, List<IPropertySymbol>> BuildPropertyIndex(
-        IPropertySymbol[] properties
-    )
+    private static Dictionary<string, List<IPropertySymbol>> BuildPropertyIndex(IPropertySymbol[] properties)
     {
         var index = new Dictionary<string, List<IPropertySymbol>>(StringComparer.OrdinalIgnoreCase);
         foreach (var property in properties)
@@ -160,10 +126,7 @@ internal sealed record ModelConstructorBinding(
         return index;
     }
 
-    private static IPropertySymbol? FindUniqueMatch(
-        Dictionary<string, List<IPropertySymbol>> index,
-        IParameterSymbol parameter
-    )
+    private static IPropertySymbol? FindUniqueMatch(Dictionary<string, List<IPropertySymbol>> index, IParameterSymbol parameter)
     {
         if (!index.TryGetValue(parameter.Name, out var bucket))
         {
@@ -213,10 +176,7 @@ internal sealed record ModelConstructorBinding(
         }
 
         var literal = Convert.ToString(value, CultureInfo.InvariantCulture)!;
-        if (
-            value is float specialSingle
-            && (float.IsNaN(specialSingle) || float.IsInfinity(specialSingle))
-        )
+        if (value is float specialSingle && (float.IsNaN(specialSingle) || float.IsInfinity(specialSingle)))
         {
             var field = specialSingle > 0 ? "PositiveInfinity" : "NegativeInfinity";
             if (float.IsNaN(specialSingle))
@@ -226,10 +186,7 @@ internal sealed record ModelConstructorBinding(
 
             return "global::System.Single." + field;
         }
-        if (
-            value is double specialDouble
-            && (double.IsNaN(specialDouble) || double.IsInfinity(specialDouble))
-        )
+        if (value is double specialDouble && (double.IsNaN(specialDouble) || double.IsInfinity(specialDouble)))
         {
             var field = specialDouble > 0 ? "PositiveInfinity" : "NegativeInfinity";
             if (double.IsNaN(specialDouble))

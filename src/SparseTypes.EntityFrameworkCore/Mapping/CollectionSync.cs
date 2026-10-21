@@ -39,11 +39,7 @@ internal static class CollectionSync
             return;
         }
 
-        var collection = CollectionEntryAccess.ReadNoDetect(
-            state.Context,
-            state.Entity,
-            runtime.NavigationName
-        );
+        var collection = CollectionEntryAccess.ReadNoDetect(state.Context, state.Entity, runtime.NavigationName);
         // Preflight is read-only: PeekList never assigns a null navigation.
         var list = CollectionState.ReadTrackedList(runtime, state, collection);
         var tracked = CollectionState.IndexTracked(runtime, state, list);
@@ -62,9 +58,7 @@ internal static class CollectionSync
                 appliedPaths: state.AppliedPaths,
                 collectionScopeKeys: state.CollectionScopeKeys,
                 nestedScopes: state.NestedScopes,
-                parentScope: state.ParentScope.Append(
-                    CollectionScopeIdentity.Assigned(edit.Key, runtime.KeyComparer)
-                )
+                parentScope: state.ParentScope.Append(CollectionScopeIdentity.Assigned(edit.Key, runtime.KeyComparer))
             );
             runtime.ChildPlan.Prepare(sub, actions);
         }
@@ -117,9 +111,7 @@ internal static class CollectionSync
         var path = state.DisplayPath(runtime.DtoName);
         var seen = new HashSet<object>(runtime.KeyComparer);
         var seenTemporary = new HashSet<Guid>();
-        var creations = new List<(TDtoChild Dto, TEntityChild Entity, Guid? Temporary)>(
-            snapshot.Count
-        );
+        var creations = new List<(TDtoChild Dto, TEntityChild Entity, Guid? Temporary)>(snapshot.Count);
         foreach (var element in snapshot)
         {
             if (element is null)
@@ -139,12 +131,7 @@ internal static class CollectionSync
                     $"A desired child under '{runtime.DtoName}' has a null identity."
                 );
             var temporary = runtime.TemporaryGetter?.Invoke(element);
-            if (
-                runtime.IsUnassigned(key)
-                && temporary is not null
-                && temporary != Guid.Empty
-                && !seenTemporary.Add(temporary.Value)
-            )
+            if (runtime.IsUnassigned(key) && temporary is not null && temporary != Guid.Empty && !seenTemporary.Add(temporary.Value))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -175,12 +162,7 @@ internal static class CollectionSync
 
         actions.Add(() =>
         {
-            var list = CollectionState.EnsureList<TDtoChild, TEntityChild>(
-                runtime,
-                state.Context,
-                state.Entity,
-                path
-            );
+            var list = CollectionState.EnsureList<TDtoChild, TEntityChild>(runtime, state.Context, state.Entity, path);
             // Replace clears absent children and detaches added orphans while
             // preserving the navigation reference and existing tracked rows.
             var orphans = list.Cast<object>().ToList();
@@ -231,14 +213,7 @@ internal static class CollectionSync
                 state.RecordCollectionScope(path, runtime, entity, scopeKey, state.ParentScope);
                 if (state.AppliedPaths is not null)
                 {
-                    state.RecordAppliedPath(
-                        AppliedPathFactory.Create(
-                            path,
-                            entry,
-                            runtime.NavigationName,
-                            SparseEntityApplyOperationKind.Created
-                        )
-                    );
+                    state.RecordAppliedPath(AppliedPathFactory.Create(path, entry, runtime.NavigationName, SparseEntityApplyOperationKind.Created));
                 }
 
                 var sub = new PlanWriteState(
@@ -252,12 +227,7 @@ internal static class CollectionSync
                     state.CollectionScopeKeys,
                     state.NestedScopes,
                     state.ParentScope.Append(
-                        CollectionScopeIdentity.ForElement(
-                            key,
-                            key is not null && !runtime.IsUnassigned(key),
-                            temporaryKey,
-                            runtime.KeyComparer
-                        )
+                        CollectionScopeIdentity.ForElement(key, key is not null && !runtime.IsUnassigned(key), temporaryKey, runtime.KeyComparer)
                     )
                 );
                 var subs = new List<Action>();
@@ -325,12 +295,7 @@ internal static class CollectionSync
 
         ValidateDelta(runtime, view, tracked, plan, path);
         plan.FinalOrder = CollectionOrderPlanner.PlanOrder(runtime, view, tracked, plan, path);
-        if (
-            view.OrderChanged
-            && plan.Added.Count == 0
-            && plan.Removed.Count == 0
-            && runtime.OrderSetter is null
-        )
+        if (view.OrderChanged && plan.Added.Count == 0 && plan.Removed.Count == 0 && runtime.OrderSetter is null)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.CollectionNotSupported,
@@ -370,10 +335,7 @@ internal static class CollectionSync
             );
         if (runtime.IsUnassigned(key))
         {
-            if (
-                runtime.TemporaryDeclared
-                && (item.TemporaryKey is null || item.TemporaryKey == Guid.Empty)
-            )
+            if (runtime.TemporaryDeclared && (item.TemporaryKey is null || item.TemporaryKey == Guid.Empty))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -382,11 +344,7 @@ internal static class CollectionSync
                 );
             }
 
-            if (
-                item.TemporaryKey is not null
-                && item.TemporaryKey != Guid.Empty
-                && plan.ContainsTemporaryKey(item.TemporaryKey.Value)
-            )
+            if (item.TemporaryKey is not null && item.TemporaryKey != Guid.Empty && plan.ContainsTemporaryKey(item.TemporaryKey.Value))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -427,11 +385,7 @@ internal static class CollectionSync
             );
         // Bookkeeping stays plan-scoped and only records valid rows, so a
         // throw above leaves the index untouched by the failed row.
-        plan.RegisterAddition(
-            key is null || runtime.IsUnassigned(key) ? null : key,
-            item.TemporaryKey,
-            runtime.KeyComparer
-        );
+        plan.RegisterAddition(key is null || runtime.IsUnassigned(key) ? null : key, item.TemporaryKey, runtime.KeyComparer);
         return new PlannedAddition<TDtoChild, TEntityChild>(
             after,
             created,
@@ -522,10 +476,7 @@ internal static class CollectionSync
         where TDtoChild : class
         where TEntityChild : class
     {
-        var removedKeys = new HashSet<object>(
-            plan.Removed.Select(static removal => removal.Key),
-            runtime.KeyComparer
-        );
+        var removedKeys = new HashSet<object>(plan.Removed.Select(static removal => removal.Key), runtime.KeyComparer);
         if (plan.Edits.Any(edit => removedKeys.Contains(edit.Key)))
         {
             throw new SparseEntityMappingException(
@@ -538,10 +489,7 @@ internal static class CollectionSync
         // Validate complete membership and order evidence before mutation; a
         // partial or stale snapshot fails. Retain soft-deleted rows separately.
         var survivors = tracked.Keys.Where(key => !removedKeys.Contains(key)).ToList();
-        var assignedAdds = plan
-            .Added.Where(addition => addition.AssignedKey is not null)
-            .Select(addition => addition.AssignedKey!)
-            .ToList();
+        var assignedAdds = plan.Added.Where(addition => addition.AssignedKey is not null).Select(addition => addition.AssignedKey!).ToList();
         var afterAssigned = view.AfterOrder.Where(key => !runtime.IsUnassigned(key)).ToList();
         var afterSet = new HashSet<object>(afterAssigned, runtime.KeyComparer);
         var known = new HashSet<object>(survivors, runtime.KeyComparer);
@@ -564,9 +512,7 @@ internal static class CollectionSync
             var proven =
                 runtime.RemoveKind == SparseEntityRemoveKind.SoftDelete
                 && runtime.IsDeletedPredicate is not null
-                && missing.All(key =>
-                    tracked.TryGetValue(key, out var child) && runtime.IsDeletedPredicate(child)
-                );
+                && missing.All(key => tracked.TryGetValue(key, out var child) && runtime.IsDeletedPredicate(child));
             if (!proven)
             {
                 throw new SparseEntityMappingException(
@@ -595,9 +541,7 @@ internal static class CollectionSync
             addition.Dto,
             path,
             new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal),
-            nestedScopes: new Dictionary<object, NestedScopeTable>(
-                ReferenceEqualityComparer.Instance
-            ),
+            nestedScopes: new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance),
             parentScope: CollectionScopePath.Empty.Append(
                 CollectionScopeIdentity.ForElement(
                     probeKey,
@@ -628,9 +572,7 @@ internal static class CollectionSync
             snapshot,
             path,
             new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal),
-            nestedScopes: new Dictionary<object, NestedScopeTable>(
-                ReferenceEqualityComparer.Instance
-            ),
+            nestedScopes: new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance),
             parentScope: CollectionScopePath.Empty.Append(
                 CollectionScopeIdentity.ForElement(
                     probeKey,

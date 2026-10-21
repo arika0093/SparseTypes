@@ -7,9 +7,7 @@ namespace SparseTypes;
 /// <typeparam name="TModel">The root model type.</typeparam>
 /// <typeparam name="TValue">The addressed value type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public readonly struct SparsePath<TModel, TValue>
-    : IEquatable<SparsePath<TModel, TValue>>,
-        ISparseTypedPath<TModel, TValue>
+public readonly struct SparsePath<TModel, TValue> : IEquatable<SparsePath<TModel, TValue>>, ISparseTypedPath<TModel, TValue>
 {
     /// <summary>Creates a typed path over an untyped path.</summary>
     /// <param name="path">The underlying path.</param>
@@ -18,10 +16,7 @@ public readonly struct SparsePath<TModel, TValue>
     {
         if (path.RootType != typeof(TModel))
         {
-            throw new ArgumentException(
-                "The path root '" + path.RootType + "' is not '" + typeof(TModel) + "'.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path root '" + path.RootType + "' is not '" + typeof(TModel) + "'.", nameof(path));
         }
 
         _path = path;
@@ -44,9 +39,7 @@ public readonly struct SparsePath<TModel, TValue>
     /// <inheritdoc />
     public void WriteModelValueInPlace(TValue current, TValue updated)
     {
-        throw new NotSupportedException(
-            "This typed path does not address a generated model value."
-        );
+        throw new NotSupportedException("This typed path does not address a generated model value.");
     }
 
     /// <summary>Gets the root model type.</summary>
@@ -72,24 +65,16 @@ public readonly struct SparsePath<TModel, TValue>
 
     /// <inheritdoc />
     public override bool Equals(object? obj) =>
-        obj is SparsePath<TModel, TValue> typed
-            ? Equals(typed)
-            : obj is SparsePath untyped && Equals(untyped);
+        obj is SparsePath<TModel, TValue> typed ? Equals(typed) : obj is SparsePath untyped && Equals(untyped);
 
     /// <inheritdoc />
     public override int GetHashCode() => _path.GetSegmentsHashCode(typeof(TModel).GetHashCode());
 
     /// <summary>Determines whether two typed paths have the same identity.</summary>
-    public static bool operator ==(
-        SparsePath<TModel, TValue> left,
-        SparsePath<TModel, TValue> right
-    ) => left.Equals(right);
+    public static bool operator ==(SparsePath<TModel, TValue> left, SparsePath<TModel, TValue> right) => left.Equals(right);
 
     /// <summary>Determines whether two typed paths differ in identity.</summary>
-    public static bool operator !=(
-        SparsePath<TModel, TValue> left,
-        SparsePath<TModel, TValue> right
-    ) => !(left == right);
+    public static bool operator !=(SparsePath<TModel, TValue> left, SparsePath<TModel, TValue> right) => !(left == right);
 
     /// <inheritdoc />
     public override string ToString() => Path.ToString();

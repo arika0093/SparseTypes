@@ -4,11 +4,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparsePayloadJsonMemberEmitter
 {
     /// <summary>Emits one member change codec.</summary>
-    internal static void AppendMember(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context,
-        SparseMemberModel member
-    )
+    internal static void AppendMember(SharedIndentedBuilder code, PayloadJsonEmissionContext context, SparseMemberModel member)
     {
         var memberChange = context.MemberDto("Change", member.Id);
         var changeType = context.Dto("Change");
@@ -20,16 +16,10 @@ internal static class SparsePayloadJsonMemberEmitter
         var isValueCollection = false;
         if (!isNested)
         {
-            isValueCollection = SparseJsonCollectionShapes.TryResolve(
-                member,
-                valueType,
-                out valueCollection
-            );
+            isValueCollection = SparseJsonCollectionShapes.TryResolve(member, valueType, out valueCollection);
             isValueCollection = isValueCollection && valueCollection is not null;
         }
-        var readCodec = isValueCollection
-            ? ", ReadCollection" + member.Id + ", WriteCollection" + member.Id
-            : ", null, null";
+        var readCodec = isValueCollection ? ", ReadCollection" + member.Id + ", WriteCollection" + member.Id : ", null, null";
         var writeCodec = isValueCollection ? ", WriteCollection" + member.Id : ", null";
         code.AppendLine(
             "private static "
@@ -45,9 +35,7 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine("var change = new " + memberChange + "();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
@@ -55,23 +43,17 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine(
             "if (name == \"member\") { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\"); reader.Skip(); continue; }"
         );
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");");
         if (isNested)
         {
             if (member.ChildModel is not { } child)
             {
-                throw new global::System.InvalidOperationException(
-                    "Nested member is missing its child model."
-                );
+                throw new global::System.InvalidOperationException("Nested member is missing its child model.");
             }
 
             var childType = child.NonNullableName;
             code.AppendLine(
-                "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadChildEndpoint"
-                    + member.Id
-                    + "(ref reader, options); }"
+                "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadChildEndpoint" + member.Id + "(ref reader, options); }"
             );
             code.AppendLine(
                 "else if (name == \"nested\") { if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) change.Nested = null; else change.Nested = "
@@ -103,32 +85,16 @@ internal static class SparsePayloadJsonMemberEmitter
                     + readCodec
                     + "); }"
             );
-            code.AppendLine(
-                "else if (name == \"items\") change.Items = ReadItems"
-                    + member.Id
-                    + "(ref reader, options);"
-            );
+            code.AppendLine("else if (name == \"items\") change.Items = ReadItems" + member.Id + "(ref reader, options);");
             if (isKeyed)
             {
                 var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-                code.AppendLine(
-                    "else if (name == \"beforeOrder\") change.BeforeOrder = ReadKeyList<"
-                        + keyType
-                        + ">(ref reader, options);"
-                );
-                code.AppendLine(
-                    "else if (name == \"afterOrder\") change.AfterOrder = ReadKeyList<"
-                        + keyType
-                        + ">(ref reader, options);"
-                );
+                code.AppendLine("else if (name == \"beforeOrder\") change.BeforeOrder = ReadKeyList<" + keyType + ">(ref reader, options);");
+                code.AppendLine("else if (name == \"afterOrder\") change.AfterOrder = ReadKeyList<" + keyType + ">(ref reader, options);");
                 if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                 {
-                    code.AppendLine(
-                        "else if (name == \"tempBeforeOrder\") change.TempBeforeOrder = ReadGuidList(ref reader);"
-                    );
-                    code.AppendLine(
-                        "else if (name == \"tempAfterOrder\") change.TempAfterOrder = ReadGuidList(ref reader);"
-                    );
+                    code.AppendLine("else if (name == \"tempBeforeOrder\") change.TempBeforeOrder = ReadGuidList(ref reader);");
+                    code.AppendLine("else if (name == \"tempAfterOrder\") change.TempAfterOrder = ReadGuidList(ref reader);");
                 }
             }
 
@@ -176,9 +142,7 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             if (member.ChildModel is not { } writeChild)
             {
-                throw new global::System.InvalidOperationException(
-                    "Nested member is missing its child model."
-                );
+                throw new global::System.InvalidOperationException("Nested member is missing its child model.");
             }
 
             var writeChildModel = writeChild.NonNullableName;
@@ -210,11 +174,7 @@ internal static class SparsePayloadJsonMemberEmitter
                     + writeCodec
                     + "); }"
             );
-            code.AppendLine(
-                "writer.WritePropertyName(\"items\"); WriteItems"
-                    + member.Id
-                    + "(writer, change.Items, options);"
-            );
+            code.AppendLine("writer.WritePropertyName(\"items\"); WriteItems" + member.Id + "(writer, change.Items, options);");
             if (isKeyed)
             {
                 var writeKeyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
@@ -283,17 +243,11 @@ internal static class SparsePayloadJsonMemberEmitter
         }
     }
 
-    private static void AppendChildEndpoint(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context,
-        SparseMemberModel member
-    )
+    private static void AppendChildEndpoint(SharedIndentedBuilder code, PayloadJsonEmissionContext context, SparseMemberModel member)
     {
         if (member.ChildModel is not { } child)
         {
-            throw new global::System.InvalidOperationException(
-                "Nested member is missing its child model."
-            );
+            throw new global::System.InvalidOperationException("Nested member is missing its child model.");
         }
 
         var childType = child.NonNullableName;
@@ -308,9 +262,7 @@ internal static class SparsePayloadJsonMemberEmitter
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"An endpoint must be an object.\");"
         );
@@ -319,9 +271,7 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine(childRoot + "? value = default;");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
@@ -333,20 +283,10 @@ internal static class SparsePayloadJsonMemberEmitter
                 + childType
                 + ".PayloadJsonConverter.ReadRoot(ref reader, options); }"
         );
-        code.AppendLine(
-            "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }"
-        );
+        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }");
         code.CloseBlock();
-        code.AppendLine(
-            "if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");"
-        );
-        code.AppendLine(
-            "return new "
-                + context.Runtime
-                + "ChangePayloadEndpoint<"
-                + childRoot
-                + "?> { State = state, Value = value };"
-        );
+        code.AppendLine("if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");");
+        code.AppendLine("return new " + context.Runtime + "ChangePayloadEndpoint<" + childRoot + "?> { State = state, Value = value };");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine(
@@ -359,37 +299,23 @@ internal static class SparsePayloadJsonMemberEmitter
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLine("writer.WriteStartObject();");
-        code.AppendLine(
-            "writer.WriteString(\"state\", "
-                + context.Runtime
-                + "ChangePayloadWire.ToToken(value.State));"
-        );
+        code.AppendLine("writer.WriteString(\"state\", " + context.Runtime + "ChangePayloadWire.ToToken(value.State));");
         code.AppendLine("writer.WritePropertyName(\"value\");");
         code.AppendLine(
-            "if (value.Value is null) writer.WriteNullValue(); else "
-                + childType
-                + ".PayloadJsonConverter.WriteRoot(writer, value.Value, options);"
+            "if (value.Value is null) writer.WriteNullValue(); else " + childType + ".PayloadJsonConverter.WriteRoot(writer, value.Value, options);"
         );
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();
     }
 
-    private static void AppendItems(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context,
-        SparseMemberModel member
-    )
+    private static void AppendItems(SharedIndentedBuilder code, PayloadJsonEmissionContext context, SparseMemberModel member)
     {
         var itemType = context.MemberDto("Item", member.Id);
         var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
-        var itemValueType = isKeyed
-            ? SparseChangeSetBasicsEmitter.ElementTypeOf(member)
-            : SparseChangeSetBasicsEmitter.ValueTypeOf(member);
-        var isModelValue = isKeyed
-            ? member.Collection.ElementType.IsFragmentModel
-            : member.Collection.ValueType?.IsFragmentModel == true;
+        var itemValueType = isKeyed ? SparseChangeSetBasicsEmitter.ElementTypeOf(member) : SparseChangeSetBasicsEmitter.ValueTypeOf(member);
+        var isModelValue = isKeyed ? member.Collection.ElementType.IsFragmentModel : member.Collection.ValueType?.IsFragmentModel == true;
         var hasTempKey = isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         code.AppendLine(
             "private static global::System.Collections.Generic.List<"
@@ -399,20 +325,14 @@ internal static class SparsePayloadJsonMemberEmitter
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return new();"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return new();");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Payload items must be an array.\");"
         );
-        code.AppendLine(
-            "var list = new global::System.Collections.Generic.List<" + itemType + ">();"
-        );
+        code.AppendLine("var list = new global::System.Collections.Generic.List<" + itemType + ">();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
         code.AppendLine("list.Add(ReadItem" + member.Id + "(ref reader, options));");
         code.CloseBlock();
         code.AppendLine("return list;");
@@ -432,9 +352,7 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine("var item = new " + itemType + "();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\");"
         );
@@ -473,14 +391,10 @@ internal static class SparsePayloadJsonMemberEmitter
         {
             if (member.Collection.ValueType is null && !isKeyed)
             {
-                throw new global::System.InvalidOperationException(
-                    "Dictionary item is missing its value model."
-                );
+                throw new global::System.InvalidOperationException("Dictionary item is missing its value model.");
             }
 
-            var editChild = isKeyed
-                ? member.Collection.ElementType.NonNullableName
-                : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
+            var editChild = isKeyed ? member.Collection.ElementType.NonNullableName : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
             var editCore = context.ChildDto(editChild, "Core");
             _ = editCore;
             code.AppendLine(
@@ -502,9 +416,7 @@ internal static class SparsePayloadJsonMemberEmitter
                 "else if (reader.ValueTextEquals(\"temporaryKey\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.TemporaryKey = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : (global::System.Guid?)reader.GetGuid(); }"
             );
         }
-        code.AppendLine(
-            "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }"
-        );
+        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }");
         code.CloseBlock();
         code.AppendLine("return item;");
         code.CloseBlock();
@@ -522,11 +434,7 @@ internal static class SparsePayloadJsonMemberEmitter
         code.OpenBlock();
         code.AppendLine("writer.WriteStartObject();");
         code.AppendLine("writer.WritePropertyName(\"key\"); WriteKey(writer, item.Key, options);");
-        code.AppendLine(
-            "writer.WriteString(\"kind\", "
-                + context.Runtime
-                + "ChangePayloadWire.ToToken(item.Kind));"
-        );
+        code.AppendLine("writer.WriteString(\"kind\", " + context.Runtime + "ChangePayloadWire.ToToken(item.Kind));");
         if (isKeyed)
         {
             code.AppendLine("writer.WriteNumber(\"beforeIndex\", item.BeforeIndex);");
@@ -534,19 +442,13 @@ internal static class SparsePayloadJsonMemberEmitter
             code.AppendLine("if (item.IsReordered) writer.WriteBoolean(\"isReordered\", true);");
         }
 
-        code.AppendLine(
-            "if (item.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, item.Before, options, null); }"
-        );
-        code.AppendLine(
-            "if (item.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, item.After, options, null); }"
-        );
+        code.AppendLine("if (item.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, item.Before, options, null); }");
+        code.AppendLine("if (item.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, item.After, options, null); }");
         if (isModelValue)
         {
             if (member.Collection.ValueType is null && !isKeyed)
             {
-                throw new global::System.InvalidOperationException(
-                    "Dictionary item is missing its value model."
-                );
+                throw new global::System.InvalidOperationException("Dictionary item is missing its value model.");
             }
 
             var writeEditChild = isKeyed

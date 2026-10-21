@@ -96,25 +96,17 @@ public static class ChangePayloadWire
             _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 
-    private static readonly byte[] Utf8StateProperty = System.Text.Encoding.UTF8.GetBytes(
-        StateProperty
-    );
+    private static readonly byte[] Utf8StateProperty = System.Text.Encoding.UTF8.GetBytes(StateProperty);
 
-    private static readonly byte[] Utf8ValueProperty = System.Text.Encoding.UTF8.GetBytes(
-        ValueProperty
-    );
+    private static readonly byte[] Utf8ValueProperty = System.Text.Encoding.UTF8.GetBytes(ValueProperty);
 
-    private static readonly byte[] Utf8MissingState = System.Text.Encoding.UTF8.GetBytes(
-        MissingState
-    );
+    private static readonly byte[] Utf8MissingState = System.Text.Encoding.UTF8.GetBytes(MissingState);
 
     private static readonly byte[] Utf8NullState = System.Text.Encoding.UTF8.GetBytes(NullState);
 
     private static readonly byte[] Utf8ValueState = System.Text.Encoding.UTF8.GetBytes(ValueState);
 
-    private static readonly byte[] Utf8RedactedState = System.Text.Encoding.UTF8.GetBytes(
-        RedactedState
-    );
+    private static readonly byte[] Utf8RedactedState = System.Text.Encoding.UTF8.GetBytes(RedactedState);
 
     private static readonly byte[] Utf8AddKind = System.Text.Encoding.UTF8.GetBytes(AddKind);
 
@@ -122,9 +114,7 @@ public static class ChangePayloadWire
 
     private static readonly byte[] Utf8EditKind = System.Text.Encoding.UTF8.GetBytes(EditKind);
 
-    private static readonly byte[] Utf8ReorderKind = System.Text.Encoding.UTF8.GetBytes(
-        ReorderKind
-    );
+    private static readonly byte[] Utf8ReorderKind = System.Text.Encoding.UTF8.GetBytes(ReorderKind);
 
     /// <summary>Maps an endpoint state to its wire token.</summary>
     /// <param name="state">The state to map.</param>

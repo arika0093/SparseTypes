@@ -5,34 +5,15 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetKeyedTempRebaseEmitter
 {
     /// <summary>Emits the temp-aware current-state walk for a keyed rebase.</summary>
-    internal static void AppendTempCurrentWalk(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string elementType,
-        int id
-    )
+    internal static void AppendTempCurrentWalk(SharedIndentedBuilder code, SparseMemberModel member, string elementType, int id)
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
-        code.AppendLine(
-            "var __tcur"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
-        );
-        code.AppendLine(
-            "var __tcorder"
-                + id
-                + " = new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
+        code.AppendLine("var __tcur" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
+        code.AppendLine("var __tcorder" + id + " = new global::System.Collections.Generic.List<global::System.Guid>();");
         // Temporary current-position index built in the same pass as the
         // temp map/order; assigned positions reuse the __cpos table so both
         // stay aligned with __corder.
-        code.AppendLine(
-            "var __tpos"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>();"
-        );
+        code.AppendLine("var __tpos" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>();");
         code.AppendLine(
             "foreach (var __e in __curM"
                 + id
@@ -43,11 +24,7 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
                 + ") { var __ct = "
                 + tempOf
                 + "(__e); if (!__ct.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__ct.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__tcur" + id,
-                    "__ct.Value",
-                    "__e"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__tcur" + id, "__ct.Value", "__e")
                 + " __tpos"
                 + id
                 + "[__ct.Value] = __tcorder"
@@ -92,11 +69,7 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
         var rootPath = "__SparseRootPath.Member(" + lit + ")";
         // Temporary items rebase against the current temporary map; assigned
         // entries never match here even when they retain a temporary value.
-        code.AppendLine(
-            "if ("
-                + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__it.Key")
-                + " && __it.TemporaryKey.HasValue)"
-        );
+        code.AppendLine("if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__it.Key") + " && __it.TemporaryKey.HasValue)");
         code.OpenBlock();
         code.AppendLine("var __tt = __it.TemporaryKey.Value;");
         // Added: replay when absent; already-applied when equal; conflict
@@ -233,40 +206,15 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
         );
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            "var __tnr = __it.Edit.RebaseOnto("
-                + optElementFrag
-                + ".Present("
-                + elementFrag
-                + ".From(__tcev)));"
-        );
-        code.AppendLine(
-            "foreach (var __cc in __tnr.Conflicts) __conflicts.Add(__cc.WithPathPrefix("
-                + rootPath
-                + ".TemporaryKey(__tt)));"
-        );
+        code.AppendLine("var __tnr = __it.Edit.RebaseOnto(" + optElementFrag + ".Present(" + elementFrag + ".From(__tcev)));");
+        code.AppendLine("foreach (var __cc in __tnr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(" + rootPath + ".TemporaryKey(__tt)));");
         code.AppendLine("if (__tnr.Conflicts.Count == 0 && !__tnr.Rebased.IsEmpty)");
         code.OpenBlock();
-        code.AppendLine(
-            "var __tapplied = __tnr.Rebased.ToPatch().Apply("
-                + optElementFrag
-                + ".Present("
-                + elementFrag
-                + ".From(__tcev)));"
-        );
+        code.AppendLine("var __tapplied = __tnr.Rebased.ToPatch().Apply(" + optElementFrag + ".Present(" + elementFrag + ".From(__tcev)));");
         code.AppendLine("if (__tapplied.IsPresent && __tapplied.Value is not null)");
         code.OpenBlock();
         code.AppendLine("var __tum = __tapplied.Value!.ToModel(); __any" + id + " = true;");
-        code.AppendLine(
-            optElement
-                + " __tnb = "
-                + optElement
-                + ".Present(__tcev); "
-                + optElement
-                + " __tna2 = "
-                + optElement
-                + ".Present(__tum);"
-        );
+        code.AppendLine(optElement + " __tnb = " + optElement + ".Present(__tcev); " + optElement + " __tna2 = " + optElement + ".Present(__tum);");
         code.AppendLine("int __tbi2 = __tpos" + id + "[__tt];");
         code.AppendLine(
             "__rlist"
@@ -307,27 +255,9 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
     {
         // Rebased-before is the current state; rebased-after appends replayed
         // temporary additions in replay order.
-        code.AppendLine(
-            "__rtbO"
-                + id
-                + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder"
-                + id
-                + ");"
-        );
-        code.AppendLine(
-            "__rtaO"
-                + id
-                + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder"
-                + id
-                + ");"
-        );
-        code.AppendLine(
-            "var __rtaOseen"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tcorder"
-                + id
-                + ");"
-        );
+        code.AppendLine("__rtbO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder" + id + ");");
+        code.AppendLine("__rtaO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder" + id + ");");
+        code.AppendLine("var __rtaOseen" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tcorder" + id + ");");
         code.AppendLine(
             "foreach (var __it in __rlist"
                 + id

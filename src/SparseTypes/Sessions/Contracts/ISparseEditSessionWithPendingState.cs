@@ -16,9 +16,5 @@ public interface ISparseEditSessionWithPendingState<TModel, TConflict>
     /// <param name="updated">The candidate model on success; otherwise null.</param>
     /// <param name="conflicts">Structured conflicts when projection fails.</param>
     /// <returns>True when the candidate includes all pending changes; otherwise false.</returns>
-    bool TryApplyPendingState(
-        TModel current,
-        out TModel? updated,
-        out IReadOnlyList<TConflict>? conflicts
-    );
+    bool TryApplyPendingState(TModel current, out TModel? updated, out IReadOnlyList<TConflict>? conflicts);
 }

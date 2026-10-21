@@ -53,13 +53,7 @@ internal sealed class SparseSymbolCollectionInfo(
     public ITypeSymbol? ValueType { get; } = valueType;
     public INamedTypeSymbol? NamedType { get; } = namedType;
     public static SparseSymbolCollectionInfo Unsupported { get; } =
-        new(
-            SparseCollectionKind.Unsupported,
-            SparseCloneCollectionKind.Unsupported,
-            null!,
-            null,
-            null
-        );
+        new(SparseCollectionKind.Unsupported, SparseCloneCollectionKind.Unsupported, null!, null, null);
 }
 
 /// <summary>Discovers merge and clone semantics for candidate member types.</summary>
@@ -73,15 +67,12 @@ internal static class SparseCollectionAnalyzer
                 && constructor.Parameters.Length == 2
                 && constructor.Parameters[0].Type.SpecialType == SpecialType.System_Int32
                 && constructor.Parameters[1].Type is INamedTypeSymbol comparer
-                && comparer.OriginalDefinition.ToDisplayString()
-                    == "System.Collections.Generic.IEqualityComparer<T>"
+                && comparer.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEqualityComparer<T>"
             ) == true;
 
     public static bool HashSetImplementsReadOnlySet(Compilation compilation)
     {
-        var readOnlySet = compilation.GetTypeByMetadataName(
-            "System.Collections.Generic.IReadOnlySet`1"
-        );
+        var readOnlySet = compilation.GetTypeByMetadataName("System.Collections.Generic.IReadOnlySet`1");
         if (readOnlySet is null)
         {
             return false;
@@ -94,22 +85,14 @@ internal static class SparseCollectionAnalyzer
         }
 
         var constructed = hashSet.Construct(compilation.GetSpecialType(SpecialType.System_Int32));
-        return constructed.AllInterfaces.Any(implemented =>
-            SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, readOnlySet)
-        );
+        return constructed.AllInterfaces.Any(implemented => SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, readOnlySet));
     }
 
     public static SparseSymbolCollectionInfo GetCollectionInfo(ITypeSymbol type)
     {
         if (type is IArrayTypeSymbol array)
         {
-            return new SparseSymbolCollectionInfo(
-                SparseCollectionKind.Array,
-                SparseCloneCollectionKind.Array,
-                array.ElementType,
-                null,
-                null
-            );
+            return new SparseSymbolCollectionInfo(SparseCollectionKind.Array, SparseCloneCollectionKind.Array, array.ElementType, null, null);
         }
 
         if (type is not INamedTypeSymbol named || named.TypeArguments.Length is < 1 or > 2)
@@ -123,54 +106,39 @@ internal static class SparseCollectionAnalyzer
         {
             "System.Collections.Generic.List<T>" => SparseCollectionKind.List,
             "System.Collections.Generic.IList<T>" => SparseCollectionKind.List,
-            "System.Collections.ObjectModel.Collection<T>"
-            or "System.Collections.ObjectModel.ObservableCollection<T>" =>
+            "System.Collections.ObjectModel.Collection<T>" or "System.Collections.ObjectModel.ObservableCollection<T>" =>
                 SparseCollectionKind.MutableList,
             "System.Collections.Generic.IEnumerable<T>"
             or "System.Collections.Generic.IReadOnlyCollection<T>"
             or "System.Collections.Generic.IReadOnlyList<T>" => SparseCollectionKind.Array,
-            "System.Collections.Generic.HashSet<T>"
-            or "System.Collections.Generic.ISet<T>"
-            or "System.Collections.Generic.IReadOnlySet<T>" => SparseCollectionKind.Set,
+            "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.ISet<T>" or "System.Collections.Generic.IReadOnlySet<T>" =>
+                SparseCollectionKind.Set,
             _ => SparseCollectionKind.Unsupported,
         };
 
         var cloneKind = definition switch
         {
-            "System.Collections.Generic.List<T>" or "System.Collections.Generic.IList<T>" =>
-                SparseCloneCollectionKind.List,
+            "System.Collections.Generic.List<T>" or "System.Collections.Generic.IList<T>" => SparseCloneCollectionKind.List,
             "System.Collections.Generic.IEnumerable<T>"
             or "System.Collections.Generic.IReadOnlyCollection<T>"
             or "System.Collections.Generic.IReadOnlyList<T>" => SparseCloneCollectionKind.Array,
-            "System.Collections.Generic.HashSet<T>"
-            or "System.Collections.Generic.ISet<T>"
-            or "System.Collections.Generic.IReadOnlySet<T>" => SparseCloneCollectionKind.Set,
+            "System.Collections.Generic.HashSet<T>" or "System.Collections.Generic.ISet<T>" or "System.Collections.Generic.IReadOnlySet<T>" =>
+                SparseCloneCollectionKind.Set,
             "System.Collections.Generic.Dictionary<TKey, TValue>"
             or "System.Collections.Generic.SortedDictionary<TKey, TValue>"
             or "System.Collections.Generic.SortedList<TKey, TValue>"
             or "System.Collections.Generic.IDictionary<TKey, TValue>"
-            or "System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>" =>
-                SparseCloneCollectionKind.Dictionary,
+            or "System.Collections.Generic.IReadOnlyDictionary<TKey, TValue>" => SparseCloneCollectionKind.Dictionary,
             // Other BCL shapes are intentionally unsupported.
             _ => SparseCloneCollectionKind.Unsupported,
         };
 
-        return new SparseSymbolCollectionInfo(
-            kind,
-            cloneKind,
-            elementType,
-            named.TypeArguments.Length == 2 ? named.TypeArguments[1] : null,
-            named
-        );
+        return new SparseSymbolCollectionInfo(kind, cloneKind, elementType, named.TypeArguments.Length == 2 ? named.TypeArguments[1] : null, named);
     }
 
     /// <summary>Determines whether an element type needs keyed granular semantics.</summary>
     /// <remarks>Keyed semantics apply only to fragment/promotable elements (types with generated Fragment/Patch).</remarks>
-    public static bool IsStructuralElement(
-        ITypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool IsStructuralElement(ITypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (
@@ -225,10 +193,7 @@ internal static class SparseCollectionAnalyzer
         out string? keyTypeName
     )
     {
-        if (
-            SparseKeyAnalyzer.TryGetKeyInfo(element, config, cancellationToken, out var info)
-            && info is not null
-        )
+        if (SparseKeyAnalyzer.TryGetKeyInfo(element, config, cancellationToken, out var info) && info is not null)
         {
             keyPropertyNames = info.PropertyNames;
             keyTypeName = info.KeyTypeName;
@@ -250,11 +215,7 @@ internal static class SparseCollectionAnalyzer
 
     /// <summary>Determines whether a member requires the configured unkeyed-sequence diagnostic.</summary>
     /// <remarks>Explicit <c>Replace</c>, <c>Append</c>.</remarks>
-    public static bool IsUnkeyedStructuralSequence(
-        SparseSymbolMemberModel member,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool IsUnkeyedStructuralSequence(SparseSymbolMemberModel member, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (
@@ -266,10 +227,7 @@ internal static class SparseCollectionAnalyzer
             return false;
         }
 
-        if (
-            ClassifySemantic(member.Collection, config, cancellationToken)
-            != SparseCollectionSemantic.KeyedSequence
-        )
+        if (ClassifySemantic(member.Collection, config, cancellationToken) != SparseCollectionSemantic.KeyedSequence)
         {
             return false;
         }

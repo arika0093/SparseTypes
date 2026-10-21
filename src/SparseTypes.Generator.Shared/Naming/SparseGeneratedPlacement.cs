@@ -21,25 +21,17 @@ internal static class SparseGeneratedPlacement
     /// <param name="config">Owning generator configuration.</param>
     /// <returns>The explicit namespace, or null for single-file emission.</returns>
     public static string? TryGetImplementationNamespace(SparseGeneratorConfig config) =>
-        string.IsNullOrEmpty(config.GeneratedImplementationNamespace)
-            ? null
-            : config.GeneratedImplementationNamespace;
+        string.IsNullOrEmpty(config.GeneratedImplementationNamespace) ? null : config.GeneratedImplementationNamespace;
 
     /// <summary>Gets the deterministic per-model implementation container name.</summary>
     /// <remarks>The container derives from the stable fully qualified model identity.</remarks>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A valid C# type name unique per model identity.</returns>
-    public static string GetImplementationContainer(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    )
+    public static string GetImplementationContainer(SparseModelInfo model, CancellationToken cancellationToken)
     {
         var identity = FullyQualifiedIdentity(model);
-        var container =
-            SparseNaming.Sanitize(identity, cancellationToken)
-            + "_"
-            + SparseNaming.GetStableTypeHash(identity, cancellationToken);
+        var container = SparseNaming.Sanitize(identity, cancellationToken) + "_" + SparseNaming.GetStableTypeHash(identity, cancellationToken);
         return char.IsLetter(container[0]) || container[0] == '_' ? container : "_" + container;
     }
 
@@ -57,9 +49,7 @@ internal static class SparseGeneratedPlacement
     )
     {
         var root = TryGetImplementationNamespace(config);
-        return root is null
-            ? null
-            : root + "." + GetImplementationContainer(model, cancellationToken) + "." + simpleName;
+        return root is null ? null : root + "." + GetImplementationContainer(model, cancellationToken) + "." + simpleName;
     }
 
     /// <summary>Gets the fully qualified patch operation container name, or null when disabled.</summary>
@@ -67,22 +57,16 @@ internal static class SparseGeneratedPlacement
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>The qualified name, or null for single-file emission.</returns>
-    public static string? GetPatchOperationsTypeName(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => GetImplementationTypeName(model, config, PatchOperationsSimpleName, cancellationToken);
+    public static string? GetPatchOperationsTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        GetImplementationTypeName(model, config, PatchOperationsSimpleName, cancellationToken);
 
     /// <summary>Gets the fully qualified change-set operation container name, or null when disabled.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>The qualified name, or null for single-file emission.</returns>
-    public static string? GetChangeSetOperationsTypeName(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => GetImplementationTypeName(model, config, ChangeSetOperationsSimpleName, cancellationToken);
+    public static string? GetChangeSetOperationsTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        GetImplementationTypeName(model, config, ChangeSetOperationsSimpleName, cancellationToken);
 
     /// <summary>Resolves a collision-aware generated UI type name.</summary>
     /// <remarks>A source member with the same name pushes the generated type behind a <c>Sparse</c> prefix.</remarks>
@@ -111,11 +95,7 @@ internal static class SparseGeneratedPlacement
     /// <param name="implementationSuffix">Owning generator implementation suffix.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A hint name distinct from the surface file.</returns>
-    public static string ImplementationHintName(
-        SparseModelInfo model,
-        string implementationSuffix,
-        CancellationToken cancellationToken
-    )
+    public static string ImplementationHintName(SparseModelInfo model, string implementationSuffix, CancellationToken cancellationToken)
     {
         var identity = FullyQualifiedIdentity(model);
         return SparseNaming.Sanitize(identity, cancellationToken)
@@ -129,26 +109,18 @@ internal static class SparseGeneratedPlacement
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A valid C# type name unique per model identity.</returns>
-    public static string GetFragmentOperationsSimpleName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => GetImplementationContainer(model, cancellationToken) + "FragmentOperations";
+    public static string GetFragmentOperationsSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        GetImplementationContainer(model, cancellationToken) + "FragmentOperations";
 
     /// <summary>Gets the qualified per-model fragment operations type name, or null when disabled.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>The qualified name, or null for single-file emission.</returns>
-    public static string? GetFragmentOperationsTypeName(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static string? GetFragmentOperationsTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var root = TryGetImplementationNamespace(config);
-        return root is null
-            ? null
-            : "global::" + root + "." + GetFragmentOperationsSimpleName(model, cancellationToken);
+        return root is null ? null : "global::" + root + "." + GetFragmentOperationsSimpleName(model, cancellationToken);
     }
 
     /// <summary>Gets the simple per-model fragment JSON converter type name.</summary>
@@ -156,23 +128,16 @@ internal static class SparseGeneratedPlacement
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A valid C# type name unique per model identity.</returns>
-    public static string GetFragmentJsonConverterSimpleName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => GetImplementationContainer(model, cancellationToken) + "FragmentJsonConverter";
+    public static string GetFragmentJsonConverterSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        GetImplementationContainer(model, cancellationToken) + "FragmentJsonConverter";
 
     /// <summary>Gets the qualified payload container name for split emission.</summary>
     /// <remarks>Single-file emission keeps the legacy nested simple name.</remarks>
     /// <param name="simpleContainerName">Legacy nested container simple name.</param>
     /// <param name="implementationNamespace">Explicit namespace, or null for single-file.</param>
     /// <returns>The reference to use from generated code.</returns>
-    public static string QualifyPayloadContainer(
-        string simpleContainerName,
-        string? implementationNamespace
-    ) =>
-        string.IsNullOrEmpty(implementationNamespace)
-            ? simpleContainerName
-            : "global::" + implementationNamespace + "." + simpleContainerName;
+    public static string QualifyPayloadContainer(string simpleContainerName, string? implementationNamespace) =>
+        string.IsNullOrEmpty(implementationNamespace) ? simpleContainerName : "global::" + implementationNamespace + "." + simpleContainerName;
 
     private static string FullyQualifiedIdentity(SparseModelInfo model)
     {
@@ -183,9 +148,7 @@ internal static class SparseGeneratedPlacement
             return model.ModelTypeName.Substring("global::".Length);
         }
 
-        return model.IsGlobalNamespace
-            ? "global::" + model.ModelTypeName
-            : model.Namespace + "." + model.ModelTypeName;
+        return model.IsGlobalNamespace ? "global::" + model.ModelTypeName : model.Namespace + "." + model.ModelTypeName;
     }
 
     /// <summary>Gets the container name for a qualified child type name.</summary>
@@ -193,16 +156,10 @@ internal static class SparseGeneratedPlacement
     /// <param name="qualifiedTypeName">Child <c>NonNullableName</c>.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A container name matching the model's own scheme.</returns>
-    public static string GetContainerForQualifiedName(
-        string qualifiedTypeName,
-        CancellationToken cancellationToken
-    )
+    public static string GetContainerForQualifiedName(string qualifiedTypeName, CancellationToken cancellationToken)
     {
         var identity = QualifiedIdentity(qualifiedTypeName);
-        var container =
-            SparseNaming.Sanitize(identity, cancellationToken)
-            + "_"
-            + SparseNaming.GetStableTypeHash(identity, cancellationToken);
+        var container = SparseNaming.Sanitize(identity, cancellationToken) + "_" + SparseNaming.GetStableTypeHash(identity, cancellationToken);
         return char.IsLetter(container[0]) || container[0] == '_' ? container : "_" + container;
     }
 
@@ -238,22 +195,15 @@ internal static class SparseGeneratedPlacement
     /// <param name="config">Owning generator configuration (reserved).</param>
     /// <param name="cancellationToken">Cooperative cancellation (reserved).</param>
     /// <returns>Model-nested reference.</returns>
-    public static string GetEditSessionReference(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => GetObservableReference(model, "EditSession", config, cancellationToken);
+    public static string GetEditSessionReference(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        GetObservableReference(model, "EditSession", config, cancellationToken);
 
     /// <summary>Gets the model-nested child observable reference.</summary>
     /// <param name="child">Child type model.</param>
     /// <param name="config">Owning generator configuration (reserved).</param>
     /// <param name="cancellationToken">Cooperative cancellation (reserved).</param>
     /// <returns>Model-nested reference.</returns>
-    public static string GetChildObservableReference(
-        SparseTypeModel child,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static string GetChildObservableReference(SparseTypeModel child, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var simple = child.ObservableTypeName ?? "Observable";
         return child.NonNullableName + "." + simple;
@@ -264,11 +214,7 @@ internal static class SparseGeneratedPlacement
     /// <param name="config">Owning generator configuration (reserved).</param>
     /// <param name="cancellationToken">Cooperative cancellation (reserved).</param>
     /// <returns>Model-nested reference.</returns>
-    public static string GetChildReadOnlyViewReference(
-        SparseTypeModel child,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static string GetChildReadOnlyViewReference(SparseTypeModel child, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var simple = child.ReadOnlyViewTypeName ?? "ReadOnlyView";
         return child.NonNullableName + "." + simple;
@@ -283,20 +229,12 @@ internal static class SparseGeneratedPlacement
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>Nested reference for single-file emission, qualified otherwise.</returns>
-    public static string GetDescriptorFactoryReference(
-        SparseModelInfo model,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static string GetDescriptorFactoryReference(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         var root = TryGetImplementationNamespace(config);
         return root is null
             ? model.ModelTypeName + ".DescriptorFactory"
-            : "global::"
-                + root
-                + "."
-                + GetImplementationContainer(model, cancellationToken)
-                + ".DescriptorFactory";
+            : "global::" + root + "." + GetImplementationContainer(model, cancellationToken) + ".DescriptorFactory";
     }
 
     /// <summary>Gets the qualified child descriptor-factory reference.</summary>
@@ -313,48 +251,36 @@ internal static class SparseGeneratedPlacement
         var root = TryGetImplementationNamespace(config);
         return root is null
             ? childQualifiedName + ".DescriptorFactory"
-            : "global::"
-                + root
-                + "."
-                + GetContainerForQualifiedName(childQualifiedName, cancellationToken)
-                + ".DescriptorFactory";
+            : "global::" + root + "." + GetContainerForQualifiedName(childQualifiedName, cancellationToken) + ".DescriptorFactory";
     }
 
     /// <summary>Gets the observable implementation hint name.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A hint distinct from the surface file.</returns>
-    public static string ObservableHintName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => ImplementationHintName(model, ".Observable.g.cs", cancellationToken);
+    public static string ObservableHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        ImplementationHintName(model, ".Observable.g.cs", cancellationToken);
 
     /// <summary>Gets the read-only-view implementation hint name.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A hint distinct from the surface file.</returns>
-    public static string ReadOnlyViewHintName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => ImplementationHintName(model, ".ReadOnlyView.g.cs", cancellationToken);
+    public static string ReadOnlyViewHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        ImplementationHintName(model, ".ReadOnlyView.g.cs", cancellationToken);
 
     /// <summary>Gets the edit-session implementation hint name.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A hint distinct from the surface file.</returns>
-    public static string EditSessionHintName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => ImplementationHintName(model, ".EditSession.g.cs", cancellationToken);
+    public static string EditSessionHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        ImplementationHintName(model, ".EditSession.g.cs", cancellationToken);
 
     /// <summary>Gets the descriptor-factory implementation hint name.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>A hint distinct from the surface file.</returns>
-    public static string DescriptorFactoryHintName(
-        SparseModelInfo model,
-        CancellationToken cancellationToken
-    ) => ImplementationHintName(model, ".DescriptorFactory.g.cs", cancellationToken);
+    public static string DescriptorFactoryHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        ImplementationHintName(model, ".DescriptorFactory.g.cs", cancellationToken);
 
     private static string QualifiedIdentity(string qualifiedTypeName)
     {

@@ -19,8 +19,7 @@ internal static class SparseChangeSetDictBuildEmitter
         var valueType = ValueTypeOf(member);
         var optDict = runtime + "Optional<" + member.Property.Type.Name + ">";
         var optValue = runtime + "Optional<" + valueType + ">";
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var facade = dialect.RuntimeFacade;
         var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
         var valueCs = hasPatch ? ValueChangeSetOf(member) : null;
@@ -39,9 +38,7 @@ internal static class SparseChangeSetDictBuildEmitter
         );
         code.OpenBlock();
         code.AppendLine("var __comparer = " + comparer + ";");
-        code.AppendLine(
-            "bool __beforeHas = before.IsPresent && (object?)before.Value is not null;"
-        );
+        code.AppendLine("bool __beforeHas = before.IsPresent && (object?)before.Value is not null;");
         code.AppendLine("bool __afterHas = after.IsPresent && (object?)after.Value is not null;");
         code.AppendLine("if (!__beforeHas && !__afterHas)");
         code.OpenBlock();
@@ -68,29 +65,11 @@ internal static class SparseChangeSetDictBuildEmitter
         code.CloseBlock();
         code.AppendLine("if (!__beforeHas || !__afterHas)");
         code.OpenBlock();
-        code.AppendLine(
-            "var __added = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + valueType
-                + ">(__comparer);"
-        );
-        code.AppendLine(
-            "if (__afterHas) foreach (var __kv in after.Value!) __added[__kv.Key] = __kv.Value;"
-        );
-        code.AppendLine(
-            "var __removed = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + valueType
-                + ">(__comparer);"
-        );
-        code.AppendLine(
-            "if (__beforeHas) foreach (var __kv in before.Value!) __removed[__kv.Key] = __kv.Value;"
-        );
-        code.AppendLine(
-            "var __items = new global::System.Collections.Generic.List<" + trans + ".Item>();"
-        );
+        code.AppendLine("var __added = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">(__comparer);");
+        code.AppendLine("if (__afterHas) foreach (var __kv in after.Value!) __added[__kv.Key] = __kv.Value;");
+        code.AppendLine("var __removed = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">(__comparer);");
+        code.AppendLine("if (__beforeHas) foreach (var __kv in before.Value!) __removed[__kv.Key] = __kv.Value;");
+        code.AppendLine("var __items = new global::System.Collections.Generic.List<" + trans + ".Item>();");
         if (hasPatch)
         {
             code.AppendLine(
@@ -201,37 +180,15 @@ internal static class SparseChangeSetDictBuildEmitter
                 + valueType
                 + ">)after.Value!, __comparer);"
         );
-        code.AppendLine(
-            "var __added2 = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + valueType
-                + ">(__comparer);"
-        );
-        code.AppendLine(
-            "var __removed2 = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + valueType
-                + ">(__comparer);"
-        );
-        code.AppendLine(
-            "foreach (var __k in __beforeDict.Keys) if (!__afterDict.ContainsKey(__k)) __removed2[__k] = __beforeDict[__k];"
-        );
+        code.AppendLine("var __added2 = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">(__comparer);");
+        code.AppendLine("var __removed2 = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">(__comparer);");
+        code.AppendLine("foreach (var __k in __beforeDict.Keys) if (!__afterDict.ContainsKey(__k)) __removed2[__k] = __beforeDict[__k];");
         if (hasPatch)
         {
-            code.AppendLine(
-                "var __edited = new global::System.Collections.Generic.Dictionary<"
-                    + keyType
-                    + ", "
-                    + valueCs
-                    + ">(__comparer);"
-            );
+            code.AppendLine("var __edited = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueCs + ">(__comparer);");
             code.AppendLine("foreach (var __kv in __afterDict)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (!__beforeDict.TryGetValue(__kv.Key, out var __b)) { __added2[__kv.Key] = __kv.Value; continue; }"
-            );
+            code.AppendLine("if (!__beforeDict.TryGetValue(__kv.Key, out var __b)) { __added2[__kv.Key] = __kv.Value; continue; }");
             code.AppendLine(
                 "var __nested = "
                     + valueCs
@@ -251,12 +208,8 @@ internal static class SparseChangeSetDictBuildEmitter
             );
             code.AppendLine("if (!__nested.IsEmpty) __edited[__kv.Key] = __nested;");
             code.CloseBlock();
-            code.AppendLine(
-                "bool __empty = __added2.Count == 0 && __removed2.Count == 0 && __edited.Count == 0;"
-            );
-            code.AppendLine(
-                "var __items2 = new global::System.Collections.Generic.List<" + trans + ".Item>();"
-            );
+            code.AppendLine("bool __empty = __added2.Count == 0 && __removed2.Count == 0 && __edited.Count == 0;");
+            code.AppendLine("var __items2 = new global::System.Collections.Generic.List<" + trans + ".Item>();");
             code.AppendLine(
                 "foreach (var __kv in __added2) { var __a = "
                     + runtime
@@ -312,38 +265,18 @@ internal static class SparseChangeSetDictBuildEmitter
                     + trans
                     + ".Item(__kv.Key, __b, __a, false, false, true, __kv.Value, false)); }"
             );
-            code.AppendLine(
-                "return new "
-                    + trans
-                    + "(before, after, __added2, __removed2, __edited, __items2, __empty);"
-            );
+            code.AppendLine("return new " + trans + "(before, after, __added2, __removed2, __edited, __items2, __empty);");
         }
         else
         {
-            code.AppendLine(
-                "var __edited = new global::System.Collections.Generic.Dictionary<"
-                    + keyType
-                    + ", "
-                    + valueType
-                    + ">(__comparer);"
-            );
+            code.AppendLine("var __edited = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + valueType + ">(__comparer);");
             code.AppendLine("foreach (var __kv in __afterDict)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (!__beforeDict.TryGetValue(__kv.Key, out var __b)) { __added2[__kv.Key] = __kv.Value; continue; }"
-            );
-            code.AppendLine(
-                "if (!"
-                    + facade
-                    + ".AreEqual((object?)__b, (object?)__kv.Value)) __edited[__kv.Key] = __kv.Value;"
-            );
+            code.AppendLine("if (!__beforeDict.TryGetValue(__kv.Key, out var __b)) { __added2[__kv.Key] = __kv.Value; continue; }");
+            code.AppendLine("if (!" + facade + ".AreEqual((object?)__b, (object?)__kv.Value)) __edited[__kv.Key] = __kv.Value;");
             code.CloseBlock();
-            code.AppendLine(
-                "bool __empty = __added2.Count == 0 && __removed2.Count == 0 && __edited.Count == 0;"
-            );
-            code.AppendLine(
-                "var __items2 = new global::System.Collections.Generic.List<" + trans + ".Item>();"
-            );
+            code.AppendLine("bool __empty = __added2.Count == 0 && __removed2.Count == 0 && __edited.Count == 0;");
+            code.AppendLine("var __items2 = new global::System.Collections.Generic.List<" + trans + ".Item>();");
             code.AppendLine(
                 "foreach (var __kv in __added2) __items2.Add(new "
                     + trans
@@ -375,11 +308,7 @@ internal static class SparseChangeSetDictBuildEmitter
                     + valueType
                     + ">.Present(__kv.Value), false, false, true, false));"
             );
-            code.AppendLine(
-                "return new "
-                    + trans
-                    + "(before, after, __added2, __removed2, __edited, __items2, __empty);"
-            );
+            code.AppendLine("return new " + trans + "(before, after, __added2, __removed2, __edited, __items2, __empty);");
         }
         code.CloseBlock();
     }

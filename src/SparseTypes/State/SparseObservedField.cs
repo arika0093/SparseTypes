@@ -261,8 +261,7 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
         OnPropertyChanged(SparseObservedFieldEventArgs.Current);
     }
 
-    private void OnPropertyChanged(PropertyChangedEventArgs args) =>
-        PropertyChanged?.Invoke(this, args);
+    private void OnPropertyChanged(PropertyChangedEventArgs args) => PropertyChanged?.Invoke(this, args);
 
     private void ThrowIfDisposed()
     {
@@ -280,9 +279,7 @@ internal static class SparseObservedFieldEventArgs
     internal static readonly PropertyChangedEventArgs IsChanged = new("IsChanged");
     internal static readonly PropertyChangedEventArgs Kind = new("Kind");
     internal static readonly PropertyChangedEventArgs HasAncestorChange = new("HasAncestorChange");
-    internal static readonly PropertyChangedEventArgs HasDescendantChange = new(
-        "HasDescendantChange"
-    );
+    internal static readonly PropertyChangedEventArgs HasDescendantChange = new("HasDescendantChange");
     internal static readonly PropertyChangedEventArgs HasChanges = new("HasChanges");
     internal static readonly PropertyChangedEventArgs Before = new("Before");
     internal static readonly PropertyChangedEventArgs After = new("After");

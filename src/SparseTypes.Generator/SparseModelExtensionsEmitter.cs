@@ -29,42 +29,22 @@ internal static class SparseModelExtensionsEmitter
         var observableSimple = SparseObservableEmitter.ObservableTypeName(members, family);
         var accessibility = model.IsPublic ? "public" : "internal";
         var readOnlySimple = SparseReadOnlyViewEmitter.ReadOnlyViewTypeName(members, family);
-        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(
-            config
-        );
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
         var relocated = implementationNamespace is not null;
         var observableRef = relocated
-            ? SparseGeneratedPlacement.GetObservableReference(
-                model,
-                observableSimple,
-                config,
-                cancellationToken
-            )
+            ? SparseGeneratedPlacement.GetObservableReference(model, observableSimple, config, cancellationToken)
             : modelType + "." + observableSimple;
 
         code.AppendLine();
         if (!model.IsStruct && !relocated)
         {
-            SparseEditSessionEmitter.AppendModelEditSession(
-                code,
-                model,
-                modelType,
-                accessibility,
-                observableSimple,
-                readOnlySimple,
-                members,
-                config
-            );
+            SparseEditSessionEmitter.AppendModelEditSession(code, model, modelType, accessibility, observableSimple, readOnlySimple, members, config);
         }
 
-        code.AppendLine(
-            "/// <summary>Model extensions generated for this fragment model.</summary>"
-        );
+        code.AppendLine("/// <summary>Model extensions generated for this fragment model.</summary>");
         code.AppendLine(accessibility + " static partial class " + extensionClass);
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Derives the baseline-aware change set from this baseline to the supplied current model.</summary>"
-        );
+        code.AppendLine("/// <summary>Derives the baseline-aware change set from this baseline to the supplied current model.</summary>");
         code.AppendLine(
             accessibility
                 + " static "
@@ -82,10 +62,7 @@ internal static class SparseModelExtensionsEmitter
         {
             // Session collision resolution mirrors the emitter: a same-named
             // member pushes the session behind a Sparse prefix.
-            var sessionSimple = SparseGeneratedPlacement.ResolveUiTypeName(
-                "EditSession",
-                members.Select(static member => member.Property.Name)
-            );
+            var sessionSimple = SparseGeneratedPlacement.ResolveUiTypeName("EditSession", members.Select(static member => member.Property.Name));
             var editSession = modelType + "." + sessionSimple;
             code.AppendLine(
                 "/// <summary>Creates a framework-neutral edit session using this model as both the baseline source and live current value.</summary>"
@@ -128,11 +105,7 @@ internal static class SparseModelExtensionsEmitter
                     + "?> model, global::System.Action? onChanged = null)"
             );
             code.OpenBlock();
-            code.AppendLine(
-                "if (!model.IsPresent) return global::SparseTypes.Optional<"
-                    + observableRef
-                    + "?>.Missing;"
-            );
+            code.AppendLine("if (!model.IsPresent) return global::SparseTypes.Optional<" + observableRef + "?>.Missing;");
             code.AppendLine("var value = model.Value;");
             code.AppendLine(
                 "return global::SparseTypes.Optional<"
@@ -144,36 +117,19 @@ internal static class SparseModelExtensionsEmitter
             code.CloseBlock();
         }
 
-        if (
-            !model.IsStruct
-            && config.DescriptorDialect is not null
-            && config.EffectiveEmissionFeatures.EmitObservable
-        )
+        if (!model.IsStruct && config.DescriptorDialect is not null && config.EffectiveEmissionFeatures.EmitObservable)
         {
             // Session-rooted collection editing facade.
             var sessionType =
-                modelType
-                + "."
-                + SparseGeneratedPlacement.ResolveUiTypeName(
-                    "EditSession",
-                    members.Select(static member => member.Property.Name)
-                );
-            code.AppendLine(
-                "/// <summary>Opens a path-addressed typed editing facade for one collection member of this session.</summary>"
-            );
+                modelType + "." + SparseGeneratedPlacement.ResolveUiTypeName("EditSession", members.Select(static member => member.Property.Name));
+            code.AppendLine("/// <summary>Opens a path-addressed typed editing facade for one collection member of this session.</summary>");
             code.AppendLine(
                 "/// <remarks>Each operation re-resolves the live collection and runs inside one batch, so a replaced collection never acts on stale state and one user action raises one transition notification. Keyed lookups resolve stable identity per operation and never treat a sentinel or position as durable identity. For state inspection rather than editing, read the typed ChangeSet projections instead.</remarks>"
             );
-            code.AppendLine(
-                "/// <typeparam name=\"TElement\">The collection element model type.</typeparam>"
-            );
+            code.AppendLine("/// <typeparam name=\"TElement\">The collection element model type.</typeparam>");
             code.AppendLine("/// <param name=\"session\">The edit session.</param>");
-            code.AppendLine(
-                "/// <param name=\"collectionPath\">A single-member collection path.</param>"
-            );
-            code.AppendLine(
-                "/// <returns>An editing facade bound to the addressed member.</returns>"
-            );
+            code.AppendLine("/// <param name=\"collectionPath\">A single-member collection path.</param>");
+            code.AppendLine("/// <returns>An editing facade bound to the addressed member.</returns>");
             code.AppendLine(
                 accessibility
                     + " static global::SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this "
@@ -181,32 +137,20 @@ internal static class SparseModelExtensionsEmitter
                     + " session, global::SparseTypes.SparsePath collectionPath)"
             );
             code.OpenBlock();
-            code.AppendLine(
-                "if (session is null) throw new global::System.ArgumentNullException(nameof(session));"
-            );
+            code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
             code.AppendLine(
                 "return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit);"
             );
             code.CloseBlock();
-            code.AppendLine(
-                "/// <summary>Opens a path-addressed keyed editing facade for one collection member of this session.</summary>"
-            );
+            code.AppendLine("/// <summary>Opens a path-addressed keyed editing facade for one collection member of this session.</summary>");
             code.AppendLine(
                 "/// <remarks>Keyed operations resolve the current index per operation, so rows survive reordering; unassigned sentinels never serve as durable identity. Temporary identities address pending rows through their stable Guid.</remarks>"
             );
-            code.AppendLine(
-                "/// <typeparam name=\"TElement\">The collection element model type.</typeparam>"
-            );
-            code.AppendLine(
-                "/// <typeparam name=\"TKey\">The assigned key type declared by the key attribute.</typeparam>"
-            );
+            code.AppendLine("/// <typeparam name=\"TElement\">The collection element model type.</typeparam>");
+            code.AppendLine("/// <typeparam name=\"TKey\">The assigned key type declared by the key attribute.</typeparam>");
             code.AppendLine("/// <param name=\"session\">The edit session.</param>");
-            code.AppendLine(
-                "/// <param name=\"collectionPath\">A single-member collection path.</param>"
-            );
-            code.AppendLine(
-                "/// <returns>A keyed editing facade bound to the addressed member.</returns>"
-            );
+            code.AppendLine("/// <param name=\"collectionPath\">A single-member collection path.</param>");
+            code.AppendLine("/// <returns>A keyed editing facade bound to the addressed member.</returns>");
             code.AppendLine(
                 accessibility
                     + " static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this "
@@ -214,9 +158,7 @@ internal static class SparseModelExtensionsEmitter
                     + " session, global::SparseTypes.SparsePath collectionPath)"
             );
             code.OpenBlock();
-            code.AppendLine(
-                "if (session is null) throw new global::System.ArgumentNullException(nameof(session));"
-            );
+            code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
             code.AppendLine(
                 "return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit);"
             );

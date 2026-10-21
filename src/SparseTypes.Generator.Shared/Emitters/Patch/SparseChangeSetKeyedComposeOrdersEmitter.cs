@@ -18,19 +18,10 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
         var id = member.Id;
         var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
         var trans = SparseChangeSetBasicsEmitter.TransNameFor(members, member);
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var facade = dialect.RuntimeFacade;
         // Net no-op normalization is implicit (empty dict => has false below).
-        code.AppendLine(
-            "var __netRemoved"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
+        code.AppendLine("var __netRemoved" + id + " = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
         code.AppendLine("var __addedCount" + id + " = 0;");
         code.AppendLine(
             "foreach (var __kv in __net"
@@ -54,40 +45,12 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
                 + id
                 + ".Add(__kv.Key); }"
         );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<"
-                + keyType
-                + ">? __o1b = "
-                + KeyedBeforeOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<"
-                + keyType
-                + ">? __o1a = "
-                + KeyedAfterOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<"
-                + keyType
-                + ">? __o2b = next."
-                + KeyedBeforeOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<"
-                + keyType
-                + ">? __o2a = next."
-                + KeyedAfterOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<" + keyType + ">? __nbO" + id + " = __o1b; "
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<" + keyType + ">? __naO" + id + " = null;"
-        );
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __o1b = " + KeyedBeforeOrder(member) + ";");
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __o1a = " + KeyedAfterOrder(member) + ";");
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __o2b = next." + KeyedBeforeOrder(member) + ";");
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __o2a = next." + KeyedAfterOrder(member) + ";");
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __nbO" + id + " = __o1b; ");
+        code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? __naO" + id + " = null;");
         code.AppendLine("if (__o2a is not null)");
         code.OpenBlock();
         code.AppendLine(
@@ -148,30 +111,14 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
             "if (__net"
                 + id
                 + ".Count == 0"
-                + (
-                    SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                        ? " && __unassignedNetItems" + id + ".Count == 0"
-                        : ""
-                )
-                + (
-                    hasTempCompose
-                        ? " && (!__hasTemp" + id + " || __tnet" + id + ".Count == 0)"
-                        : ""
-                )
+                + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? " && __unassignedNetItems" + id + ".Count == 0" : "")
+                + (hasTempCompose ? " && (!__hasTemp" + id + " || __tnet" + id + ".Count == 0)" : "")
                 + ") { }"
         );
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine("__cb" + id + "_has = true;");
-        code.AppendLine(
-            "var __elist"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>(__net"
-                + id
-                + ".Count);"
-        );
+        code.AppendLine("var __elist" + id + " = new global::System.Collections.Generic.List<" + trans + ".Item>(__net" + id + ".Count);");
         // Enumeration: net after-order then net removed in net before-order
         // (mirrors Between).
         if (hasTempCompose)
@@ -219,51 +166,23 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
             );
         }
 
-        code.AppendLine(
-            "else foreach (var __kv in __net"
-                + id
-                + ") if (!__kv.Value.IsRemoved) __elist"
-                + id
-                + ".Add(__kv.Value);"
-        );
+        code.AppendLine("else foreach (var __kv in __net" + id + ") if (!__kv.Value.IsRemoved) __elist" + id + ".Add(__kv.Value);");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLine(
-                "if (__naO"
-                    + id
-                    + " is null) __elist"
-                    + id
-                    + ".AddRange(__unassignedNetItems"
-                    + id
-                    + ");"
-            );
+            code.AppendLine("if (__naO" + id + " is null) __elist" + id + ".AddRange(__unassignedNetItems" + id + ");");
         }
 
         code.AppendLine("if (__nbO" + id + " is not null)");
         code.AppendLine(
-            "{ foreach (var __k in __nbO"
-                + id
-                + ") if (__net"
-                + id
-                + ".TryGetValue(__k, out var __e) && __e.IsRemoved) __elist"
-                + id
-                + ".Add(__e); }"
+            "{ foreach (var __k in __nbO" + id + ") if (__net" + id + ".TryGetValue(__k, out var __e) && __e.IsRemoved) __elist" + id + ".Add(__e); }"
         );
-        code.AppendLine(
-            "else foreach (var __kv in __net"
-                + id
-                + ") if (__kv.Value.IsRemoved) __elist"
-                + id
-                + ".Add(__kv.Value);"
-        );
+        code.AppendLine("else foreach (var __kv in __net" + id + ") if (__kv.Value.IsRemoved) __elist" + id + ".Add(__kv.Value);");
         if (hasTempCompose)
         {
             code.CloseBlock();
         }
         code.AppendLine("__cb" + id + "_items = __elist" + id + ";");
-        code.AppendLine(
-            "__cb" + id + "_bO = __nbO" + id + "; __cb" + id + "_aO = __naO" + id + ";"
-        );
+        code.AppendLine("__cb" + id + "_bO = __nbO" + id + "; __cb" + id + "_aO = __naO" + id + ";");
         // Normalize order-only equality to sparse (no orders when equal).
         code.AppendLine(
             "if (__nbO"

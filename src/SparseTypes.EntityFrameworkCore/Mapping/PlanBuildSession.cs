@@ -22,8 +22,7 @@ internal sealed class PlanBuildSession
 {
     private readonly Dictionary<(IEntityType Type, string Property), string> _claims = new();
 
-    private readonly Dictionary<(IEntityType Type, string Navigation), string> _navigationClaims =
-        new();
+    private readonly Dictionary<(IEntityType Type, string Navigation), string> _navigationClaims = new();
 
     private readonly List<SparseEntityMappingError> _errors = [];
     private int _buildDepth;
@@ -40,9 +39,7 @@ internal sealed class PlanBuildSession
     {
         ArgumentNullException.ThrowIfNull(check);
         var propertyClaims = new Dictionary<(IEntityType Type, string Property), string>(_claims);
-        var navigationClaims = new Dictionary<(IEntityType Type, string Navigation), string>(
-            _navigationClaims
-        );
+        var navigationClaims = new Dictionary<(IEntityType Type, string Navigation), string>(_navigationClaims);
         try
         {
             check();
@@ -123,10 +120,7 @@ internal sealed class PlanBuildSession
     }
 
     /// <summary>Reads the persistence protection for an entity property from EF metadata.</summary>
-    public static (EntityProtection Protection, string Detail) GetProtection(
-        IEntityType type,
-        IProperty property
-    )
+    public static (EntityProtection Protection, string Detail) GetProtection(IEntityType type, IProperty property)
     {
         if (property.IsShadowProperty())
         {
@@ -139,12 +133,7 @@ internal sealed class PlanBuildSession
             return (EntityProtection.Key, "a primary-key member");
         }
 
-        if (
-            type.GetKeys()
-                .Where(static key => !key.IsPrimaryKey())
-                .SelectMany(static key => key.Properties)
-                .Contains(property)
-        )
+        if (type.GetKeys().Where(static key => !key.IsPrimaryKey()).SelectMany(static key => key.Properties).Contains(property))
         {
             return (EntityProtection.Key, "an alternate-key member");
         }
@@ -156,10 +145,7 @@ internal sealed class PlanBuildSession
 
         if (property.ValueGenerated != ValueGenerated.Never)
         {
-            return (
-                EntityProtection.Generated,
-                $"a database-generated member ({property.ValueGenerated})"
-            );
+            return (EntityProtection.Generated, $"a database-generated member ({property.ValueGenerated})");
         }
 
         return (EntityProtection.None, string.Empty);
@@ -185,9 +171,7 @@ internal sealed class PlanBuildSession
     /// <summary>Whether a CLR type is collection-shaped (string and byte[] are scalars).</summary>
     public static bool IsCollectionType(Type type)
     {
-        return type != typeof(string)
-            && type != typeof(byte[])
-            && typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
+        return type != typeof(string) && type != typeof(byte[]) && typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
     }
 
     private sealed class BuildScope(PlanBuildSession session) : IDisposable

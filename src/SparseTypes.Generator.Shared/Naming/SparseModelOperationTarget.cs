@@ -47,9 +47,7 @@ internal sealed class SparseOperationTarget
             return PatchOperations;
         }
 
-        PatchOperations.AppendLine(
-            "/// <summary>Collection operations for one member patch.</summary>"
-        );
+        PatchOperations.AppendLine("/// <summary>Collection operations for one member patch.</summary>");
         PatchOperations.AppendLine("internal static class " + className);
         PatchOperations.OpenBlock();
         return PatchOperations;
@@ -71,14 +69,8 @@ internal sealed class SparseOperationTarget
     /// <param name="patchOperationsType">Qualified patch operation container type.</param>
     /// <param name="member">Collection member.</param>
     /// <returns>The qualified member operation class.</returns>
-    public static string MemberOperationsType(
-        string patchOperationsType,
-        SparseMemberModel member
-    ) =>
-        patchOperationsType
-        + "."
-        + SparseNaming.EscapeIdentifier(member.Property.Name)
-        + "PatchOperations";
+    public static string MemberOperationsType(string patchOperationsType, SparseMemberModel member) =>
+        patchOperationsType + "." + SparseNaming.EscapeIdentifier(member.Property.Name) + "PatchOperations";
 }
 
 /// <summary>Split emission context for one nested collection patch.</summary>
@@ -126,15 +118,11 @@ internal static class SparseModelOperationAliases
         }
         if (plan.EmitChangePayload)
         {
-            aliases.Add(
-                new KeyValuePair<string, string>("ChangePayload", modelType + ".ChangePayload")
-            );
+            aliases.Add(new KeyValuePair<string, string>("ChangePayload", modelType + ".ChangePayload"));
             var container = PayloadContainerName(dialect, modelType);
             if (container is not null)
             {
-                aliases.Add(
-                    new KeyValuePair<string, string>(container, modelType + "." + container)
-                );
+                aliases.Add(new KeyValuePair<string, string>(container, modelType + "." + container));
                 // Nested and element payload envelopes are referenced bare by
                 // relocated export and partition bodies.
                 foreach (var owner in PayloadOwnerNames(members))
@@ -145,54 +133,26 @@ internal static class SparseModelOperationAliases
                     }
 
                     var childContainer = PayloadContainerName(dialect, owner);
-                    if (
-                        childContainer is not null
-                        && !string.Equals(
-                            childContainer,
-                            container,
-                            System.StringComparison.Ordinal
-                        )
-                    )
+                    if (childContainer is not null && !string.Equals(childContainer, container, System.StringComparison.Ordinal))
                     {
-                        aliases.Add(
-                            new KeyValuePair<string, string>(
-                                childContainer,
-                                owner + "." + childContainer
-                            )
-                        );
+                        aliases.Add(new KeyValuePair<string, string>(childContainer, owner + "." + childContainer));
                     }
                 }
             }
         }
         if (canApplyPatchInPlace && plan.EmitPatch)
         {
-            aliases.Add(
-                new KeyValuePair<string, string>(
-                    "ApplyInPlaceResult",
-                    modelType + ".Patch.ApplyInPlaceResult"
-                )
-            );
+            aliases.Add(new KeyValuePair<string, string>("ApplyInPlaceResult", modelType + ".Patch.ApplyInPlaceResult"));
         }
         if (plan.EmitChangeSet)
         {
-            aliases.Add(
-                new KeyValuePair<string, string>("ChangeKind", modelType + ".ChangeSet.ChangeKind")
-            );
+            aliases.Add(new KeyValuePair<string, string>("ChangeKind", modelType + ".ChangeSet.ChangeKind"));
             if (dialect.TransitionContracts is null)
             {
-                aliases.Add(
-                    new KeyValuePair<string, string>(
-                        "ChangeInfo",
-                        modelType + ".ChangeSet.ChangeInfo"
-                    )
-                );
+                aliases.Add(new KeyValuePair<string, string>("ChangeInfo", modelType + ".ChangeSet.ChangeInfo"));
             }
         }
-        foreach (
-            var member in members.Where(member =>
-                plan.EmitPatch && SparseKeyedCollectionEmitter.IsCollectionPatch(member)
-            )
-        )
+        foreach (var member in members.Where(member => plan.EmitPatch && SparseKeyedCollectionEmitter.IsCollectionPatch(member)))
         {
             var patch = SparseKeyedCollectionEmitter.CollectionPatchName(member);
             aliases.Add(new KeyValuePair<string, string>(patch, modelType + ".Patch." + patch));
@@ -203,17 +163,12 @@ internal static class SparseModelOperationAliases
             foreach (
                 var member in members.Where(member =>
                     !SparseChangeSetBasicsEmitter.IsNested(member)
-                    && (
-                        !SparseChangeSetBasicsEmitter.IsScalar(member)
-                        || SparseChangeSetBasicsEmitter.IsSet(member)
-                    )
+                    && (!SparseChangeSetBasicsEmitter.IsScalar(member) || SparseChangeSetBasicsEmitter.IsSet(member))
                 )
             )
             {
                 var name = transNames[member.Id];
-                aliases.Add(
-                    new KeyValuePair<string, string>(name, modelType + ".ChangeSet." + name)
-                );
+                aliases.Add(new KeyValuePair<string, string>(name, modelType + ".ChangeSet." + name));
             }
         }
         return aliases.ToImmutableArray();
@@ -222,10 +177,7 @@ internal static class SparseModelOperationAliases
     /// <summary>Emits the alias directives ahead of the implementation namespace.</summary>
     /// <param name="code">File builder.</param>
     /// <param name="aliases">Alias pairs from <see cref="Collect"/>.</param>
-    public static void Append(
-        SharedIndentedBuilder code,
-        ImmutableArray<KeyValuePair<string, string>> aliases
-    )
+    public static void Append(SharedIndentedBuilder code, ImmutableArray<KeyValuePair<string, string>> aliases)
     {
         var seen = new HashSet<string>(System.StringComparer.Ordinal);
         foreach (var alias in aliases)
@@ -239,10 +191,7 @@ internal static class SparseModelOperationAliases
         }
     }
 
-    private static string? PayloadContainerName(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType
-    )
+    private static string? PayloadContainerName(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string? modelType)
     {
         if (modelType is null)
         {
@@ -257,22 +206,14 @@ internal static class SparseModelOperationAliases
         return SparseChangeSetPayloadEmitter.RequirePayloadContainerName(dialect, modelType);
     }
 
-    private static ImmutableArray<string> PayloadOwnerNames(
-        ImmutableArray<SparseMemberModel> members
-    ) =>
+    private static ImmutableArray<string> PayloadOwnerNames(ImmutableArray<SparseMemberModel> members) =>
         members
             .SelectMany(static member =>
                 new[]
                 {
-                    member.ChildModel?.IsFragmentModel == true
-                        ? member.ChildModel.Value.NonNullableName
-                        : string.Empty,
-                    member.Collection.ElementType.IsFragmentModel
-                        ? member.Collection.ElementType.NonNullableName
-                        : string.Empty,
-                    member.Collection.ValueType?.IsFragmentModel == true
-                        ? member.Collection.ValueType.Value.NonNullableName
-                        : string.Empty,
+                    member.ChildModel?.IsFragmentModel == true ? member.ChildModel.Value.NonNullableName : string.Empty,
+                    member.Collection.ElementType.IsFragmentModel ? member.Collection.ElementType.NonNullableName : string.Empty,
+                    member.Collection.ValueType?.IsFragmentModel == true ? member.Collection.ValueType.Value.NonNullableName : string.Empty,
                 }
             )
             .Where(static owner => owner.Length > 0)
@@ -280,7 +221,5 @@ internal static class SparseModelOperationAliases
             .ToImmutableArray();
 
     private static string TrimGlobal(string qualified) =>
-        qualified.StartsWith("global::", System.StringComparison.Ordinal)
-            ? qualified.Substring("global::".Length)
-            : qualified;
+        qualified.StartsWith("global::", System.StringComparison.Ordinal) ? qualified.Substring("global::".Length) : qualified;
 }

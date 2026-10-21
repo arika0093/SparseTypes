@@ -13,16 +13,11 @@ internal static class SparseTypesGeneratorChildSessionConfig
             EditChildDraftHostInterfaceMetadataName = "SparseTypes.ISparseEditChildDraftHost",
             EditChildDraftImplementationType = "global::SparseTypes.SparseEditChildDraft",
             EditChildSessionStatusType = "global::SparseTypes.SparseChildSessionStatus",
-            EditSessionWithChildrenInterfaceMetadataName =
-                "SparseTypes.ISparseEditSessionWithChildren",
-            EditSessionWithChildStatusInterfaceMetadataName =
-                "SparseTypes.ISparseEditSessionWithChildStatus",
-            EditSessionWithPendingStateInterfaceMetadataName =
-                "SparseTypes.ISparseEditSessionWithPendingState",
-            EditSessionWithChangeSetInterfaceMetadataName =
-                "SparseTypes.ISparseEditSessionWithChangeSet",
-            EditSessionWithBaselineRevisionInterfaceMetadataName =
-                "SparseTypes.ISparseEditSessionWithBaselineRevision",
+            EditSessionWithChildrenInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithChildren",
+            EditSessionWithChildStatusInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithChildStatus",
+            EditSessionWithPendingStateInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithPendingState",
+            EditSessionWithChangeSetInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithChangeSet",
+            EditSessionWithBaselineRevisionInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithBaselineRevision",
             SessionCapabilityContracts = new SparseSessionCapabilityContracts(
                 HistoryInterface: "SparseTypes.ISparseEditSessionWithHistory",
                 FieldStateInterface: "SparseTypes.ISparseEditSessionWithFieldState",
@@ -41,20 +36,8 @@ internal static class SparseTypesGeneratorChildSessionConfig
                         + reason
                         + ")",
                     ChildPathOverlapExpression = static (left, right) =>
-                        left
-                        + ".Equals("
-                        + right
-                        + ") || "
-                        + left
-                        + ".IsAncestorOf("
-                        + right
-                        + ") || "
-                        + right
-                        + ".IsAncestorOf("
-                        + left
-                        + ")",
-                    ChildConflictPathPrefixExpression = static (conflict, prefix) =>
-                        conflict + ".WithPathPrefix(" + prefix + ")",
+                        left + ".Equals(" + right + ") || " + left + ".IsAncestorOf(" + right + ") || " + right + ".IsAncestorOf(" + left + ")",
+                    ChildConflictPathPrefixExpression = static (conflict, prefix) => conflict + ".WithPathPrefix(" + prefix + ")",
                 }
                 : null,
         };

@@ -147,11 +147,7 @@ internal static class SparseConcreteComparisons
     }
 
     /// <summary>Compares lists with a generated semantic item comparer.</summary>
-    public static bool AreSequenceEqual<T>(
-        List<T>? left,
-        List<T>? right,
-        Func<T, T, bool> itemComparer
-    )
+    public static bool AreSequenceEqual<T>(List<T>? left, List<T>? right, Func<T, T, bool> itemComparer)
     {
         ArgumentNullException.ThrowIfNull(itemComparer);
         if (ReferenceEquals(left, right))
@@ -166,11 +162,7 @@ internal static class SparseConcreteComparisons
 
         if (left.GetType() != typeof(List<T>) || right.GetType() != typeof(List<T>))
         {
-            return SparseValueComparer.AreSequenceEqual(
-                (IEnumerable<T>)left,
-                (IEnumerable<T>)right,
-                itemComparer
-            );
+            return SparseValueComparer.AreSequenceEqual((IEnumerable<T>)left, (IEnumerable<T>)right, itemComparer);
         }
 
         if (left.Count != right.Count)
@@ -235,10 +227,7 @@ internal static class SparseConcreteComparisons
 
     /// <summary>Compares dictionaries by key/value semantics with static comparer access.</summary>
     /// <remarks>Differing key comparers veto equality in both directions, as on the dynamic path.</remarks>
-    public static bool AreDictionaryEqual<TKey, TValue>(
-        Dictionary<TKey, TValue>? left,
-        Dictionary<TKey, TValue>? right
-    )
+    public static bool AreDictionaryEqual<TKey, TValue>(Dictionary<TKey, TValue>? left, Dictionary<TKey, TValue>? right)
     {
         if (ReferenceEquals(left, right))
         {
@@ -257,10 +246,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !SparseValueComparer.AreEqual(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !SparseValueComparer.AreEqual(pair.Value, rightValue))
             {
                 return false;
             }
@@ -271,10 +257,7 @@ internal static class SparseConcreteComparisons
 
     /// <summary>Compares sorted dictionaries by key/value semantics with static comparer access.</summary>
     /// <remarks>Differing key comparers veto equality in both directions, as on the dynamic path.</remarks>
-    public static bool AreDictionaryEqual<TKey, TValue>(
-        SortedDictionary<TKey, TValue>? left,
-        SortedDictionary<TKey, TValue>? right
-    )
+    public static bool AreDictionaryEqual<TKey, TValue>(SortedDictionary<TKey, TValue>? left, SortedDictionary<TKey, TValue>? right)
     {
         if (ReferenceEquals(left, right))
         {
@@ -293,10 +276,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !SparseValueComparer.AreEqual(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !SparseValueComparer.AreEqual(pair.Value, rightValue))
             {
                 return false;
             }
@@ -307,10 +287,7 @@ internal static class SparseConcreteComparisons
 
     /// <summary>Compares sorted lists by key/value semantics with static comparer access.</summary>
     /// <remarks>Differing key comparers veto equality in both directions, as on the dynamic path.</remarks>
-    public static bool AreDictionaryEqual<TKey, TValue>(
-        SortedList<TKey, TValue>? left,
-        SortedList<TKey, TValue>? right
-    )
+    public static bool AreDictionaryEqual<TKey, TValue>(SortedList<TKey, TValue>? left, SortedList<TKey, TValue>? right)
     {
         if (ReferenceEquals(left, right))
         {
@@ -329,10 +306,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !SparseValueComparer.AreEqual(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !SparseValueComparer.AreEqual(pair.Value, rightValue))
             {
                 return false;
             }
@@ -366,10 +340,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !valueComparer(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !valueComparer(pair.Value, rightValue))
             {
                 return false;
             }
@@ -403,10 +374,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !valueComparer(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !valueComparer(pair.Value, rightValue))
             {
                 return false;
             }
@@ -440,10 +408,7 @@ internal static class SparseConcreteComparisons
 
         foreach (var pair in left)
         {
-            if (
-                !right.TryGetValue(pair.Key, out var rightValue)
-                || !valueComparer(pair.Value, rightValue)
-            )
+            if (!right.TryGetValue(pair.Key, out var rightValue) || !valueComparer(pair.Value, rightValue))
             {
                 return false;
             }

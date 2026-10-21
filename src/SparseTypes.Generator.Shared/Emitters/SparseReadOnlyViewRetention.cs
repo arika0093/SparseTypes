@@ -8,15 +8,8 @@ namespace SparseTypes.Generator.Shared;
 // getter call. Split from the view emitter to keep both files focused.
 internal class SparseReadOnlyViewRetention(ImmutableArray<string> memberNames)
 {
-    private readonly System.Collections.Generic.HashSet<string> _taken = new(
-        memberNames,
-        System.StringComparer.Ordinal
-    );
-    private readonly System.Collections.Generic.List<(
-        string Cache,
-        string Holder,
-        string Adapter
-    )> _names = [];
+    private readonly System.Collections.Generic.HashSet<string> _taken = new(memberNames, System.StringComparer.Ordinal);
+    private readonly System.Collections.Generic.List<(string Cache, string Holder, string Adapter)> _names = [];
 
     /// <summary>Reserves a cache field and holder type for one source/adapter pair.</summary>
     /// <param name="property">The view property the pair belongs to.</param>
@@ -50,13 +43,7 @@ internal class SparseReadOnlyViewRetention(ImmutableArray<string> memberNames)
             var (cache, holder, adapter) = _names[index];
             code.AppendLine("private sealed class " + holder);
             code.OpenBlock();
-            code.AppendLine(
-                "public "
-                    + holder
-                    + "(object source, "
-                    + adapter
-                    + " adapter) { Source = source; Adapter = adapter; }"
-            );
+            code.AppendLine("public " + holder + "(object source, " + adapter + " adapter) { Source = source; Adapter = adapter; }");
             code.AppendLine("public readonly object Source;");
             code.AppendLine("public readonly " + adapter + " Adapter;");
             code.CloseBlock();

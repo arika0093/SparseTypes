@@ -48,9 +48,7 @@ internal sealed class PlanLevel
     /// <summary>Rejects modifier registrations that target nothing mappable.</summary>
     public void ValidateModifiers()
     {
-        var danglingMissing = Registrations
-            .MissingOverrides.Keys.Where(name => !_consumedMissing.Contains(name))
-            .ToList();
+        var danglingMissing = Registrations.MissingOverrides.Keys.Where(name => !_consumedMissing.Contains(name)).ToList();
         if (danglingMissing.Count > 0)
         {
             throw new SparseEntityMappingException(
@@ -60,9 +58,7 @@ internal sealed class PlanLevel
             );
         }
 
-        var danglingAllowed = Registrations
-            .AllowedWrites.Where(name => !_consumedAllowed.Contains(name))
-            .ToList();
+        var danglingAllowed = Registrations.AllowedWrites.Where(name => !_consumedAllowed.Contains(name)).ToList();
         if (danglingAllowed.Count > 0)
         {
             throw new SparseEntityMappingException(
@@ -86,19 +82,10 @@ internal abstract class EntityPlanBase
     public abstract void WriteAll(PlanWriteState state, List<Action> actions);
 
     /// <summary>Collects the Include paths needed to apply the current transition.</summary>
-    public abstract void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    );
+    public abstract void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot);
 
     /// <summary>Builds the DTO value expression and collects projection errors.</summary>
-    public abstract Expression BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    );
+    public abstract Expression BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath);
 
     /// <summary>Copies baseline temporary identities and correlates created entities into the DTO.</summary>
     public abstract void AssignTemporaryKeys(
@@ -132,10 +119,8 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
     where TDto : class
 {
     private static readonly MethodInfo PrimitiveCollectionFactory =
-        typeof(EntityPlan<TEntity, TDto>).GetMethod(
-            nameof(CreatePrimitiveCollectionNodeCore),
-            BindingFlags.Public | BindingFlags.Static
-        ) ?? throw new InvalidOperationException("The primitive collection factory is missing.");
+        typeof(EntityPlan<TEntity, TDto>).GetMethod(nameof(CreatePrimitiveCollectionNodeCore), BindingFlags.Public | BindingFlags.Static)
+        ?? throw new InvalidOperationException("The primitive collection factory is missing.");
 
     private EntityPlan(
         List<MemberNode> steps,
@@ -176,11 +161,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
 
     /// <summary>Builds and validates the plan for one EF entity type.</summary>
     /// <remarks>Coverage is fail-fast: every readable DTO member must resolve to a generated default.</remarks>
-    public static EntityPlan<TEntity, TDto> Build(
-        PlanBuildSession session,
-        SparseEntityMapBuilderBase registrations,
-        IEntityType entityType
-    )
+    public static EntityPlan<TEntity, TDto> Build(PlanBuildSession session, SparseEntityMapBuilderBase registrations, IEntityType entityType)
     {
         ArgumentNullException.ThrowIfNull(session);
         ArgumentNullException.ThrowIfNull(registrations);
@@ -201,11 +182,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
             level.FailedMembers.Add(node.DtoName);
         }
 
-        foreach (
-            var entry in registrations.Collections.Where(entry =>
-                !ResolveCollection(session, level, entityType, entry)
-            )
-        )
+        foreach (var entry in registrations.Collections.Where(entry => !ResolveCollection(session, level, entityType, entry)))
         {
             level.FailedMembers.Add(entry.Key);
         }
@@ -235,22 +212,14 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         });
     }
 
-    private static bool ResolveCollection(
-        PlanBuildSession session,
-        PlanLevel level,
-        IEntityType entityType,
-        KeyValuePair<string, string> entry
-    )
+    private static bool ResolveCollection(PlanBuildSession session, PlanLevel level, IEntityType entityType, KeyValuePair<string, string> entry)
     {
         return session.TryCollect(() =>
         {
             var entityProperty = FindProperty(entityType, entry.Value);
             if (entityProperty?.IsPrimitiveCollection == true)
             {
-                var dtoProperty = typeof(TDto).GetProperty(
-                    entry.Key,
-                    BindingFlags.Public | BindingFlags.Instance
-                );
+                var dtoProperty = typeof(TDto).GetProperty(entry.Key, BindingFlags.Public | BindingFlags.Instance);
                 if (dtoProperty is null || !dtoProperty.CanRead)
                 {
                     throw new SparseEntityMappingException(
@@ -271,17 +240,11 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         });
     }
 
-    private static MemberNode CreatePrimitiveCollectionNode(
-        PropertyInfo dtoProperty,
-        IProperty entityProperty
-    )
+    private static MemberNode CreatePrimitiveCollectionNode(PropertyInfo dtoProperty, IProperty entityProperty)
     {
         try
         {
-            return (MemberNode)
-                PrimitiveCollectionFactory
-                    .MakeGenericMethod(dtoProperty.PropertyType)
-                    .Invoke(null, [dtoProperty, entityProperty])!;
+            return (MemberNode)PrimitiveCollectionFactory.MakeGenericMethod(dtoProperty.PropertyType).Invoke(null, [dtoProperty, entityProperty])!;
         }
         catch (ArgumentException exception)
         {
@@ -291,18 +254,14 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
                 $"The DTO member '{dtoProperty.Name}' cannot be mapped as an EF primitive collection: {exception.Message}"
             );
         }
-        catch (TargetInvocationException exception)
-            when (exception.InnerException is SparseEntityMappingException mappingException)
+        catch (TargetInvocationException exception) when (exception.InnerException is SparseEntityMappingException mappingException)
         {
             throw mappingException;
         }
     }
 
     /// <summary>Closes a primitive collection node over the DTO collection type.</summary>
-    public static PrimitiveCollectionNode<
-        TDto,
-        TDtoCollection
-    > CreatePrimitiveCollectionNodeCore<TDtoCollection>(
+    public static PrimitiveCollectionNode<TDto, TDtoCollection> CreatePrimitiveCollectionNodeCore<TDtoCollection>(
         PropertyInfo dtoProperty,
         IProperty entityProperty
     )
@@ -377,24 +336,11 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         ArgumentNullException.ThrowIfNull(assignments);
         foreach (var step in Steps)
         {
-            step.AssignTemporaryKeys(
-                context,
-                baseline,
-                authoritative,
-                result,
-                path,
-                assignments,
-                parentScopes
-            );
+            step.AssignTemporaryKeys(context, baseline, authoritative, result, path, assignments, parentScopes);
         }
     }
 
-    public override void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    )
+    public override void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot)
     {
         ArgumentNullException.ThrowIfNull(changes);
         ArgumentNullException.ThrowIfNull(collector);
@@ -413,11 +359,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         }
     }
 
-    public override Expression BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    )
+    public override Expression BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
     {
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentNullException.ThrowIfNull(context);
@@ -447,13 +389,8 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
             {
                 usedReads.Add(property.Name);
                 if (
-                    context.TryInlineRead(
-                        read,
-                        entity,
-                        property.PropertyType,
-                        memberPath,
-                        out var readValue
-                    ) && context.TryBind(property, readValue, memberPath, out var readBinding)
+                    context.TryInlineRead(read, entity, property.PropertyType, memberPath, out var readValue)
+                    && context.TryBind(property, readValue, memberPath, out var readBinding)
                 )
                 {
                     bindings.Add(readBinding!);
@@ -521,18 +458,12 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         return Expression.MemberInit(Expression.New(constructor), bindings);
     }
 
-    private static Dictionary<string, Func<object, object?>> BuildCollectionReaders(
-        SparseEntityMapBuilderBase registrations,
-        PlanLevel level
-    )
+    private static Dictionary<string, Func<object, object?>> BuildCollectionReaders(SparseEntityMapBuilderBase registrations, PlanLevel level)
     {
         var readers = new Dictionary<string, Func<object, object?>>(StringComparer.Ordinal);
         foreach (var name in level.Collections.Keys)
         {
-            var property = typeof(TDto).GetProperty(
-                name,
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var property = typeof(TDto).GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
             if (property is null || !property.CanRead)
             {
                 throw new SparseEntityMappingException(
@@ -542,10 +473,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
                 );
             }
 
-            if (
-                registrations.Collections.ContainsKey(name)
-                && !PlanBuildSession.IsCollectionType(property.PropertyType)
-            )
+            if (registrations.Collections.ContainsKey(name) && !PlanBuildSession.IsCollectionType(property.PropertyType))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.MetadataMismatch,
@@ -564,9 +492,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
     {
         var parameter = Expression.Parameter(typeof(object), "dto");
         var access = Expression.Property(Expression.Convert(parameter, typeof(TDto)), property);
-        return Expression
-            .Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), parameter)
-            .Compile();
+        return Expression.Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), parameter).Compile();
     }
 
     private static void ValidateCoverage(PlanBuildSession session, PlanLevel level)
@@ -586,11 +512,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
     private static void ValidateCoverage(PlanLevel level, PropertyInfo dtoProperty)
     {
         var name = dtoProperty.Name;
-        if (
-            level.FailedMembers.Contains(name)
-            || level.ByDtoName.ContainsKey(name)
-            || level.Registrations.Ignored.Contains(name)
-        )
+        if (level.FailedMembers.Contains(name) || level.ByDtoName.ContainsKey(name) || level.Registrations.Ignored.Contains(name))
         {
             return;
         }
@@ -602,10 +524,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
             return;
         }
 
-        if (
-            level.Collections.ContainsKey(name)
-            && PlanBuildSession.IsCollectionType(dtoProperty.PropertyType)
-        )
+        if (level.Collections.ContainsKey(name) && PlanBuildSession.IsCollectionType(dtoProperty.PropertyType))
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.Unmapped,
@@ -635,14 +554,8 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         var entityProperty = FindProperty(level.EntityType, name);
         if (entityProperty is not null)
         {
-            var (protection, protectedDetail) = PlanBuildSession.GetProtection(
-                level.EntityType,
-                entityProperty
-            );
-            if (
-                protection != EntityProtection.None
-                && !level.Registrations.AllowedWrites.Contains(name)
-            )
+            var (protection, protectedDetail) = PlanBuildSession.GetProtection(level.EntityType, entityProperty);
+            if (protection != EntityProtection.None && !level.Registrations.AllowedWrites.Contains(name))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.Protected,
@@ -678,11 +591,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         {
             hint = "Declare Object() for the nested member, or Ignore() it.";
         }
-        throw new SparseEntityMappingException(
-            SparseEntityMappingFailure.Unmapped,
-            name,
-            $"The DTO member '{name}' has no mapping. {hint}"
-        );
+        throw new SparseEntityMappingException(SparseEntityMappingFailure.Unmapped, name, $"The DTO member '{name}' has no mapping. {hint}");
     }
 
     private static string Friendly(Type type)
@@ -691,16 +600,9 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
         return underlying is not null ? underlying.Name + "?" : type.Name;
     }
 
-    private static void ValidateCollectionMember(
-        IEntityType entityType,
-        string dtoName,
-        string entityName
-    )
+    private static void ValidateCollectionMember(IEntityType entityType, string dtoName, string entityName)
     {
-        if (
-            entityType.FindNavigation(entityName) is null
-            && FindProperty(entityType, entityName) is null
-        )
+        if (entityType.FindNavigation(entityName) is null && FindProperty(entityType, entityName) is null)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -739,10 +641,7 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
 
     private SparseEntityMappingException UnmappedError(PlanApplyState state, string root)
     {
-        var dtoProperty = typeof(TDto).GetProperty(
-            root,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var dtoProperty = typeof(TDto).GetProperty(root, BindingFlags.Public | BindingFlags.Instance);
         if (dtoProperty is null)
         {
             return new SparseEntityMappingException(

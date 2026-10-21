@@ -45,22 +45,14 @@ public static class SparseOperationKernels
     /// <param name="afterPresent">Whether an after value is present.</param>
     /// <param name="orderChanged">Whether keyed order changed.</param>
     /// <returns>True for the identity operation.</returns>
-    public static bool IsEmptyTransition(
-        bool beforePresent,
-        bool afterPresent,
-        bool orderChanged
-    ) => beforePresent == afterPresent && !orderChanged;
+    public static bool IsEmptyTransition(bool beforePresent, bool afterPresent, bool orderChanged) => beforePresent == afterPresent && !orderChanged;
 
     /// <summary>Finds the first index with an equal assigned key.</summary>
     /// <param name="keys">Keys in positional order.</param>
     /// <param name="key">Key to locate.</param>
     /// <param name="comparer">Key equality, or null for the default.</param>
     /// <returns>The index, or -1 when absent.</returns>
-    public static int IndexOfKey<TKey>(
-        IReadOnlyList<TKey> keys,
-        TKey key,
-        IEqualityComparer<TKey>? comparer = null
-    )
+    public static int IndexOfKey<TKey>(IReadOnlyList<TKey> keys, TKey key, IEqualityComparer<TKey>? comparer = null)
     {
         ArgumentNullException.ThrowIfNull(keys);
         comparer ??= EqualityComparer<TKey>.Default;
@@ -80,11 +72,8 @@ public static class SparseOperationKernels
     /// <param name="unassigned">Configured marker.</param>
     /// <param name="comparer">Key equality, or null for the default.</param>
     /// <returns>True when the key equals the marker.</returns>
-    public static bool IsUnassignedKey<TKey>(
-        TKey key,
-        TKey unassigned,
-        IEqualityComparer<TKey>? comparer = null
-    ) => (comparer ?? EqualityComparer<TKey>.Default).Equals(key, unassigned);
+    public static bool IsUnassignedKey<TKey>(TKey key, TKey unassigned, IEqualityComparer<TKey>? comparer = null) =>
+        (comparer ?? EqualityComparer<TKey>.Default).Equals(key, unassigned);
 
     /// <summary>Composes keyed add/remove sets across two sequential transitions.</summary>
     /// <remarks>Pure set algebra: a key added then removed vanishes; removed then added becomes a retained (possibly moved) key.</remarks>
@@ -181,11 +170,7 @@ public static class SparseOperationKernels
     }
 
     /// <summary>Whether a keyed membership delta is the identity operation.</summary>
-    public static bool IsEmptyKeyedSet<TKey>(
-        IReadOnlyList<TKey> added,
-        IReadOnlyList<TKey> removed,
-        bool orderChanged
-    )
+    public static bool IsEmptyKeyedSet<TKey>(IReadOnlyList<TKey> added, IReadOnlyList<TKey> removed, bool orderChanged)
     {
         ArgumentNullException.ThrowIfNull(added);
         ArgumentNullException.ThrowIfNull(removed);
@@ -218,14 +203,9 @@ public static class SparseOperationKernels
 
     /// <summary>Whether either path is a strict segment ancestor of the other.</summary>
     /// <remarks>Canonical subset of the mixed-operation path algebra.</remarks>
-    public static bool IsAncestorOrDescendant(string first, string second) =>
-        IsStrictAncestor(first, second) || IsStrictAncestor(second, first);
+    public static bool IsAncestorOrDescendant(string first, string second) => IsStrictAncestor(first, second) || IsStrictAncestor(second, first);
 
-    private static bool Contains<TKey>(
-        IReadOnlyList<TKey> keys,
-        TKey key,
-        IEqualityComparer<TKey> comparer
-    )
+    private static bool Contains<TKey>(IReadOnlyList<TKey> keys, TKey key, IEqualityComparer<TKey> comparer)
     {
         for (var index = 0; index < keys.Count; index++)
         {
@@ -238,11 +218,7 @@ public static class SparseOperationKernels
         return false;
     }
 
-    private static bool ListContains<TKey>(
-        List<TKey> keys,
-        TKey key,
-        IEqualityComparer<TKey> comparer
-    )
+    private static bool ListContains<TKey>(List<TKey> keys, TKey key, IEqualityComparer<TKey> comparer)
     {
         for (var index = 0; index < keys.Count; index++)
         {

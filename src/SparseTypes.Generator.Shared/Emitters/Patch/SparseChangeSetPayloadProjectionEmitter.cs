@@ -19,28 +19,20 @@ internal static class SparseChangeSetPayloadProjectionEmitter
     {
         if (modelType is null)
         {
-            throw new ArgumentException(
-                "A payload projection requires a model type.",
-                nameof(modelType)
-            );
+            throw new ArgumentException("A payload projection requires a model type.", nameof(modelType));
         }
 
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, dialect);
         var runtime = dialect.RuntimeNamespace;
         var payloadRoot = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Root");
         var rootChange = SparseChangeSetPayloadEmitter.PayloadName(modelType, "RootChange");
-        var prefix = SparseNaming.PatchApiPrefix(
-            members.Select(static member => member.Property.Name)
-        );
-        var strict =
-            dialect.EffectiveRebasePolicy.RedactedBefore == SparseRedactedBeforeBehavior.StrictFail;
+        var prefix = SparseNaming.PatchApiPrefix(members.Select(static member => member.Property.Name));
+        var strict = dialect.EffectiveRebasePolicy.RedactedBefore == SparseRedactedBeforeBehavior.StrictFail;
         code.AppendLine("/// <summary>Projects this payload to a baseline-free patch.</summary>");
         code.AppendLine("/// <returns>The baseline-free patch.</returns>");
         code.AppendLine("internal Patch ToPatchCore()");
         code.OpenBlock();
-        code.AppendLine(
-            "if (Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(Changes));"
-        );
+        code.AppendLine("if (Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(Changes));");
         code.AppendLine("if (Changes.Count == 1 && Changes[0] is " + rootChange + " whole)");
         code.OpenBlock();
         code.AppendLine(
@@ -110,26 +102,13 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.CloseBlock();
     }
 
-    private static void AppendWholeProjection(
-        SharedIndentedBuilder code,
-        string runtime,
-        string payloadRoot,
-        string prefix
-    )
+    private static void AppendWholeProjection(SharedIndentedBuilder code, string runtime, string payloadRoot, string prefix)
     {
         code.AppendLine(
-            "var __patchBeforeRoot = whole.Before is null ? "
-                + runtime
-                + "Optional<"
-                + payloadRoot
-                + "?>.Missing : whole.Before.ToOptional();"
+            "var __patchBeforeRoot = whole.Before is null ? " + runtime + "Optional<" + payloadRoot + "?>.Missing : whole.Before.ToOptional();"
         );
         code.AppendLine(
-            "var __patchAfterRoot = whole.After is null ? "
-                + runtime
-                + "Optional<"
-                + payloadRoot
-                + "?>.Missing : whole.After.ToOptional();"
+            "var __patchAfterRoot = whole.After is null ? " + runtime + "Optional<" + payloadRoot + "?>.Missing : whole.After.ToOptional();"
         );
         code.AppendLine(
             runtime
@@ -165,9 +144,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLine("case " + variant + " item:");
         if (IsNested(member))
         {
-            code.AppendLine(
-                "if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(Changes));"
-            );
+            code.AppendLine("if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(Changes));");
             code.AppendLine("patch." + name + " = item.Nested.ToPatchCore();");
             code.AppendLine("break;");
             return;
@@ -189,17 +166,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
             );
             code.AppendLine("var __after" + id + " = item.After.ToOptional();");
             code.AppendLine(
-                "patch."
-                    + name
-                    + " = __after"
-                    + id
-                    + ".IsPresent ? "
-                    + operation
-                    + ".Set(__after"
-                    + id
-                    + ".Value) : "
-                    + operation
-                    + ".Remove;"
+                "patch." + name + " = __after" + id + ".IsPresent ? " + operation + ".Set(__after" + id + ".Value) : " + operation + ".Remove;"
             );
             code.AppendLine("break;");
             return;
@@ -229,9 +196,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         }
         else
         {
-            code.AppendLine(
-                "patch." + name + " = " + operation + ".Set(__redactedAfter" + id + ".Value);"
-            );
+            code.AppendLine("patch." + name + " = " + operation + ".Set(__redactedAfter" + id + ".Value);");
         }
         code.AppendLine("break;");
     }
@@ -255,43 +220,17 @@ internal static class SparseChangeSetPayloadProjectionEmitter
             "if (item.Items is null) throw new global::System.ArgumentException(\"Payload item changes must not be null.\", nameof(Changes));"
         );
         code.AppendLine("bool " + HasField(member) + " = true;");
+        code.AppendLine("bool " + KeyedWholeFlag(member) + " = item.Before is not null || item.After is not null;");
+        code.AppendLine(runtime + "Optional<" + valueType + "> " + KeyedWholeBefore(member) + " = default;");
+        code.AppendLine(runtime + "Optional<" + valueType + "> " + KeyedWholeAfter(member) + " = default;");
         code.AppendLine(
-            "bool "
-                + KeyedWholeFlag(member)
-                + " = item.Before is not null || item.After is not null;"
-        );
-        code.AppendLine(
-            runtime + "Optional<" + valueType + "> " + KeyedWholeBefore(member) + " = default;"
-        );
-        code.AppendLine(
-            runtime + "Optional<" + valueType + "> " + KeyedWholeAfter(member) + " = default;"
-        );
-        code.AppendLine(
-            "global::System.Collections.Generic.List<"
-                + modelType
-                + ".ChangeSet."
-                + trans
-                + ".Item>? "
-                + KeyedItems(member)
-                + " = null;"
+            "global::System.Collections.Generic.List<" + modelType + ".ChangeSet." + trans + ".Item>? " + KeyedItems(member) + " = null;"
         );
         if (IsKeyed(member))
         {
             var keyType = KeyTypeOf(member);
-            code.AppendLine(
-                "global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">? "
-                    + KeyedBeforeOrder(member)
-                    + " = null;"
-            );
-            code.AppendLine(
-                "global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">? "
-                    + KeyedAfterOrder(member)
-                    + " = null;"
-            );
+            code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? " + KeyedBeforeOrder(member) + " = null;");
+            code.AppendLine("global::System.Collections.Generic.List<" + keyType + ">? " + KeyedAfterOrder(member) + " = null;");
         }
         code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
         code.OpenBlock();
@@ -304,32 +243,14 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine(
-            "var __payloadPatchItems"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + modelType
-                + ".ChangeSet."
-                + trans
-                + ".Item>();"
+            "var __payloadPatchItems" + id + " = new global::System.Collections.Generic.List<" + modelType + ".ChangeSet." + trans + ".Item>();"
         );
         code.AppendLine("foreach (var __payloadPatchDto" + id + " in item.Items)");
         code.OpenBlock();
         code.AppendLine(
-            "if (__payloadPatchDto"
-                + id
-                + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(Changes));"
+            "if (__payloadPatchDto" + id + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(Changes));"
         );
-        code.AppendLine(
-            "__payloadPatchItems"
-                + id
-                + ".Add("
-                + modelType
-                + ".ChangeSet.__SparsePayloadItem"
-                + id
-                + "(__payloadPatchDto"
-                + id
-                + "));"
-        );
+        code.AppendLine("__payloadPatchItems" + id + ".Add(" + modelType + ".ChangeSet.__SparsePayloadItem" + id + "(__payloadPatchDto" + id + "));");
         code.CloseBlock();
         code.AppendLine(KeyedItems(member) + " = __payloadPatchItems" + id + ";");
         string? removalCount = null;
@@ -341,22 +262,12 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         else
         {
             code.AppendLine("int __payloadPatchRemovals" + id + " = 0;");
-            code.AppendLine(
-                "foreach (var __payloadPatchCount" + id + " in __payloadPatchItems" + id + ")"
-            );
-            code.AppendLine(
-                "if (__payloadPatchCount" + id + ".IsRemoved) __payloadPatchRemovals" + id + "++;"
-            );
+            code.AppendLine("foreach (var __payloadPatchCount" + id + " in __payloadPatchItems" + id + ")");
+            code.AppendLine("if (__payloadPatchCount" + id + ".IsRemoved) __payloadPatchRemovals" + id + "++;");
             removalCount = "__payloadPatchRemovals" + id;
         }
         code.CloseBlock();
-        SparseChangeSetPatchSyncEmitter.AppendKeyedDictToPatch(
-            code,
-            member,
-            name,
-            dialect,
-            removalCount
-        );
+        SparseChangeSetPatchSyncEmitter.AppendKeyedDictToPatch(code, member, name, dialect, removalCount);
         code.AppendLine("break;");
     }
 }

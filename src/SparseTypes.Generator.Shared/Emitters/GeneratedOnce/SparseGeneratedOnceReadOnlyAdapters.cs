@@ -22,11 +22,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
     )
     {
         using var code = new SharedIndentedBuilder(cancellationToken);
-        SparseGeneratedOnceNames.AppendGeneratedHeader(
-            code,
-            implementationNamespace,
-            cancellationToken
-        );
+        SparseGeneratedOnceNames.AppendGeneratedHeader(code, implementationNamespace, cancellationToken);
         if (includeCollection)
         {
             AppendCollectionAdapter(code, implementationNamespace);
@@ -46,14 +42,9 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
         return code.ToString();
     }
 
-    private static void AppendCollectionAdapter(
-        SharedIndentedBuilder code,
-        string implementationNamespace
-    )
+    private static void AppendCollectionAdapter(SharedIndentedBuilder code, string implementationNamespace)
     {
-        code.AppendLine(
-            "/// <summary>Streaming read-only list view over a live enumerable source.</summary>"
-        );
+        code.AppendLine("/// <summary>Streaming read-only list view over a live enumerable source.</summary>");
         code.AppendLine(
             "/// <remarks>Sources must be finite, repeatable enumerables that stay stable during a view read (issue #172). <c>Count</c> is O(1) for <c>ICollection</c>/<c>IReadOnlyCollection</c> sources and a full enumeration otherwise; the indexer is O(1) for <c>IList</c>/<c>IReadOnlyList</c> sources and re-enumerates from the start otherwise, so a full indexed loop over a streaming source is quadratic and should be a <c>foreach</c> instead. Each access enumerates anew with no snapshot: single-pass sources drain and per-enumeration-varying sources reflect the latest enumeration.</remarks>"
         );
@@ -83,32 +74,21 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
         code.AppendLine(
             "public global::System.Collections.Generic.IEnumerator<TView> GetEnumerator() => global::System.Linq.Enumerable.Select(_source, _map).GetEnumerator();"
         );
-        code.AppendLine(
-            "global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();"
-        );
-        code.AppendLine(
-            "private readonly global::System.Collections.Generic.IEnumerable<TSource> _source;"
-        );
+        code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
+        code.AppendLine("private readonly global::System.Collections.Generic.IEnumerable<TSource> _source;");
         code.AppendLine("private readonly global::System.Func<TSource, TView> _map;");
         code.AppendLine("private TView __SparseGet(int index)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (index < 0) throw new global::System.ArgumentOutOfRangeException(nameof(index));"
-        );
+        code.AppendLine("if (index < 0) throw new global::System.ArgumentOutOfRangeException(nameof(index));");
         code.AppendLine("var current = 0;");
-        code.AppendLine(
-            "foreach (var item in _source) { if (current++ == index) return _map(item); }"
-        );
+        code.AppendLine("foreach (var item in _source) { if (current++ == index) return _map(item); }");
         code.AppendLine("throw new global::System.ArgumentOutOfRangeException(nameof(index));");
         code.CloseBlock();
         code.CloseBlock();
         _ = implementationNamespace;
     }
 
-    private static void AppendDictionaryAdapter(
-        SharedIndentedBuilder code,
-        string implementationNamespace
-    )
+    private static void AppendDictionaryAdapter(SharedIndentedBuilder code, string implementationNamespace)
     {
         var collection = SparseGeneratedOnceNames.QualifiedListAdapter(implementationNamespace);
         code.AppendLine(
@@ -130,9 +110,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
         code.CloseBlock();
         code.AppendLine("public int Count => _source.Count;");
         code.AppendLine(
-            "public global::System.Collections.Generic.IEnumerable<TKey> Keys => new "
-                + collection
-                + "<TKey, TKey>(_source.Keys, static key => key);"
+            "public global::System.Collections.Generic.IEnumerable<TKey> Keys => new " + collection + "<TKey, TKey>(_source.Keys, static key => key);"
         );
         code.AppendLine(
             "public global::System.Collections.Generic.IEnumerable<TView> Values => global::System.Linq.Enumerable.Select(_source.Values, _map);"
@@ -141,9 +119,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
         code.AppendLine("public bool ContainsKey(TKey key) => _source.ContainsKey(key);");
         code.AppendLine("public bool TryGetValue(TKey key, out TView value)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (_source.TryGetValue(key, out var current)) { value = _map(current); return true; }"
-        );
+        code.AppendLine("if (_source.TryGetValue(key, out var current)) { value = _map(current); return true; }");
         code.AppendLine("value = default!;");
         code.AppendLine("return false;");
         code.CloseBlock();
@@ -155,12 +131,8 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
             "foreach (var pair in _source) yield return new global::System.Collections.Generic.KeyValuePair<TKey, TView>(pair.Key, _map(pair.Value));"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();"
-        );
-        code.AppendLine(
-            "private readonly global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> _source;"
-        );
+        code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
+        code.AppendLine("private readonly global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> _source;");
         code.AppendLine("private readonly global::System.Func<TSource, TView> _map;");
         code.CloseBlock();
     }
@@ -194,12 +166,8 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
             "foreach (var pair in _source) yield return new global::System.Collections.Generic.KeyValuePair<TKeyView, TValueView>(_mapKey(pair.Key), _mapValue(pair.Value));"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();"
-        );
-        code.AppendLine(
-            "private readonly global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> _source;"
-        );
+        code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
+        code.AppendLine("private readonly global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> _source;");
         code.AppendLine("private readonly global::System.Func<TKey, TKeyView> _mapKey;");
         code.AppendLine("private readonly global::System.Func<TSource, TValueView> _mapValue;");
         code.CloseBlock();

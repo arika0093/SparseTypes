@@ -49,12 +49,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         _batch = options?.UseBatchEdit == true ? session as ISparseEditSessionWithBatchEdit : null;
     }
 
-    internal SparseFieldBinding(
-        ISparseEditSession<TModel> session,
-        EditContext editContext,
-        SparsePath path,
-        SparseFieldBindingOptions? options
-    )
+    internal SparseFieldBinding(ISparseEditSession<TModel> session, EditContext editContext, SparsePath path, SparseFieldBindingOptions? options)
     {
         _session = session;
         _editContext = editContext;
@@ -159,8 +154,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
             {
                 raw = leaf.GetModelValue();
             }
-            catch (Exception exception)
-                when (exception is InvalidOperationException or ObjectDisposedException)
+            catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
             {
                 error = exception.Message;
                 value = default;
@@ -193,11 +187,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
 
         try
         {
-            fieldId = SparseFieldPathResolver.Resolve(
-                GetSessionModel(_session),
-                _path,
-                _descriptors
-            );
+            fieldId = SparseFieldPathResolver.Resolve(GetSessionModel(_session), _path, _descriptors);
             error = null;
             return true;
         }
@@ -246,12 +236,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
             {
                 written = _batch is not null ? InvokeBatched(leaf, value) : leaf.TrySetValue(value);
             }
-            catch (Exception exception)
-                when (exception
-                        is InvalidOperationException
-                            or ObjectDisposedException
-                            or ArgumentException
-                )
+            catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException or ArgumentException)
             {
                 error = exception.Message;
                 return false;
@@ -309,11 +294,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         }
 
         if (
-            !SparseTypeMetadataCache.TryGetProperty(
-                fieldId.Model.GetType(),
-                fieldId.FieldName,
-                out var property
-            )
+            !SparseTypeMetadataCache.TryGetProperty(fieldId.Model.GetType(), fieldId.FieldName, out var property)
             || property is null
             || !property.CanWrite
         )
@@ -322,11 +303,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
             return false;
         }
 
-        if (
-            value is null
-            && property.PropertyType.IsValueType
-            && Nullable.GetUnderlyingType(property.PropertyType) is null
-        )
+        if (value is null && property.PropertyType.IsValueType && Nullable.GetUnderlyingType(property.PropertyType) is null)
         {
             error = $"The field '{_path}' does not accept null.";
             return false;
@@ -368,12 +345,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
             }
         }
         catch (Exception exception)
-            when (exception
-                    is TargetInvocationException
-                        or ArgumentException
-                        or InvalidOperationException
-                        or ObjectDisposedException
-            )
+            when (exception is TargetInvocationException or ArgumentException or InvalidOperationException or ObjectDisposedException)
         {
             error = exception.InnerException?.Message ?? exception.Message;
             return false;
@@ -391,11 +363,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         }
 
         if (
-            !SparseTypeMetadataCache.TryGetProperty(
-                fallbackId.Model.GetType(),
-                fallbackId.FieldName,
-                out var property
-            )
+            !SparseTypeMetadataCache.TryGetProperty(fallbackId.Model.GetType(), fallbackId.FieldName, out var property)
             || property is null
             || !property.CanRead
         )
@@ -409,12 +377,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         {
             raw = property.GetValue(fallbackId.Model);
         }
-        catch (Exception exception)
-            when (exception
-                    is TargetInvocationException
-                        or InvalidOperationException
-                        or ObjectDisposedException
-            )
+        catch (Exception exception) when (exception is TargetInvocationException or InvalidOperationException or ObjectDisposedException)
         {
             error = exception.InnerException?.Message ?? exception.Message;
             raw = null;
@@ -468,8 +431,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         {
             current = GetSessionModel(_session);
         }
-        catch (Exception exception)
-            when (exception is InvalidOperationException or ObjectDisposedException)
+        catch (Exception exception) when (exception is InvalidOperationException or ObjectDisposedException)
         {
             error = exception.Message;
             return false;
@@ -540,11 +502,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         var currentType = typeof(TModel);
         foreach (var segment in _path.Segments)
         {
-            if (
-                !SparseTypeMetadataCache.TryGetProperty(currentType, segment.Name, out var property)
-                || property is null
-                || !property.CanRead
-            )
+            if (!SparseTypeMetadataCache.TryGetProperty(currentType, segment.Name, out var property) || property is null || !property.CanRead)
             {
                 return null;
             }
@@ -611,9 +569,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
     }
 
     private static TModel GetSessionModel(ISparseEditSession<TModel> session) =>
-        session is ISparseEditSessionModelAccessor<TModel> accessor
-            ? accessor.GetModelForFrameworkAccess()
-            : session.Model;
+        session is ISparseEditSessionModelAccessor<TModel> accessor ? accessor.GetModelForFrameworkAccess() : session.Model;
 
     private static IDescriptorSet? TryGetDescriptors(ISparseEditSession<TModel> session) =>
         // Typed capability probe: sessions without generated descriptors stay

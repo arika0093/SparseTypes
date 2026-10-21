@@ -72,14 +72,8 @@ internal sealed class CollectionDeclaration<TDtoChild, TEntityChild>
         object? unassignedKeyValue = null,
         bool hasUnassignedKeyValue = false,
         GeneratedCollectionElementDefaults? generatedElementDefaults = null,
-        Dictionary<
-            (Type EntityType, Type DtoType, string Member),
-            GeneratedCollectionElementDefaults
-        >? elementStash = null,
-        Dictionary<
-            (Type EntityType, Type DtoType, string Member),
-            Action<SparseEntityMapBuilderBase>
-        >? objectStash = null
+        Dictionary<(Type EntityType, Type DtoType, string Member), GeneratedCollectionElementDefaults>? elementStash = null,
+        Dictionary<(Type EntityType, Type DtoType, string Member), Action<SparseEntityMapBuilderBase>>? objectStash = null
     )
     {
         ElementConfigure = elementConfigure;
@@ -97,33 +91,17 @@ internal sealed class CollectionDeclaration<TDtoChild, TEntityChild>
         UnassignedKeyValue = unassignedKeyValue;
         HasUnassignedKeyValue = hasUnassignedKeyValue;
         GeneratedElementDefaults = generatedElementDefaults;
-        ElementStash =
-            elementStash
-            ?? new Dictionary<
-                (Type EntityType, Type DtoType, string Member),
-                GeneratedCollectionElementDefaults
-            >();
-        ObjectStash =
-            objectStash
-            ?? new Dictionary<
-                (Type EntityType, Type DtoType, string Member),
-                Action<SparseEntityMapBuilderBase>
-            >();
+        ElementStash = elementStash ?? new Dictionary<(Type EntityType, Type DtoType, string Member), GeneratedCollectionElementDefaults>();
+        ObjectStash = objectStash ?? new Dictionary<(Type EntityType, Type DtoType, string Member), Action<SparseEntityMapBuilderBase>>();
     }
 
     public Action<SparseEntityMapBuilder<TEntityChild, TDtoChild>>? ElementConfigure { get; }
 
     public GeneratedCollectionElementDefaults? GeneratedElementDefaults { get; }
 
-    public Dictionary<
-        (Type EntityType, Type DtoType, string Member),
-        GeneratedCollectionElementDefaults
-    > ElementStash { get; }
+    public Dictionary<(Type EntityType, Type DtoType, string Member), GeneratedCollectionElementDefaults> ElementStash { get; }
 
-    public Dictionary<
-        (Type EntityType, Type DtoType, string Member),
-        Action<SparseEntityMapBuilderBase>
-    > ObjectStash { get; }
+    public Dictionary<(Type EntityType, Type DtoType, string Member), Action<SparseEntityMapBuilderBase>> ObjectStash { get; }
 
     public Func<TDtoChild, TEntityChild>? CreateFactory { get; }
 
@@ -168,18 +146,13 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
     public Func<object, IEnumerable<TDtoChild>?> SnapshotReader { get; private set; } = null!;
 
-    public Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?> Fetch
-    {
-        get;
-        private set;
-    } = null!;
+    public Func<ISparseChangeSet, string, KeyedCollectionView<TDtoChild>?> Fetch { get; private set; } = null!;
 
     public Func<TDtoChild, object?> DtoKey { get; private set; } = null!;
 
     public Func<DbContext, TEntityChild, object?> EntityKey { get; private set; } = null!;
 
-    public IEqualityComparer<object> KeyComparer { get; private set; } =
-        EqualityComparer<object>.Default;
+    public IEqualityComparer<object> KeyComparer { get; private set; } = EqualityComparer<object>.Default;
 
     public object? UnassignedSentinel { get; private set; }
 
@@ -207,8 +180,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
     public Action<object, object?>? CollectionSetter { get; private set; }
 
-    public Func<object> CollectionFactory { get; private set; } =
-        static () => new List<TEntityChild>();
+    public Func<object> CollectionFactory { get; private set; } = static () => new List<TEntityChild>();
 
     public bool ForeignKeyRequired { get; private set; }
 
@@ -244,14 +216,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         var collectionPath = string.IsNullOrEmpty(parentPath) ? DtoName : $"{parentPath}.{DtoName}";
         // Plan writes without mutation so validation covers every nested and
         // sibling collection before any temporary-key setter runs.
-        var staged = StageTemporaryAssignments(
-            context,
-            baseline,
-            authoritative,
-            result,
-            collectionPath,
-            parentScopes
-        );
+        var staged = StageTemporaryAssignments(context, baseline, authoritative, result, collectionPath, parentScopes);
         // Child scopes use planned identities because setters have not run yet.
         foreach (var assignment in staged)
         {
@@ -287,17 +252,11 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         if (key is not null && !IsUnassigned(key))
         {
             return temporary is not null && temporary != Guid.Empty
-                ?
-                [
-                    CollectionScopeIdentity.Assigned(key, KeyComparer),
-                    CollectionScopeIdentity.Temporary(temporary.Value),
-                ]
+                ? [CollectionScopeIdentity.Assigned(key, KeyComparer), CollectionScopeIdentity.Temporary(temporary.Value)]
                 : [CollectionScopeIdentity.Assigned(key, KeyComparer)];
         }
 
-        return temporary is not null && temporary != Guid.Empty
-            ? [CollectionScopeIdentity.Temporary(temporary.Value)]
-            : [];
+        return temporary is not null && temporary != Guid.Empty ? [CollectionScopeIdentity.Temporary(temporary.Value)] : [];
     }
 
     private static IReadOnlyList<CollectionScopePath> AppendScopes(
@@ -312,9 +271,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
         if (parentScopes is null || parentScopes.Count == 0)
         {
-            return elementScopes
-                .Select(static scope => CollectionScopePath.Empty.Append(scope))
-                .ToArray();
+            return elementScopes.Select(static scope => CollectionScopePath.Empty.Append(scope)).ToArray();
         }
 
         var nested = new List<CollectionScopePath>(parentScopes.Count * elementScopes.Count);
@@ -382,9 +339,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         // Entities known to belong to sibling scopes (via the typed records)
         // are skipped: their keys must not trigger missing-row failures here.
         var foreign = ForeignScopeMembers(result, parentScopes);
-        var createdByKey = new Dictionary<object, (TEntityChild Entity, string ScopeKey)>(
-            KeyComparer
-        );
+        var createdByKey = new Dictionary<object, (TEntityChild Entity, string ScopeKey)>(KeyComparer);
         foreach (var scope in scopeKeys)
         {
             if (foreign.Contains(scope.Key))
@@ -423,8 +378,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
         // Prefer the parent-scoped records so parents whose display keys
         // collide keep independent correlations.
-        var createdRecords =
-            NestedCreated(result, parentScopes) ?? result.GetCreated(collectionPath);
+        var createdRecords = NestedCreated(result, parentScopes) ?? result.GetCreated(collectionPath);
         var temporaryByEntity = new Dictionary<object, Guid>(ReferenceEqualityComparer.Instance);
         foreach (var temporary in createdRecords)
         {
@@ -473,11 +427,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             }
 
             var currentTemporary = TemporaryGetter?.Invoke(item);
-            if (
-                currentTemporary is not null
-                && currentTemporary != Guid.Empty
-                && !assignedTemporaries.Add(currentTemporary.Value)
-            )
+            if (currentTemporary is not null && currentTemporary != Guid.Empty && !assignedTemporaries.Add(currentTemporary.Value))
             {
                 throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
@@ -504,10 +454,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
                 createdScopeKey = created.ScopeKey;
             }
 
-            if (
-                createdEntity is not null
-                && temporaryByEntity.TryGetValue(createdEntity, out var createdTemporary)
-            )
+            if (createdEntity is not null && temporaryByEntity.TryGetValue(createdEntity, out var createdTemporary))
             {
                 planned = createdTemporary;
             }
@@ -548,10 +495,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             index++;
         }
 
-        var missing = createdByKey
-            .Where(created => !assignedKeys.Contains(created.Key))
-            .Select(static created => created.Key)
-            .FirstOrDefault();
+        var missing = createdByKey.Where(created => !assignedKeys.Contains(created.Key)).Select(static created => created.Key).FirstOrDefault();
         if (missing is not null)
         {
             throw new SparseEntityMappingException(
@@ -561,10 +505,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             );
         }
 
-        if (
-            TemporarySetter is null
-            && staged.Any(static assignment => assignment.Temporary.HasValue)
-        )
+        if (TemporarySetter is null && staged.Any(static assignment => assignment.Temporary.HasValue))
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -578,10 +519,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
     /// <summary>Collects a membership filter over apply-recorded sibling-scope members.</summary>
     /// <returns>Filter answering sibling membership; empty results stay never-foreign.</returns>
-    private NestedScopeTable.ForeignMemberFilter ForeignScopeMembers(
-        SparseEntityApplyResult result,
-        IReadOnlyList<CollectionScopePath>? parentScopes
-    )
+    private NestedScopeTable.ForeignMemberFilter ForeignScopeMembers(SparseEntityApplyResult result, IReadOnlyList<CollectionScopePath>? parentScopes)
     {
         if (parentScopes is null || parentScopes.Count == 0)
         {
@@ -593,10 +531,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
     /// <summary>Looks up created children through the parent-scope fallback chain.</summary>
     /// <returns>The scoped temporary map, or null to use the legacy path-string view.</returns>
-    private IReadOnlyDictionary<Guid, object>? NestedCreated(
-        SparseEntityApplyResult result,
-        IReadOnlyList<CollectionScopePath>? parentScopes
-    )
+    private IReadOnlyDictionary<Guid, object>? NestedCreated(SparseEntityApplyResult result, IReadOnlyList<CollectionScopePath>? parentScopes)
     {
         if (parentScopes is null || parentScopes.Count == 0)
         {
@@ -641,8 +576,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
     /// <summary>Gets whether a boxed key is the explicitly declared unassigned sentinel.</summary>
     /// <remarks>Without an explicit declaration this always returns false, so a stable default key is a valid assigned identity.</remarks>
-    public bool IsUnassigned(object? key) =>
-        HasUnassignedSentinel && KeyComparer.Equals(key!, UnassignedSentinel!);
+    public bool IsUnassigned(object? key) => HasUnassignedSentinel && KeyComparer.Equals(key!, UnassignedSentinel!);
 
     private void ResolveNavigation(PlanBuildSession session, PlanLevel level)
     {
@@ -722,15 +656,8 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
     private Type ResolveChangeSetContract<TDto>()
         where TDto : class
     {
-        var dtoProperty = typeof(TDto).GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
-        if (
-            dtoProperty is null
-            || !dtoProperty.CanRead
-            || !typeof(IEnumerable<TDtoChild>).IsAssignableFrom(dtoProperty.PropertyType)
-        )
+        var dtoProperty = typeof(TDto).GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
+        if (dtoProperty is null || !dtoProperty.CanRead || !typeof(IEnumerable<TDtoChild>).IsAssignableFrom(dtoProperty.PropertyType))
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -742,26 +669,16 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         var parameter = Expression.Parameter(typeof(object), "dto");
         SnapshotReader = Expression
             .Lambda<Func<object, IEnumerable<TDtoChild>?>>(
-                Expression.Convert(
-                    Expression.Property(Expression.Convert(parameter, typeof(TDto)), dtoProperty),
-                    typeof(IEnumerable<TDtoChild>)
-                ),
+                Expression.Convert(Expression.Property(Expression.Convert(parameter, typeof(TDto)), dtoProperty), typeof(IEnumerable<TDtoChild>)),
                 parameter
             )
             .Compile();
 
         var changeSetType = typeof(TDto)
             .GetNestedTypes()
-            .FirstOrDefault(static type =>
-                type.Name == "ChangeSet" && typeof(ISparseChangeSet).IsAssignableFrom(type)
-            );
-        var transition = changeSetType?.GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
-        var keyedInterface = transition is null
-            ? null
-            : KeyedCollectionView.FindKeyedInterface(transition.PropertyType);
+            .FirstOrDefault(static type => type.Name == "ChangeSet" && typeof(ISparseChangeSet).IsAssignableFrom(type));
+        var transition = changeSetType?.GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
+        var keyedInterface = transition is null ? null : KeyedCollectionView.FindKeyedInterface(transition.PropertyType);
         if (changeSetType is null || transition is null || keyedInterface is null)
         {
             throw new SparseEntityMappingException(
@@ -794,11 +711,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         return arguments[0];
     }
 
-    private void ResolveKeys(
-        PlanBuildSession session,
-        Type transitionKeyType,
-        CollectionDeclaration<TDtoChild, TEntityChild> declaration
-    )
+    private void ResolveKeys(PlanBuildSession session, Type transitionKeyType, CollectionDeclaration<TDtoChild, TEntityChild> declaration)
     {
         KeyType = transitionKeyType;
         var generated = declaration.GeneratedElementDefaults;
@@ -834,12 +747,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             DtoKey = BoxSelector<TDtoChild>(declaration.DtoKeySelector!);
             var boxedEntityKey = BoxSelector<TEntityChild>(declaration.EntityKeySelector!);
             EntityKey = (_, child) => boxedEntityKey(child);
-            if (
-                EntityKeySelectorExpressions.TryGet(
-                    declaration.EntityKeySelector!,
-                    out var entityKeyExpression
-                )
-            )
+            if (EntityKeySelectorExpressions.TryGet(declaration.EntityKeySelector!, out var entityKeyExpression))
             {
                 EntityKeySelectorExpression = entityKeyExpression;
             }
@@ -892,10 +800,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         TemporarySetter(dto, temporaryKey);
     }
 
-    private Func<DbContext, TEntityChild, object?> ResolveDefaultEntityKey(
-        PlanBuildSession session,
-        Type keyType
-    )
+    private Func<DbContext, TEntityChild, object?> ResolveDefaultEntityKey(PlanBuildSession session, Type keyType)
     {
         var entityType = session.Model.FindEntityType(typeof(TEntityChild));
         var childPrimary = entityType?.FindPrimaryKey();
@@ -908,17 +813,9 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
                 var parameter = Expression.Parameter(typeof(TEntityChild), "entity");
                 var propertyMethod = typeof(EF)
                     .GetMethods(BindingFlags.Public | BindingFlags.Static)
-                    .Single(method =>
-                        method.Name == nameof(EF.Property)
-                        && method.IsGenericMethodDefinition
-                        && method.GetParameters().Length == 2
-                    )
+                    .Single(method => method.Name == nameof(EF.Property) && method.IsGenericMethodDefinition && method.GetParameters().Length == 2)
                     .MakeGenericMethod(keyType);
-                var body = Expression.Call(
-                    propertyMethod,
-                    Expression.Convert(parameter, typeof(object)),
-                    Expression.Constant(propertyName)
-                );
+                var body = Expression.Call(propertyMethod, Expression.Convert(parameter, typeof(object)), Expression.Constant(propertyName));
                 EntityKeySelectorExpression = Expression.Lambda(body, parameter);
                 return (context, child) => context.Entry(child).Property(propertyName).CurrentValue;
             }
@@ -931,20 +828,14 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         );
     }
 
-    private void ResolveChildPlan(
-        PlanBuildSession session,
-        PlanLevel level,
-        CollectionDeclaration<TDtoChild, TEntityChild> declaration
-    )
+    private void ResolveChildPlan(PlanBuildSession session, PlanLevel level, CollectionDeclaration<TDtoChild, TEntityChild> declaration)
     {
         var child = new SparseEntityMapBuilder<TEntityChild, TDtoChild>
         {
             GeneratedElementConfigurators = declaration.ElementStash,
             GeneratedObjectConfigurators = declaration.ObjectStash,
             GeneratedKeyMembers =
-                declaration.GeneratedElementDefaults?.KeyMemberNames.ToHashSet(
-                    StringComparer.Ordinal
-                ) ?? new HashSet<string>(StringComparer.Ordinal),
+                declaration.GeneratedElementDefaults?.KeyMemberNames.ToHashSet(StringComparer.Ordinal) ?? new HashSet<string>(StringComparer.Ordinal),
             GeneratedKeyDeclared = declaration.GeneratedElementDefaults?.KeyType is not null,
             IsNestedScope = true,
         };
@@ -957,11 +848,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
 
         declaration.ElementConfigure?.Invoke(child);
         var childEntityType = session.Model.FindEntityType(typeof(TEntityChild))!;
-        ChildPlan = EntityPlan<TEntityChild, TDtoChild>.Build(
-            new PlanBuildSession(session.Model),
-            child,
-            childEntityType
-        );
+        ChildPlan = EntityPlan<TEntityChild, TDtoChild>.Build(new PlanBuildSession(session.Model), child, childEntityType);
     }
 
     private void ResolvePolicies(CollectionDeclaration<TDtoChild, TEntityChild> declaration)
@@ -975,10 +862,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             );
         }
 
-        if (
-            declaration.RemoveKind == SparseEntityRemoveKind.Detach
-            && (ForeignKeyRequired || Owned)
-        )
+        if (declaration.RemoveKind == SparseEntityRemoveKind.Detach && (ForeignKeyRequired || Owned))
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,
@@ -1007,10 +891,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
     private void ResolveCollectionSetter<TEntity>()
         where TEntity : class
     {
-        var property = typeof(TEntity).GetProperty(
-            NavigationName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var property = typeof(TEntity).GetProperty(NavigationName, BindingFlags.Public | BindingFlags.Instance);
         if (property is null || !property.CanWrite)
         {
             return;
@@ -1060,9 +941,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             );
         }
 
-        CollectionFactory = Expression
-            .Lambda<Func<object>>(Expression.Convert(Expression.New(constructor), typeof(object)))
-            .Compile();
+        CollectionFactory = Expression.Lambda<Func<object>>(Expression.Convert(Expression.New(constructor), typeof(object))).Compile();
     }
 
     private static Func<TDtoChild, TEntityChild> CreateWithConstructor()
@@ -1090,9 +969,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
     {
         var parameter = Expression.Parameter(typeof(TElement), "element");
         var call = Expression.Invoke(Expression.Constant(selector), parameter);
-        return Expression
-            .Lambda<Func<TElement, object?>>(Expression.Convert(call, typeof(object)), parameter)
-            .Compile();
+        return Expression.Lambda<Func<TElement, object?>>(Expression.Convert(call, typeof(object)), parameter).Compile();
     }
 
     /// <summary>Builds a boxed key comparer for one stable key type.</summary>
@@ -1105,8 +982,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
     }
 
     /// <summary>Public factory entry so plan-time generic closing needs no accessibility bypass.</summary>
-    public static IEqualityComparer<object> CreateComparerCore<TKey>() =>
-        new BoxedKeyComparer<TKey>(EqualityComparer<TKey>.Default);
+    public static IEqualityComparer<object> CreateComparerCore<TKey>() => new BoxedKeyComparer<TKey>(EqualityComparer<TKey>.Default);
 
     private sealed class BoxedKeyComparer<TKey> : IEqualityComparer<object>
     {
@@ -1127,7 +1003,6 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             return _inner.Equals(typedLeft, typedRight);
         }
 
-        int IEqualityComparer<object>.GetHashCode(object value) =>
-            value is TKey typed ? _inner.GetHashCode(typed) : 0;
+        int IEqualityComparer<object>.GetHashCode(object value) => value is TKey typed ? _inner.GetHashCode(typed) : 0;
     }
 }

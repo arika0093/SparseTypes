@@ -27,19 +27,10 @@ internal abstract class MemberNode
     public abstract void WriteAll(PlanWriteState state, List<Action> actions);
 
     /// <summary>Collects the Include paths needed to apply one mapped member.</summary>
-    public virtual void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    ) { }
+    public virtual void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot) { }
 
     /// <summary>Builds a read expression for this DTO member when it is invertible.</summary>
-    public virtual Expression? BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    ) => null;
+    public virtual Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath) => null;
 
     /// <summary>Copies baseline temporary identities and correlates created entities into the DTO.</summary>
     public virtual void AssignTemporaryKeys(
@@ -120,9 +111,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         for (var index = 0; index < _entityChain.Length - 1; index++)
         {
             var navigation = target.FindNavigation(_entityChain[index]);
-            declarers.Add(
-                (target.ClrType, _entityChain[index], navigation?.ForeignKey.IsOwnership == true)
-            );
+            declarers.Add((target.ClrType, _entityChain[index], navigation?.ForeignKey.IsOwnership == true));
             target = ResolveNavigation(target, _entityChain[index], DtoName);
         }
 
@@ -183,9 +172,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         session.Claim(target, property.Name, DtoName);
         foreach (var declarer in declarers)
         {
-            _intermediates.Add(
-                IntermediateAccess.Build(declarer.Declaring, declarer.Name, DtoName, declarer.Owned)
-            );
+            _intermediates.Add(IntermediateAccess.Build(declarer.Declaring, declarer.Name, DtoName, declarer.Owned));
         }
 
         _targetType = target;
@@ -194,11 +181,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
 
         var missingOverride = ResolveMissingOverride(level);
         _missing = missingOverride ?? _inlineMissing ?? level.Registrations.DefaultMissing;
-        ValidateMissingPolicy(
-            target,
-            property,
-            explicitlyConfigured: missingOverride is not null || _inlineMissing is not null
-        );
+        ValidateMissingPolicy(target, property, explicitlyConfigured: missingOverride is not null || _inlineMissing is not null);
     }
 
     public override void Prepare(PlanApplyState state, List<Action> actions)
@@ -259,32 +242,21 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
                         );
                     }
 
-                    EnsureIntermediatesLoaded(
-                        state.Context,
-                        state.Entity,
-                        state.DisplayPath(DtoName)
-                    );
+                    EnsureIntermediatesLoaded(state.Context, state.Entity, state.DisplayPath(DtoName));
                     // Intermediate creation and tracking happen inside the
                     // queued execution action.
                     if (state.TracksAppliedPaths)
                     {
                         actions.Add(() =>
                         {
-                            var defaultEntry = MaterializeEntry(
-                                state.Context,
-                                state.Entity,
-                                state.Entry
-                            );
-                            defaultEntry.Property(_entityProperty).CurrentValue =
-                                default(TEntityValue);
+                            var defaultEntry = MaterializeEntry(state.Context, state.Entity, state.Entry);
+                            defaultEntry.Property(_entityProperty).CurrentValue = default(TEntityValue);
                             state.RecordAppliedPath(
                                 AppliedPathFactory.Create(
                                     state.DisplayPath(DtoName),
                                     defaultEntry,
                                     _entityProperty,
-                                    default(TEntityValue) is null
-                                        ? SparseEntityApplyOperationKind.SetNull
-                                        : SparseEntityApplyOperationKind.Set
+                                    default(TEntityValue) is null ? SparseEntityApplyOperationKind.SetNull : SparseEntityApplyOperationKind.Set
                                 )
                             );
                         });
@@ -293,32 +265,19 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
                     {
                         actions.Add(() =>
                         {
-                            var defaultEntry = MaterializeEntry(
-                                state.Context,
-                                state.Entity,
-                                state.Entry
-                            );
-                            defaultEntry.Property(_entityProperty).CurrentValue =
-                                default(TEntityValue);
+                            var defaultEntry = MaterializeEntry(state.Context, state.Entity, state.Entry);
+                            defaultEntry.Property(_entityProperty).CurrentValue = default(TEntityValue);
                         });
                     }
                     return;
                 case SparseEntityMissingPolicy.SetNull:
                     RequireNullable(state);
-                    EnsureIntermediatesLoaded(
-                        state.Context,
-                        state.Entity,
-                        state.DisplayPath(DtoName)
-                    );
+                    EnsureIntermediatesLoaded(state.Context, state.Entity, state.DisplayPath(DtoName));
                     if (state.TracksAppliedPaths)
                     {
                         actions.Add(() =>
                         {
-                            var nullEntry = MaterializeEntry(
-                                state.Context,
-                                state.Entity,
-                                state.Entry
-                            );
+                            var nullEntry = MaterializeEntry(state.Context, state.Entity, state.Entry);
                             nullEntry.Property(_entityProperty).CurrentValue = null;
                             state.RecordAppliedPath(
                                 AppliedPathFactory.Create(
@@ -334,11 +293,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
                     {
                         actions.Add(() =>
                         {
-                            var nullEntry = MaterializeEntry(
-                                state.Context,
-                                state.Entity,
-                                state.Entry
-                            );
+                            var nullEntry = MaterializeEntry(state.Context, state.Entity, state.Entry);
                             nullEntry.Property(_entityProperty).CurrentValue = null;
                         });
                     }
@@ -357,9 +312,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         TEntityValue? converted;
         try
         {
-            converted = _convert is not null
-                ? _convert(after.Value)
-                : (TEntityValue?)(object?)after.Value;
+            converted = _convert is not null ? _convert(after.Value) : (TEntityValue?)(object?)after.Value;
         }
         catch (Exception exception)
         {
@@ -391,9 +344,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
                         state.DisplayPath(DtoName),
                         targetEntry,
                         _entityProperty,
-                        converted is null
-                            ? SparseEntityApplyOperationKind.SetNull
-                            : SparseEntityApplyOperationKind.Set
+                        converted is null ? SparseEntityApplyOperationKind.SetNull : SparseEntityApplyOperationKind.Set
                     )
                 );
             });
@@ -423,9 +374,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         TEntityValue? converted;
         try
         {
-            converted = _convert is not null
-                ? _convert(dtoValue)
-                : (TEntityValue?)(object?)dtoValue;
+            converted = _convert is not null ? _convert(dtoValue) : (TEntityValue?)(object?)dtoValue;
         }
         catch (Exception exception)
         {
@@ -457,9 +406,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
                         state.DisplayPath(DtoName),
                         targetEntry,
                         _entityProperty,
-                        converted is null
-                            ? SparseEntityApplyOperationKind.SetNull
-                            : SparseEntityApplyOperationKind.Set
+                        converted is null ? SparseEntityApplyOperationKind.SetNull : SparseEntityApplyOperationKind.Set
                     )
                 );
             });
@@ -474,12 +421,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         }
     }
 
-    public override void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    )
+    public override void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot)
     {
         if (_skipGeneratedKeyMember)
         {
@@ -504,11 +446,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         {
             foreach (var intermediate in _intermediates)
             {
-                collector.PushReference(
-                    intermediate.NavigationName,
-                    intermediate.TargetType,
-                    intermediate.Owned
-                );
+                collector.PushReference(intermediate.NavigationName, intermediate.TargetType, intermediate.Owned);
                 pushed++;
                 if (!intermediate.Owned)
                 {
@@ -526,20 +464,14 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         }
     }
 
-    public override Expression? BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    )
+    public override Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
     {
         if (_convert is not null)
         {
             return null;
         }
 
-        return context.TryBuildMemberPath(entity, _entityChain, dtoPath, out var value)
-            ? value
-            : null;
+        return context.TryBuildMemberPath(entity, _entityChain, dtoPath, out var value) ? value : null;
     }
 
     private void EnsureIntermediatesLoaded(DbContext context, object entity, string displayPath)
@@ -652,11 +584,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
         return null;
     }
 
-    private void ValidateMissingPolicy(
-        IEntityType target,
-        IProperty property,
-        bool explicitlyConfigured
-    )
+    private void ValidateMissingPolicy(IEntityType target, IProperty property, bool explicitlyConfigured)
     {
         if (!explicitlyConfigured)
         {
@@ -673,11 +601,7 @@ internal sealed class ScalarNode<TDto, TEntity, TDtoValue, TEntityValue> : Membe
             );
         }
 
-        if (
-            effective == SparseEntityMissingPolicy.SetDefault
-            && !_entityNullable
-            && property.ClrType.IsClass
-        )
+        if (effective == SparseEntityMissingPolicy.SetDefault && !_entityNullable && property.ClrType.IsClass)
         {
             throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.MetadataMismatch,

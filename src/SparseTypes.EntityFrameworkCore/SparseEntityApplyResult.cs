@@ -87,10 +87,7 @@ public sealed class SparseEntityApplyResult
     private readonly IReadOnlyDictionary<string, IReadOnlyDictionary<Guid, object>> _createdByPath;
     private readonly IReadOnlyDictionary<object, NestedScopeTable> _nestedScopes;
     private readonly IReadOnlyList<SparseEntityAppliedPath> _appliedPaths;
-    private readonly IReadOnlyDictionary<
-        object,
-        IReadOnlyDictionary<object, string>
-    > _collectionScopeKeys;
+    private readonly IReadOnlyDictionary<object, IReadOnlyDictionary<object, string>> _collectionScopeKeys;
 
     internal SparseEntityApplyResult(
         Dictionary<string, Dictionary<Guid, object>> byPath,
@@ -102,21 +99,14 @@ public sealed class SparseEntityApplyResult
         ArgumentNullException.ThrowIfNull(byPath);
         _nestedScopes =
             nestedScopes
-            ?? new ReadOnlyDictionary<object, NestedScopeTable>(
-                new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance)
-            );
-        var pathViews = new Dictionary<string, IReadOnlyDictionary<Guid, object>>(
-            byPath.Count,
-            StringComparer.Ordinal
-        );
+            ?? new ReadOnlyDictionary<object, NestedScopeTable>(new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance));
+        var pathViews = new Dictionary<string, IReadOnlyDictionary<Guid, object>>(byPath.Count, StringComparer.Ordinal);
         foreach (var path in byPath)
         {
             pathViews.Add(path.Key, new ReadOnlyDictionary<Guid, object>(path.Value));
         }
 
-        _createdByPath = new ReadOnlyDictionary<string, IReadOnlyDictionary<Guid, object>>(
-            pathViews
-        );
+        _createdByPath = new ReadOnlyDictionary<string, IReadOnlyDictionary<Guid, object>>(pathViews);
         _appliedPaths = Array.AsReadOnly(appliedPaths?.ToArray() ?? []);
         var scopeViews = new Dictionary<object, IReadOnlyDictionary<object, string>>(
             collectionScopeKeys?.Count ?? 0,
@@ -130,31 +120,23 @@ public sealed class SparseEntityApplyResult
             }
         }
 
-        _collectionScopeKeys = new ReadOnlyDictionary<object, IReadOnlyDictionary<object, string>>(
-            scopeViews
-        );
+        _collectionScopeKeys = new ReadOnlyDictionary<object, IReadOnlyDictionary<object, string>>(scopeViews);
     }
 
     /// <summary>Gets created child entities by DTO collection path, then temporary key.</summary>
-    public IReadOnlyDictionary<string, IReadOnlyDictionary<Guid, object>> CreatedByPath =>
-        _createdByPath;
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<Guid, object>> CreatedByPath => _createdByPath;
 
     /// <summary>Gets all operations recorded by this apply in execution order.</summary>
     public IReadOnlyList<SparseEntityAppliedPath> AppliedPaths => _appliedPaths;
 
     internal IReadOnlyDictionary<object, string> GetCreatedScopeKeys(object collectionIdentity) =>
-        _collectionScopeKeys.TryGetValue(collectionIdentity, out var scopes)
-            ? scopes
-            : EmptyScopeKeys;
+        _collectionScopeKeys.TryGetValue(collectionIdentity, out var scopes) ? scopes : EmptyScopeKeys;
 
     /// <summary>Builds a membership filter over recorded members known to belong to sibling scopes.</summary>
     /// <param name="collectionIdentity">The mapped collection runtime identity.</param>
     /// <param name="mine">The parent scopes of the current item.</param>
     /// <returns>Filter for members recorded under other scopes; never foreign when nothing was recorded.</returns>
-    internal NestedScopeTable.ForeignMemberFilter ForeignMembers(
-        object collectionIdentity,
-        IReadOnlyList<CollectionScopePath> mine
-    )
+    internal NestedScopeTable.ForeignMemberFilter ForeignMembers(object collectionIdentity, IReadOnlyList<CollectionScopePath> mine)
     {
         ArgumentNullException.ThrowIfNull(collectionIdentity);
         ArgumentNullException.ThrowIfNull(mine);
@@ -170,10 +152,7 @@ public sealed class SparseEntityApplyResult
     /// <param name="collectionIdentity">The mapped collection runtime identity.</param>
     /// <param name="scopes">Candidate typed parent ancestries.</param>
     /// <returns>The temporary-to-entity map, or null when nothing was recorded.</returns>
-    internal IReadOnlyDictionary<Guid, object>? GetCreated(
-        object collectionIdentity,
-        IReadOnlyList<CollectionScopePath> scopes
-    )
+    internal IReadOnlyDictionary<Guid, object>? GetCreated(object collectionIdentity, IReadOnlyList<CollectionScopePath> scopes)
     {
         ArgumentNullException.ThrowIfNull(collectionIdentity);
         if (!_nestedScopes.TryGetValue(collectionIdentity, out var table))
@@ -191,9 +170,7 @@ public sealed class SparseEntityApplyResult
     /// <param name="temporaryKey">The DTO temporary identity.</param>
     /// <returns>The created child entities carrying that temporary identity.</returns>
     public IReadOnlyList<object> GetCreated(Guid temporaryKey) =>
-        GetByTemporaryKey().TryGetValue(temporaryKey, out var entities)
-            ? entities
-            : Array.Empty<object>();
+        GetByTemporaryKey().TryGetValue(temporaryKey, out var entities) ? entities : Array.Empty<object>();
 
     /// <summary>Gets created child entities for one DTO collection path.</summary>
     /// <param name="collectionPath">The dotted DTO collection path.</param>
@@ -201,9 +178,7 @@ public sealed class SparseEntityApplyResult
     public IReadOnlyDictionary<Guid, object> GetCreated(string collectionPath)
     {
         ArgumentNullException.ThrowIfNull(collectionPath);
-        return _createdByPath.TryGetValue(collectionPath, out var entities)
-            ? entities
-            : EmptyCreatedByPath;
+        return _createdByPath.TryGetValue(collectionPath, out var entities) ? entities : EmptyCreatedByPath;
     }
 
     /// <summary>Gets created child entities for one DTO collection path with a typed view.</summary>
@@ -222,9 +197,7 @@ public sealed class SparseEntityApplyResult
     /// <typeparam name="TEntityChild">The expected child entity type.</typeparam>
     /// <param name="collection">The DTO collection member.</param>
     /// <returns>A typed, read-only view indexed by temporary identity.</returns>
-    public IReadOnlyDictionary<Guid, TEntityChild> GetCreated<TEntityChild, TDto>(
-        Expression<Func<TDto, object?>> collection
-    )
+    public IReadOnlyDictionary<Guid, TEntityChild> GetCreated<TEntityChild, TDto>(Expression<Func<TDto, object?>> collection)
         where TEntityChild : class
         where TDto : class
     {
@@ -238,18 +211,11 @@ public sealed class SparseEntityApplyResult
     /// <param name="entity">The created entity, when found and of the expected type.</param>
     /// <typeparam name="TEntityChild">The expected child entity type.</typeparam>
     /// <returns>True when that path contains an entity of the expected type.</returns>
-    public bool TryGetCreated<TEntityChild>(
-        string collectionPath,
-        Guid temporaryKey,
-        [NotNullWhen(true)] out TEntityChild? entity
-    )
+    public bool TryGetCreated<TEntityChild>(string collectionPath, Guid temporaryKey, [NotNullWhen(true)] out TEntityChild? entity)
         where TEntityChild : class
     {
         entity = null;
-        if (
-            !GetCreated(collectionPath).TryGetValue(temporaryKey, out var untyped)
-            || untyped is not TEntityChild typed
-        )
+        if (!GetCreated(collectionPath).TryGetValue(temporaryKey, out var untyped) || untyped is not TEntityChild typed)
         {
             return false;
         }
@@ -305,25 +271,19 @@ public sealed class SparseEntityApplyResult
             byTemporaryKey.Add(entry.Key, entry.Value.AsReadOnly());
         }
 
-        return Interlocked.CompareExchange(ref _byTemporaryKey, byTemporaryKey, null)
-            ?? byTemporaryKey;
+        return Interlocked.CompareExchange(ref _byTemporaryKey, byTemporaryKey, null) ?? byTemporaryKey;
     }
 
     private static IReadOnlyDictionary<Guid, object> EmptyCreatedByPath { get; } =
         new ReadOnlyDictionary<Guid, object>(new Dictionary<Guid, object>());
 
     private static IReadOnlyDictionary<object, string> EmptyScopeKeys { get; } =
-        new ReadOnlyDictionary<object, string>(
-            new Dictionary<object, string>(ReferenceEqualityComparer.Instance)
-        );
+        new ReadOnlyDictionary<object, string>(new Dictionary<object, string>(ReferenceEqualityComparer.Instance));
 
     private static string GetCollectionPath<TDto>(Expression<Func<TDto, object?>> collection)
     {
         Expression expression = collection.Body;
-        while (
-            expression is UnaryExpression unary
-            && unary.NodeType is ExpressionType.Convert or ExpressionType.ConvertChecked
-        )
+        while (expression is UnaryExpression unary && unary.NodeType is ExpressionType.Convert or ExpressionType.ConvertChecked)
         {
             expression = unary.Operand;
         }
@@ -337,17 +297,13 @@ public sealed class SparseEntityApplyResult
 
         if (expression != collection.Parameters[0] || members.Count == 0)
         {
-            throw new ArgumentException(
-                "The collection selector must be a member path rooted at its DTO parameter.",
-                nameof(collection)
-            );
+            throw new ArgumentException("The collection selector must be a member path rooted at its DTO parameter.", nameof(collection));
         }
 
         return string.Join(".", members);
     }
 
-    private sealed class TypedCreatedView<TEntityChild>(IReadOnlyDictionary<Guid, object> source)
-        : IReadOnlyDictionary<Guid, TEntityChild>
+    private sealed class TypedCreatedView<TEntityChild>(IReadOnlyDictionary<Guid, object> source) : IReadOnlyDictionary<Guid, TEntityChild>
         where TEntityChild : class
     {
         public int Count => source.Count;
@@ -380,8 +336,7 @@ public sealed class SparseEntityApplyResult
             }
         }
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
-            GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 
         private IEnumerable<TEntityChild> EnumerateValues()
         {
@@ -392,9 +347,6 @@ public sealed class SparseEntityApplyResult
         }
 
         private static TEntityChild Cast(object value) =>
-            value as TEntityChild
-            ?? throw new InvalidCastException(
-                $"The created entity is not of type '{typeof(TEntityChild).Name}'."
-            );
+            value as TEntityChild ?? throw new InvalidCastException($"The created entity is not of type '{typeof(TEntityChild).Name}'.");
     }
 }

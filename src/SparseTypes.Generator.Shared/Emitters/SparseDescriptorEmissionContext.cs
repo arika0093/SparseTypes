@@ -2,11 +2,7 @@ namespace SparseTypes.Generator.Shared;
 
 internal sealed class SparseDescriptorEmissionContext
 {
-    private SparseDescriptorEmissionContext(
-        string receiver,
-        string? ownerModelType,
-        string? observableType
-    )
+    private SparseDescriptorEmissionContext(string receiver, string? ownerModelType, string? observableType)
     {
         Receiver = receiver;
         OwnerModelType = ownerModelType;
@@ -21,10 +17,8 @@ internal sealed class SparseDescriptorEmissionContext
 
     private string? ObservableType { get; }
 
-    internal static SparseDescriptorEmissionContext ForFactory(
-        string ownerModelType,
-        string observableType
-    ) => new("observable", ownerModelType, observableType);
+    internal static SparseDescriptorEmissionContext ForFactory(string ownerModelType, string observableType) =>
+        new("observable", ownerModelType, observableType);
 
     internal string Member(string name) => Receiver + "." + name;
 
@@ -40,11 +34,7 @@ internal sealed class SparseDescriptorEmissionContext
             : OwnerModelType + ".__SparseAttributes_" + member.Id + "()";
     }
 
-    internal string MethodDeclaration(
-        string modelType,
-        SparseDescriptorDialect dialect,
-        string pathType
-    )
+    internal string MethodDeclaration(string modelType, SparseDescriptorDialect dialect, string pathType)
     {
         if (ObservableType is null)
         {
@@ -57,12 +47,6 @@ internal sealed class SparseDescriptorEmissionContext
                 + " pathPrefix)";
         }
 
-        return "internal static "
-            + dialect.DescriptorSetInterface
-            + " Create("
-            + ObservableType
-            + " observable, "
-            + pathType
-            + " pathPrefix)";
+        return "internal static " + dialect.DescriptorSetInterface + " Create(" + ObservableType + " observable, " + pathType + " pathPrefix)";
     }
 }

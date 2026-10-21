@@ -42,9 +42,7 @@ internal static class SparseChangeSetBetweenEmitter
 
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Derives the canonical baseline-aware diff between two states.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives the canonical baseline-aware diff between two states.</summary>");
             code.AppendLine(
                 "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
             );
@@ -64,9 +62,7 @@ internal static class SparseChangeSetBetweenEmitter
             code = target.ChangeSetOperations;
         }
         // Empty storage contains no retained endpoints or mutable containers.
-        code.AppendLine(
-            "private static readonly ChangeSet " + emptyName + " = new ChangeSet(" + empty + ");"
-        );
+        code.AppendLine("private static readonly ChangeSet " + emptyName + " = new ChangeSet(" + empty + ");");
         code.AppendLine("/// <summary>Deep-clones a retained whole-root fragment.</summary>");
         code.AppendLine(
             "private static "
@@ -77,9 +73,7 @@ internal static class SparseChangeSetBetweenEmitter
                 + optionalFragment
                 + ".Present(value.Value!.DeepClone());"
         );
-        code.AppendLine(
-            "/// <summary>Derives the canonical baseline-aware diff between two states.</summary>"
-        );
+        code.AppendLine("/// <summary>Derives the canonical baseline-aware diff between two states.</summary>");
         code.AppendLine(
             "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
         );
@@ -87,11 +81,7 @@ internal static class SparseChangeSetBetweenEmitter
         code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
         code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
         code.AppendLine(
-            (
-                target is null
-                    ? "public static ChangeSet Between("
-                    : "internal static ChangeSet Between("
-            )
+            (target is null ? "public static ChangeSet Between(" : "internal static ChangeSet Between(")
                 + optionalFragment
                 + " before, "
                 + optionalFragment
@@ -100,28 +90,14 @@ internal static class SparseChangeSetBetweenEmitter
         code.OpenBlock();
         code.AppendLine("if (before.IsPresent != after.IsPresent)");
         code.OpenBlock();
-        code.AppendLine(
-            "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
-                + MemberEmptyTail(members)
-                + ");"
-        );
+        code.AppendLine("return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), " + MemberEmptyTail(members) + ");");
         code.CloseBlock();
         code.AppendLine("if (!before.IsPresent) return " + emptyName + ";");
-        code.AppendLine(
-            "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return "
-                + emptyName
-                + ";"
-        );
+        code.AppendLine("if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return " + emptyName + ";");
         code.AppendLine("if (before.Value is null || after.Value is null)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (before.Value is null && after.Value is null) return " + emptyName + ";"
-        );
-        code.AppendLine(
-            "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
-                + MemberEmptyTail(members)
-                + ");"
-        );
+        code.AppendLine("if (before.Value is null && after.Value is null) return " + emptyName + ";");
+        code.AppendLine("return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), " + MemberEmptyTail(members) + ");");
         code.CloseBlock();
         if (members.IsDefaultOrEmpty || members.Length == 0)
         {
@@ -137,27 +113,8 @@ internal static class SparseChangeSetBetweenEmitter
             if (IsNested(member))
             {
                 var child = ChildChangeSet(member, dialect);
-                code.AppendLine(
-                    "var __n"
-                        + member.Id
-                        + " = "
-                        + child
-                        + ".Between(bf."
-                        + name
-                        + ", af."
-                        + name
-                        + ");"
-                );
-                code.AppendLine(
-                    child
-                        + "? __nn"
-                        + member.Id
-                        + " = __n"
-                        + member.Id
-                        + ".IsEmpty ? null : __n"
-                        + member.Id
-                        + ";"
-                );
+                code.AppendLine("var __n" + member.Id + " = " + child + ".Between(bf." + name + ", af." + name + ");");
+                code.AppendLine(child + "? __nn" + member.Id + " = __n" + member.Id + ".IsEmpty ? null : __n" + member.Id + ";");
             }
             else if (IsKeyed(member))
             {
@@ -177,37 +134,9 @@ internal static class SparseChangeSetBetweenEmitter
                     beforeAccess = "__SparseSnapshot_" + member.Id + "(" + beforeAccess + ")";
                     afterAccess = "__SparseSnapshot_" + member.Id + "(" + afterAccess + ")";
                 }
-                code.AppendLine(
-                    "bool __h"
-                        + member.Id
-                        + " = !Fragment.__SparseEqual_"
-                        + member.Id
-                        + "(bf."
-                        + name
-                        + ", af."
-                        + name
-                        + ");"
-                );
-                code.AppendLine(
-                    opt
-                        + " __b"
-                        + member.Id
-                        + " = __h"
-                        + member.Id
-                        + " ? "
-                        + beforeAccess
-                        + " : default;"
-                );
-                code.AppendLine(
-                    opt
-                        + " __a"
-                        + member.Id
-                        + " = __h"
-                        + member.Id
-                        + " ? "
-                        + afterAccess
-                        + " : default;"
-                );
+                code.AppendLine("bool __h" + member.Id + " = !Fragment.__SparseEqual_" + member.Id + "(bf." + name + ", af." + name + ");");
+                code.AppendLine(opt + " __b" + member.Id + " = __h" + member.Id + " ? " + beforeAccess + " : default;");
+                code.AppendLine(opt + " __a" + member.Id + " = __h" + member.Id + " ? " + afterAccess + " : default;");
             }
         }
         // Empty fast path.
@@ -243,26 +172,13 @@ internal static class SparseChangeSetBetweenEmitter
                     "__items" + member.Id,
                     "__bO" + member.Id,
                     "__aO" + member.Id,
-                    SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? "__bTO" + member.Id
-                        : null,
-                    SparseKeyedCollectionEmitter.HasTemporaryKey(member)
-                        ? "__aTO" + member.Id
-                        : null
+                    SparseKeyedCollectionEmitter.HasTemporaryKey(member) ? "__bTO" + member.Id : null,
+                    SparseKeyedCollectionEmitter.HasTemporaryKey(member) ? "__aTO" + member.Id : null
                 );
             }
             else if (IsDict(member))
             {
-                args.AddRange(
-                    new[]
-                    {
-                        "__h" + member.Id,
-                        "__whole" + member.Id,
-                        "__wb" + member.Id,
-                        "__wa" + member.Id,
-                        "__items" + member.Id,
-                    }
-                );
+                args.AddRange(new[] { "__h" + member.Id, "__whole" + member.Id, "__wb" + member.Id, "__wa" + member.Id, "__items" + member.Id });
             }
             else
             {
@@ -285,9 +201,7 @@ internal static class SparseChangeSetBetweenEmitter
     {
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>");
             code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
             code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
             code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
@@ -301,51 +215,28 @@ internal static class SparseChangeSetBetweenEmitter
                     + ".Between(before, after);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLine(
-                "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>");
             code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
             code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
             code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLine(
-                "internal static ChangeSet Between("
-                    + modelType
-                    + " before, "
-                    + modelType
-                    + " after)"
-            );
+            code.AppendLine("internal static ChangeSet Between(" + modelType + " before, " + modelType + " after)");
         }
         else
         {
-            code.AppendLine(
-                "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
-            );
+            code.AppendLine("/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>");
             code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
             code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
             code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLine(
-                "public static ChangeSet Between(" + modelType + " before, " + modelType + " after)"
-            );
+            code.AppendLine("public static ChangeSet Between(" + modelType + " before, " + modelType + " after)");
         }
         code.OpenBlock();
         if (SparseChangeSetModelBetweenEmitter.CanCompareDirectly(members))
         {
-            SparseChangeSetModelBetweenEmitter.AppendBody(
-                code,
-                members,
-                modelIsReferenceType,
-                runtime,
-                optionalFragment
-            );
+            SparseChangeSetModelBetweenEmitter.AppendBody(code, members, modelIsReferenceType, runtime, optionalFragment);
         }
         else
         {
-            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(
-                code,
-                optionalFragment,
-                modelIsReferenceType,
-                members
-            );
+            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(code, optionalFragment, modelIsReferenceType, members);
         }
 
         code.CloseBlock();

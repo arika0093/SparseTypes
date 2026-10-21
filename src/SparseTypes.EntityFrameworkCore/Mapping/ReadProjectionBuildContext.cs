@@ -38,22 +38,10 @@ internal sealed class ReadProjectionBuildContext
 
     public void AddError(string? dtoPath, string message, string? suggestedAction = null)
     {
-        _errors.Add(
-            new SparseEntityMappingError(
-                SparseEntityMappingFailure.MetadataMismatch,
-                dtoPath,
-                message,
-                suggestedAction: suggestedAction
-            )
-        );
+        _errors.Add(new SparseEntityMappingError(SparseEntityMappingFailure.MetadataMismatch, dtoPath, message, suggestedAction: suggestedAction));
     }
 
-    public bool TryBuildMemberPath(
-        Expression source,
-        IReadOnlyList<string> memberNames,
-        string dtoPath,
-        out Expression value
-    )
+    public bool TryBuildMemberPath(Expression source, IReadOnlyList<string> memberNames, string dtoPath, out Expression value)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(memberNames);
@@ -72,12 +60,7 @@ internal sealed class ReadProjectionBuildContext
             value = MakeNullSafe(accesses, source is not ParameterExpression);
             return true;
         }
-        catch (Exception exception)
-            when (exception
-                    is ArgumentException
-                        or InvalidOperationException
-                        or AmbiguousMatchException
-            )
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or AmbiguousMatchException)
         {
             value = Expression.Default(typeof(object));
             AddError(
@@ -89,22 +72,13 @@ internal sealed class ReadProjectionBuildContext
         }
     }
 
-    public bool TryInlineRead(
-        LambdaExpression selector,
-        Expression source,
-        Type targetType,
-        string dtoPath,
-        out Expression value
-    )
+    public bool TryInlineRead(LambdaExpression selector, Expression source, Type targetType, string dtoPath, out Expression value)
     {
         ArgumentNullException.ThrowIfNull(selector);
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(targetType);
         ArgumentNullException.ThrowIfNull(dtoPath);
-        if (
-            selector.Parameters.Count != 1
-            || !selector.Parameters[0].Type.IsAssignableFrom(source.Type)
-        )
+        if (selector.Parameters.Count != 1 || !selector.Parameters[0].Type.IsAssignableFrom(source.Type))
         {
             value = Expression.Default(targetType);
             AddError(
@@ -116,35 +90,22 @@ internal sealed class ReadProjectionBuildContext
 
         try
         {
-            var body = new ParameterReplacement(selector.Parameters[0], source).Visit(
-                selector.Body
-            );
+            var body = new ParameterReplacement(selector.Parameters[0], source).Visit(selector.Body);
             body = new NullSafeMemberAccess(source).Visit(body);
             if (!targetType.IsAssignableFrom(body.Type))
             {
                 value = Expression.Default(targetType);
-                AddError(
-                    dtoPath,
-                    $"The Read() expression returns '{body.Type.FullName}', which cannot be assigned to '{targetType.FullName}'."
-                );
+                AddError(dtoPath, $"The Read() expression returns '{body.Type.FullName}', which cannot be assigned to '{targetType.FullName}'.");
                 return false;
             }
 
             value = body.Type == targetType ? body : Expression.Convert(body, targetType);
             return true;
         }
-        catch (Exception exception)
-            when (exception
-                    is ArgumentException
-                        or InvalidOperationException
-                        or AmbiguousMatchException
-            )
+        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or AmbiguousMatchException)
         {
             value = Expression.Default(targetType);
-            AddError(
-                dtoPath,
-                $"The Read() expression could not be used in a projection: {exception.Message}"
-            );
+            AddError(dtoPath, $"The Read() expression could not be used in a projection: {exception.Message}");
             return false;
         }
     }
@@ -162,11 +123,7 @@ internal sealed class ReadProjectionBuildContext
                 .GetMethods(BindingFlags.Public | BindingFlags.Static)
                 .Single(method =>
                 {
-                    if (
-                        method.Name != name
-                        || !method.IsGenericMethodDefinition
-                        || method.GetGenericArguments().Length != genericArgumentCount
-                    )
+                    if (method.Name != name || !method.IsGenericMethodDefinition || method.GetGenericArguments().Length != genericArgumentCount)
                     {
                         return false;
                     }
@@ -174,17 +131,11 @@ internal sealed class ReadProjectionBuildContext
                     var parameters = method.GetParameters();
                     return parameters.Length == 2
                         && parameters[1].ParameterType.IsGenericType
-                        && parameters[1].ParameterType.GetGenericTypeDefinition()
-                            == typeof(Func<,>);
+                        && parameters[1].ParameterType.GetGenericTypeDefinition() == typeof(Func<,>);
                 });
     }
 
-    public bool TryBind(
-        PropertyInfo property,
-        Expression value,
-        string dtoPath,
-        out MemberBinding? binding
-    )
+    public bool TryBind(PropertyInfo property, Expression value, string dtoPath, out MemberBinding? binding)
     {
         ArgumentNullException.ThrowIfNull(property);
         ArgumentNullException.ThrowIfNull(value);
@@ -230,10 +181,7 @@ internal sealed class ReadProjectionBuildContext
 
         if (targetType.IsArray && targetType.GetElementType() == elementType)
         {
-            var toArray = Expression.Call(
-                EnumerableToArrayMethod.MakeGenericMethod(elementType),
-                sequence
-            );
+            var toArray = Expression.Call(EnumerableToArrayMethod.MakeGenericMethod(elementType), sequence);
             materialized = toArray;
             empty = Expression.NewArrayBounds(elementType, Expression.Constant(0));
             return true;
@@ -242,10 +190,7 @@ internal sealed class ReadProjectionBuildContext
         var listType = typeof(List<>).MakeGenericType(elementType);
         if (targetType.IsAssignableFrom(listType))
         {
-            materialized = Expression.Call(
-                EnumerableToListMethod.MakeGenericMethod(elementType),
-                sequence
-            );
+            materialized = Expression.Call(EnumerableToListMethod.MakeGenericMethod(elementType), sequence);
             empty = Expression.New(listType);
             return true;
         }
@@ -253,9 +198,7 @@ internal sealed class ReadProjectionBuildContext
         var enumerableConstructor = targetType.GetConstructor([enumerableType]);
         if (enumerableConstructor is not null)
         {
-            var emptySequence = Expression.Call(
-                EnumerableEmptyMethod.MakeGenericMethod(elementType)
-            );
+            var emptySequence = Expression.Call(EnumerableEmptyMethod.MakeGenericMethod(elementType));
             materialized = Expression.New(enumerableConstructor, sequence);
             empty = Expression.New(enumerableConstructor, emptySequence);
             return true;
@@ -271,17 +214,14 @@ internal sealed class ReadProjectionBuildContext
         return false;
     }
 
-    public static string JoinPath(string prefix, string member) =>
-        string.IsNullOrEmpty(prefix) ? member : $"{prefix}.{member}";
+    public static string JoinPath(string prefix, string member) => string.IsNullOrEmpty(prefix) ? member : $"{prefix}.{member}";
 
     private static MemberInfo FindMember(Type declaringType, string name)
     {
         const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
         return (MemberInfo?)declaringType.GetProperty(name, flags)
             ?? declaringType.GetField(name, flags)
-            ?? throw new InvalidOperationException(
-                $"The CLR type '{declaringType.FullName}' has no member named '{name}'."
-            );
+            ?? throw new InvalidOperationException($"The CLR type '{declaringType.FullName}' has no member named '{name}'.");
     }
 
     private static Expression MakeNullSafe(IReadOnlyList<Expression> accesses, bool checkRoot)
@@ -301,8 +241,7 @@ internal sealed class ReadProjectionBuildContext
         return value;
     }
 
-    private static bool CanBeNull(Type type) =>
-        !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;
+    private static bool CanBeNull(Type type) => !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;
 
     private static Expression IsNull(Expression value)
     {
@@ -312,11 +251,9 @@ internal sealed class ReadProjectionBuildContext
             : Expression.Not(Expression.Property(value, nameof(Nullable<int>.HasValue)));
     }
 
-    private sealed class ParameterReplacement(ParameterExpression parameter, Expression replacement)
-        : ExpressionVisitor
+    private sealed class ParameterReplacement(ParameterExpression parameter, Expression replacement) : ExpressionVisitor
     {
-        protected override Expression VisitParameter(ParameterExpression node) =>
-            node == parameter ? replacement : base.VisitParameter(node);
+        protected override Expression VisitParameter(ParameterExpression node) => node == parameter ? replacement : base.VisitParameter(node);
     }
 
     private sealed class NullSafeMemberAccess(Expression root) : ExpressionVisitor
@@ -339,11 +276,7 @@ internal sealed class ReadProjectionBuildContext
             return base.VisitMember(node);
         }
 
-        private static bool TryGetRootedPath(
-            MemberExpression expression,
-            Expression root,
-            out List<string> names
-        )
+        private static bool TryGetRootedPath(MemberExpression expression, Expression root, out List<string> names)
         {
             names = [];
             Expression? current = expression;

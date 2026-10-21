@@ -4,23 +4,12 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparsePayloadJsonConverterEmitter
 {
     /// <summary>Emits the converter nested in the model.</summary>
-    internal static void AppendConverter(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context
-    )
+    internal static void AppendConverter(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var members = context.Members.Where(static m => !m.Property.IsJsonIgnored).ToArray();
-        code.AppendLine(
-            "/// <summary>Trim-safe JSON converter for this model's change payload.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            "public sealed class "
-                + context.ConverterName
-                + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>"
-        );
+        code.AppendLine("/// <summary>Trim-safe JSON converter for this model's change payload.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>");
         code.OpenBlock();
         AppendPayload(code, context);
         AppendCore(code, context);
@@ -43,10 +32,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine();
     }
 
-    private static void AppendPayload(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context
-    )
+    private static void AppendPayload(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var change = context.Dto("Change");
         code.AppendLine("/// <inheritdoc />");
@@ -54,22 +40,16 @@ internal static class SparsePayloadJsonConverterEmitter
             "public override ChangePayload? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A payload must be an object.\");"
         );
         code.AppendLine("string? version = null;");
-        code.AppendLine(
-            "var changes = new global::System.Collections.Generic.List<" + change + ">();"
-        );
+        code.AppendLine("var changes = new global::System.Collections.Generic.List<" + change + ">();");
         code.AppendLine("var hasChanges = false;");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");"
         );
@@ -79,9 +59,7 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLine("else if (reader.ValueTextEquals(\"changes\"))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");");
         code.AppendLine("hasChanges = true;");
         code.AppendLine("if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null)");
         code.OpenBlock();
@@ -90,16 +68,12 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
         code.AppendLine("changes.Add(ReadChange(ref reader, options));");
         code.CloseBlock();
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); reader.Skip(); }"
-        );
+        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); reader.Skip(); }");
         code.CloseBlock();
         code.AppendLine("var payload = new ChangePayload { Version = version };");
         code.AppendLine("if (hasChanges) payload.Changes = changes;");
@@ -141,41 +115,29 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var core = new " + core + "();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed core.\");"
         );
         code.AppendLine("if (reader.ValueTextEquals(\"changes\"))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\");"
-        );
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) core.Changes = null;"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\");");
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) core.Changes = null;");
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Payload changes must be an array.\");"
         );
-        code.AppendLine(
-            "var list = new global::System.Collections.Generic.List<" + change + ">();"
-        );
+        code.AppendLine("var list = new global::System.Collections.Generic.List<" + change + ">();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
         code.AppendLine("list.Add(ReadChange(ref reader, options));");
         code.CloseBlock();
         code.AppendLine("core.Changes = list;");
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\"); reader.Skip(); }"
-        );
+        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\"); reader.Skip(); }");
         code.CloseBlock();
         code.AppendLine("return core;");
         code.CloseBlock();
@@ -215,20 +177,14 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var root = new " + root + "();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed root.\");"
         );
         code.AppendLine("if (reader.ValueTextEquals(\"members\"))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\");"
-        );
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) root.Members = new();"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\");");
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) root.Members = new();");
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine(
@@ -237,16 +193,12 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("root.Members.Clear();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
         code.AppendLine("root.Members.Add(ReadChange(ref reader, options));");
         code.CloseBlock();
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\"); reader.Skip(); }"
-        );
+        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\"); reader.Skip(); }");
         code.CloseBlock();
         code.AppendLine("return root;");
         code.CloseBlock();
@@ -269,11 +221,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine();
     }
 
-    private static void AppendDispatch(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context,
-        SparseMemberModel[] members
-    )
+    private static void AppendDispatch(SharedIndentedBuilder code, PayloadJsonEmissionContext context, SparseMemberModel[] members)
     {
         var change = context.Dto("Change");
         var rootChange = context.Dto("RootChange");
@@ -292,29 +240,19 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var hasEndObject = false;");
         code.AppendLine("while (lookahead.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (lookahead.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { hasEndObject = true; break; }"
-        );
-        code.AppendLine(
-            "if (lookahead.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { lookahead.Skip(); continue; }"
-        );
+        code.AppendLine("if (lookahead.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { hasEndObject = true; break; }");
+        code.AppendLine("if (lookahead.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { lookahead.Skip(); continue; }");
         code.AppendLine("var isMember = lookahead.ValueTextEquals(\"member\");");
         code.AppendLine("if (!lookahead.Read()) break;");
         code.AppendLine("if (isMember)");
         code.OpenBlock();
         code.AppendLine("hasMember = true;");
-        code.AppendLine(
-            "member = lookahead.TokenType == global::System.Text.Json.JsonTokenType.String ? lookahead.GetString() : null;"
-        );
+        code.AppendLine("member = lookahead.TokenType == global::System.Text.Json.JsonTokenType.String ? lookahead.GetString() : null;");
         code.CloseBlock();
         code.AppendLine("lookahead.Skip();");
         code.CloseBlock();
-        code.AppendLine(
-            "if (hasEndObject && hasMember) return ReadDispatchedChange(ref reader, options, member);"
-        );
-        code.AppendLine(
-            "using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);"
-        );
+        code.AppendLine("if (hasEndObject && hasMember) return ReadDispatchedChange(ref reader, options, member);");
+        code.AppendLine("using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);");
         code.AppendLine("var element = document.RootElement;");
         code.AppendLine(
             "if (element.TryGetProperty(\"member\", out var discriminator) && discriminator.ValueKind == global::System.Text.Json.JsonValueKind.String) member = discriminator.GetString();"
@@ -331,25 +269,13 @@ internal static class SparsePayloadJsonConverterEmitter
                 + " ReadDispatchedChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? member)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (member == "
-                + Format(context.RootDiscriminator)
-                + ") return ReadRootChange(ref reader, options);"
-        );
+        code.AppendLine("if (member == " + Format(context.RootDiscriminator) + ") return ReadRootChange(ref reader, options);");
         foreach (var member in members)
         {
-            code.AppendLine(
-                "if (member == "
-                    + Format(member.Property.Name)
-                    + ") return ReadMember"
-                    + member.Id
-                    + "(ref reader, options);"
-            );
+            code.AppendLine("if (member == " + Format(member.Property.Name) + ") return ReadMember" + member.Id + "(ref reader, options);");
         }
 
-        code.AppendLine(
-            "throw new global::System.Text.Json.JsonException(\"Unknown payload member.\");"
-        );
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Unknown payload member.\");");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine(
@@ -363,31 +289,21 @@ internal static class SparsePayloadJsonConverterEmitter
         foreach (var member in members)
         {
             var memberChange = context.MemberDto("Change", member.Id);
-            code.AppendLine(
-                "if (!written && item is " + memberChange + " member" + member.Id + ")"
-            );
+            code.AppendLine("if (!written && item is " + memberChange + " member" + member.Id + ")");
             code.OpenBlock();
-            code.AppendLine(
-                "writer.WriteString(\"member\", " + Format(member.Property.Name) + ");"
-            );
-            code.AppendLine(
-                "WriteMember" + member.Id + "Body(writer, member" + member.Id + ", options);"
-            );
+            code.AppendLine("writer.WriteString(\"member\", " + Format(member.Property.Name) + ");");
+            code.AppendLine("WriteMember" + member.Id + "Body(writer, member" + member.Id + ", options);");
             code.AppendLine("written = true;");
             code.CloseBlock();
         }
 
         code.AppendLine("if (!written && item is " + rootChange + " rootChange)");
         code.OpenBlock();
-        code.AppendLine(
-            "writer.WriteString(\"member\", " + Format(context.RootDiscriminator) + ");"
-        );
+        code.AppendLine("writer.WriteString(\"member\", " + Format(context.RootDiscriminator) + ");");
         code.AppendLine("WriteRootChangeBody(writer, rootChange, options);");
         code.AppendLine("written = true;");
         code.CloseBlock();
-        code.AppendLine(
-            "if (!written) throw new global::System.Text.Json.JsonException(\"Unknown payload change.\");"
-        );
+        code.AppendLine("if (!written) throw new global::System.Text.Json.JsonException(\"Unknown payload change.\");");
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();
@@ -403,9 +319,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var change = new " + rootChange + "();");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
@@ -413,9 +327,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine(
             "if (name == \"member\") { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\"); reader.Skip(); continue; }"
         );
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");");
         code.AppendLine(
             "if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                 + context.Dto("Root")
@@ -447,6 +359,5 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine();
     }
 
-    private static string Format(string value) =>
-        global::Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, true);
+    private static string Format(string value) => global::Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, true);
 }

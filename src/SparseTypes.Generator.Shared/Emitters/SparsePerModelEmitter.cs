@@ -33,11 +33,7 @@ internal static class SparsePerModelEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
-        Action<
-            SharedIndentedBuilder,
-            SparseModelInfo,
-            ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null,
+        Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     ) =>
         SparseFragmentEmitter.BuildSource(
@@ -67,14 +63,7 @@ internal static class SparsePerModelEmitter
         ImmutableArray<SparseReadOnlyViewModel> readOnlyViewModels,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config
-    ) =>
-        SparseFragmentEmitter.BuildImplementationSources(
-            model,
-            members,
-            readOnlyViewModels,
-            cancellationToken,
-            config
-        );
+    ) => SparseFragmentEmitter.BuildImplementationSources(model, members, readOnlyViewModels, cancellationToken, config);
 
     /// <summary>Builds model-nested UI and container implementation sources for one promoted model.</summary>
     /// <param name="promoted">Promoted model.</param>
@@ -85,14 +74,7 @@ internal static class SparsePerModelEmitter
         SparsePromotedModel promoted,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config
-    ) =>
-        SparseFragmentEmitter.BuildImplementationSources(
-            promoted.Model,
-            promoted.Members,
-            promoted.ReadOnlyViewModels,
-            cancellationToken,
-            config
-        );
+    ) => SparseFragmentEmitter.BuildImplementationSources(promoted.Model, promoted.Members, promoted.ReadOnlyViewModels, cancellationToken, config);
 
     /// <summary>Builds the per-model surface source for one promoted model.</summary>
     /// <param name="promoted">Promoted model.</param>
@@ -107,14 +89,7 @@ internal static class SparsePerModelEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config
-    ) =>
-        SparseFragmentEmitter.BuildPromotedSource(
-            promoted,
-            bclHashSetImplementsReadOnlySet,
-            bclHashSetSupportsCapacity,
-            cancellationToken,
-            config
-        );
+    ) => SparseFragmentEmitter.BuildPromotedSource(promoted, bclHashSetImplementsReadOnlySet, bclHashSetSupportsCapacity, cancellationToken, config);
 
     /// <summary>Builds split surface and implementation sources for one explicit root.</summary>
     /// <remarks>Union of the reloc-2 payload/Fragment-operations split (stage 3, ) and the reloc-3 Patch/ChangeSet operation split.</remarks>
@@ -128,11 +103,7 @@ internal static class SparsePerModelEmitter
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
-        Action<
-            SharedIndentedBuilder,
-            SparseModelInfo,
-            ImmutableArray<SparseMemberModel>
-        >? appendProductExtensions = null,
+        Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
     )
     {
@@ -154,11 +125,7 @@ internal static class SparsePerModelEmitter
             return (surface, null);
         }
 
-        var hint = SparseGeneratedPlacement.ImplementationHintName(
-            model,
-            config.EffectiveGeneratedImplementationSuffix,
-            cancellationToken
-        );
+        var hint = SparseGeneratedPlacement.ImplementationHintName(model, config.EffectiveGeneratedImplementationSuffix, cancellationToken);
         return (surface, new SparseGeneratedSource(hint, implementation));
     }
 
@@ -183,11 +150,7 @@ internal static class SparsePerModelEmitter
             return (surface, null);
         }
 
-        var hint = SparseGeneratedPlacement.ImplementationHintName(
-            promoted.Model,
-            config.EffectiveGeneratedImplementationSuffix,
-            cancellationToken
-        );
+        var hint = SparseGeneratedPlacement.ImplementationHintName(promoted.Model, config.EffectiveGeneratedImplementationSuffix, cancellationToken);
         return (surface, new SparseGeneratedSource(hint, implementation));
     }
 }

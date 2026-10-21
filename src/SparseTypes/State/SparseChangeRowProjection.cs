@@ -56,8 +56,7 @@ public sealed record SparseChangeRowOptions
     /// <summary>Builds the operation label for one change kind.</summary>
     /// <param name="kind">The change kind to label.</param>
     /// <returns>The hook result, or the invariant kind name by default.</returns>
-    public string GetOperation(SparseChangeKind kind) =>
-        FormatOperation is null ? kind.ToString() : FormatOperation(kind);
+    public string GetOperation(SparseChangeKind kind) => FormatOperation is null ? kind.ToString() : FormatOperation(kind);
 
     /// <summary>Builds the display text for one presence-aware endpoint.</summary>
     /// <param name="value">The endpoint to format.</param>
@@ -71,9 +70,7 @@ public sealed record SparseChangeRowOptions
 
         try
         {
-            return FormatValue is null
-                ? value.Value?.ToString() ?? "null"
-                : FormatValue(value.Value);
+            return FormatValue is null ? value.Value?.ToString() ?? "null" : FormatValue(value.Value);
         }
         catch (Exception exception)
         {
@@ -109,10 +106,7 @@ public static class SparseChangeRowProjection
     /// <exception cref="ArgumentNullException"><paramref name="changes"/> is
     /// null.</exception>
     /// <exception cref="ArgumentException">A record in the change set is null.</exception>
-    public static IReadOnlyList<SparseChangeRow> Project(
-        ISparseChangeSet changes,
-        SparseChangeRowOptions? options = null
-    )
+    public static IReadOnlyList<SparseChangeRow> Project(ISparseChangeSet changes, SparseChangeRowOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(changes);
         return Project(changes.EnumerateChangeRecords(), options);
@@ -126,10 +120,7 @@ public static class SparseChangeRowProjection
     /// null.</exception>
     /// <exception cref="ArgumentException">A record in
     /// <paramref name="records"/> is null.</exception>
-    public static IReadOnlyList<SparseChangeRow> Project(
-        IReadOnlyList<SparseChangeRecord> records,
-        SparseChangeRowOptions? options = null
-    )
+    public static IReadOnlyList<SparseChangeRow> Project(IReadOnlyList<SparseChangeRecord> records, SparseChangeRowOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(records);
         options ??= new SparseChangeRowOptions();
@@ -138,10 +129,7 @@ public static class SparseChangeRowProjection
         {
             if (record is null)
             {
-                throw new ArgumentException(
-                    "Change records must not contain null entries.",
-                    nameof(records)
-                );
+                throw new ArgumentException("Change records must not contain null entries.", nameof(records));
             }
 
             rows.Add(

@@ -63,15 +63,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLine("var __curM" + id + " = __cur." + esc + ";");
         code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "if (Fragment.__SparseEqual_"
-                + id
-                + "("
-                + KeyedWholeAfter(member)
-                + ", __curM"
-                + id
-                + ")) { }"
-        );
+        code.AppendLine("if (Fragment.__SparseEqual_" + id + "(" + KeyedWholeAfter(member) + ", __curM" + id + ")) { }");
         code.AppendLine(
             "else if (Fragment.__SparseEqual_"
                 + id
@@ -109,9 +101,7 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + ", \"The member conflicts with a concurrent change.\")); }"
         );
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)"
-        );
+        code.AppendLine("else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)");
         code.OpenBlock();
         code.AppendLine(
             "__conflicts.Add(new "
@@ -131,21 +121,9 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            "var __rlist"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>();"
-        );
+        code.AppendLine("var __rlist" + id + " = new global::System.Collections.Generic.List<" + trans + ".Item>();");
         code.AppendLine("bool __any" + id + " = false;");
-        code.AppendLine(
-            "if ("
-                + KeyedItems(member)
-                + " is not null) foreach (var __it in "
-                + KeyedItems(member)
-                + ")"
-        );
+        code.AppendLine("if (" + KeyedItems(member) + " is not null) foreach (var __it in " + KeyedItems(member) + ")");
         code.OpenBlock();
         code.AppendLine("if (__it.IsAdded)");
         code.OpenBlock();
@@ -154,33 +132,15 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLine("__any" + id + " = true;");
         if (hasPatch)
         {
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, default, __it.After, true, false, false, __it.Edit, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, default, __it.After, true, false, false, __it.Edit, false));");
         }
         else
         {
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, default, __it.After, true, false, false, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, default, __it.After, true, false, false, false));");
         }
 
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!"
-                + facade
-                + ".AreEqual(__curM"
-                + id
-                + ".Value![__it.Key!], __it.After.Value))"
-        );
+        code.AppendLine("else if (!" + facade + ".AreEqual(__curM" + id + ".Value![__it.Key!], __it.After.Value))");
         code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
@@ -202,13 +162,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLine("else if (__it.IsRemoved)");
         code.OpenBlock();
         code.AppendLine("if (!__curM" + id + ".Value!.ContainsKey(__it.Key!)) { }");
-        code.AppendLine(
-            "else if (!"
-                + facade
-                + ".AreEqual(__curM"
-                + id
-                + ".Value![__it.Key!], __it.Before.Value))"
-        );
+        code.AppendLine("else if (!" + facade + ".AreEqual(__curM" + id + ".Value![__it.Key!], __it.Before.Value))");
         code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
@@ -231,23 +185,11 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLine("__any" + id + " = true;");
         if (hasPatch)
         {
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, __it.Before, default, false, true, false, __it.Edit, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, __it.Before, default, false, true, false, __it.Edit, false));");
         }
         else
         {
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, __it.Before, default, false, true, false, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, __it.Before, default, false, true, false, false));");
         }
 
         code.CloseBlock();
@@ -274,51 +216,22 @@ internal static class SparseChangeSetDictRebaseEmitter
             );
             code.AppendLine("else");
             code.OpenBlock();
+            code.AppendLine("var __nr = __it.Edit.RebaseOnto(" + runtime + "Optional<" + valueFrag + "?>.Present(" + valueFrag + ".From(__cev)));");
             code.AppendLine(
-                "var __nr = __it.Edit.RebaseOnto("
-                    + runtime
-                    + "Optional<"
-                    + valueFrag
-                    + "?>.Present("
-                    + valueFrag
-                    + ".From(__cev)));"
-            );
-            code.AppendLine(
-                "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member("
-                    + lit
-                    + ").Key(__it.Key!)));"
+                "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member(" + lit + ").Key(__it.Key!)));"
             );
             code.AppendLine("if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
             code.OpenBlock();
             code.AppendLine(
-                "var __applied = __nr.Rebased.ToPatch().Apply("
-                    + runtime
-                    + "Optional<"
-                    + valueFrag
-                    + "?>.Present("
-                    + valueFrag
-                    + ".From(__cev)));"
+                "var __applied = __nr.Rebased.ToPatch().Apply(" + runtime + "Optional<" + valueFrag + "?>.Present(" + valueFrag + ".From(__cev)));"
             );
             code.AppendLine("if (__applied.IsPresent && __applied.Value is not null)");
             code.OpenBlock();
             code.AppendLine("__any" + id + " = true;");
             code.AppendLine(
-                optValue
-                    + " __nb = "
-                    + optValue
-                    + ".Present(__cev); "
-                    + optValue
-                    + " __na2 = "
-                    + optValue
-                    + ".Present(__applied.Value!.ToModel());"
+                optValue + " __nb = " + optValue + ".Present(__cev); " + optValue + " __na2 = " + optValue + ".Present(__applied.Value!.ToModel());"
             );
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, __nb, __na2, false, false, true, __nr.Rebased, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, __nb, __na2, false, false, true, __nr.Rebased, false));");
             code.CloseBlock();
             code.CloseBlock();
             code.CloseBlock();
@@ -361,28 +274,12 @@ internal static class SparseChangeSetDictRebaseEmitter
             code.AppendLine("else");
             code.OpenBlock();
             code.AppendLine("__any" + id + " = true;");
-            code.AppendLine(
-                "__rlist"
-                    + id
-                    + ".Add(new "
-                    + trans
-                    + ".Item(__it.Key!, __it.Before, __it.After, false, false, true, false));"
-            );
+            code.AppendLine("__rlist" + id + ".Add(new " + trans + ".Item(__it.Key!, __it.Before, __it.After, false, false, true, false));");
             code.CloseBlock();
         }
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "if (__any"
-                + id
-                + ") { __rh"
-                + id
-                + " = true; __ritems"
-                + id
-                + " = __rlist"
-                + id
-                + "; }"
-        );
+        code.AppendLine("if (__any" + id + ") { __rh" + id + " = true; __ritems" + id + " = __rlist" + id + "; }");
         code.CloseBlock();
         code.CloseBlock();
     }

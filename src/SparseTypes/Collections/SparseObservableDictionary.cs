@@ -23,9 +23,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     private readonly Action _onChanged;
     private readonly Action? _onRawModelAccess;
     private readonly bool _cacheReferences;
-    private readonly Dictionary<object, ProxyEntry> _proxies = new(
-        SparseCoreRuntime.ReferenceComparer
-    );
+    private readonly Dictionary<object, ProxyEntry> _proxies = new(SparseCoreRuntime.ReferenceComparer);
     private static readonly PropertyChangedEventArgs CountChanged = new(nameof(Count));
     private static readonly PropertyChangedEventArgs ItemChanged = new("Item[]");
     private int _notificationVersion;
@@ -131,10 +129,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
             // Pure addition cannot orphan cached proxies, so no prune is
             // needed.
             RaiseCollectionChanged(
-                new NotifyCollectionChangedEventArgs(
-                    NotifyCollectionChangedAction.Add,
-                    new KeyValuePair<TKey, TView>(key, Wrap(value))
-                )
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TView>(key, Wrap(value)))
             );
         }
     }
@@ -159,16 +154,13 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         if (before == _notificationVersion)
         {
             DeactivateAll();
-            RaiseCollectionChanged(
-                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)
-            );
+            RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
     }
 
     /// <inheritdoc />
     public bool Contains(KeyValuePair<TKey, TView> item) =>
-        TryGetValue(item.Key, out var value)
-        && EqualityComparer<TView>.Default.Equals(value, item.Value);
+        TryGetValue(item.Key, out var value) && EqualityComparer<TView>.Default.Equals(value, item.Value);
 
     /// <inheritdoc />
     public bool ContainsKey(TKey key) => _model.ContainsKey(key);
@@ -215,10 +207,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
             var oldView = Wrap(oldValue);
             PruneRemoved(oldValue);
             RaiseCollectionChanged(
-                new NotifyCollectionChangedEventArgs(
-                    NotifyCollectionChangedAction.Remove,
-                    new KeyValuePair<TKey, TView>(key, oldView)
-                )
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, new KeyValuePair<TKey, TView>(key, oldView))
             );
         }
 
@@ -257,19 +246,14 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         PruneStale();
         if (reportChange)
         {
-            RaiseCollectionChanged(
-                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)
-            );
+            RaiseCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             return;
         }
 
         _notificationVersion++;
         PropertyChanged?.Invoke(this, CountChanged);
         PropertyChanged?.Invoke(this, ItemChanged);
-        CollectionChanged?.Invoke(
-            this,
-            new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)
-        );
+        CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
     /// <inheritdoc />
@@ -293,14 +277,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     {
         ThrowIfDisposed();
         var existed = _model.TryGetValue(key, out var oldValue);
-        if (
-            existed
-            && (
-                _cacheReferences
-                    ? ReferenceEquals(oldValue, value)
-                    : EqualityComparer<TModel>.Default.Equals(oldValue!, value)
-            )
-        )
+        if (existed && (_cacheReferences ? ReferenceEquals(oldValue, value) : EqualityComparer<TModel>.Default.Equals(oldValue!, value)))
         {
             return;
         }
@@ -322,10 +299,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
                         new KeyValuePair<TKey, TView>(key, Wrap(value)),
                         new KeyValuePair<TKey, TView>(key, oldView!)
                     )
-                    : new NotifyCollectionChangedEventArgs(
-                        NotifyCollectionChangedAction.Add,
-                        new KeyValuePair<TKey, TView>(key, Wrap(value))
-                    )
+                    : new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, new KeyValuePair<TKey, TView>(key, Wrap(value)))
             );
         }
     }
@@ -378,14 +352,12 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
                 NotifyCollectionChangedAction.Remove,
                 ConvertItems(args.OldItems)!
             ),
-            NotifyCollectionChangedAction.Replace
-                when args.NewItems is { Count: 1 } && args.OldItems is { Count: 1 } => new(
+            NotifyCollectionChangedAction.Replace when args.NewItems is { Count: 1 } && args.OldItems is { Count: 1 } => new(
                 NotifyCollectionChangedAction.Replace,
                 ConvertPair((KeyValuePair<TKey, TModel>)args.NewItems[0]!),
                 ConvertPair((KeyValuePair<TKey, TModel>)args.OldItems[0]!)
             ),
-            NotifyCollectionChangedAction.Replace
-                when args.NewItems is { Count: > 1 } && args.OldItems is { Count: > 1 } => new(
+            NotifyCollectionChangedAction.Replace when args.NewItems is { Count: > 1 } && args.OldItems is { Count: > 1 } => new(
                 NotifyCollectionChangedAction.Replace,
                 ConvertItems(args.NewItems)!,
                 ConvertItems(args.OldItems)!
@@ -394,8 +366,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         };
     }
 
-    private KeyValuePair<TKey, TView> ConvertPair(KeyValuePair<TKey, TModel> pair) =>
-        new(pair.Key, Wrap(pair.Value));
+    private KeyValuePair<TKey, TView> ConvertPair(KeyValuePair<TKey, TModel> pair) => new(pair.Key, Wrap(pair.Value));
 
     private List<KeyValuePair<TKey, TView>>? ConvertItems(System.Collections.IList? items)
     {
@@ -416,12 +387,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     private void RaiseCollectionChanged(NotifyCollectionChangedEventArgs args)
     {
         _notificationVersion++;
-        if (
-            args.Action
-            is NotifyCollectionChangedAction.Add
-                or NotifyCollectionChangedAction.Remove
-                or NotifyCollectionChangedAction.Reset
-        )
+        if (args.Action is NotifyCollectionChangedAction.Add or NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Reset)
         {
             PropertyChanged?.Invoke(this, CountChanged);
         }
@@ -566,9 +532,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(
-                nameof(SparseObservableDictionary<TKey, TModel, TView>)
-            );
+            throw new ObjectDisposedException(nameof(SparseObservableDictionary<TKey, TModel, TView>));
         }
     }
 
@@ -578,15 +542,13 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         public bool Active = true;
     }
 
-    private sealed class ValueCollection(SparseObservableDictionary<TKey, TModel, TView> owner)
-        : ICollection<TView>
+    private sealed class ValueCollection(SparseObservableDictionary<TKey, TModel, TView> owner) : ICollection<TView>
     {
         public int Count => owner.Count;
 
         public bool IsReadOnly => true;
 
-        public bool Contains(TView item) =>
-            this.Any(value => EqualityComparer<TView>.Default.Equals(value, item));
+        public bool Contains(TView item) => this.Any(value => EqualityComparer<TView>.Default.Equals(value, item));
 
         public void CopyTo(TView[] array, int arrayIndex)
         {

@@ -22,12 +22,7 @@ internal static class SparseDescriptorFactoryEmitter
         string runtimeNamespace
     )
     {
-        var dialect =
-            config.DescriptorDialect
-            ?? throw new System.ArgumentException(
-                "A descriptor dialect is required.",
-                nameof(config)
-            );
+        var dialect = config.DescriptorDialect ?? throw new System.ArgumentException("A descriptor dialect is required.", nameof(config));
         using var innerBuilder = new SharedIndentedBuilder(cancellationToken);
         var observableType = ObservableParam(model, members, config, cancellationToken);
         SparseObservableDescriptorEmitter.Append(
@@ -44,14 +39,8 @@ internal static class SparseDescriptorFactoryEmitter
         code.AppendLine("#nullable enable");
         var root =
             SparseGeneratedPlacement.TryGetImplementationNamespace(config)
-            ?? throw new System.ArgumentException(
-                "An implementation namespace is required.",
-                nameof(config)
-            );
-        var container = SparseGeneratedPlacement.GetImplementationContainer(
-            model,
-            cancellationToken
-        );
+            ?? throw new System.ArgumentException("An implementation namespace is required.", nameof(config));
+        var container = SparseGeneratedPlacement.GetImplementationContainer(model, cancellationToken);
         var accessibility = model.IsPublic ? "public" : "internal";
         code.Append("namespace ").Append(root).AppendLine();
         code.OpenBlock();
@@ -60,9 +49,7 @@ internal static class SparseDescriptorFactoryEmitter
         code.AppendLine("/// <summary>Live descriptor bindings for one model.</summary>");
         code.AppendLine(accessibility + " partial class " + container);
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Descriptor factory bound to the owning observable.</summary>"
-        );
+        code.AppendLine("/// <summary>Descriptor factory bound to the owning observable.</summary>");
         code.AppendLine("internal static class DescriptorFactory");
         code.OpenBlock();
         code.Append(body);
@@ -70,10 +57,7 @@ internal static class SparseDescriptorFactoryEmitter
         code.CloseBlock();
         code.CloseBlock();
         var source = code.ToString();
-        return new SparseGeneratedSource(
-            SparseGeneratedPlacement.DescriptorFactoryHintName(model, cancellationToken),
-            source
-        );
+        return new SparseGeneratedSource(SparseGeneratedPlacement.DescriptorFactoryHintName(model, cancellationToken), source);
     }
 
     private static string ObservableParam(
@@ -85,11 +69,6 @@ internal static class SparseDescriptorFactoryEmitter
     {
         var family = config.EffectiveFamilyNames;
         var simple = SparseObservableEmitter.ObservableTypeName(members, family);
-        return SparseGeneratedPlacement.GetObservableReference(
-            model,
-            simple,
-            config,
-            cancellationToken
-        );
+        return SparseGeneratedPlacement.GetObservableReference(model, simple, config, cancellationToken);
     }
 }

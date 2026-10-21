@@ -39,12 +39,7 @@ internal sealed class IntermediateAccess
     public Type TargetType { get; }
 
     /// <summary>Builds accessors for a navigation member on a declaring CLR type.</summary>
-    public static IntermediateAccess Build(
-        Type declaringType,
-        string name,
-        string dtoPath,
-        bool owned = false
-    )
+    public static IntermediateAccess Build(Type declaringType, string name, string dtoPath, bool owned = false)
     {
         if (declaringType.IsValueType)
         {
@@ -56,9 +51,7 @@ internal sealed class IntermediateAccess
         }
 
         var property = declaringType.GetProperty(name, BindingFlags.Public | BindingFlags.Instance);
-        var field = property is null
-            ? declaringType.GetField(name, BindingFlags.Public | BindingFlags.Instance)
-            : null;
+        var field = property is null ? declaringType.GetField(name, BindingFlags.Public | BindingFlags.Instance) : null;
         if (property is null && field is null)
         {
             throw new SparseEntityMappingException(
@@ -80,12 +73,8 @@ internal sealed class IntermediateAccess
 
         var instance = Expression.Parameter(typeof(object), "instance");
         var typed = Expression.Convert(instance, declaringType);
-        var access = property is not null
-            ? (Expression)Expression.Property(typed, property)
-            : Expression.Field(typed, field!);
-        var getter = Expression
-            .Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), instance)
-            .Compile();
+        var access = property is not null ? (Expression)Expression.Property(typed, property) : Expression.Field(typed, field!);
+        var getter = Expression.Lambda<Func<object, object?>>(Expression.Convert(access, typeof(object)), instance).Compile();
 
         var value = Expression.Parameter(typeof(object), "value");
         var assign = Expression.Assign(access, Expression.Convert(value, memberType));
@@ -108,13 +97,7 @@ internal sealed class IntermediateAccess
     }
 
     /// <summary>Ensures a non-owned reference navigation is loaded before treating null as absence.</summary>
-    public static void EnsureLoaded(
-        DbContext context,
-        object parent,
-        string navigationName,
-        bool owned,
-        string dtoPath
-    )
+    public static void EnsureLoaded(DbContext context, object parent, string navigationName, bool owned, string dtoPath)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(parent);

@@ -29,12 +29,7 @@ public enum SparseEntitySaveStage
 /// <typeparam name="TReadBack">The authoritative state read after persistence.</typeparam>
 public sealed class SparseEntitySaveResult<TPreparation, TReadBack>
 {
-    internal SparseEntitySaveResult(
-        SparseEntitySaveStage stage,
-        TPreparation? preparation,
-        TReadBack? readBack,
-        Exception? error
-    )
+    internal SparseEntitySaveResult(SparseEntitySaveStage stage, TPreparation? preparation, TReadBack? readBack, Exception? error)
     {
         Stage = stage;
         Preparation = preparation;
@@ -89,10 +84,7 @@ public static class SparseEntitySavePipeline
     /// (<see cref="SparseEntitySaveStage.ReadBackFailed"/> and
     /// <see cref="SparseEntitySaveStage.ClientSynchronizationFailed"/>).
     /// </returns>
-    public static async Task<SparseEntitySaveResult<TPreparation, TReadBack>> ExecuteAsync<
-        TPreparation,
-        TReadBack
-    >(
+    public static async Task<SparseEntitySaveResult<TPreparation, TReadBack>> ExecuteAsync<TPreparation, TReadBack>(
         Func<CancellationToken, Task<TPreparation>> prepare,
         Func<TPreparation, CancellationToken, Task> save,
         Func<TPreparation, CancellationToken, Task<TReadBack>> readBack,
@@ -164,21 +156,11 @@ public static class SparseEntitySavePipeline
         catch (OperationCanceledException exception)
         {
             // Persistence and readback completed; only client state is unsynchronized.
-            return new(
-                SparseEntitySaveStage.ClientSynchronizationFailed,
-                prepared,
-                persisted,
-                exception
-            );
+            return new(SparseEntitySaveStage.ClientSynchronizationFailed, prepared, persisted, exception);
         }
         catch (Exception exception)
         {
-            return new(
-                SparseEntitySaveStage.ClientSynchronizationFailed,
-                prepared,
-                persisted,
-                exception
-            );
+            return new(SparseEntitySaveStage.ClientSynchronizationFailed, prepared, persisted, exception);
         }
 
         return new(SparseEntitySaveStage.Saved, prepared, persisted, null);

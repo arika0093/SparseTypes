@@ -13,24 +13,17 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     internal static string EndpointConverterType(string? implementationNamespace) =>
         implementationNamespace is null
             ? EndpointConverterName
-            : SparseGeneratedOnceNames.QualifiedChangePayloadEndpointJsonConverter(
-                implementationNamespace
-            );
+            : SparseGeneratedOnceNames.QualifiedChangePayloadEndpointJsonConverter(implementationNamespace);
 
     internal static string ItemKindConverterType(string? implementationNamespace) =>
         implementationNamespace is null
             ? ItemKindConverterName
-            : SparseGeneratedOnceNames.QualifiedChangePayloadItemKindJsonConverter(
-                implementationNamespace
-            );
+            : SparseGeneratedOnceNames.QualifiedChangePayloadItemKindJsonConverter(implementationNamespace);
 
     /// <summary>Emits bridge converter types into the current generated container.</summary>
     /// <param name="code">Container target builder (indented one level inside the container).</param>
     /// <param name="dialect">Owning patch dialect for runtime type names.</param>
-    internal static void AppendBridgeConverters(
-        SharedIndentedBuilder code,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    )
+    internal static void AppendBridgeConverters(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
@@ -38,15 +31,9 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var state = runtime + "ChangePayloadState";
         var kind = runtime + "ChangePayloadItemKind";
 
-        code.AppendLine(
-            "/// <summary>Preserves the v1 endpoint wire shape for one value type.</summary>"
-        );
-        code.AppendLine(
-            "/// <remarks>State tokens and names come from the runtime wire constants so the contract stays single-sourced.</remarks>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("/// <summary>Preserves the v1 endpoint wire shape for one value type.</summary>");
+        code.AppendLine("/// <remarks>State tokens and names come from the runtime wire constants so the contract stays single-sourced.</remarks>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "public sealed class "
                 + EndpointConverterName
@@ -62,9 +49,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
                 + "<TValue>? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"An endpoint must be an object.\");"
         );
@@ -73,9 +58,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.AppendLine("TValue? value = default;");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
@@ -84,46 +67,32 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         // the previously materialized string did, without allocating it.
         code.AppendLine("if (reader.ValueTextEquals(" + wire + ".StatePropertyUtf8()))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         AppendStateTokenComparison(code, dialect, "state");
         code.AppendLine("hasState = true;");
         code.CloseBlock();
         code.AppendLine("else if (reader.ValueTextEquals(" + wire + ".ValuePropertyUtf8()))");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         // Typed declared-type metadata keeps scalar values off the object
         // serializer boundary; reader comparison tokens stay wired into the
         // runtime vocabulary.
-        code.AppendLine(
-            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;"
-        );
-        code.AppendLine(
-            "else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;"
-        );
-        code.AppendLine(
-            "else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));"
-        );
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
+        code.AppendLine("else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
+        code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));");
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
         // Unknown supplemental properties are additive extensions: skip
         // them without changing the interpreted endpoints. Unknown
         // operations (member discriminators, kinds, states) still fail.
-        code.AppendLine(
-            "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
-        );
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         code.AppendLine("reader.Skip();");
         code.CloseBlock();
         code.CloseBlock();
         // State is required: an omitted state is not an explicit missing
         // endpoint. Unknown tokens already failed above.
-        code.AppendLine(
-            "if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");"
-        );
+        code.AppendLine("if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");");
         code.AppendLine("return new " + endpoint + "<TValue> { State = state, Value = value };");
         code.CloseBlock();
         code.AppendLine("/// <inheritdoc />");
@@ -135,9 +104,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLine("writer.WriteStartObject();");
-        code.AppendLine(
-            "writer.WriteString(" + wire + ".StateProperty, " + wire + ".ToToken(value.State));"
-        );
+        code.AppendLine("writer.WriteString(" + wire + ".StateProperty, " + wire + ".ToToken(value.State));");
         code.AppendLine("writer.WritePropertyName(" + wire + ".ValueProperty);");
         // Explicit null keeps value-free envelopes byte-identical; otherwise
         // the declared-type metadata serializes exactly like before.
@@ -153,16 +120,8 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.AppendLine();
 
         code.AppendLine("/// <summary>Preserves the lower-case v1 item-kind tokens.</summary>");
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            "public sealed class "
-                + ItemKindConverterName
-                + " : global::System.Text.Json.Serialization.JsonConverter<"
-                + kind
-                + ">"
-        );
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + ItemKindConverterName + " : global::System.Text.Json.Serialization.JsonConverter<" + kind + ">");
         code.OpenBlock();
         code.AppendLine("/// <inheritdoc />");
         code.AppendLine(
@@ -207,9 +166,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
         var state = runtime + "ChangePayloadState";
-        code.AppendLine(
-            "var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;"
-        );
+        code.AppendLine("var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;");
         code.AppendLine("if (tokenMatched)");
         code.OpenBlock();
         code.AppendLine(stateVariable + " = " + state + ".Missing;");
@@ -238,9 +195,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
         var kind = runtime + "ChangePayloadItemKind";
-        code.AppendLine(
-            "var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;"
-        );
+        code.AppendLine("var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;");
         code.AppendLine("if (tokenMatched)");
         code.OpenBlock();
         code.AppendLine(kindVariable + " = " + kind + ".Add;");
@@ -260,29 +215,14 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <param name="wire">The runtime wire type name.</param>
     /// <param name="tokenAccessor">The wire token accessor name (state or kind table).</param>
     /// <param name="tokenVariable">The enum local holding the current candidate.</param>
-    private static void AppendTokenComparison(
-        SharedIndentedBuilder code,
-        string wire,
-        string tokenAccessor,
-        string tokenVariable
-    ) =>
-        code.AppendLine(
-            "tokenMatched = reader.ValueTextEquals("
-                + wire
-                + "."
-                + tokenAccessor
-                + "("
-                + tokenVariable
-                + "));"
-        );
+    private static void AppendTokenComparison(SharedIndentedBuilder code, string wire, string tokenAccessor, string tokenVariable) =>
+        code.AppendLine("tokenMatched = reader.ValueTextEquals(" + wire + "." + tokenAccessor + "(" + tokenVariable + "));");
 
     /// <summary>Emits the fallback assignment of the next candidate; polarity is already false.</summary>
     /// <param name="code">Converter body builder.</param>
     /// <param name="candidateAssignment">The complete candidate enum assignment.</param>
-    private static void AppendTokenFallback(
-        SharedIndentedBuilder code,
-        string candidateAssignment
-    ) => code.AppendLine("if (!tokenMatched) " + candidateAssignment);
+    private static void AppendTokenFallback(SharedIndentedBuilder code, string candidateAssignment) =>
+        code.AppendLine("if (!tokenMatched) " + candidateAssignment);
 
     /// <summary>Emits the failure path for a token outside the wire vocabulary.</summary>
     /// <remarks>
@@ -297,9 +237,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     {
         code.AppendLine("if (!tokenMatched)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) _ = reader.GetString();"
-        );
+        code.AppendLine("if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) _ = reader.GetString();");
         code.AppendLine("throw new global::System.Text.Json.JsonException(\"" + message + "\");");
         code.CloseBlock();
     }
@@ -319,9 +257,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.OpenBlock();
         code.AppendLine("try");
         code.OpenBlock();
-        code.AppendLine(
-            "return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue));"
-        );
+        code.AppendLine("return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue));");
         code.CloseBlock();
         code.AppendLine("catch (global::System.NotSupportedException exception)");
         code.OpenBlock();
@@ -349,11 +285,7 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <summary>Emits the endpoint converter attribute for one endpoint property.</summary>
     /// <param name="code">DTO target builder.</param>
     /// <param name="valueType">The endpoint value type name.</param>
-    internal static void AppendEndpointConverterAttribute(
-        SharedIndentedBuilder code,
-        string valueType,
-        string? implementationNamespace = null
-    ) =>
+    internal static void AppendEndpointConverterAttribute(SharedIndentedBuilder code, string valueType, string? implementationNamespace = null) =>
         code.AppendLine(
             "[global::System.Text.Json.Serialization.JsonConverter(typeof("
                 + EndpointConverterType(implementationNamespace)
@@ -364,13 +296,6 @@ internal static class SparseChangePayloadJsonBridgeEmitter
 
     /// <summary>Emits the item-kind converter attribute for one kind property.</summary>
     /// <param name="code">DTO target builder.</param>
-    internal static void AppendItemKindConverterAttribute(
-        SharedIndentedBuilder code,
-        string? implementationNamespace = null
-    ) =>
-        code.AppendLine(
-            "[global::System.Text.Json.Serialization.JsonConverter(typeof("
-                + ItemKindConverterType(implementationNamespace)
-                + "))]"
-        );
+    internal static void AppendItemKindConverterAttribute(SharedIndentedBuilder code, string? implementationNamespace = null) =>
+        code.AppendLine("[global::System.Text.Json.Serialization.JsonConverter(typeof(" + ItemKindConverterType(implementationNamespace) + "))]");
 }

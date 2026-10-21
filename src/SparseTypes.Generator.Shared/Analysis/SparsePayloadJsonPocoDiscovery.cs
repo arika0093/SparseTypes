@@ -20,37 +20,26 @@ internal static class SparsePayloadJsonPocoDiscovery
         && config.PatchDialect is { EmitJson: true }
         && config.PatchDialect.Value.EffectiveStjCapabilities.SupportsPayloadJsonResolver;
 
-    private const string JsonConverterAttribute =
-        "System.Text.Json.Serialization.JsonConverterAttribute";
-    private const string JsonPolymorphicAttribute =
-        "System.Text.Json.Serialization.JsonPolymorphicAttribute";
-    private const string JsonDerivedTypeAttribute =
-        "System.Text.Json.Serialization.JsonDerivedTypeAttribute";
-    private const string JsonExtensionDataAttribute =
-        "System.Text.Json.Serialization.JsonExtensionDataAttribute";
-    private const string JsonIncludeAttribute =
-        "System.Text.Json.Serialization.JsonIncludeAttribute";
-    private const string JsonRequiredAttribute =
-        "System.Text.Json.Serialization.JsonRequiredAttribute";
+    private const string JsonConverterAttribute = "System.Text.Json.Serialization.JsonConverterAttribute";
+    private const string JsonPolymorphicAttribute = "System.Text.Json.Serialization.JsonPolymorphicAttribute";
+    private const string JsonDerivedTypeAttribute = "System.Text.Json.Serialization.JsonDerivedTypeAttribute";
+    private const string JsonExtensionDataAttribute = "System.Text.Json.Serialization.JsonExtensionDataAttribute";
+    private const string JsonIncludeAttribute = "System.Text.Json.Serialization.JsonIncludeAttribute";
+    private const string JsonRequiredAttribute = "System.Text.Json.Serialization.JsonRequiredAttribute";
 
     /// <summary>Collects JSON codec models reachable from one model's members.</summary>
     /// <param name="members">Analyzed symbol members of the owning model.</param>
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
     /// <returns>Supported codec models with advisory diagnostics for the rest.</returns>
-    public static (
-        ImmutableArray<SparsePayloadJsonPocoModel> Pocos,
-        ImmutableArray<SparseGeneratorDiagnostic> Diagnostics
-    ) Collect(
+    public static (ImmutableArray<SparsePayloadJsonPocoModel> Pocos, ImmutableArray<SparseGeneratorDiagnostic> Diagnostics) Collect(
         ImmutableArray<SparseSymbolMemberModel> members,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken
     )
     {
         var pocos = ImmutableArray.CreateBuilder<SparsePayloadJsonPocoModel>();
-        var warnings = new SortedDictionary<string, SparseGeneratorDiagnostic>(
-            StringComparer.Ordinal
-        );
+        var warnings = new SortedDictionary<string, SparseGeneratorDiagnostic>(StringComparer.Ordinal);
         var seen = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
         var valueReached = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
         var pending = new Stack<(ITypeSymbol Type, bool IsValue)>();
@@ -119,12 +108,7 @@ internal static class SparsePayloadJsonPocoDiscovery
 
         // Codecs cover value positions only: nested-only children travel
         // through cores, keeping edits to them from invalidating this model.
-        foreach (
-            var reached in valueReached.OrderBy(
-                static type => type.ToDisplayString(),
-                StringComparer.Ordinal
-            )
-        )
+        foreach (var reached in valueReached.OrderBy(static type => type.ToDisplayString(), StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (reached is not INamedTypeSymbol named)
@@ -157,26 +141,17 @@ internal static class SparsePayloadJsonPocoDiscovery
             pocos.Add(poco);
         }
 
-        pocos.Sort(
-            static (left, right) => string.CompareOrdinal(left.RuntimeName, right.RuntimeName)
-        );
+        pocos.Sort(static (left, right) => string.CompareOrdinal(left.RuntimeName, right.RuntimeName));
         return (pocos.ToImmutable(), warnings.Values.ToImmutableArray());
     }
 
     private static ITypeSymbol UnwrapNullable(ITypeSymbol type) =>
-        type is INamedTypeSymbol named
-        && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-            ? named.TypeArguments[0]
-            : type;
+        type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T ? named.TypeArguments[0] : type;
 
     private static INamedTypeSymbol StripNullability(INamedTypeSymbol type) =>
         (INamedTypeSymbol)type.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
 
-    private static bool IsFragmentOrPromoted(
-        INamedTypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) =>
+    private static bool IsFragmentOrPromoted(INamedTypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
         SparseModelDiscovery.IsFragmentModel(type, config, cancellationToken)
         || SparsePromotedDiscovery.IsPromotablePartial(type, config, cancellationToken);
 
@@ -189,18 +164,13 @@ internal static class SparsePayloadJsonPocoDiscovery
         CancellationToken cancellationToken
     )
     {
-        var baseMembers = SparseModelDiscovery
-            .GetMembers(type, config, cancellationToken)
-            .ToArray();
+        var baseMembers = SparseModelDiscovery.GetMembers(type, config, cancellationToken).ToArray();
         if (!includeIgnoredExtras)
         {
             return baseMembers.ToImmutableArray();
         }
 
-        var covered = new HashSet<ISymbol>(
-            baseMembers.Select(static member => member.Property),
-            SymbolEqualityComparer.Default
-        );
+        var covered = new HashSet<ISymbol>(baseMembers.Select(static member => member.Property), SymbolEqualityComparer.Default);
         var extras = SparseModelDiscovery
             .GetReadableProperties(type, config, cancellationToken, includeSparseIgnored: true)
             .Where(property =>
@@ -255,8 +225,7 @@ internal static class SparsePayloadJsonPocoDiscovery
     private static string SyntaxPath(IPropertySymbol property) =>
         property.DeclaringSyntaxReferences.FirstOrDefault()?.SyntaxTree.FilePath ?? string.Empty;
 
-    private static int SyntaxOffset(IPropertySymbol property) =>
-        property.DeclaringSyntaxReferences.FirstOrDefault()?.Span.Start ?? int.MaxValue;
+    private static int SyntaxOffset(IPropertySymbol property) => property.DeclaringSyntaxReferences.FirstOrDefault()?.Span.Start ?? int.MaxValue;
 
     private static ImmutableArray<SparsePropertyModel> InPropertyOrder(
         List<(SparsePropertyModel Model, int Depth, string Path, int Offset)> entries,
@@ -285,9 +254,7 @@ internal static class SparsePayloadJsonPocoDiscovery
     }
 
     private static bool IsUserDefinedLeaf(INamedTypeSymbol type) =>
-        type.SpecialType == SpecialType.None
-        && type.TypeKind is TypeKind.Class or TypeKind.Struct
-        && !SparseModelDiscovery.IsFrameworkType(type);
+        type.SpecialType == SpecialType.None && type.TypeKind is TypeKind.Class or TypeKind.Struct && !SparseModelDiscovery.IsFrameworkType(type);
 
     private static IEnumerable<(ITypeSymbol Type, bool IsValue)> GetNestedTypes(
         INamedTypeSymbol poco,
@@ -304,17 +271,8 @@ internal static class SparsePayloadJsonPocoDiscovery
             yield return (member.Property.Type, isPocoOwner || member.ChildModel is null);
         }
 
-        var covered = new HashSet<ISymbol>(
-            codecMembers.Select(static member => member.Property),
-            SymbolEqualityComparer.Default
-        );
-        foreach (
-            var property in SparseModelDiscovery.GetReadableProperties(
-                poco,
-                config,
-                cancellationToken
-            )
-        )
+        var covered = new HashSet<ISymbol>(codecMembers.Select(static member => member.Property), SymbolEqualityComparer.Default);
+        foreach (var property in SparseModelDiscovery.GetReadableProperties(poco, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!covered.Contains(property))
@@ -348,24 +306,13 @@ internal static class SparsePayloadJsonPocoDiscovery
             return false;
         }
 
-        if (
-            HasAttribute(
-                type,
-                JsonConverterAttribute,
-                JsonPolymorphicAttribute,
-                JsonDerivedTypeAttribute
-            )
-        )
+        if (HasAttribute(type, JsonConverterAttribute, JsonPolymorphicAttribute, JsonDerivedTypeAttribute))
         {
             reason = DisplayName(type);
             return false;
         }
 
-        var constructor = ModelConstructorBinding.AnalyzeStructural(
-            type,
-            config,
-            cancellationToken
-        );
+        var constructor = ModelConstructorBinding.AnalyzeStructural(type, config, cancellationToken);
         if (constructor is null)
         {
             reason = DisplayName(type);
@@ -373,16 +320,8 @@ internal static class SparsePayloadJsonPocoDiscovery
         }
 
         var includeIgnoredExtras = IsFragmentOrPromoted(type, config, cancellationToken);
-        var symbolMembers = InDeclarationOrder(
-            GetCodecSymbolMembers(type, includeIgnoredExtras, config, cancellationToken),
-            cancellationToken
-        );
-        var memberModels = SparseModelDiscovery.CreateMemberModels(
-            symbolMembers,
-            config,
-            cancellationToken,
-            type
-        );
+        var symbolMembers = InDeclarationOrder(GetCodecSymbolMembers(type, includeIgnoredExtras, config, cancellationToken), cancellationToken);
+        var memberModels = SparseModelDiscovery.CreateMemberModels(symbolMembers, config, cancellationToken, type);
         if (!SparseShapeValidation.FindDuplicateWireNames(memberModels).IsEmpty)
         {
             reason = DisplayName(type);
@@ -391,9 +330,7 @@ internal static class SparsePayloadJsonPocoDiscovery
 
         // Constructor-bound members the codec never reads cannot be constructed.
         var ignored = new HashSet<string>(
-            memberModels
-                .Where(static member => member.Property.IsJsonIgnored)
-                .Select(static member => member.Property.Name),
+            memberModels.Where(static member => member.Property.IsJsonIgnored).Select(static member => member.Property.Name),
             StringComparer.Ordinal
         );
         cancellationToken.ThrowIfCancellationRequested();
@@ -406,12 +343,7 @@ internal static class SparsePayloadJsonPocoDiscovery
         cancellationToken.ThrowIfCancellationRequested();
         if (
             symbolMembers.Any(static member =>
-                HasAttribute(
-                    member.Property,
-                    JsonConverterAttribute,
-                    JsonExtensionDataAttribute,
-                    JsonRequiredAttribute
-                )
+                HasAttribute(member.Property, JsonConverterAttribute, JsonExtensionDataAttribute, JsonRequiredAttribute)
             )
         )
         {
@@ -425,8 +357,7 @@ internal static class SparsePayloadJsonPocoDiscovery
                 .Select(static member => member.Property)
                 .Any(property =>
                     RoslynSymbolCompat.IsRequired(property)
-                    && SparseJsonNaming.GetJsonIgnoreCondition(property, cancellationToken)
-                        == SparseJsonNaming.JsonIgnoreAlways
+                    && SparseJsonNaming.GetJsonIgnoreCondition(property, cancellationToken) == SparseJsonNaming.JsonIgnoreAlways
                 )
         )
         {
@@ -436,12 +367,7 @@ internal static class SparsePayloadJsonPocoDiscovery
 
         if (
             ModelConstructionPlan
-                .UnsupportedRequiredMembers(
-                    type,
-                    symbolMembers.Select(static member => member.Property),
-                    config,
-                    cancellationToken
-                )
+                .UnsupportedRequiredMembers(type, symbolMembers.Select(static member => member.Property), config, cancellationToken)
                 .Any()
         )
         {
@@ -450,23 +376,14 @@ internal static class SparsePayloadJsonPocoDiscovery
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (
-            symbolMembers.Any(static member =>
-                member.Property.Type is IArrayTypeSymbol array && array.Rank != 1
-            )
-        )
+        if (symbolMembers.Any(static member => member.Property.Type is IArrayTypeSymbol array && array.Rank != 1))
         {
             reason = DisplayName(type);
             return false;
         }
 
-        var readable = SparseModelDiscovery
-            .GetReadableProperties(type, config, cancellationToken)
-            .ToArray();
-        var covered = new HashSet<ISymbol>(
-            symbolMembers.Select(static member => member.Property),
-            SymbolEqualityComparer.Default
-        );
+        var readable = SparseModelDiscovery.GetReadableProperties(type, config, cancellationToken).ToArray();
+        var covered = new HashSet<ISymbol>(symbolMembers.Select(static member => member.Property), SymbolEqualityComparer.Default);
         var readOnly = new List<(SparsePropertyModel Model, int Depth, string Path, int Offset)>();
         foreach (var property in readable)
         {
@@ -482,14 +399,7 @@ internal static class SparsePayloadJsonPocoDiscovery
                 return false;
             }
 
-            readOnly.Add(
-                (
-                    ToReadOnly(property, cancellationToken),
-                    TypeDepth(property.ContainingType),
-                    SyntaxPath(property),
-                    SyntaxOffset(property)
-                )
-            );
+            readOnly.Add((ToReadOnly(property, cancellationToken), TypeDepth(property.ContainingType), SyntaxPath(property), SyntaxOffset(property)));
         }
 
         if (HasIncludedField(type, cancellationToken))
@@ -506,12 +416,7 @@ internal static class SparsePayloadJsonPocoDiscovery
             .Where(static property => !property.IsJsonIgnored)
             .Select(static property => property.JsonPropertyName ?? property.Name);
         cancellationToken.ThrowIfCancellationRequested();
-        if (
-            memberWires
-                .Concat(readOnlyWires)
-                .GroupBy(static wire => wire, StringComparer.Ordinal)
-                .Any(static group => group.Count() > 1)
-        )
+        if (memberWires.Concat(readOnlyWires).GroupBy(static wire => wire, StringComparer.Ordinal).Any(static group => group.Count() > 1))
         {
             reason = DisplayName(type);
             return false;
@@ -528,16 +433,9 @@ internal static class SparsePayloadJsonPocoDiscovery
         return true;
     }
 
-    private static SparsePropertyModel ToReadOnly(
-        IPropertySymbol property,
-        CancellationToken cancellationToken
-    )
+    private static SparsePropertyModel ToReadOnly(IPropertySymbol property, CancellationToken cancellationToken)
     {
-        var wire = SparseJsonNaming.GetJsonPropertyName(
-            property,
-            cancellationToken,
-            out var explicitName
-        );
+        var wire = SparseJsonNaming.GetJsonPropertyName(property, cancellationToken, out var explicitName);
         return new SparsePropertyModel(
             property.Name,
             new SparseTypeModel(
@@ -553,32 +451,21 @@ internal static class SparsePayloadJsonPocoDiscovery
             IsReadOnly: true,
             JsonPropertyName: wire,
             HasExplicitJsonPropertyName: explicitName,
-            JsonIgnoreCondition: SparseJsonNaming.GetJsonIgnoreCondition(
-                property,
-                cancellationToken
-            ),
+            JsonIgnoreCondition: SparseJsonNaming.GetJsonIgnoreCondition(property, cancellationToken),
             IsNullable: SparseModelDiscovery.IsNullableType(property.Type)
         );
     }
 
     private static bool HasPublicInstanceFields(INamedTypeSymbol type, CancellationToken ct)
     {
-        for (
-            var current = type;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = type; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             ct.ThrowIfCancellationRequested();
             if (
                 current
                     .GetMembers()
                     .OfType<IFieldSymbol>()
-                    .Any(static field =>
-                        !field.IsStatic
-                        && !field.IsConst
-                        && field.DeclaredAccessibility == Accessibility.Public
-                    )
+                    .Any(static field => !field.IsStatic && !field.IsConst && field.DeclaredAccessibility == Accessibility.Public)
             )
             {
                 return true;
@@ -590,11 +477,7 @@ internal static class SparsePayloadJsonPocoDiscovery
 
     private static bool HasIncludedField(INamedTypeSymbol type, CancellationToken ct)
     {
-        for (
-            var current = type;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = type; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             ct.ThrowIfCancellationRequested();
             if (
@@ -603,9 +486,7 @@ internal static class SparsePayloadJsonPocoDiscovery
                     .OfType<IFieldSymbol>()
                     .Where(static field => !field.IsStatic && !field.IsConst)
                     .SelectMany(static field => field.GetAttributes())
-                    .Any(static attribute =>
-                        attribute.AttributeClass?.ToDisplayString() == JsonIncludeAttribute
-                    )
+                    .Any(static attribute => attribute.AttributeClass?.ToDisplayString() == JsonIncludeAttribute)
             )
             {
                 return true;
@@ -626,11 +507,8 @@ internal static class SparsePayloadJsonPocoDiscovery
         foreach (var declaration in type.DeclaringSyntaxReferences)
         {
             if (
-                declaration.GetSyntax()
-                    is Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax syntax
-                && syntax.Modifiers.Any(static modifier =>
-                    string.Equals(modifier.Text, "file", System.StringComparison.Ordinal)
-                )
+                declaration.GetSyntax() is Microsoft.CodeAnalysis.CSharp.Syntax.TypeDeclarationSyntax syntax
+                && syntax.Modifiers.Any(static modifier => string.Equals(modifier.Text, "file", System.StringComparison.Ordinal))
             )
             {
                 return true;
@@ -640,6 +518,5 @@ internal static class SparsePayloadJsonPocoDiscovery
         return false;
     }
 
-    private static string DisplayName(INamedTypeSymbol type) =>
-        type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    private static string DisplayName(INamedTypeSymbol type) => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 }

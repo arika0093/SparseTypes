@@ -18,14 +18,9 @@ namespace SparseTypes.OpenApi.AspNetCore;
 /// </remarks>
 internal static class SparsePayloadEnumSchemas
 {
-    internal static Task TransformAsync(
-        OpenApiSchema schema,
-        OpenApiSchemaTransformerContext context,
-        CancellationToken cancellationToken
-    )
+    internal static Task TransformAsync(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
     {
-        var type =
-            Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
+        var type = Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
         if (type == typeof(SparseTypes.ChangePayloadState))
         {
             ApplyStateSchema(schema);
@@ -122,11 +117,7 @@ internal static class SparsePayloadEnumSchemas
             foreach (var entry in concrete.Properties)
             {
                 if (
-                    string.Equals(
-                        entry.Key,
-                        SparseTypes.ChangePayloadWire.StateProperty,
-                        StringComparison.Ordinal
-                    )
+                    string.Equals(entry.Key, SparseTypes.ChangePayloadWire.StateProperty, StringComparison.Ordinal)
                     && TryResolveTarget(entry.Value, out var stateTarget)
                     && stateTarget is OpenApiSchema stateSchema
                 )
@@ -200,7 +191,6 @@ internal static class SparsePayloadEnumSchemas
 
         public bool Equals(IOpenApiSchema? x, IOpenApiSchema? y) => ReferenceEquals(x, y);
 
-        public int GetHashCode(IOpenApiSchema obj) =>
-            System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        public int GetHashCode(IOpenApiSchema obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
     }
 }

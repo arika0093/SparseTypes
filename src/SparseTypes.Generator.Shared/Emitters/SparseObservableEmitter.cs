@@ -10,19 +10,12 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseObservableEmitter
 {
     /// <summary>Resolves the observable proxy type name using the standalone product family.</summary>
-    public static string ObservableTypeName(ImmutableArray<SparseMemberModel> members) =>
-        ObservableTypeName(members, SparseFamilyNames.Standalone);
+    public static string ObservableTypeName(ImmutableArray<SparseMemberModel> members) => ObservableTypeName(members, SparseFamilyNames.Standalone);
 
     /// <summary>Resolves the observable proxy type name for the given product family.</summary>
-    public static string ObservableTypeName(
-        ImmutableArray<SparseMemberModel> members,
-        SparseFamilyNames family
-    )
+    public static string ObservableTypeName(ImmutableArray<SparseMemberModel> members, SparseFamilyNames family)
     {
-        return SparseSemanticReference.ObservableRootName(
-            members.Select(static member => member.Property.Name),
-            family
-        );
+        return SparseSemanticReference.ObservableRootName(members.Select(static member => member.Property.Name), family);
     }
 
     public static void AppendObservable(
@@ -34,29 +27,15 @@ internal static class SparseObservableEmitter
     )
     {
         var observable = ObservableTypeName(members);
-        code.AppendLine(
-            "/// <summary>Bindable proxy over the live model instance. No state is copied.</summary>"
-        );
-        code.AppendLine(
-            "public sealed class "
-                + observable
-                + " : global::System.ComponentModel.INotifyPropertyChanged"
-        );
+        code.AppendLine("/// <summary>Bindable proxy over the live model instance. No state is copied.</summary>");
+        code.AppendLine("public sealed class " + observable + " : global::System.ComponentModel.INotifyPropertyChanged");
         code.OpenBlock();
         // Public surface first: constructor, Model, event, properties,
         // replacements.
-        code.AppendLine(
-            "/// <summary>Initializes a bindable proxy over the live model instance.</summary>"
-        );
-        code.AppendLine(
-            "/// <param name=\"value\">The live model instance to wrap. No state is copied.</param>"
-        );
-        code.AppendLine(
-            "/// <param name=\"onChanged\">Callback invoked after a proxied property changes.</param>"
-        );
-        code.AppendLine(
-            "/// <param name=\"onRawModelAccess\">Callback invoked when the raw model is accessed.</param>"
-        );
+        code.AppendLine("/// <summary>Initializes a bindable proxy over the live model instance.</summary>");
+        code.AppendLine("/// <param name=\"value\">The live model instance to wrap. No state is copied.</param>");
+        code.AppendLine("/// <param name=\"onChanged\">Callback invoked after a proxied property changes.</param>");
+        code.AppendLine("/// <param name=\"onRawModelAccess\">Callback invoked when the raw model is accessed.</param>");
         code.AppendLine(
             "public "
                 + observable
@@ -65,9 +44,7 @@ internal static class SparseObservableEmitter
                 + " value, global::System.Action? onChanged = null, global::System.Action? onRawModelAccess = null)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if ((object?)value is null) throw new global::System.ArgumentNullException(nameof(value));"
-        );
+        code.AppendLine("if ((object?)value is null) throw new global::System.ArgumentNullException(nameof(value));");
         code.AppendLine("__model = value;");
         code.AppendLine("__onChanged = onChanged;");
         code.AppendLine("__onRawModelAccess = onRawModelAccess;");
@@ -75,17 +52,11 @@ internal static class SparseObservableEmitter
         if (!members.Any(static member => member.Property.Name == "Model"))
         {
             code.AppendLine("/// <summary>Gets the underlying live model instance.</summary>");
-            code.AppendLine(
-                "public "
-                    + modelType
-                    + " Model { get { __onRawModelAccess?.Invoke(); return __model; } }"
-            );
+            code.AppendLine("public " + modelType + " Model { get { __onRawModelAccess?.Invoke(); return __model; } }");
         }
 
         code.AppendLine("/// <summary>Occurs when a proxied property value changes.</summary>");
-        code.AppendLine(
-            "public event global::System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;"
-        );
+        code.AppendLine("public event global::System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;");
         foreach (var member in members)
         {
             if (member.Property.Name == "PropertyChanged")
@@ -126,11 +97,7 @@ internal static class SparseObservableEmitter
 
         code.AppendLine("internal void __SparseRefresh()");
         code.OpenBlock();
-        foreach (
-            var property in members
-                .Select(static member => member.Property)
-                .Where(static property => property.Name != "PropertyChanged")
-        )
+        foreach (var property in members.Select(static member => member.Property).Where(static property => property.Name != "PropertyChanged"))
         {
             code.AppendLine("__Raise(" + SymbolDisplay.FormatLiteral(property.Name, true) + ");");
         }
@@ -184,58 +151,26 @@ internal static class SparseObservableEmitter
                 continue;
             }
 
-            code.AppendLine(
-                SymbolDisplay.FormatLiteral(member.Property.Name, true)
-                    + " => __propertyChangedEventArgs"
-                    + member.Id
-                    + ","
-            );
+            code.AppendLine(SymbolDisplay.FormatLiteral(member.Property.Name, true) + " => __propertyChangedEventArgs" + member.Id + ",");
         }
-        code.AppendLine(
-            "_ => new global::System.ComponentModel.PropertyChangedEventArgs(propertyName),"
-        );
+        code.AppendLine("_ => new global::System.ComponentModel.PropertyChangedEventArgs(propertyName),");
         code.Unindent().AppendLine("};");
         code.AppendLine("PropertyChanged?.Invoke(this, args);");
         code.CloseBlock();
         foreach (var member in members)
         {
-            if (
-                member.ChildModel is not null
-                && member.ChildIsReferenceType
-                && member.Property.Name != "PropertyChanged"
-            )
+            if (member.ChildModel is not null && member.ChildIsReferenceType && member.Property.Name != "PropertyChanged")
             {
                 var childObservable = ChildObservableType(member);
-                code.AppendLine(
-                    "private "
-                        + member.ChildModel.Value.NonNullableName
-                        + "? __target_"
-                        + member.Id
-                        + ";"
-                );
+                code.AppendLine("private " + member.ChildModel.Value.NonNullableName + "? __target_" + member.Id + ";");
                 code.AppendLine("private " + childObservable + "? __proxy_" + member.Id + ";");
             }
 
-            if (
-                (IsObservableList(member) || IsObservableDictionary(member))
-                && member.Property.Name != "PropertyChanged"
-            )
+            if ((IsObservableList(member) || IsObservableDictionary(member)) && member.Property.Name != "PropertyChanged")
             {
                 var names = CollectionNames(member);
-                code.AppendLine(
-                    "private "
-                        + CollectionViewType(member, names, runtimeNamespace)
-                        + "? __view_"
-                        + member.Id
-                        + ";"
-                );
-                code.AppendLine(
-                    "private "
-                        + member.Property.Type.NonNullableName
-                        + "? __target_collection_"
-                        + member.Id
-                        + ";"
-                );
+                code.AppendLine("private " + CollectionViewType(member, names, runtimeNamespace) + "? __view_" + member.Id + ";");
+                code.AppendLine("private " + member.Property.Type.NonNullableName + "? __target_collection_" + member.Id + ";");
             }
         }
 
@@ -258,25 +193,15 @@ internal static class SparseObservableEmitter
         code.CloseBlock();
     }
 
-    internal static string ChildObservableType(SparseMemberModel member) =>
-        ChildObservableType(member, SparseFamilyNames.Standalone);
+    internal static string ChildObservableType(SparseMemberModel member) => ChildObservableType(member, SparseFamilyNames.Standalone);
 
     internal static string ChildObservableType(SparseMemberModel member, SparseFamilyNames family)
     {
         var model = member.ChildModel!.Value;
-        return SparseSemanticReference.ChildObservableType(
-            model.NonNullableName,
-            member.ChildFragmentType!,
-            model.ObservableTypeName,
-            family
-        );
+        return SparseSemanticReference.ChildObservableType(model.NonNullableName, member.ChildFragmentType!, model.ObservableTypeName, family);
     }
 
-    private static void AppendMember(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string runtimeNamespace
-    )
+    private static void AppendMember(SharedIndentedBuilder code, SparseMemberModel member, string runtimeNamespace)
     {
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
         var literal = SymbolDisplay.FormatLiteral(member.Property.Name, true);
@@ -332,25 +257,11 @@ internal static class SparseObservableEmitter
         var type = member.Property.Type.NonNullableName;
         return member.Collection.ElementType.Name is not null
             && (
-                member.Collection.Kind
-                    is SparseCollectionKind.List
-                        or SparseCollectionKind.MutableList
-                || type.StartsWith(
-                    "global::System.Collections.ObjectModel.Collection<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "System.Collections.ObjectModel.Collection<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "global::System.Collections.ObjectModel.ObservableCollection<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "System.Collections.ObjectModel.ObservableCollection<",
-                    StringComparison.Ordinal
-                )
+                member.Collection.Kind is SparseCollectionKind.List or SparseCollectionKind.MutableList
+                || type.StartsWith("global::System.Collections.ObjectModel.Collection<", StringComparison.Ordinal)
+                || type.StartsWith("System.Collections.ObjectModel.Collection<", StringComparison.Ordinal)
+                || type.StartsWith("global::System.Collections.ObjectModel.ObservableCollection<", StringComparison.Ordinal)
+                || type.StartsWith("System.Collections.ObjectModel.ObservableCollection<", StringComparison.Ordinal)
             );
     }
 
@@ -373,9 +284,7 @@ internal static class SparseObservableEmitter
             return true;
         }
 
-        return (member.ChildModel is null || !member.ChildIsReferenceType)
-            && !IsObservableList(member)
-            && !IsObservableDictionary(member);
+        return (member.ChildModel is null || !member.ChildIsReferenceType) && !IsObservableList(member) && !IsObservableDictionary(member);
     }
 
     internal static bool IsObservableDictionary(SparseMemberModel member)
@@ -383,22 +292,10 @@ internal static class SparseObservableEmitter
         var type = member.Property.Type.NonNullableName;
         return member.Collection.ValueType is not null
             && (
-                type.StartsWith(
-                    "global::System.Collections.Generic.Dictionary<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "System.Collections.Generic.Dictionary<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "global::System.Collections.Generic.IDictionary<",
-                    StringComparison.Ordinal
-                )
-                || type.StartsWith(
-                    "System.Collections.Generic.IDictionary<",
-                    StringComparison.Ordinal
-                )
+                type.StartsWith("global::System.Collections.Generic.Dictionary<", StringComparison.Ordinal)
+                || type.StartsWith("System.Collections.Generic.Dictionary<", StringComparison.Ordinal)
+                || type.StartsWith("global::System.Collections.Generic.IDictionary<", StringComparison.Ordinal)
+                || type.StartsWith("System.Collections.Generic.IDictionary<", StringComparison.Ordinal)
             );
     }
 
@@ -407,8 +304,7 @@ internal static class SparseObservableEmitter
         var element = member.Collection.ElementType;
         var value = member.Collection.ValueType;
         var hasElementProxy = value is null && element.IsFragmentModel && element.IsReferenceType;
-        var hasValueProxy =
-            value is not null && value.Value.IsFragmentModel && value.Value.IsReferenceType;
+        var hasValueProxy = value is not null && value.Value.IsFragmentModel && value.Value.IsReferenceType;
         var modelType = element.Name;
         var viewType = element.Name;
         if (hasElementProxy)
@@ -422,19 +318,11 @@ internal static class SparseObservableEmitter
             viewType = hasValueProxy ? ObservableElementType(value.Value) : modelType;
         }
 
-        return new CollectionProxyNames(
-            modelType,
-            viewType,
-            hasElementProxy || hasValueProxy,
-            value is not null
-        );
+        return new CollectionProxyNames(modelType, viewType, hasElementProxy || hasValueProxy, value is not null);
     }
 
     private static string ObservableElementType(SparseTypeModel model) =>
-        model.NonNullableName
-        + "."
-        + (model.ObservableTypeName ?? "Observable")
-        + (model.Name.EndsWith("?", StringComparison.Ordinal) ? "?" : "");
+        model.NonNullableName + "." + (model.ObservableTypeName ?? "Observable") + (model.Name.EndsWith("?", StringComparison.Ordinal) ? "?" : "");
 
     private static void AppendObservableList(
         SharedIndentedBuilder code,
@@ -494,11 +382,7 @@ internal static class SparseObservableEmitter
         code.CloseBlock();
     }
 
-    private static void AppendReplacement(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        ImmutableArray<SparseMemberModel> members
-    )
+    private static void AppendReplacement(SharedIndentedBuilder code, SparseMemberModel member, ImmutableArray<SparseMemberModel> members)
     {
         var canWrite = !member.Property.IsReadOnly && !member.Property.IsInitOnly;
         if (!canWrite)
@@ -511,19 +395,11 @@ internal static class SparseObservableEmitter
         if (IsObservableList(member))
         {
             var methodName = ReplacementMethodName(member, "Replace", members);
-            code.AppendLine(
-                "/// <summary>Replaces the live collection while rebuilding its notifying view.</summary>"
-            );
-            code.AppendLine(
-                "/// <param name=\"value\">The replacement collection instance.</param>"
-            );
-            code.AppendLine(
-                "public void " + methodName + "(" + member.Property.Type.Name + " value)"
-            );
+            code.AppendLine("/// <summary>Replaces the live collection while rebuilding its notifying view.</summary>");
+            code.AppendLine("/// <param name=\"value\">The replacement collection instance.</param>");
+            code.AppendLine("public void " + methodName + "(" + member.Property.Type.Name + " value)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(__model." + name + ", value)) return;"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(__model." + name + ", value)) return;");
             code.AppendLine("__view_" + member.Id + "?.Dispose();");
             code.AppendLine("__view_" + member.Id + " = null;");
             code.AppendLine("__target_collection_" + member.Id + " = null;");
@@ -537,19 +413,11 @@ internal static class SparseObservableEmitter
         if (IsObservableDictionary(member))
         {
             var methodName = ReplacementMethodName(member, "Replace", members);
-            code.AppendLine(
-                "/// <summary>Replaces the live dictionary while rebuilding its notifying view.</summary>"
-            );
-            code.AppendLine(
-                "/// <param name=\"value\">The replacement dictionary instance.</param>"
-            );
-            code.AppendLine(
-                "public void " + methodName + "(" + member.Property.Type.Name + " value)"
-            );
+            code.AppendLine("/// <summary>Replaces the live dictionary while rebuilding its notifying view.</summary>");
+            code.AppendLine("/// <param name=\"value\">The replacement dictionary instance.</param>");
+            code.AppendLine("public void " + methodName + "(" + member.Property.Type.Name + " value)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(__model." + name + ", value)) return;"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(__model." + name + ", value)) return;");
             code.AppendLine("__view_" + member.Id + "?.Dispose();");
             code.AppendLine("__view_" + member.Id + " = null;");
             code.AppendLine("__target_collection_" + member.Id + " = null;");
@@ -560,29 +428,16 @@ internal static class SparseObservableEmitter
         }
     }
 
-    private static void AppendPropertySummary(
-        SharedIndentedBuilder code,
-        SparseMemberModel member
-    ) =>
-        code.AppendLine(
-            "/// <summary>Gets the observable value of member '"
-                + member.Property.Name
-                + "'.</summary>"
-        );
+    private static void AppendPropertySummary(SharedIndentedBuilder code, SparseMemberModel member) =>
+        code.AppendLine("/// <summary>Gets the observable value of member '" + member.Property.Name + "'.</summary>");
 
     private static string ListWrap(CollectionProxyNames types, string rawModelAccess) =>
         types.HasElementProxy
-            ? "(item, changed) => item is null ? default! : new "
-                + types.ViewType.TrimEnd('?')
-                + "(item, changed, "
-                + rawModelAccess
-                + ")"
+            ? "(item, changed) => item is null ? default! : new " + types.ViewType.TrimEnd('?') + "(item, changed, " + rawModelAccess + ")"
             : "static (item, _) => item";
 
     private static string ListUnwrap(CollectionProxyNames types) =>
-        types.HasElementProxy
-            ? "item => item is null ? default! : item.__SparseTarget"
-            : "static item => item";
+        types.HasElementProxy ? "item => item is null ? default! : item.__SparseTarget" : "static item => item";
 
     private static void AppendObservableDictionary(
         SharedIndentedBuilder code,
@@ -648,23 +503,13 @@ internal static class SparseObservableEmitter
 
     private static string DictionaryWrap(CollectionProxyNames types, string rawModelAccess) =>
         types.HasElementProxy
-            ? "(item, changed) => item is null ? default! : new "
-                + types.ViewType.TrimEnd('?')
-                + "(item, changed, "
-                + rawModelAccess
-                + ")"
+            ? "(item, changed) => item is null ? default! : new " + types.ViewType.TrimEnd('?') + "(item, changed, " + rawModelAccess + ")"
             : "static (item, _) => item";
 
     private static string DictionaryUnwrap(CollectionProxyNames types) =>
-        types.HasElementProxy
-            ? "item => item is null ? default! : item.__SparseTarget"
-            : "static item => item";
+        types.HasElementProxy ? "item => item is null ? default! : item.__SparseTarget" : "static item => item";
 
-    internal static string CollectionViewType(
-        SparseMemberModel member,
-        CollectionProxyNames types,
-        string runtimeNamespace
-    ) =>
+    internal static string CollectionViewType(SparseMemberModel member, CollectionProxyNames types, string runtimeNamespace) =>
         types.IsDictionary
             ? runtimeNamespace
                 + "SparseObservableDictionary<"
@@ -674,18 +519,9 @@ internal static class SparseObservableEmitter
                 + ", "
                 + types.ViewType
                 + ">"
-            : runtimeNamespace
-                + "SparseObservableList<"
-                + member.Collection.ElementType.Name
-                + ", "
-                + types.ViewType
-                + ">";
+            : runtimeNamespace + "SparseObservableList<" + member.Collection.ElementType.Name + ", " + types.ViewType + ">";
 
-    internal static string ReplacementMethodName(
-        SparseMemberModel member,
-        string prefix,
-        ImmutableArray<SparseMemberModel> members
-    )
+    internal static string ReplacementMethodName(SparseMemberModel member, string prefix, ImmutableArray<SparseMemberModel> members)
     {
         var candidate = new StringBuilder(prefix + member.Property.Name);
         while (members.Any(other => other.Property.Name == candidate.ToString()))
@@ -696,20 +532,9 @@ internal static class SparseObservableEmitter
         return candidate.ToString();
     }
 
-    internal readonly record struct CollectionProxyNames(
-        string ModelType,
-        string ViewType,
-        bool HasElementProxy,
-        bool IsDictionary
-    );
+    internal readonly record struct CollectionProxyNames(string ModelType, string ViewType, bool HasElementProxy, bool IsDictionary);
 
-    private static void AppendReferenceChild(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string name,
-        string literal,
-        bool canWrite
-    )
+    private static void AppendReferenceChild(SharedIndentedBuilder code, SparseMemberModel member, string name, string literal, bool canWrite)
     {
         var childModel = member.ChildModel!.Value.NonNullableName;
         var childObservable = ChildObservableType(member);
@@ -721,13 +546,7 @@ internal static class SparseObservableEmitter
         code.AppendLine("get");
         code.OpenBlock();
         code.AppendLine("var current = __model." + name + ";");
-        code.AppendLine(
-            "if ((object?)current is null) { __target_"
-                + member.Id
-                + " = null; __proxy_"
-                + member.Id
-                + " = null; return null; }"
-        );
+        code.AppendLine("if ((object?)current is null) { __target_" + member.Id + " = null; __proxy_" + member.Id + " = null; return null; }");
         code.AppendLine(
             "if (!global::System.Object.ReferenceEquals(__target_"
                 + member.Id
@@ -748,9 +567,7 @@ internal static class SparseObservableEmitter
             code.AppendLine("set");
             code.OpenBlock();
             code.AppendLine("var next = value is null ? null : value.__SparseTarget;");
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(__model." + name + ", next)) return;"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(__model." + name + ", next)) return;");
             code.AppendLine("__model." + name + " = (" + childModel + ")next!;");
             code.AppendLine("__target_" + member.Id + " = null;");
             code.AppendLine("__proxy_" + member.Id + " = null;");

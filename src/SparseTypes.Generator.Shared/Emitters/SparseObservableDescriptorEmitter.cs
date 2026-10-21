@@ -5,8 +5,7 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class SparseObservableDescriptorEmitter
 {
-    internal static string AccessorName(string modelType) =>
-        "__SparseGetDescriptors_" + SparseNaming.GetStableTypeHash(modelType, default);
+    internal static string AccessorName(string modelType) => "__SparseGetDescriptors_" + SparseNaming.GetStableTypeHash(modelType, default);
 
     public static void Append(
         SharedIndentedBuilder code,
@@ -20,9 +19,7 @@ internal static class SparseObservableDescriptorEmitter
         var pathType = dialect.EffectivePathType(runtimeNamespace);
         code.AppendLine(context.MethodDeclaration(modelType, dialect, pathType));
         code.OpenBlock();
-        code.AppendLine(
-            "return new " + dialect.DescriptorSetType + "(new " + dialect.DescriptorInterface + "[]"
-        );
+        code.AppendLine("return new " + dialect.DescriptorSetType + "(new " + dialect.DescriptorInterface + "[]");
         code.OpenBlock();
         foreach (var member in members)
         {
@@ -52,15 +49,9 @@ internal static class SparseObservableDescriptorEmitter
         // The INotifyPropertyChanged event occupies the PropertyChanged name.
         var eventCollision = member.Property.Name == "PropertyChanged";
         // Raw mutable values escape without a notifying view.
-        var receiver = eventCollision
-            ? context.Member("__model") + "." + property
-            : context.Member(property);
+        var receiver = eventCollision ? context.Member("__model") + "." + property : context.Member(property);
         var getValue = SparseObservableEmitter.ExposesRawMutableReference(member)
-            ? "() => { "
-                + context.Member("__onRawModelAccess")
-                + "?.Invoke(); return "
-                + receiver
-                + "; }"
+            ? "() => { " + context.Member("__onRawModelAccess") + "?.Invoke(); return " + receiver + "; }"
             : "() => " + receiver;
         var getModelValue = "() => (object?)" + context.Member("__model") + "." + property;
         code.AppendLine(
@@ -85,19 +76,9 @@ internal static class SparseObservableDescriptorEmitter
                 + ", "
                 + ChildAccessor(member, path, dialect, context)
                 + ", "
-                + SparseObservableSequenceDescriptorEmitter.ArrayAccessor(
-                    member,
-                    path,
-                    dialect,
-                    context
-                )
+                + SparseObservableSequenceDescriptorEmitter.ArrayAccessor(member, path, dialect, context)
                 + ", "
-                + SparseObservableDictionaryDescriptorEmitter.DictionaryAccessor(
-                    member,
-                    path,
-                    dialect,
-                    context
-                )
+                + SparseObservableDictionaryDescriptorEmitter.DictionaryAccessor(member, path, dialect, context)
                 + ", typeof("
                 + viewType
                 + "), "
@@ -118,8 +99,7 @@ internal static class SparseObservableDescriptorEmitter
     private static string ShapeExpression(SparseMemberModel member, SparseDescriptorDialect dialect)
     {
         var eventCollision = member.Property.Name == "PropertyChanged";
-        var hasChild =
-            member.ChildModel is not null && member.ChildIsReferenceType && !eventCollision;
+        var hasChild = member.ChildModel is not null && member.ChildIsReferenceType && !eventCollision;
         var elementKnown = member.Collection.ElementType.Name is not null;
         var scalarSequence =
             elementKnown
@@ -128,22 +108,14 @@ internal static class SparseObservableDescriptorEmitter
                 member.Property.Type.NonNullableName.EndsWith("[]", System.StringComparison.Ordinal)
                 || member.Collection.Kind == SparseCollectionKind.Array
             );
-        var hasArray =
-            !eventCollision && (SparseObservableEmitter.IsObservableList(member) || scalarSequence);
+        var hasArray = !eventCollision && (SparseObservableEmitter.IsObservableList(member) || scalarSequence);
         var hasDictionary =
             !eventCollision
             && (
                 SparseObservableEmitter.IsObservableDictionary(member)
-                || (
-                    member.Collection.ValueType is not null
-                    && member.Collection.CloneKind == SparseCloneCollectionKind.Dictionary
-                )
+                || (member.Collection.ValueType is not null && member.Collection.CloneKind == SparseCloneCollectionKind.Dictionary)
             );
-        var hasSet =
-            !eventCollision
-            && elementKnown
-            && member.Collection.ValueType is null
-            && member.Collection.Kind == SparseCollectionKind.Set;
+        var hasSet = !eventCollision && elementKnown && member.Collection.ValueType is null && member.Collection.Kind == SparseCollectionKind.Set;
         string TypeOrNull(bool present, string name) => present ? "typeof(" + name + ")" : "null";
         return "new "
             + dialect.DescriptorShapeType
@@ -164,11 +136,7 @@ internal static class SparseObservableDescriptorEmitter
             + ", DictionaryValueType = "
             + TypeOrNull(hasDictionary, member.Collection.ValueType?.NonNullableName ?? "object")
             + ", DictionaryValueNullable = "
-            + (
-                hasDictionary && IsNullable(member.Collection.ValueType?.Name ?? string.Empty)
-                    ? "true"
-                    : "false"
-            )
+            + (hasDictionary && IsNullable(member.Collection.ValueType?.Name ?? string.Empty) ? "true" : "false")
             + ", HasSet = "
             + (hasSet ? "true" : "false")
             + ", SetItemType = "
@@ -192,10 +160,7 @@ internal static class SparseObservableDescriptorEmitter
             return SparseObservableEmitter.ChildObservableType(member);
         }
 
-        if (
-            SparseObservableEmitter.IsObservableList(member)
-            || SparseObservableEmitter.IsObservableDictionary(member)
-        )
+        if (SparseObservableEmitter.IsObservableList(member) || SparseObservableEmitter.IsObservableDictionary(member))
         {
             var names = SparseObservableEmitter.CollectionNames(member);
             return SparseObservableEmitter.CollectionViewType(member, names, runtimeNamespace);
@@ -265,9 +230,7 @@ internal static class SparseObservableDescriptorEmitter
             var childModelType = member.ChildModel.Value.NonNullableName;
             var nullHandling =
                 member.Property.IsNullable || member.Property.IsNullableOblivious
-                    ? "if (value is null) { "
-                        + context.Member(property)
-                        + " = null; return true; } "
+                    ? "if (value is null) { " + context.Member(property) + " = null; return true; } "
                     : "if (value is null) return false; ";
             return "value => { "
                 + nullHandling
@@ -287,23 +250,11 @@ internal static class SparseObservableDescriptorEmitter
                 + "(model); return true; }";
         }
 
-        var converted =
-            "if (!"
-            + dialect.DescriptorValueType
-            + ".TryGet<"
-            + propertyType
-            + ">(value, out var typed)) return false; ";
-        if (
-            SparseObservableEmitter.IsObservableList(member)
-            || SparseObservableEmitter.IsObservableDictionary(member)
-        )
+        var converted = "if (!" + dialect.DescriptorValueType + ".TryGet<" + propertyType + ">(value, out var typed)) return false; ";
+        if (SparseObservableEmitter.IsObservableList(member) || SparseObservableEmitter.IsObservableDictionary(member))
         {
             var replace = SparseObservableEmitter.ReplacementMethodName(member, "Replace", members);
-            var viewType = SparseObservableEmitter.CollectionViewType(
-                member,
-                SparseObservableEmitter.CollectionNames(member),
-                runtimeNamespace
-            );
+            var viewType = SparseObservableEmitter.CollectionViewType(member, SparseObservableEmitter.CollectionNames(member), runtimeNamespace);
             // Replacement below raises the change itself, so reading the
             // incoming view must not invalidate the session cache as a side
             return "value => { if (value is "
@@ -328,11 +279,7 @@ internal static class SparseObservableDescriptorEmitter
         SparseDescriptorEmissionContext context
     )
     {
-        if (
-            member.ChildModel is null
-            || !member.ChildIsReferenceType
-            || member.Property.Name == "PropertyChanged"
-        )
+        if (member.ChildModel is null || !member.ChildIsReferenceType || member.Property.Name == "PropertyChanged")
         {
             return "null";
         }
@@ -367,14 +314,7 @@ internal static class SparseObservableDescriptorEmitter
         var rejectNull = isNullable ? string.Empty : "if (" + value + " is null) return false; ";
         if (observableType is null)
         {
-            return rejectNull
-                + "if (!"
-                + cast
-                + "("
-                + value
-                + ", out "
-                + variable
-                + ")) return false; ";
+            return rejectNull + "if (!" + cast + "(" + value + ", out " + variable + ")) return false; ";
         }
 
         return rejectNull
@@ -393,9 +333,7 @@ internal static class SparseObservableDescriptorEmitter
             + ")) return false; ";
     }
 
-    internal static bool IsNullable(string? typeName) =>
-        typeName is not null && typeName.EndsWith("?", System.StringComparison.Ordinal);
+    internal static bool IsNullable(string? typeName) => typeName is not null && typeName.EndsWith("?", System.StringComparison.Ordinal);
 
-    internal static string IsNullableExpression(string typeName) =>
-        IsNullable(typeName) ? "true" : "false";
+    internal static string IsNullableExpression(string typeName) => IsNullable(typeName) ? "true" : "false";
 }

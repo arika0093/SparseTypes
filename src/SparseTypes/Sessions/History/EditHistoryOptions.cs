@@ -18,10 +18,7 @@ public sealed class EditHistoryOptions
         {
             if (value < 1)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(value),
-                    "MaxEntries must be at least 1."
-                );
+                throw new ArgumentOutOfRangeException(nameof(value), "MaxEntries must be at least 1.");
             }
 
             _maxEntries = value;

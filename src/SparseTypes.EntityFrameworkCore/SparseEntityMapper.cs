@@ -25,14 +25,8 @@ public sealed class SparseEntityMapper<TEntity, TDto>
         Model = model;
         Plan = plan;
         MapperName = mapper;
-        _projectionExpression = new Lazy<Expression<Func<TEntity, TDto>>>(
-            CreateProjection,
-            LazyThreadSafetyMode.ExecutionAndPublication
-        );
-        _projectionCompiled = new Lazy<Func<TEntity, TDto>>(
-            CompileProjection,
-            LazyThreadSafetyMode.ExecutionAndPublication
-        );
+        _projectionExpression = new Lazy<Expression<Func<TEntity, TDto>>>(CreateProjection, LazyThreadSafetyMode.ExecutionAndPublication);
+        _projectionCompiled = new Lazy<Func<TEntity, TDto>>(CompileProjection, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     internal IModel Model { get; }
@@ -71,12 +65,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
     /// <param name="result">The result from applying the change set.</param>
     /// <param name="baseline">The prior DTO whose temporary identities must be preserved.</param>
     /// <param name="authoritative">The newly projected or constructed authoritative DTO to update.</param>
-    public void AssignTemporaryKeys(
-        DbContext context,
-        SparseEntityApplyResult result,
-        TDto baseline,
-        TDto authoritative
-    )
+    public void AssignTemporaryKeys(DbContext context, SparseEntityApplyResult result, TDto baseline, TDto authoritative)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(result);
@@ -92,14 +81,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
         }
 
         var assignments = new TemporaryKeyAssignmentPlan();
-        Plan.AssignTemporaryKeys(
-            context,
-            baseline,
-            authoritative,
-            result,
-            string.Empty,
-            assignments
-        );
+        Plan.AssignTemporaryKeys(context, baseline, authoritative, result, string.Empty, assignments);
         assignments.Apply();
     }
 
@@ -137,21 +119,12 @@ public sealed class SparseEntityMapper<TEntity, TDto>
     /// <param name="entity">The tracked entity to update.</param>
     /// <param name="changes">The accepted/rebased change set; the strict write mask and value source.</param>
     /// <returns>The path-scoped temporary-identity correlation for created child entities.</returns>
-    public SparseEntityApplyResult ApplyWithResult(
-        DbContext context,
-        TEntity entity,
-        ISparseChangeSet<TDto> changes
-    )
+    public SparseEntityApplyResult ApplyWithResult(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes)
     {
         return ApplyCore(context, entity, changes, trackResult: true)!;
     }
 
-    private SparseEntityApplyResult? ApplyCore(
-        DbContext context,
-        TEntity entity,
-        ISparseChangeSet<TDto> changes,
-        bool trackResult
-    )
+    private SparseEntityApplyResult? ApplyCore(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes, bool trackResult)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(entity);
@@ -172,10 +145,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
         if (
             entry.Metadata is not IEntityType actual
             || planned is null
-            || (
-                !ReferenceEquals(actual, planned)
-                && !planned.ClrType.IsAssignableFrom(actual.ClrType)
-            )
+            || (!ReferenceEquals(actual, planned) && !planned.ClrType.IsAssignableFrom(actual.ClrType))
         )
         {
             throw new SparseEntityMappingException(
@@ -185,16 +155,10 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             );
         }
 
-        var correlation = trackResult
-            ? new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal)
-            : null;
+        var correlation = trackResult ? new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal) : null;
         var appliedPaths = trackResult ? new List<SparseEntityAppliedPath>() : null;
-        var collectionScopeKeys = trackResult
-            ? new Dictionary<object, Dictionary<object, string>>(ReferenceEqualityComparer.Instance)
-            : null;
-        var nestedScopes = trackResult
-            ? new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance)
-            : null;
+        var collectionScopeKeys = trackResult ? new Dictionary<object, Dictionary<object, string>>(ReferenceEqualityComparer.Instance) : null;
+        var nestedScopes = trackResult ? new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance) : null;
         var state = new PlanApplyState(
             context,
             entity,
@@ -237,21 +201,12 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             throw ScopeToMapper(exception);
         }
 
-        return trackResult
-            ? new SparseEntityApplyResult(
-                correlation!,
-                appliedPaths,
-                collectionScopeKeys,
-                nestedScopes
-            )
-            : null;
+        return trackResult ? new SparseEntityApplyResult(correlation!, appliedPaths, collectionScopeKeys, nestedScopes) : null;
     }
 
     /// <summary>Opens the preflight detection scope unless the change set is empty.</summary>
-    private static IDisposable? OpenPreflightScope(
-        DbContext context,
-        ISparseChangeSet<TDto> changes
-    ) => changes.IsEmpty ? null : ChangeTrackerDetectionScope.BeginPreflight(context);
+    private static IDisposable? OpenPreflightScope(DbContext context, ISparseChangeSet<TDto> changes) =>
+        changes.IsEmpty ? null : ChangeTrackerDetectionScope.BeginPreflight(context);
 
     private SparseEntityMappingException ScopeToMapper(SparseEntityMappingException exception)
     {
@@ -261,13 +216,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             return exception;
         }
 
-        return new SparseEntityMappingException(
-            exception.Failure,
-            exception.DtoPath,
-            $"[{MapperName}] {exception.Message}",
-            MapperName,
-            exception
-        );
+        return new SparseEntityMappingException(exception.Failure, exception.DtoPath, $"[{MapperName}] {exception.Message}", MapperName, exception);
     }
 
     private Expression<Func<TEntity, TDto>> CreateProjection()
@@ -285,20 +234,14 @@ public sealed class SparseEntityMapper<TEntity, TDto>
 
     private Func<TEntity, TDto> CompileProjection() => _projectionExpression.Value.Compile();
 
-    private static SparseEntityMapper<TEntity, TDto> Build(
-        IEntityModelMapping<TEntity, TDto> mapping,
-        IModel model
-    )
+    private static SparseEntityMapper<TEntity, TDto> Build(IEntityModelMapping<TEntity, TDto> mapping, IModel model)
     {
         var mapperName = mapping.GetType().FullName ?? mapping.GetType().Name;
         try
         {
             var builder = new SparseEntityMapBuilder<TEntity, TDto>();
             var defaults = GeneratedDefaults.TryApply(mapping, builder);
-            if (
-                defaults != GeneratedDefaultsStatus.Applied
-                && GeneratedDefaults.RequiresGeneratedDefaults(mapping.GetType())
-            )
+            if (defaults != GeneratedDefaultsStatus.Applied && GeneratedDefaults.RequiresGeneratedDefaults(mapping.GetType()))
             {
                 var reason =
                     defaults == GeneratedDefaultsStatus.MissingCompanion
@@ -319,11 +262,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
                     null,
                     $"The EF model has no entity type '{typeof(TEntity).Name}'."
                 );
-            var plan = EntityPlan<TEntity, TDto>.Build(
-                new PlanBuildSession(model),
-                builder,
-                entityType
-            );
+            var plan = EntityPlan<TEntity, TDto>.Build(new PlanBuildSession(model), builder, entityType);
             return new SparseEntityMapper<TEntity, TDto>(model, plan, mapperName);
         }
         catch (SparseEntityMappingException exception) when (exception.Mapper is null)

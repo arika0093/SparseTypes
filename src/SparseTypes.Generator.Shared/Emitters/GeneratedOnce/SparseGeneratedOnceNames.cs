@@ -30,8 +30,7 @@ internal static class SparseGeneratedOnceNames
     /// <summary>Qualified name of the shared list adapter.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedListAdapter(string implementationNamespace) =>
-        "global::" + implementationNamespace + "." + ReadOnlyListAdapter;
+    public static string QualifiedListAdapter(string implementationNamespace) => "global::" + implementationNamespace + "." + ReadOnlyListAdapter;
 
     /// <summary>Qualified name of the shared dictionary adapter.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
@@ -48,62 +47,50 @@ internal static class SparseGeneratedOnceNames
     /// <summary>Qualified name of the shared clone kernel container.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedCloneKernels(string implementationNamespace) =>
-        "global::" + implementationNamespace + "." + CloneKernels;
+    public static string QualifiedCloneKernels(string implementationNamespace) => "global::" + implementationNamespace + "." + CloneKernels;
 
     /// <summary>Qualified name of the shared removal-index helper.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedRemovalIndex(string implementationNamespace) =>
-        "global::" + implementationNamespace + "." + RemovalIndex;
+    public static string QualifiedRemovalIndex(string implementationNamespace) => "global::" + implementationNamespace + "." + RemovalIndex;
 
     /// <summary>Qualified name of the shared ChangePayload endpoint converter.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedChangePayloadEndpointJsonConverter(
-        string implementationNamespace
-    ) => "global::" + implementationNamespace + "." + ChangePayloadEndpointJsonConverter;
+    public static string QualifiedChangePayloadEndpointJsonConverter(string implementationNamespace) =>
+        "global::" + implementationNamespace + "." + ChangePayloadEndpointJsonConverter;
 
     /// <summary>Qualified name of the shared ChangePayload item-kind converter.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedChangePayloadItemKindJsonConverter(
-        string implementationNamespace
-    ) => "global::" + implementationNamespace + "." + ChangePayloadItemKindJsonConverter;
+    public static string QualifiedChangePayloadItemKindJsonConverter(string implementationNamespace) =>
+        "global::" + implementationNamespace + "." + ChangePayloadItemKindJsonConverter;
 
     /// <summary>Stable hint name for the shared read-only adapter source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
-    public static string ReadOnlyAdaptersHintName(string implementationNamespace) =>
-        "Generated.ReadOnlyAdapters.g.cs";
+    public static string ReadOnlyAdaptersHintName(string implementationNamespace) => "Generated.ReadOnlyAdapters.g.cs";
 
     /// <summary>Stable hint name for the shared clone kernel source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
-    public static string CloneKernelsHintName(string implementationNamespace) =>
-        "Generated.CloneKernels.g.cs";
+    public static string CloneKernelsHintName(string implementationNamespace) => "Generated.CloneKernels.g.cs";
 
     /// <summary>Stable hint name for the shared removal-index source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
-    public static string RemovalIndexHintName(string implementationNamespace) =>
-        "Generated.RemovalIndex.g.cs";
+    public static string RemovalIndexHintName(string implementationNamespace) => "Generated.RemovalIndex.g.cs";
 
     /// <summary>Stable hint name for shared ChangePayload converter source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
-    public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) =>
-        "Generated.ChangePayloadJsonConverters.g.cs";
+    public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) => "Generated.ChangePayloadJsonConverters.g.cs";
 
     /// <summary>Opens a block-scoped generated namespace compatible with C# 9.</summary>
     /// <param name="code">Target builder.</param>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
-    public static void AppendGeneratedHeader(
-        SharedIndentedBuilder code,
-        string implementationNamespace,
-        CancellationToken cancellationToken
-    )
+    public static void AppendGeneratedHeader(SharedIndentedBuilder code, string implementationNamespace, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         code.AppendLine("// <auto-generated />");

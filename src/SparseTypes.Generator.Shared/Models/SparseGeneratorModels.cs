@@ -106,8 +106,7 @@ internal readonly record struct SparseCollectionInfo(
     public bool IsScalarSequence => Semantic == SparseCollectionSemantic.ScalarSequence;
 
     /// <summary>Structural sequence with a usable discovered key.</summary>
-    public bool IsKeyedSequence =>
-        Semantic == SparseCollectionSemantic.KeyedSequence && KeyKind != SparseKeyKind.None;
+    public bool IsKeyedSequence => Semantic == SparseCollectionSemantic.KeyedSequence && KeyKind != SparseKeyKind.None;
 
     /// <summary>Dictionary keyed by <c>TKey</c> (<see cref="ElementType"/>).</summary>
     public bool IsDictionary => Semantic == SparseCollectionSemantic.Dictionary;
@@ -215,29 +214,16 @@ internal sealed record SparseStructuralModel(
 
     public override int GetHashCode() =>
         unchecked(
-            (HostName.GetHashCode() * 31 + ValueTypeName.GetHashCode()) * 31
-            + SparseSequence.Hash(Members)
-            + (Constructor?.GetHashCode() ?? 0)
+            (HostName.GetHashCode() * 31 + ValueTypeName.GetHashCode()) * 31 + SparseSequence.Hash(Members) + (Constructor?.GetHashCode() ?? 0)
         );
 }
 
-internal sealed record SparsePocoCloneModel(
-    SparseModelInfo Model,
-    string CloneHelperName,
-    ImmutableArray<SparseMemberModel> Members
-)
+internal sealed record SparsePocoCloneModel(SparseModelInfo Model, string CloneHelperName, ImmutableArray<SparseMemberModel> Members)
 {
     public bool Equals(SparsePocoCloneModel? other) =>
-        other is not null
-        && Model == other.Model
-        && CloneHelperName == other.CloneHelperName
-        && SparseSequence.Equal(Members, other.Members);
+        other is not null && Model == other.Model && CloneHelperName == other.CloneHelperName && SparseSequence.Equal(Members, other.Members);
 
-    public override int GetHashCode() =>
-        unchecked(
-            (Model.GetHashCode() * 31 + CloneHelperName.GetHashCode()) * 31
-            + SparseSequence.Hash(Members)
-        );
+    public override int GetHashCode() => unchecked((Model.GetHashCode() * 31 + CloneHelperName.GetHashCode()) * 31 + SparseSequence.Hash(Members));
 }
 
 /// <summary>Trim-safe JSON codec model for one ordinary custom leaf type.</summary>
@@ -380,10 +366,7 @@ internal sealed record SparseGenerationResult(
 
     public override int GetHashCode() =>
         unchecked(
-            (
-                ((HintName?.GetHashCode() ?? 0) * 31 + (Source?.GetHashCode() ?? 0)) * 31
-                + SparseSequence.Hash(Diagnostics)
-            ) * 31
+            (((HintName?.GetHashCode() ?? 0) * 31 + (Source?.GetHashCode() ?? 0)) * 31 + SparseSequence.Hash(Diagnostics)) * 31
             + SparseSequence.Hash(AdditionalSources)
         );
 }
@@ -395,9 +378,7 @@ internal readonly record struct SparseGeneratedSource(string HintName, string So
 internal static class SparseSequence
 {
     public static bool Equal<T>(ImmutableArray<T> left, ImmutableArray<T> right) =>
-        left.IsDefault || right.IsDefault
-            ? left.IsDefault == right.IsDefault
-            : left.SequenceEqual(right);
+        left.IsDefault || right.IsDefault ? left.IsDefault == right.IsDefault : left.SequenceEqual(right);
 
     public static int Hash<T>(ImmutableArray<T> values)
     {
@@ -409,28 +390,16 @@ internal static class SparseSequence
         var hash = 17;
         foreach (var value in values)
         {
-            hash = unchecked(
-                hash * 31 + (value is null ? 0 : EqualityComparer<T>.Default.GetHashCode(value))
-            );
+            hash = unchecked(hash * 31 + (value is null ? 0 : EqualityComparer<T>.Default.GetHashCode(value)));
         }
         return hash;
     }
 }
 
-internal readonly record struct SparseGeneratorDiagnostic(
-    string DescriptorId,
-    Location? Location,
-    ImmutableArray<string?> Arguments
-)
+internal readonly record struct SparseGeneratorDiagnostic(string DescriptorId, Location? Location, ImmutableArray<string?> Arguments)
 {
     public SparseGeneratorDiagnostic(string descriptorId, Location? location, string? argument)
-        : this(
-            descriptorId,
-            location,
-            argument is null
-                ? ImmutableArray<string?>.Empty
-                : ImmutableArray.Create<string?>(argument)
-        ) { }
+        : this(descriptorId, location, argument is null ? ImmutableArray<string?>.Empty : ImmutableArray.Create<string?>(argument)) { }
 
     /// <summary>Whether this diagnostic is advisory and never suppresses generation.</summary>
     /// <remarks>
@@ -453,9 +422,5 @@ internal readonly record struct SparseGeneratorDiagnostic(
         && SparseSequence.Equal(Arguments, other.Arguments);
 
     public override int GetHashCode() =>
-        unchecked(
-            (StringComparer.Ordinal.GetHashCode(DescriptorId) * 31 + (Location?.GetHashCode() ?? 0))
-                * 31
-            + SparseSequence.Hash(Arguments)
-        );
+        unchecked((StringComparer.Ordinal.GetHashCode(DescriptorId) * 31 + (Location?.GetHashCode() ?? 0)) * 31 + SparseSequence.Hash(Arguments));
 }

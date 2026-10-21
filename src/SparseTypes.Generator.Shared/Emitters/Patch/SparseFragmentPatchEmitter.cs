@@ -13,16 +13,11 @@ internal static class SparseFragmentPatchEmitter
         member.ChildModel is null ? member.Property.Type.Name : member.ChildFragmentType + "?";
 
     internal static string ChildPatch(SparseMemberModel member) =>
-        SparseSemanticReference.ChildPatchType(
-            member.ChildFragmentType!,
-            SparseFamilyNames.Standalone
-        );
+        SparseSemanticReference.ChildPatchType(member.ChildFragmentType!, SparseFamilyNames.Standalone);
 
-    internal static bool IsCollectionPatch(SparseMemberModel member) =>
-        SparseKeyedCollectionEmitter.IsCollectionPatch(member);
+    internal static bool IsCollectionPatch(SparseMemberModel member) => SparseKeyedCollectionEmitter.IsCollectionPatch(member);
 
-    internal static string CollectionPatch(SparseMemberModel member) =>
-        SparseKeyedCollectionEmitter.CollectionPatchName(member);
+    internal static string CollectionPatch(SparseMemberModel member) => SparseKeyedCollectionEmitter.CollectionPatchName(member);
 
     public static void AppendFragmentMethods(
         SharedIndentedBuilder code,
@@ -45,14 +40,8 @@ internal static class SparseFragmentPatchEmitter
             code.AppendLine("/// <returns>The fragment with the patch applied.</returns>");
             code.AppendLine("public Fragment Apply(Patch patch)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
-            );
-            code.AppendLine(
-                "var result = patch.Apply("
-                    + runtimeNamespace
-                    + "Optional<Fragment?>.Present(this));"
-            );
+            code.AppendLine("if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));");
+            code.AppendLine("var result = patch.Apply(" + runtimeNamespace + "Optional<Fragment?>.Present(this));");
             code.AppendLine(
                 "if (!result.IsPresent || result.Value is null) throw new global::System.InvalidOperationException(\"Apply a whole-contribution null or remove operation through Patch.Apply to preserve its optional state.\");"
             );
@@ -61,9 +50,7 @@ internal static class SparseFragmentPatchEmitter
         }
         if (canWriteInPlace)
         {
-            code.AppendLine(
-                "/// <summary>Writes this fragment into an existing model instance.</summary>"
-            );
+            code.AppendLine("/// <summary>Writes this fragment into an existing model instance.</summary>");
             code.AppendLine("public void WriteTo(" + modelType + " model)");
             code.OpenBlock();
             code.AppendLine("__SparseWriteWritableTo(model);");
@@ -91,30 +78,18 @@ internal static class SparseFragmentPatchEmitter
             return;
         }
 
-        code.AppendLine(
-            "/// <summary>Writes this fragment into an existing write-command instance.</summary>"
-        );
+        code.AppendLine("/// <summary>Writes this fragment into an existing write-command instance.</summary>");
         code.AppendLine("public void WriteTo(" + writeContract.WriteModelType + " model)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (model is null) throw new global::System.ArgumentNullException(nameof(model));"
-        );
+        code.AppendLine("if (model is null) throw new global::System.ArgumentNullException(nameof(model));");
         code.AppendLine("var __sparse_updated = ToModel();");
         foreach (var member in members)
         {
             var readProperty = SparseNaming.EscapeIdentifier(member.Property.Name);
-            var writeProperty = SparseNaming.EscapeIdentifier(
-                writeContract.GetWriteMemberName(member.Property.Name)
-            );
-            if (
-                member.Collection.Kind == SparseCollectionKind.List
-                && member.Collection.CloneKind == SparseCloneCollectionKind.List
-            )
+            var writeProperty = SparseNaming.EscapeIdentifier(writeContract.GetWriteMemberName(member.Property.Name));
+            if (member.Collection.Kind == SparseCollectionKind.List && member.Collection.CloneKind == SparseCloneCollectionKind.List)
             {
-                var listType =
-                    "global::System.Collections.Generic.List<"
-                    + member.Collection.ElementType.Name
-                    + ">";
+                var listType = "global::System.Collections.Generic.List<" + member.Collection.ElementType.Name + ">";
                 code.AppendLine(
                     "if (model."
                         + writeProperty
@@ -128,17 +103,9 @@ internal static class SparseFragmentPatchEmitter
                 );
                 code.OpenBlock();
                 code.AppendLine("__sparse_write_list" + member.Id + ".Clear();");
-                code.AppendLine(
-                    "__sparse_write_list"
-                        + member.Id
-                        + ".AddRange(__sparse_updated."
-                        + readProperty
-                        + ");"
-                );
+                code.AppendLine("__sparse_write_list" + member.Id + ".AddRange(__sparse_updated." + readProperty + ");");
                 code.CloseBlock();
-                code.AppendLine(
-                    "else model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
-                );
+                code.AppendLine("else model." + writeProperty + " = __sparse_updated." + readProperty + "!;");
             }
             else if (member.Collection.IsDictionary)
             {
@@ -175,15 +142,11 @@ internal static class SparseFragmentPatchEmitter
                         + ".Value);"
                 );
                 code.CloseBlock();
-                code.AppendLine(
-                    "else model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
-                );
+                code.AppendLine("else model." + writeProperty + " = __sparse_updated." + readProperty + "!;");
             }
             else
             {
-                code.AppendLine(
-                    "model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
-                );
+                code.AppendLine("model." + writeProperty + " = __sparse_updated." + readProperty + "!;");
             }
         }
         code.CloseBlock();
@@ -264,8 +227,7 @@ internal static class SparseFragmentPatchEmitter
         // parameter.
 
         /// <summary>Effective JSON surface, defaulting to the full historical set.</summary>
-        public SparseStjCapabilities EffectiveStjCapabilities =>
-            StjCapabilities ?? SparseStjCapabilities.All;
+        public SparseStjCapabilities EffectiveStjCapabilities => StjCapabilities ?? SparseStjCapabilities.All;
 
         /// <summary>Whether v1 JSON artifacts may be emitted under the probed surface.</summary>
         /// <remarks>False suppresses every <c>System.Text.Json</c> token (attributes.</remarks>
@@ -283,39 +245,25 @@ internal static class SparseFragmentPatchEmitter
             MemberPolicies.IsDefault ? ImmutableArray<SparseMemberPolicy>.Empty : MemberPolicies;
 
         /// <summary>Effective rebase behavior, defaulting to passthrough.</summary>
-        public SparseRebasePolicy EffectiveRebasePolicy =>
-            RebasePolicy ?? SparseRebasePolicy.Passthrough;
+        public SparseRebasePolicy EffectiveRebasePolicy => RebasePolicy ?? SparseRebasePolicy.Passthrough;
 
         /// <summary>Transport configured for one member name.</summary>
-        public SparseMemberTransport GetTransport(string memberName) =>
-            SparseDownstreamPolicy.GetTransport(EffectiveMemberPolicies, memberName);
+        public SparseMemberTransport GetTransport(string memberName) => SparseDownstreamPolicy.GetTransport(EffectiveMemberPolicies, memberName);
     }
 
     internal static string DefaultChildChangeSet(SparseMemberModel member) =>
-        SparseSemanticReference.ChildChangeSetType(
-            member.ChildFragmentType!,
-            SparseFamilyNames.Standalone
-        );
+        SparseSemanticReference.ChildChangeSetType(member.ChildFragmentType!, SparseFamilyNames.Standalone);
 
-    internal static string Operation(SparsePatchDialect dialect) =>
-        dialect.RuntimeNamespace + "FragmentOperation";
+    internal static string Operation(SparsePatchDialect dialect) => dialect.RuntimeNamespace + "FragmentOperation";
 
-    internal static string GetMemberValueType(
-        SparsePatchDialect dialect,
-        SparseMemberModel member
-    ) => dialect.MemberValueType?.Invoke(member) ?? ValueType(member);
+    internal static string GetMemberValueType(SparsePatchDialect dialect, SparseMemberModel member) =>
+        dialect.MemberValueType?.Invoke(member) ?? ValueType(member);
 
-    internal static string GetCollectionPatchName(
-        SparsePatchDialect dialect,
-        SparseMemberModel member
-    ) => dialect.CollectionPatchName?.Invoke(member) ?? CollectionPatch(member);
+    internal static string GetCollectionPatchName(SparsePatchDialect dialect, SparseMemberModel member) =>
+        dialect.CollectionPatchName?.Invoke(member) ?? CollectionPatch(member);
 
-    internal static string GetMergeStrategyField(
-        SparsePatchDialect dialect,
-        SparseMemberModel member
-    ) =>
-        dialect.MergeStrategyField?.Invoke(member)
-        ?? SparseWellKnownNames.MergeStrategyFieldPrefix + member.Id;
+    internal static string GetMergeStrategyField(SparsePatchDialect dialect, SparseMemberModel member) =>
+        dialect.MergeStrategyField?.Invoke(member) ?? SparseWellKnownNames.MergeStrategyFieldPrefix + member.Id;
 
     /// <summary>Resolves the caller-owned per-rebase options type for generated signatures.</summary>
     /// <remarks>Null falls back to the runtime namespace so downstream products keep owning the type.</remarks>
@@ -323,72 +271,45 @@ internal static class SparseFragmentPatchEmitter
         dialect.RebaseOptionsType ?? dialect.RuntimeNamespace + "ChangePayloadRebaseOptions";
 
     /// <summary>Resolves the caller-owned rebase mode enum for generated dispatch.</summary>
-    internal static string GetRebaseModeType(SparsePatchDialect dialect) =>
-        dialect.RebaseModeType ?? dialect.RuntimeNamespace + "SparseRebaseMode";
+    internal static string GetRebaseModeType(SparsePatchDialect dialect) => dialect.RebaseModeType ?? dialect.RuntimeNamespace + "SparseRebaseMode";
 
     /// <summary>Resolves the caller-owned rebase policy base type for generated fields.</summary>
     internal static string GetRebasePolicyType(SparsePatchDialect dialect) =>
         dialect.RebasePolicyType ?? dialect.RuntimeNamespace + "FragmentRebasePolicy";
 
-    internal static string GetRebasePolicyField(
-        SparsePatchDialect dialect,
-        SparseMemberModel member
-    ) =>
-        dialect.RebasePolicyField?.Invoke(member)
-        ?? SparseWellKnownNames.RebasePolicyFieldPrefix + member.Id;
+    internal static string GetRebasePolicyField(SparsePatchDialect dialect, SparseMemberModel member) =>
+        dialect.RebasePolicyField?.Invoke(member) ?? SparseWellKnownNames.RebasePolicyFieldPrefix + member.Id;
 
-    internal static string Kind(SparsePatchDialect dialect) =>
-        dialect.RuntimeNamespace + "FragmentOperationKind";
+    internal static string Kind(SparsePatchDialect dialect) => dialect.RuntimeNamespace + "FragmentOperationKind";
 
     /// <summary>Resolves the caller-owned path type for generated signatures.</summary>
     /// <remarks>Null falls back to the runtime namespace so downstream products keep owning the type.</remarks>
-    internal static string GetPathType(SparsePatchDialect dialect) =>
-        dialect.PathType ?? dialect.RuntimeNamespace + "SparsePath";
+    internal static string GetPathType(SparsePatchDialect dialect) => dialect.PathType ?? dialect.RuntimeNamespace + "SparsePath";
 
     /// <summary>Resolves the caller-owned typed path type for generated signatures.</summary>
     /// <param name="dialect">Product patch dialect.</param>
     /// <param name="model">Root model type name.</param>
     /// <param name="value">Addressed value type name.</param>
-    internal static string GetTypedPathType(
-        SparsePatchDialect dialect,
-        string model,
-        string value
-    ) => GetPathType(dialect) + "<" + model + ", " + value + ">";
+    internal static string GetTypedPathType(SparsePatchDialect dialect, string model, string value) =>
+        GetPathType(dialect) + "<" + model + ", " + value + ">";
 
-    internal static string OptionalFragment(SparsePatchDialect dialect) =>
-        dialect.RuntimeNamespace + "Optional<Fragment?>";
+    internal static string OptionalFragment(SparsePatchDialect dialect) => dialect.RuntimeNamespace + "Optional<Fragment?>";
 
-    internal static string MembersEmptyExpression(
-        ImmutableArray<SparseMemberModel> members,
-        SparsePatchDialect dialect
-    )
+    internal static string MembersEmptyExpression(ImmutableArray<SparseMemberModel> members, SparsePatchDialect dialect)
     {
         if (members.IsEmpty)
         {
             return "true";
         }
 
-        return string.Join(
-            " && ",
-            members.Select(member => MemberEmptyExpression(member, dialect))
-        );
+        return string.Join(" && ", members.Select(member => MemberEmptyExpression(member, dialect)));
     }
 
-    internal static string MemberEmptyExpression(
-        SparseMemberModel member,
-        SparsePatchDialect dialect,
-        string receiver = ""
-    )
+    internal static string MemberEmptyExpression(SparseMemberModel member, SparsePatchDialect dialect, string receiver = "")
     {
         if (member.ChildModel is not null || IsCollectionPatch(member))
         {
-            return "("
-                + receiver
-                + dialect.MemberField(member)
-                + " is null || "
-                + receiver
-                + dialect.MemberField(member)
-                + ".__SparseIsEmpty())";
+            return "(" + receiver + dialect.MemberField(member) + " is null || " + receiver + dialect.MemberField(member) + ".__SparseIsEmpty())";
         }
 
         return receiver + dialect.MemberField(member) + ".Kind == " + Kind(dialect) + ".Keep";
@@ -418,9 +339,7 @@ internal static class SparseFragmentPatchEmitter
         }
 
         var optional = dialect.RuntimeNamespace + "Optional<Fragment?>";
-        code.AppendLine(
-            "/// <summary>Desired-operation patch without baseline history. Applies directly to fragments and models.</summary>"
-        );
+        code.AppendLine("/// <summary>Desired-operation patch without baseline history. Applies directly to fragments and models.</summary>");
         code.AppendLine(accessibility + " sealed partial class Patch");
         code.OpenBlock();
         // State-bound bodies live in the private nested __Core, which reads
@@ -430,12 +349,7 @@ internal static class SparseFragmentPatchEmitter
         if (target is not null)
         {
             patchCore = new SharedIndentedBuilder(code.CancellationToken);
-            patchTarget = new SparseOperationTarget(
-                patchCore,
-                target.ChangeSetOperations,
-                "__Core",
-                target.ChangeSetOperationsType
-            );
+            patchTarget = new SparseOperationTarget(patchCore, target.ChangeSetOperations, "__Core", target.ChangeSetOperationsType);
         }
         SparseKeyedCollectionEmitter.EmitCollectionPatches(
             code,
@@ -450,14 +364,7 @@ internal static class SparseFragmentPatchEmitter
         // order).
         SparseFragmentPatchCoreEmitter.AppendPatchConstructor(code, members, dialect);
         SparseFragmentPatchCoreEmitter.AppendPatchMembers(code, members, dialect);
-        SparseFragmentPatchCoreEmitter.AppendPatchWholeOperations(
-            code,
-            modelType,
-            string.Empty,
-            string.Empty,
-            members,
-            dialect
-        );
+        SparseFragmentPatchCoreEmitter.AppendPatchWholeOperations(code, modelType, string.Empty, string.Empty, members, dialect);
         SparseFragmentPatchCoreEmitter.AppendPatchOptionalApply(
             code,
             members,
@@ -471,33 +378,14 @@ internal static class SparseFragmentPatchEmitter
             AppendApplyInPlaceResult(code);
             AppendApplyInPlace(code, modelType, members, dialect, patchTarget);
         }
-        SparseFragmentPatchAlgebraEmitter.AppendPatchAlgebra(
-            code,
-            modelType,
-            members,
-            dialect,
-            patchTarget
-        );
+        SparseFragmentPatchAlgebraEmitter.AppendPatchAlgebra(code, modelType, members, dialect, patchTarget);
         if (dialect.EmitPatchRebase)
         {
-            SparseFragmentPatchRebaseEmitter.AppendPatchRebase(
-                code,
-                modelType,
-                members,
-                dialect,
-                patchTarget
-            );
+            SparseFragmentPatchRebaseEmitter.AppendPatchRebase(code, modelType, members, dialect, patchTarget);
         }
         if (plan.EmitChangePayload)
         {
-            SparseChangePayloadPatchSyncEmitter.AppendPatchToPayloadCore(
-                code,
-                members,
-                dialect,
-                modelType,
-                implementationNamespace,
-                patchTarget
-            );
+            SparseChangePayloadPatchSyncEmitter.AppendPatchToPayloadCore(code, members, dialect, modelType, implementationNamespace, patchTarget);
         }
         // Public-first order: internal bridges precede private storage.
         SparseFragmentPatchCoreEmitter.AppendPatchApplyMembers(code, members, dialect, patchTarget);
@@ -505,9 +393,7 @@ internal static class SparseFragmentPatchEmitter
         SparseFragmentPatchCoreEmitter.AppendPatchMemberFields(code, members, dialect);
         if (patchCore is not null)
         {
-            code.AppendLine(
-                "/// <summary>State-bound Patch algorithms with direct private-state access.</summary>"
-            );
+            code.AppendLine("/// <summary>State-bound Patch algorithms with direct private-state access.</summary>");
             code.AppendLine("private static class __Core");
             code.OpenBlock();
             // Many emitters interleave internal entry points and private
@@ -524,9 +410,7 @@ internal static class SparseFragmentPatchEmitter
                 ? canApplyInPlace
                     && (
                         dialect.InPlaceWriteUnavailableKindMemberName is not null
-                        || members.All(static member =>
-                            !member.Property.IsReadOnly && !member.Property.IsInitOnly
-                        )
+                        || members.All(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly)
                     )
                 : canApplyChangeSetInPlace;
             SparseChangeSetEmitter.AppendChangeSet(
@@ -549,30 +433,20 @@ internal static class SparseFragmentPatchEmitter
 
     private static void AppendApplyInPlaceResult(SharedIndentedBuilder code)
     {
-        code.AppendLine(
-            "/// <summary>Result of applying a patch to an existing model instance.</summary>"
-        );
+        code.AppendLine("/// <summary>Result of applying a patch to an existing model instance.</summary>");
         code.AppendLine("public sealed class ApplyInPlaceResult");
         code.OpenBlock();
         code.AppendLine("/// <summary>Whether the patch was applied to the model.</summary>");
         code.AppendLine("public bool Succeeded => UnsupportedMembers.Count == 0;");
-        code.AppendLine(
-            "/// <summary>Names of immutable members that prevented the patch from being applied.</summary>"
-        );
-        code.AppendLine(
-            "public global::System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }"
-        );
-        code.AppendLine(
-            "internal static ApplyInPlaceResult Success { get; } = new(global::System.Array.Empty<string>());"
-        );
+        code.AppendLine("/// <summary>Names of immutable members that prevented the patch from being applied.</summary>");
+        code.AppendLine("public global::System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }");
+        code.AppendLine("internal static ApplyInPlaceResult Success { get; } = new(global::System.Array.Empty<string>());");
         code.AppendLine(
             "internal static ApplyInPlaceResult Failure(global::System.Collections.Generic.List<string> unsupportedMembers) => new(unsupportedMembers.ToArray());"
         );
         code.AppendLine("private ApplyInPlaceResult(string[] unsupportedMembers)");
         code.OpenBlock();
-        code.AppendLine(
-            "UnsupportedMembers = global::System.Array.AsReadOnly(unsupportedMembers);"
-        );
+        code.AppendLine("UnsupportedMembers = global::System.Array.AsReadOnly(unsupportedMembers);");
         code.CloseBlock();
         code.CloseBlock();
     }
@@ -587,27 +461,15 @@ internal static class SparseFragmentPatchEmitter
     {
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Applies this patch to writable members of an existing model.</summary>"
-            );
+            code.AppendLine("/// <summary>Applies this patch to writable members of an existing model.</summary>");
             code.AppendLine("/// <param name=\"current\">Model instance to update.</param>");
             code.AppendLine("/// <returns>The in-place result.</returns>");
             code.AppendLine(
-                "public ApplyInPlaceResult ApplyInPlace("
-                    + modelType
-                    + " current) => "
-                    + target.PatchOperationsType
-                    + ".ApplyInPlace(this, current);"
+                "public ApplyInPlaceResult ApplyInPlace(" + modelType + " current) => " + target.PatchOperationsType + ".ApplyInPlace(this, current);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLine(
-                "/// <summary>Applies a patch to writable members of an existing model.</summary>"
-            );
-            ops.AppendLine(
-                "internal static ApplyInPlaceResult ApplyInPlace(Patch self, "
-                    + modelType
-                    + " current)"
-            );
+            ops.AppendLine("/// <summary>Applies a patch to writable members of an existing model.</summary>");
+            ops.AppendLine("internal static ApplyInPlaceResult ApplyInPlace(Patch self, " + modelType + " current)");
             AppendApplyInPlaceBody(ops, modelType, members, dialect, "self.");
             return;
         }
@@ -625,33 +487,20 @@ internal static class SparseFragmentPatchEmitter
     {
         if (receiver.Length == 0)
         {
-            code.AppendLine(
-                "/// <summary>Applies this patch to writable members of an existing model.</summary>"
-            );
+            code.AppendLine("/// <summary>Applies this patch to writable members of an existing model.</summary>");
             code.AppendLine("/// <param name=\"current\">Model instance to update.</param>");
             code.AppendLine("/// <returns>The in-place result.</returns>");
             code.AppendLine("public ApplyInPlaceResult ApplyInPlace(" + modelType + " current)");
         }
         code.OpenBlock();
-        code.AppendLine(
-            "if (current is null) throw new global::System.ArgumentNullException(nameof(current));"
-        );
-        var immutableMembers = members
-            .Where(static member => member.Property.IsReadOnly || member.Property.IsInitOnly)
-            .ToArray();
+        code.AppendLine("if (current is null) throw new global::System.ArgumentNullException(nameof(current));");
+        var immutableMembers = members.Where(static member => member.Property.IsReadOnly || member.Property.IsInitOnly).ToArray();
         if (immutableMembers.Length > 0)
         {
-            code.AppendLine(
-                "var __sparse_unsupportedMembers = new global::System.Collections.Generic.List<string>();"
-            );
+            code.AppendLine("var __sparse_unsupportedMembers = new global::System.Collections.Generic.List<string>();");
             foreach (var member in immutableMembers)
             {
-                var propertyName =
-                    "nameof("
-                    + modelType
-                    + "."
-                    + SparseNaming.EscapeIdentifier(member.Property.Name)
-                    + ")";
+                var propertyName = "nameof(" + modelType + "." + SparseNaming.EscapeIdentifier(member.Property.Name) + ")";
                 code.AppendLine(
                     "if ("
                         + receiver
@@ -672,9 +521,7 @@ internal static class SparseFragmentPatchEmitter
                         + ");"
                 );
             }
-            code.AppendLine(
-                "if (__sparse_unsupportedMembers.Count > 0) return ApplyInPlaceResult.Failure(__sparse_unsupportedMembers);"
-            );
+            code.AppendLine("if (__sparse_unsupportedMembers.Count > 0) return ApplyInPlaceResult.Failure(__sparse_unsupportedMembers);");
         }
         if (receiver.Length == 0)
         {
@@ -697,27 +544,15 @@ internal static class SparseFragmentPatchEmitter
     {
         if (target is not null)
         {
-            code.AppendLine(
-                "/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>"
-            );
+            code.AppendLine("/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>");
             code.AppendLine("/// <param name=\"current\">Model value to apply to.</param>");
             code.AppendLine("/// <returns>A new model with the patch applied.</returns>");
             code.AppendLine(
-                "public "
-                    + modelType
-                    + " ApplyTo("
-                    + modelType
-                    + " current) => "
-                    + target.PatchOperationsType
-                    + ".ApplyTo(this, current);"
+                "public " + modelType + " ApplyTo(" + modelType + " current) => " + target.PatchOperationsType + ".ApplyTo(this, current);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLine(
-                "/// <summary>Applies a patch to an ordinary model and returns a new model.</summary>"
-            );
-            ops.AppendLine(
-                "internal static " + modelType + " ApplyTo(Patch self, " + modelType + " current)"
-            );
+            ops.AppendLine("/// <summary>Applies a patch to an ordinary model and returns a new model.</summary>");
+            ops.AppendLine("internal static " + modelType + " ApplyTo(Patch self, " + modelType + " current)");
             AppendApplyToBody(ops, modelType, ignoredSettablePropertyNames, "self.");
             return;
         }
@@ -734,24 +569,14 @@ internal static class SparseFragmentPatchEmitter
     {
         if (receiver.Length == 0)
         {
-            code.AppendLine(
-                "/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>"
-            );
+            code.AppendLine("/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>");
             code.AppendLine("/// <param name=\"current\">Model value to apply to.</param>");
             code.AppendLine("/// <returns>A new model with the patch applied.</returns>");
             code.AppendLine("public " + modelType + " ApplyTo(" + modelType + " current)");
         }
         code.OpenBlock();
-        code.AppendLine(
-            "var updated = Fragment.From(current).Apply("
-                + (receiver.Length == 0 ? "this" : "self")
-                + ").ToModel();"
-        );
-        foreach (
-            var ignoredName in ignoredSettablePropertyNames.IsDefault
-                ? ImmutableArray<string>.Empty
-                : ignoredSettablePropertyNames
-        )
+        code.AppendLine("var updated = Fragment.From(current).Apply(" + (receiver.Length == 0 ? "this" : "self") + ").ToModel();");
+        foreach (var ignoredName in ignoredSettablePropertyNames.IsDefault ? ImmutableArray<string>.Empty : ignoredSettablePropertyNames)
         {
             var name = SparseNaming.EscapeIdentifier(ignoredName);
             code.AppendLine("updated." + name + " = current." + name + ";");

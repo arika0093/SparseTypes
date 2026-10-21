@@ -23,20 +23,8 @@ internal static class SparseChangeSetKeyedTempPairEmitter
         var sentinel = member.Collection.UnassignedKeyExpression ?? "default!";
         code.AppendLine("if (__hasTemp" + id + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "var __firstTempAfter"
-                + id
-                + " = "
-                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
-                + ";"
-        );
-        code.AppendLine(
-            "var __secondTempAfter"
-                + id
-                + " = next."
-                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
-                + ";"
-        );
+        code.AppendLine("var __firstTempAfter" + id + " = " + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member) + ";");
+        code.AppendLine("var __secondTempAfter" + id + " = next." + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member) + ";");
         code.AppendLine(
             "if (__firstTempAfter"
                 + id
@@ -47,19 +35,9 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + " is null) throw new global::System.InvalidOperationException(\"ChangeSet composition requires temporary orders for temporary changes.\");"
         );
         code.AppendLine(
-            "var __firstTempAfterSet"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__firstTempAfter"
-                + id
-                + ");"
+            "var __firstTempAfterSet" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__firstTempAfter" + id + ");"
         );
-        code.AppendLine(
-            "var __tkeys"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tmap1"
-                + id
-                + ".Keys);"
-        );
+        code.AppendLine("var __tkeys" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tmap1" + id + ".Keys);");
         code.AppendLine("__tkeys" + id + ".UnionWith(__tmap2" + id + ".Keys);");
         code.AppendLine("foreach (var __tk in __tkeys" + id + ")");
         code.OpenBlock();
@@ -204,9 +182,7 @@ internal static class SparseChangeSetKeyedTempPairEmitter
         code.CloseBlock();
         code.AppendLine("if ((__ta1!.IsEdited || __ta1!.IsReordered) && __ta2!.IsRemoved)");
         code.OpenBlock();
-        code.AppendLine(
-            "var __tremovedEdit = __ta1.IsEdited ? __ta1.Edit.Compose(__ta2.Edit) : __ta2.Edit;"
-        );
+        code.AppendLine("var __tremovedEdit = __ta1.IsEdited ? __ta1.Edit.Compose(__ta2.Edit) : __ta2.Edit;");
         code.AppendLine("var __tremovedState = __tremovedEdit.Invert().ToPatch().Apply(default);");
         code.AppendLine(
             "if (!__tremovedState.IsPresent || __tremovedState.Value is null) throw new global::System.InvalidOperationException(\"Composed removal did not produce an element value.\");"

@@ -29,9 +29,7 @@ public readonly struct FragmentOperation<T>
 
     /// <summary>The value for a set operation.</summary>
     public T? Value =>
-        Kind == FragmentOperationKind.Set
-            ? _value
-            : throw new InvalidOperationException("This fragment operation does not set a value.");
+        Kind == FragmentOperationKind.Set ? _value : throw new InvalidOperationException("This fragment operation does not set a value.");
 
     /// <summary>Keeps the source member unchanged.</summary>
     public static FragmentOperation<T> Keep => default;

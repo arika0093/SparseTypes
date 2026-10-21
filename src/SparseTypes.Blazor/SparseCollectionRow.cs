@@ -9,15 +9,8 @@ public sealed class SparseCollectionRow<TModel, TElement>
     where TModel : class
     where TElement : class
 {
-    internal delegate bool RemoveOperation(
-        SparseCollectionRow<TModel, TElement> row,
-        out SparseCollectionEditError error
-    );
-    internal delegate bool MoveOperation(
-        SparseCollectionRow<TModel, TElement> row,
-        int newIndex,
-        out SparseCollectionEditError error
-    );
+    internal delegate bool RemoveOperation(SparseCollectionRow<TModel, TElement> row, out SparseCollectionEditError error);
+    internal delegate bool MoveOperation(SparseCollectionRow<TModel, TElement> row, int newIndex, out SparseCollectionEditError error);
 
     private readonly RemoveOperation _remove;
     private readonly MoveOperation _move;
@@ -65,10 +58,7 @@ public sealed class SparseCollectionRow<TModel, TElement>
     /// <summary>Gets the item state snapshot or throws when the collection cannot provide one.</summary>
     /// <exception cref="InvalidOperationException">The item state query was unavailable.</exception>
     public SparseCollectionItemState RequireItemState() =>
-        ItemState
-        ?? throw new InvalidOperationException(
-            StateQueryError ?? "The collection item state is unavailable."
-        );
+        ItemState ?? throw new InvalidOperationException(StateQueryError ?? "The collection item state is unavailable.");
 
     /// <summary>Navigates from this row to a child member with a root-preserving typed path.</summary>
     /// <param name="selector">A member-access chain from the row model.</param>
@@ -78,12 +68,7 @@ public sealed class SparseCollectionRow<TModel, TElement>
     {
         ArgumentNullException.ThrowIfNull(selector);
         return new SparsePath<TModel, TValue>(
-            SparseFieldContext<TModel, object?>.AppendSelector(
-                Path.Path,
-                typeof(TElement),
-                selector,
-                nameof(selector)
-            )
+            SparseFieldContext<TModel, object?>.AppendSelector(Path.Path, typeof(TElement), selector, nameof(selector))
         );
     }
 
@@ -94,6 +79,5 @@ public sealed class SparseCollectionRow<TModel, TElement>
     /// <param name="newIndex">The target index.</param>
     /// <param name="error">The failure reason, or <see cref="SparseCollectionEditError.None"/> on success.</param>
     /// <returns>True when the row moved.</returns>
-    public bool TryMoveTo(int newIndex, out SparseCollectionEditError error) =>
-        _move(this, newIndex, out error);
+    public bool TryMoveTo(int newIndex, out SparseCollectionEditError error) => _move(this, newIndex, out error);
 }

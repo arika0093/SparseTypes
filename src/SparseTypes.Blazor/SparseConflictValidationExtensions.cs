@@ -16,8 +16,7 @@ public enum SparseConflictFallbackMode
 public sealed record SparseConflictValidationOptions
 {
     /// <summary>Gets the fallback target for unresolvable paths.</summary>
-    public SparseConflictFallbackMode Fallback { get; init; } =
-        SparseConflictFallbackMode.NearestParent;
+    public SparseConflictFallbackMode Fallback { get; init; } = SparseConflictFallbackMode.NearestParent;
 
     /// <summary>Gets whether the store is cleared before conflicts are added.</summary>
     public bool ClearStoreFirst { get; init; }
@@ -36,8 +35,7 @@ public sealed record SparseConflictValidationOptions
             return MessageFactory(conflict);
         }
 
-        var message =
-            $"Conflict at '{conflict.PathText}' ({conflict.Kind}): the server kept a newer value.";
+        var message = $"Conflict at '{conflict.PathText}' ({conflict.Kind}): the server kept a newer value.";
         return string.IsNullOrEmpty(conflict.Reason) ? message : $"{message} {conflict.Reason}";
     }
 }
@@ -72,10 +70,7 @@ public static class SparseConflictValidationExtensions
         var model = GetSessionModel(session);
         if (!ReferenceEquals(editContext.Model, model))
         {
-            throw new ArgumentException(
-                "The EditContext must be bound to the session's model.",
-                nameof(editContext)
-            );
+            throw new ArgumentException("The EditContext must be bound to the session's model.", nameof(editContext));
         }
 
         var added = 0;
@@ -106,11 +101,7 @@ public static class SparseConflictValidationExtensions
     /// <param name="store">The dedicated conflict validation store.</param>
     /// <param name="editContext">The context the store was created from.</param>
     /// <typeparam name="TModel">The session model type.</typeparam>
-    public static void ClearConflicts<TModel>(
-        this ISparseEditSession<TModel> session,
-        ValidationMessageStore store,
-        EditContext editContext
-    )
+    public static void ClearConflicts<TModel>(this ISparseEditSession<TModel> session, ValidationMessageStore store, EditContext editContext)
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -118,10 +109,7 @@ public static class SparseConflictValidationExtensions
         ArgumentNullException.ThrowIfNull(editContext);
         if (!ReferenceEquals(editContext.Model, GetSessionModel(session)))
         {
-            throw new ArgumentException(
-                "The EditContext must be bound to the session's model.",
-                nameof(editContext)
-            );
+            throw new ArgumentException("The EditContext must be bound to the session's model.", nameof(editContext));
         }
 
         store.Clear();
@@ -134,10 +122,7 @@ public static class SparseConflictValidationExtensions
     /// <param name="staleContext">The previous context being replaced.</param>
     /// <typeparam name="TModel">The session model type.</typeparam>
     /// <returns>A new context bound to the fresh session model.</returns>
-    public static EditContext ReplaceEditContext<TModel>(
-        this ISparseEditSession<TModel> freshSession,
-        EditContext staleContext
-    )
+    public static EditContext ReplaceEditContext<TModel>(this ISparseEditSession<TModel> freshSession, EditContext staleContext)
         where TModel : class
     {
         ArgumentNullException.ThrowIfNull(freshSession);
@@ -153,11 +138,7 @@ public static class SparseConflictValidationExtensions
         return SparseEditSessionExtensions.CreateEditContext(freshSession);
     }
 
-    private static FieldIdentifier ResolveConflictField<TModel>(
-        TModel model,
-        SparseConflict conflict,
-        SparseConflictFallbackMode fallback
-    )
+    private static FieldIdentifier ResolveConflictField<TModel>(TModel model, SparseConflict conflict, SparseConflictFallbackMode fallback)
         where TModel : class
     {
         // Foreign-root paths never resolve against this graph; surface them at

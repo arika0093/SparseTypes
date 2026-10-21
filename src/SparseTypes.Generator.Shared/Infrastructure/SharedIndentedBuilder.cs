@@ -11,15 +11,13 @@ internal sealed class SharedIndentedBuilder : IDisposable
     private readonly CancellationToken _cancellationToken;
     private bool _atLineStart = true;
 
-    public SharedIndentedBuilder(CancellationToken cancellationToken) =>
-        _cancellationToken = cancellationToken;
+    public SharedIndentedBuilder(CancellationToken cancellationToken) => _cancellationToken = cancellationToken;
 
     public CancellationToken CancellationToken => _cancellationToken;
 
     public int IndentLevel { get; private set; }
 
-    private StringBuilder Buffer =>
-        _builder ?? throw new ObjectDisposedException(nameof(SharedIndentedBuilder));
+    private StringBuilder Buffer => _builder ?? throw new ObjectDisposedException(nameof(SharedIndentedBuilder));
 
     public SharedIndentedBuilder Indent()
     {
@@ -61,9 +59,7 @@ internal sealed class SharedIndentedBuilder : IDisposable
 
         if (!_atLineStart)
         {
-            throw new InvalidOperationException(
-                "Explicit indentation requires the start of a line."
-            );
+            throw new InvalidOperationException("Explicit indentation requires the start of a line.");
         }
 
         buffer.Append(' ', effective * 4);

@@ -7,8 +7,7 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class RoslynSymbolCompat
 {
-    private const string RequiredMemberAttributeName =
-        "System.Runtime.CompilerServices.RequiredMemberAttribute";
+    private const string RequiredMemberAttributeName = "System.Runtime.CompilerServices.RequiredMemberAttribute";
 
     public static bool IsRequired(ISymbol property)
     {
@@ -16,26 +15,17 @@ internal static class RoslynSymbolCompat
         foreach (var reference in property.DeclaringSyntaxReferences)
         {
             var declaration = reference.GetSyntax();
-            if (
-                declaration is VariableDeclaratorSyntax
-                && declaration.Parent?.Parent is FieldDeclarationSyntax field
-            )
+            if (declaration is VariableDeclaratorSyntax && declaration.Parent?.Parent is FieldDeclarationSyntax field)
             {
                 declaration = field;
             }
 
-            if (
-                declaration is PropertyDeclarationSyntax syntax
-                && syntax.Modifiers.Any(static token => token.ValueText == "required")
-            )
+            if (declaration is PropertyDeclarationSyntax syntax && syntax.Modifiers.Any(static token => token.ValueText == "required"))
             {
                 return true;
             }
 
-            if (
-                declaration is FieldDeclarationSyntax fieldSyntax
-                && fieldSyntax.Modifiers.Any(static token => token.ValueText == "required")
-            )
+            if (declaration is FieldDeclarationSyntax fieldSyntax && fieldSyntax.Modifiers.Any(static token => token.ValueText == "required"))
             {
                 return true;
             }
@@ -43,11 +33,7 @@ internal static class RoslynSymbolCompat
         return property
             .GetAttributes()
             .Any(static attribute =>
-                string.Equals(
-                    attribute.AttributeClass?.ToDisplayString(),
-                    RequiredMemberAttributeName,
-                    StringComparison.Ordinal
-                )
+                string.Equals(attribute.AttributeClass?.ToDisplayString(), RequiredMemberAttributeName, StringComparison.Ordinal)
             );
     }
 }

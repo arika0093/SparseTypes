@@ -47,17 +47,13 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     /// <inheritdoc />
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var diagnostic = context.Diagnostics.FirstOrDefault(static candidate =>
-            candidate.Id.StartsWith("SPF", System.StringComparison.Ordinal)
-        );
+        var diagnostic = context.Diagnostics.FirstOrDefault(static candidate => candidate.Id.StartsWith("SPF", System.StringComparison.Ordinal));
         if (diagnostic is null || diagnostic.Location.SourceTree is null)
         {
             return;
         }
 
-        var root = await context
-            .Document.GetSyntaxRootAsync(context.CancellationToken)
-            .ConfigureAwait(false);
+        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
         if (root is null)
         {
             return;
@@ -115,19 +111,9 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         }
     }
 
-    private static void RegisterAddPartial(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterAddPartial(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
-        if (
-            !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
-                root,
-                diagnostic,
-                out var declaration
-            )
-        )
+        if (!SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration))
         {
             return;
         }
@@ -135,31 +121,16 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add 'partial' modifier",
-                cancellationToken =>
-                    SparseTypeDeclarationFixes.AddPartialAsync(
-                        context.Document,
-                        declaration!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseTypeDeclarationFixes.AddPartialAsync(context.Document, declaration!, cancellationToken),
                 "AddPartial_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterRemoveAbstract(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveAbstract(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
-        if (
-            !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
-                root,
-                diagnostic,
-                out var declaration
-            )
-        )
+        if (!SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration))
         {
             return;
         }
@@ -177,31 +148,16 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove 'abstract' modifier",
-                cancellationToken =>
-                    SparseTypeDeclarationFixes.RemoveAbstractAsync(
-                        context.Document,
-                        declaration,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseTypeDeclarationFixes.RemoveAbstractAsync(context.Document, declaration, cancellationToken),
                 "RemoveAbstract_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterAddConstructor(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterAddConstructor(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
-        if (
-            !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
-                root,
-                diagnostic,
-                out var declaration
-            )
-        )
+        if (!SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration))
         {
             return;
         }
@@ -209,23 +165,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add parameterless constructor",
-                cancellationToken =>
-                    SparseTypeDeclarationFixes.AddParameterlessConstructorAsync(
-                        context.Document,
-                        declaration!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseTypeDeclarationFixes.AddParameterlessConstructorAsync(context.Document, declaration!, cancellationToken),
                 "AddCtor_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterRemoveMerge(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveMerge(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -240,23 +187,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove unsupported merge mode",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.RemoveMergeAttributeAsync(
-                        context.Document,
-                        property!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.RemoveMergeAttributeAsync(context.Document, property!, cancellationToken),
                 "RemoveMerge_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterRemoveRequired(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveRequired(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -271,23 +209,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove 'required' modifier",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.RemoveRequiredModifierAsync(
-                        context.Document,
-                        property,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.RemoveRequiredModifierAsync(context.Document, property, cancellationToken),
                 "RemoveRequired_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterAddMergeReplace(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterAddMergeReplace(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -297,23 +226,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Use MergeMode.Replace",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.AddMergeReplaceAsync(
-                        context.Document,
-                        property!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.AddMergeReplaceAsync(context.Document, property!, cancellationToken),
                 "MergeReplace_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterAddCloneSafe(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterAddCloneSafe(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -323,31 +243,16 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Mark reference-safe for cloning",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.AddCloneReferenceSafeAsync(
-                        context.Document,
-                        property!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.AddCloneReferenceSafeAsync(context.Document, property!, cancellationToken),
                 "CloneSafe_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterKeepFirstKey(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterKeepFirstKey(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
-        if (
-            !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
-                root,
-                diagnostic,
-                out var declaration
-            )
-        )
+        if (!SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration))
         {
             return;
         }
@@ -356,42 +261,24 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
             CodeAction.Create(
                 "Keep first [SparseKey] and remove the rest",
                 cancellationToken =>
-                    SparseMemberAttributeFixes.KeepFirstKeyAttributeAsync(
-                        context.Document,
-                        declaration!,
-                        "SparseKey",
-                        cancellationToken
-                    ),
+                    SparseMemberAttributeFixes.KeepFirstKeyAttributeAsync(context.Document, declaration!, "SparseKey", cancellationToken),
                 "KeepFirstKey_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterFixKeyShape(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterFixKeyShape(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         // Type-level [SparseKey] points at the attribute itself: remove it.
         var token = root.FindToken(diagnostic.Location.SourceSpan.Start);
         var attribute = token.Parent?.AncestorsAndSelf().OfType<AttributeSyntax>().FirstOrDefault();
-        if (
-            attribute is not null
-            && attribute.Parent is AttributeListSyntax list
-            && list.Parent is TypeDeclarationSyntax
-        )
+        if (attribute is not null && attribute.Parent is AttributeListSyntax list && list.Parent is TypeDeclarationSyntax)
         {
             context.RegisterCodeFix(
                 CodeAction.Create(
                     "Remove invalid [SparseKey] declaration",
-                    cancellationToken =>
-                        SparseMemberAttributeFixes.RemoveAttributeAsync(
-                            context.Document,
-                            attribute,
-                            cancellationToken
-                        ),
+                    cancellationToken => SparseMemberAttributeFixes.RemoveAttributeAsync(context.Document, attribute, cancellationToken),
                     "RemoveKey_" + diagnostic.Id
                 ),
                 diagnostic
@@ -405,13 +292,7 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
             return;
         }
 
-        if (
-            !SparseMemberAttributeFixes.TryFindAttribute(
-                property!,
-                "SparseKey",
-                out var keyAttribute
-            ) || keyAttribute?.ArgumentList is null
-        )
+        if (!SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseKey", out var keyAttribute) || keyAttribute?.ArgumentList is null)
         {
             return;
         }
@@ -419,23 +300,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Use parameterless [SparseKey]",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.StripAttributeArgumentsAsync(
-                        context.Document,
-                        keyAttribute,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.StripAttributeArgumentsAsync(context.Document, keyAttribute, cancellationToken),
                 "StripKeyArgs_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterMakePublic(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterMakePublic(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -450,23 +322,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Make key property publicly readable",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.MakePropertyPublicAsync(
-                        context.Document,
-                        property,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.MakePropertyPublicAsync(context.Document, property, cancellationToken),
                 "MakePublic_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterRemoveIgnore(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveIgnore(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -481,33 +344,21 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove [SparseIgnore]",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.RemoveSparseIgnoreAsync(
-                        context.Document,
-                        property!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.RemoveSparseIgnoreAsync(context.Document, property!, cancellationToken),
                 "RemoveIgnore_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterRemoveUnassigned(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveUnassigned(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
             return;
         }
 
-        if (
-            !SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseKey", out var attribute)
-            || attribute?.ArgumentList is null
-        )
+        if (!SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseKey", out var attribute) || attribute?.ArgumentList is null)
         {
             return;
         }
@@ -515,46 +366,28 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove invalid Unassigned sentinel",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.RemoveUnassignedArgumentAsync(
-                        context.Document,
-                        attribute,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.RemoveUnassignedArgumentAsync(context.Document, attribute, cancellationToken),
                 "RemoveUnassigned_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterFixTemporaryKey(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterFixTemporaryKey(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         var message = diagnostic.GetMessage();
         if (SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
             if (
                 message.Contains("is ignored")
-                && SparseMemberAttributeFixes.TryFindAttribute(
-                    property!,
-                    "SparseIgnore",
-                    out var ignore
-                )
+                && SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseIgnore", out var ignore)
                 && ignore is not null
             )
             {
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         "Remove [SparseIgnore] from temporary key",
-                        cancellationToken =>
-                            SparseMemberAttributeFixes.RemoveAttributeAsync(
-                                context.Document,
-                                ignore,
-                                cancellationToken
-                            ),
+                        cancellationToken => SparseMemberAttributeFixes.RemoveAttributeAsync(context.Document, ignore, cancellationToken),
                         "RemoveTempIgnore_" + diagnostic.Id
                     ),
                     diagnostic
@@ -564,23 +397,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
 
             if (
                 message.Contains("takes no arguments")
-                && SparseMemberAttributeFixes.TryFindAttribute(
-                    property!,
-                    "SparseTemporaryKey",
-                    out var withArgs
-                )
+                && SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseTemporaryKey", out var withArgs)
                 && withArgs?.ArgumentList is not null
             )
             {
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         "Use parameterless [SparseTemporaryKey]",
-                        cancellationToken =>
-                            SparseMemberAttributeFixes.StripAttributeArgumentsAsync(
-                                context.Document,
-                                withArgs,
-                                cancellationToken
-                            ),
+                        cancellationToken => SparseMemberAttributeFixes.StripAttributeArgumentsAsync(context.Document, withArgs, cancellationToken),
                         "StripTempArgs_" + diagnostic.Id
                     ),
                     diagnostic
@@ -590,23 +414,14 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
 
             if (
                 message.Contains("cannot combine both key attributes")
-                && SparseMemberAttributeFixes.TryFindAttribute(
-                    property!,
-                    "SparseTemporaryKey",
-                    out var combined
-                )
+                && SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseTemporaryKey", out var combined)
                 && combined is not null
             )
             {
                 context.RegisterCodeFix(
                     CodeAction.Create(
                         "Remove [SparseTemporaryKey] (keep [SparseKey])",
-                        cancellationToken =>
-                            SparseMemberAttributeFixes.RemoveAttributeAsync(
-                                context.Document,
-                                combined,
-                                cancellationToken
-                            ),
+                        cancellationToken => SparseMemberAttributeFixes.RemoveAttributeAsync(context.Document, combined, cancellationToken),
                         "RemoveTempCombined_" + diagnostic.Id
                     ),
                     diagnostic
@@ -617,21 +432,13 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         }
 
         // Element-level (multiple marks): keep the first declaration.
-        if (
-            SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration)
-            && declaration is not null
-        )
+        if (SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration) && declaration is not null)
         {
             context.RegisterCodeFix(
                 CodeAction.Create(
                     "Keep first [SparseTemporaryKey] and remove the rest",
                     cancellationToken =>
-                        SparseMemberAttributeFixes.KeepFirstKeyAttributeAsync(
-                            context.Document,
-                            declaration,
-                            "SparseTemporaryKey",
-                            cancellationToken
-                        ),
+                        SparseMemberAttributeFixes.KeepFirstKeyAttributeAsync(context.Document, declaration, "SparseTemporaryKey", cancellationToken),
                     "KeepFirstTemp_" + diagnostic.Id
                 ),
                 diagnostic
@@ -639,11 +446,7 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         }
     }
 
-    private static void RegisterRemoveInitializer(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterRemoveInitializer(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
         {
@@ -658,36 +461,21 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove temporary key initializer",
-                cancellationToken =>
-                    SparseMemberAttributeFixes.RemovePropertyInitializerAsync(
-                        context.Document,
-                        property,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseMemberAttributeFixes.RemovePropertyInitializerAsync(context.Document, property, cancellationToken),
                 "RemoveTempInit_" + diagnostic.Id
             ),
             diagnostic
         );
     }
 
-    private static void RegisterFixMapper(
-        CodeFixContext context,
-        SyntaxNode root,
-        Diagnostic diagnostic
-    )
+    private static void RegisterFixMapper(CodeFixContext context, SyntaxNode root, Diagnostic diagnostic)
     {
         if (!diagnostic.GetMessage().Contains("partial"))
         {
             return;
         }
 
-        if (
-            !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
-                root,
-                diagnostic,
-                out var declaration
-            )
-        )
+        if (!SparseTypeDeclarationFixes.TryFindTypeDeclaration(root, diagnostic, out var declaration))
         {
             return;
         }
@@ -695,12 +483,7 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add 'partial' to mapper chain",
-                cancellationToken =>
-                    SparseTypeDeclarationFixes.AddPartialToChainAsync(
-                        context.Document,
-                        declaration!,
-                        cancellationToken
-                    ),
+                cancellationToken => SparseTypeDeclarationFixes.AddPartialToChainAsync(context.Document, declaration!, cancellationToken),
                 "AddMapperPartial_" + diagnostic.Id
             ),
             diagnostic

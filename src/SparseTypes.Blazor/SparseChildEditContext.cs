@@ -8,8 +8,7 @@ namespace SparseTypes.Blazor;
 /// <typeparam name="TPaths">The generated path builder rooted at the child model.</typeparam>
 /// <typeparam name="TConflict">The generated structured conflict type.</typeparam>
 /// <typeparam name="TSession">The generated child-model edit-session type.</typeparam>
-public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
-    : ISparseChildEditContext<TModel, TConflict>
+public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> : ISparseChildEditContext<TModel, TConflict>
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
     where TConflict : class
@@ -47,9 +46,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
         }
         else if (descendantScopeContext.Mode == SparseChildEditMode.PassThrough)
         {
-            throw new InvalidOperationException(
-                "Pass-through child edits require a session that reports property changes."
-            );
+            throw new InvalidOperationException("Pass-through child edits require a session that reports property changes.");
         }
     }
 
@@ -96,10 +93,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
     public SparseChildEditMode Mode => DescendantScopeContext.Mode;
 
     /// <summary>Gets whether this child has changes under the active mode.</summary>
-    public bool HasChanges =>
-        Mode == SparseChildEditMode.PassThrough
-            ? DescendantScopeContext.HasChangesAtRoot
-            : _child.HasChanges;
+    public bool HasChanges => Mode == SparseChildEditMode.PassThrough ? DescendantScopeContext.HasChangesAtRoot : _child.HasChanges;
 
     /// <summary>Gets structured conflicts from the most recent merge attempt.</summary>
     public IReadOnlyList<TConflict>? Conflicts => _conflicts;
@@ -155,9 +149,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
         if (!TryAcceptChanges(out var conflicts))
         {
             throw new InvalidOperationException(
-                conflicts is null
-                    ? "The child draft could not be accepted."
-                    : "The child draft conflicts with its parent."
+                conflicts is null ? "The child draft could not be accepted." : "The child draft conflicts with its parent."
             );
         }
     }
@@ -221,9 +213,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
         ThrowIfDisposed();
         if (mode == SparseChildEditMode.PassThrough && _notifier is null)
         {
-            throw new InvalidOperationException(
-                "Pass-through child edits require a session that reports property changes."
-            );
+            throw new InvalidOperationException("Pass-through child edits require a session that reports property changes.");
         }
 
         DescendantScopeContext.SetMode(mode);
@@ -248,8 +238,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
         return DescendantScopeContext.ValidateModeTransition(mode);
     }
 
-    private object HistorySession =>
-        Mode == SparseChildEditMode.PassThrough ? _parentSession : Session;
+    private object HistorySession => Mode == SparseChildEditMode.PassThrough ? _parentSession : Session;
 
     private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
@@ -282,8 +271,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession>
     }
 
     private ISparseEditHistory RequireHistory() =>
-        SparseSessionInterop.TryGetHistory(HistorySession)
-        ?? throw new InvalidOperationException("The active session has no enabled edit history.");
+        SparseSessionInterop.TryGetHistory(HistorySession) ?? throw new InvalidOperationException("The active session has no enabled edit history.");
 
     private void ThrowIfDisposed()
     {

@@ -32,27 +32,12 @@ internal static class SparseChangeSetMemberRebaseEmitter
         string[] passthrough
     )
     {
-        code.AppendLine(
-            "var __red"
-                + member.Id
-                + " = "
-                + hasCondition
-                + " && __SparseIsRedacted(options, "
-                + lit
-                + ");"
-        );
+        code.AppendLine("var __red" + member.Id + " = " + hasCondition + " && __SparseIsRedacted(options, " + lit + ");");
         code.AppendLine("if (__red" + member.Id + ")");
         code.OpenBlock();
         code.AppendLine("if (__SparseRejectsRedacted(options))");
         code.OpenBlock();
-        SparseRebaseOptionEmitter.AppendRedactedConflict(
-            code,
-            runtime,
-            conflict,
-            dialect,
-            "__SparseRootPath.Member(" + lit + ")",
-            "__conflicts"
-        );
+        SparseRebaseOptionEmitter.AppendRedactedConflict(code, runtime, conflict, dialect, "__SparseRootPath.Member(" + lit + ")", "__conflicts");
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
@@ -66,11 +51,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
 
     /// <summary>Emits scalar-style redacted passthrough (replay desired onto current).</summary>
     internal static string[] ScalarPassthrough(SparseMemberModel member, string esc) =>
-        [
-            "__rh" + member.Id + " = true;",
-            "__rb" + member.Id + " = __cur." + esc + ";",
-            "__ra" + member.Id + " = " + AfterField(member) + ";",
-        ];
+        ["__rh" + member.Id + " = true;", "__rb" + member.Id + " = __cur." + esc + ";", "__ra" + member.Id + " = " + AfterField(member) + ";"];
 
     /// <summary>Emits one presence-aware reconciler attempt with no-op normalization.</summary>
     internal static void AppendReconcilerAttempt(
@@ -86,9 +67,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
     )
     {
         string Box(string expression) =>
-            optionalBoxType is null
-                ? "__SparseBox(" + expression + ")"
-                : optionalBoxType + ".ToObject(" + expression + ")";
+            optionalBoxType is null ? "__SparseBox(" + expression + ")" : optionalBoxType + ".ToObject(" + expression + ")";
 
         code.AppendLine(
             "if ("
@@ -166,9 +145,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
     {
         var id = member.Id;
         string Box(string expression) =>
-            optionalBoxType is null
-                ? "__SparseBox(" + expression + ")"
-                : optionalBoxType + ".ToObject(" + expression + ")";
+            optionalBoxType is null ? "__SparseBox(" + expression + ")" : optionalBoxType + ".ToObject(" + expression + ")";
 
         if (scalarRebaseType is { Length: > 0 })
         {
@@ -220,16 +197,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         }
 
         code.AppendLine(
-            "if (__mode"
-                + " == "
-                + modeType
-                + ".PreferIncoming && !Fragment.__SparseEqual_"
-                + id
-                + "(__des"
-                + id
-                + ", __curM"
-                + id
-                + "))"
+            "if (__mode" + " == " + modeType + ".PreferIncoming && !Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))"
         );
         code.OpenBlock();
         code.AppendLine("__rh" + id + " = true;");
@@ -237,16 +205,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         code.AppendLine("__ra" + id + " = __des" + id + ";");
         code.CloseBlock();
         code.AppendLine(
-            "else if (__mode"
-                + " != "
-                + modeType
-                + ".PreferCurrent && Fragment.__SparseEqual_"
-                + id
-                + "(__base"
-                + id
-                + ", __curM"
-                + id
-                + "))"
+            "else if (__mode" + " != " + modeType + ".PreferCurrent && Fragment.__SparseEqual_" + id + "(__base" + id + ", __curM" + id + "))"
         );
         code.OpenBlock();
         code.AppendLine("__rh" + id + " = true;");
@@ -254,16 +213,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         code.AppendLine("__ra" + id + " = __des" + id + ";");
         code.CloseBlock();
         code.AppendLine(
-            "else if (__mode"
-                + " != "
-                + modeType
-                + ".PreferCurrent && !Fragment.__SparseEqual_"
-                + id
-                + "(__des"
-                + id
-                + ", __curM"
-                + id
-                + "))"
+            "else if (__mode" + " != " + modeType + ".PreferCurrent && !Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))"
         );
         code.OpenBlock();
         code.AppendLine(
@@ -308,33 +258,18 @@ internal static class SparseChangeSetMemberRebaseEmitter
             member.MergeMode == SparseMergeModes.Append
                 ? dialect.ConflictKindType + ".CollectionAppend"
                 : dialect.ConflictKindType + ".CollectionSetUnion";
-        var isSet =
-            member.MergeMode == SparseMergeModes.SetUnion
-            && member.Collection.CloneKind == SparseCloneCollectionKind.Set;
+        var isSet = member.MergeMode == SparseMergeModes.SetUnion && member.Collection.CloneKind == SparseCloneCollectionKind.Set;
         var isTypedSequence =
             !isSet
-            && member.Collection.CloneKind
-                is SparseCloneCollectionKind.Array
-                    or SparseCloneCollectionKind.List
+            && member.Collection.CloneKind is SparseCloneCollectionKind.Array or SparseCloneCollectionKind.List
             && member.Collection.ElementType.UsesDefaultScalarEquality;
-        AppendRedactedGuard(
-            code,
-            member,
-            lit,
-            runtime,
-            conflict,
-            dialect,
-            HasField(member),
-            ScalarPassthrough(member, esc)
-        );
+        AppendRedactedGuard(code, member, lit, runtime, conflict, dialect, HasField(member), ScalarPassthrough(member, esc));
         code.AppendLine("if (" + HasField(member) + " && !__red" + id + ")");
         code.OpenBlock();
         code.AppendLine("var __base" + id + " = " + BeforeField(member) + ";");
         code.AppendLine("var __des" + id + " = " + AfterField(member) + ";");
         code.AppendLine("var __curM" + id + " = __cur." + esc + ";");
-        code.AppendLine(
-            "if (Fragment.__SparseEqual_" + id + "(__base" + id + ", __curM" + id + "))"
-        );
+        code.AppendLine("if (Fragment.__SparseEqual_" + id + "(__base" + id + ", __curM" + id + "))");
         code.OpenBlock();
         code.AppendLine("__rh" + id + " = true;");
         code.AppendLine("__rb" + id + " = __curM" + id + ";");
@@ -384,19 +319,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
         }
         else if (isTypedSequence)
         {
-            var typedMethod =
-                member.MergeMode == SparseMergeModes.Append
-                    ? "TryRebaseSequenceAppend"
-                    : "TryRebaseSequenceSetUnion";
+            var typedMethod = member.MergeMode == SparseMergeModes.Append ? "TryRebaseSequenceAppend" : "TryRebaseSequenceSetUnion";
             if (member.Collection.CloneKind == SparseCloneCollectionKind.Array)
             {
                 typedMethod += "Array";
             }
 
-            var boxedMethod =
-                member.MergeMode == SparseMergeModes.Append
-                    ? "TryRebaseAppend"
-                    : "TryRebaseSetUnion";
+            var boxedMethod = member.MergeMode == SparseMergeModes.Append ? "TryRebaseAppend" : "TryRebaseSetUnion";
             var readOnly = "global::System.Collections.Generic.IReadOnlyList<" + elementType + ">";
             var list = "global::System.Collections.Generic.List<" + elementType + ">";
             string NativeInput(string state, string variable) =>
@@ -501,10 +430,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         }
         else
         {
-            var boxedMethod =
-                member.MergeMode == SparseMergeModes.Append
-                    ? "TryRebaseAppend"
-                    : "TryRebaseSetUnion";
+            var boxedMethod = member.MergeMode == SparseMergeModes.Append ? "TryRebaseAppend" : "TryRebaseSetUnion";
             code.AppendLine(
                 "var __bb"
                     + id
@@ -556,9 +482,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         code.AppendLine("if (__ok" + id + ")");
         code.OpenBlock();
         code.AppendLine(opt + " __rebOpt" + id + " = " + opt + ".Present(__rebuilt" + id + ");");
-        code.AppendLine(
-            "if (!Fragment.__SparseEqual_" + id + "(__curM" + id + ", __rebOpt" + id + "))"
-        );
+        code.AppendLine("if (!Fragment.__SparseEqual_" + id + "(__curM" + id + ", __rebOpt" + id + "))");
         code.OpenBlock();
         code.AppendLine("__rh" + id + " = true;");
         code.AppendLine("__rb" + id + " = __curM" + id + ";");
@@ -586,9 +510,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         );
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine(
-            "else if (!Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))"
-        );
+        code.AppendLine("else if (!Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))");
         code.OpenBlock();
         code.AppendLine(
             "__conflicts.Add(new "

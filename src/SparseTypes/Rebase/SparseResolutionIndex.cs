@@ -22,10 +22,7 @@ internal readonly record struct SparseResolutionDecision
     /// <summary>Creates an effective decision.</summary>
     /// <param name="kind">The decision kind.</param>
     /// <param name="customValue">The presence-aware value for custom decisions.</param>
-    public SparseResolutionDecision(
-        SparseResolutionDecisionKind kind,
-        Optional<object?> customValue
-    )
+    public SparseResolutionDecision(SparseResolutionDecisionKind kind, Optional<object?> customValue)
     {
         Kind = kind;
         CustomValue = customValue;
@@ -58,8 +55,7 @@ internal sealed class SparseResolutionIndex
 
     private Dictionary<Type, Node>? _decisionRoots;
 
-    internal SparseResolutionIndex(IReadOnlyList<SparseConflict> conflicts) =>
-        _conflicts = conflicts;
+    internal SparseResolutionIndex(IReadOnlyList<SparseConflict> conflicts) => _conflicts = conflicts;
 
     /// <summary>Gets the number of explicit path decisions stored.</summary>
     internal int DecisionCount => _exact.Count;
@@ -94,9 +90,7 @@ internal sealed class SparseResolutionIndex
     {
         EnsureConflictGraph();
         var node = Descend(_conflictRoots!, path, out var conflictAbove);
-        return conflictAbove
-            || node is not null
-                && (node.Conflict is not null || node.SubtreeConflicts - node.OwnConflicts > 0);
+        return conflictAbove || node is not null && (node.Conflict is not null || node.SubtreeConflicts - node.OwnConflicts > 0);
     }
 
     /// <summary>Finds the deepest decision covering <paramref name="path"/>.</summary>
@@ -118,10 +112,7 @@ internal sealed class SparseResolutionIndex
         var segments = path.Segments;
         for (var depth = 0; depth < segments.Count; depth++)
         {
-            if (
-                node.Children is null
-                || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out node!)
-            )
+            if (node.Children is null || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out node!))
             {
                 return nearest;
             }
@@ -169,11 +160,7 @@ internal sealed class SparseResolutionIndex
 
         // The trie always mirrors exact registrations; a missing node only
         // guards against inconsistent reuse.
-        if (
-            _decisionRoots is not null
-            && _decisionRoots.TryGetValue(path.RootType, out var node)
-            && DescendDecisions(node, path) is Node target
-        )
+        if (_decisionRoots is not null && _decisionRoots.TryGetValue(path.RootType, out var node) && DescendDecisions(node, path) is Node target)
         {
             target.HasDecision = false;
             target.Decision = null;
@@ -190,10 +177,7 @@ internal sealed class SparseResolutionIndex
         var segments = path.Segments;
         for (var depth = 0; depth < segments.Count; depth++)
         {
-            if (
-                node.Children is null
-                || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out var child)
-            )
+            if (node.Children is null || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out var child))
             {
                 return null;
             }
@@ -279,11 +263,7 @@ internal sealed class SparseResolutionIndex
     /// <param name="roots">The root nodes to search.</param>
     /// <param name="path">The query path.</param>
     /// <param name="conflictAbove">True when a visited ancestor node holds a conflict.</param>
-    private static Node? Descend(
-        Dictionary<Type, Node> roots,
-        SparsePath path,
-        out bool conflictAbove
-    )
+    private static Node? Descend(Dictionary<Type, Node> roots, SparsePath path, out bool conflictAbove)
     {
         conflictAbove = false;
         if (!roots.TryGetValue(path.RootType, out var node))
@@ -301,10 +281,7 @@ internal sealed class SparseResolutionIndex
                 conflictAbove = true;
             }
 
-            if (
-                node.Children is null
-                || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out node!)
-            )
+            if (node.Children is null || !node.Children.TryGetValue(new SegmentSlot(segments[depth]), out node!))
             {
                 return null;
             }
@@ -379,11 +356,7 @@ internal sealed class SparseResolutionIndex
 
             return Kind switch
             {
-                SparsePathSegmentKind.Member => string.Equals(
-                    Name,
-                    other.Name,
-                    StringComparison.Ordinal
-                ),
+                SparsePathSegmentKind.Member => string.Equals(Name, other.Name, StringComparison.Ordinal),
                 SparsePathSegmentKind.Index => Index == other.Index,
                 _ => KeyType == other.KeyType && Equals(Key, other.Key),
             };
@@ -397,12 +370,9 @@ internal sealed class SparseResolutionIndex
             {
                 return Kind switch
                 {
-                    SparsePathSegmentKind.Member => ((int)Kind * 397)
-                        ^ StringComparer.Ordinal.GetHashCode(Name),
+                    SparsePathSegmentKind.Member => ((int)Kind * 397) ^ StringComparer.Ordinal.GetHashCode(Name),
                     SparsePathSegmentKind.Index => ((int)Kind * 397) ^ Index,
-                    _ => ((int)Kind * 397)
-                        ^ (KeyType?.GetHashCode() ?? 0)
-                        ^ (Key?.GetHashCode() ?? 0),
+                    _ => ((int)Kind * 397) ^ (KeyType?.GetHashCode() ?? 0) ^ (Key?.GetHashCode() ?? 0),
                 };
             }
         }

@@ -8,20 +8,12 @@ namespace SparseTypes.Generator;
 // scoped lambdas.
 internal static class SparseEntityMapperConfigureAnalysis
 {
-    internal static bool TryFindParameterlessConfigure(
-        INamedTypeSymbol mapper,
-        out IMethodSymbol? configure
-    )
+    internal static bool TryFindParameterlessConfigure(INamedTypeSymbol mapper, out IMethodSymbol? configure)
     {
         configure = null;
         foreach (var candidate in mapper.GetMembers("Configure").OfType<IMethodSymbol>())
         {
-            if (
-                !candidate.IsStatic
-                && candidate.Parameters.Length == 0
-                && candidate.TypeParameters.Length == 0
-                && candidate.ReturnsVoid
-            )
+            if (!candidate.IsStatic && candidate.Parameters.Length == 0 && candidate.TypeParameters.Length == 0 && candidate.ReturnsVoid)
             {
                 if (configure is not null)
                 {
@@ -35,9 +27,7 @@ internal static class SparseEntityMapperConfigureAnalysis
         return configure is not null;
     }
 
-    internal static HashSet<(string Scope, string Member)>? TryCollectCoveredMembers(
-        INamedTypeSymbol mapper
-    )
+    internal static HashSet<(string Scope, string Member)>? TryCollectCoveredMembers(INamedTypeSymbol mapper)
     {
         var supported = mapper
             .GetMembers("Configure")
@@ -49,19 +39,13 @@ internal static class SparseEntityMapperConfigureAnalysis
             return [];
         }
 
-        if (
-            supported.Length != 1
-            || supported[0].TypeParameters.Length != 0
-            || !supported[0].ReturnsVoid
-        )
+        if (supported.Length != 1 || supported[0].TypeParameters.Length != 0 || !supported[0].ReturnsVoid)
         {
             return null;
         }
 
         var configure = supported[0];
-        var declaration =
-            configure.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax()
-            as MethodDeclarationSyntax;
+        var declaration = configure.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() as MethodDeclarationSyntax;
         if (declaration is null)
         {
             return null;
@@ -83,10 +67,7 @@ internal static class SparseEntityMapperConfigureAnalysis
         }
 
         var covered = new HashSet<(string Scope, string Member)>();
-        var vars = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Map"] = string.Empty,
-        };
+        var vars = new Dictionary<string, string>(StringComparer.Ordinal) { ["Map"] = string.Empty };
         return ProcessConfigureStatements(statements, vars, covered) ? covered : null;
     }
 
@@ -99,11 +80,7 @@ internal static class SparseEntityMapperConfigureAnalysis
         foreach (var statement in statements)
         {
             if (
-                statement
-                    is not ExpressionStatementSyntax
-                    {
-                        Expression: InvocationExpressionSyntax invocation
-                    }
+                statement is not ExpressionStatementSyntax { Expression: InvocationExpressionSyntax invocation }
                 || !ProcessConfigureInvocation(invocation, vars, covered)
             )
             {
@@ -131,11 +108,7 @@ internal static class SparseEntityMapperConfigureAnalysis
             case "Member":
                 // Only a converter-bearing Member resolves a member: a
                 // two-argument or policy-only Member cannot supply a
-                if (
-                    arguments.Count > 0
-                    && HasConverterArgument(arguments)
-                    && TrySingleMember(arguments[0].Expression, out var member)
-                )
+                if (arguments.Count > 0 && HasConverterArgument(arguments) && TrySingleMember(arguments[0].Expression, out var member))
                 {
                     covered.Add((scope, member));
                 }
@@ -143,10 +116,7 @@ internal static class SparseEntityMapperConfigureAnalysis
                 return true;
             case "Write":
             case "Ignore":
-                if (
-                    arguments.Count > 0
-                    && TrySingleMember(arguments[0].Expression, out var written)
-                )
+                if (arguments.Count > 0 && TrySingleMember(arguments[0].Expression, out var written))
                 {
                     covered.Add((scope, written));
                 }
@@ -158,50 +128,27 @@ internal static class SparseEntityMapperConfigureAnalysis
                 return true;
             case "Object":
             case "Collection":
-                if (
-                    arguments.Count == 0
-                    || !TrySingleMember(arguments[0].Expression, out var childMember)
-                )
+                if (arguments.Count == 0 || !TrySingleMember(arguments[0].Expression, out var childMember))
                 {
                     return true;
                 }
 
                 covered.Add((scope, childMember));
-                if (
-                    arguments.Count < 3
-                    || !TryLambdaStatements(
-                        arguments[2].Expression,
-                        out var parameter,
-                        out var statements
-                    )
-                )
+                if (arguments.Count < 3 || !TryLambdaStatements(arguments[2].Expression, out var parameter, out var statements))
                 {
                     return arguments.Count < 3;
                 }
 
                 var childScope = scope.Length == 0 ? childMember : scope + "." + childMember;
-                var nested = new Dictionary<string, string>(vars, StringComparer.Ordinal)
-                {
-                    [parameter] = childScope,
-                };
+                var nested = new Dictionary<string, string>(vars, StringComparer.Ordinal) { [parameter] = childScope };
                 return ProcessConfigureStatements(statements, nested, covered);
             case "Element":
-                if (
-                    arguments.Count == 0
-                    || !TryLambdaStatements(
-                        arguments[0].Expression,
-                        out var elementParameter,
-                        out var elementStatements
-                    )
-                )
+                if (arguments.Count == 0 || !TryLambdaStatements(arguments[0].Expression, out var elementParameter, out var elementStatements))
                 {
                     return false;
                 }
 
-                var scoped = new Dictionary<string, string>(vars, StringComparer.Ordinal)
-                {
-                    [elementParameter] = scope,
-                };
+                var scoped = new Dictionary<string, string>(vars, StringComparer.Ordinal) { [elementParameter] = scope };
                 return ProcessConfigureStatements(elementStatements, scoped, covered);
             case "MissingDefault":
             case "DeclareCollection":
@@ -223,12 +170,7 @@ internal static class SparseEntityMapperConfigureAnalysis
 
     // Receivers are the generated Map property (Map. or this.Map.) or a nested
     // scope lambda parameter (lines., child.).
-    private static bool TryGetReceiver(
-        InvocationExpressionSyntax invocation,
-        Dictionary<string, string> vars,
-        out string scope,
-        out string method
-    )
+    private static bool TryGetReceiver(InvocationExpressionSyntax invocation, Dictionary<string, string> vars, out string scope, out string method)
     {
         scope = string.Empty;
         method = string.Empty;
@@ -267,11 +209,7 @@ internal static class SparseEntityMapperConfigureAnalysis
     {
         for (var index = 2; index < arguments.Count; index++)
         {
-            if (
-                arguments[index].Expression
-                is SimpleLambdaExpressionSyntax
-                    or ParenthesizedLambdaExpressionSyntax
-            )
+            if (arguments[index].Expression is SimpleLambdaExpressionSyntax or ParenthesizedLambdaExpressionSyntax)
             {
                 return true;
             }
@@ -288,11 +226,7 @@ internal static class SparseEntityMapperConfigureAnalysis
                 is SimpleLambdaExpressionSyntax
                 {
                     Parameter: var token,
-                    Body: MemberAccessExpressionSyntax
-                    {
-                        Expression: IdentifierNameSyntax receiver,
-                        Name: IdentifierNameSyntax name
-                    }
+                    Body: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax receiver, Name: IdentifierNameSyntax name }
                 }
             && receiver.Identifier.Text == token.Identifier.Text
         )
@@ -302,19 +236,14 @@ internal static class SparseEntityMapperConfigureAnalysis
         }
 
         if (
-            expression
-                is ParenthesizedLambdaExpressionSyntax
-                {
-                    ParameterList.Parameters.Count: 1
-                } parenthesized
+            expression is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized
             && parenthesized.Body
                 is MemberAccessExpressionSyntax
                 {
                     Expression: IdentifierNameSyntax parenthesizedReceiver,
                     Name: IdentifierNameSyntax parenthesizedName
                 }
-            && parenthesizedReceiver.Identifier.Text
-                == parenthesized.ParameterList.Parameters[0].Identifier.Text
+            && parenthesizedReceiver.Identifier.Text == parenthesized.ParameterList.Parameters[0].Identifier.Text
         )
         {
             member = parenthesizedName.Identifier.Text;
@@ -324,11 +253,7 @@ internal static class SparseEntityMapperConfigureAnalysis
         return false;
     }
 
-    private static bool TryLambdaStatements(
-        ExpressionSyntax expression,
-        out string parameter,
-        out IReadOnlyList<StatementSyntax> statements
-    )
+    private static bool TryLambdaStatements(ExpressionSyntax expression, out string parameter, out IReadOnlyList<StatementSyntax> statements)
     {
         parameter = string.Empty;
         statements = [];
@@ -350,12 +275,7 @@ internal static class SparseEntityMapperConfigureAnalysis
             return false;
         }
 
-        if (
-            expression is ParenthesizedLambdaExpressionSyntax
-            {
-                ParameterList.Parameters.Count: 1
-            } parenthesized
-        )
+        if (expression is ParenthesizedLambdaExpressionSyntax { ParameterList.Parameters.Count: 1 } parenthesized)
         {
             parameter = parenthesized.ParameterList.Parameters[0].Identifier.Text;
             if (parenthesized.Body is BlockSyntax parenthesizedBlock)

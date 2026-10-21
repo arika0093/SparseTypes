@@ -11,12 +11,7 @@ internal enum SparseJsonCollectionShape
 }
 
 /// <summary>Resolved element and key types for one structural collection value.</summary>
-internal sealed record SparseJsonCollectionModel(
-    SparseJsonCollectionShape Shape,
-    string ElementName,
-    bool ElementNullable,
-    string KeyName
-);
+internal sealed record SparseJsonCollectionModel(SparseJsonCollectionShape Shape, string ElementName, bool ElementNullable, string KeyName);
 
 /// <summary>Well-known primitive type names with JSON fast paths.</summary>
 internal static class SparseJsonPrimitiveNames
@@ -33,11 +28,7 @@ internal static class SparseJsonCollectionShapes
     /// <param name="member">Owning member.</param>
     /// <param name="valueType">Declared endpoint value type name.</param>
     /// <param name="model">Resolved collection model, or null for the metadata fallback.</param>
-    public static bool TryResolve(
-        SparseMemberModel member,
-        string valueType,
-        out SparseJsonCollectionModel? model
-    )
+    public static bool TryResolve(SparseMemberModel member, string valueType, out SparseJsonCollectionModel? model)
     {
         model = null;
         if (SparseChangeSetBasicsEmitter.IsNested(member))
@@ -107,9 +98,7 @@ internal static class SparseJsonCollectionShapes
                 return false;
             }
 
-            var shape = IsSetType(valueType)
-                ? SparseJsonCollectionShape.Set
-                : SparseJsonCollectionShape.Sequence;
+            var shape = IsSetType(valueType) ? SparseJsonCollectionShape.Set : SparseJsonCollectionShape.Sequence;
             model = new SparseJsonCollectionModel(
                 shape,
                 NormalizePrimitive(element.NonNullableName),
@@ -169,10 +158,7 @@ internal static class SparseJsonCollectionShapes
         };
 
     private static bool HasPrefix(string valueType, string localName) =>
-        valueType.StartsWith(
-            "global::System.Collections.Generic." + localName + "<",
-            System.StringComparison.Ordinal
-        );
+        valueType.StartsWith("global::System.Collections.Generic." + localName + "<", System.StringComparison.Ordinal);
 
     private static bool IsSequenceType(string valueType) =>
         HasPrefix(valueType, "List")
@@ -180,13 +166,10 @@ internal static class SparseJsonCollectionShapes
         || HasPrefix(valueType, "IReadOnlyCollection")
         || HasPrefix(valueType, "IEnumerable");
 
-    private static bool IsSetType(string valueType) =>
-        HasPrefix(valueType, "HashSet") || HasPrefix(valueType, "ISet");
+    private static bool IsSetType(string valueType) => HasPrefix(valueType, "HashSet") || HasPrefix(valueType, "ISet");
 
     private static bool IsMapType(string valueType) =>
-        HasPrefix(valueType, "Dictionary")
-        || HasPrefix(valueType, "IDictionary")
-        || HasPrefix(valueType, "IReadOnlyDictionary");
+        HasPrefix(valueType, "Dictionary") || HasPrefix(valueType, "IDictionary") || HasPrefix(valueType, "IReadOnlyDictionary");
 
     private static bool IsSupportedKey(string keyName) =>
         keyName switch
@@ -222,10 +205,7 @@ internal static class SparseJsonCollectionShapes
         var keyTypeName = collection.KeyName;
         // Nullable value-type elements need a nullable concrete container so
         // explicit nulls survive the round-trip instead of defaulting.
-        var storageElement =
-            elementNullable && !element.EndsWith("?", System.StringComparison.Ordinal)
-                ? element + "?"
-                : element;
+        var storageElement = elementNullable && !element.EndsWith("?", System.StringComparison.Ordinal) ? element + "?" : element;
         code.AppendLine(
             "private static "
                 + declaredType
@@ -236,41 +216,21 @@ internal static class SparseJsonCollectionShapes
         code.OpenBlock();
         if (collection.Shape == SparseJsonCollectionShape.Map)
         {
-            code.AppendLine(
-                "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;"
-            );
+            code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;");
             code.AppendLine(
                 "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A collection must be an object.\");"
             );
-            code.AppendLine(
-                "var map = new global::System.Collections.Generic.Dictionary<"
-                    + keyTypeName
-                    + ", "
-                    + storageElement
-                    + ">();"
-            );
+            code.AppendLine("var map = new global::System.Collections.Generic.Dictionary<" + keyTypeName + ", " + storageElement + ">();");
             code.AppendLine("while (reader.Read())");
             code.OpenBlock();
-            code.AppendLine(
-                "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
-            );
+            code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
             code.AppendLine(
                 "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed collection.\");"
             );
+            code.AppendLine("var name = reader.GetString() ?? throw new global::System.Text.Json.JsonException(\"Malformed collection key.\");");
+            code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed collection.\");");
             code.AppendLine(
-                "var name = reader.GetString() ?? throw new global::System.Text.Json.JsonException(\"Malformed collection key.\");"
-            );
-            code.AppendLine(
-                "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed collection.\");"
-            );
-            code.AppendLine(
-                "map.Add("
-                    + "ParseMapKey<"
-                    + keyTypeName
-                    + ">(name)"
-                    + ", "
-                    + ValueReadExpression(element, elementNullable, typeInfoHelper)
-                    + ");"
+                "map.Add(" + "ParseMapKey<" + keyTypeName + ">(name)" + ", " + ValueReadExpression(element, elementNullable, typeInfoHelper) + ");"
             );
             code.CloseBlock();
             code.AppendLine("return (" + declaredType + ")(object)map;");
@@ -281,21 +241,15 @@ internal static class SparseJsonCollectionShapes
                 collection.Shape == SparseJsonCollectionShape.Set
                     ? "global::System.Collections.Generic.HashSet<" + storageElement + ">"
                     : "global::System.Collections.Generic.List<" + storageElement + ">";
-            code.AppendLine(
-                "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;"
-            );
+            code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;");
             code.AppendLine(
                 "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"A collection must be an array.\");"
             );
             code.AppendLine("var list = new " + concrete + "();");
             code.AppendLine("while (reader.Read())");
             code.OpenBlock();
-            code.AppendLine(
-                "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
-            );
-            code.AppendLine(
-                "list.Add(" + ValueReadExpression(element, elementNullable, typeInfoHelper) + ");"
-            );
+            code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
+            code.AppendLine("list.Add(" + ValueReadExpression(element, elementNullable, typeInfoHelper) + ");");
             code.CloseBlock();
             code.AppendLine("return (" + declaredType + ")(object)list;");
         }
@@ -317,12 +271,8 @@ internal static class SparseJsonCollectionShapes
             code.AppendLine("writer.WriteStartObject();");
             code.AppendLine("foreach (var entry in value)");
             code.OpenBlock();
-            code.AppendLine(
-                "writer.WritePropertyName(FormatMapKey<" + keyTypeName + ">(entry.Key));"
-            );
-            code.AppendLine(
-                ValueWriteStatement(element, "entry.Value", typeInfoHelper, elementNullable)
-            );
+            code.AppendLine("writer.WritePropertyName(FormatMapKey<" + keyTypeName + ">(entry.Key));");
+            code.AppendLine(ValueWriteStatement(element, "entry.Value", typeInfoHelper, elementNullable));
             code.CloseBlock();
             code.AppendLine("writer.WriteEndObject();");
         }
@@ -331,9 +281,7 @@ internal static class SparseJsonCollectionShapes
             code.AppendLine("writer.WriteStartArray();");
             code.AppendLine("foreach (var element in value)");
             code.OpenBlock();
-            code.AppendLine(
-                ValueWriteStatement(element, "element", typeInfoHelper, elementNullable)
-            );
+            code.AppendLine(ValueWriteStatement(element, "element", typeInfoHelper, elementNullable));
             code.CloseBlock();
             code.AppendLine("writer.WriteEndArray();");
         }
@@ -358,20 +306,13 @@ internal static class SparseJsonCollectionShapes
             + element
             + ">(options))!)";
         return nullable
-            ? "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : "
-                + scalarOrMetadata
-                + ")"
+            ? "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : " + scalarOrMetadata + ")"
             : "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? throw new global::System.Text.Json.JsonException(\"Malformed collection value.\") : "
                 + scalarOrMetadata
                 + ")";
     }
 
-    private static string ValueWriteStatement(
-        string element,
-        string source,
-        string typeInfoHelper,
-        bool nullable
-    )
+    private static string ValueWriteStatement(string element, string source, string typeInfoHelper, bool nullable)
     {
         var scalarOrMetadata =
             "if (!TryWriteScalar(writer, "
@@ -383,8 +324,6 @@ internal static class SparseJsonCollectionShapes
             + "<"
             + element
             + ">(options));";
-        return nullable
-            ? "if (" + source + " is null) writer.WriteNullValue(); else " + scalarOrMetadata
-            : scalarOrMetadata;
+        return nullable ? "if (" + source + " is null) writer.WriteNullValue(); else " + scalarOrMetadata : scalarOrMetadata;
     }
 }

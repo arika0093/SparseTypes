@@ -8,8 +8,7 @@ namespace SparseTypes;
 /// <typeparam name="TChildPaths">The generated path builder rooted at the child model.</typeparam>
 /// <typeparam name="TChildSession">The generated edit-session type for the child model.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ISparseChildEditPath<TParent, TChild, TChildPaths, TChildSession>
-    : ISparseTypedPath<TParent, TChild>
+public interface ISparseChildEditPath<TParent, TChild, TChildPaths, TChildSession> : ISparseTypedPath<TParent, TChild>
     where TChild : class
     where TChildPaths : ISparseTypedPath<TChild, TChild>
     where TChildSession : ISparseEditSessionWithPaths<TChild, TChildPaths>

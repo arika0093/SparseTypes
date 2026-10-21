@@ -13,13 +13,7 @@ public abstract class FragmentRebasePolicy<T>
 
     /// <summary>Reapplies an edit based on an earlier sparse state to the current sparse state.</summary>
     /// <remarks>Presence is significant: <see cref="Optional{T}.Missing"/> never equals a present value.</remarks>
-    public abstract bool TryRebase(
-        Optional<T> editBase,
-        Optional<T> desired,
-        Optional<T> current,
-        out Optional<T> rebased,
-        out string? reason
-    );
+    public abstract bool TryRebase(Optional<T> editBase, Optional<T> desired, Optional<T> current, out Optional<T> rebased, out string? reason);
 
     /// <summary>Creates a policy that conflicts unless the edit replays cleanly.</summary>
     public static FragmentRebasePolicy<T> FailOnConflict(IEqualityComparer<T>? comparer = null) =>
@@ -35,11 +29,7 @@ public abstract class FragmentRebasePolicy<T>
     public static FragmentRebasePolicy<T> PreferCurrent(IEqualityComparer<T>? comparer = null) =>
         new PreferCurrentPolicy(comparer ?? EqualityComparer<T>.Default);
 
-    private static bool OptionalsEqual(
-        IEqualityComparer<T> comparer,
-        Optional<T> left,
-        Optional<T> right
-    )
+    private static bool OptionalsEqual(IEqualityComparer<T> comparer, Optional<T> left, Optional<T> right)
     {
         if (!left.IsPresent)
         {
@@ -54,18 +44,11 @@ public abstract class FragmentRebasePolicy<T>
         return comparer.Equals(left.Value!, right.Value!);
     }
 
-    private sealed class FailOnConflictPolicy(IEqualityComparer<T> comparer)
-        : FragmentRebasePolicy<T>
+    private sealed class FailOnConflictPolicy(IEqualityComparer<T> comparer) : FragmentRebasePolicy<T>
     {
         public override bool AreEqual(T? left, T? right) => comparer.Equals(left!, right!);
 
-        public override bool TryRebase(
-            Optional<T> editBase,
-            Optional<T> desired,
-            Optional<T> current,
-            out Optional<T> rebased,
-            out string? reason
-        )
+        public override bool TryRebase(Optional<T> editBase, Optional<T> desired, Optional<T> current, out Optional<T> rebased, out string? reason)
         {
             if (OptionalsEqual(comparer, desired, editBase))
             {
@@ -74,10 +57,7 @@ public abstract class FragmentRebasePolicy<T>
                 return true;
             }
 
-            if (
-                OptionalsEqual(comparer, current, editBase)
-                || OptionalsEqual(comparer, current, desired)
-            )
+            if (OptionalsEqual(comparer, current, editBase) || OptionalsEqual(comparer, current, desired))
             {
                 rebased = desired;
                 reason = null;
@@ -90,18 +70,11 @@ public abstract class FragmentRebasePolicy<T>
         }
     }
 
-    private sealed class PreferIncomingPolicy(IEqualityComparer<T> comparer)
-        : FragmentRebasePolicy<T>
+    private sealed class PreferIncomingPolicy(IEqualityComparer<T> comparer) : FragmentRebasePolicy<T>
     {
         public override bool AreEqual(T? left, T? right) => comparer.Equals(left!, right!);
 
-        public override bool TryRebase(
-            Optional<T> editBase,
-            Optional<T> desired,
-            Optional<T> current,
-            out Optional<T> rebased,
-            out string? reason
-        )
+        public override bool TryRebase(Optional<T> editBase, Optional<T> desired, Optional<T> current, out Optional<T> rebased, out string? reason)
         {
             _ = editBase;
             rebased = OptionalsEqual(comparer, desired, current) ? current : desired;
@@ -110,18 +83,11 @@ public abstract class FragmentRebasePolicy<T>
         }
     }
 
-    private sealed class PreferCurrentPolicy(IEqualityComparer<T> comparer)
-        : FragmentRebasePolicy<T>
+    private sealed class PreferCurrentPolicy(IEqualityComparer<T> comparer) : FragmentRebasePolicy<T>
     {
         public override bool AreEqual(T? left, T? right) => comparer.Equals(left!, right!);
 
-        public override bool TryRebase(
-            Optional<T> editBase,
-            Optional<T> desired,
-            Optional<T> current,
-            out Optional<T> rebased,
-            out string? reason
-        )
+        public override bool TryRebase(Optional<T> editBase, Optional<T> desired, Optional<T> current, out Optional<T> rebased, out string? reason)
         {
             _ = editBase;
             _ = desired;

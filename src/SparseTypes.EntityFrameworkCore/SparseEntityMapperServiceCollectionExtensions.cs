@@ -24,21 +24,14 @@ public static class SparseEntityMapperServiceCollectionExtensions
     /// <exception cref="InvalidOperationException">
     /// More than one selected mapping handles the same entity and DTO types.
     /// </exception>
-    public static IServiceCollection AddSparseEntityMappers(
-        this IServiceCollection services,
-        params Type[] mappingTypes
-    )
+    public static IServiceCollection AddSparseEntityMappers(this IServiceCollection services, params Type[] mappingTypes)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(mappingTypes);
 
         var registrations = GeneratedDefaultsRegistry.GetRegistrations();
-        var byMapperType = registrations.ToDictionary(static registration =>
-            registration.MapperType
-        );
-        var selected = new List<GeneratedDefaultsRegistry.Registration>(
-            mappingTypes.Length == 0 ? registrations.Count : mappingTypes.Length
-        );
+        var byMapperType = registrations.ToDictionary(static registration => registration.MapperType);
+        var selected = new List<GeneratedDefaultsRegistry.Registration>(mappingTypes.Length == 0 ? registrations.Count : mappingTypes.Length);
         if (mappingTypes.Length == 0)
         {
             selected.AddRange(registrations);
@@ -67,11 +60,7 @@ public static class SparseEntityMapperServiceCollectionExtensions
         }
 
         var pairs = new HashSet<(Type EntityType, Type DtoType)>();
-        if (
-            selected.Any(registration =>
-                !pairs.Add((registration.EntityType, registration.DtoType))
-            )
-        )
+        if (selected.Any(registration => !pairs.Add((registration.EntityType, registration.DtoType))))
         {
             throw new InvalidOperationException(
                 "More than one selected mapping handles the same entity and DTO types. Register one mapping type for each entity/DTO pair."
@@ -81,12 +70,7 @@ public static class SparseEntityMapperServiceCollectionExtensions
         selected.ForEach(registration =>
         {
             registration.AddServices(services);
-            services.AddSingleton(
-                new SparseEntityMapperValidationRegistration(
-                    registration.EntityType,
-                    registration.ValidatePlan
-                )
-            );
+            services.AddSingleton(new SparseEntityMapperValidationRegistration(registration.EntityType, registration.ValidatePlan));
         });
 
         return services;
@@ -108,9 +92,7 @@ public static class SparseEntityMapperServiceCollectionExtensions
         foreach (
             var registration in scopedProvider
                 .GetServices<SparseEntityMapperValidationRegistration>()
-                .Where(registration =>
-                    context.Model.FindEntityType(registration.EntityType) is not null
-                )
+                .Where(registration => context.Model.FindEntityType(registration.EntityType) is not null)
         )
         {
             registration.ValidatePlan(scopedProvider, context);
@@ -126,17 +108,13 @@ public static class SparseEntityMapperServiceCollectionExtensions
             ServiceDescriptor.Singleton(
                 typeof(ISparseEntityMapper<TEntity, TDto>),
                 serviceProvider => new SparseEntityMapperService<TEntity, TDto>(
-                    (IEntityModelMapping<TEntity, TDto>)
-                        serviceProvider.GetRequiredService(mapperType)
+                    (IEntityModelMapping<TEntity, TDto>)serviceProvider.GetRequiredService(mapperType)
                 )
             )
         );
     }
 
-    internal static void ValidatePlan<TEntity, TDto>(
-        IServiceProvider serviceProvider,
-        DbContext context
-    )
+    internal static void ValidatePlan<TEntity, TDto>(IServiceProvider serviceProvider, DbContext context)
         where TEntity : class
         where TDto : class
     {
@@ -145,7 +123,4 @@ public static class SparseEntityMapperServiceCollectionExtensions
     }
 }
 
-internal sealed record SparseEntityMapperValidationRegistration(
-    Type EntityType,
-    Action<IServiceProvider, DbContext> ValidatePlan
-);
+internal sealed record SparseEntityMapperValidationRegistration(Type EntityType, Action<IServiceProvider, DbContext> ValidatePlan);

@@ -27,10 +27,7 @@ internal static class SparseReadOnlyViewModelDiscovery
             cancellationToken.ThrowIfCancellationRequested();
             var type = pending.Pop();
             var collection = SparseCollectionAnalyzer.GetCollectionInfo(type);
-            if (
-                collection.Kind != SparseCollectionKind.Unsupported
-                || collection.CloneKind != SparseCloneCollectionKind.Unsupported
-            )
+            if (collection.Kind != SparseCollectionKind.Unsupported || collection.CloneKind != SparseCloneCollectionKind.Unsupported)
             {
                 if (collection.ElementType is not null)
                 {
@@ -54,13 +51,7 @@ internal static class SparseReadOnlyViewModelDiscovery
             if (key == SparseWellKnownNames.OpaqueReadOnlyViewKey)
             {
                 result.Add(
-                    new SparseReadOnlyViewModel(
-                        key,
-                        "OpaqueValue",
-                        "global::System.Object?",
-                        ImmutableArray<SparseMemberModel>.Empty,
-                        IsOpaque: true
-                    )
+                    new SparseReadOnlyViewModel(key, "OpaqueValue", "global::System.Object?", ImmutableArray<SparseMemberModel>.Empty, IsOpaque: true)
                 );
                 continue;
             }
@@ -70,9 +61,7 @@ internal static class SparseReadOnlyViewModelDiscovery
                 continue;
             }
 
-            var properties = SparseModelDiscovery
-                .GetReadableProperties(named, config, cancellationToken)
-                .ToImmutableArray();
+            var properties = SparseModelDiscovery.GetReadableProperties(named, config, cancellationToken).ToImmutableArray();
             var isOpaque = properties.IsEmpty || !named.IsReferenceType || named.IsRefLikeType;
             var viewMembers = isOpaque
                 ? ImmutableArray<SparseMemberModel>.Empty
@@ -96,11 +85,7 @@ internal static class SparseReadOnlyViewModelDiscovery
         return result.ToImmutable();
     }
 
-    internal static string? GetPocoReadOnlyViewKey(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static string? GetPocoReadOnlyViewKey(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         if (type.TypeKind == TypeKind.TypeParameter)
         {
@@ -109,10 +94,7 @@ internal static class SparseReadOnlyViewModelDiscovery
 
         if (!type.IsReferenceType)
         {
-            if (
-                SparseModelDiscovery.UsesDefaultScalarEquality(type)
-                || type is not INamedTypeSymbol { TypeKind: TypeKind.Struct } namedStruct
-            )
+            if (SparseModelDiscovery.UsesDefaultScalarEquality(type) || type is not INamedTypeSymbol { TypeKind: TypeKind.Struct } namedStruct)
             {
                 return null;
             }
@@ -120,8 +102,7 @@ internal static class SparseReadOnlyViewModelDiscovery
             var structName = namedStruct
                 .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            return SparseWellKnownNames.ReadOnlyValueViewPrefix
-                + SparseNaming.GetStableTypeHash(structName, cancellationToken);
+            return SparseWellKnownNames.ReadOnlyValueViewPrefix + SparseNaming.GetStableTypeHash(structName, cancellationToken);
         }
 
         if (type.TypeKind == TypeKind.Dynamic || type.SpecialType == SpecialType.System_Object)
@@ -129,10 +110,7 @@ internal static class SparseReadOnlyViewModelDiscovery
             return SparseWellKnownNames.OpaqueReadOnlyViewKey;
         }
 
-        if (
-            type is not INamedTypeSymbol named
-            || named.TypeKind is not (TypeKind.Class or TypeKind.Interface)
-        )
+        if (type is not INamedTypeSymbol named || named.TypeKind is not (TypeKind.Class or TypeKind.Interface))
         {
             return SparseWellKnownNames.OpaqueReadOnlyViewKey;
         }
@@ -147,9 +125,7 @@ internal static class SparseReadOnlyViewModelDiscovery
 
         if (SparseModelDiscovery.IsFrameworkType(named))
         {
-            return SparseModelDiscovery.UsesDefaultScalarEquality(type)
-                ? null
-                : SparseWellKnownNames.OpaqueReadOnlyViewKey;
+            return SparseModelDiscovery.UsesDefaultScalarEquality(type) ? null : SparseWellKnownNames.OpaqueReadOnlyViewKey;
         }
 
         if (!IsPubliclyAccessible(named))
@@ -157,11 +133,8 @@ internal static class SparseReadOnlyViewModelDiscovery
             return SparseWellKnownNames.OpaqueReadOnlyViewKey;
         }
 
-        var typeName = named
-            .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return SparseWellKnownNames.ReadOnlyValueViewPrefix
-            + SparseNaming.GetStableTypeHash(typeName, cancellationToken);
+        var typeName = named.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return SparseWellKnownNames.ReadOnlyValueViewPrefix + SparseNaming.GetStableTypeHash(typeName, cancellationToken);
     }
 
     private static bool IsPubliclyAccessible(INamedTypeSymbol type)

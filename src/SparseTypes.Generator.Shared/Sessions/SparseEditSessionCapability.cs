@@ -104,29 +104,21 @@ internal static class SparseEditSessionCapabilities
     /// <param name="hasSessionModels">Whether any model needs a typed session.</param>
     /// <param name="needsCurrentView">Whether the current-view core is needed.</param>
     /// <returns>The de-duplicated capability set.</returns>
-    public static SparseEditSessionCapability ForCompilation(
-        bool hasSessionModels,
-        bool needsCurrentView
-    )
+    public static SparseEditSessionCapability ForCompilation(bool hasSessionModels, bool needsCurrentView)
     {
         if (!hasSessionModels)
         {
             return SparseEditSessionCapability.None;
         }
 
-        return needsCurrentView
-            ? SparseEditSessionCapability.All
-            : SparseEditSessionCapability.Core;
+        return needsCurrentView ? SparseEditSessionCapability.All : SparseEditSessionCapability.Core;
     }
 
     /// <summary>Validates prerequisites for the requested cores.</summary>
     /// <param name="config">Owning generator configuration.</param>
     /// <param name="capability">Requested capability set.</param>
     /// <returns>Actionable errors, empty when prerequisites hold.</returns>
-    public static ImmutableArray<string> ValidatePrerequisites(
-        SparseGeneratorConfig config,
-        SparseEditSessionCapability capability
-    )
+    public static ImmutableArray<string> ValidatePrerequisites(SparseGeneratorConfig config, SparseEditSessionCapability capability)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         if (capability == SparseEditSessionCapability.None)
@@ -149,11 +141,7 @@ internal static class SparseEditSessionCapabilities
             errors.Add("EditSession cores require SparseGeneratorConfig.PatchDialect.");
         }
 
-        foreach (
-            var error in SparseEditSessionAdapterContract.ValidateAdapterFeatures(
-                config.EffectiveEmissionFeatures
-            )
-        )
+        foreach (var error in SparseEditSessionAdapterContract.ValidateAdapterFeatures(config.EffectiveEmissionFeatures))
         {
             errors.Add(error);
         }
@@ -164,12 +152,10 @@ internal static class SparseEditSessionCapabilities
     /// <summary>Whether the requested set includes the observable-only core.</summary>
     /// <param name="capability">Requested capability set.</param>
     /// <returns>True when the core must be emitted.</returns>
-    public static bool NeedsCore(SparseEditSessionCapability capability) =>
-        (capability & SparseEditSessionCapability.Core) != 0;
+    public static bool NeedsCore(SparseEditSessionCapability capability) => (capability & SparseEditSessionCapability.Core) != 0;
 
     /// <summary>Whether the requested set includes the current-view core.</summary>
     /// <param name="capability">Requested capability set.</param>
     /// <returns>True when the current-view core must be emitted.</returns>
-    public static bool NeedsWithCurrent(SparseEditSessionCapability capability) =>
-        (capability & SparseEditSessionCapability.WithCurrent) != 0;
+    public static bool NeedsWithCurrent(SparseEditSessionCapability capability) => (capability & SparseEditSessionCapability.WithCurrent) != 0;
 }

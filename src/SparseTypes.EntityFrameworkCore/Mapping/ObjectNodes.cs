@@ -13,17 +13,11 @@ internal sealed class WriteNode<TDto, TEntity, TDtoValue> : MemberNode
     private readonly Func<TDto, TDtoValue?> _dtoGetter;
     private readonly Action<TEntity, Optional<TDtoValue?>> _writer;
 
-    public WriteNode(
-        Expression<Func<TDto, TDtoValue?>> dto,
-        Action<TEntity, Optional<TDtoValue?>> writer
-    )
+    public WriteNode(Expression<Func<TDto, TDtoValue?>> dto, Action<TEntity, Optional<TDtoValue?>> writer)
         : base(MemberPath.Parse(dto).SingleName("DTO"))
     {
         ArgumentNullException.ThrowIfNull(writer);
-        var property = typeof(TDto).GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var property = typeof(TDto).GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
         if (property is null || !property.CanRead)
         {
             throw new SparseEntityMappingException(
@@ -75,9 +69,7 @@ internal sealed class WriteNode<TDto, TEntity, TDtoValue> : MemberNode
 
         var entity = (TEntity)state.Entity;
         var after = change.After;
-        Optional<TDtoValue?> value = after.IsPresent
-            ? Optional<TDtoValue?>.Present(after.Value)
-            : Optional<TDtoValue?>.Missing;
+        Optional<TDtoValue?> value = after.IsPresent ? Optional<TDtoValue?>.Present(after.Value) : Optional<TDtoValue?>.Missing;
         if (state.TracksAppliedPaths)
         {
             actions.Add(() =>
@@ -155,10 +147,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         ArgumentNullException.ThrowIfNull(child);
         ArgumentNullException.ThrowIfNull(planFactory);
         var navigationName = MemberPath.Parse(entity).SingleName("entity");
-        var dtoProperty = typeof(TDto).GetProperty(
-            DtoName,
-            BindingFlags.Public | BindingFlags.Instance
-        );
+        var dtoProperty = typeof(TDto).GetProperty(DtoName, BindingFlags.Public | BindingFlags.Instance);
         if (dtoProperty is null || !dtoProperty.CanRead)
         {
             throw new SparseEntityMappingException(
@@ -240,13 +229,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
                 return;
             }
 
-            IntermediateAccess.EnsureLoaded(
-                state.Context,
-                state.Entity,
-                NavigationName,
-                _navigationOwned,
-                state.DisplayPath(DtoName)
-            );
+            IntermediateAccess.EnsureLoaded(state.Context, state.Entity, NavigationName, _navigationOwned, state.DisplayPath(DtoName));
             if (whole is not null && !deeper && TryHandleWholeObject(state, actions, whole))
             {
                 return;
@@ -264,13 +247,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             return;
         }
 
-        IntermediateAccess.EnsureLoaded(
-            state.Context,
-            state.Entity,
-            NavigationName,
-            _navigationOwned,
-            state.DisplayPath(DtoName)
-        );
+        IntermediateAccess.EnsureLoaded(state.Context, state.Entity, NavigationName, _navigationOwned, state.DisplayPath(DtoName));
 
         if (whole is not null && !deeper && whole.After.IsPresent && whole.After.Value is not null)
         {
@@ -335,12 +312,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         });
     }
 
-    public override void CollectIncludes(
-        ISparseChangeSet changes,
-        IncludePathCollector collector,
-        bool writeAll,
-        object? afterSnapshot
-    )
+    public override void CollectIncludes(ISparseChangeSet changes, IncludePathCollector collector, bool writeAll, object? afterSnapshot)
     {
         ISparseChangeSet? child = null;
         SparseTypes.Generated.SparseChangeRecord? whole = null;
@@ -357,16 +329,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
                 return;
             }
 
-            PushObjectPath(
-                collector,
-                () =>
-                    _childPlan.CollectIncludes(
-                        changes,
-                        collector,
-                        writeAll: true,
-                        afterSnapshot: snapshot
-                    )
-            );
+            PushObjectPath(collector, () => _childPlan.CollectIncludes(changes, collector, writeAll: true, afterSnapshot: snapshot));
             return;
         }
 
@@ -374,11 +337,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         foreach (var record in changes.EnumerateChangeRecords())
         {
             var segments = record.Path.Segments;
-            if (
-                segments.Count == 0
-                || segments[0].Kind != SparsePathSegmentKind.Member
-                || segments[0].Name != DtoName
-            )
+            if (segments.Count == 0 || segments[0].Kind != SparsePathSegmentKind.Member || segments[0].Name != DtoName)
             {
                 continue;
             }
@@ -408,41 +367,24 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
                     && snapshot is not null
                 )
                 {
-                    _childPlan.CollectIncludes(
-                        child ?? changes,
-                        collector,
-                        writeAll: true,
-                        snapshot
-                    );
+                    _childPlan.CollectIncludes(child ?? changes, collector, writeAll: true, snapshot);
                 }
                 else if (child is not null && !child.IsEmpty)
                 {
-                    _childPlan.CollectIncludes(
-                        child,
-                        collector,
-                        writeAll: false,
-                        afterSnapshot: null
-                    );
+                    _childPlan.CollectIncludes(child, collector, writeAll: false, afterSnapshot: null);
                 }
             }
         );
     }
 
-    public override Expression? BuildProjection(
-        Expression entity,
-        ReadProjectionBuildContext context,
-        string dtoPath
-    )
+    public override Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
     {
         if (!context.TryBuildMemberPath(entity, [NavigationName], dtoPath, out var navigation))
         {
             return null;
         }
 
-        var childEntity =
-            navigation.Type == typeof(TEntityChild)
-                ? navigation
-                : Expression.Convert(navigation, typeof(TEntityChild));
+        var childEntity = navigation.Type == typeof(TEntityChild) ? navigation : Expression.Convert(navigation, typeof(TEntityChild));
         var childProjection = _childPlan.BuildProjection(childEntity, context, dtoPath);
         return Expression.Condition(
             Expression.Equal(navigation, Expression.Constant(null, navigation.Type)),
@@ -510,12 +452,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
 
         // Validate wholesale content preflight on a detached instance so a
         // later failure leaves the graph untouched; create for real at
-        ValidateWholesaleOnProspective(
-            state.Context,
-            state.DisplayPath(DtoName),
-            snapshot,
-            state.ParentScope
-        );
+        ValidateWholesaleOnProspective(state.Context, state.DisplayPath(DtoName), snapshot, state.ParentScope);
         actions.Add(() =>
         {
             var target = MaterializeTarget(state.Context, state.Entity);
@@ -559,23 +496,10 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         }
 
         var childPath = string.IsNullOrEmpty(path) ? DtoName : $"{path}.{DtoName}";
-        _childPlan.AssignTemporaryKeys(
-            context,
-            prior,
-            current,
-            result,
-            childPath,
-            assignments,
-            parentScopes
-        );
+        _childPlan.AssignTemporaryKeys(context, prior, current, result, childPath, assignments, parentScopes);
     }
 
-    private void WriteAdded(
-        PlanApplyState state,
-        List<Action> actions,
-        SparseTypes.Generated.SparseChangeRecord whole,
-        ISparseChangeSet? child
-    )
+    private void WriteAdded(PlanApplyState state, List<Action> actions, SparseTypes.Generated.SparseChangeRecord whole, ISparseChangeSet? child)
     {
         // Nested adds use the complete after-snapshot; a null-to-object child
         // ChangeSet has no member entries to apply recursively.
@@ -599,11 +523,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         );
     }
 
-    private void ApplySnapshotToInstance(
-        PlanApplyState state,
-        List<Action> actions,
-        TDtoChild added
-    )
+    private void ApplySnapshotToInstance(PlanApplyState state, List<Action> actions, TDtoChild added)
     {
         var existing = _entityGetter((TEntity)state.Entity);
         if (existing is not null)
@@ -625,12 +545,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             return;
         }
 
-        ValidateWholesaleOnProspective(
-            state.Context,
-            state.DisplayPath(DtoName),
-            added,
-            state.ParentScope
-        );
+        ValidateWholesaleOnProspective(state.Context, state.DisplayPath(DtoName), added, state.ParentScope);
         actions.Add(() =>
         {
             var target = MaterializeTarget(state.Context, state.Entity);
@@ -656,11 +571,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         });
     }
 
-    private void ApplyChildToNewInstance(
-        PlanApplyState state,
-        List<Action> actions,
-        ISparseChangeSet child
-    )
+    private void ApplyChildToNewInstance(PlanApplyState state, List<Action> actions, ISparseChangeSet child)
     {
         var existing = _entityGetter((TEntity)state.Entity);
         if (existing is not null)
@@ -710,10 +621,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         });
     }
 
-    private static bool TryResolveAfterSnapshot(
-        SparseTypes.Generated.SparseChangeRecord whole,
-        out TDtoChild? snapshot
-    )
+    private static bool TryResolveAfterSnapshot(SparseTypes.Generated.SparseChangeRecord whole, out TDtoChild? snapshot)
     {
         if (whole.After.Value is TDtoChild direct)
         {
@@ -728,13 +636,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         {
             var toModel = value
                 .GetType()
-                .GetMethod(
-                    "ToModel",
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
-                    null,
-                    Type.EmptyTypes,
-                    null
-                );
+                .GetMethod("ToModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, Type.EmptyTypes, null);
             if (toModel is not null && typeof(TDtoChild).IsAssignableFrom(toModel.ReturnType))
             {
                 snapshot = (TDtoChild?)toModel.Invoke(value, null);
@@ -765,23 +667,14 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             child,
             state.DisplayPath(DtoName),
             isNested: true,
-            sharedCorrelation: new Dictionary<string, Dictionary<Guid, object>>(
-                StringComparer.Ordinal
-            ),
-            nestedScopes: new Dictionary<object, NestedScopeTable>(
-                ReferenceEqualityComparer.Instance
-            ),
+            sharedCorrelation: new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal),
+            nestedScopes: new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance),
             parentScope: state.ParentScope
         );
         _childPlan.Prepare(probe, new List<Action>());
     }
 
-    private void ValidateWholesaleOnProspective(
-        DbContext context,
-        string displayPath,
-        TDtoChild snapshot,
-        CollectionScopePath parentScope
-    )
+    private void ValidateWholesaleOnProspective(DbContext context, string displayPath, TDtoChild snapshot, CollectionScopePath parentScope)
     {
         var prospective =
             (TEntityChild?)_childConstructor!.Invoke(null)
@@ -797,19 +690,13 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             snapshot,
             displayPath,
             new Dictionary<string, Dictionary<Guid, object>>(StringComparer.Ordinal),
-            nestedScopes: new Dictionary<object, NestedScopeTable>(
-                ReferenceEqualityComparer.Instance
-            ),
+            nestedScopes: new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance),
             parentScope: parentScope
         );
         _childPlan.WriteAll(probe, new List<Action>());
     }
 
-    private bool TryHandleWholeObject(
-        PlanApplyState state,
-        List<Action> actions,
-        SparseTypes.Generated.SparseChangeRecord whole
-    )
+    private bool TryHandleWholeObject(PlanApplyState state, List<Action> actions, SparseTypes.Generated.SparseChangeRecord whole)
     {
         if (whole.After.IsPresent && whole.After.Value is not null)
         {
@@ -929,18 +816,10 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         }
     }
 
-    private static Action<TEntity, TEntityChild?> CompileSetter(
-        Expression<Func<TEntity, TEntityChild?>> entity
-    )
+    private static Action<TEntity, TEntityChild?> CompileSetter(Expression<Func<TEntity, TEntityChild?>> entity)
     {
         var body = entity.Body;
-        if (
-            body is UnaryExpression unary
-            && (
-                unary.NodeType == ExpressionType.Convert
-                || unary.NodeType == ExpressionType.ConvertChecked
-            )
-        )
+        if (body is UnaryExpression unary && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked))
         {
             body = unary.Operand;
         }
@@ -955,13 +834,8 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         }
 
         var value = Expression.Parameter(typeof(TEntityChild), "value");
-        var assign = Expression.Assign(
-            Expression.MakeMemberAccess(entity.Parameters[0], member.Member),
-            value
-        );
-        return Expression
-            .Lambda<Action<TEntity, TEntityChild?>>(assign, entity.Parameters[0], value)
-            .Compile();
+        var assign = Expression.Assign(Expression.MakeMemberAccess(entity.Parameters[0], member.Member), value);
+        return Expression.Lambda<Action<TEntity, TEntityChild?>>(assign, entity.Parameters[0], value).Compile();
     }
 
     private static bool ReadNavigationNullability(INavigation navigation)
@@ -973,9 +847,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             var foreignKey = navigation.ForeignKey;
             if (foreignKey is not null)
             {
-                return navigation.IsOnDependent
-                    ? !foreignKey.IsRequired
-                    : !foreignKey.IsRequiredDependent;
+                return navigation.IsOnDependent ? !foreignKey.IsRequired : !foreignKey.IsRequiredDependent;
             }
         }
         catch (InvalidOperationException)
@@ -991,8 +863,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
 
         try
         {
-            return new NullabilityInfoContext().Create(property).WriteState
-                == NullabilityState.Nullable;
+            return new NullabilityInfoContext().Create(property).WriteState == NullabilityState.Nullable;
         }
         catch (ArgumentException)
         {

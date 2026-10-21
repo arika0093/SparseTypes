@@ -15,8 +15,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
     {
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
         var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-        var collectionPatch =
-            "Patch." + SparseFragmentPatchEmitter.GetCollectionPatchName(dialect, member);
+        var collectionPatch = "Patch." + SparseFragmentPatchEmitter.GetCollectionPatchName(dialect, member);
         code.AppendLine("__payloadHas" + id + " = true;");
         code.AppendLine(
             "if (item.Items is null) throw new global::System.ArgumentException(\"Payload item changes must not be null.\", nameof(payload));"
@@ -25,11 +24,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         // the shared item helper converts endpoints without naming the path.
         code.AppendLine("foreach (var __raw" + id + " in item.Items)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (__raw"
-                + id
-                + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
-        );
+        code.AppendLine("if (__raw" + id + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));");
         // Value-free endpoints must not smuggle values past the redacted
         // branch below.
         code.AppendLine("__raw" + id + ".Before?.Validate(); __raw" + id + ".After?.Validate();");
@@ -99,34 +94,16 @@ internal static class SparseChangeSetMixedKeyedEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine(
-            "var __payloadSeenKeys"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">();"
-        );
+        code.AppendLine("var __payloadSeenKeys" + id + " = new global::System.Collections.Generic.HashSet<" + keyType + ">();");
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLine(
-                "var __payloadSeenTemps"
-                    + id
-                    + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-            );
+            code.AppendLine("var __payloadSeenTemps" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         }
         // Redacted-before items pass requested after-states without comparison;
         // ordinary items retain baseline checks and strict validation.
-        var isModelValue = isKeyed
-            ? member.Collection.ElementType.IsFragmentModel
-            : member.Collection.ValueType?.IsFragmentModel == true;
+        var isModelValue = isKeyed ? member.Collection.ElementType.IsFragmentModel : member.Collection.ValueType?.IsFragmentModel == true;
         var canContainBlindItems = isModelValue || member.RedactBefore;
-        code.AppendLine(
-            "__payloadItems"
-                + id
-                + " = new("
-                + (canContainBlindItems ? string.Empty : "item.Items.Count")
-                + ");"
-        );
+        code.AppendLine("__payloadItems" + id + " = new(" + (canContainBlindItems ? string.Empty : "item.Items.Count") + ");");
         if (canContainBlindItems)
         {
             code.AppendLine("var __blindColl" + id + " = new " + collectionPatch + "();");
@@ -134,9 +111,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         }
         code.AppendLine("foreach (var changeItem in item.Items)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (changeItem is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
-        );
+        code.AppendLine("if (changeItem is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));");
         code.AppendLine("changeItem.Before?.Validate(); changeItem.After?.Validate();");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -168,11 +143,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         if (canContainBlindItems)
         {
             code.AppendLine(
-                "var __itemPath"
-                    + id
-                    + " = "
-                    + path
-                    + " + \"[\" + (((object?)changeItem.Key is null) ? \"?\" : (object?)changeItem.Key) + \"]\";"
+                "var __itemPath" + id + " = " + path + " + \"[\" + (((object?)changeItem.Key is null) ? \"?\" : (object?)changeItem.Key) + \"]\";"
             );
         }
         if (isModelValue)
@@ -218,23 +189,11 @@ internal static class SparseChangeSetMixedKeyedEmitter
             }
             else
             {
-                code.AppendLine(
-                    "__blindColl"
-                        + id
-                        + ".__SparseSetEdited(changeItem.Key!, __editBlind"
-                        + id
-                        + ");"
-                );
+                code.AppendLine("__blindColl" + id + ".__SparseSetEdited(changeItem.Key!, __editBlind" + id + ");");
             }
             code.AppendLine("blindPaths.AddRange(__editPaths" + id + ");");
             code.AppendLine("__hasBlindColl" + id + " = true;");
-            code.AppendLine(
-                "if (__restoredEdit"
-                    + id
-                    + " is null || __restoredEdit"
-                    + id
-                    + ".IsEmpty) continue;"
-            );
+            code.AppendLine("if (__restoredEdit" + id + " is null || __restoredEdit" + id + ".IsEmpty) continue;");
             code.CloseBlock();
             code.CloseBlock();
         }
@@ -245,13 +204,9 @@ internal static class SparseChangeSetMixedKeyedEmitter
             {
                 // Removals may omit undisclosed before-values; edits must omit
                 // endpoints and carry a payload. Avoid scalar-only Update APIs.
-                code.AppendLine(
-                    "if (changeItem.Before is not null && changeItem.Before.IsRedacted)"
-                );
+                code.AppendLine("if (changeItem.Before is not null && changeItem.Before.IsRedacted)");
                 code.OpenBlock();
-                code.AppendLine(
-                    "if (changeItem.Kind == " + itemKind + ".Remove && changeItem.Edit is null)"
-                );
+                code.AppendLine("if (changeItem.Kind == " + itemKind + ".Remove && changeItem.Edit is null)");
                 code.OpenBlock();
                 if (isKeyed)
                 {
@@ -274,13 +229,9 @@ internal static class SparseChangeSetMixedKeyedEmitter
             }
             else
             {
-                var itemValueType = isKeyed
-                    ? SparseChangeSetBasicsEmitter.ElementTypeOf(member)
-                    : SparseChangeSetBasicsEmitter.ValueTypeOf(member);
+                var itemValueType = isKeyed ? SparseChangeSetBasicsEmitter.ElementTypeOf(member) : SparseChangeSetBasicsEmitter.ValueTypeOf(member);
                 var itemOptional = dialect.RuntimeNamespace + "Optional<" + itemValueType + ">";
-                code.AppendLine(
-                    "if (changeItem.Before is not null && changeItem.Before.IsRedacted)"
-                );
+                code.AppendLine("if (changeItem.Before is not null && changeItem.Before.IsRedacted)");
                 code.OpenBlock();
                 code.AppendLine(
                     "if (changeItem.Kind != "
@@ -299,11 +250,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                         + " + \"' blind edit must contain an observable after-state.\", nameof(payload));"
                 );
                 code.AppendLine(
-                    "var __blindAfter"
-                        + id
-                        + " = changeItem.After is null ? "
-                        + itemOptional
-                        + ".Missing : changeItem.After.ToOptional();"
+                    "var __blindAfter" + id + " = changeItem.After is null ? " + itemOptional + ".Missing : changeItem.After.ToOptional();"
                 );
                 code.AppendLine(
                     "if (changeItem.Kind == "
@@ -368,20 +315,12 @@ internal static class SparseChangeSetMixedKeyedEmitter
             }
         }
         code.AppendLine(
-            "__payloadItems"
-                + id
-                + ".Add(__SparsePayloadItem"
-                + id
-                + "(changeItem"
-                + (isModelValue ? ", __restoredEdit" + id : string.Empty)
-                + "));"
+            "__payloadItems" + id + ".Add(__SparsePayloadItem" + id + "(changeItem" + (isModelValue ? ", __restoredEdit" + id : string.Empty) + "));"
         );
         code.CloseBlock();
         if (canContainBlindItems)
         {
-            code.AppendLine(
-                "if (__hasBlindColl" + id + ") blindSets." + esc + " = __blindColl" + id + ";"
-            );
+            code.AppendLine("if (__hasBlindColl" + id + ") blindSets." + esc + " = __blindColl" + id + ";");
         }
         if (isKeyed)
         {
@@ -404,9 +343,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                         + ") throw new global::System.ArgumentException(\"A temporary-keyed payload must contain temporary orders.\", nameof(payload));"
                 );
                 code.AppendLine(
-                    "__payloadTempBeforeOrder"
-                        + id
-                        + " = item.TempBeforeOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
+                    "__payloadTempBeforeOrder" + id + " = item.TempBeforeOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
                 );
                 code.AppendLine(
                     "if (item.TempAfterOrder is null && __hasTempItems"
@@ -414,9 +351,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                         + ") throw new global::System.ArgumentException(\"A temporary-keyed payload must contain temporary orders.\", nameof(payload));"
                 );
                 code.AppendLine(
-                    "__payloadTempAfterOrder"
-                        + id
-                        + " = item.TempAfterOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
+                    "__payloadTempAfterOrder" + id + " = item.TempAfterOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
                 );
             }
         }

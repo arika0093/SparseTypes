@@ -2,12 +2,7 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class SparseKeyedRemovalIndexEmitter
 {
-    internal static void Emit(
-        SharedIndentedBuilder code,
-        string keyType,
-        string comparer,
-        string? implementationNamespace = null
-    )
+    internal static void Emit(SharedIndentedBuilder code, string keyType, string comparer, string? implementationNamespace = null)
     {
         // Generated-Once: the keyed patch drops its IndexedRemovals subclass
         // and shares the plain list-plus-slots storage with dictionary patches.
@@ -16,12 +11,7 @@ internal static class SparseKeyedRemovalIndexEmitter
             // Relocated member operations reach the lookup through the facade
             // instance, so the field is internal rather than private.
             code.AppendLine("internal int[]? __removedLookup;");
-            SparseDictionaryRemovalIndexEmitter.Emit(
-                code,
-                keyType,
-                comparer,
-                implementationNamespace
-            );
+            SparseDictionaryRemovalIndexEmitter.Emit(code, keyType, comparer, implementationNamespace);
             return;
         }
 
@@ -30,17 +20,11 @@ internal static class SparseKeyedRemovalIndexEmitter
 
     private static void EmitLegacy(SharedIndentedBuilder code, string keyType, string comparer)
     {
-        code.AppendLine(
-            "private sealed class __SparseIndexedRemovals : global::System.Collections.Generic.List<"
-                + keyType
-                + ">"
-        );
+        code.AppendLine("private sealed class __SparseIndexedRemovals : global::System.Collections.Generic.List<" + keyType + ">");
         code.OpenBlock();
         code.AppendLine("internal int[]? Slots;");
         code.AppendLine(
-            "internal __SparseIndexedRemovals(global::System.Collections.Generic.List<"
-                + keyType
-                + "> source, int[] slots) : base(source.Capacity)"
+            "internal __SparseIndexedRemovals(global::System.Collections.Generic.List<" + keyType + "> source, int[] slots) : base(source.Capacity)"
         );
         code.OpenBlock();
         code.AppendLine("AddRange(source);");

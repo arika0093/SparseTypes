@@ -19,12 +19,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
         _byName = new Dictionary<string, IDescriptor>(members.Count, StringComparer.Ordinal);
         for (var index = 0; index < members.Count; index++)
         {
-            var descriptor =
-                members[index]
-                ?? throw new ArgumentException(
-                    "A descriptor set cannot contain null entries.",
-                    nameof(members)
-                );
+            var descriptor = members[index] ?? throw new ArgumentException("A descriptor set cannot contain null entries.", nameof(members));
             copy[index] = descriptor;
             _byName.Add(descriptor.Name, descriptor);
         }
@@ -77,12 +72,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
                 current = null;
             }
 
-            if (
-                scope is null
-                && current is not null
-                && index + 1 < count
-                && path.Segments[index + 1].Kind == SparsePathSegmentKind.Member
-            )
+            if (scope is null && current is not null && index + 1 < count && path.Segments[index + 1].Kind == SparsePathSegmentKind.Member)
             {
                 scope = current.Child;
                 if (scope is null)
@@ -100,10 +90,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
     {
         if (path.RootType != RootType)
         {
-            throw new ArgumentException(
-                "The path belongs to a different descriptor root.",
-                nameof(path)
-            );
+            throw new ArgumentException("The path belongs to a different descriptor root.", nameof(path));
         }
 
         if (path.IsRoot)
@@ -147,10 +134,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
 
     private Type RootType => _members.Count == 0 ? typeof(object) : _members[0].Path.RootType;
 
-    private static IDescriptorSet? ResolveItemScope(
-        IDescriptor descriptor,
-        SparsePathSegment segment
-    )
+    private static IDescriptorSet? ResolveItemScope(IDescriptor descriptor, SparsePathSegment segment)
     {
         if (segment.Kind == SparsePathSegmentKind.Index)
         {
@@ -303,10 +287,7 @@ public sealed class SparseDescriptor : IDescriptor, ISparsePropertyMetadata, ISp
     public object? GetModelValue() => _getModelValue?.Invoke() ?? GetValue();
 
     /// <inheritdoc />
-    public bool TrySetValue(object? value) =>
-        _setValue is not null
-        && (value is not null || IsNullable || IsNullableOblivious)
-        && _setValue(value);
+    public bool TrySetValue(object? value) => _setValue is not null && (value is not null || IsNullable || IsNullableOblivious) && _setValue(value);
 
     /// <inheritdoc />
     public IDescriptorSet? Child => _getChild?.Invoke();
@@ -327,8 +308,7 @@ public sealed class SparseDescriptor : IDescriptor, ISparsePropertyMetadata, ISp
     /// <param name="inner">The live descriptors to guard.</param>
     /// <param name="isLive">Whether the captured instance is still current.</param>
     /// <remarks>Reads observe the captured instance.</remarks>
-    public static IDescriptor Guarded(IDescriptor inner, Func<bool> isLive) =>
-        new GuardedDescriptor(inner, isLive);
+    public static IDescriptor Guarded(IDescriptor inner, Func<bool> isLive) => new GuardedDescriptor(inner, isLive);
 
     private sealed class GuardedDescriptor : IDescriptor
     {
@@ -369,20 +349,12 @@ public sealed class SparseDescriptor : IDescriptor, ISparsePropertyMetadata, ISp
 
         public bool TrySetValue(object? value) => _isLive() && _inner.TrySetValue(value);
 
-        public IDescriptorSet? Child =>
-            _isLive() && _inner.Child is { } child
-                ? SparseDescriptorSet.Guarded(child, _isLive)
-                : null;
+        public IDescriptorSet? Child => _isLive() && _inner.Child is { } child ? SparseDescriptorSet.Guarded(child, _isLive) : null;
 
-        public IArrayDescriptor? Array =>
-            _isLive() && _inner.Array is { } array
-                ? SparseArrayDescriptor.Guarded(array, _isLive)
-                : null;
+        public IArrayDescriptor? Array => _isLive() && _inner.Array is { } array ? SparseArrayDescriptor.Guarded(array, _isLive) : null;
 
         public IDictDescriptor? Dictionary =>
-            _isLive() && _inner.Dictionary is { } dictionary
-                ? SparseDictionaryDescriptor.Guarded(dictionary, _isLive)
-                : null;
+            _isLive() && _inner.Dictionary is { } dictionary ? SparseDictionaryDescriptor.Guarded(dictionary, _isLive) : null;
 
         public ISetDescriptor? Set => _isLive() ? _inner.Set : null;
 
@@ -470,9 +442,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
         IsItemNullable = isItemNullable;
         ItemViewType = itemViewType ?? itemType;
         KeyType = keyType;
-        KeyPropertyNames = Array.AsReadOnly(
-            (string[])(keyPropertyNames?.Clone() ?? Array.Empty<string>())
-        );
+        KeyPropertyNames = Array.AsReadOnly((string[])(keyPropertyNames?.Clone() ?? Array.Empty<string>()));
         _access = access ?? throw new ArgumentNullException(nameof(access));
     }
 
@@ -498,8 +468,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     public int IndexOfKey(object? key) => _access.IndexOfKey?.Invoke(key) ?? -1;
 
     /// <inheritdoc />
-    public int IndexOfTemporaryKey(Guid temporaryKey) =>
-        _access.IndexOfTemporaryKey?.Invoke(temporaryKey) ?? -1;
+    public int IndexOfTemporaryKey(Guid temporaryKey) => _access.IndexOfTemporaryKey?.Invoke(temporaryKey) ?? -1;
 
     /// <inheritdoc />
     public bool IsUnassignedKey(object? key) => _access.IsUnassignedKey?.Invoke(key) == true;
@@ -508,13 +477,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     public bool IsItemNullable { get; }
 
     /// <inheritdoc />
-    public int Count =>
-        (
-            _access.Count
-            ?? throw new InvalidOperationException(
-                "The generated sequence count is not configured."
-            )
-        )();
+    public int Count => (_access.Count ?? throw new InvalidOperationException("The generated sequence count is not configured."))();
 
     /// <inheritdoc />
     public bool CanAdd => _access.CanAdd?.Invoke() == true;
@@ -533,12 +496,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
 
     /// <inheritdoc />
     public object? GetItem(int index) =>
-        (
-            _access.GetItem
-            ?? throw new InvalidOperationException(
-                "The generated sequence item accessor is not configured."
-            )
-        )(index);
+        (_access.GetItem ?? throw new InvalidOperationException("The generated sequence item accessor is not configured."))(index);
 
     /// <inheritdoc />
     public object? GetItemModel(int index) => _access.GetItemModel?.Invoke(index);
@@ -548,34 +506,29 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     internal bool HasModelResolver => _access.GetItemModel is not null;
 
     /// <inheritdoc />
-    public IDescriptorSet? GetItemDescriptors(int index) =>
-        _access.GetItemDescriptors?.Invoke(index);
+    public IDescriptorSet? GetItemDescriptors(int index) => _access.GetItemDescriptors?.Invoke(index);
 
     /// <inheritdoc />
-    public bool TrySetItem(int index, object? value) =>
-        _access.CanSetItem?.Invoke() == true && _access.TrySetItem?.Invoke(index, value) == true;
+    public bool TrySetItem(int index, object? value) => _access.CanSetItem?.Invoke() == true && _access.TrySetItem?.Invoke(index, value) == true;
 
     /// <inheritdoc />
     public bool TryAdd(object? value) => CanAdd && _access.TryAdd?.Invoke(value) == true;
 
     /// <inheritdoc />
-    public bool TryInsert(int index, object? value) =>
-        CanInsert && _access.TryInsert?.Invoke(index, value) == true;
+    public bool TryInsert(int index, object? value) => CanInsert && _access.TryInsert?.Invoke(index, value) == true;
 
     /// <inheritdoc />
     public bool TryRemoveAt(int index) => CanRemove && _access.TryRemoveAt?.Invoke(index) == true;
 
     /// <inheritdoc />
-    public bool TryMove(int oldIndex, int newIndex) =>
-        CanMove && _access.TryMove?.Invoke(oldIndex, newIndex) == true;
+    public bool TryMove(int oldIndex, int newIndex) => CanMove && _access.TryMove?.Invoke(oldIndex, newIndex) == true;
 
     /// <summary>Creates an instance-bound view that fails safely once stale.</summary>
     /// <param name="inner">The live sequence to guard.</param>
     /// <param name="isLive">Whether the captured collection is still current.</param>
     /// <remarks>Mutations return false after
     /// <paramref name="isLive" /> fails.</remarks>
-    public static IArrayDescriptor Guarded(IArrayDescriptor inner, Func<bool> isLive) =>
-        new GuardedArrayDescriptor(inner, isLive);
+    public static IArrayDescriptor Guarded(IArrayDescriptor inner, Func<bool> isLive) => new GuardedArrayDescriptor(inner, isLive);
 
     private sealed class GuardedArrayDescriptor : IArrayDescriptor
     {
@@ -604,8 +557,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
 
         public int IndexOfKey(object? key) => _inner.IndexOfKey(key);
 
-        public int IndexOfTemporaryKey(Guid temporaryKey) =>
-            _inner.IndexOfTemporaryKey(temporaryKey);
+        public int IndexOfTemporaryKey(Guid temporaryKey) => _inner.IndexOfTemporaryKey(temporaryKey);
 
         public bool IsUnassignedKey(object? key) => _inner.IsUnassignedKey(key);
 
@@ -642,20 +594,13 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
             {
                 var captured = sparse.ModelAt(index);
                 var indexCopy = index;
-                return SparseDescriptorSet.Guarded(
-                    set,
-                    () => _isLive() && IdentityMatches(sparse, indexCopy, captured)
-                );
+                return SparseDescriptorSet.Guarded(set, () => _isLive() && IdentityMatches(sparse, indexCopy, captured));
             }
 
             return SparseDescriptorSet.Guarded(set, _isLive);
         }
 
-        private static bool IdentityMatches(
-            SparseArrayDescriptor sparse,
-            int index,
-            object? captured
-        )
+        private static bool IdentityMatches(SparseArrayDescriptor sparse, int index, object? captured)
         {
             if ((uint)index >= (uint)sparse.Count)
             {
@@ -665,18 +610,15 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
             return ReferenceEquals(sparse.ModelAt(index), captured);
         }
 
-        public bool TrySetItem(int index, object? value) =>
-            _isLive() && _inner.TrySetItem(index, value);
+        public bool TrySetItem(int index, object? value) => _isLive() && _inner.TrySetItem(index, value);
 
         public bool TryAdd(object? value) => _isLive() && _inner.TryAdd(value);
 
-        public bool TryInsert(int index, object? value) =>
-            _isLive() && _inner.TryInsert(index, value);
+        public bool TryInsert(int index, object? value) => _isLive() && _inner.TryInsert(index, value);
 
         public bool TryRemoveAt(int index) => _isLive() && _inner.TryRemoveAt(index);
 
-        public bool TryMove(int oldIndex, int newIndex) =>
-            _isLive() && _inner.TryMove(oldIndex, newIndex);
+        public bool TryMove(int oldIndex, int newIndex) => _isLive() && _inner.TryMove(oldIndex, newIndex);
     }
 }
 
@@ -754,13 +696,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
     public bool IsValueNullable { get; }
 
     /// <inheritdoc />
-    public int Count =>
-        (
-            _access.Count
-            ?? throw new InvalidOperationException(
-                "The generated dictionary count is not configured."
-            )
-        )();
+    public int Count => (_access.Count ?? throw new InvalidOperationException("The generated dictionary count is not configured."))();
 
     /// <inheritdoc />
     public bool CanAdd => _access.CanAdd?.Invoke() == true;
@@ -772,13 +708,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
     public bool CanSet => _access.CanSet?.Invoke() == true;
 
     /// <inheritdoc />
-    public IEnumerable<object?> Keys =>
-        (
-            _access.Keys
-            ?? throw new InvalidOperationException(
-                "The generated dictionary keys are not configured."
-            )
-        )();
+    public IEnumerable<object?> Keys => (_access.Keys ?? throw new InvalidOperationException("The generated dictionary keys are not configured."))();
 
     /// <inheritdoc />
     public bool TryGetValue(object? key, out object? value)
@@ -795,8 +725,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
     }
 
     /// <inheritdoc />
-    public IDescriptorSet? GetValueDescriptors(object? key) =>
-        _access.GetValueDescriptors?.Invoke(key);
+    public IDescriptorSet? GetValueDescriptors(object? key) => _access.GetValueDescriptors?.Invoke(key);
 
     /// <inheritdoc />
     public object? GetValueModel(object? key) => _access.GetValueModel?.Invoke(key);
@@ -806,12 +735,10 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
     internal bool HasValueResolver => _access.GetValueModel is not null;
 
     /// <inheritdoc />
-    public bool TryAdd(object? key, object? value) =>
-        CanAdd && _access.TryAdd?.Invoke(key, value) == true;
+    public bool TryAdd(object? key, object? value) => CanAdd && _access.TryAdd?.Invoke(key, value) == true;
 
     /// <inheritdoc />
-    public bool TrySetValue(object? key, object? value) =>
-        CanSet && _access.TrySetValue?.Invoke(key, value) == true;
+    public bool TrySetValue(object? key, object? value) => CanSet && _access.TrySetValue?.Invoke(key, value) == true;
 
     /// <inheritdoc />
     public bool TryRemove(object? key) => CanRemove && _access.TryRemove?.Invoke(key) == true;
@@ -821,8 +748,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
     /// <param name="isLive">Whether the captured collection is still current.</param>
     /// <remarks>Mutations return false after
     /// <paramref name="isLive" /> fails.</remarks>
-    public static IDictDescriptor Guarded(IDictDescriptor inner, Func<bool> isLive) =>
-        new GuardedDictionaryDescriptor(inner, isLive);
+    public static IDictDescriptor Guarded(IDictDescriptor inner, Func<bool> isLive) => new GuardedDictionaryDescriptor(inner, isLive);
 
     private sealed class GuardedDictionaryDescriptor : IDictDescriptor
     {
@@ -853,8 +779,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
 
         public IEnumerable<object?> Keys => _inner.Keys;
 
-        public bool TryGetValue(object? key, out object? value) =>
-            _inner.TryGetValue(key, out value);
+        public bool TryGetValue(object? key, out object? value) => _inner.TryGetValue(key, out value);
 
         public object? GetValueModel(object? key) => _inner.GetValueModel(key);
 
@@ -874,10 +799,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
             if (_inner is SparseDictionaryDescriptor { HasValueResolver: true } sparse)
             {
                 var captured = sparse.ValueModelAt(key);
-                return SparseDescriptorSet.Guarded(
-                    set,
-                    () => _isLive() && ReferenceEquals(sparse.ValueModelAt(key), captured)
-                );
+                return SparseDescriptorSet.Guarded(set, () => _isLive() && ReferenceEquals(sparse.ValueModelAt(key), captured));
             }
 
             return SparseDescriptorSet.Guarded(set, _isLive);
@@ -885,8 +807,7 @@ public sealed class SparseDictionaryDescriptor : IDictDescriptor
 
         public bool TryAdd(object? key, object? value) => _isLive() && _inner.TryAdd(key, value);
 
-        public bool TrySetValue(object? key, object? value) =>
-            _isLive() && _inner.TrySetValue(key, value);
+        public bool TrySetValue(object? key, object? value) => _isLive() && _inner.TrySetValue(key, value);
 
         public bool TryRemove(object? key) => _isLive() && _inner.TryRemove(key);
     }
@@ -939,11 +860,7 @@ public sealed class SparseSetDescriptor : ISetDescriptor
     public bool IsItemNullable { get; }
 
     /// <inheritdoc />
-    public int Count =>
-        (
-            _access.Count
-            ?? throw new InvalidOperationException("The generated set count is not configured.")
-        )();
+    public int Count => (_access.Count ?? throw new InvalidOperationException("The generated set count is not configured."))();
 
     /// <inheritdoc />
     public bool CanAdd => _access.CanAdd?.Invoke() == true;
@@ -952,11 +869,7 @@ public sealed class SparseSetDescriptor : ISetDescriptor
     public bool CanRemove => _access.CanRemove?.Invoke() == true;
 
     /// <inheritdoc />
-    public IEnumerable<object?> Items =>
-        (
-            _access.Items
-            ?? throw new InvalidOperationException("The generated set items are not configured.")
-        )();
+    public IEnumerable<object?> Items => (_access.Items ?? throw new InvalidOperationException("The generated set items are not configured."))();
 
     /// <inheritdoc />
     public bool Contains(object? item) => _access.Contains?.Invoke(item) == true;

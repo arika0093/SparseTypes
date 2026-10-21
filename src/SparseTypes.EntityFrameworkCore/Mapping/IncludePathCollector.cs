@@ -11,11 +11,7 @@ internal sealed class IncludePathCollector
 {
     private static readonly MethodInfo EfPropertyMethod = typeof(EF)
         .GetMethods(BindingFlags.Public | BindingFlags.Static)
-        .Single(method =>
-            method.Name == nameof(EF.Property)
-            && method.IsGenericMethodDefinition
-            && method.GetParameters().Length == 2
-        );
+        .Single(method => method.Name == nameof(EF.Property) && method.IsGenericMethodDefinition && method.GetParameters().Length == 2);
 
     private static readonly MethodInfo EnumerableWhereMethod = typeof(Enumerable)
         .GetMethods(BindingFlags.Public | BindingFlags.Static)
@@ -54,12 +50,7 @@ internal sealed class IncludePathCollector
     )
     {
         var filter =
-            !owned
-            && filterEdits
-            && keySelector is not null
-            && keyType is not null
-            && entityType is not null
-            && keys is not null
+            !owned && filterEdits && keySelector is not null && keyType is not null && entityType is not null && keys is not null
                 ? IncludeFilter.TryCreate(keySelector, keyType, entityType, keys)
                 : null;
         var node = Push(name, targetType, isCollection: true, owned);
@@ -112,15 +103,9 @@ internal sealed class IncludePathCollector
             node = new IncludePathNode(name, targetType, isCollection, owned);
             siblings.Add(name, node);
         }
-        else if (
-            node.TargetType != targetType
-            || node.IsCollection != isCollection
-            || node.Owned != owned
-        )
+        else if (node.TargetType != targetType || node.IsCollection != isCollection || node.Owned != owned)
         {
-            throw new InvalidOperationException(
-                $"The Include path '{name}' resolved to inconsistent navigation metadata."
-            );
+            throw new InvalidOperationException($"The Include path '{name}' resolved to inconsistent navigation metadata.");
         }
 
         _stack.Add(node);
@@ -145,11 +130,7 @@ internal sealed class IncludePathCollector
     // scans previously done by a separate recursive predicate. Every child
     // is visited even after an included one is found, since each subtree may
     // still contribute its own leaf paths.
-    private static bool CollectLeafPaths(
-        IncludePathNode node,
-        List<IncludePathNode> current,
-        List<List<IncludePathNode>> paths
-    )
+    private static bool CollectLeafPaths(IncludePathNode node, List<IncludePathNode> current, List<List<IncludePathNode>> paths)
     {
         current.Add(node);
         var includedDescendant = false;
@@ -173,10 +154,7 @@ internal sealed class IncludePathCollector
         return node.IsIncluded || includedDescendant;
     }
 
-    private static IQueryable<TEntity> ApplyPath<TEntity>(
-        IQueryable<TEntity> query,
-        IReadOnlyList<IncludePathNode> path
-    )
+    private static IQueryable<TEntity> ApplyPath<TEntity>(IQueryable<TEntity> query, IReadOnlyList<IncludePathNode> path)
         where TEntity : class
     {
         object chain = query;
@@ -193,14 +171,8 @@ internal sealed class IncludePathCollector
             else
             {
                 var previous = path[index - 1];
-                var thenIncludeMethod = previous.IsCollection
-                    ? ThenIncludeCollectionMethod
-                    : ThenIncludeReferenceMethod;
-                method = thenIncludeMethod.MakeGenericMethod(
-                    typeof(TEntity),
-                    previous.TargetType,
-                    navigation.ReturnType
-                );
+                var thenIncludeMethod = previous.IsCollection ? ThenIncludeCollectionMethod : ThenIncludeReferenceMethod;
+                method = thenIncludeMethod.MakeGenericMethod(typeof(TEntity), previous.TargetType, navigation.ReturnType);
             }
             chain = Invoke(method, chain, navigation);
         }
@@ -208,15 +180,10 @@ internal sealed class IncludePathCollector
         return (IQueryable<TEntity>)chain;
     }
 
-    private static LambdaExpression BuildNavigationLambda(
-        Type parentType,
-        IncludePathNode navigation
-    )
+    private static LambdaExpression BuildNavigationLambda(Type parentType, IncludePathNode navigation)
     {
         var parameter = Expression.Parameter(parentType, "entity");
-        var propertyType = navigation.IsCollection
-            ? typeof(IEnumerable<>).MakeGenericType(navigation.TargetType)
-            : navigation.TargetType;
+        var propertyType = navigation.IsCollection ? typeof(IEnumerable<>).MakeGenericType(navigation.TargetType) : navigation.TargetType;
         Expression property = Expression.Call(
             EfPropertyMethod.MakeGenericMethod(propertyType),
             Expression.Convert(parameter, typeof(object)),
@@ -226,26 +193,17 @@ internal sealed class IncludePathCollector
         if (navigation.IsCollection && navigation.Filter is not null)
         {
             var predicate = navigation.Filter.BuildPredicate();
-            property = Expression.Call(
-                EnumerableWhereMethod.MakeGenericMethod(navigation.TargetType),
-                property,
-                predicate
-            );
+            property = Expression.Call(EnumerableWhereMethod.MakeGenericMethod(navigation.TargetType), property, predicate);
         }
 
-        return Expression.Lambda(
-            typeof(Func<,>).MakeGenericType(parentType, property.Type),
-            property,
-            parameter
-        );
+        return Expression.Lambda(typeof(Func<,>).MakeGenericType(parentType, property.Type), property, parameter);
     }
 
     private static object Invoke(MethodInfo method, object source, LambdaExpression navigation)
     {
         try
         {
-            return method.Invoke(null, [source, navigation])
-                ?? throw new InvalidOperationException("EF Core returned a null Include query.");
+            return method.Invoke(null, [source, navigation]) ?? throw new InvalidOperationException("EF Core returned a null Include query.");
         }
         catch (TargetInvocationException exception) when (exception.InnerException is not null)
         {
@@ -271,11 +229,9 @@ internal sealed class IncludePathCollector
                 var parameters = method.GetParameters();
                 return parameters.Length == 2
                     && parameters[0].ParameterType.IsGenericType
-                    && parameters[0].ParameterType.GetGenericTypeDefinition()
-                        == typeof(IQueryable<>)
+                    && parameters[0].ParameterType.GetGenericTypeDefinition() == typeof(IQueryable<>)
                     && parameters[1].ParameterType.IsGenericType
-                    && parameters[1].ParameterType.GetGenericTypeDefinition()
-                        == typeof(Expression<>);
+                    && parameters[1].ParameterType.GetGenericTypeDefinition() == typeof(Expression<>);
             });
 
     private static MethodInfo FindThenIncludeMethod(bool collection)
@@ -297,8 +253,7 @@ internal sealed class IncludePathCollector
                 if (
                     parameters.Length != 2
                     || !parameters[0].ParameterType.IsGenericType
-                    || parameters[0].ParameterType.GetGenericTypeDefinition()
-                        != typeof(IIncludableQueryable<,>)
+                    || parameters[0].ParameterType.GetGenericTypeDefinition() != typeof(IIncludableQueryable<,>)
                 )
                 {
                     return false;
@@ -306,8 +261,7 @@ internal sealed class IncludePathCollector
 
                 var previousType = parameters[0].ParameterType.GetGenericArguments()[1];
                 return collection
-                    ? previousType.IsGenericType
-                        && previousType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
+                    ? previousType.IsGenericType && previousType.GetGenericTypeDefinition() == typeof(IEnumerable<>)
                     : previousType.IsGenericParameter;
             });
     }
@@ -393,12 +347,7 @@ internal sealed class IncludePathCollector
 
         private Type KeyType { get; }
 
-        public static IncludeFilter? TryCreate(
-            LambdaExpression selector,
-            Type keyType,
-            IEntityType entityType,
-            IReadOnlyList<object> keys
-        )
+        public static IncludeFilter? TryCreate(LambdaExpression selector, Type keyType, IEntityType entityType, IReadOnlyList<object> keys)
         {
             if (
                 !PlanBuildSession.IsScalarType(keyType)
@@ -462,17 +411,12 @@ internal sealed class IncludePathCollector
             return Expression.Lambda(leaves[0], parameter);
         }
 
-        private static bool IsSimpleMappedSelector(
-            LambdaExpression selector,
-            IEntityType entityType
-        )
+        private static bool IsSimpleMappedSelector(LambdaExpression selector, IEntityType entityType)
         {
             var body = StripConvert(selector.Body);
             string? propertyName = body switch
             {
-                MemberExpression member when member.Expression == selector.Parameters[0] => member
-                    .Member
-                    .Name,
+                MemberExpression member when member.Expression == selector.Parameters[0] => member.Member.Name,
                 MethodCallExpression call
                     when call.Method.DeclaringType == typeof(EF)
                         && call.Method.Name == nameof(EF.Property)
@@ -499,11 +443,7 @@ internal sealed class IncludePathCollector
         private static Expression StripConvert(Expression expression)
         {
             while (
-                expression is UnaryExpression unary
-                && (
-                    unary.NodeType == ExpressionType.Convert
-                    || unary.NodeType == ExpressionType.ConvertChecked
-                )
+                expression is UnaryExpression unary && (unary.NodeType == ExpressionType.Convert || unary.NodeType == ExpressionType.ConvertChecked)
             )
             {
                 expression = unary.Operand;

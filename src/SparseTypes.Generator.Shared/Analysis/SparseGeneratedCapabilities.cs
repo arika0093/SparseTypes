@@ -30,11 +30,7 @@ internal enum SparseGeneratedCapability
 /// <remarks>Value equality keeps incremental output stable.</remarks>
 internal sealed record SparseGeneratedOncePlan
 {
-    public SparseGeneratedOncePlan(
-        SparseGeneratedCapability Capabilities,
-        bool NeedsPortableSetView,
-        bool HashSetSupportsCapacity
-    )
+    public SparseGeneratedOncePlan(SparseGeneratedCapability Capabilities, bool NeedsPortableSetView, bool HashSetSupportsCapacity)
     {
         this.Capabilities = Capabilities;
         this.NeedsPortableSetView = NeedsPortableSetView;
@@ -51,8 +47,7 @@ internal sealed record SparseGeneratedOncePlan
     public bool HashSetSupportsCapacity { get; init; }
 
     /// <summary>Empty plan: no model requests a shared helper.</summary>
-    public static SparseGeneratedOncePlan Empty { get; } =
-        new(SparseGeneratedCapability.None, false, false);
+    public static SparseGeneratedOncePlan Empty { get; } = new(SparseGeneratedCapability.None, false, false);
 
     /// <summary>Whether the plan requests the given family.</summary>
     /// <param name="capability">Family to test.</param>
@@ -69,10 +64,7 @@ internal static class SparseGeneratedCapabilityPlanner
     /// <param name="analysis">Analyzed explicit root.</param>
     /// <param name="features">Product feature selection for the model.</param>
     /// <returns>The families the root requires.</returns>
-    public static SparseGeneratedCapability ForAnalysis(
-        SparseGenerationAnalysis analysis,
-        SparseEmissionFeatures features
-    )
+    public static SparseGeneratedCapability ForAnalysis(SparseGenerationAnalysis analysis, SparseEmissionFeatures features)
     {
         if (!analysis.Model.HasValue)
         {
@@ -92,10 +84,7 @@ internal static class SparseGeneratedCapabilityPlanner
     /// <param name="promoted">Deduplicated promoted model.</param>
     /// <param name="features">Product feature selection for the model.</param>
     /// <returns>The families the promoted model requires.</returns>
-    public static SparseGeneratedCapability ForPromoted(
-        SparsePromotedModel promoted,
-        SparseEmissionFeatures features
-    ) =>
+    public static SparseGeneratedCapability ForPromoted(SparsePromotedModel promoted, SparseEmissionFeatures features) =>
         ForModel(
             promoted.Model.IsStruct,
             promoted.Members,
@@ -129,10 +118,7 @@ internal static class SparseGeneratedCapabilityPlanner
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 capabilities |= ForAnalysis(analysis, features);
-                needsPortableView |= RequiresPortableSetView(
-                    analysis,
-                    bclHashSetImplementsReadOnlySet
-                );
+                needsPortableView |= RequiresPortableSetView(analysis, bclHashSetImplementsReadOnlySet);
             }
         }
 
@@ -142,11 +128,7 @@ internal static class SparseGeneratedCapabilityPlanner
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 capabilities |= ForPromoted(model, features);
-                needsPortableView |= RequiresPortableSetView(
-                    model.Members,
-                    model.PocoCloneModels,
-                    bclHashSetImplementsReadOnlySet
-                );
+                needsPortableView |= RequiresPortableSetView(model.Members, model.PocoCloneModels, bclHashSetImplementsReadOnlySet);
             }
         }
 
@@ -172,10 +154,7 @@ internal static class SparseGeneratedCapabilityPlanner
     /// <param name="plan">Aggregated plan.</param>
     /// <param name="features">Product feature selection.</param>
     /// <returns>Validation messages, empty when coherent.</returns>
-    public static ImmutableArray<string> Validate(
-        SparseGeneratedOncePlan plan,
-        SparseEmissionFeatures features
-    )
+    public static ImmutableArray<string> Validate(SparseGeneratedOncePlan plan, SparseEmissionFeatures features)
     {
         var errors = ImmutableArray.CreateBuilder<string>();
         foreach (var dependency in features.ValidateDependencies())
@@ -231,11 +210,7 @@ internal static class SparseGeneratedCapabilityPlanner
             capabilities |= SparseGeneratedCapability.CloneKernels;
         }
 
-        if (
-            features.EmitFragment
-            && features.EmitObservable
-            && (HasReadableCollections(members) || hasReadOnlyViews)
-        )
+        if (features.EmitFragment && features.EmitObservable && (HasReadableCollections(members) || hasReadOnlyViews))
         {
             capabilities |= SparseGeneratedCapability.ReadOnlyAdapters;
         }
@@ -249,11 +224,7 @@ internal static class SparseGeneratedCapabilityPlanner
     }
 
     private static bool HasCloneableCollections(ImmutableArray<SparseMemberModel> members) =>
-        members
-            .Select(static member => member.Collection)
-            .Any(static collection =>
-                collection.CloneKind != SparseCloneCollectionKind.Unsupported
-            );
+        members.Select(static member => member.Collection).Any(static collection => collection.CloneKind != SparseCloneCollectionKind.Unsupported);
 
     private static bool HasReadableCollections(ImmutableArray<SparseMemberModel> members) =>
         members.Any(static member =>
@@ -267,17 +238,10 @@ internal static class SparseGeneratedCapabilityPlanner
             || member.ChildModel?.IsFragmentModel == true
         );
 
-    private static bool HasKeyedOrDictionaryCollections(
-        ImmutableArray<SparseMemberModel> members
-    ) =>
-        members
-            .Select(static member => member.Collection)
-            .Any(static collection => collection.IsKeyedSequence || collection.IsDictionary);
+    private static bool HasKeyedOrDictionaryCollections(ImmutableArray<SparseMemberModel> members) =>
+        members.Select(static member => member.Collection).Any(static collection => collection.IsKeyedSequence || collection.IsDictionary);
 
-    private static bool RequiresPortableSetView(
-        SparseGenerationAnalysis analysis,
-        bool bclHashSetImplementsReadOnlySet
-    )
+    private static bool RequiresPortableSetView(SparseGenerationAnalysis analysis, bool bclHashSetImplementsReadOnlySet)
     {
         if (bclHashSetImplementsReadOnlySet)
         {
@@ -286,10 +250,7 @@ internal static class SparseGeneratedCapabilityPlanner
 
         var definitions = CollectNamedTypeDefinitions(analysis.Members, analysis.PocoCloneModels);
 
-        return SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(
-            bclHashSetImplementsReadOnlySet,
-            definitions
-        );
+        return SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(bclHashSetImplementsReadOnlySet, definitions);
     }
 
     private static bool RequiresPortableSetView(
@@ -305,23 +266,15 @@ internal static class SparseGeneratedCapabilityPlanner
 
         var definitions = CollectNamedTypeDefinitions(members, pocos);
 
-        return SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(
-            bclHashSetImplementsReadOnlySet,
-            definitions
-        );
+        return SparseFragmentCollectionCloneEmitter.RequiresPortableSetView(bclHashSetImplementsReadOnlySet, definitions);
     }
 
-    private static List<string?> CollectNamedTypeDefinitions(
-        ImmutableArray<SparseMemberModel> members,
-        ImmutableArray<SparsePocoCloneModel> pocos
-    )
+    private static List<string?> CollectNamedTypeDefinitions(ImmutableArray<SparseMemberModel> members, ImmutableArray<SparsePocoCloneModel> pocos)
     {
         var definitions = new List<string?>();
         if (!members.IsDefault)
         {
-            definitions.AddRange(
-                members.Select(static member => member.Collection.NamedTypeDefinition)
-            );
+            definitions.AddRange(members.Select(static member => member.Collection.NamedTypeDefinition));
         }
 
         if (!pocos.IsDefault)
@@ -333,15 +286,12 @@ internal static class SparseGeneratedCapabilityPlanner
                     continue;
                 }
 
-                definitions.AddRange(
-                    pocoMembers.Select(static member => member.Collection.NamedTypeDefinition)
-                );
+                definitions.AddRange(pocoMembers.Select(static member => member.Collection.NamedTypeDefinition));
             }
         }
 
         return definitions;
     }
 
-    private static bool HasFlag(SparseGeneratedCapability value, SparseGeneratedCapability flag) =>
-        (value & flag) == flag;
+    private static bool HasFlag(SparseGeneratedCapability value, SparseGeneratedCapability flag) => (value & flag) == flag;
 }

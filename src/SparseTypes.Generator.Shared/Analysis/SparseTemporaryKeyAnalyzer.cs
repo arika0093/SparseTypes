@@ -13,15 +13,10 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseTemporaryKeyAnalyzer
 {
     /// <summary>Determines whether temporary-key analysis applies for the product.</summary>
-    public static bool IsEnabled(SparseGeneratorConfig config) =>
-        !string.IsNullOrEmpty(config.TemporaryKeyAttributeMetadataName);
+    public static bool IsEnabled(SparseGeneratorConfig config) => !string.IsNullOrEmpty(config.TemporaryKeyAttributeMetadataName);
 
     /// <summary>Determines whether an element type declares any temporary-key metadata.</summary>
-    public static bool HasTemporaryKeyDeclaration(
-        INamedTypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public static bool HasTemporaryKeyDeclaration(INamedTypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!IsEnabled(config))
@@ -176,10 +171,7 @@ internal static class SparseTemporaryKeyAnalyzer
                     new SparseGeneratorDiagnostic(
                         config.EffectiveDiagnosticIds.InvalidTemporaryKeyShape,
                         property.Locations.FirstOrDefault(),
-                        element.Name
-                            + "."
-                            + property.Name
-                            + " must be publicly readable and settable"
+                        element.Name + "." + property.Name + " must be publicly readable and settable"
                     )
                 );
                 continue;
@@ -200,18 +192,13 @@ internal static class SparseTemporaryKeyAnalyzer
             if (!HasUnassignedKeySemantics(element, config, cancellationToken))
             {
                 // Malformed keys already fail through key diagnostics.
-                if (
-                    SparseKeyAnalyzer.CollectDiagnostics(element, config, cancellationToken).IsEmpty
-                )
+                if (SparseKeyAnalyzer.CollectDiagnostics(element, config, cancellationToken).IsEmpty)
                 {
                     diagnostics.Add(
                         new SparseGeneratorDiagnostic(
                             config.EffectiveDiagnosticIds.InvalidTemporaryKeyShape,
                             property.Locations.FirstOrDefault(),
-                            element.Name
-                                + "."
-                                + property.Name
-                                + " requires unassigned key semantics"
+                            element.Name + "." + property.Name + " requires unassigned key semantics"
                         )
                     );
                 }
@@ -238,21 +225,10 @@ internal static class SparseTemporaryKeyAnalyzer
         return diagnostics.ToImmutable();
     }
 
-    private static bool HasUnassignedKeySemantics(
-        INamedTypeSymbol element,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static bool HasUnassignedKeySemantics(INamedTypeSymbol element, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         // A temporary identity only activates for unassigned permanent keys.
-        if (
-            !SparseKeyAnalyzer.TryGetSingleKeyUnassignedExpression(
-                element,
-                config,
-                cancellationToken,
-                out var expression
-            )
-        )
+        if (!SparseKeyAnalyzer.TryGetSingleKeyUnassignedExpression(element, config, cancellationToken, out var expression))
         {
             return false;
         }
@@ -260,10 +236,7 @@ internal static class SparseTemporaryKeyAnalyzer
         return expression is not null;
     }
 
-    private static List<(
-        IPropertySymbol Property,
-        AttributeData Attribute
-    )> FindTemporaryKeyProperties(
+    private static List<(IPropertySymbol Property, AttributeData Attribute)> FindTemporaryKeyProperties(
         INamedTypeSymbol element,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken
@@ -276,10 +249,7 @@ internal static class SparseTemporaryKeyAnalyzer
             foreach (var attribute in property.GetAttributes())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (
-                    attribute.AttributeClass?.ToDisplayString()
-                    == config.TemporaryKeyAttributeMetadataName
-                )
+                if (attribute.AttributeClass?.ToDisplayString() == config.TemporaryKeyAttributeMetadataName)
                 {
                     marks.Add((property, attribute));
                     break;
@@ -290,17 +260,10 @@ internal static class SparseTemporaryKeyAnalyzer
         return marks;
     }
 
-    private static IEnumerable<IPropertySymbol> GetAllProperties(
-        INamedTypeSymbol model,
-        CancellationToken cancellationToken
-    )
+    private static IEnumerable<IPropertySymbol> GetAllProperties(INamedTypeSymbol model, CancellationToken cancellationToken)
     {
         var hierarchy = new Stack<INamedTypeSymbol>();
-        for (
-            var current = model;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = model; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             cancellationToken.ThrowIfCancellationRequested();
             hierarchy.Push(current);
@@ -324,8 +287,7 @@ internal static class SparseTemporaryKeyAnalyzer
         type is INamedTypeSymbol named
         && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
         && named.TypeArguments.Length == 1
-        && named.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
-            == "global::System.Guid";
+        && named.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System.Guid";
 
     private static bool IsPubliclyReadableInstance(IPropertySymbol property) =>
         !property.IsStatic
@@ -335,8 +297,7 @@ internal static class SparseTemporaryKeyAnalyzer
 
     // The temporary identity is assigned at construction (object initializers)
     // while generated code only reads it.
-    private static bool HasPublicSetter(IPropertySymbol property) =>
-        property.SetMethod?.DeclaredAccessibility == Accessibility.Public;
+    private static bool HasPublicSetter(IPropertySymbol property) => property.SetMethod?.DeclaredAccessibility == Accessibility.Public;
 
     private static bool HasKeyAttribute(IPropertySymbol property, SparseGeneratorConfig config)
     {
@@ -351,34 +312,23 @@ internal static class SparseTemporaryKeyAnalyzer
         return false;
     }
 
-    private static bool HasAttributeArguments(
-        AttributeData attribute,
-        CancellationToken cancellationToken
-    )
+    private static bool HasAttributeArguments(AttributeData attribute, CancellationToken cancellationToken)
     {
         if (attribute.ConstructorArguments.Length > 0 || attribute.NamedArguments.Length > 0)
         {
             return true;
         }
 
-        return attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken)
-                is AttributeSyntax syntax
+        return attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is AttributeSyntax syntax
             && syntax.ArgumentList?.Arguments.Count > 0;
     }
 
-    private static bool HasExplicitInitializer(
-        IPropertySymbol property,
-        CancellationToken cancellationToken
-    )
+    private static bool HasExplicitInitializer(IPropertySymbol property, CancellationToken cancellationToken)
     {
         foreach (var syntaxReference in property.DeclaringSyntaxReferences)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (
-                syntaxReference.GetSyntax(cancellationToken)
-                    is PropertyDeclarationSyntax declaration
-                && declaration.Initializer is not null
-            )
+            if (syntaxReference.GetSyntax(cancellationToken) is PropertyDeclarationSyntax declaration && declaration.Initializer is not null)
             {
                 return true;
             }

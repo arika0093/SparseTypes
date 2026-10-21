@@ -20,18 +20,11 @@ internal sealed class SparseCloneCycleAnalyzer
 
     // Registerability is a property of the cycles themselves, not of the
     // entry path, so completed results are safe to reuse from any context.
-    private readonly Dictionary<INamedTypeSymbol, bool> _completed = new(
-        SymbolEqualityComparer.Default
-    );
-    private readonly Dictionary<INamedTypeSymbol, bool> _preRegistrationCycles = new(
-        SymbolEqualityComparer.Default
-    );
+    private readonly Dictionary<INamedTypeSymbol, bool> _completed = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<INamedTypeSymbol, bool> _preRegistrationCycles = new(SymbolEqualityComparer.Default);
     private readonly List<INamedTypeSymbol> _path = new();
 
-    public SparseCloneCycleAnalyzer(
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    public SparseCloneCycleAnalyzer(SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         _config = config;
         _cancellationToken = cancellationToken;
@@ -58,16 +51,12 @@ internal sealed class SparseCloneCycleAnalyzer
         var collection = SparseCollectionAnalyzer.GetCollectionInfo(named);
         if (collection.CloneKind != SparseCloneCollectionKind.Unsupported)
         {
-            if (
-                collection.ElementType is not null
-                && ContainsUnregisterableCloneCycle(collection.ElementType)
-            )
+            if (collection.ElementType is not null && ContainsUnregisterableCloneCycle(collection.ElementType))
             {
                 return true;
             }
 
-            return collection.ValueType is not null
-                && ContainsUnregisterableCloneCycle(collection.ValueType);
+            return collection.ValueType is not null && ContainsUnregisterableCloneCycle(collection.ValueType);
         }
         if (
             !SparseModelDiscovery.IsFragmentModel(named, _config, _cancellationToken)
@@ -89,9 +78,7 @@ internal sealed class SparseCloneCycleAnalyzer
             return completed;
         }
 
-        var cycleStart = _path.FindIndex(candidate =>
-            SymbolEqualityComparer.Default.Equals(candidate, named)
-        );
+        var cycleStart = _path.FindIndex(candidate => SymbolEqualityComparer.Default.Equals(candidate, named));
         if (cycleStart >= 0)
         {
             // A back edge to an active node: evaluate exactly the segment the
@@ -110,20 +97,13 @@ internal sealed class SparseCloneCycleAnalyzer
 
         _path.Add(named);
         var result = false;
-        foreach (
-            var property in SparseModelDiscovery
-                .GetMembers(named, _config, _cancellationToken)
-                .Select(static member => member.Property)
-        )
+        foreach (var property in SparseModelDiscovery.GetMembers(named, _config, _cancellationToken).Select(static member => member.Property))
         {
             _cancellationToken.ThrowIfCancellationRequested();
             if (
                 property
                     .GetAttributes()
-                    .Any(attribute =>
-                        attribute.AttributeClass?.ToDisplayString()
-                        == _config.CloneReferenceSafeAttributeMetadataName
-                    )
+                    .Any(attribute => attribute.AttributeClass?.ToDisplayString() == _config.CloneReferenceSafeAttributeMetadataName)
             )
             {
                 continue;
@@ -157,14 +137,8 @@ internal sealed class SparseCloneCycleAnalyzer
 
     private bool ComputePreRegistrationCloneCycle(INamedTypeSymbol model)
     {
-        var fragmentModel = SparseModelDiscovery.IsFragmentModel(
-            model,
-            _config,
-            _cancellationToken
-        );
-        var members = SparseModelDiscovery
-            .GetMembers(model, _config, _cancellationToken)
-            .ToImmutableArray();
+        var fragmentModel = SparseModelDiscovery.IsFragmentModel(model, _config, _cancellationToken);
+        var members = SparseModelDiscovery.GetMembers(model, _config, _cancellationToken).ToImmutableArray();
         if (model.TypeKind == TypeKind.Struct)
         {
             return members.Any(member => CanReachCloneType(member.Property.Type, model));
@@ -181,16 +155,8 @@ internal sealed class SparseCloneCycleAnalyzer
         IEnumerable<SparseSymbolMemberModel> preRegistrationMembers;
         if (fragmentModel)
         {
-            var generatedMembers = SparseModelDiscovery.CreateMemberModels(
-                members,
-                _config,
-                _cancellationToken,
-                model
-            );
-            if (
-                constructor.Parameters.IsEmpty
-                && ModelConstructionPlan.ForMembers(generatedMembers).CanOverlayAfterConstruction
-            )
+            var generatedMembers = SparseModelDiscovery.CreateMemberModels(members, _config, _cancellationToken, model);
+            if (constructor.Parameters.IsEmpty && ModelConstructionPlan.ForMembers(generatedMembers).CanOverlayAfterConstruction)
             {
                 return false;
             }
@@ -204,13 +170,8 @@ internal sealed class SparseCloneCycleAnalyzer
                 return false;
             }
 
-            var boundNames = new HashSet<string>(
-                constructor.Parameters.Select(static parameter => parameter.PropertyName),
-                StringComparer.Ordinal
-            );
-            preRegistrationMembers = members.Where(member =>
-                boundNames.Contains(member.Property.Name)
-            );
+            var boundNames = new HashSet<string>(constructor.Parameters.Select(static parameter => parameter.PropertyName), StringComparer.Ordinal);
+            preRegistrationMembers = members.Where(member => boundNames.Contains(member.Property.Name));
         }
 
         return preRegistrationMembers.Any(member => CanReachCloneType(member.Property.Type, model));
@@ -235,13 +196,7 @@ internal sealed class SparseCloneCycleAnalyzer
                 continue;
             }
 
-            foreach (
-                var (nested, referenceSafe) in SparseCloneAnalysis.GetCloneChildren(
-                    current,
-                    _config,
-                    _cancellationToken
-                )
-            )
+            foreach (var (nested, referenceSafe) in SparseCloneAnalysis.GetCloneChildren(current, _config, _cancellationToken))
             {
                 if (!referenceSafe)
                 {

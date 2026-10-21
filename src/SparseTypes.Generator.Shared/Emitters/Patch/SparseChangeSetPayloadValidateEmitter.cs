@@ -27,39 +27,27 @@ internal static class SparseChangeSetPayloadValidateEmitter
         var error = runtime + "ChangePayloadValidationError";
         var kind = runtime + "ChangePayloadValidationKind";
         var errors = "global::System.Collections.Generic.List<" + error + ">";
-        code.AppendLine(
-            "/// <summary>Validates the structural wire contract without converting or applying.</summary>"
-        );
+        code.AppendLine("/// <summary>Validates the structural wire contract without converting or applying.</summary>");
         code.AppendLine(
             "/// <remarks>Blind and redacted envelopes are valid; a valid payload can still be unconvertible to a complete <c>ChangeSet</c>, and rebase conflicts are reported by <c>TryApplyMixedTo</c>, not here. Messages carry paths and reasons only, never secret values.</remarks>"
         );
-        code.AppendLine(
-            "/// <returns>The validation outcome in deterministic payload order.</returns>"
-        );
+        code.AppendLine("/// <returns>The validation outcome in deterministic payload order.</returns>");
         code.AppendLine("public " + result + " Validate()");
         code.OpenBlock();
         code.AppendLine("var __validateErrors = new " + errors + "();");
         code.AppendLine("__SparseValidateInto(__validateErrors, string.Empty);");
         code.AppendLine("return new " + result + "(__validateErrors);");
         code.CloseBlock();
-        code.AppendLine(
-            "/// <summary>Collects structural errors with the given path prefix.</summary>"
-        );
+        code.AppendLine("/// <summary>Collects structural errors with the given path prefix.</summary>");
         code.AppendLine(
             "/// <remarks>Accepts the same envelopes as <c>__SparseMixedPartition</c>; nested cores and item edits recurse with extended prefixes.</remarks>"
         );
         code.AppendLine("/// <param name=\"errors\">The collected errors.</param>");
         code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-        code.AppendLine(
-            "internal void __SparseValidateInto(" + errors + " errors, string pathPrefix)"
-        );
+        code.AppendLine("internal void __SparseValidateInto(" + errors + " errors, string pathPrefix)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));"
-        );
-        code.AppendLine(
-            "if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));"
-        );
+        code.AppendLine("if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));");
+        code.AppendLine("if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));");
         code.AppendLine(
             "if (Changes is null) { errors.Add(new "
                 + error
@@ -92,26 +80,16 @@ internal static class SparseChangeSetPayloadValidateEmitter
         code.CloseBlock();
     }
 
-    internal static void AppendEnvelopeValidate(
-        SharedIndentedBuilder code,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string modelType
-    )
+    internal static void AppendEnvelopeValidate(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect, string modelType)
     {
         var runtime = dialect.RuntimeNamespace;
         var result = runtime + "ChangePayloadValidationResult";
         var error = runtime + "ChangePayloadValidationError";
         var kind = runtime + "ChangePayloadValidationKind";
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
-        code.AppendLine(
-            "/// <summary>Validates the envelope wire contract without converting or applying.</summary>"
-        );
-        code.AppendLine(
-            "/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>"
-        );
-        code.AppendLine(
-            "/// <returns>The validation outcome in deterministic payload order.</returns>"
-        );
+        code.AppendLine("/// <summary>Validates the envelope wire contract without converting or applying.</summary>");
+        code.AppendLine("/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>");
+        code.AppendLine("/// <returns>The validation outcome in deterministic payload order.</returns>");
         code.AppendLine("public new " + result + " Validate()");
         code.OpenBlock();
         code.AppendLine(
@@ -159,24 +137,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
         );
         // Value-free endpoints must not smuggle values; reuse the endpoint
         // check so validation and conversion cannot disagree.
-        AppendEndpointValidate(
-            code,
-            "whole.Before",
-            rootPath,
-            error,
-            kind,
-            "errors",
-            "__validateWholeBeforeBad"
-        );
-        AppendEndpointValidate(
-            code,
-            "whole.After",
-            rootPath,
-            error,
-            kind,
-            "errors",
-            "__validateWholeAfterBad"
-        );
+        AppendEndpointValidate(code, "whole.Before", rootPath, error, kind, "errors", "__validateWholeBeforeBad");
+        AppendEndpointValidate(code, "whole.After", rootPath, error, kind, "errors", "__validateWholeAfterBad");
         code.AppendLine("if (__validateWholeBeforeBad || __validateWholeAfterBad) return;");
         code.AppendLine(
             "if (whole.After.IsRedacted) { errors.Add(new "
@@ -211,12 +173,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
         code.OpenBlock();
         code.AppendLine("var __validateWholeBefore = whole.Before.ToOptional();");
         code.AppendLine("var __validateWholeAfter = whole.After.ToOptional();");
-        code.AppendLine(
-            "if (__validateWholeBefore.IsPresent) __validateWholeBefore.Value?.ToFragment();"
-        );
-        code.AppendLine(
-            "if (__validateWholeAfter.IsPresent) __validateWholeAfter.Value?.ToFragment();"
-        );
+        code.AppendLine("if (__validateWholeBefore.IsPresent) __validateWholeBefore.Value?.ToFragment();");
+        code.AppendLine("if (__validateWholeAfter.IsPresent) __validateWholeAfter.Value?.ToFragment();");
         code.CloseBlock();
         code.AppendLine(
             "catch (global::System.ArgumentException __validateWholeEx) { errors.Add(new "
@@ -253,12 +211,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
         var id = member.Id;
         var propLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
         var path = "pathPrefix + " + propLit;
-        var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-            dialect,
-            modelType,
-            "Change",
-            id
-        );
+        var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
         code.AppendLine("case " + variant + " item:");
         code.AppendLine(
             "if (__validateSeen"
@@ -287,27 +240,12 @@ internal static class SparseChangeSetPayloadValidateEmitter
             code.AppendLine("break;");
             return;
         }
-        if (
-            SparseChangeSetBasicsEmitter.IsKeyed(member)
-            || SparseChangeSetBasicsEmitter.IsDict(member)
-        )
+        if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
         {
-            SparseChangeSetPayloadValidateKeyedEmitter.AppendKeyedValidate(
-                code,
-                member,
-                dialect,
-                modelType,
-                path,
-                runtime,
-                error,
-                kind
-            );
+            SparseChangeSetPayloadValidateKeyedEmitter.AppendKeyedValidate(code, member, dialect, modelType, path, runtime, error, kind);
             return;
         }
-        if (
-            SparseDownstreamPolicy.IsScalarMember(member)
-            && dialect.GetTransport(member.Property.Name) != SparseMemberTransport.Full
-        )
+        if (SparseDownstreamPolicy.IsScalarMember(member) && dialect.GetTransport(member.Property.Name) != SparseMemberTransport.Full)
         {
             // Transport policy mirrors the restore seam: an undisclosed
             // before-state can never rebuild a complete ChangeSet.
@@ -346,13 +284,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
         AppendScalarValidate(code, member, path, error, kind);
     }
 
-    private static void AppendScalarValidate(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string path,
-        string error,
-        string kind
-    )
+    private static void AppendScalarValidate(SharedIndentedBuilder code, SparseMemberModel member, string path, string error, string kind)
     {
         var id = member.Id;
         code.AppendLine(
@@ -364,27 +296,9 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + path
                 + ", Message = \"Both transition endpoints are required.\" }); break; }"
         );
-        AppendEndpointValidate(
-            code,
-            "item.Before",
-            path,
-            error,
-            kind,
-            "errors",
-            "__validateBeforeBad" + id
-        );
-        AppendEndpointValidate(
-            code,
-            "item.After",
-            path,
-            error,
-            kind,
-            "errors",
-            "__validateAfterBad" + id
-        );
-        code.AppendLine(
-            "if (__validateBeforeBad" + id + " || __validateAfterBad" + id + ") break;"
-        );
+        AppendEndpointValidate(code, "item.Before", path, error, kind, "errors", "__validateBeforeBad" + id);
+        AppendEndpointValidate(code, "item.After", path, error, kind, "errors", "__validateAfterBad" + id);
+        code.AppendLine("if (__validateBeforeBad" + id + " || __validateAfterBad" + id + ") break;");
         code.AppendLine(
             "if (item.After.IsRedacted) { errors.Add(new "
                 + error

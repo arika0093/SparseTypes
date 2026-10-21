@@ -14,8 +14,7 @@ internal sealed record SparseIncompatiblePromotedEntry(string Key, string Displa
         && string.Equals(Key, other.Key, StringComparison.Ordinal)
         && string.Equals(DisplayName, other.DisplayName, StringComparison.Ordinal);
 
-    public override int GetHashCode() =>
-        unchecked((Key.GetHashCode() * 31) + DisplayName.GetHashCode(StringComparison.Ordinal));
+    public override int GetHashCode() => unchecked((Key.GetHashCode() * 31) + DisplayName.GetHashCode(StringComparison.Ordinal));
 }
 
 /// <summary>Keyed aggregation result for promoted models: distinct emit candidates plus incompatible keys.</summary>
@@ -25,12 +24,9 @@ internal sealed record SparsePromotedDedupResult(
 )
 {
     public bool Equals(SparsePromotedDedupResult? other) =>
-        other is not null
-        && SparseSequence.Equal(Distinct, other.Distinct)
-        && SparseSequence.Equal(Incompatible, other.Incompatible);
+        other is not null && SparseSequence.Equal(Distinct, other.Distinct) && SparseSequence.Equal(Incompatible, other.Incompatible);
 
-    public override int GetHashCode() =>
-        unchecked((SparseSequence.Hash(Distinct) * 31) + SparseSequence.Hash(Incompatible));
+    public override int GetHashCode() => unchecked((SparseSequence.Hash(Distinct) * 31) + SparseSequence.Hash(Incompatible));
 }
 
 /// <summary>Keyed aggregation for promoted models.</summary>
@@ -38,10 +34,7 @@ internal static class SparsePromotedAggregation
 {
     /// <summary>Collects promoted contributions and resolves candidates and incompatible keys in one step.</summary>
     /// <remarks>Source rendering remains generator-specific.</remarks>
-    internal static SparsePromotedDedupResult Aggregate(
-        ImmutableArray<SparseGenerationAnalysis> analyses,
-        CancellationToken cancellationToken
-    )
+    internal static SparsePromotedDedupResult Aggregate(ImmutableArray<SparseGenerationAnalysis> analyses, CancellationToken cancellationToken)
     {
         var contributions = ImmutableArray.CreateBuilder<SparsePromotedModel>();
         var explicitRoots = ImmutableArray.CreateBuilder<string>();
@@ -59,16 +52,11 @@ internal static class SparsePromotedAggregation
             }
         }
 
-        return Deduplicate(
-            contributions.ToImmutable(),
-            explicitRoots.ToImmutable(),
-            cancellationToken
-        );
+        return Deduplicate(contributions.ToImmutable(), explicitRoots.ToImmutable(), cancellationToken);
     }
 
-    internal static ImmutableArray<string> ToIncompatibleArguments(
-        SparsePromotedDedupResult result
-    ) => result.Incompatible.Select(static entry => entry.DisplayName).ToImmutableArray();
+    internal static ImmutableArray<string> ToIncompatibleArguments(SparsePromotedDedupResult result) =>
+        result.Incompatible.Select(static entry => entry.DisplayName).ToImmutableArray();
 
     internal static SparsePromotedDedupResult Deduplicate(
         ImmutableArray<SparsePromotedModel> contributions,

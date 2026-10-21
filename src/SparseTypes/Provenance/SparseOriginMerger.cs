@@ -80,9 +80,7 @@ internal static class SparseOriginMerger
             var position = 0;
             foreach (var value in effective)
             {
-                result[position++] = firstByValue.TryGetValue(value, out var origin)
-                    ? origin
-                    : null;
+                result[position++] = firstByValue.TryGetValue(value, out var origin) ? origin : null;
             }
 
             return result;
@@ -99,21 +97,11 @@ internal static class SparseOriginMerger
         return buffer.ToArray();
     }
 
-    private static IEqualityComparer<T>? DiscoverSetComparer<T>(
-        IEnumerable<T> lower,
-        IEnumerable<T> higher,
-        IEnumerable<T> effective
-    )
+    private static IEqualityComparer<T>? DiscoverSetComparer<T>(IEnumerable<T> lower, IEnumerable<T> higher, IEnumerable<T> effective)
     {
         var effectiveComparer = SparseCollectionProvenance.TryGetSetComparer(effective);
-        var activeComparer =
-            SparseCollectionProvenance.TryGetSetComparer(lower)
-            ?? SparseCollectionProvenance.TryGetSetComparer(higher);
-        if (
-            effectiveComparer is not null
-            && activeComparer is not null
-            && !effectiveComparer.Equals(activeComparer)
-        )
+        var activeComparer = SparseCollectionProvenance.TryGetSetComparer(lower) ?? SparseCollectionProvenance.TryGetSetComparer(higher);
+        if (effectiveComparer is not null && activeComparer is not null && !effectiveComparer.Equals(activeComparer))
         {
             return null;
         }
@@ -122,8 +110,7 @@ internal static class SparseOriginMerger
     }
 
     /// <summary>Obtains the element count without enumerating supported collection shapes.</summary>
-    private static int GetCount<T>(IEnumerable<T> values) =>
-        TryGetCount(values, out var count) ? count : CountEnumerable(values);
+    private static int GetCount<T>(IEnumerable<T> values) => TryGetCount(values, out var count) ? count : CountEnumerable(values);
 
     private static bool TryGetCount<T>(IEnumerable<T> values, out int count)
     {
@@ -142,10 +129,7 @@ internal static class SparseOriginMerger
 
         // Synchronized wrappers may be mutated concurrently; skip their stale
         // Count and fall through to a single forward pass.
-        if (
-            values is System.Collections.ICollection nonGenericCollection
-            && !nonGenericCollection.IsSynchronized
-        )
+        if (values is System.Collections.ICollection nonGenericCollection && !nonGenericCollection.IsSynchronized)
         {
             count = nonGenericCollection.Count;
             return true;
@@ -170,13 +154,7 @@ internal static class SparseOriginMerger
         return count;
     }
 
-    private static void FillOriginRange(
-        string?[] result,
-        int offset,
-        int count,
-        string?[]? origins,
-        string? fallback
-    )
+    private static void FillOriginRange(string?[] result, int offset, int count, string?[]? origins, string? fallback)
     {
         for (var index = 0; index < count; index++)
         {
@@ -192,13 +170,7 @@ internal static class SparseOriginMerger
         "S3267",
         Justification = "Explicit loops track element positions while building the distinct union; LINQ would obscure provenance positions."
     )]
-    private static void AddDistinct<T>(
-        IEnumerable<T> values,
-        string?[]? origins,
-        string? fallback,
-        HashSet<T> seen,
-        List<string?> result
-    )
+    private static void AddDistinct<T>(IEnumerable<T> values, string?[]? origins, string? fallback, HashSet<T> seen, List<string?> result)
     {
         ArgumentNullException.ThrowIfNull(values);
         // Forward enumeration keeps per-element attribution aligned with the
@@ -219,12 +191,7 @@ internal static class SparseOriginMerger
         "S3267",
         Justification = "Explicit loops track element positions while building the comparer-aware union; LINQ would obscure provenance positions."
     )]
-    private static void AddFirst<T>(
-        IEnumerable<T> values,
-        string?[]? origins,
-        string? fallback,
-        Dictionary<T, string?> firstByValue
-    )
+    private static void AddFirst<T>(IEnumerable<T> values, string?[]? origins, string? fallback, Dictionary<T, string?> firstByValue)
     {
         ArgumentNullException.ThrowIfNull(values);
         var position = 0;

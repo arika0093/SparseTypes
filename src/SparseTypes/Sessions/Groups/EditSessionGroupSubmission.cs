@@ -9,15 +9,9 @@ namespace SparseTypes;
 public sealed class EditSessionGroupSubmission
 {
     private readonly object _owner;
-    private readonly IReadOnlyDictionary<
-        IEditSessionGroupSection,
-        EditSessionSubmittedSection
-    > _bySection;
+    private readonly IReadOnlyDictionary<IEditSessionGroupSection, EditSessionSubmittedSection> _bySection;
 
-    internal EditSessionGroupSubmission(
-        object owner,
-        IReadOnlyList<EditSessionSubmittedSection> sections
-    )
+    internal EditSessionGroupSubmission(object owner, IReadOnlyList<EditSessionSubmittedSection> sections)
     {
         _owner = owner;
         Sections = sections;
@@ -28,15 +22,11 @@ public sealed class EditSessionGroupSubmission
             bySection.Add(section.Section, section);
             foreach (var path in section.ChangedPaths)
             {
-                paths.Add(
-                    new EditSessionGroupChangedPath(section.SectionId, path, path.ToString())
-                );
+                paths.Add(new EditSessionGroupChangedPath(section.SectionId, path, path.ToString()));
             }
         }
 
-        _bySection = new ReadOnlyDictionary<IEditSessionGroupSection, EditSessionSubmittedSection>(
-            bySection
-        );
+        _bySection = new ReadOnlyDictionary<IEditSessionGroupSection, EditSessionSubmittedSection>(bySection);
         ChangedPaths = Array.AsReadOnly(paths.ToArray());
     }
 
@@ -51,9 +41,7 @@ public sealed class EditSessionGroupSubmission
     /// <returns>The section's immutable captured change set and path snapshot.</returns>
     /// <exception cref="ArgumentException">The handle belongs to another group.</exception>
     /// <exception cref="KeyNotFoundException">The section had no changes in this submission.</exception>
-    public EditSessionSubmissionEntry<TChangeSet> Get<TModel, TChangeSet>(
-        EditSessionSectionHandle<TModel, TChangeSet> handle
-    )
+    public EditSessionSubmissionEntry<TChangeSet> Get<TModel, TChangeSet>(EditSessionSectionHandle<TModel, TChangeSet> handle)
         where TModel : class
         where TChangeSet : class
     {
@@ -64,34 +52,23 @@ public sealed class EditSessionGroupSubmission
 
         if (!ReferenceEquals(handle.Owner, _owner))
         {
-            throw new ArgumentException(
-                "The handle belongs to another edit-session group.",
-                nameof(handle)
-            );
+            throw new ArgumentException("The handle belongs to another edit-session group.", nameof(handle));
         }
 
         if (!_bySection.TryGetValue(handle.Section, out var section))
         {
-            throw new KeyNotFoundException(
-                "The section has no changes in this submission or its registration was replaced."
-            );
+            throw new KeyNotFoundException("The section has no changes in this submission or its registration was replaced.");
         }
 
         if (section is not EditSessionSubmissionEntry<TChangeSet> typed)
         {
-            throw new ArgumentException(
-                "The handle does not match the submitted section type.",
-                nameof(handle)
-            );
+            throw new ArgumentException("The handle does not match the submitted section type.", nameof(handle));
         }
 
         return typed;
     }
 
-    internal bool TryGet(
-        IEditSessionGroupSection section,
-        out EditSessionSubmittedSection? entry
-    ) => _bySection.TryGetValue(section, out entry);
+    internal bool TryGet(IEditSessionGroupSection section, out EditSessionSubmittedSection? entry) => _bySection.TryGetValue(section, out entry);
 
     internal bool BelongsTo(object owner) => ReferenceEquals(_owner, owner);
 }
@@ -184,9 +161,7 @@ public sealed class EditSessionGroupValidationIssue
 /// <summary>Reports one or more sections that prevented submission preparation.</summary>
 public sealed class EditSessionGroupValidationException : InvalidOperationException
 {
-    internal EditSessionGroupValidationException(
-        IReadOnlyList<EditSessionGroupValidationIssue> issues
-    )
+    internal EditSessionGroupValidationException(IReadOnlyList<EditSessionGroupValidationIssue> issues)
         : base("The edit-session group is not ready to prepare a submission.")
     {
         Issues = issues;

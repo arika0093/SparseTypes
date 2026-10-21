@@ -36,11 +36,7 @@ internal static class CollectionEntryAccess
     /// detection still pauses around entry access to avoid revisiting
     /// ancestors per child.
     /// </remarks>
-    internal static CollectionEntry ReadNoDetect(
-        DbContext context,
-        object parent,
-        string navigation
-    )
+    internal static CollectionEntry ReadNoDetect(DbContext context, object parent, string navigation)
     {
         var tracker = context.ChangeTracker;
         var detectChanges = tracker.AutoDetectChangesEnabled;

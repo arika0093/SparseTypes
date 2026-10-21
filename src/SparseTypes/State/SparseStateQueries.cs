@@ -26,10 +26,7 @@ public static class SparseStateQueries
     /// The exact transition value cannot be represented as
     /// <typeparamref name="TValue"/>.
     /// </exception>
-    public static SparseFieldState<TValue> FieldState<TModel, TValue>(
-        this ISparseChangeSet changes,
-        SparsePath<TModel, TValue> path
-    )
+    public static SparseFieldState<TValue> FieldState<TModel, TValue>(this ISparseChangeSet changes, SparsePath<TModel, TValue> path)
     {
         ArgumentNullException.ThrowIfNull(changes);
         return FieldStateCore<TValue>(changes, path.Path);
@@ -45,10 +42,7 @@ public static class SparseStateQueries
     /// <exception cref="ArgumentNullException">
     /// <paramref name="changes"/> is null.
     /// </exception>
-    public static SparseFieldState<object?> FieldState(
-        this ISparseChangeSet changes,
-        SparsePath path
-    )
+    public static SparseFieldState<object?> FieldState(this ISparseChangeSet changes, SparsePath path)
     {
         ArgumentNullException.ThrowIfNull(changes);
         return FieldStateCore<object?>(changes, path);
@@ -175,18 +169,8 @@ public static class SparseStateQueries
     /// Shared by the one-off scan and the indexed query view so both spellings keep
     /// first-record-wins, endpoint, and conversion-error behavior.
     /// </remarks>
-    internal static SparseFieldState<T> Assemble<T>(
-        SparsePath query,
-        SparseChangeRecord? exact,
-        bool ancestor,
-        bool descendant
-    ) =>
-        Assemble<T>(
-            query,
-            exact is null ? null : (MapKind(exact.Kind), exact.Before, exact.After),
-            ancestor,
-            descendant
-        );
+    internal static SparseFieldState<T> Assemble<T>(SparsePath query, SparseChangeRecord? exact, bool ancestor, bool descendant) =>
+        Assemble<T>(query, exact is null ? null : (MapKind(exact.Kind), exact.Before, exact.After), ancestor, descendant);
 
     private static SparseFieldState<T> Assemble<T>(
         SparsePath query,
@@ -235,13 +219,7 @@ public static class SparseStateQueries
             return Optional<T>.Present(default!);
         }
 
-        throw new InvalidOperationException(
-            "The change record at '"
-                + query.ToString()
-                + "' cannot be represented as '"
-                + typeof(T)
-                + "'."
-        );
+        throw new InvalidOperationException("The change record at '" + query.ToString() + "' cannot be represented as '" + typeof(T) + "'.");
     }
 
     private static SparseCollectionItemState GetKeyedItemState<TKey, TElement, TElementChange>(

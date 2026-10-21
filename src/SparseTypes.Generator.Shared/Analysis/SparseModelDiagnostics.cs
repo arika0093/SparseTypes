@@ -32,22 +32,14 @@ internal static class SparseModelDiagnostics
         )
         {
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.UnsupportedRequired,
-                    member.Locations.FirstOrDefault(),
-                    member.Name
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.UnsupportedRequired, member.Locations.FirstOrDefault(), member.Name)
             );
         }
 
         foreach (var property in UnsupportedStructuralMembers(model, config, cancellationToken))
         {
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.UnsupportedStructural,
-                    property.Locations.FirstOrDefault(),
-                    property.Name
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.UnsupportedStructural, property.Locations.FirstOrDefault(), property.Name)
             );
         }
 
@@ -64,18 +56,10 @@ internal static class SparseModelDiagnostics
 
             var elementDeclaresKey =
                 SparseKeyAnalyzer.HasKeyDeclaration(element, config, cancellationToken)
-                && !SparseKeyAnalyzer
-                    .CollectDiagnostics(element, config, cancellationToken)
-                    .IsEmpty;
+                && !SparseKeyAnalyzer.CollectDiagnostics(element, config, cancellationToken).IsEmpty;
             var elementDeclaresTemp =
-                SparseTemporaryKeyAnalyzer.HasTemporaryKeyDeclaration(
-                    element,
-                    config,
-                    cancellationToken
-                )
-                && SparseTemporaryKeyAnalyzer
-                    .CollectDiagnostics(element, config, cancellationToken)
-                    .Any(static diagnostic => !diagnostic.IsWarning);
+                SparseTemporaryKeyAnalyzer.HasTemporaryKeyDeclaration(element, config, cancellationToken)
+                && SparseTemporaryKeyAnalyzer.CollectDiagnostics(element, config, cancellationToken).Any(static diagnostic => !diagnostic.IsWarning);
             if (elementDeclaresKey || elementDeclaresTemp)
             {
                 elementErrorProperties.Add(member.Property);
@@ -83,13 +67,7 @@ internal static class SparseModelDiagnostics
         }
 
         var cloneReported = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
-        foreach (
-            var property in SparseCloneAnalysis.UnsupportedCloneMembers(
-                model,
-                config,
-                cancellationToken
-            )
-        )
+        foreach (var property in SparseCloneAnalysis.UnsupportedCloneMembers(model, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (elementErrorProperties.Contains(property))
@@ -99,11 +77,7 @@ internal static class SparseModelDiagnostics
 
             cloneReported.Add(property);
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.UnsupportedClone,
-                    property.Locations.FirstOrDefault(),
-                    property.Name
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.UnsupportedClone, property.Locations.FirstOrDefault(), property.Name)
             );
         }
 
@@ -122,11 +96,7 @@ internal static class SparseModelDiagnostics
             cancellationToken.ThrowIfCancellationRequested();
             cloneReported.Add(property);
             diagnostics.Add(
-                new SparseGeneratorDiagnostic(
-                    config.EffectiveDiagnosticIds.UnsupportedClone,
-                    property.Locations.FirstOrDefault(),
-                    property.Name
-                )
+                new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.UnsupportedClone, property.Locations.FirstOrDefault(), property.Name)
             );
         }
 
@@ -158,11 +128,7 @@ internal static class SparseModelDiagnostics
 
             if (
                 member.ComparisonComparerType is not null
-                && !SparseComparisonValidation.IsValidComparer(
-                    member.ComparisonComparerType,
-                    member.Property.Type,
-                    cancellationToken
-                )
+                && !SparseComparisonValidation.IsValidComparer(member.ComparisonComparerType, member.Property.Type, cancellationToken)
             )
             {
                 diagnostics.Add(
@@ -174,14 +140,7 @@ internal static class SparseModelDiagnostics
                 );
             }
 
-            if (
-                SparseMergeValidation.GetUnsupportedReason(
-                    member.MergeMode,
-                    member.ChildModel is not null,
-                    member.Collection.Kind
-                )
-                is not null
-            )
+            if (SparseMergeValidation.GetUnsupportedReason(member.MergeMode, member.ChildModel is not null, member.Collection.Kind) is not null)
             {
                 diagnostics.Add(
                     new SparseGeneratorDiagnostic(
@@ -199,13 +158,7 @@ internal static class SparseModelDiagnostics
                 && SparseKeyAnalyzer.HasKeyDeclaration(keyedElement, config, cancellationToken)
             )
             {
-                foreach (
-                    var keyDiagnostic in SparseKeyAnalyzer.CollectDiagnostics(
-                        keyedElement,
-                        config,
-                        cancellationToken
-                    )
-                )
+                foreach (var keyDiagnostic in SparseKeyAnalyzer.CollectDiagnostics(keyedElement, config, cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     diagnostics.Add(keyDiagnostic);
@@ -217,20 +170,10 @@ internal static class SparseModelDiagnostics
             // the member takes whole-collection semantics and never uses it.
             if (
                 member.Collection.ElementType is INamedTypeSymbol tempElement
-                && SparseTemporaryKeyAnalyzer.HasTemporaryKeyDeclaration(
-                    tempElement,
-                    config,
-                    cancellationToken
-                )
+                && SparseTemporaryKeyAnalyzer.HasTemporaryKeyDeclaration(tempElement, config, cancellationToken)
             )
             {
-                foreach (
-                    var tempDiagnostic in SparseTemporaryKeyAnalyzer.CollectDiagnostics(
-                        tempElement,
-                        config,
-                        cancellationToken
-                    )
-                )
+                foreach (var tempDiagnostic in SparseTemporaryKeyAnalyzer.CollectDiagnostics(tempElement, config, cancellationToken))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     diagnostics.Add(tempDiagnostic);
@@ -238,14 +181,7 @@ internal static class SparseModelDiagnostics
                 }
             }
 
-            if (
-                !reportedKeyError
-                && SparseCollectionAnalyzer.IsUnkeyedStructuralSequence(
-                    member,
-                    config,
-                    cancellationToken
-                )
-            )
+            if (!reportedKeyError && SparseCollectionAnalyzer.IsUnkeyedStructuralSequence(member, config, cancellationToken))
             {
                 diagnostics.Add(
                     new SparseGeneratorDiagnostic(
@@ -260,21 +196,10 @@ internal static class SparseModelDiagnostics
         // Declared-but-invalid keys on promoted nested models must fail the
         // root as well.
         var nestedSeen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (
-            var nestedDiagnostic in SparseKeyAnalyzer.CollectNestedKeyDiagnostics(
-                members,
-                config,
-                cancellationToken
-            )
-        )
+        foreach (var nestedDiagnostic in SparseKeyAnalyzer.CollectNestedKeyDiagnostics(members, config, cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var key =
-                nestedDiagnostic.DescriptorId
-                + "|"
-                + nestedDiagnostic.Argument1
-                + "|"
-                + nestedDiagnostic.Location?.SourceSpan.ToString();
+            var key = nestedDiagnostic.DescriptorId + "|" + nestedDiagnostic.Argument1 + "|" + nestedDiagnostic.Location?.SourceSpan.ToString();
             if (nestedSeen.Add(key))
             {
                 diagnostics.Add(nestedDiagnostic);
@@ -301,20 +226,11 @@ internal static class SparseModelDiagnostics
                 continue;
             }
 
-            var isFragmentModel = SparseModelDiscovery.IsFragmentModel(
-                current,
-                config,
-                cancellationToken
-            );
+            var isFragmentModel = SparseModelDiscovery.IsFragmentModel(current, config, cancellationToken);
             var constructor = isFragmentModel
                 ? ModelConstructorBinding.AnalyzeRoot(current, config, cancellationToken)
                 : ModelConstructorBinding.AnalyzeStructural(current, config, cancellationToken);
-            var properties = SparseModelDiscovery.GetReadableProperties(
-                current,
-                config,
-                cancellationToken,
-                includeSparseIgnored: true
-            );
+            var properties = SparseModelDiscovery.GetReadableProperties(current, config, cancellationToken, includeSparseIgnored: true);
             foreach (var property in properties)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -327,11 +243,7 @@ internal static class SparseModelDiagnostics
                     RoslynSymbolCompat.IsRequired(property)
                     || property.SetMethod?.IsInitOnly == true
                     || constructor?.Parameters.Any(parameter =>
-                        string.Equals(
-                            parameter.PropertyName,
-                            property.Name,
-                            StringComparison.Ordinal
-                        ) && !parameter.HasExplicitDefaultValue
+                        string.Equals(parameter.PropertyName, property.Name, StringComparison.Ordinal) && !parameter.HasExplicitDefaultValue
                     ) == true
                 )
                 {
@@ -345,9 +257,7 @@ internal static class SparseModelDiagnostics
                 }
             }
 
-            foreach (
-                var member in SparseModelDiscovery.GetMembers(current, config, cancellationToken)
-            )
+            foreach (var member in SparseModelDiscovery.GetMembers(current, config, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (member.ChildModel is not null)
@@ -360,11 +270,7 @@ internal static class SparseModelDiagnostics
                     && (
                         SparseModelDiscovery.IsFragmentModel(element, config, cancellationToken)
                         || SparseModelDiscovery.IsStructuralType(element, config, cancellationToken)
-                        || SparsePromotedDiscovery.IsPromotablePartial(
-                            element,
-                            config,
-                            cancellationToken
-                        )
+                        || SparsePromotedDiscovery.IsPromotablePartial(element, config, cancellationToken)
                     )
                 )
                 {
@@ -391,20 +297,11 @@ internal static class SparseModelDiagnostics
                 continue;
             }
 
-            foreach (
-                var property in SparseModelDiscovery
-                    .GetMembers(current, config, cancellationToken)
-                    .Select(static member => member.Property)
-            )
+            foreach (var property in SparseModelDiscovery.GetMembers(current, config, cancellationToken).Select(static member => member.Property))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (
-                    property.Type
-                        is not INamedTypeSymbol
-                        {
-                            TypeKind: TypeKind.Class,
-                            SpecialType: SpecialType.None
-                        } type
+                    property.Type is not INamedTypeSymbol { TypeKind: TypeKind.Class, SpecialType: SpecialType.None } type
                     || SparseModelDiscovery.IsFrameworkType(type)
                     || SparseModelDiscovery.IsFragmentModel(type, config, cancellationToken)
                 )
@@ -412,10 +309,7 @@ internal static class SparseModelDiagnostics
                     continue;
                 }
 
-                if (
-                    SparseCollectionAnalyzer.GetCollectionInfo(type).CloneKind
-                    != SparseCloneCollectionKind.Unsupported
-                )
+                if (SparseCollectionAnalyzer.GetCollectionInfo(type).CloneKind != SparseCloneCollectionKind.Unsupported)
                 {
                     continue;
                 }
@@ -431,8 +325,7 @@ internal static class SparseModelDiagnostics
                 var replace = property
                     .GetAttributes()
                     .Any(attribute =>
-                        attribute.AttributeClass?.ToDisplayString()
-                            == config.MergeAttributeMetadataName
+                        attribute.AttributeClass?.ToDisplayString() == config.MergeAttributeMetadataName
                         && attribute.ConstructorArguments.FirstOrDefault().Value is int mode
                         && config.EffectiveMergeModeMap.Normalize(mode) == SparseMergeModes.Replace
                     );

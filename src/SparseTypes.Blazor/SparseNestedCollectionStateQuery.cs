@@ -20,18 +20,10 @@ internal static class SparseNestedCollectionStateQuery
         .GetMethods(BindingFlags.Public | BindingFlags.Static)
         .Single(static method => method.Name == nameof(SparseStateQueries.DictionaryState));
 
-    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> KeyedChangeMethods =
-        new();
-    private static readonly ConcurrentDictionary<
-        TransitionTypes,
-        MethodInfo
-    > DictionaryChangeMethods = new();
-    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> KeyedStateMethods =
-        new();
-    private static readonly ConcurrentDictionary<
-        TransitionTypes,
-        MethodInfo
-    > DictionaryStateMethods = new();
+    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> KeyedChangeMethods = new();
+    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> DictionaryChangeMethods = new();
+    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> KeyedStateMethods = new();
+    private static readonly ConcurrentDictionary<TransitionTypes, MethodInfo> DictionaryStateMethods = new();
 
     internal static bool TryGetState<TModel>(
         ISparseChangeSet changes,
@@ -55,10 +47,7 @@ internal static class SparseNestedCollectionStateQuery
         while (index < path.Segments.Count)
         {
             var segment = path.Segments[index];
-            if (
-                segment.Kind != SparsePathSegmentKind.Member
-                || !currentDescriptors.TryGet(segment.Name, out var member)
-            )
+            if (segment.Kind != SparsePathSegmentKind.Member || !currentDescriptors.TryGet(segment.Name, out var member))
             {
                 return false;
             }
@@ -71,10 +60,7 @@ internal static class SparseNestedCollectionStateQuery
             var next = path.Segments[index + 1];
             if (next.Kind == SparsePathSegmentKind.Member)
             {
-                if (
-                    !currentChanges.TryGetNestedChange(segment.Name, out var nestedChanges)
-                    || member.Child is not { } childDescriptors
-                )
+                if (!currentChanges.TryGetNestedChange(segment.Name, out var nestedChanges) || member.Child is not { } childDescriptors)
                 {
                     return false;
                 }
@@ -88,21 +74,8 @@ internal static class SparseNestedCollectionStateQuery
             if (member.Array is { IsKeyed: true } array)
             {
                 if (
-                    !TryGetKeyedChange(
-                        currentChanges,
-                        segment.Name,
-                        array,
-                        out var keyedChange,
-                        out var elementChangeType
-                    )
-                    || !TryGetKeyedItemChange(
-                        keyedChange!,
-                        array,
-                        elementChangeType!,
-                        next,
-                        out var itemChanges,
-                        out var itemDescriptors
-                    )
+                    !TryGetKeyedChange(currentChanges, segment.Name, array, out var keyedChange, out var elementChangeType)
+                    || !TryGetKeyedItemChange(keyedChange!, array, elementChangeType!, next, out var itemChanges, out var itemDescriptors)
                 )
                 {
                     return false;
@@ -125,14 +98,7 @@ internal static class SparseNestedCollectionStateQuery
                         out var dictionaryChange,
                         out var editedType
                     )
-                    || !TryGetDictionaryItemChange(
-                        dictionaryChange!,
-                        dictionary,
-                        editedType!,
-                        next.Key,
-                        out var itemChanges,
-                        out var itemDescriptors
-                    )
+                    || !TryGetDictionaryItemChange(dictionaryChange!, dictionary, editedType!, next.Key, out var itemChanges, out var itemDescriptors)
                 )
                 {
                     return false;
@@ -159,15 +125,7 @@ internal static class SparseNestedCollectionStateQuery
     {
         if (member.Array is { IsKeyed: true } array)
         {
-            if (
-                !TryGetKeyedChange(
-                    changes,
-                    member.Name,
-                    array,
-                    out var keyedChange,
-                    out var elementChangeType
-                )
-            )
+            if (!TryGetKeyedChange(changes, member.Name, array, out var keyedChange, out var elementChangeType))
             {
                 state = null;
                 return false;
@@ -176,27 +134,14 @@ internal static class SparseNestedCollectionStateQuery
             var types = new TransitionTypes(array.KeyType!, array.ItemType, elementChangeType!);
             state = (SparseCollectionState)
                 KeyedStateMethods
-                    .GetOrAdd(
-                        types,
-                        static key =>
-                            KeyedStateDefinition.MakeGenericMethod(key.Key, key.Value, key.Change)
-                    )
+                    .GetOrAdd(types, static key => KeyedStateDefinition.MakeGenericMethod(key.Key, key.Value, key.Change))
                     .Invoke(null, [keyedChange, path])!;
             return true;
         }
 
         if (member.Dictionary is { } dictionary)
         {
-            if (
-                !TryGetDictionaryChange(
-                    changes,
-                    member.Name,
-                    dictionary,
-                    member.Shape.HasChild,
-                    out var dictionaryChange,
-                    out var editedType
-                )
-            )
+            if (!TryGetDictionaryChange(changes, member.Name, dictionary, member.Shape.HasChild, out var dictionaryChange, out var editedType))
             {
                 state = null;
                 return false;
@@ -205,15 +150,7 @@ internal static class SparseNestedCollectionStateQuery
             var types = new TransitionTypes(dictionary.KeyType, dictionary.ValueType, editedType!);
             state = (SparseCollectionState)
                 DictionaryStateMethods
-                    .GetOrAdd(
-                        types,
-                        static key =>
-                            DictionaryStateDefinition.MakeGenericMethod(
-                                key.Key,
-                                key.Value,
-                                key.Change
-                            )
-                    )
+                    .GetOrAdd(types, static key => DictionaryStateDefinition.MakeGenericMethod(key.Key, key.Value, key.Change))
                     .Invoke(null, [dictionaryChange, path])!;
             return true;
         }
@@ -238,11 +175,7 @@ internal static class SparseNestedCollectionStateQuery
         }
 
         var types = new TransitionTypes(keyType, array.ItemType, elementChangeType);
-        var method = KeyedChangeMethods.GetOrAdd(
-            types,
-            static key =>
-                TryGetKeyedChangeDefinition.MakeGenericMethod(key.Key, key.Value, key.Change)
-        );
+        var method = KeyedChangeMethods.GetOrAdd(types, static key => TryGetKeyedChangeDefinition.MakeGenericMethod(key.Key, key.Value, key.Change));
         var arguments = new object?[] { memberName, null };
         if (method.Invoke(changes, arguments) is not true || arguments[1] is not { } result)
         {
@@ -276,27 +209,17 @@ internal static class SparseNestedCollectionStateQuery
             return false;
         }
 
-        var changeInterface = typeof(ISparseKeyedChange<,,>).MakeGenericType(
-            keyType,
-            array.ItemType,
-            elementChangeType
-        );
+        var changeInterface = typeof(ISparseKeyedChange<,,>).MakeGenericType(keyType, array.ItemType, elementChangeType);
         object? item;
         if (segment.Kind == SparsePathSegmentKind.TemporaryKey)
         {
-            var temporaryInterface = typeof(ISparseTemporaryKeyedChange<,,>).MakeGenericType(
-                keyType,
-                array.ItemType,
-                elementChangeType
-            );
+            var temporaryInterface = typeof(ISparseTemporaryKeyedChange<,,>).MakeGenericType(keyType, array.ItemType, elementChangeType);
             if (!temporaryInterface.IsInstanceOfType(change))
             {
                 return false;
             }
 
-            item = temporaryInterface
-                .GetMethod("GetTemporaryChange")!
-                .Invoke(change, [segment.TemporaryKey!.Value]);
+            item = temporaryInterface.GetMethod("GetTemporaryChange")!.Invoke(change, [segment.TemporaryKey!.Value]);
         }
         else
         {
@@ -336,8 +259,7 @@ internal static class SparseNestedCollectionStateQuery
         var types = new TransitionTypes(dictionary.KeyType, dictionary.ValueType, editedType);
         var method = DictionaryChangeMethods.GetOrAdd(
             types,
-            static key =>
-                TryGetDictionaryChangeDefinition.MakeGenericMethod(key.Key, key.Value, key.Change)
+            static key => TryGetDictionaryChangeDefinition.MakeGenericMethod(key.Key, key.Value, key.Change)
         );
         var arguments = new object?[] { memberName, null };
         if (method.Invoke(changes, arguments) is not true || arguments[1] is not { } result)
@@ -361,22 +283,14 @@ internal static class SparseNestedCollectionStateQuery
     {
         itemChanges = null;
         itemDescriptors = null;
-        var dictionaryInterface = typeof(ISparseDictionaryChange<,,>).MakeGenericType(
-            dictionary.KeyType,
-            dictionary.ValueType,
-            editedType
-        );
+        var dictionaryInterface = typeof(ISparseDictionaryChange<,,>).MakeGenericType(dictionary.KeyType, dictionary.ValueType, editedType);
         if (!dictionaryInterface.IsInstanceOfType(change))
         {
             return false;
         }
 
         var item = dictionaryInterface.GetMethod("GetChange")!.Invoke(change, [key]);
-        var itemInterface = typeof(ISparseStructuralDictionaryItemChange<,,>).MakeGenericType(
-            dictionary.KeyType,
-            dictionary.ValueType,
-            editedType
-        );
+        var itemInterface = typeof(ISparseStructuralDictionaryItemChange<,,>).MakeGenericType(dictionary.KeyType, dictionary.ValueType, editedType);
         if (item is null || !itemInterface.IsInstanceOfType(item))
         {
             return false;
@@ -390,8 +304,6 @@ internal static class SparseNestedCollectionStateQuery
     private static Type? GetChangeSetType(Type modelType)
     {
         var changeSetContract = typeof(ISparseChangeSet<>).MakeGenericType(modelType);
-        return modelType
-            .GetNestedTypes(BindingFlags.Public)
-            .FirstOrDefault(changeSetContract.IsAssignableFrom);
+        return modelType.GetNestedTypes(BindingFlags.Public).FirstOrDefault(changeSetContract.IsAssignableFrom);
     }
 }

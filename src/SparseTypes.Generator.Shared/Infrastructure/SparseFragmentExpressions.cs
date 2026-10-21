@@ -45,8 +45,7 @@ internal sealed class SparseFragmentExpressions(
     // resolve to the compilation-scoped kernels.
     private string? CloneKernelsPrefix { get; } = cloneKernelsPrefix;
 
-    private string CloneKernel(string name) =>
-        CloneKernelsPrefix is null ? name : CloneKernelsPrefix + "." + name;
+    private string CloneKernel(string name) => CloneKernelsPrefix is null ? name : CloneKernelsPrefix + "." + name;
 
     /// <summary>Builds the equality expression for one member's present values.</summary>
     /// <remarks>Custom comparer members use their generated comparer field.</remarks>
@@ -56,30 +55,16 @@ internal sealed class SparseFragmentExpressions(
         {
             // Stage 4: operations-class emission qualifies the generated
             // comparer field through the Fragment alias; surface code is bare.
-            return memberFieldQualifier
-                + SparseFragmentEmitHelpers.ComparisonComparerField(member)
-                + ".Equals("
-                + left
-                + ", "
-                + right
-                + ")";
+            return memberFieldQualifier + SparseFragmentEmitHelpers.ComparisonComparerField(member) + ".Equals(" + left + ", " + right + ")";
         }
 
         var collection = member.Collection;
-        if (
-            collection.ElementType.IsFragmentModel
-            && collection.CloneKind
-                is SparseCloneCollectionKind.Array
-                    or SparseCloneCollectionKind.List
-        )
+        if (collection.ElementType.IsFragmentModel && collection.CloneKind is SparseCloneCollectionKind.Array or SparseCloneCollectionKind.List)
         {
             return $"{ValueComparer}.AreSequenceEqual<{collection.ElementType.Name}>({left}, {right}, static (__left, __right) => {FragmentElementEquality(collection.ElementType, "__left", "__right")})";
         }
 
-        if (
-            collection.ValueType is { IsFragmentModel: true } dictionaryValue
-            && collection.CloneKind == SparseCloneCollectionKind.Dictionary
-        )
+        if (collection.ValueType is { IsFragmentModel: true } dictionaryValue && collection.CloneKind == SparseCloneCollectionKind.Dictionary)
         {
             return $"{ValueComparer}.AreDictionaryEqual<{collection.ElementType.Name}, {dictionaryValue.Name}>({left}, {right}, static (__left, __right) => {FragmentElementEquality(dictionaryValue, "__left", "__right")})";
         }
@@ -88,8 +73,7 @@ internal sealed class SparseFragmentExpressions(
         {
             SparseCloneCollectionKind.Array or SparseCloneCollectionKind.List =>
                 $"{ValueComparer}.AreSequenceEqual<{collection.ElementType.Name}>({left}, {right})",
-            SparseCloneCollectionKind.Set =>
-                $"{ValueComparer}.AreSetEqual<{collection.ElementType.Name}>({left}, {right})",
+            SparseCloneCollectionKind.Set => $"{ValueComparer}.AreSetEqual<{collection.ElementType.Name}>({left}, {right})",
             SparseCloneCollectionKind.Dictionary when collection.ValueType is not null =>
                 $"{ValueComparer}.AreDictionaryEqual<{collection.ElementType.Name}, {collection.ValueType.Value.Name}>({left}, {right})",
             _ => $"{ValueComparer}.AreEqual({left}, {right})",
@@ -122,14 +106,7 @@ internal sealed class SparseFragmentExpressions(
             return equal;
         }
 
-        return "(object?)"
-            + left
-            + " is null ? (object?)"
-            + right
-            + " is null : (object?)"
-            + right
-            + " is not null && "
-            + equal;
+        return "(object?)" + left + " is null ? (object?)" + right + " is null : (object?)" + right + " is not null && " + equal;
     }
 
     public string CloneValueExpression(SparseTypeModel type, string access)
@@ -174,17 +151,11 @@ internal sealed class SparseFragmentExpressions(
         }
 
         var cloned = CloneCollectionExpression(member, access);
-        return member.Property.Type.IsReferenceType && NeedsCloneNullGuard(member)
-            ? $"{access} is null ? null! : {cloned}"
-            : cloned;
+        return member.Property.Type.IsReferenceType && NeedsCloneNullGuard(member) ? $"{access} is null ? null! : {cloned}" : cloned;
     }
 
     private static bool NeedsCloneNullGuard(SparseMemberModel member) =>
-        !(
-            member.Property.Type.UsesDefaultScalarEquality
-            && !member.Property.IsNullable
-            && !member.Property.IsNullableOblivious
-        );
+        !(member.Property.Type.UsesDefaultScalarEquality && !member.Property.IsNullable && !member.Property.IsNullableOblivious);
 
     public string CloneFragmentExpression(SparseMemberModel member, string access)
     {
@@ -233,8 +204,7 @@ internal sealed class SparseFragmentExpressions(
                 $"{CloneKernel("__CloneArray")}<{elementType}, {member.Property.Type.Name}>({access}, {CloneContext}, {selector})",
             SparseCloneCollectionKind.List =>
                 $"{CloneKernel("__CloneList")}<{elementType}, {member.Property.Type.Name}>({access}, {CloneContext}, {selector})",
-            SparseCloneCollectionKind.Set => member.PortableSetView
-            && IsInterfaceSet(collection.NamedTypeDefinition)
+            SparseCloneCollectionKind.Set => member.PortableSetView && IsInterfaceSet(collection.NamedTypeDefinition)
                 ? $"{CloneKernel("__CloneSetView")}<{elementType}, {member.Property.Type.Name}>({access}, {CloneContext}, {selector})"
                 : $"{CloneKernel("__CloneSet")}<{elementType}, {member.Property.Type.Name}>({access}, {CloneContext}, {selector})",
             _ => access,
@@ -246,15 +216,11 @@ internal sealed class SparseFragmentExpressions(
     private string CloneSelector(SparseTypeModel type, string parameter)
     {
         var expression = CloneValueExpression(type, parameter);
-        return expression == parameter
-            ? "null"
-            : $"static ({parameter}, {CloneContext}) => {expression}";
+        return expression == parameter ? "null" : $"static ({parameter}, {CloneContext}) => {expression}";
     }
 
     private static bool IsInterfaceSet(string? namedTypeDefinition) =>
-        namedTypeDefinition
-            is SparseWellKnownNames.InterfaceSetTypeDefinition
-                or SparseWellKnownNames.ReadOnlySetTypeDefinition;
+        namedTypeDefinition is SparseWellKnownNames.InterfaceSetTypeDefinition or SparseWellKnownNames.ReadOnlySetTypeDefinition;
 
     public string BuildCollectionMerge(SparseMemberModel member, string lower, string higher)
     {
@@ -266,10 +232,7 @@ internal sealed class SparseFragmentExpressions(
 
         if (member.MergeMode == SparseMergeModes.SetUnion)
         {
-            var method =
-                member.Collection.Kind == SparseCollectionKind.List
-                    ? "MergeDistinctList"
-                    : "MergeDistinctArray";
+            var method = member.Collection.Kind == SparseCollectionKind.List ? "MergeDistinctList" : "MergeDistinctArray";
             return $"{CollectionMerger}.{method}<{elementType}>({lower}, {higher})";
         }
 
@@ -288,10 +251,8 @@ internal sealed class SparseFragmentExpressions(
         var elementType = member.Collection.ElementType.Name;
         return member.Collection.CloneKind switch
         {
-            SparseCloneCollectionKind.Set =>
-                $"new global::System.Collections.Generic.HashSet<{elementType}>({elements})",
-            SparseCloneCollectionKind.Array =>
-                $"global::System.Linq.Enumerable.ToArray({elements})",
+            SparseCloneCollectionKind.Set => $"new global::System.Collections.Generic.HashSet<{elementType}>({elements})",
+            SparseCloneCollectionKind.Array => $"global::System.Linq.Enumerable.ToArray({elements})",
             _ => $"new global::System.Collections.Generic.List<{elementType}>({elements})",
         };
     }

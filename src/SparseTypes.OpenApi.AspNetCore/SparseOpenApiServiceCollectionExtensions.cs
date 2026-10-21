@@ -20,10 +20,7 @@ public static class SparseOpenApiServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         var schemas = new TPayload().GetSparsePayloadSchemas();
         services.AddSingleton<SparsePayloadSchemaSet>(new SparsePayloadSchemaSet(schemas));
-        var registry = services
-            .Select(static descriptor => descriptor.ImplementationInstance)
-            .OfType<SparseSchemaNameRegistry>()
-            .LastOrDefault();
+        var registry = services.Select(static descriptor => descriptor.ImplementationInstance).OfType<SparseSchemaNameRegistry>().LastOrDefault();
         if (registry is null)
         {
             registry = new SparseSchemaNameRegistry();

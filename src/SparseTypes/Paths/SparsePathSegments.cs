@@ -18,14 +18,12 @@ public readonly struct SparsePathSegments : IReadOnlyList<SparsePathSegment>
     public int Count => _segments?.Length ?? 0;
 
     /// <summary>Gets the segment at the specified index.</summary>
-    public SparsePathSegment this[int index] =>
-        (_segments ?? Array.Empty<SparsePathSegment>())[index];
+    public SparsePathSegment this[int index] => (_segments ?? Array.Empty<SparsePathSegment>())[index];
 
     /// <summary>Returns an enumerator over the segments.</summary>
     public Enumerator GetEnumerator() => new(_segments);
 
-    IEnumerator<SparsePathSegment> IEnumerable<SparsePathSegment>.GetEnumerator() =>
-        GetEnumerator();
+    IEnumerator<SparsePathSegment> IEnumerable<SparsePathSegment>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
@@ -44,9 +42,7 @@ public readonly struct SparsePathSegments : IReadOnlyList<SparsePathSegment>
 
         /// <inheritdoc />
         public readonly SparsePathSegment Current =>
-            _segments is not null && (uint)_index < (uint)_segments.Length
-                ? _segments[_index]
-                : throw new InvalidOperationException();
+            _segments is not null && (uint)_index < (uint)_segments.Length ? _segments[_index] : throw new InvalidOperationException();
 
         readonly object IEnumerator.Current => Current;
 

@@ -12,12 +12,7 @@ public readonly record struct MixedMemberOperation
         : this(path, history, after, false) { }
 
     /// <summary>Creates a mixed member operation descriptor.</summary>
-    public MixedMemberOperation(
-        string path,
-        MixedHistoryKind history,
-        MixedAfterKind after,
-        bool isWholeRoot
-    )
+    public MixedMemberOperation(string path, MixedHistoryKind history, MixedAfterKind after, bool isWholeRoot)
     {
         ArgumentNullException.ThrowIfNull(path);
         Path = path;

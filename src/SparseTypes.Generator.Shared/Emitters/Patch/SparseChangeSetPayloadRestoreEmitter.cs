@@ -17,12 +17,7 @@ internal static class SparseChangeSetPayloadRestoreEmitter
     )
     {
         var id = member.Id;
-        var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(
-            dialect,
-            modelType,
-            "Change",
-            id
-        );
+        var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
         code.AppendLine("case " + variant + " item:");
         code.AppendLine(
             "if (__payloadSeen"
@@ -32,16 +27,11 @@ internal static class SparseChangeSetPayloadRestoreEmitter
         code.AppendLine("__payloadSeen" + id + " = true;");
         if (SparseChangeSetBasicsEmitter.IsNested(member))
         {
-            code.AppendLine(
-                "if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(payload));"
-            );
+            code.AppendLine("if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(payload));");
             code.AppendLine("__payloadNested" + id + " = item.Nested.ToChangeSetCore();");
             code.AppendLine("break;");
         }
-        else if (
-            SparseChangeSetBasicsEmitter.IsKeyed(member)
-            || SparseChangeSetBasicsEmitter.IsDict(member)
-        )
+        else if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
         {
             var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
             code.AppendLine("__payloadHas" + id + " = true;");
@@ -59,35 +49,20 @@ internal static class SparseChangeSetPayloadRestoreEmitter
             code.CloseBlock();
             code.AppendLine("else");
             code.OpenBlock();
-            code.AppendLine(
-                "var __payloadSeenKeys"
-                    + id
-                    + " = new global::System.Collections.Generic.HashSet<"
-                    + keyType
-                    + ">();"
-            );
+            code.AppendLine("var __payloadSeenKeys" + id + " = new global::System.Collections.Generic.HashSet<" + keyType + ">();");
             var hasTempRestore = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
             if (hasTempRestore)
             {
-                code.AppendLine(
-                    "var __payloadSeenTemps"
-                        + id
-                        + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-                );
+                code.AppendLine("var __payloadSeenTemps" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
             }
             code.AppendLine("foreach (var changeItem in item.Items)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (changeItem is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
-            );
+            code.AppendLine("if (changeItem is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));");
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
             {
                 code.AppendLine(
                     "if (!"
-                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                            member,
-                            "changeItem.Key"
-                        )
+                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "changeItem.Key")
                         + " && !__payloadSeenKeys"
                         + id
                         + ".Add(changeItem.Key)) throw new global::System.ArgumentException(\"A payload cannot contain duplicate keyed changes.\", nameof(payload));"
@@ -101,9 +76,7 @@ internal static class SparseChangeSetPayloadRestoreEmitter
                         + ".Add(changeItem.Key)) throw new global::System.ArgumentException(\"A payload cannot contain duplicate keyed changes.\", nameof(payload));"
                 );
             }
-            code.AppendLine(
-                "__payloadItems" + id + ".Add(__SparsePayloadItem" + id + "(changeItem));"
-            );
+            code.AppendLine("__payloadItems" + id + ".Add(__SparsePayloadItem" + id + "(changeItem));");
             if (hasTempRestore)
             {
                 // Temporary identities must be unique per collection.

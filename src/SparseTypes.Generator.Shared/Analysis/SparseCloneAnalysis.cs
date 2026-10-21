@@ -21,20 +21,13 @@ internal static class SparseCloneAnalysis
         // property, so sibling properties pointing at the same child type do
         // not re-expand that child's whole subgraph.
         var cycleAnalyzer = new SparseCloneCycleAnalyzer(config, cancellationToken);
-        foreach (
-            var property in SparseModelDiscovery
-                .GetMembers(model, config, cancellationToken)
-                .Select(static member => member.Property)
-        )
+        foreach (var property in SparseModelDiscovery.GetMembers(model, config, cancellationToken).Select(static member => member.Property))
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (
                 property
                     .GetAttributes()
-                    .Any(attribute =>
-                        attribute.AttributeClass?.ToDisplayString()
-                        == config.CloneReferenceSafeAttributeMetadataName
-                    )
+                    .Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.CloneReferenceSafeAttributeMetadataName)
             )
             {
                 continue;
@@ -118,9 +111,7 @@ internal static class SparseCloneAnalysis
             return true;
         }
 
-        var fullName = named
-            .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            .ToDisplayString();
+        var fullName = named.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString();
         if (fullName is "System.Uri" or "System.Version" or "System.Type")
         {
             return true;
@@ -130,18 +121,10 @@ internal static class SparseCloneAnalysis
         {
             if (SparseModelDiscovery.IsFrameworkType(named))
             {
-                return IsSafeToCopyValue(
-                    named,
-                    config,
-                    new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default)
-                );
+                return IsSafeToCopyValue(named, config, new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default));
             }
 
-            return IsSafeToCopyValue(
-                named,
-                config,
-                new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default)
-            );
+            return IsSafeToCopyValue(named, config, new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default));
         }
         if (SparseModelDiscovery.IsFragmentModel(named, config, cancellationToken))
         {
@@ -212,10 +195,7 @@ internal static class SparseCloneAnalysis
                         property.Type,
                         property
                             .GetAttributes()
-                            .Any(attribute =>
-                                attribute.AttributeClass?.ToDisplayString()
-                                == config.CloneReferenceSafeAttributeMetadataName
-                            )
+                            .Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.CloneReferenceSafeAttributeMetadataName)
                     );
                 }
             }
@@ -231,35 +211,22 @@ internal static class SparseCloneAnalysis
             )
         )
         {
-            foreach (
-                var member in SparseModelDiscovery
-                    .GetMembers(named, config, cancellationToken)
-                    .Select(static member => member.Property)
-            )
+            foreach (var member in SparseModelDiscovery.GetMembers(named, config, cancellationToken).Select(static member => member.Property))
             {
                 yield return (
                     member.Type,
                     member
                         .GetAttributes()
-                        .Any(attribute =>
-                            attribute.AttributeClass?.ToDisplayString()
-                            == config.CloneReferenceSafeAttributeMetadataName
-                        )
+                        .Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.CloneReferenceSafeAttributeMetadataName)
                 );
             }
         }
     }
 
     private static bool IsCloneRelevantProperty(IPropertySymbol property) =>
-        !property.IsIndexer
-        && property.GetMethod is not null
-        && property.DeclaredAccessibility == Accessibility.Public;
+        !property.IsIndexer && property.GetMethod is not null && property.DeclaredAccessibility == Accessibility.Public;
 
-    private static bool IsSafeToCopyValue(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        HashSet<ITypeSymbol> visited
-    )
+    private static bool IsSafeToCopyValue(ITypeSymbol type, SparseGeneratorConfig config, HashSet<ITypeSymbol> visited)
     {
         if (type is IArrayTypeSymbol)
         {
@@ -298,9 +265,7 @@ internal static class SparseCloneAnalysis
                 return IsSafeToCopyValue(named.TypeArguments[0], config, visited);
             }
 
-            return !named.TypeArguments.Any(argument =>
-                !IsSafeToCopyValue(argument, config, visited)
-            );
+            return !named.TypeArguments.Any(argument => !IsSafeToCopyValue(argument, config, visited));
         }
         if (!visited.Add(named))
         {
@@ -310,11 +275,7 @@ internal static class SparseCloneAnalysis
         return !named
                 .GetMembers()
                 .OfType<IFieldSymbol>()
-                .Any(field =>
-                    !field.IsStatic
-                    && field.AssociatedSymbol is not IPropertySymbol
-                    && !IsSafeToCopyValue(field.Type, config, visited)
-                )
+                .Any(field => !field.IsStatic && field.AssociatedSymbol is not IPropertySymbol && !IsSafeToCopyValue(field.Type, config, visited))
             && !named
                 .GetMembers()
                 .OfType<IPropertySymbol>()
@@ -323,10 +284,7 @@ internal static class SparseCloneAnalysis
                     && IsCloneRelevantProperty(property)
                     && !property
                         .GetAttributes()
-                        .Any(attribute =>
-                            attribute.AttributeClass?.ToDisplayString()
-                            == config.CloneReferenceSafeAttributeMetadataName
-                        )
+                        .Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.CloneReferenceSafeAttributeMetadataName)
                     && !IsSafeToCopyValue(property.Type, config, visited)
                 );
     }

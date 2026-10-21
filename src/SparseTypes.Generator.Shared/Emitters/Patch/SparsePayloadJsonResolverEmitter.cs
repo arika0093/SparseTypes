@@ -4,22 +4,11 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparsePayloadJsonResolverEmitter
 {
     /// <summary>Emits the resolver nested in the model.</summary>
-    internal static void AppendResolver(
-        SharedIndentedBuilder code,
-        PayloadJsonEmissionContext context
-    )
+    internal static void AppendResolver(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
-        code.AppendLine(
-            "/// <summary>Trim-safe resolver for this model's change payload.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            "public sealed class "
-                + context.ResolverName
-                + " : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver"
-        );
+        code.AppendLine("/// <summary>Trim-safe resolver for this model's change payload.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + context.ResolverName + " : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver");
         code.OpenBlock();
         code.AppendLine("/// <summary>Gets the shared resolver instance.</summary>");
         code.AppendLine("public static " + context.ResolverName + " Default { get; } = new();");
@@ -40,9 +29,7 @@ internal static class SparsePayloadJsonResolverEmitter
         code.AppendLine("return null;");
         code.CloseBlock();
         code.AppendLine("private static readonly " + context.ConverterName + " Converter = new();");
-        code.AppendLine(
-            "private global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<ChangePayload>? _payloadInfo;"
-        );
+        code.AppendLine("private global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<ChangePayload>? _payloadInfo;");
         code.CloseBlock();
         code.AppendLine();
     }

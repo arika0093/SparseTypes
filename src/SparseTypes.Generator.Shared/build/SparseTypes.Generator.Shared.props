@@ -12,10 +12,7 @@
     generated/analyzer package's dependency graph.
   -->
   <ItemGroup>
-    <Compile
-      Include="$(MSBuildThisFileDirectory)../contentFiles/cs/netstandard2.0/**/*.cs"
-      LinkBase="SparseShared"
-    />
+    <Compile Include="$(MSBuildThisFileDirectory)../contentFiles/cs/netstandard2.0/**/*.cs" LinkBase="SparseShared" />
     <EmbeddedResource
       Include="$(MSBuildThisFileDirectory)../contentFiles/cs/netstandard2.0/Sessions/SparseEditSessionCore.template"
       LogicalName="SparseTypes.Generator.Shared.Sessions.SparseEditSessionCore.template"

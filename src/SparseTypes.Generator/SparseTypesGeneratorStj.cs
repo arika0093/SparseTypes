@@ -11,9 +11,7 @@ public sealed partial class SparseTypesGenerator
     /// <summary>Probes the consuming compilation for usable System.Text.Json APIs.</summary>
     /// <param name="context">Generator initialization context.</param>
     /// <returns>Deterministic capability snapshot provider.</returns>
-    private static IncrementalValueProvider<SparseStjCapabilities> CreateStjCapabilitiesProvider(
-        IncrementalGeneratorInitializationContext context
-    ) =>
+    private static IncrementalValueProvider<SparseStjCapabilities> CreateStjCapabilitiesProvider(IncrementalGeneratorInitializationContext context) =>
         context
             .CompilationProvider.Select(
                 static (compilation, cancellationToken) =>
@@ -41,10 +39,7 @@ public sealed partial class SparseTypesGenerator
             .Select(
                 static (input, _) =>
                     input.Right
-                    && (
-                        Configuration.EffectiveEmissionFeatures.EmitJsonConverters
-                        || Configuration.EffectiveEmissionFeatures.EmitChangePayload
-                    )
+                    && (Configuration.EffectiveEmissionFeatures.EmitJsonConverters || Configuration.EffectiveEmissionFeatures.EmitChangePayload)
                     && input.Left.HasSystemTextJson
                     && !input.Left.SupportsV1Wire
                         ? "The referenced System.Text.Json API surface lacks "
@@ -60,9 +55,7 @@ public sealed partial class SparseTypesGenerator
             {
                 if (message.Length != 0)
                 {
-                    productionContext.ReportDiagnostic(
-                        Diagnostic.Create(InvalidEmissionPlan, Location.None, message)
-                    );
+                    productionContext.ReportDiagnostic(Diagnostic.Create(InvalidEmissionPlan, Location.None, message));
                 }
             }
         );
@@ -76,17 +69,10 @@ public sealed partial class SparseTypesGenerator
         SparseStjCapabilities stjCapabilities
     )
     {
-        var withCapabilities = configuration with
-        {
-            AllowFileScopedTypes = allowFileScopedTypes,
-            StjCapabilities = stjCapabilities,
-        };
+        var withCapabilities = configuration with { AllowFileScopedTypes = allowFileScopedTypes, StjCapabilities = stjCapabilities };
         if (withCapabilities.PatchDialect is { } patchDialect)
         {
-            withCapabilities = withCapabilities with
-            {
-                PatchDialect = patchDialect with { StjCapabilities = stjCapabilities },
-            };
+            withCapabilities = withCapabilities with { PatchDialect = patchDialect with { StjCapabilities = stjCapabilities } };
         }
 
         return withCapabilities;

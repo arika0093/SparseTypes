@@ -4,8 +4,7 @@ namespace SparseTypes;
 
 /// <summary>Pair-identity comparer used by generated diff cycle scopes.</summary>
 /// <remarks>Two pairs are equal only when both keys and both values are reference-identical.</remarks>
-internal sealed class SparseDiffPairEqualityComparer
-    : IEqualityComparer<KeyValuePair<object, object>>
+internal sealed class SparseDiffPairEqualityComparer : IEqualityComparer<KeyValuePair<object, object>>
 {
     /// <summary>The shared comparer instance.</summary>
     public static SparseDiffPairEqualityComparer Instance { get; } = new();

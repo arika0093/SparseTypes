@@ -30,11 +30,7 @@ internal static class SparseChangeSetPayloadEmitter
         var variants = members.Where(static member => !member.Property.IsJsonIgnored).ToArray();
         // Write-only members never appear in the read projection; their
         // transport variants below still carry the command after-state.
-        var readable = variants
-            .Where(member =>
-                dialect.GetTransport(member.Property.Name) != SparseMemberTransport.WriteOnly
-            )
-            .ToArray();
+        var readable = variants.Where(member => dialect.GetTransport(member.Property.Name) != SparseMemberTransport.WriteOnly).ToArray();
 
         if (emitContainers)
         {
@@ -53,13 +49,7 @@ internal static class SparseChangeSetPayloadEmitter
         if (emitFacade)
         {
             AppendChangePayloadFacadeBlock(code, members, dialect, modelType);
-            var payloadJson = PayloadJsonEmissionContext.TryCreate(
-                members,
-                dialect,
-                modelType,
-                implementationNamespace,
-                payloadJsonPocos
-            );
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, dialect, modelType, implementationNamespace, payloadJsonPocos);
             if (payloadJson is not null)
             {
                 SparsePayloadJsonConverterEmitter.AppendConverter(code, payloadJson);
@@ -97,89 +87,44 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         code.AppendLine("/// <summary>Serializer-facing payload DTOs for this model.</summary>");
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            containerAccessibility
-                + " static partial class "
-                + RequirePayloadContainerName(dialect, modelType)
-        );
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
         code.OpenBlock();
         code.Indent();
         // Payload DTOs stay permissive toward additive extensions: unknown
         // JSON properties are ignored, while unknown operations (member
         // discriminators, item kinds, endpoint states) still fail.
-        code.AppendLine(
-            "/// <summary>Transport core carrying the validated member changes.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("/// <summary>Transport core carrying the validated member changes.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public class " + payloadCore);
         code.OpenBlock();
         // XML docs precede serialization attributes so the compiler associates
         // them with the member (CS1591).
-        code.AppendLine(
-            "/// <summary>Gets or sets the member changes carried by this core.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets or sets the member changes carried by this core.</summary>");
         AppendJsonProperty(code, "Changes", 1, dialect.EmitJson);
-        code.AppendLine(
-            "public global::System.Collections.Generic.List<"
-                + payloadChange
-                + ">? Changes { get; set; }"
-        );
+        code.AppendLine("public global::System.Collections.Generic.List<" + payloadChange + ">? Changes { get; set; }");
         // Public DTO surface precedes the internal conversion seams so the
         // emitted container reads public -> internal -> private.
-        SparseChangeSetMixedEmitter.AppendMixedPayloadSurface(
-            code,
-            members,
-            dialect,
-            modelType,
-            ignoredSettablePropertyNames
-        );
+        SparseChangeSetMixedEmitter.AppendMixedPayloadSurface(code, members, dialect, modelType, ignoredSettablePropertyNames);
         SparseChangeSetPayloadValidateEmitter.AppendCoreValidate(code, members, dialect, modelType);
         if (modelType is not null)
         {
-            code.AppendLine(
-                "internal "
-                    + modelType
-                    + ".ChangeSet ToChangeSetCore() => "
-                    + modelType
-                    + ".ChangeSet.FromPayloadCore(this);"
-            );
+            code.AppendLine("internal " + modelType + ".ChangeSet ToChangeSetCore() => " + modelType + ".ChangeSet.FromPayloadCore(this);");
         }
 
         if (modelType is not null && !SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
         {
-            code.AppendLine(
-                "internal "
-                    + modelType
-                    + ".Patch ToPatchCore() => "
-                    + modelType
-                    + ".ChangeSet.PatchFromPayloadCore(this);"
-            );
+            code.AppendLine("internal " + modelType + ".Patch ToPatchCore() => " + modelType + ".ChangeSet.PatchFromPayloadCore(this);");
         }
 
         if (modelType is not null)
         {
-            code.AppendLine(
-                "internal static "
-                    + payloadCore
-                    + " FromPatchCore("
-                    + modelType
-                    + ".Patch patch) => patch.ToChangePayloadCore();"
-            );
+            code.AppendLine("internal static " + payloadCore + " FromPatchCore(" + modelType + ".Patch patch) => patch.ToChangePayloadCore();");
         }
 
         if (modelType is not null && SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
         {
-            SparseChangeSetPayloadProjectionEmitter.AppendCoreToPatch(
-                code,
-                members,
-                dialect,
-                modelType
-            );
+            SparseChangeSetPayloadProjectionEmitter.AppendCoreToPatch(code, members, dialect, modelType);
         }
         code.CloseBlock();
         code.Unindent();
@@ -194,27 +139,15 @@ internal static class SparseChangeSetPayloadEmitter
         string? modelType
     )
     {
-        code.AppendLine(
-            "/// <summary>Serializable envelope carrying the validated transition for transport.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Advanced)]"
-        );
+        code.AppendLine("/// <summary>Serializable envelope carrying the validated transition for transport.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Advanced)]");
         code.AppendLine(
             "public sealed class ChangePayload : "
                 + PayloadTypeName(dialect, modelType, "Core")
-                + (
-                    dialect.PayloadSchemaProviderType is null
-                        ? string.Empty
-                        : ", " + dialect.PayloadSchemaProviderType
-                )
+                + (dialect.PayloadSchemaProviderType is null ? string.Empty : ", " + dialect.PayloadSchemaProviderType)
         );
         code.OpenBlock();
-        if (
-            dialect.PayloadSchemaProviderType is not null
-            && dialect.PayloadSchemaDescriptorType is not null
-            && modelType is not null
-        )
+        if (dialect.PayloadSchemaProviderType is not null && dialect.PayloadSchemaDescriptorType is not null && modelType is not null)
         {
             code.AppendLine("/// <inheritdoc />");
             code.AppendLine(
@@ -229,10 +162,7 @@ internal static class SparseChangeSetPayloadEmitter
             code.OpenBlock();
             code.AppendLine(
                 "new(typeof(ChangePayload), "
-                    + SymbolDisplay.FormatLiteral(
-                        SparseSchemaBaseName(modelType) + "_ChangePayload",
-                        true
-                    )
+                    + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_ChangePayload", true)
                     + ", "
                     + SymbolDisplay.FormatLiteral(PayloadSchema(modelType), true)
                     + "),"
@@ -250,10 +180,7 @@ internal static class SparseChangeSetPayloadEmitter
                 "new(typeof("
                     + PayloadTypeName(dialect, modelType, "RootChange")
                     + "), "
-                    + SymbolDisplay.FormatLiteral(
-                        SparseSchemaBaseName(modelType) + "_RootChange",
-                        true
-                    )
+                    + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_RootChange", true)
                     + ", \"{}\"),"
             );
             code.AppendLine(
@@ -276,21 +203,14 @@ internal static class SparseChangeSetPayloadEmitter
                     "new(typeof("
                         + PayloadMemberTypeName(dialect, modelType, "Change", member.Id)
                         + "), "
-                        + SymbolDisplay.FormatLiteral(
-                            SparseSchemaMemberName(modelType, member.Property.Name),
-                            true
-                        )
+                        + SymbolDisplay.FormatLiteral(SparseSchemaMemberName(modelType, member.Property.Name), true)
                         + ", \"{}\"),"
                 );
             }
 
             foreach (
                 var member in members.Where(static member =>
-                    !member.Property.IsJsonIgnored
-                    && (
-                        SparseChangeSetBasicsEmitter.IsKeyed(member)
-                        || SparseChangeSetBasicsEmitter.IsDict(member)
-                    )
+                    !member.Property.IsJsonIgnored && (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
                 )
             )
             {
@@ -298,12 +218,7 @@ internal static class SparseChangeSetPayloadEmitter
                     "new(typeof("
                         + PayloadMemberTypeName(dialect, modelType, "Item", member.Id)
                         + "), "
-                        + SymbolDisplay.FormatLiteral(
-                            SparseSchemaBaseName(modelType)
-                                + "_Item_"
-                                + SchemaNamePart(member.Property.Name),
-                            true
-                        )
+                        + SymbolDisplay.FormatLiteral(SparseSchemaBaseName(modelType) + "_Item_" + SchemaNamePart(member.Property.Name), true)
                         + ", \"{}\"),"
                 );
             }
@@ -315,27 +230,17 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLine("public string? Version { get; set; }");
         if (modelType is not null)
         {
-            code.AppendLine(
-                "/// <summary>Converts this validated envelope to a complete change set.</summary>"
-            );
+            code.AppendLine("/// <summary>Converts this validated envelope to a complete change set.</summary>");
             code.AppendLine(
                 "/// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref=\"ToPatch\"/> instead.</remarks>"
             );
             code.AppendLine("/// <returns>The validated change set.</returns>");
-            code.AppendLine(
-                "public "
-                    + modelType
-                    + ".ChangeSet ToChangeSet() => "
-                    + modelType
-                    + ".ChangeSet.FromPayload(this);"
-            );
+            code.AppendLine("public " + modelType + ".ChangeSet ToChangeSet() => " + modelType + ".ChangeSet.FromPayload(this);");
             // Keep baseline-discarding conversion discoverable on the validated
             // envelope.
             if (!SparseDownstreamPolicy.HasOwnNonFullPolicy(members, dialect))
             {
-                code.AppendLine(
-                    "/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>"
-                );
+                code.AppendLine("/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>");
                 code.AppendLine(
                     "/// <remarks>Redacted before-states project to their requested after-state without historical comparison; ordinary members project their after-state too. The result is baseline-free and can no longer rebase or report conflicts.</remarks>"
                 );
@@ -350,19 +255,13 @@ internal static class SparseChangeSetPayloadEmitter
             // versionless core seam.
             SparseChangeSetMixedEmitter.AppendEnvelopeVersionOverrides(code, dialect, modelType);
             SparseChangeSetPayloadValidateEmitter.AppendEnvelopeValidate(code, dialect, modelType);
-            code.AppendLine(
-                "/// <summary>Builds a baseline-free command envelope from a patch.</summary>"
-            );
-            code.AppendLine(
-                "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ToPatch\"/>.</remarks>"
-            );
+            code.AppendLine("/// <summary>Builds a baseline-free command envelope from a patch.</summary>");
+            code.AppendLine("/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ToPatch\"/>.</remarks>");
             code.AppendLine("/// <param name=\"patch\">The patch to convert.</param>");
             code.AppendLine("/// <returns>The baseline-free command envelope.</returns>");
             code.AppendLine("public static ChangePayload FromPatch(" + modelType + ".Patch patch)");
             code.OpenBlock();
-            code.AppendLine(
-                "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
-            );
+            code.AppendLine("if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));");
             code.AppendLine(
                 "return new ChangePayload { Version = "
                     + SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true)
@@ -371,12 +270,7 @@ internal static class SparseChangeSetPayloadEmitter
                     + ".FromPatchCore(patch).Changes };"
             );
             code.CloseBlock();
-            SparseChangeSetPayloadProjectionEmitter.AppendRootToPatch(
-                code,
-                members,
-                dialect,
-                modelType
-            );
+            SparseChangeSetPayloadProjectionEmitter.AppendRootToPatch(code, members, dialect, modelType);
         }
         code.CloseBlock();
         code.AppendLine();
@@ -424,26 +318,16 @@ internal static class SparseChangeSetPayloadEmitter
         + SparseSchemaBaseName(modelType)
         + "_Change\"}}}}";
 
-    private static string ChangeUnionSchema(
-        ImmutableArray<SparseMemberModel> members,
-        string modelType
-    )
+    private static string ChangeUnionSchema(ImmutableArray<SparseMemberModel> members, string modelType)
     {
         var baseName = SparseSchemaBaseName(modelType);
         var rootDiscriminator = new System.Text.StringBuilder("$root");
-        while (
-            members.Any(member =>
-                !member.Property.IsJsonIgnored
-                && member.Property.Name == rootDiscriminator.ToString()
-            )
-        )
+        while (members.Any(member => !member.Property.IsJsonIgnored && member.Property.Name == rootDiscriminator.ToString()))
         {
             rootDiscriminator.Append('$');
         }
 
-        var result = new System.Text.StringBuilder("{\"oneOf\":[{\"$ref\":\"#/components/schemas/")
-            .Append(baseName)
-            .Append("_RootChange\"}");
+        var result = new System.Text.StringBuilder("{\"oneOf\":[{\"$ref\":\"#/components/schemas/").Append(baseName).Append("_RootChange\"}");
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
             result
@@ -460,11 +344,7 @@ internal static class SparseChangeSetPayloadEmitter
             .Append("\":\"#/components/schemas/")
             .Append(baseName)
             .Append("_RootChange\"");
-        foreach (
-            var property in members
-                .Where(static member => !member.Property.IsJsonIgnored)
-                .Select(static member => member.Property.Name)
-        )
+        foreach (var property in members.Where(static member => !member.Property.IsJsonIgnored).Select(static member => member.Property.Name))
         {
             result
                 .Append(",\"")
@@ -537,28 +417,16 @@ internal static class SparseChangeSetPayloadEmitter
         string containerAccessibility
     )
     {
-        code.AppendLine(
-            containerAccessibility
-                + " static partial class "
-                + RequirePayloadContainerName(dialect, modelType)
-        );
+        code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
         code.OpenBlock();
         code.Indent();
-        code.AppendLine(
-            "/// <summary>Snapshot of the present member values for whole-root transport.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("/// <summary>Snapshot of the present member values for whole-root transport.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public sealed class " + payloadRoot);
         code.OpenBlock();
         code.AppendLine("/// <summary>Gets or sets the snapshot member values.</summary>");
         AppendJsonProperty(code, "Members", 0, dialect.EmitJson);
-        code.AppendLine(
-            "public global::System.Collections.Generic.List<"
-                + payloadChange
-                + "> Members { get; set; } = new();"
-        );
+        code.AppendLine("public global::System.Collections.Generic.List<" + payloadChange + "> Members { get; set; } = new();");
         code.AppendLine("/// <summary>Builds a snapshot from a fragment.</summary>");
         code.AppendLine("/// <param name=\"value\">The fragment to snapshot.</param>");
         code.AppendLine("/// <returns>The snapshot root.</returns>");
@@ -583,25 +451,14 @@ internal static class SparseChangeSetPayloadEmitter
         // The redacting overload stays internal and follows the public
         // surface so the emitted container reads public -> internal.
         code.OpenBlock();
-        code.AppendLine(
-            "if (Members is null) throw new global::System.ArgumentException(\"Root members must not be null.\", nameof(Members));"
-        );
+        code.AppendLine("if (Members is null) throw new global::System.ArgumentException(\"Root members must not be null.\", nameof(Members));");
         foreach (var member in readable)
         {
             var valueType = SparseChangeSetBasicsEmitter.IsNested(member)
                 ? member.ChildFragmentType + "?"
                 : SparseChangeSetBasicsEmitter.FragmentValueType(member);
             code.AppendLine(
-                runtime
-                    + "Optional<"
-                    + valueType
-                    + "> rootMember"
-                    + member.Id
-                    + " = "
-                    + runtime
-                    + "Optional<"
-                    + valueType
-                    + ">.Missing;"
+                runtime + "Optional<" + valueType + "> rootMember" + member.Id + " = " + runtime + "Optional<" + valueType + ">.Missing;"
             );
         }
         foreach (var member in readable)
@@ -617,9 +474,7 @@ internal static class SparseChangeSetPayloadEmitter
         {
             code.AppendLine("case " + PayloadMemberName(modelType, "Change", member.Id) + " item:");
             code.AppendLine(
-                "if (seen"
-                    + member.Id
-                    + ") throw new global::System.ArgumentException(\"Root contains duplicate member values.\", nameof(Members));"
+                "if (seen" + member.Id + ") throw new global::System.ArgumentException(\"Root contains duplicate member values.\", nameof(Members));"
             );
             code.AppendLine("seen" + member.Id + " = true;");
             code.AppendLine(
@@ -660,28 +515,19 @@ internal static class SparseChangeSetPayloadEmitter
             }
             code.AppendLine("break;");
         }
-        code.AppendLine(
-            "default: throw new global::System.ArgumentException(\"Root contains an unknown member value.\", nameof(Members));"
-        );
+        code.AppendLine("default: throw new global::System.ArgumentException(\"Root contains an unknown member value.\", nameof(Members));");
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("return new Fragment");
         code.OpenBlock();
         foreach (var member in readable)
         {
-            code.AppendLine(
-                SparseNaming.EscapeIdentifier(member.Property.Name)
-                    + " = rootMember"
-                    + member.Id
-                    + ","
-            );
+            code.AppendLine(SparseNaming.EscapeIdentifier(member.Property.Name) + " = rootMember" + member.Id + ",");
         }
 
         code.Unindent().AppendLine("};");
         code.CloseBlock();
-        code.AppendLine(
-            "internal static " + payloadRoot + " FromFragment(Fragment value, bool redactBefores)"
-        );
+        code.AppendLine("internal static " + payloadRoot + " FromFragment(Fragment value, bool redactBefores)");
         code.OpenBlock();
         code.AppendLine("var result = new " + payloadRoot + "();");
         SparseChangeSetPayloadSnapshotEmitter.AppendFromFragmentMembers(
@@ -704,13 +550,9 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLine("/// <summary>Base type for the per-member change variants.</summary>");
         if (dialect.EmitJson)
         {
-            code.AppendLine(
-                "[global::System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = \"member\")]"
-            );
+            code.AppendLine("[global::System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = \"member\")]");
             var rootDiscriminatorBuilder = new System.Text.StringBuilder("$root");
-            while (
-                variants.Any(member => member.Property.Name == rootDiscriminatorBuilder.ToString())
-            )
+            while (variants.Any(member => member.Property.Name == rootDiscriminatorBuilder.ToString()))
             {
                 rootDiscriminatorBuilder.Append('$');
             }
@@ -734,32 +576,20 @@ internal static class SparseChangeSetPayloadEmitter
                 );
             }
         }
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public abstract class " + payloadChange + " { }");
         code.AppendLine();
 
-        code.AppendLine(
-            "/// <summary>Whole-root change carrying the before and after snapshots.</summary>"
-        );
-        code.AppendLine(
-            "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-        );
-        code.AppendLine(
-            "public sealed class " + PayloadName(modelType, "RootChange") + " : " + payloadChange
-        );
+        code.AppendLine("/// <summary>Whole-root change carrying the before and after snapshots.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + PayloadName(modelType, "RootChange") + " : " + payloadChange);
         code.OpenBlock();
         code.AppendLine("/// <summary>Gets or sets the before snapshot.</summary>");
         AppendIgnoreNull(code, dialect.EmitJson);
         AppendJsonProperty(code, "Before", 0, dialect.EmitJson);
         if (dialect.EmitJson)
         {
-            SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
-                code,
-                payloadRoot,
-                implementationNamespace
-            );
+            SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, payloadRoot, implementationNamespace);
         }
 
         code.AppendLine("public " + endpoint + "<" + payloadRoot + ">? Before { get; set; }");
@@ -768,11 +598,7 @@ internal static class SparseChangeSetPayloadEmitter
         AppendJsonProperty(code, "After", 1, dialect.EmitJson);
         if (dialect.EmitJson)
         {
-            SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
-                code,
-                payloadRoot,
-                implementationNamespace
-            );
+            SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, payloadRoot, implementationNamespace);
         }
 
         code.AppendLine("public " + endpoint + "<" + payloadRoot + ">? After { get; set; }");
@@ -781,14 +607,7 @@ internal static class SparseChangeSetPayloadEmitter
 
         foreach (var member in variants)
         {
-            SparseChangeSetPayloadItemEmitter.AppendMemberPayload(
-                code,
-                member,
-                endpoint,
-                dialect,
-                modelType,
-                implementationNamespace
-            );
+            SparseChangeSetPayloadItemEmitter.AppendMemberPayload(code, member, endpoint, dialect, modelType, implementationNamespace);
             code.AppendLine();
         }
         // The endpoint/kind bridge preserves the v1 wire shape once the runtime
@@ -810,13 +629,7 @@ internal static class SparseChangeSetPayloadEmitter
         SparseOperationTarget? target = null
     ) =>
         // Reloc-2 split: transfer bodies live in the dedicated TransferEmitter.
-        SparseChangeSetPayloadTransferEmitter.AppendToPayload(
-            code,
-            members,
-            dialect,
-            modelType,
-            target
-        );
+        SparseChangeSetPayloadTransferEmitter.AppendToPayload(code, members, dialect, modelType, target);
 
     internal static string PayloadName(string? modelType, string suffix)
     {
@@ -832,49 +645,23 @@ internal static class SparseChangeSetPayloadEmitter
         return suffix + id + "_" + shortModelId;
     }
 
-    internal static string PayloadTypeName(
-        string payloadContainerName,
-        string? modelType,
-        string suffix
-    ) => payloadContainerName + "." + PayloadName(modelType, suffix);
+    internal static string PayloadTypeName(string payloadContainerName, string? modelType, string suffix) =>
+        payloadContainerName + "." + PayloadName(modelType, suffix);
 
-    internal static string PayloadTypeName(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType,
-        string suffix
-    ) => PayloadTypeName(RequirePayloadContainerName(dialect, modelType), modelType, suffix);
+    internal static string PayloadTypeName(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string? modelType, string suffix) =>
+        PayloadTypeName(RequirePayloadContainerName(dialect, modelType), modelType, suffix);
 
-    internal static string PayloadMemberTypeName(
-        string payloadContainerName,
-        string? modelType,
-        string suffix,
-        int id
-    ) => payloadContainerName + "." + PayloadMemberName(modelType, suffix, id);
+    internal static string PayloadMemberTypeName(string payloadContainerName, string? modelType, string suffix, int id) =>
+        payloadContainerName + "." + PayloadMemberName(modelType, suffix, id);
 
-    internal static string PayloadMemberTypeName(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType,
-        string suffix,
-        int id
-    ) =>
-        PayloadMemberTypeName(
-            RequirePayloadContainerName(dialect, modelType),
-            modelType,
-            suffix,
-            id
-        );
+    internal static string PayloadMemberTypeName(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string? modelType, string suffix, int id) =>
+        PayloadMemberTypeName(RequirePayloadContainerName(dialect, modelType), modelType, suffix, id);
 
-    internal static string RequirePayloadContainerName(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType
-    ) =>
+    internal static string RequirePayloadContainerName(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string? modelType) =>
         !string.IsNullOrWhiteSpace(dialect.PayloadImplementationContainerPrefix)
             ? dialect.PayloadImplementationContainerPrefix
                 + "_"
-                + SparseNaming.GetStableTypeHash(
-                    modelType ?? "SparseGeneratedModel",
-                    CancellationToken.None
-                )
+                + SparseNaming.GetStableTypeHash(modelType ?? "SparseGeneratedModel", CancellationToken.None)
             : throw new global::System.InvalidOperationException(
                 "PayloadImplementationContainerPrefix must be configured when emitting ChangePayload DTOs."
             );
@@ -899,9 +686,7 @@ internal static class SparseChangeSetPayloadEmitter
         }
 
         var simple = RequirePayloadContainerName(dialect, childModelType);
-        return SparseGeneratedPlacement.QualifyPayloadContainer(simple, implementationNamespace)
-            + "."
-            + PayloadName(childModelType, suffix);
+        return SparseGeneratedPlacement.QualifyPayloadContainer(simple, implementationNamespace) + "." + PayloadName(childModelType, suffix);
     }
 
     internal static void AppendIgnoreNull(SharedIndentedBuilder code, bool emitJson = true)
@@ -916,12 +701,7 @@ internal static class SparseChangeSetPayloadEmitter
         );
     }
 
-    internal static void AppendJsonProperty(
-        SharedIndentedBuilder code,
-        string name,
-        int order,
-        bool emitJson = true
-    )
+    internal static void AppendJsonProperty(SharedIndentedBuilder code, string name, int order, bool emitJson = true)
     {
         if (!emitJson)
         {
@@ -929,12 +709,8 @@ internal static class SparseChangeSetPayloadEmitter
         }
 
         var jsonName = char.ToLowerInvariant(name[0]) + name.Substring(1);
-        code.AppendLine(
-            "[global::System.Text.Json.Serialization.JsonPropertyName(\"" + jsonName + "\")]"
-        );
-        code.AppendLine(
-            "[global::System.Text.Json.Serialization.JsonPropertyOrder(" + order + ")]"
-        );
+        code.AppendLine("[global::System.Text.Json.Serialization.JsonPropertyName(\"" + jsonName + "\")]");
+        code.AppendLine("[global::System.Text.Json.Serialization.JsonPropertyOrder(" + order + ")]");
     }
 
     internal static void AppendIgnoreDefault(SharedIndentedBuilder code, bool emitJson = true)

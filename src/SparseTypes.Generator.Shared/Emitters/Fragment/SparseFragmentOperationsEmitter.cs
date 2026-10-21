@@ -27,13 +27,8 @@ internal static class SparseFragmentOperationsEmitter
     {
         var modelType = model.ModelTypeName;
         var modelIsReferenceType = !model.IsStruct;
-        var operationsName = SparseGeneratedPlacement.GetFragmentOperationsSimpleName(
-            model,
-            code.CancellationToken
-        );
-        code.AppendLine(
-            "/// <summary>Per-model Fragment conversion, merge, diff, and clone operations.</summary>"
-        );
+        var operationsName = SparseGeneratedPlacement.GetFragmentOperationsSimpleName(model, code.CancellationToken);
+        code.AppendLine("/// <summary>Per-model Fragment conversion, merge, diff, and clone operations.</summary>");
         code.AppendLine(operationsAccessibility + " static class " + operationsName);
         code.OpenBlock();
         // Public-first order: public operations precede internal bridges,
@@ -43,49 +38,22 @@ internal static class SparseFragmentOperationsEmitter
             || member.Property.Type.PocoCloneHelperName is not null
             || member.Collection.CloneKind != SparseCloneCollectionKind.Unsupported
         );
-        operationsCore.AppendFromModelPublicBody(
-            code,
-            modelType,
-            members,
-            modelIsReferenceType,
-            requiresFromContext
-        );
-        SparseFragmentCoreEmitter.AppendToModel(
-            code,
-            modelType,
-            members,
-            isRootModel,
-            model.Constructor,
-            receiver: "fragment."
-        );
+        operationsCore.AppendFromModelPublicBody(code, modelType, members, modelIsReferenceType, requiresFromContext);
+        SparseFragmentCoreEmitter.AppendToModel(code, modelType, members, isRootModel, model.Constructor, receiver: "fragment.");
         operationsCore.AppendMerge(code, members, receiver: "self.");
         operationsCore.AppendApplyChanges(code, members, receiver: "self.");
         // Origin queries are public surface.
         operationsCore.AppendOriginOperations(code, members);
         operationsCore.AppendDiffPublicBody(code, modelType, members, modelIsReferenceType);
-        operationsCore.AppendDeepCloneOperationsPublic(
-            code,
-            modelType,
-            members,
-            model.Constructor,
-            modelIsReferenceType
-        );
+        operationsCore.AppendDeepCloneOperationsPublic(code, modelType, members, model.Constructor, modelIsReferenceType);
         operationsCore.AppendFromModelInternalBody(code, modelType, members, modelIsReferenceType);
         SparseFragmentCoreEmitter.AppendDiffInternalBody(
             code,
             modelType,
             modelIsReferenceType,
-            members.Any(static member =>
-                member.ChildModel is not null && member.MergeStrategyType is null
-            )
+            members.Any(static member => member.ChildModel is not null && member.MergeStrategyType is null)
         );
-        operationsCore.AppendDeepCloneOperationsInternal(
-            code,
-            modelType,
-            members,
-            model.Constructor,
-            modelIsReferenceType
-        );
+        operationsCore.AppendDeepCloneOperationsInternal(code, modelType, members, model.Constructor, modelIsReferenceType);
         foreach (var poco in pocoCloneModels)
         {
             operationsCore.AppendPocoCloneHelper(
@@ -101,12 +69,7 @@ internal static class SparseFragmentOperationsEmitter
         operationsCore.AppendDiffPrivateBodies(code, modelType, members, modelIsReferenceType);
         operationsCore.AppendOriginPathCacheFields(code, members, modelType);
 
-        operationsCore.AppendOriginEnumerationIterator(
-            code,
-            members,
-            isStatic: true,
-            receiver: "self."
-        );
+        operationsCore.AppendOriginEnumerationIterator(code, members, isStatic: true, receiver: "self.");
         code.CloseBlock();
     }
 }

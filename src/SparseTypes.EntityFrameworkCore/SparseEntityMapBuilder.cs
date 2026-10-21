@@ -65,9 +65,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
         SparseEntityMissingPolicy onMissing
     )
     {
-        AddNode(
-            new ScalarNode<TDto, TEntity, TDtoValue, TEntityValue>(dto, entity, null, onMissing)
-        );
+        AddNode(new ScalarNode<TDto, TEntity, TDtoValue, TEntityValue>(dto, entity, null, onMissing));
         return this;
     }
 
@@ -87,9 +85,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     )
     {
         ArgumentNullException.ThrowIfNull(convert);
-        AddNode(
-            new ScalarNode<TDto, TEntity, TDtoValue, TEntityValue>(dto, entity, convert, onMissing)
-        );
+        AddNode(new ScalarNode<TDto, TEntity, TDtoValue, TEntityValue>(dto, entity, convert, onMissing));
         return this;
     }
 
@@ -104,10 +100,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     /// <param name="entity">Projects the entity value for that DTO member.</param>
     /// <typeparam name="TValue">The DTO member type.</typeparam>
     /// <returns>This builder.</returns>
-    public SparseEntityMapBuilder<TEntity, TDto> Read<TValue>(
-        Expression<Func<TDto, TValue?>> dto,
-        Expression<Func<TEntity, TValue?>> entity
-    )
+    public SparseEntityMapBuilder<TEntity, TDto> Read<TValue>(Expression<Func<TDto, TValue?>> dto, Expression<Func<TEntity, TValue?>> entity)
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentNullException.ThrowIfNull(entity);
@@ -180,12 +173,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
             GeneratedObjectConfigurators[(typeof(TEntity), typeof(TDto), dtoName)] = builder =>
                 configure((SparseEntityMapBuilder<TEntityChild, TDtoChild>)builder);
         }
-        else if (
-            GeneratedObjectConfigurators.TryGetValue(
-                (typeof(TEntity), typeof(TDto), dtoName),
-                out var generatedObject
-            )
-        )
+        else if (GeneratedObjectConfigurators.TryGetValue((typeof(TEntity), typeof(TDto), dtoName), out var generatedObject))
         {
             child.RunGenerated(() => generatedObject(child));
             child.GeneratedDefaultsApplied = true;
@@ -197,8 +185,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
                 dto,
                 entity,
                 child,
-                (session, target) =>
-                    EntityPlan<TEntityChild, TDtoChild>.Build(session, child, target),
+                (session, target) => EntityPlan<TEntityChild, TDtoChild>.Build(session, child, target),
                 objectMissing
             )
         );
@@ -249,10 +236,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
         var lines = new SparseEntityCollectionBuilder<TEntityChild, TDtoChild>();
         configure(lines);
         var dtoName = MemberPath.Parse(dto).SingleName("DTO");
-        GeneratedElementConfigurators.TryGetValue(
-            (typeof(TEntity), typeof(TDto), dtoName),
-            out var generatedElement
-        );
+        GeneratedElementConfigurators.TryGetValue((typeof(TEntity), typeof(TDto), dtoName), out var generatedElement);
         AddNode(
             new CollectionNode<TDto, TEntity, TDtoChild, TEntityChild>(
                 dto,
@@ -295,10 +279,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentNullException.ThrowIfNull(entity);
-        AddCollection(
-            MemberPath.Parse(dto).SingleName("DTO"),
-            MemberPath.Parse(entity).SingleName("entity")
-        );
+        AddCollection(MemberPath.Parse(dto).SingleName("DTO"), MemberPath.Parse(entity).SingleName("entity"));
         return this;
     }
 
@@ -318,11 +299,8 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentNullException.ThrowIfNull(configure);
-        GeneratedElementConfigurators[
-            (typeof(TEntity), typeof(TDto), MemberPath.Parse(dto).SingleName("DTO"))
-        ] = new GeneratedCollectionElementDefaults(builder =>
-            configure((SparseEntityMapBuilder<TEntityChild, TDtoChild>)builder)
-        );
+        GeneratedElementConfigurators[(typeof(TEntity), typeof(TDto), MemberPath.Parse(dto).SingleName("DTO"))] =
+            new GeneratedCollectionElementDefaults(builder => configure((SparseEntityMapBuilder<TEntityChild, TDtoChild>)builder));
         return this;
     }
 
@@ -343,11 +321,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     /// <typeparam name="TKey">The stable DTO key type.</typeparam>
     /// <returns>This builder.</returns>
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    public SparseEntityMapBuilder<TEntity, TDto> DeclareCollectionElement<
-        TDtoChild,
-        TEntityChild,
-        TKey
-    >(
+    public SparseEntityMapBuilder<TEntity, TDto> DeclareCollectionElement<TDtoChild, TEntityChild, TKey>(
         Expression<Func<TDto, IEnumerable<TDtoChild>?>> dto,
         Expression<Func<TDtoChild, TKey>> key,
         object? unassignedKeyValue,
@@ -364,18 +338,17 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
         ArgumentNullException.ThrowIfNull(key);
         ArgumentNullException.ThrowIfNull(keyMemberNames);
         ArgumentNullException.ThrowIfNull(configure);
-        GeneratedElementConfigurators[
-            (typeof(TEntity), typeof(TDto), MemberPath.Parse(dto).SingleName("DTO"))
-        ] = new GeneratedCollectionElementDefaults(
-            builder => configure((SparseEntityMapBuilder<TEntityChild, TDtoChild>)builder),
-            typeof(TKey),
-            key.Compile(),
-            unassignedKeyValue,
-            hasUnassignedKeyValue,
-            temporaryKey?.Compile(),
-            temporaryKeySetter,
-            keyMemberNames
-        );
+        GeneratedElementConfigurators[(typeof(TEntity), typeof(TDto), MemberPath.Parse(dto).SingleName("DTO"))] =
+            new GeneratedCollectionElementDefaults(
+                builder => configure((SparseEntityMapBuilder<TEntityChild, TDtoChild>)builder),
+                typeof(TKey),
+                key.Compile(),
+                unassignedKeyValue,
+                hasUnassignedKeyValue,
+                temporaryKey?.Compile(),
+                temporaryKeySetter,
+                keyMemberNames
+            );
         return this;
     }
 
@@ -387,10 +360,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     /// <param name="policy">Handles a changed-to-missing after-state for this member.</param>
     /// <typeparam name="TValue">The DTO member type.</typeparam>
     /// <returns>This builder.</returns>
-    public SparseEntityMapBuilder<TEntity, TDto> OnMissing<TValue>(
-        Expression<Func<TDto, TValue?>> dto,
-        SparseEntityMissingPolicy policy
-    )
+    public SparseEntityMapBuilder<TEntity, TDto> OnMissing<TValue>(Expression<Func<TDto, TValue?>> dto, SparseEntityMissingPolicy policy)
     {
         AddMissingOverride(MemberPath.Parse(dto).SingleName("DTO"), policy);
         return this;
@@ -403,9 +373,7 @@ public sealed class SparseEntityMapBuilder<TEntity, TDto> : SparseEntityMapBuild
     /// <param name="dto">Selects the DTO member (single level).</param>
     /// <typeparam name="TValue">The DTO member type.</typeparam>
     /// <returns>This builder.</returns>
-    public SparseEntityMapBuilder<TEntity, TDto> AllowWrite<TValue>(
-        Expression<Func<TDto, TValue?>> dto
-    )
+    public SparseEntityMapBuilder<TEntity, TDto> AllowWrite<TValue>(Expression<Func<TDto, TValue?>> dto)
     {
         AddAllowedWrite(MemberPath.Parse(dto).SingleName("DTO"));
         return this;
@@ -435,15 +403,12 @@ public abstract class SparseEntityMapBuilderBase
     private readonly HashSet<string> _generatedDefaults = new(StringComparer.Ordinal);
     private readonly HashSet<string> _ignored = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _collections = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, SparseEntityMissingPolicy> _missingOverrides = new(
-        StringComparer.Ordinal
-    );
+    private readonly Dictionary<string, SparseEntityMissingPolicy> _missingOverrides = new(StringComparer.Ordinal);
     private readonly HashSet<string> _allowedWrites = new(StringComparer.Ordinal);
     private readonly Dictionary<string, LambdaExpression> _reads = new(StringComparer.Ordinal);
 
     /// <summary>Gets or sets the default missing-value policy for this scope.</summary>
-    public SparseEntityMissingPolicy DefaultMissing { get; protected set; } =
-        SparseEntityMissingPolicy.Throw;
+    public SparseEntityMissingPolicy DefaultMissing { get; protected set; } = SparseEntityMissingPolicy.Throw;
 
     internal IReadOnlyList<MemberNode> Nodes => _nodes;
 
@@ -451,8 +416,7 @@ public abstract class SparseEntityMapBuilderBase
 
     internal IReadOnlyDictionary<string, string> Collections => _collections;
 
-    internal IReadOnlyDictionary<string, SparseEntityMissingPolicy> MissingOverrides =>
-        _missingOverrides;
+    internal IReadOnlyDictionary<string, SparseEntityMissingPolicy> MissingOverrides => _missingOverrides;
 
     internal IReadOnlySet<string> AllowedWrites => _allowedWrites;
 

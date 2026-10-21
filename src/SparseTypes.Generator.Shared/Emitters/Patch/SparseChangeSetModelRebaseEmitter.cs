@@ -31,13 +31,7 @@ internal static class SparseChangeSetModelRebaseEmitter
             );
             code.AppendLine("/// <summary>Rebases a change onto an ordinary model.</summary>");
             code.AppendLine(
-                "internal static "
-                    + rebaseResult
-                    + " RebaseOnto(ChangeSet self, "
-                    + modelType
-                    + " current, "
-                    + optionsType
-                    + "? options = null)"
+                "internal static " + rebaseResult + " RebaseOnto(ChangeSet self, " + modelType + " current, " + optionsType + "? options = null)"
             );
             code.OpenBlock();
             code.AppendLine("if (self.IsEmpty)");
@@ -45,33 +39,19 @@ internal static class SparseChangeSetModelRebaseEmitter
             AppendNullGuard(code, modelIsReferenceType);
             code.AppendLine("return RebaseOnto(self, default(" + optionalFragment + "), options);");
             code.CloseBlock();
-            code.AppendLine(
-                "return RebaseOnto(self, "
-                    + optionalFragment
-                    + ".Present(Fragment.From(current)), options);"
-            );
+            code.AppendLine("return RebaseOnto(self, " + optionalFragment + ".Present(Fragment.From(current)), options);");
             code.CloseBlock();
             return;
         }
         code.AppendLine("/// <summary>Rebases this change onto an ordinary model.</summary>");
-        code.AppendLine(
-            "public "
-                + rebaseResult
-                + " RebaseOnto("
-                + modelType
-                + " current, "
-                + optionsType
-                + "? options = null)"
-        );
+        code.AppendLine("public " + rebaseResult + " RebaseOnto(" + modelType + " current, " + optionsType + "? options = null)");
         code.OpenBlock();
         code.AppendLine("if (this.IsEmpty)");
         code.OpenBlock();
         AppendNullGuard(code, modelIsReferenceType);
         code.AppendLine("return RebaseOnto(default(" + optionalFragment + "), options);");
         code.CloseBlock();
-        code.AppendLine(
-            "return RebaseOnto(" + optionalFragment + ".Present(Fragment.From(current)), options);"
-        );
+        code.AppendLine("return RebaseOnto(" + optionalFragment + ".Present(Fragment.From(current)), options);");
         code.CloseBlock();
     }
 
@@ -82,8 +62,6 @@ internal static class SparseChangeSetModelRebaseEmitter
             return;
         }
 
-        code.AppendLine(
-            "if (global::System.Object.ReferenceEquals(current, null)) throw new global::System.ArgumentNullException(\"value\");"
-        );
+        code.AppendLine("if (global::System.Object.ReferenceEquals(current, null)) throw new global::System.ArgumentNullException(\"value\");");
     }
 }

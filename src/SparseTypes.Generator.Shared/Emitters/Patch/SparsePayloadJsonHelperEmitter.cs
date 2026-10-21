@@ -6,8 +6,7 @@ internal static class SparsePayloadJsonHelperEmitter
     /// <summary>Gets the top-level helper name for one model.</summary>
     /// <param name="model">Owning model.</param>
     /// <returns>The helper name in the model's namespace.</returns>
-    internal static string HelperName(SparseModelInfo model) =>
-        SparseNaming.EscapeIdentifier(model.Name + "Json");
+    internal static string HelperName(SparseModelInfo model) => SparseNaming.EscapeIdentifier(model.Name + "Json");
 
     /// <summary>Whether a helper identity can be emitted for one model.</summary>
     /// <param name="model">Owning model.</param>
@@ -30,11 +29,7 @@ internal static class SparsePayloadJsonHelperEmitter
     /// <param name="code">Owning surface builder.</param>
     /// <param name="model">Owning model.</param>
     /// <param name="context">Payload JSON emission context.</param>
-    internal static void AppendHelper(
-        SharedIndentedBuilder code,
-        SparseModelInfo model,
-        PayloadJsonEmissionContext context
-    )
+    internal static void AppendHelper(SharedIndentedBuilder code, SparseModelInfo model, PayloadJsonEmissionContext context)
     {
         if (!CanEmit(model, context))
         {
@@ -45,16 +40,10 @@ internal static class SparsePayloadJsonHelperEmitter
         var accessibility = model.IsPublic ? "public" : "internal";
         var payloadType = context.ModelType + ".ChangePayload";
         var resolver = context.ModelType + "." + context.ResolverName + ".Default";
-        code.AppendLine(
-            "/// <summary>JSON metadata for '" + context.ModelType + "' change payloads.</summary>"
-        );
+        code.AppendLine("/// <summary>JSON metadata for '" + context.ModelType + "' change payloads.</summary>");
         code.AppendLine(accessibility + " static class " + helper);
         code.OpenBlock();
-        code.AppendLine(
-            "/// <summary>Gets the shared payload metadata for '"
-                + context.ModelType
-                + "' change payloads.</summary>"
-        );
+        code.AppendLine("/// <summary>Gets the shared payload metadata for '" + context.ModelType + "' change payloads.</summary>");
         code.AppendLine(
             "public static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<"
                 + payloadType
@@ -62,14 +51,8 @@ internal static class SparsePayloadJsonHelperEmitter
                 + resolver
                 + ".ChangePayload;"
         );
-        code.AppendLine(
-            "/// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>"
-        );
-        code.AppendLine(
-            "public static global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver Resolver => "
-                + resolver
-                + ";"
-        );
+        code.AppendLine("/// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>");
+        code.AppendLine("public static global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver Resolver => " + resolver + ";");
         code.CloseBlock();
         code.AppendLine();
     }

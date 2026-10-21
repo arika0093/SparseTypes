@@ -10,24 +10,16 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
 {
     private readonly SparseGeneratorConfig _config;
     private readonly CancellationToken _cancellationToken;
-    private readonly Dictionary<INamedTypeSymbol, bool> _modelCloneEquality = new(
-        SymbolEqualityComparer.Default
-    );
+    private readonly Dictionary<INamedTypeSymbol, bool> _modelCloneEquality = new(SymbolEqualityComparer.Default);
 
-    internal SparseModelIdentityEqualityAnalyzer(
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal SparseModelIdentityEqualityAnalyzer(SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         _config = config;
         _cancellationToken = cancellationToken;
     }
 
     internal bool ModelClonePreservesEquality(INamedTypeSymbol model) =>
-        ModelClonePreservesEquality(
-            model,
-            new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default)
-        );
+        ModelClonePreservesEquality(model, new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default));
 
     private bool ClonePreservesEquality(ITypeSymbol type, HashSet<INamedTypeSymbol> activeModels)
     {
@@ -45,11 +37,7 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
             return SetElementsSurviveClone(collection.ElementType);
         }
 
-        if (
-            collection.CloneKind
-            is SparseCloneCollectionKind.Array
-                or SparseCloneCollectionKind.List
-        )
+        if (collection.CloneKind is SparseCloneCollectionKind.Array or SparseCloneCollectionKind.List)
         {
             return ClonePreservesEquality(collection.ElementType, activeModels);
         }
@@ -73,10 +61,7 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
         return type.IsReferenceType || SparseModelDiscovery.UsesDefaultScalarEquality(type);
     }
 
-    private bool ModelClonePreservesEquality(
-        INamedTypeSymbol model,
-        HashSet<INamedTypeSymbol> activeModels
-    )
+    private bool ModelClonePreservesEquality(INamedTypeSymbol model, HashSet<INamedTypeSymbol> activeModels)
     {
         if (!IsGeneratedModel(model, out _))
         {
@@ -103,14 +88,11 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
                 return false;
             }
 
-            foreach (
-                var member in SparseModelDiscovery.GetMembers(model, _config, _cancellationToken)
-            )
+            foreach (var member in SparseModelDiscovery.GetMembers(model, _config, _cancellationToken))
             {
                 _cancellationToken.ThrowIfCancellationRequested();
                 if (
-                    member.Property.SetMethod
-                        is not { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false }
+                    member.Property.SetMethod is not { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false }
                     || !IsAutoProperty(member.Property, _cancellationToken)
                     || !HasDefaultComparison(member)
                     || !ClonePreservesEquality(member.Property.Type, activeModels)
@@ -132,17 +114,9 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
 
     private static bool HasSafeCloneConstructors(INamedTypeSymbol model)
     {
-        for (
-            var current = model;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = model; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
-            if (
-                current.InstanceConstructors.Any(static constructor =>
-                    !constructor.IsImplicitlyDeclared
-                )
-            )
+            if (current.InstanceConstructors.Any(static constructor => !constructor.IsImplicitlyDeclared))
             {
                 return false;
             }
@@ -186,8 +160,7 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
             return false;
         }
 
-        return elementType.IsReferenceType
-            || SparseModelDiscovery.UsesDefaultScalarEquality(elementType);
+        return elementType.IsReferenceType || SparseModelDiscovery.UsesDefaultScalarEquality(elementType);
     }
 
     private bool IsGeneratedModel(ITypeSymbol type, out INamedTypeSymbol model)
@@ -209,14 +182,9 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
     }
 
     private static bool HasDefaultComparison(SparseSymbolMemberModel member) =>
-        member.MergeStrategyType is null
-        && member.ComparisonComparerType is null
-        && member.RebasePolicyType is null;
+        member.MergeStrategyType is null && member.ComparisonComparerType is null && member.RebasePolicyType is null;
 
-    private static bool IsAutoProperty(
-        IPropertySymbol property,
-        CancellationToken cancellationToken
-    )
+    private static bool IsAutoProperty(IPropertySymbol property, CancellationToken cancellationToken)
     {
         var getter = property.GetMethod;
         var setter = property.SetMethod;
@@ -243,14 +211,10 @@ internal sealed class SparseModelIdentityEqualityAnalyzer
                 reference.GetSyntax(cancellationToken) is PropertyDeclarationSyntax declaration
                 && declaration.ExpressionBody is null
                 && declaration.AccessorList?.Accessors.Any(static accessor =>
-                    accessor.Keyword.ValueText == "get"
-                    && accessor.Body is null
-                    && accessor.ExpressionBody is null
+                    accessor.Keyword.ValueText == "get" && accessor.Body is null && accessor.ExpressionBody is null
                 ) == true
                 && declaration.AccessorList.Accessors.Any(static accessor =>
-                    accessor.Keyword.ValueText == "set"
-                    && accessor.Body is null
-                    && accessor.ExpressionBody is null
+                    accessor.Keyword.ValueText == "set" && accessor.Body is null && accessor.ExpressionBody is null
                 )
             )
             {

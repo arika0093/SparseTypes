@@ -8,11 +8,7 @@ namespace SparseTypes;
 public sealed class MixedSequenceComposition
 {
     /// <summary>Creates a mixed sequence composition outcome.</summary>
-    public MixedSequenceComposition(
-        bool succeeded,
-        IEnumerable<MixedMemberOperation> composed,
-        IEnumerable<MixedComposeResult> failures
-    )
+    public MixedSequenceComposition(bool succeeded, IEnumerable<MixedMemberOperation> composed, IEnumerable<MixedComposeResult> failures)
         : this(succeeded, composed, failures, []) { }
 
     /// <summary>Creates a mixed sequence composition outcome with continuity obligations.</summary>

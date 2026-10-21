@@ -6,17 +6,9 @@ namespace SparseTypes.Generator.Shared;
 
 internal static class SparseComparisonValidation
 {
-    public static bool IsValidComparer(
-        INamedTypeSymbol comparerType,
-        ITypeSymbol valueType,
-        CancellationToken cancellationToken
-    )
+    public static bool IsValidComparer(INamedTypeSymbol comparerType, ITypeSymbol valueType, CancellationToken cancellationToken)
     {
-        if (
-            comparerType.TypeKind != TypeKind.Class
-            || comparerType.IsAbstract
-            || comparerType.Arity != 0
-        )
+        if (comparerType.TypeKind != TypeKind.Class || comparerType.IsAbstract || comparerType.Arity != 0)
         {
             return false;
         }
@@ -24,10 +16,7 @@ internal static class SparseComparisonValidation
         for (var current = comparerType; current is not null; current = current.ContainingType)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (
-                current.DeclaredAccessibility
-                is not (Accessibility.Public or Accessibility.Internal)
-            )
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
             {
                 return false;
             }
@@ -35,10 +24,7 @@ internal static class SparseComparisonValidation
 
         if (
             !comparerType.InstanceConstructors.Any(static constructor =>
-                constructor.Parameters.Length == 0
-                && constructor.DeclaredAccessibility
-                    is Accessibility.Public
-                        or Accessibility.Internal
+                constructor.Parameters.Length == 0 && constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal
             )
         )
         {
@@ -47,8 +33,7 @@ internal static class SparseComparisonValidation
 
         cancellationToken.ThrowIfCancellationRequested();
         return comparerType.AllInterfaces.Any(implemented =>
-            implemented.OriginalDefinition.ToDisplayString()
-                == "System.Collections.Generic.IEqualityComparer<T>"
+            implemented.OriginalDefinition.ToDisplayString() == "System.Collections.Generic.IEqualityComparer<T>"
             && SymbolEqualityComparer.Default.Equals(implemented.TypeArguments[0], valueType)
         );
     }

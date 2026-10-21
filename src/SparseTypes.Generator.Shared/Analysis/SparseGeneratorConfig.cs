@@ -74,8 +74,7 @@ internal sealed record SparseGeneratorConfig
         this.ComparisonAttributeMetadataName = ComparisonAttributeMetadataName;
         this.EditSessionInterfaceMetadataName = EditSessionInterfaceMetadataName;
         this.EditSessionDialect = EditSessionDialect;
-        this.EditSessionModelAccessorInterfaceMetadataName =
-            EditSessionModelAccessorInterfaceMetadataName;
+        this.EditSessionModelAccessorInterfaceMetadataName = EditSessionModelAccessorInterfaceMetadataName;
         this.EditSessionWithPathsInterfaceMetadataName = EditSessionWithPathsInterfaceMetadataName;
         this.DescriptorDialect = DescriptorDialect;
         this.GeneratedImplementationNamespace = GeneratedImplementationNamespace;
@@ -87,17 +86,12 @@ internal sealed record SparseGeneratorConfig
         this.EditChildPathInterfaceMetadataName = EditChildPathInterfaceMetadataName;
         this.EditChildSessionInterfaceMetadataName = EditChildSessionInterfaceMetadataName;
         this.EditChildSessionImplementationType = EditChildSessionImplementationType;
-        this.EditSessionWithChildrenInterfaceMetadataName =
-            EditSessionWithChildrenInterfaceMetadataName;
+        this.EditSessionWithChildrenInterfaceMetadataName = EditSessionWithChildrenInterfaceMetadataName;
         this.EditChildSessionStatusType = EditChildSessionStatusType;
-        this.EditSessionWithChildStatusInterfaceMetadataName =
-            EditSessionWithChildStatusInterfaceMetadataName;
-        this.EditSessionWithPendingStateInterfaceMetadataName =
-            EditSessionWithPendingStateInterfaceMetadataName;
-        this.EditSessionWithChangeSetInterfaceMetadataName =
-            EditSessionWithChangeSetInterfaceMetadataName;
-        this.EditSessionWithBaselineRevisionInterfaceMetadataName =
-            EditSessionWithBaselineRevisionInterfaceMetadataName;
+        this.EditSessionWithChildStatusInterfaceMetadataName = EditSessionWithChildStatusInterfaceMetadataName;
+        this.EditSessionWithPendingStateInterfaceMetadataName = EditSessionWithPendingStateInterfaceMetadataName;
+        this.EditSessionWithChangeSetInterfaceMetadataName = EditSessionWithChangeSetInterfaceMetadataName;
+        this.EditSessionWithBaselineRevisionInterfaceMetadataName = EditSessionWithBaselineRevisionInterfaceMetadataName;
         this.EditChildDraftHostInterfaceMetadataName = EditChildDraftHostInterfaceMetadataName;
         this.EditChildDraftImplementationType = EditChildDraftImplementationType;
         this.SessionCapabilityContracts = SessionCapabilityContracts;
@@ -231,13 +225,11 @@ internal sealed record SparseGeneratorConfig
     public SparseStjCapabilities? StjCapabilities { get; init; }
 
     /// <summary>Effective JSON surface, defaulting to the full historical set.</summary>
-    public SparseStjCapabilities EffectiveStjCapabilities =>
-        StjCapabilities ?? SparseStjCapabilities.All;
+    public SparseStjCapabilities EffectiveStjCapabilities => StjCapabilities ?? SparseStjCapabilities.All;
 
     /// <summary>Whether generated JSON artifacts may be emitted for this configuration.</summary>
     /// <remarks>Emission also requires V1 wire-format support.</remarks>
-    public bool EffectiveEmitJson =>
-        EffectiveEmissionFeatures.EmitJsonConverters && EffectiveStjCapabilities.SupportsV1Wire;
+    public bool EffectiveEmitJson => EffectiveEmissionFeatures.EmitJsonConverters && EffectiveStjCapabilities.SupportsV1Wire;
 
     public SparseMergeModeMap EffectiveMergeModeMap => MergeModeMap;
 
@@ -247,17 +239,14 @@ internal sealed record SparseGeneratorConfig
         ReservedGeneratedNames.IsDefault ? ImmutableArray<string>.Empty : ReservedGeneratedNames;
 
     /// <summary>Effective feature selection, defaulting to the standalone set.</summary>
-    public SparseEmissionFeatures EffectiveEmissionFeatures =>
-        EmissionFeatures ?? SparseEmissionFeatures.Standalone;
+    public SparseEmissionFeatures EffectiveEmissionFeatures => EmissionFeatures ?? SparseEmissionFeatures.Standalone;
 
     /// <summary>Effective family-name bindings, defaulting to the standalone vocabulary.</summary>
     public SparseFamilyNames EffectiveFamilyNames => FamilyNames ?? SparseFamilyNames.Standalone;
 
     /// <summary>Effective implementation hint-name suffix, defaulting to the shared convention.</summary>
     public string EffectiveGeneratedImplementationSuffix =>
-        GeneratedImplementationSuffix is { Length: > 0 }
-            ? GeneratedImplementationSuffix
-            : SparseGeneratedPlacement.DefaultImplementationSuffix;
+        GeneratedImplementationSuffix is { Length: > 0 } ? GeneratedImplementationSuffix : SparseGeneratedPlacement.DefaultImplementationSuffix;
 
     /// <summary>Effective product-declared type names, or empty when none are appended.</summary>
     public ImmutableArray<string> EffectiveProductExtensionNames =>
@@ -485,10 +474,7 @@ internal sealed record SparseEditSessionDialect
     public string? OwnedHistoryViewType { get; init; }
 
     /// <summary>Whether the dialect carries a complete history binding.</summary>
-    public bool HasHistory =>
-        HistoryType is { Length: > 0 }
-        && HistoryOptionsType is { Length: > 0 }
-        && HistoryHooksType is { Length: > 0 };
+    public bool HasHistory => HistoryType is { Length: > 0 } && HistoryOptionsType is { Length: > 0 } && HistoryHooksType is { Length: > 0 };
 
     /// <summary>Whether the dialect carries the single-owned history contract.</summary>
     public bool HasOwnedHistory => HasHistory && HistoryContractType is { Length: > 0 };
@@ -568,20 +554,12 @@ internal sealed record SparseDescriptorDialect
 
     /// <summary>Resolves the descriptor path type, defaulting to the runtime namespace.</summary>
     /// <param name="runtimeNamespace">Runtime helper namespace.</param>
-    public string EffectivePathType(string runtimeNamespace) =>
-        PathType ?? runtimeNamespace + "SparsePath";
+    public string EffectivePathType(string runtimeNamespace) => PathType ?? runtimeNamespace + "SparsePath";
 }
 
 internal readonly record struct SparseMergeModeMap
 {
-    public SparseMergeModeMap(
-        int Default,
-        int Replace,
-        int Deep,
-        int Append,
-        int SetUnion,
-        int Custom
-    )
+    public SparseMergeModeMap(int Default, int Replace, int Deep, int Append, int SetUnion, int Custom)
     {
         this.Default = Default;
         this.Replace = Replace;
@@ -636,6 +614,5 @@ internal static class SparseMergeModes
     public const int Custom = 5;
 
     /// <summary>Whether the mode deep-merges a nested model value.</summary>
-    public static bool IsDeepMerge(int mode, bool hasChild) =>
-        (mode == Deep || mode == Default) && hasChild;
+    public static bool IsDeepMerge(int mode, bool hasChild) => (mode == Deep || mode == Default) && hasChild;
 }

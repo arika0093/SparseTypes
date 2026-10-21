@@ -28,10 +28,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             || member.Collection.ValueType is not null
             || (
                 member.Collection.Kind != SparseCollectionKind.Array
-                && !member.Property.Type.NonNullableName.EndsWith(
-                    "[]",
-                    System.StringComparison.Ordinal
-                )
+                && !member.Property.Type.NonNullableName.EndsWith("[]", System.StringComparison.Ordinal)
             )
         )
         {
@@ -52,9 +49,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var itemType = element.NonNullableName;
         // Arrays hold models directly.
         var hasProxy = element.IsFragmentModel && element.IsReferenceType;
-        var viewType = hasProxy
-            ? itemType + "." + (element.ObservableTypeName ?? "Observable")
-            : itemType;
+        var viewType = hasProxy ? itemType + "." + (element.ObservableTypeName ?? "Observable") : itemType;
         var descriptors = hasProxy
             ? ", GetItemDescriptors = index => { var item = __sparse_captured[index]; if ((object?)item is null) return null; var view = new "
                 + viewType
@@ -109,25 +104,11 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var literal = SymbolDisplay.FormatLiteral(member.Property.Name, true);
         var element = member.Collection.ElementType;
         var itemType = element.NonNullableName;
-        var names = SparseObservableEmitter.CollectionNames(member) with
-        {
-            HasElementProxy = false,
-        };
-        var keyed = KeyedSequenceMetadata(
-            member,
-            property,
-            names,
-            dialect,
-            context,
-            collectionExpression: "items"
-        );
+        var names = SparseObservableEmitter.CollectionNames(member) with { HasElementProxy = false };
+        var keyed = KeyedSequenceMetadata(member, property, names, dialect, context, collectionExpression: "items");
         var hasProxy = element.IsFragmentModel && element.IsReferenceType;
-        var viewType = hasProxy
-            ? itemType + "." + (element.ObservableTypeName ?? "Observable")
-            : itemType;
-        var itemAccessor = hasProxy
-            ? SparseObservableDescriptorEmitter.AccessorName(itemType)
-            : string.Empty;
+        var viewType = hasProxy ? itemType + "." + (element.ObservableTypeName ?? "Observable") : itemType;
+        var itemAccessor = hasProxy ? SparseObservableDescriptorEmitter.AccessorName(itemType) : string.Empty;
         // Transient element proxies notify the parent property; the collection
         // itself has no notifying view, so size mutations are unsupported.
         var changed =
@@ -141,13 +122,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + context.Member("__onChanged")
             + "(); }";
         var wrap = hasProxy
-            ? "item is null ? null : new "
-                + viewType
-                + "(item, "
-                + changed
-                + ", "
-                + context.Member("__onRawModelAccess")
-                + ")"
+            ? "item is null ? null : new " + viewType + "(item, " + changed + ", " + context.Member("__onRawModelAccess") + ")"
             : "item";
         var descriptors = hasProxy
             ? ", GetItemDescriptors = index => { var item = items[index]; var view = (object?)("
@@ -209,12 +184,8 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var property = SparseNaming.EscapeIdentifier(member.Property.Name);
         var names = SparseObservableEmitter.CollectionNames(member);
         var modelItemType = member.Collection.ElementType.Name;
-        var itemAccessorName = SparseObservableDescriptorEmitter.AccessorName(
-            member.Collection.ElementType.NonNullableName
-        );
-        var itemViewType = names.HasElementProxy
-            ? names.ViewType.TrimEnd('?')
-            : member.Collection.ElementType.NonNullableName;
+        var itemAccessorName = SparseObservableDescriptorEmitter.AccessorName(member.Collection.ElementType.NonNullableName);
+        var itemViewType = names.HasElementProxy ? names.ViewType.TrimEnd('?') : member.Collection.ElementType.NonNullableName;
         var descriptorChildAccessor = names.HasElementProxy
             ? "GetItemDescriptors = index => { var item = "
                 + context.Member(property)
@@ -255,8 +226,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var duplicateSet = DuplicateKeyGuard(member, names, property, "item", "index", context);
         // Provider failures surface as NotSupportedException for fixed-size or
         // custom lists; the Try contract reports false instead of propagating.
-        const string unsupportedGuard =
-            "catch (global::System.NotSupportedException) { return false; } ";
+        const string unsupportedGuard = "catch (global::System.NotSupportedException) { return false; } ";
         var setItem =
             "TrySetItem = (index, value) => { "
             + modelItemType
@@ -332,9 +302,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + "(typeof("
             + member.Collection.ElementType.NonNullableName
             + "), "
-            + SparseObservableDescriptorEmitter.IsNullableExpression(
-                member.Collection.ElementType.Name
-            )
+            + SparseObservableDescriptorEmitter.IsNullableExpression(member.Collection.ElementType.Name)
             + ", new "
             + dialect.ArrayDescriptorAccessType
             + " { Count = () => "
@@ -361,11 +329,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + modelResolver
             + (keyed.Resolvers.Length == 0 ? string.Empty : ", " + keyed.Resolvers)
             + " }, typeof("
-            + (
-                names.HasElementProxy
-                    ? names.ViewType.TrimEnd('?')
-                    : member.Collection.ElementType.NonNullableName
-            )
+            + (names.HasElementProxy ? names.ViewType.TrimEnd('?') : member.Collection.ElementType.NonNullableName)
             + ")"
             + keyed.ConstructorArgs
             + "), static () => true)";
@@ -392,8 +356,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
         }
 
         var keyCast = dialect.DescriptorValueType + ".TryGet<" + keyTypeName + ">";
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyTypeName + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyTypeName + ">.Default";
         var collection = collectionExpression ?? context.Member(property) + "!";
         string KeyOf(string modeller) => KeyOfObjectExpression(member, modeller);
         // Views hold proxies for reference fragments; keys always read the
@@ -439,14 +402,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
                 + " == temporaryKey) return temporaryIndex; } return -1; }, ";
         }
         var namesLiteral =
-            "new string[] { "
-            + string.Join(
-                ", ",
-                member.Collection.KeyPropertyNames.Select(name =>
-                    SymbolDisplay.FormatLiteral(name, true)
-                )
-            )
-            + " }";
+            "new string[] { " + string.Join(", ", member.Collection.KeyPropertyNames.Select(name => SymbolDisplay.FormatLiteral(name, true))) + " }";
         return (resolvers + temporaryResolver, ", typeof(" + keyTypeName + "), " + namesLiteral);
     }
 
@@ -468,18 +424,9 @@ internal static class SparseObservableSequenceDescriptorEmitter
     }
 
     /// <summary>Builds a model expression unwrapping an element view.</summary>
-    private static string UnwrapModelExpression(
-        SparseObservableEmitter.CollectionProxyNames names,
-        string view
-    ) =>
+    private static string UnwrapModelExpression(SparseObservableEmitter.CollectionProxyNames names, string view) =>
         names.HasElementProxy
-            ? "("
-                + view
-                + " is "
-                + names.ViewType.TrimEnd('?')
-                + " keyedProxy ? (object?)keyedProxy.__SparseTarget : "
-                + view
-                + ")"
+            ? "(" + view + " is " + names.ViewType.TrimEnd('?') + " keyedProxy ? (object?)keyedProxy.__SparseTarget : " + view + ")"
             : "(object?)(" + view + ")";
 
     /// <summary>Emits assigned-duplicate rejection ahead of keyed mutations.</summary>
@@ -499,8 +446,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             return string.Empty;
         }
 
-        var comparer =
-            "global::System.Collections.Generic.EqualityComparer<" + keyTypeName + ">.Default";
+        var comparer = "global::System.Collections.Generic.EqualityComparer<" + keyTypeName + ">.Default";
         // Copy through a fresh local so the null test cannot disturb the
         // converted item's narrowing at the later mutation call.
         var guard =
@@ -513,11 +459,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + ") { var __duplicateList = "
             + context.Member(property)
             + "!; for (var __duplicateIndex = 0; __duplicateIndex < __duplicateList.Count; __duplicateIndex++) { "
-            + (
-                excludeIndex is null
-                    ? string.Empty
-                    : "if (__duplicateIndex == " + excludeIndex + ") continue; "
-            )
+            + (excludeIndex is null ? string.Empty : "if (__duplicateIndex == " + excludeIndex + ") continue; ")
             + "var __duplicateModel = "
             + UnwrapModelExpression(names, "__duplicateList[__duplicateIndex]")
             + "; if (__duplicateModel is null) continue; if ("
@@ -535,11 +477,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
                 + "; if (__duplicateTemp.HasValue && __duplicateTemp.Value != global::System.Guid.Empty) { var __duplicateTempList = "
                 + context.Member(property)
                 + "!; for (var __duplicateTempIndex = 0; __duplicateTempIndex < __duplicateTempList.Count; __duplicateTempIndex++) { "
-                + (
-                    excludeIndex is null
-                        ? string.Empty
-                        : "if (__duplicateTempIndex == " + excludeIndex + ") continue; "
-                )
+                + (excludeIndex is null ? string.Empty : "if (__duplicateTempIndex == " + excludeIndex + ") continue; ")
                 + "var __duplicateTempModel = "
                 + UnwrapModelExpression(names, "__duplicateTempList[__duplicateTempIndex]")
                 + "; if (__duplicateTempModel is null) continue; if ("

@@ -5,47 +5,19 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetKeyedTempBetweenEmitter
 {
     /// <summary>Emits the temporary-identity side maps for a keyed diff.</summary>
-    internal static void AppendTempLocals(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempLocals(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         var elementType = SparseChangeSetBasicsEmitter.ElementTypeOf(member);
         // Temporary-identity side maps: complete per-state correlation for
         // unassigned elements.
-        code.AppendLine(
-            "var __bT"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
-        );
-        code.AppendLine(
-            "var __bTO"
-                + id
-                + " = new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
-        code.AppendLine(
-            "var __aT"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementType
-                + ">();"
-        );
-        code.AppendLine(
-            "var __aTO"
-                + id
-                + " = new global::System.Collections.Generic.List<global::System.Guid>();"
-        );
+        code.AppendLine("var __bT" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
+        code.AppendLine("var __bTO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>();");
+        code.AppendLine("var __aT" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
+        code.AppendLine("var __aTO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>();");
     }
 
     /// <summary>Emits baseline temporary-identity validation for whole transitions.</summary>
-    internal static void AppendTempWholeValidation(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempWholeValidation(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         var keyOf = "__SparseKeyOf_ChangeSet_" + id;
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
@@ -67,11 +39,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the unassigned branch for the granular before-map build.</summary>
-    internal static void AppendTempBeforeBranch(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempBeforeBranch(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         code.AppendLine(
@@ -80,11 +48,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ") { var __bt = "
                 + tempOf
                 + "(__item); if (!__bt.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__bt.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__bT" + id,
-                    "__bt.Value",
-                    "__item"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__bT" + id, "__bt.Value", "__item")
                 + " __bTO"
                 + id
                 + ".Add(__bt.Value); __beforeOrder"
@@ -94,11 +58,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the unassigned branch for the granular after-walk.</summary>
-    internal static void AppendTempAfterBranch(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempAfterBranch(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         code.AppendLine(
@@ -107,11 +67,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ") { var __at = "
                 + tempOf
                 + "(__item); if (!__at.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__at.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry(
-                    "__aT" + id,
-                    "__at.Value",
-                    "__item"
-                )
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__aT" + id, "__at.Value", "__item")
                 + " __aTO"
                 + id
                 + ".Add(__at.Value); __afterOrder"
@@ -121,40 +77,22 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the temporary-identity edited loop.</summary>
-    internal static void AppendTempEditedLoop(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempEditedLoop(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         var elementCs = SparseChangeSetBasicsEmitter.ElementChangeSetOf(member);
         // Temporary-identity edits: correlated by Guid, never by sentinel.
-        code.AppendLine(
-            "var __editedT"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
-                + elementCs
-                + ">();"
-        );
+        code.AppendLine("var __editedT" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementCs + ">();");
         code.AppendLine("foreach (var __tk in __bT" + id + ".Keys)");
         code.OpenBlock();
-        code.AppendLine(
-            "if (!__aT" + id + ".TryGetValue(__tk, out var __afterTempItem)) continue;"
-        );
+        code.AppendLine("if (!__aT" + id + ".TryGetValue(__tk, out var __afterTempItem)) continue;");
         code.AppendLine("var __beforeTempItem = __bT" + id + "[__tk];");
-        code.AppendLine(
-            "var __nestedTemp = " + elementCs + ".Between(__beforeTempItem, __afterTempItem);"
-        );
+        code.AppendLine("var __nestedTemp = " + elementCs + ".Between(__beforeTempItem, __afterTempItem);");
         code.AppendLine("if (!__nestedTemp.IsEmpty) __editedT" + id + "[__tk] = __nestedTemp;");
         code.CloseBlock();
     }
 
     /// <summary>Emits added/removed probes covering temporary identities.</summary>
-    internal static void AppendTempAddedRemovedProbes(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempAddedRemovedProbes(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         code.AppendLine(
             "bool __hasTempAdded"
@@ -217,11 +155,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     {
         // Surviving-rank reorder set for temporary identities, mirroring
         // the assigned computation so temp-only reorders are observed.
-        code.AppendLine(
-            "global::System.Collections.Generic.HashSet<global::System.Guid>? __reorderedTemp"
-                + id
-                + " = null;"
-        );
+        code.AppendLine("global::System.Collections.Generic.HashSet<global::System.Guid>? __reorderedTemp" + id + " = null;");
         code.AppendLine("if (__orderChanged" + id + ")");
         code.OpenBlock();
         code.Indent();
@@ -235,19 +169,9 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ".Count);"
         );
         code.AppendLine(
-            "{ var __r = 0; foreach (var __tk in __aTO"
-                + id
-                + ") if (__bT"
-                + id
-                + ".ContainsKey(__tk)) __afterTempRank"
-                + id
-                + "[__tk] = __r++; }"
+            "{ var __r = 0; foreach (var __tk in __aTO" + id + ") if (__bT" + id + ".ContainsKey(__tk)) __afterTempRank" + id + "[__tk] = __r++; }"
         );
-        code.AppendLine(
-            "__reorderedTemp"
-                + id
-                + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
-        );
+        code.AppendLine("__reorderedTemp" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
         code.AppendLine(
             "{ var __r = 0; foreach (var __tk in __bTO"
                 + id
@@ -262,29 +186,18 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits absolute before indexes for temporary identities.</summary>
-    internal static void AppendTempIndexes(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int id
-    )
+    internal static void AppendTempIndexes(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
         // Absolute indexes for temporary identities: sentinel slots in the
         // key orders zip with the parallel Guid orders one-to-one.
         code.AppendLine(
-            "var __beforeTempIndex"
-                + id
-                + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>(__bT"
-                + id
-                + ".Count);"
+            "var __beforeTempIndex" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>(__bT" + id + ".Count);"
         );
         code.AppendLine(
             "{ var __ti = 0; for (var __i = 0; __i < __beforeOrder"
                 + id
                 + ".Count; __i++) if ("
-                + SparseKeyedCollectionEmitter.IsUnassignedExpression(
-                    member,
-                    "__beforeOrder" + id + "[__i]"
-                )
+                + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__beforeOrder" + id + "[__i]")
                 + ") __beforeTempIndex"
                 + id
                 + ".Add(__bTO"
@@ -294,13 +207,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the unassigned slot branch for temp-aware item assembly.</summary>
-    internal static void AppendTempItemBranch(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        string runtime,
-        int id
-    )
+    internal static void AppendTempItemBranch(SharedIndentedBuilder code, SparseMemberModel member, string trans, string runtime, int id)
     {
         var elementCs = SparseChangeSetBasicsEmitter.ElementChangeSetOf(member);
         var elementFrag = SparseChangeSetBasicsEmitter.ElementFragmentOf(member);
@@ -367,13 +274,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits temporary removals in before-temporary order.</summary>
-    internal static void AppendTempRemovedLoop(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string trans,
-        string runtime,
-        int id
-    )
+    internal static void AppendTempRemovedLoop(SharedIndentedBuilder code, SparseMemberModel member, string trans, string runtime, int id)
     {
         var elementCs = SparseChangeSetBasicsEmitter.ElementChangeSetOf(member);
         var elementFrag = SparseChangeSetBasicsEmitter.ElementFragmentOf(member);
@@ -396,11 +297,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ".From(__trb));"
         );
         code.AppendLine("var __trfullEdit = " + elementCs + ".Between(__treb, default);");
-        code.AppendLine(
-            "int __trbi = __beforeTempIndex"
-                + id
-                + ".TryGetValue(__tk, out var __trbv) ? __trbv : -1;"
-        );
+        code.AppendLine("int __trbi = __beforeTempIndex" + id + ".TryGetValue(__tk, out var __trbv) ? __trbv : -1;");
         code.AppendLine(
             "__list"
                 + id

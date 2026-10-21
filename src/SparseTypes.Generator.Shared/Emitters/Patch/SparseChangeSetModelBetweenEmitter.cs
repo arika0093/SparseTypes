@@ -8,16 +8,11 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Compares model members that need no projection or cloning.</summary>
 internal static class SparseChangeSetModelBetweenEmitter
 {
-    internal static bool CanUseSharedReferenceEqualityFastPath(
-        ImmutableArray<SparseMemberModel> members
-    ) =>
+    internal static bool CanUseSharedReferenceEqualityFastPath(ImmutableArray<SparseMemberModel> members) =>
         !members.IsDefaultOrEmpty
-        && members.All(static member =>
-            member.Property.Type.IsReferenceType && member.CanUseSharedReferenceEqualityFastPath
-        );
+        && members.All(static member => member.Property.Type.IsReferenceType && member.CanUseSharedReferenceEqualityFastPath);
 
-    internal static bool CanCompareDirectly(ImmutableArray<SparseMemberModel> members) =>
-        members.All(CanCompareMemberDirectly);
+    internal static bool CanCompareDirectly(ImmutableArray<SparseMemberModel> members) => members.All(CanCompareMemberDirectly);
 
     private static bool CanCompareMemberDirectly(SparseMemberModel member)
     {
@@ -47,13 +42,9 @@ internal static class SparseChangeSetModelBetweenEmitter
     {
         if (modelIsReferenceType)
         {
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))");
             code.AppendLine("throw new global::System.ArgumentNullException(\"value\");");
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;");
         }
         foreach (var side in new[] { "before", "after" })
         {
@@ -80,17 +71,7 @@ internal static class SparseChangeSetModelBetweenEmitter
         foreach (var member in members)
         {
             var id = member.Id;
-            code.AppendLine(
-                "bool __h"
-                    + id
-                    + " = !Fragment.__SparseEqual_"
-                    + id
-                    + "(__before"
-                    + id
-                    + ", __after"
-                    + id
-                    + ");"
-            );
+            code.AppendLine("bool __h" + id + " = !Fragment.__SparseEqual_" + id + "(__before" + id + ", __after" + id + ");");
             conditions.Add("!__h" + id);
             var beforeValue = "__before" + id;
             var afterValue = "__after" + id;
@@ -108,9 +89,7 @@ internal static class SparseChangeSetModelBetweenEmitter
             code.AppendLine("if (" + string.Join(" && ", conditions) + ")");
         }
 
-        code.AppendLine(
-            "return Between(default(" + optionalFragment + "), default(" + optionalFragment + "));"
-        );
+        code.AppendLine("return Between(default(" + optionalFragment + "), default(" + optionalFragment + "));");
         if (conditions.Count > 0)
         {
             code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
@@ -129,9 +108,7 @@ internal static class SparseChangeSetModelBetweenEmitter
             code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null)) throw new global::System.ArgumentNullException(\"value\");"
             );
-            code.AppendLine(
-                "if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;"
-            );
+            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;");
             if (CanUseSharedReferenceEqualityFastPath(members))
             {
                 var sharedMembers = members.Select(member =>
@@ -141,17 +118,11 @@ internal static class SparseChangeSetModelBetweenEmitter
                     + SparseNaming.EscapeIdentifier(member.Property.Name)
                     + ")"
                 );
-                code.AppendLine(
-                    "if (" + string.Join(" && ", sharedMembers) + ") return __sparse_empty;"
-                );
+                code.AppendLine("if (" + string.Join(" && ", sharedMembers) + ") return __sparse_empty;");
             }
         }
         code.AppendLine(
-            "return Between("
-                + optionalFragment
-                + ".Present(Fragment.From(before)), "
-                + optionalFragment
-                + ".Present(Fragment.From(after)));"
+            "return Between(" + optionalFragment + ".Present(Fragment.From(before)), " + optionalFragment + ".Present(Fragment.From(after)));"
         );
     }
 }

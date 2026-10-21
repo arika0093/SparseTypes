@@ -6,43 +6,30 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseKeyedCollectionEmitter
 {
     public static bool IsCollectionPatch(SparseMemberModel member) =>
-        HasGranularCollectionSemantics(member)
-        && (member.Collection.IsKeyedSequence || member.Collection.IsDictionary);
+        HasGranularCollectionSemantics(member) && (member.Collection.IsKeyedSequence || member.Collection.IsDictionary);
 
-    public static bool IsKeyedSequence(SparseMemberModel member) =>
-        HasGranularCollectionSemantics(member) && member.Collection.IsKeyedSequence;
+    public static bool IsKeyedSequence(SparseMemberModel member) => HasGranularCollectionSemantics(member) && member.Collection.IsKeyedSequence;
 
-    public static bool IsDictionary(SparseMemberModel member) =>
-        HasGranularCollectionSemantics(member) && member.Collection.IsDictionary;
+    public static bool IsDictionary(SparseMemberModel member) => HasGranularCollectionSemantics(member) && member.Collection.IsDictionary;
 
     private static bool HasGranularCollectionSemantics(SparseMemberModel member) =>
         !(member.HasExplicitMergeMode && member.MergeMode == SparseMergeModes.Replace);
 
-    public static string CollectionPatchName(SparseMemberModel member) =>
-        SparseNaming.EscapeIdentifier(member.Property.Name) + "Patch";
+    public static string CollectionPatchName(SparseMemberModel member) => SparseNaming.EscapeIdentifier(member.Property.Name) + "Patch";
 
     internal static string KeyType(SparseMemberModel member) =>
-        IsDictionary(member)
-            ? member.Collection.ElementType.Name
-            : member.Collection.KeyTypeName ?? "object?";
+        IsDictionary(member) ? member.Collection.ElementType.Name : member.Collection.KeyTypeName ?? "object?";
 
-    internal static string ElementType(SparseMemberModel member) =>
-        member.Collection.ElementType.Name;
+    internal static string ElementType(SparseMemberModel member) => member.Collection.ElementType.Name;
 
     internal static string MemberListType(SparseMemberModel member) => member.Property.Type.Name;
 
-    internal static bool HasElementPatch(SparseMemberModel member) =>
-        member.Collection.ElementType.IsFragmentModel;
+    internal static bool HasElementPatch(SparseMemberModel member) => member.Collection.ElementType.IsFragmentModel;
 
-    internal static bool HasValuePatch(SparseMemberModel member) =>
-        member.Collection.ValueType?.IsFragmentModel == true;
+    internal static bool HasValuePatch(SparseMemberModel member) => member.Collection.ValueType?.IsFragmentModel == true;
 
     /// <summary>Allocates the key map and order storage for one side of a ChangeSet diff.</summary>
-    internal static void AppendChangeSetBetweenStorage(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string side
-    )
+    internal static void AppendChangeSetBetweenStorage(SharedIndentedBuilder code, SparseMemberModel member, string side)
     {
         var stem = "__" + side;
         var id = member.Id;
@@ -98,17 +85,7 @@ internal static class SparseKeyedCollectionEmitter
                 + keyType
                 + ">.Default);"
         );
-        code.AppendLine(
-            "var "
-                + stem
-                + "Order"
-                + id
-                + " = new global::System.Collections.Generic.List<"
-                + keyType
-                + ">("
-                + capacity
-                + ");"
-        );
+        code.AppendLine("var " + stem + "Order" + id + " = new global::System.Collections.Generic.List<" + keyType + ">(" + capacity + ");");
     }
 
     internal static void AppendPendingKeyLoopStart(
@@ -118,19 +95,9 @@ internal static class SparseKeyedCollectionEmitter
         string desiredMap = "desiredMap"
     )
     {
-        code.AppendLine(
-            "for (var __mapIndex = 0; __mapIndex < 3 && __pendingKeys.Count > 0; __mapIndex++)"
-        );
+        code.AppendLine("for (var __mapIndex = 0; __mapIndex < 3 && __pendingKeys.Count > 0; __mapIndex++)");
         code.OpenBlock();
-        code.AppendLine(
-            "var __keyMap = __mapIndex == 0 ? "
-                + baseMap
-                + " : (__mapIndex == 1 ? "
-                + currentMap
-                + " : "
-                + desiredMap
-                + ");"
-        );
+        code.AppendLine("var __keyMap = __mapIndex == 0 ? " + baseMap + " : (__mapIndex == 1 ? " + currentMap + " : " + desiredMap + ");");
         code.Indent();
         code.AppendLine("foreach (var k in __keyMap.Keys)");
         code.OpenBlock();
@@ -145,23 +112,17 @@ internal static class SparseKeyedCollectionEmitter
         code.CloseBlock();
     }
 
-    internal static string ElementPatchType(SparseMemberModel member) =>
-        member.Collection.ElementType.NonNullableName + ".Patch";
+    internal static string ElementPatchType(SparseMemberModel member) => member.Collection.ElementType.NonNullableName + ".Patch";
 
-    internal static string ElementFragmentType(SparseMemberModel member) =>
-        member.Collection.ElementType.NonNullableName + ".Fragment";
+    internal static string ElementFragmentType(SparseMemberModel member) => member.Collection.ElementType.NonNullableName + ".Fragment";
 
-    internal static string ElementPatchPrefix(SparseMemberModel member) =>
-        member.Collection.ElementType.PatchApiPrefix;
+    internal static string ElementPatchPrefix(SparseMemberModel member) => member.Collection.ElementType.PatchApiPrefix;
 
-    internal static string ValuePatchType(SparseMemberModel member) =>
-        member.Collection.ValueType!.Value.NonNullableName + ".Patch";
+    internal static string ValuePatchType(SparseMemberModel member) => member.Collection.ValueType!.Value.NonNullableName + ".Patch";
 
-    internal static string ValueFragmentType(SparseMemberModel member) =>
-        member.Collection.ValueType!.Value.NonNullableName + ".Fragment";
+    internal static string ValueFragmentType(SparseMemberModel member) => member.Collection.ValueType!.Value.NonNullableName + ".Fragment";
 
-    internal static string ValuePatchPrefix(SparseMemberModel member) =>
-        member.Collection.ValueType!.Value.PatchApiPrefix;
+    internal static string ValuePatchPrefix(SparseMemberModel member) => member.Collection.ValueType!.Value.PatchApiPrefix;
 
     internal static string DictionaryType(SparseMemberModel member) => member.Property.Type.Name;
 
@@ -172,8 +133,7 @@ internal static class SparseKeyedCollectionEmitter
             || definition.StartsWith("System.Collections.I", System.StringComparison.Ordinal)
         );
 
-    internal static string DictionaryValueType(SparseMemberModel member) =>
-        member.Collection.ValueType?.Name ?? "object?";
+    internal static string DictionaryValueType(SparseMemberModel member) => member.Collection.ValueType?.Name ?? "object?";
 
     public static void EmitCollectionPatches(
         SharedIndentedBuilder code,
@@ -237,24 +197,19 @@ internal static class SparseKeyedCollectionEmitter
         + value
         + ");";
 
-    internal static string IsUnassignedMethod(SparseMemberModel member) =>
-        "__SparseIsUnassigned_" + member.Id;
+    internal static string IsUnassignedMethod(SparseMemberModel member) => "__SparseIsUnassigned_" + member.Id;
 
-    internal static bool HasUnassignedKey(SparseMemberModel member) =>
-        member.Collection.UnassignedKeyExpression is not null;
+    internal static bool HasUnassignedKey(SparseMemberModel member) => member.Collection.UnassignedKeyExpression is not null;
 
     /// <summary>Whether keyed elements carry an opt-in Guid temporary identity.</summary>
-    internal static bool HasTemporaryKey(SparseMemberModel member) =>
-        member.Collection.TemporaryKeyPropertyName is not null;
+    internal static bool HasTemporaryKey(SparseMemberModel member) => member.Collection.TemporaryKeyPropertyName is not null;
 
     internal static string TemporaryKeyProperty(SparseMemberModel member) =>
         SparseNaming.EscapeIdentifier(member.Collection.TemporaryKeyPropertyName ?? "TemporaryKey");
 
-    internal static string TemporaryKeyOfMethod(SparseMemberModel member) =>
-        "__SparseTemporaryKeyOf_" + member.Id;
+    internal static string TemporaryKeyOfMethod(SparseMemberModel member) => "__SparseTemporaryKeyOf_" + member.Id;
 
-    internal static string TemporaryKeyOfChangeSetMethod(SparseMemberModel member) =>
-        "__SparseTemporaryKeyOf_ChangeSet_" + member.Id;
+    internal static string TemporaryKeyOfChangeSetMethod(SparseMemberModel member) => "__SparseTemporaryKeyOf_ChangeSet_" + member.Id;
 
     /// <summary>Builds a duplicate-temporary-key guard plus add for temp map construction.</summary>
     internal static string AddUniqueTempEntry(string map, string temp, string value) =>
@@ -271,8 +226,7 @@ internal static class SparseKeyedCollectionEmitter
         + ");";
 
     /// <summary>Whether a temporary-key variable holds a usable identity.</summary>
-    internal static string IsValidTemporaryKeyExpression(string temp) =>
-        temp + ".HasValue && " + temp + ".Value != global::System.Guid.Empty";
+    internal static string IsValidTemporaryKeyExpression(string temp) => temp + ".HasValue && " + temp + ".Value != global::System.Guid.Empty";
 
     internal static string IsUnassignedExpression(SparseMemberModel member, string key) =>
         HasUnassignedKey(member)
@@ -285,42 +239,21 @@ internal static class SparseKeyedCollectionEmitter
                 + ")"
             : "false";
 
-    internal static void EmitKeyOf(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string elementType
-    )
+    internal static void EmitKeyOf(SharedIndentedBuilder code, SparseMemberModel member, string elementType)
     {
         var keys = member.Collection.KeyPropertyNames;
-        code.AppendLine(
-            "private static "
-                + KeyType(member)
-                + " "
-                + KeyOfMethod(member)
-                + "("
-                + elementType
-                + " element)"
-        );
+        code.AppendLine("private static " + KeyType(member) + " " + KeyOfMethod(member) + "(" + elementType + " element)");
         code.OpenBlock();
-        code.AppendLine(
-            "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no stable key.\");"
-        );
+        code.AppendLine("if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no stable key.\");");
         // The key type is the declared property type, which may itself be a
         // tuple or value object for composite identity.
         if (keys.Length == 1)
         {
-            code.AppendLine(
-                "return element."
-                    + SparseNaming.EscapeIdentifier(keys[0])
-                    + (HasUnassignedKey(member) ? "!" : "")
-                    + ";"
-            );
+            code.AppendLine("return element." + SparseNaming.EscapeIdentifier(keys[0]) + (HasUnassignedKey(member) ? "!" : "") + ";");
         }
         else
         {
-            code.AppendLine(
-                "throw new global::System.InvalidOperationException(\"Keyed collection has no usable key property.\");"
-            );
+            code.AppendLine("throw new global::System.InvalidOperationException(\"Keyed collection has no usable key property.\");");
         }
 
         code.CloseBlock();
@@ -343,16 +276,9 @@ internal static class SparseKeyedCollectionEmitter
     }
 
     /// <summary>Emits the Guid? temporary-identity extractor for a keyed member.</summary>
-    internal static void EmitTemporaryKeyOf(
-        SharedIndentedBuilder code,
-        SparseMemberModel member,
-        string elementType,
-        string methodName
-    )
+    internal static void EmitTemporaryKeyOf(SharedIndentedBuilder code, SparseMemberModel member, string elementType, string methodName)
     {
-        code.AppendLine(
-            "private static global::System.Guid? " + methodName + "(" + elementType + " element)"
-        );
+        code.AppendLine("private static global::System.Guid? " + methodName + "(" + elementType + " element)");
         code.OpenBlock();
         code.AppendLine(
             "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no temporary identity.\");"
@@ -361,11 +287,7 @@ internal static class SparseKeyedCollectionEmitter
         code.CloseBlock();
     }
 
-    internal static string MaterializeSequence(
-        SparseMemberModel member,
-        string variable,
-        string runtime
-    )
+    internal static string MaterializeSequence(SparseMemberModel member, string variable, string runtime)
     {
         var collection = member.Collection;
         // CloneKind Array (includes IEnumerable/IReadOnlyList/array) ->
@@ -374,20 +296,10 @@ internal static class SparseKeyedCollectionEmitter
         {
             // Preserve T[]/IEnumerable shape: materialize then convert to
             // member type via helper.
-            return runtime
-                + "Optional<"
-                + member.Property.Type.Name
-                + ">.Present("
-                + ConvertSequenceToMember(member, variable)
-                + ")";
+            return runtime + "Optional<" + member.Property.Type.Name + ">.Present(" + ConvertSequenceToMember(member, variable) + ")";
         }
 
-        return runtime
-            + "Optional<"
-            + member.Property.Type.Name
-            + ">.Present("
-            + ConvertSequenceToMember(member, variable)
-            + ")";
+        return runtime + "Optional<" + member.Property.Type.Name + ">.Present(" + ConvertSequenceToMember(member, variable) + ")";
     }
 
     internal static string ConvertSequenceToMember(SparseMemberModel member, string variable)
@@ -411,24 +323,12 @@ internal static class SparseKeyedCollectionEmitter
         var valueType = member.Collection.ValueType?.Name ?? "object?";
         if (definition.Contains("SortedDictionary"))
         {
-            return "new global::System.Collections.Generic.SortedDictionary<"
-                + keyType
-                + ", "
-                + valueType
-                + ">("
-                + variable
-                + ")";
+            return "new global::System.Collections.Generic.SortedDictionary<" + keyType + ", " + valueType + ">(" + variable + ")";
         }
 
         if (definition.Contains("SortedList"))
         {
-            return "new global::System.Collections.Generic.SortedList<"
-                + keyType
-                + ", "
-                + valueType
-                + ">("
-                + variable
-                + ")";
+            return "new global::System.Collections.Generic.SortedList<" + keyType + ", " + valueType + ">(" + variable + ")";
         }
 
         return variable;

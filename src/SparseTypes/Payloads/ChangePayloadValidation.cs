@@ -51,9 +51,7 @@ public sealed class ChangePayloadValidationResult
 {
     /// <summary>Creates a validation outcome from the collected errors.</summary>
     /// <param name="errors">The structural errors in deterministic payload order.</param>
-    public ChangePayloadValidationResult(
-        System.Collections.Generic.IReadOnlyList<ChangePayloadValidationError> errors
-    )
+    public ChangePayloadValidationResult(System.Collections.Generic.IReadOnlyList<ChangePayloadValidationError> errors)
     {
         Errors = errors;
     }

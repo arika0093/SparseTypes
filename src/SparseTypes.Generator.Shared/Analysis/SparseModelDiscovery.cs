@@ -20,11 +20,7 @@ internal static class SparseModelDiscovery
     )
     {
         var hierarchy = new Stack<INamedTypeSymbol>();
-        for (
-            var current = model;
-            current is not null && current.SpecialType != SpecialType.System_Object;
-            current = current.BaseType
-        )
+        for (var current = model; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
             cancellationToken.ThrowIfCancellationRequested();
             hierarchy.Push(current);
@@ -42,15 +38,8 @@ internal static class SparseModelDiscovery
                     || property.IsIndexer
                     || property.DeclaredAccessibility != Accessibility.Public
                     || property.GetMethod?.DeclaredAccessibility != Accessibility.Public
-                    || (
-                        !includeSparseIgnored
-                        && config is not null
-                        && IsSparseIgnored(property, config)
-                    )
-                    || (
-                        requirePublicSetter
-                        && property.SetMethod?.DeclaredAccessibility != Accessibility.Public
-                    )
+                    || (!includeSparseIgnored && config is not null && IsSparseIgnored(property, config))
+                    || (requirePublicSetter && property.SetMethod?.DeclaredAccessibility != Accessibility.Public)
                 )
                 {
                     continue;
@@ -64,19 +53,10 @@ internal static class SparseModelDiscovery
     }
 
     internal static bool IsSparseIgnored(IPropertySymbol property, SparseGeneratorConfig config) =>
-        property
-            .GetAttributes()
-            .Any(attribute =>
-                attribute.AttributeClass?.ToDisplayString() == config.IgnoreAttributeMetadataName
-            );
+        property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.IgnoreAttributeMetadataName);
 
     internal static bool IsRedactBefore(IPropertySymbol property, SparseGeneratorConfig config) =>
-        property
-            .GetAttributes()
-            .Any(attribute =>
-                attribute.AttributeClass?.ToDisplayString()
-                == config.RedactBeforeAttributeMetadataName
-            );
+        property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.RedactBeforeAttributeMetadataName);
 
     internal static IEnumerable<SparseSymbolMemberModel> GetMembers(
         INamedTypeSymbol model,
@@ -93,10 +73,7 @@ internal static class SparseModelDiscovery
         HashSet<string>? boundNames = null;
         if (constructor is not null && !constructor.Parameters.IsEmpty)
         {
-            boundNames = new HashSet<string>(
-                constructor.Parameters.Select(static parameter => parameter.PropertyName),
-                StringComparer.Ordinal
-            );
+            boundNames = new HashSet<string>(constructor.Parameters.Select(static parameter => parameter.PropertyName), StringComparer.Ordinal);
         }
 
         var index = 0;
@@ -104,11 +81,7 @@ internal static class SparseModelDiscovery
             var property in GetReadableProperties(model, config, cancellationToken)
                 .Where(property =>
                     property.SetMethod?.DeclaredAccessibility == Accessibility.Public
-                    || (
-                        property.SetMethod is null
-                        && boundNames is not null
-                        && boundNames.Contains(property.Name)
-                    )
+                    || (property.SetMethod is null && boundNames is not null && boundNames.Contains(property.Name))
                 )
         )
         {
@@ -117,12 +90,7 @@ internal static class SparseModelDiscovery
                 IsFragmentModel(property.Type, config, cancellationToken)
                 || IsStructuralType(property.Type, config, cancellationToken)
                 || (
-                    property.Type is INamedTypeSymbol namedChild
-                    && SparsePromotedDiscovery.IsPromotablePartial(
-                        namedChild,
-                        config,
-                        cancellationToken
-                    )
+                    property.Type is INamedTypeSymbol namedChild && SparsePromotedDiscovery.IsPromotablePartial(namedChild, config, cancellationToken)
                 )
                     ? (INamedTypeSymbol)property.Type
                     : null;
@@ -133,9 +101,7 @@ internal static class SparseModelDiscovery
             foreach (var attribute in property.GetAttributes())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (
-                    attribute.AttributeClass?.ToDisplayString() == config.MergeAttributeMetadataName
-                )
+                if (attribute.AttributeClass?.ToDisplayString() == config.MergeAttributeMetadataName)
                 {
                     merge = attribute;
                     break;
@@ -144,10 +110,7 @@ internal static class SparseModelDiscovery
 
             INamedTypeSymbol? mergeStrategyType = null;
             var hasExplicitMergeMode = merge is not null;
-            if (
-                merge?.ConstructorArguments.FirstOrDefault() is
-                { Kind: TypedConstantKind.Type } strategyConstant
-            )
+            if (merge?.ConstructorArguments.FirstOrDefault() is { Kind: TypedConstantKind.Type } strategyConstant)
             {
                 mergeStrategyType = strategyConstant.Value as INamedTypeSymbol;
                 mode = SparseMergeModes.Custom;
@@ -164,10 +127,8 @@ internal static class SparseModelDiscovery
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (
-                        attribute.AttributeClass?.ToDisplayString()
-                            == config.RebasePolicyAttributeMetadataName
-                        && attribute.ConstructorArguments.FirstOrDefault()
-                            is { Kind: TypedConstantKind.Type } policyConstant
+                        attribute.AttributeClass?.ToDisplayString() == config.RebasePolicyAttributeMetadataName
+                        && attribute.ConstructorArguments.FirstOrDefault() is { Kind: TypedConstantKind.Type } policyConstant
                     )
                     {
                         rebasePolicyType = policyConstant.Value as INamedTypeSymbol;
@@ -198,20 +159,9 @@ internal static class SparseModelDiscovery
         }
     }
 
-    internal static bool IsFragmentModel(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static bool IsFragmentModel(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
-        if (
-            type
-            is not INamedTypeSymbol
-            {
-                TypeKind: TypeKind.Class or TypeKind.Struct,
-                IsAbstract: false,
-            } named
-        )
+        if (type is not INamedTypeSymbol { TypeKind: TypeKind.Class or TypeKind.Struct, IsAbstract: false } named)
         {
             return false;
         }
@@ -236,32 +186,18 @@ internal static class SparseModelDiscovery
         Scalar,
     }
 
-    internal static StructuralTypeKind ClassifyStructuralType(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static StructuralTypeKind ClassifyStructuralType(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         if (
             type is IArrayTypeSymbol
-            || (
-                type is INamedTypeSymbol arrayLike
-                && SparseCollectionAnalyzer.GetCollectionInfo(arrayLike).Kind
-                    != SparseCollectionKind.Unsupported
-            )
+            || (type is INamedTypeSymbol arrayLike && SparseCollectionAnalyzer.GetCollectionInfo(arrayLike).Kind != SparseCollectionKind.Unsupported)
         )
         {
             return StructuralTypeKind.Collection;
         }
 
         if (
-            type
-                is not INamedTypeSymbol
-                {
-                    TypeKind: TypeKind.Class,
-                    IsAbstract: false,
-                    Arity: 0,
-                } named
+            type is not INamedTypeSymbol { TypeKind: TypeKind.Class, IsAbstract: false, Arity: 0 } named
             || named.SpecialType != SpecialType.None
             || IsFrameworkType(named)
             || ModelConstructorBinding.AnalyzeStructural(named, config, cancellationToken) is null
@@ -275,10 +211,7 @@ internal static class SparseModelDiscovery
             return StructuralTypeKind.RootModel;
         }
 
-        if (
-            HasUnsupportedPocoMembers(named, config, cancellationToken)
-            || !GetReadableProperties(named, config, cancellationToken).Any()
-        )
+        if (HasUnsupportedPocoMembers(named, config, cancellationToken) || !GetReadableProperties(named, config, cancellationToken).Any())
         {
             return StructuralTypeKind.Scalar;
         }
@@ -286,11 +219,7 @@ internal static class SparseModelDiscovery
         return StructuralTypeKind.StructuralObject;
     }
 
-    internal static bool IsStructuralType(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static bool IsStructuralType(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         // Non-partial nested POCOs are atomic replace values.
         if (config.StructuralPolicy != SparseStructuralPolicy.StructuralHosts)
@@ -298,8 +227,7 @@ internal static class SparseModelDiscovery
             return false;
         }
 
-        return ClassifyStructuralType(type, config, cancellationToken)
-            == StructuralTypeKind.StructuralObject;
+        return ClassifyStructuralType(type, config, cancellationToken) == StructuralTypeKind.StructuralObject;
     }
 
     internal static bool IsFrameworkType(INamedTypeSymbol type)
@@ -317,20 +245,14 @@ internal static class SparseModelDiscovery
 
         var assemblyName = type.ContainingAssembly?.Name;
         return assemblyName is not null
-            && (
-                assemblyName.StartsWith("System.", StringComparison.Ordinal)
-                || assemblyName.StartsWith("Microsoft.", StringComparison.Ordinal)
-            );
+            && (assemblyName.StartsWith("System.", StringComparison.Ordinal) || assemblyName.StartsWith("Microsoft.", StringComparison.Ordinal));
     }
 
     internal static bool IsAccessibleForGeneration(INamedTypeSymbol type)
     {
         for (var current = type; current is not null; current = current.ContainingType)
         {
-            if (
-                current.DeclaredAccessibility
-                is not (Accessibility.Public or Accessibility.Internal)
-            )
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
             {
                 return false;
             }
@@ -346,16 +268,9 @@ internal static class SparseModelDiscovery
             return false;
         }
 
-        for (
-            var current = type.ContainingType;
-            current is not null;
-            current = current.ContainingType
-        )
+        for (var current = type.ContainingType; current is not null; current = current.ContainingType)
         {
-            if (
-                current.DeclaredAccessibility
-                is not (Accessibility.Public or Accessibility.Internal)
-            )
+            if (current.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal))
             {
                 return false;
             }
@@ -371,10 +286,7 @@ internal static class SparseModelDiscovery
         out INamedTypeSymbol pocoType
     )
     {
-        if (
-            type is INamedTypeSymbol named
-            && SparsePromotedDiscovery.IsPromotablePartial(named, config, cancellationToken)
-        )
+        if (type is INamedTypeSymbol named && SparsePromotedDiscovery.IsPromotablePartial(named, config, cancellationToken))
         {
             pocoType = null!;
             return false;
@@ -382,8 +294,7 @@ internal static class SparseModelDiscovery
 
         if (
             type is INamedTypeSymbol namedType
-            && ClassifyStructuralType(type, config, cancellationToken)
-                == StructuralTypeKind.StructuralObject
+            && ClassifyStructuralType(type, config, cancellationToken) == StructuralTypeKind.StructuralObject
             && IsAccessibleForClone(namedType)
         )
         {
@@ -402,24 +313,15 @@ internal static class SparseModelDiscovery
         return false;
     }
 
-    private static string StructuralHostName(
-        INamedTypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    private static string StructuralHostName(INamedTypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
-        var name = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            .ToDisplayString(SparseNaming.TypeFormat);
+        var name = type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SparseNaming.TypeFormat);
         var assembly = type.ContainingAssembly?.Name ?? string.Empty;
-        return config.StructuralHostPrefix
-            + SparseNaming.GetStableTypeHash(assembly + "|" + name, cancellationToken);
+        return config.StructuralHostPrefix + SparseNaming.GetStableTypeHash(assembly + "|" + name, cancellationToken);
     }
 
-    private static bool HasUnsupportedPocoMembers(
-        INamedTypeSymbol pocoType,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    ) => ModelConstructionPlan.HasUnsupportedStructuralMembers(pocoType, config, cancellationToken);
+    private static bool HasUnsupportedPocoMembers(INamedTypeSymbol pocoType, SparseGeneratorConfig config, CancellationToken cancellationToken) =>
+        ModelConstructionPlan.HasUnsupportedStructuralMembers(pocoType, config, cancellationToken);
 
     internal static ImmutableArray<INamedTypeSymbol> GetPocoCloneTypes(
         ImmutableArray<SparseSymbolMemberModel> members,
@@ -455,19 +357,13 @@ internal static class SparseModelDiscovery
                 continue;
             }
 
-            if (
-                !TryGetPocoCloneType(type, config, cancellationToken, out var poco)
-                || !seen.Add(poco)
-            )
+            if (!TryGetPocoCloneType(type, config, cancellationToken, out var poco) || !seen.Add(poco))
             {
                 continue;
             }
 
             result.Add(poco);
-            foreach (
-                var nestedType in GetMembers(poco, config, cancellationToken)
-                    .Select(static member => member.Property.Type)
-            )
+            foreach (var nestedType in GetMembers(poco, config, cancellationToken).Select(static member => member.Property.Type))
             {
                 pending.Push(nestedType);
             }
@@ -508,20 +404,13 @@ internal static class SparseModelDiscovery
             }
 
             result.Add(type);
-            foreach (
-                var nested in GetMembers(type, config, cancellationToken)
-                    .Select(static member => member.ChildModel)
-            )
+            foreach (var nested in GetMembers(type, config, cancellationToken).Select(static member => member.ChildModel))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (
                     nested is not null
                     && IsStructuralType(nested, config, cancellationToken)
-                    && !SparsePromotedDiscovery.IsPromotablePartial(
-                        nested,
-                        config,
-                        cancellationToken
-                    )
+                    && !SparsePromotedDiscovery.IsPromotablePartial(nested, config, cancellationToken)
                 )
                 {
                     pending.Push(nested);
@@ -540,12 +429,7 @@ internal static class SparseModelDiscovery
         new(
             StructuralHostName(type, config, cancellationToken),
             SparseNaming.NonNullableTypeName(type),
-            CreateMemberModels(
-                GetMembers(type, config, cancellationToken).ToImmutableArray(),
-                config,
-                cancellationToken,
-                type
-            ),
+            CreateMemberModels(GetMembers(type, config, cancellationToken).ToImmutableArray(), config, cancellationToken, type),
             ModelConstructorBinding.AnalyzeStructural(type, config, cancellationToken)
         );
 
@@ -561,34 +445,17 @@ internal static class SparseModelDiscovery
         {
             // The model's own temporary-identity property (if any) is flagged
             // on its member so element diffs skip it while snapshots retain it.
-            SparseTemporaryKeyAnalyzer.TryGetTemporaryKeyProperty(
-                containingModel,
-                config,
-                cancellationToken,
-                out temporaryKeyProperty
-            );
+            SparseTemporaryKeyAnalyzer.TryGetTemporaryKeyProperty(containingModel, config, cancellationToken, out temporaryKeyProperty);
         }
 
         var result = ImmutableArray.CreateBuilder<SparseMemberModel>(members.Length);
-        var identityEqualityAnalyzer = new SparseModelIdentityEqualityAnalyzer(
-            config,
-            cancellationToken
-        );
+        var identityEqualityAnalyzer = new SparseModelIdentityEqualityAnalyzer(config, cancellationToken);
         var canUseSharedReferenceEqualityFastPath =
-            containingModel is not null
-            && identityEqualityAnalyzer.ModelClonePreservesEquality(containingModel);
+            containingModel is not null && identityEqualityAnalyzer.ModelClonePreservesEquality(containingModel);
         foreach (var member in members)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            result.Add(
-                CreateMemberModel(
-                    member,
-                    config,
-                    cancellationToken,
-                    canUseSharedReferenceEqualityFastPath,
-                    temporaryKeyProperty
-                )
-            );
+            result.Add(CreateMemberModel(member, config, cancellationToken, canUseSharedReferenceEqualityFastPath, temporaryKeyProperty));
         }
 
         return result.ToImmutable();
@@ -602,11 +469,7 @@ internal static class SparseModelDiscovery
         string? temporaryKeyProperty = null
     )
     {
-        var jsonPropertyName = SparseJsonNaming.GetJsonPropertyName(
-            member.Property,
-            cancellationToken,
-            out var hasExplicitJsonPropertyName
-        );
+        var jsonPropertyName = SparseJsonNaming.GetJsonPropertyName(member.Property, cancellationToken, out var hasExplicitJsonPropertyName);
         var property = new SparsePropertyModel(
             member.Property.Name,
             CreateTypeModel(member.Property.Type, config, cancellationToken),
@@ -632,36 +495,22 @@ internal static class SparseModelDiscovery
             childModel = CreateTypeModel(member.ChildModel, config, cancellationToken);
             childIsReferenceType = member.ChildModel.IsReferenceType;
             var childMembers = GetMembers(member.ChildModel, config, cancellationToken).ToArray();
-            childRequiresFromCycleContext = childMembers.Any(static childMember =>
-                childMember.ChildModel is not null
-            );
+            childRequiresFromCycleContext = childMembers.Any(static childMember => childMember.ChildModel is not null);
             childRequiresDiffCycleContext = childMembers.Any(static childMember =>
                 childMember.ChildModel is not null && childMember.MergeStrategyType is null
             );
-            var isPromoted = SparsePromotedDiscovery.IsPromotablePartial(
-                member.ChildModel,
-                config,
-                cancellationToken
-            );
-            childIsStructural =
-                !isPromoted && !IsFragmentModel(member.ChildModel, config, cancellationToken);
+            var isPromoted = SparsePromotedDiscovery.IsPromotablePartial(member.ChildModel, config, cancellationToken);
+            childIsStructural = !isPromoted && !IsFragmentModel(member.ChildModel, config, cancellationToken);
             var host = childIsStructural
                 ? StructuralHostName(member.ChildModel, config, cancellationToken)
                 : SparseNaming.NonNullableTypeName(member.ChildModel);
-            childFragmentType = SparseSemanticReference.ChildFragmentType(
-                host,
-                config.EffectiveFamilyNames
-            );
+            childFragmentType = SparseSemanticReference.ChildFragmentType(host, config.EffectiveFamilyNames);
         }
 
         SparseTypeModel? mergeStrategyType = null;
         if (member.MergeStrategyType is not null)
         {
-            mergeStrategyType = CreateTypeModel(
-                member.MergeStrategyType,
-                config,
-                cancellationToken
-            );
+            mergeStrategyType = CreateTypeModel(member.MergeStrategyType, config, cancellationToken);
         }
 
         SparseTypeModel? rebasePolicyType = null;
@@ -673,11 +522,7 @@ internal static class SparseModelDiscovery
         SparseTypeModel? comparisonComparerType = null;
         if (member.ComparisonComparerType is not null)
         {
-            comparisonComparerType = CreateTypeModel(
-                member.ComparisonComparerType,
-                config,
-                cancellationToken
-            );
+            comparisonComparerType = CreateTypeModel(member.ComparisonComparerType, config, cancellationToken);
         }
 
         return new SparseMemberModel(
@@ -707,14 +552,12 @@ internal static class SparseModelDiscovery
             return true;
         }
 
-        return type is INamedTypeSymbol named
-            && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+        return type is INamedTypeSymbol named && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
     }
 
     /// <summary>Detects reference types compiled without nullable annotations.</summary>
     /// <remarks>Under <c>#nullable disable</c> (or pre-annotation code) reference types carry <see cref="NullableAnnotation.None"/>.</remarks>
-    internal static bool IsNullableObliviousType(ITypeSymbol type) =>
-        type.IsReferenceType && type.NullableAnnotation == NullableAnnotation.None;
+    internal static bool IsNullableObliviousType(ITypeSymbol type) => type.IsReferenceType && type.NullableAnnotation == NullableAnnotation.None;
 
     internal static SparseCollectionInfo CreateCollectionInfo(
         SparseSymbolCollectionInfo collection,
@@ -722,10 +565,7 @@ internal static class SparseModelDiscovery
         CancellationToken cancellationToken
     )
     {
-        if (
-            collection.Kind == SparseCollectionKind.Unsupported
-            && collection.CloneKind == SparseCloneCollectionKind.Unsupported
-        )
+        if (collection.Kind == SparseCollectionKind.Unsupported && collection.CloneKind == SparseCloneCollectionKind.Unsupported)
         {
             return SparseCollectionInfo.Unsupported;
         }
@@ -737,11 +577,7 @@ internal static class SparseModelDiscovery
         }
 
         var elementType = CreateTypeModel(collection.ElementType, config, cancellationToken);
-        var semantic = SparseCollectionAnalyzer.ClassifySemantic(
-            collection,
-            config,
-            cancellationToken
-        );
+        var semantic = SparseCollectionAnalyzer.ClassifySemantic(collection, config, cancellationToken);
         var keyPropertyNames = ImmutableArray<string>.Empty;
         string? keyTypeName = null;
         var keyKind = SparseKeyKind.None;
@@ -751,12 +587,7 @@ internal static class SparseModelDiscovery
         if (
             semantic == SparseCollectionSemantic.KeyedSequence
             && collection.ElementType is INamedTypeSymbol namedElement
-            && SparseCollectionAnalyzer.TryDiscoverKeyInfo(
-                namedElement,
-                config,
-                cancellationToken,
-                out var discovered
-            )
+            && SparseCollectionAnalyzer.TryDiscoverKeyInfo(namedElement, config, cancellationToken, out var discovered)
             && discovered is not null
         )
         {
@@ -788,11 +619,7 @@ internal static class SparseModelDiscovery
         );
     }
 
-    internal static SparseTypeModel CreateTypeModel(
-        ITypeSymbol type,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
+    internal static SparseTypeModel CreateTypeModel(ITypeSymbol type, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var isFragmentModel = IsFragmentModel(type, config, cancellationToken);
@@ -804,26 +631,15 @@ internal static class SparseModelDiscovery
         {
             isFragmentModel = true;
         }
-        var pocoReadOnlyViewKey = isFragmentModel
-            ? null
-            : SparseReadOnlyViewModelDiscovery.GetPocoReadOnlyViewKey(
-                type,
-                config,
-                cancellationToken
-            );
+        var pocoReadOnlyViewKey = isFragmentModel ? null : SparseReadOnlyViewModelDiscovery.GetPocoReadOnlyViewKey(type, config, cancellationToken);
 
         string? pocoCloneHelperName = null;
-        if (
-            !isFragmentModel
-            && TryGetPocoCloneType(type, config, cancellationToken, out var pocoType)
-        )
+        if (!isFragmentModel && TryGetPocoCloneType(type, config, cancellationToken, out var pocoType))
         {
             var cloneTypeName = pocoType
                 .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            pocoCloneHelperName =
-                SparseWellKnownNames.CloneHelperPrefix
-                + SparseNaming.GetStableTypeHash(cloneTypeName, cancellationToken);
+            pocoCloneHelperName = SparseWellKnownNames.CloneHelperPrefix + SparseNaming.GetStableTypeHash(cloneTypeName, cancellationToken);
         }
 
         return new SparseTypeModel(
@@ -834,10 +650,7 @@ internal static class SparseModelDiscovery
             isFragmentModel,
             pocoCloneHelperName,
             type is INamedTypeSymbol named && (isFragmentModel || pocoCloneHelperName is not null)
-                ? SparseNaming.PatchApiPrefix(
-                    GetMembers(named, config, cancellationToken)
-                        .Select(static member => member.Property.Name)
-                )
+                ? SparseNaming.PatchApiPrefix(GetMembers(named, config, cancellationToken).Select(static member => member.Property.Name))
                 : string.Empty,
             UsesDefaultScalarEquality(type),
             GetObservableTypeName(type, isFragmentModel, config, cancellationToken),
@@ -861,8 +674,7 @@ internal static class SparseModelDiscovery
         // UI type names resolve through the central placement resolver.
         return SparseGeneratedPlacement.ResolveUiTypeName(
             config.EffectiveFamilyNames.ReadOnlyView,
-            GetMembers(model, config, cancellationToken)
-                .Select(static member => member.Property.Name)
+            GetMembers(model, config, cancellationToken).Select(static member => member.Property.Name)
         );
     }
 
@@ -881,17 +693,13 @@ internal static class SparseModelDiscovery
         // UI type names resolve through the central placement resolver.
         return SparseGeneratedPlacement.ResolveUiTypeName(
             config.EffectiveFamilyNames.Observable,
-            GetMembers(model, config, cancellationToken)
-                .Select(static member => member.Property.Name)
+            GetMembers(model, config, cancellationToken).Select(static member => member.Property.Name)
         );
     }
 
     internal static bool UsesDefaultScalarEquality(ITypeSymbol type)
     {
-        if (
-            type is INamedTypeSymbol nullable
-            && nullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
-        )
+        if (type is INamedTypeSymbol nullable && nullable.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
         {
             return UsesDefaultScalarEquality(nullable.TypeArguments[0]);
         }
@@ -918,12 +726,8 @@ internal static class SparseModelDiscovery
                 type is INamedTypeSymbol frameworkScalar
                 && frameworkScalar.Name is "DateTimeOffset" or "TimeSpan" or "Guid"
                 && frameworkScalar.ContainingNamespace.ToDisplayString() == "System"
-                && frameworkScalar.ContainingAssembly.GetTypeByMetadataName("System.Object")
-                    is { SpecialType: SpecialType.System_Object } coreObject
-                && SymbolEqualityComparer.Default.Equals(
-                    coreObject.ContainingAssembly,
-                    frameworkScalar.ContainingAssembly
-                )
+                && frameworkScalar.ContainingAssembly.GetTypeByMetadataName("System.Object") is { SpecialType: SpecialType.System_Object } coreObject
+                && SymbolEqualityComparer.Default.Equals(coreObject.ContainingAssembly, frameworkScalar.ContainingAssembly)
             );
     }
 
@@ -933,26 +737,14 @@ internal static class SparseModelDiscovery
         CancellationToken cancellationToken
     )
     {
-        var typeName = pocoType
-            .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var typeName = pocoType.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         return new SparsePocoCloneModel(
             CreateModelInfo(pocoType, string.Empty, config, cancellationToken) with
             {
-                Constructor = ModelConstructorBinding.AnalyzeStructural(
-                    pocoType,
-                    config,
-                    cancellationToken
-                ),
+                Constructor = ModelConstructorBinding.AnalyzeStructural(pocoType, config, cancellationToken),
             },
-            SparseWellKnownNames.CloneHelperPrefix
-                + SparseNaming.GetStableTypeHash(typeName, cancellationToken),
-            CreateMemberModels(
-                GetMembers(pocoType, config, cancellationToken).ToImmutableArray(),
-                config,
-                cancellationToken,
-                pocoType
-            )
+            SparseWellKnownNames.CloneHelperPrefix + SparseNaming.GetStableTypeHash(typeName, cancellationToken),
+            CreateMemberModels(GetMembers(pocoType, config, cancellationToken).ToImmutableArray(), config, cancellationToken, pocoType)
         );
     }
 
@@ -982,9 +774,7 @@ internal static class SparseModelDiscovery
     ) =>
         GetReadableProperties(model, config, cancellationToken, includeSparseIgnored: true)
             .Where(property =>
-                IsSparseIgnored(property, config)
-                && property.SetMethod
-                    is { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false }
+                IsSparseIgnored(property, config) && property.SetMethod is { DeclaredAccessibility: Accessibility.Public, IsInitOnly: false }
             )
             .Select(static property => property.Name)
             .OrderBy(static name => name, StringComparer.Ordinal)
@@ -996,43 +786,21 @@ internal static class SparseModelDiscovery
         CancellationToken cancellationToken
     )
     {
-        var promotedTypes = SparsePromotedDiscovery.CollectPromotedTypes(
-            members,
-            config,
-            cancellationToken
-        );
+        var promotedTypes = SparsePromotedDiscovery.CollectPromotedTypes(members, config, cancellationToken);
         var result = ImmutableArray.CreateBuilder<SparsePromotedModel>(promotedTypes.Length);
         foreach (var promoted in promotedTypes)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var promotedMembers = GetMembers(promoted, config, cancellationToken)
-                .ToImmutableArray();
-            var memberModels = CreateMemberModels(
-                promotedMembers,
-                config,
-                cancellationToken,
-                promoted
-            );
+            var promotedMembers = GetMembers(promoted, config, cancellationToken).ToImmutableArray();
+            var memberModels = CreateMemberModels(promotedMembers, config, cancellationToken, promoted);
             var pocoCloneModels = GetPocoCloneTypes(promotedMembers, config, cancellationToken)
                 .Select(pocoType => CreatePocoCloneModel(pocoType, config, cancellationToken))
                 .ToImmutableArray();
-            var structuralModels = CollectStructuralTypes(
-                    promotedMembers,
-                    config,
-                    cancellationToken
-                )
+            var structuralModels = CollectStructuralTypes(promotedMembers, config, cancellationToken)
                 .Select(type => CreateStructuralModel(type, config, cancellationToken))
                 .ToImmutableArray();
-            var readOnlyViewModels = SparseReadOnlyViewModelDiscovery.GetReadOnlyViewModels(
-                promotedMembers,
-                config,
-                cancellationToken
-            );
-            var payloadJsonPocos = CollectPromotedPayloadJsonPocos(
-                promotedMembers,
-                config,
-                cancellationToken
-            );
+            var readOnlyViewModels = SparseReadOnlyViewModelDiscovery.GetReadOnlyViewModels(promotedMembers, config, cancellationToken);
+            var payloadJsonPocos = CollectPromotedPayloadJsonPocos(promotedMembers, config, cancellationToken);
             result.Add(
                 new SparsePromotedModel(
                     CreateModelInfo(promoted, string.Empty, config, cancellationToken),

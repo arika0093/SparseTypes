@@ -23,9 +23,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         var conflictKindType = dialect.ConflictKindType;
         if (split is not null)
         {
-            split.Shell.AppendLine(
-                "/// <summary>Rebases this keyed patch onto a newer member value.</summary>"
-            );
+            split.Shell.AppendLine("/// <summary>Rebases this keyed patch onto a newer member value.</summary>");
             split.Shell.AppendLine(
                 "public static "
                     + resultType
@@ -43,9 +41,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                     + split.OperationsType
                     + ".Rebase(baseState, local, currentState);"
             );
-            code.AppendLine(
-                "/// <summary>Rebases a keyed patch onto a newer member value.</summary>"
-            );
+            code.AppendLine("/// <summary>Rebases a keyed patch onto a newer member value.</summary>");
         }
         code.AppendLine(
             (split is null ? "public static " : "internal static ")
@@ -63,9 +59,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + "> currentState)"
         );
         code.OpenBlock();
-        code.AppendLine(
-            "if (local is null) throw new global::System.ArgumentNullException(nameof(local));"
-        );
+        code.AppendLine("if (local is null) throw new global::System.ArgumentNullException(nameof(local));");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             code.AppendLine(
@@ -77,17 +71,9 @@ internal static class SparseKeyedSequenceRebaseEmitter
                     + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\");"
             );
         }
-        code.AppendLine(
-            "if (local.__SparseIsEmpty()) return "
-                + resultType
-                + ".Success(new "
-                + patchName
-                + "());"
-        );
+        code.AppendLine("if (local.__SparseIsEmpty()) return " + resultType + ".Success(new " + patchName + "());");
         code.AppendLine("var result = new " + patchName + "();");
-        code.AppendLine(
-            "var conflicts = new global::System.Collections.Generic.List<" + conflictType + ">();"
-        );
+        code.AppendLine("var conflicts = new global::System.Collections.Generic.List<" + conflictType + ">();");
         code.AppendLine(runtime + "Optional<" + listType + "> desired;");
         code.AppendLine("try { desired = local.Apply(baseState); }");
         code.AppendLine(
@@ -142,9 +128,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         var editedTempCopyFragment = string.Empty;
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            var tempEditedValueType = hasPatch
-                ? SparseKeyedCollectionEmitter.ElementPatchType(member)
-                : elementType;
+            var tempEditedValueType = hasPatch ? SparseKeyedCollectionEmitter.ElementPatchType(member) : elementType;
             editedTempCopyFragment =
                 " result.__removedTemp = local.__removedTemp is null ? null : new global::System.Collections.Generic.List<global::System.Guid>(local.__removedTemp); result.__editedTemp = local.__editedTemp is null ? null : new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + tempEditedValueType
@@ -180,16 +164,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + patchName
                 + "());"
         );
-        EmitKeyedRebasePerKey(
-            code,
-            member,
-            elementType,
-            keyType,
-            hasPatch,
-            comparer,
-            facade,
-            dialect
-        );
+        EmitKeyedRebasePerKey(code, member, elementType, keyType, hasPatch, comparer, facade, dialect);
         code.AppendLine("return new " + resultType + "(result, conflicts);");
         code.CloseBlock();
     }
@@ -211,12 +186,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         var hasTempPatchRebase = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         if (hasTempPatchRebase)
         {
-            SparseKeyedSequenceTempRebaseEmitter.AppendTempStateMaps(
-                code,
-                member,
-                elementType,
-                member.Id
-            );
+            SparseKeyedSequenceTempRebaseEmitter.AppendTempStateMaps(code, member, elementType, member.Id);
         }
         // Build maps.
         code.AppendLine(
@@ -227,13 +197,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + "> __baseReadOnly ? __baseReadOnly.Count : 0);"
         );
         code.AppendLine(
-            "var baseMap = new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementType
-                + ">(__baseCapacity, "
-                + comparer
-                + ");"
+            "var baseMap = new global::System.Collections.Generic.Dictionary<" + keyType + ", " + elementType + ">(__baseCapacity, " + comparer + ");"
         );
         string baseUnassignedFragment;
         if (hasTempPatchRebase)
@@ -327,11 +291,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member) || hasTempPatchRebase)
         {
-            code.AppendLine(
-                "var __desiredUnassigned = new global::System.Collections.Generic.List<"
-                    + elementType
-                    + ">();"
-            );
+            code.AppendLine("var __desiredUnassigned = new global::System.Collections.Generic.List<" + elementType + ">();");
         }
 
         string desiredUnassignedFragment;
@@ -347,9 +307,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             desiredUnassignedFragment =
-                "if ("
-                + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
-                + ") { __desiredUnassigned.Add(item); continue; } ";
+                "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k") + ") { __desiredUnassigned.Add(item); continue; } ";
         }
         else
         {
@@ -365,13 +323,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         );
         // Index touched keys once for comparer-aware constant-time lookups in
         // the union-key loop.
-        code.AppendLine(
-            "var __touchedAdded = new global::System.Collections.Generic.HashSet<"
-                + keyType
-                + ">("
-                + comparer
-                + ");"
-        );
+        code.AppendLine("var __touchedAdded = new global::System.Collections.Generic.HashSet<" + keyType + ">(" + comparer + ");");
         code.AppendLine(
             "var __addedByKey = new global::System.Collections.Generic.Dictionary<"
                 + keyType
@@ -385,9 +337,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         // assigned touches join the keyed three-way.
         var touchedUnassignedFragment =
             hasTempPatchRebase || SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                ? "if ("
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__touchedKey")
-                    + ") continue; "
+                ? "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__touchedKey") + ") continue; "
                 : string.Empty;
         code.AppendLine(
             "if (local.__added is not null) foreach (var __touchedItem in local.__added) { var __touchedKey = "
@@ -429,22 +379,12 @@ internal static class SparseKeyedSequenceRebaseEmitter
             code.AppendLine(
                 "var inBase = baseMap.TryGetValue(k, out var b); var inCurrent = currentMap.TryGetValue(k, out var c); var inDesired = desiredMap.TryGetValue(k, out var d);"
             );
-            code.AppendLine(
-                "bool baseEqualsCurrent = inBase == inCurrent && (!inBase || "
-                    + facade
-                    + ".AreEqual((object?)b, (object?)c));"
-            );
-            code.AppendLine(
-                "bool desiredEqualsCurrent = inDesired == inCurrent && (!inDesired || "
-                    + facade
-                    + ".AreEqual((object?)d, (object?)c));"
-            );
+            code.AppendLine("bool baseEqualsCurrent = inBase == inCurrent && (!inBase || " + facade + ".AreEqual((object?)b, (object?)c));");
+            code.AppendLine("bool desiredEqualsCurrent = inDesired == inCurrent && (!inDesired || " + facade + ".AreEqual((object?)d, (object?)c));");
             code.AppendLine("if (baseEqualsCurrent)");
             code.OpenBlock();
             code.AppendLine(
-                "if (__touchedRemoved.Contains(k)) { (result.__removed ??= new global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">()).Add(k); }"
+                "if (__touchedRemoved.Contains(k)) { (result.__removed ??= new global::System.Collections.Generic.List<" + keyType + ">()).Add(k); }"
             );
             code.AppendLine(
                 "else if (__addedByKey.TryGetValue(k, out var __rebasedAdded)) (result.__added ??= new global::System.Collections.Generic.List<"
@@ -494,9 +434,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                     + comparer
                     + "))[k] = nested.Rebased;"
             );
-            code.AppendLine(
-                "else foreach (var nc in nested.Conflicts) conflicts.Add(nc.WithKeyPrefix(k));"
-            );
+            code.AppendLine("else foreach (var nc in nested.Conflicts) conflicts.Add(nc.WithKeyPrefix(k));");
             code.CloseBlock();
             code.AppendLine("else");
             code.OpenBlock();
@@ -517,15 +455,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
             SparseKeyedCollectionEmitter.AppendPendingKeyLoopEnd(code);
             if (hasTempPatchRebase)
             {
-                SparseKeyedSequenceTempRebaseEmitter.AppendTempThreeWay(
-                    code,
-                    member,
-                    elementType,
-                    hasPatch,
-                    facade,
-                    dialect,
-                    member.Id
-                );
+                SparseKeyedSequenceTempRebaseEmitter.AppendTempThreeWay(code, member, elementType, hasPatch, facade, dialect, member.Id);
             }
             // Order: keep local order only when current order unchanged and no
             // order conflict.
@@ -568,11 +498,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
             }
             code.AppendLine(
                 "if ("
-                    + (
-                        SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                            ? "__unassignedOnlyAdds) { } else if ("
-                            : ""
-                    )
+                    + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "__unassignedOnlyAdds) { } else if (" : "")
                     + facade
                     + ".KeyOrderEquals<"
                     + keyType
@@ -611,22 +537,12 @@ internal static class SparseKeyedSequenceRebaseEmitter
             code.AppendLine(
                 "var inBase = baseMap.TryGetValue(k, out var b); var inCurrent = currentMap.TryGetValue(k, out var c); var inDesired = desiredMap.TryGetValue(k, out var d);"
             );
-            code.AppendLine(
-                "bool baseEqualsCurrent = inBase == inCurrent && (!inBase || "
-                    + facade
-                    + ".AreEqual((object?)b, (object?)c));"
-            );
-            code.AppendLine(
-                "bool desiredEqualsCurrent = inDesired == inCurrent && (!inDesired || "
-                    + facade
-                    + ".AreEqual((object?)d, (object?)c));"
-            );
+            code.AppendLine("bool baseEqualsCurrent = inBase == inCurrent && (!inBase || " + facade + ".AreEqual((object?)b, (object?)c));");
+            code.AppendLine("bool desiredEqualsCurrent = inDesired == inCurrent && (!inDesired || " + facade + ".AreEqual((object?)d, (object?)c));");
             code.AppendLine("if (baseEqualsCurrent)");
             code.OpenBlock();
             code.AppendLine(
-                "if (__touchedRemoved.Contains(k)) { (result.__removed ??= new global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">()).Add(k); }"
+                "if (__touchedRemoved.Contains(k)) { (result.__removed ??= new global::System.Collections.Generic.List<" + keyType + ">()).Add(k); }"
             );
             code.AppendLine(
                 "else if (__addedByKey.TryGetValue(k, out var __rebasedAdded)) (result.__added ??= new global::System.Collections.Generic.List<"
@@ -699,11 +615,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
             }
             code.AppendLine(
                 "if ("
-                    + (
-                        SparseKeyedCollectionEmitter.HasUnassignedKey(member)
-                            ? "__unassignedOnlyAdds) { } else if ("
-                            : ""
-                    )
+                    + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "__unassignedOnlyAdds) { } else if (" : "")
                     + facade
                     + ".KeyOrderEquals<"
                     + keyType

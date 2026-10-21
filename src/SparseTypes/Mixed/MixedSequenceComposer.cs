@@ -36,16 +36,7 @@ internal static class MixedSequenceComposer
             var segments = MixedPathSegments.Split(entry.Key);
             if (secondMembers.TryGetValue(entry.Key, out var following))
             {
-                ComposeExactly(
-                    entry.Value,
-                    following,
-                    pending,
-                    failures,
-                    staged,
-                    composedIndex,
-                    entry.Key,
-                    segments
-                );
+                ComposeExactly(entry.Value, following, pending, failures, staged, composedIndex, entry.Key, segments);
                 secondIndex.Remove(entry.Key, segments);
                 consumedSecond.Add(entry.Key);
                 continue;
@@ -58,12 +49,7 @@ internal static class MixedSequenceComposer
             {
                 secondIndex.Remove(overlap.Path, overlap.Segments);
                 consumedSecond.Add(overlap.Path);
-                var resolution = ResolveAncestorOverlap(
-                    entry.Value,
-                    segments,
-                    overlap.Value,
-                    overlap.Segments
-                );
+                var resolution = ResolveAncestorOverlap(entry.Value, segments, overlap.Value, overlap.Segments);
                 if (resolution.Failure is { } failure)
                 {
                     failures.Add(failure);
@@ -97,12 +83,7 @@ internal static class MixedSequenceComposer
             // were resolved above.
             if (composedIndex.FindOverlap(segments) is { } retained)
             {
-                var resolution = ResolveAncestorOverlap(
-                    retained.Value,
-                    retained.Segments,
-                    entry.Value,
-                    segments
-                );
+                var resolution = ResolveAncestorOverlap(retained.Value, retained.Segments, entry.Value, segments);
                 if (resolution.Failure is { } failure)
                 {
                     failures.Add(failure);
@@ -169,12 +150,7 @@ internal static class MixedSequenceComposer
             composedIndex,
             path,
             segments,
-            new MixedMemberOperation(
-                outcome.Path,
-                outcome.ResultHistory,
-                outcome.ResultAfter,
-                outcome.ResultIsWholeRoot
-            )
+            new MixedMemberOperation(outcome.Path, outcome.ResultHistory, outcome.ResultAfter, outcome.ResultIsWholeRoot)
         );
     }
 
@@ -212,10 +188,7 @@ internal static class MixedSequenceComposer
         var firstAncestor = MixedPathSegments.IsStrictAncestor(firstSegments, secondSegments);
         // Any transition side needs value-level continuity that descriptors
         // cannot verify; never invent before values.
-        if (
-            first.History == MixedHistoryKind.Transition
-            || second.History == MixedHistoryKind.Transition
-        )
+        if (first.History == MixedHistoryKind.Transition || second.History == MixedHistoryKind.Transition)
         {
             return new OverlapResolution
             {

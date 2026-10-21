@@ -9,15 +9,10 @@ using Microsoft.OpenApi;
 
 namespace SparseTypes.OpenApi.AspNetCore;
 
-internal sealed class SparsePayloadDocumentTransformer(
-    System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets
-) : IOpenApiDocumentTransformer
+internal sealed class SparsePayloadDocumentTransformer(System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets)
+    : IOpenApiDocumentTransformer
 {
-    public async Task TransformAsync(
-        OpenApiDocument document,
-        OpenApiDocumentTransformerContext context,
-        CancellationToken cancellationToken
-    )
+    public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         document.Components ??= new OpenApiComponents();
         document.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
@@ -38,9 +33,7 @@ internal sealed class SparsePayloadDocumentTransformer(
                     continue;
                 }
 
-                throw new InvalidOperationException(
-                    $"SparseTypes schema name collision for '{type}'."
-                );
+                throw new InvalidOperationException($"SparseTypes schema name collision for '{type}'.");
             }
             names.Add(name, type);
             // Endpoints that take a ChangePayload register the same stable
@@ -86,8 +79,7 @@ internal sealed class SparsePayloadDocumentTransformer(
         {
             foreach (var property in properties.EnumerateObject())
             {
-                (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] =
-                    ConvertSchema(property.Value, document);
+                (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] = ConvertSchema(property.Value, document);
             }
         }
 
@@ -117,10 +109,7 @@ internal sealed class SparsePayloadDocumentTransformer(
                         item =>
                         {
                             var path = item.Value.GetString()!;
-                            return new OpenApiSchemaReference(
-                                path[(path.LastIndexOf('/') + 1)..],
-                                document
-                            );
+                            return new OpenApiSchemaReference(path[(path.LastIndexOf('/') + 1)..], document);
                         },
                         StringComparer.Ordinal
                     ),
@@ -130,10 +119,7 @@ internal sealed class SparsePayloadDocumentTransformer(
     }
 }
 
-internal sealed class SparsePayloadSchemaSet(
-    System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas
-)
+internal sealed class SparsePayloadSchemaSet(System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
 {
-    public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> Schemas { get; } =
-        schemas;
+    public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> Schemas { get; } = schemas;
 }

@@ -92,26 +92,16 @@ public sealed record SparseEntityMappingError
         {
             SparseEntityMappingFailure.Duplicate => "Remove the duplicate registration.",
             SparseEntityMappingFailure.Unmapped => "Map the DTO member explicitly or ignore it.",
-            SparseEntityMappingFailure.Ambiguous =>
-                "Map each entity member from only one DTO path.",
-            SparseEntityMappingFailure.Protected =>
-                "Use AllowWrite only when updating this protected member is intentional.",
-            SparseEntityMappingFailure.CollectionNotSupported =>
-                "Configure keyed collection synchronization or ignore the member.",
-            SparseEntityMappingFailure.MissingNotHandled =>
-                "Configure an OnMissing policy for the member.",
-            SparseEntityMappingFailure.NullNotAllowed =>
-                "Map a non-null value or make the entity member nullable.",
-            SparseEntityMappingFailure.NestedNotCreatable =>
-                "Provide a factory or configure the navigation so the child can be created.",
-            SparseEntityMappingFailure.CollectionNotLoaded =>
-                "Load the mapped collection before applying its changes.",
-            SparseEntityMappingFailure.CollectionKeyNotFound =>
-                "Refresh the tracked collection or correct the child identity.",
-            SparseEntityMappingFailure.CollectionKeyConflict =>
-                "Use unique, resolvable child identities within each collection.",
-            SparseEntityMappingFailure.MetadataMismatch =>
-                "Align the DTO member, mapping, and EF metadata.",
+            SparseEntityMappingFailure.Ambiguous => "Map each entity member from only one DTO path.",
+            SparseEntityMappingFailure.Protected => "Use AllowWrite only when updating this protected member is intentional.",
+            SparseEntityMappingFailure.CollectionNotSupported => "Configure keyed collection synchronization or ignore the member.",
+            SparseEntityMappingFailure.MissingNotHandled => "Configure an OnMissing policy for the member.",
+            SparseEntityMappingFailure.NullNotAllowed => "Map a non-null value or make the entity member nullable.",
+            SparseEntityMappingFailure.NestedNotCreatable => "Provide a factory or configure the navigation so the child can be created.",
+            SparseEntityMappingFailure.CollectionNotLoaded => "Load the mapped collection before applying its changes.",
+            SparseEntityMappingFailure.CollectionKeyNotFound => "Refresh the tracked collection or correct the child identity.",
+            SparseEntityMappingFailure.CollectionKeyConflict => "Use unique, resolvable child identities within each collection.",
+            SparseEntityMappingFailure.MetadataMismatch => "Align the DTO member, mapping, and EF metadata.",
             _ => "Review the mapping failure detail and correct its cause.",
         };
 }
@@ -147,18 +137,7 @@ public sealed class SparseEntityMappingException : InvalidOperationException
     {
         Failure = failure;
         DtoPath = dtoPath;
-        _errors = Array.AsReadOnly(
-            new[]
-            {
-                new SparseEntityMappingError(
-                    failure,
-                    dtoPath,
-                    message,
-                    entityTarget,
-                    suggestedAction
-                ),
-            }
-        );
+        _errors = Array.AsReadOnly(new[] { new SparseEntityMappingError(failure, dtoPath, message, entityTarget, suggestedAction) });
     }
 
     /// <summary>Creates a mapping failure scoped to one mapper type.</summary>
@@ -167,13 +146,7 @@ public sealed class SparseEntityMappingException : InvalidOperationException
     /// <param name="message">The human-readable detail.</param>
     /// <param name="mapper">The mapper type that failed.</param>
     /// <param name="inner">The underlying mapping failure.</param>
-    internal SparseEntityMappingException(
-        SparseEntityMappingFailure failure,
-        string? dtoPath,
-        string message,
-        string mapper,
-        Exception inner
-    )
+    internal SparseEntityMappingException(SparseEntityMappingFailure failure, string? dtoPath, string message, string mapper, Exception inner)
         : base(message, inner)
     {
         Failure = failure;
@@ -210,21 +183,13 @@ public sealed class SparseEntityMappingException : InvalidOperationException
     /// <summary>Gets all independently detected mapping validation errors.</summary>
     public IReadOnlyList<SparseEntityMappingError> Errors => _errors;
 
-    internal static SparseEntityMappingException FromErrors(
-        IReadOnlyList<SparseEntityMappingError> errors
-    )
+    internal static SparseEntityMappingException FromErrors(IReadOnlyList<SparseEntityMappingError> errors)
     {
         ArgumentNullException.ThrowIfNull(errors);
         if (errors.Count == 1)
         {
             var error = errors[0];
-            return new SparseEntityMappingException(
-                error.Failure,
-                error.DtoPath,
-                error.Message,
-                error.EntityTarget,
-                error.SuggestedAction
-            );
+            return new SparseEntityMappingException(error.Failure, error.DtoPath, error.Message, error.EntityTarget, error.SuggestedAction);
         }
 
         return new SparseEntityMappingException(errors);
@@ -243,9 +208,7 @@ public sealed class SparseEntityMappingException : InvalidOperationException
             return errors[0].Message;
         }
 
-        var message = new System.Text.StringBuilder()
-            .Append(errors.Count)
-            .Append(" independent entity mapping validation errors were found:");
+        var message = new System.Text.StringBuilder().Append(errors.Count).Append(" independent entity mapping validation errors were found:");
         for (var index = 0; index < errors.Count; index++)
         {
             var error = errors[index];

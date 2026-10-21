@@ -22,12 +22,7 @@ internal readonly struct KeyedCollectionAccess
     /// <summary>Gets whether positional validation reads are available.</summary>
     public bool CanSeek => _list is not null || _readOnlyIndexer is not null;
 
-    private KeyedCollectionAccess(
-        object collection,
-        IList? list,
-        PropertyInfo? readOnlyIndexer,
-        int count
-    )
+    private KeyedCollectionAccess(object collection, IList? list, PropertyInfo? readOnlyIndexer, int count)
     {
         _collection = collection;
         _list = list;
@@ -45,11 +40,7 @@ internal readonly struct KeyedCollectionAccess
 
         var collectionType = collection.GetType();
         if (
-            SparseTypeMetadataCache.TryGetReadOnlyList(
-                collectionType,
-                out var listInterface,
-                out var indexer
-            )
+            SparseTypeMetadataCache.TryGetReadOnlyList(collectionType, out var listInterface, out var indexer)
             && indexer is not null
             && SparseTypeMetadataCache.TryGetReadOnlyCollectionCount(
                 collectionType,
@@ -143,11 +134,7 @@ internal static class SparseKeyedLookupIndex
             // Positional hint plus live key equality prove the slot still
             // answers this key; anything else rebuilds from a live scan.
             var current = access.At(slot.Hint);
-            if (
-                current is null
-                || !ReferenceEquals(current, slot.Element)
-                || !Equals(reader.GetKey(current), key)
-            )
+            if (current is null || !ReferenceEquals(current, slot.Element) || !Equals(reader.GetKey(current), key))
             {
                 return false;
             }
@@ -241,11 +228,7 @@ internal static class SparseKeyedLookupIndex
             }
 
             var current = access.At(slot.Hint);
-            if (
-                current is null
-                || !ReferenceEquals(current, slot.Element)
-                || !Equals(reader(current), temporaryKey)
-            )
+            if (current is null || !ReferenceEquals(current, slot.Element) || !Equals(reader(current), temporaryKey))
             {
                 return false;
             }
@@ -265,12 +248,7 @@ internal static class SparseKeyedLookupIndex
     }
 
     /// <summary>Rebuilds the temporary-key table from a live enumeration.</summary>
-    internal static void RebuildTemporaryKeys(
-        object collection,
-        KeyedCollectionAccess access,
-        IEnumerable elements,
-        Func<object, object?> reader
-    )
+    internal static void RebuildTemporaryKeys(object collection, KeyedCollectionAccess access, IEnumerable elements, Func<object, object?> reader)
     {
         if (!access.CanSeek)
         {
