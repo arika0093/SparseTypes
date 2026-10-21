@@ -9,125 +9,125 @@ public static class SparseFragmentRuntime
 {
     /// <summary>Compares two values using the default sparse semantics.</summary>
     public static bool AreEqual(object? left, object? right) =>
-        SparseValueComparer.AreEqual(left, right);
+        SparseCoreRuntime.AreEqual(left, right);
 
     /// <summary>Compares two typed values using the default sparse semantics.</summary>
-    public static bool AreEqual<T>(T? left, T? right) => SparseValueComparer.AreEqual(left, right);
+    public static bool AreEqual<T>(T? left, T? right) => SparseCoreRuntime.AreEqual(left, right);
 
     /// <summary>Compares sequence-shaped values in their existing order.</summary>
     public static bool AreSequenceEqual<T>(IEnumerable<T>? left, IEnumerable<T>? right) =>
-        SparseValueComparer.AreSequenceEqual(left, right);
+        SparseCoreRuntime.AreSequenceEqual(left, right);
 
     /// <summary>Compares a sequence using a generated semantic item comparer.</summary>
     public static bool AreSequenceEqual<T>(
         IEnumerable<T>? left,
         IEnumerable<T>? right,
         Func<T, T, bool> itemComparer
-    ) => SparseValueComparer.AreSequenceEqual(left, right, itemComparer);
+    ) => SparseCoreRuntime.AreSequenceEqual(left, right, itemComparer);
 
     /// <summary>Compares arrays in order without runtime shape probing.</summary>
     /// <remarks>Binds at compile time and skips shape classification plus comparer/count reflection.</remarks>
     public static bool AreSequenceEqual<T>(T[]? left, T[]? right) =>
-        SparseConcreteComparisons.AreSequenceEqual(left, right);
+        SparseCoreRuntime.AreSequenceEqual(left, right);
 
     /// <summary>Compares lists in order without runtime shape probing.</summary>
     /// <remarks>Derived lists keep their non-generic <c>IList</c> comparison view via the object fallback.</remarks>
     public static bool AreSequenceEqual<T>(List<T>? left, List<T>? right) =>
-        SparseConcreteComparisons.AreSequenceEqual(left, right);
+        SparseCoreRuntime.AreSequenceEqual(left, right);
 
     /// <summary>Compares arrays with a generated semantic item comparer.</summary>
     public static bool AreSequenceEqual<T>(T[]? left, T[]? right, Func<T, T, bool> itemComparer) =>
-        SparseConcreteComparisons.AreSequenceEqual(left, right, itemComparer);
+        SparseCoreRuntime.AreSequenceEqual(left, right, itemComparer);
 
     /// <summary>Compares lists with a generated semantic item comparer.</summary>
     public static bool AreSequenceEqual<T>(
         List<T>? left,
         List<T>? right,
         Func<T, T, bool> itemComparer
-    ) => SparseConcreteComparisons.AreSequenceEqual(left, right, itemComparer);
+    ) => SparseCoreRuntime.AreSequenceEqual(left, right, itemComparer);
 
     /// <summary>Compares set-shaped values without depending on enumeration order.</summary>
     public static bool AreSetEqual<T>(IEnumerable<T>? left, IEnumerable<T>? right) =>
-        SparseValueComparer.AreSetEqual(left, right);
+        SparseCoreRuntime.AreSetEqual(left, right);
 
     /// <summary>Compares hash sets without depending on enumeration order.</summary>
     /// <remarks>The set comparer is read statically; differing comparers veto equality in both directions.</remarks>
     public static bool AreSetEqual<T>(HashSet<T>? left, HashSet<T>? right) =>
-        SparseConcreteComparisons.AreSetEqual(left, right);
+        SparseCoreRuntime.AreSetEqual(left, right);
 
     /// <summary>Compares sorted sets without depending on enumeration order.</summary>
     /// <remarks>The set comparer is read statically; differing comparers veto equality in both directions.</remarks>
     public static bool AreSetEqual<T>(SortedSet<T>? left, SortedSet<T>? right) =>
-        SparseConcreteComparisons.AreSetEqual(left, right);
+        SparseCoreRuntime.AreSetEqual(left, right);
 
     /// <summary>Compares dictionary-shaped values by key/value semantics.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         IEnumerable<KeyValuePair<TKey, TValue>>? left,
         IEnumerable<KeyValuePair<TKey, TValue>>? right
-    ) => SparseValueComparer.AreDictionaryEqual(left, right);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right);
 
     /// <summary>Compares a dictionary using a generated semantic value comparer.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         IEnumerable<KeyValuePair<TKey, TValue>>? left,
         IEnumerable<KeyValuePair<TKey, TValue>>? right,
         Func<TValue, TValue, bool> valueComparer
-    ) => SparseValueComparer.AreDictionaryEqual(left, right, valueComparer);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right, valueComparer);
 
     /// <summary>Compares dictionaries by key/value semantics with static comparer access.</summary>
     /// <remarks>The key comparer is read statically; differing comparers veto equality in both directions.</remarks>
     public static bool AreDictionaryEqual<TKey, TValue>(
         Dictionary<TKey, TValue>? left,
         Dictionary<TKey, TValue>? right
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right);
 
     /// <summary>Compares sorted dictionaries by key/value semantics with static comparer access.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         SortedDictionary<TKey, TValue>? left,
         SortedDictionary<TKey, TValue>? right
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right);
 
     /// <summary>Compares sorted lists by key/value semantics with static comparer access.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         SortedList<TKey, TValue>? left,
         SortedList<TKey, TValue>? right
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right);
 
     /// <summary>Compares a dictionary using a generated semantic value comparer.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         Dictionary<TKey, TValue>? left,
         Dictionary<TKey, TValue>? right,
         Func<TValue, TValue, bool> valueComparer
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right, valueComparer);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right, valueComparer);
 
     /// <summary>Compares a sorted dictionary using a generated semantic value comparer.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         SortedDictionary<TKey, TValue>? left,
         SortedDictionary<TKey, TValue>? right,
         Func<TValue, TValue, bool> valueComparer
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right, valueComparer);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right, valueComparer);
 
     /// <summary>Compares a sorted list using a generated semantic value comparer.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         SortedList<TKey, TValue>? left,
         SortedList<TKey, TValue>? right,
         Func<TValue, TValue, bool> valueComparer
-    ) => SparseConcreteComparisons.AreDictionaryEqual(left, right, valueComparer);
+    ) => SparseCoreRuntime.AreDictionaryEqual(left, right, valueComparer);
 
     /// <summary>Appends ordered contributions, preserving duplicates.</summary>
     public static List<T> MergeAppendList<T>(IEnumerable<T> lower, IEnumerable<T> higher) =>
-        SparseCollectionMerger.MergeAppendList(lower, higher);
+        SparseCoreRuntime.MergeAppendList(lower, higher);
 
     /// <summary>Merges ordered contributions, retaining the first occurrence of each value.</summary>
     public static T[] MergeDistinctArray<T>(IEnumerable<T> lower, IEnumerable<T> higher) =>
-        SparseCollectionMerger.MergeDistinctArray(lower, higher);
+        SparseCoreRuntime.MergeDistinctArray(lower, higher);
 
     /// <summary>Merges ordered contributions, retaining the first occurrence of each value.</summary>
     public static List<T> MergeDistinctList<T>(IEnumerable<T> lower, IEnumerable<T> higher) =>
-        SparseCollectionMerger.MergeDistinctList(lower, higher);
+        SparseCoreRuntime.MergeDistinctList(lower, higher);
 
     /// <summary>Merges set-shaped contributions while preserving a concrete HashSet comparer when available.</summary>
     public static HashSet<T> MergeSet<T>(IEnumerable<T> lower, IEnumerable<T> higher) =>
-        SparseCollectionMerger.MergeSet(lower, higher);
+        SparseCoreRuntime.MergeSet(lower, higher);
 
     /// <summary>Tracks per-element origins for an append merge of two attributed contributions.</summary>
     /// <param name="lower">The lower-priority elements.</param>
@@ -336,10 +336,11 @@ public static class SparseFragmentRuntime
 
     /// <summary>Creates a reference-identity clone context for generated deep-clone helpers.</summary>
     public static Dictionary<object, object> CreateCloneContext() =>
-        new(SparseReferenceEqualityComparer.Instance);
+        SparseCoreRuntime.CreateCloneContext();
 
     /// <summary>Rents an exclusive reference-identity context for a generated clone operation.</summary>
-    public static SparseCloneContextScope RentCloneContext() => SparseCloneContextPool.Rent();
+    public static SparseCloneContextScope RentCloneContext() =>
+        SparseCoreRuntime.RentCloneContext();
 
     /// <summary>Rents an exclusive set using default key equality for uniqueness checks.</summary>
     /// <typeparam name="TKey">The collection key type.</typeparam>
@@ -352,15 +353,15 @@ public static class SparseFragmentRuntime
         int capacity,
         Func<int, HashSet<TKey>> create
     )
-        where TKey : notnull => SparseKeyValidationPool<TKey>.Rent(capacity, create);
+        where TKey : notnull => SparseCoreRuntime.RentKeyValidation(capacity, create);
 
     /// <summary>Creates a reference-identity cycle scope for generated <c>Fragment.From</c> helpers.</summary>
     public static HashSet<object> CreateFromCycleContext() =>
-        new(SparseReferenceEqualityComparer.Instance);
+        SparseCoreRuntime.CreateFromCycleContext();
 
     /// <summary>Creates a pair-identity cycle scope for generated <c>Fragment.Diff</c> helpers.</summary>
     public static HashSet<KeyValuePair<object, object>> CreateDiffCycleContext() =>
-        new(SparseDiffPairEqualityComparer.Instance);
+        SparseCoreRuntime.CreateDiffCycleContext();
 
     /// <summary>Ensures keyed-collection keys are unique, throwing on duplicates.</summary>
     public static void EnsureUniqueKeys<TKey>(

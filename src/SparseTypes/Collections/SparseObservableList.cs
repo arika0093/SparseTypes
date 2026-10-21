@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using SparseTypes.CompilerServices;
 
 namespace SparseTypes;
 
@@ -23,7 +24,7 @@ public sealed class SparseObservableList<TModel, TView>
     private readonly Action? _onRawModelAccess;
     private readonly bool _cacheReferences;
     private readonly Dictionary<object, ProxyEntry> _proxies = new(
-        SparseReferenceEqualityComparer.Instance
+        SparseCoreRuntime.ReferenceComparer
     );
     private static readonly PropertyChangedEventArgs CountChanged = new(nameof(Count));
     private static readonly PropertyChangedEventArgs ItemChanged = new("Item[]");
@@ -454,7 +455,7 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
-        var live = new HashSet<object>(SparseReferenceEqualityComparer.Instance);
+        var live = new HashSet<object>(SparseCoreRuntime.ReferenceComparer);
         for (var index = 0; index < _model.Count; index++)
         {
             if (_model[index] is { } item)

@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using SparseTypes.CompilerServices;
 
 namespace SparseTypes;
 
@@ -176,8 +177,8 @@ internal static class SparseCollectionRebase
         if (hasRemoved)
         {
             if (
-                SparseValueComparer.AreSetEqual(current, before)
-                || SparseValueComparer.AreSetEqual(current, desired)
+                SparseCoreRuntime.AreSetEqual(current, before)
+                || SparseCoreRuntime.AreSetEqual(current, desired)
             )
             {
                 rebased = new HashSet<T>(desired, TryGetSetComparer(desired) ?? localComparer);

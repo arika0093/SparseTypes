@@ -4,13 +4,15 @@
     <AssemblyName>SparseTypes</AssemblyName>
     <RootNamespace>SparseTypes</RootNamespace>
     <IsPackable>true</IsPackable>
-    <PackageDescription>Typed partial state for C# with source-generated fragments and patches.</PackageDescription>
+    <PackageDescription>A unified change model for .NET.</PackageDescription>
     <PackageTags>dotnet;source-generator;patch;merge;nativeaot</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../SparseTypes.Core/SparseTypes.Core.csproj" />
     <ProjectReference
       Include="../SparseTypes.Generator/SparseTypes.Generator.csproj"
       OutputItemType="Analyzer"
@@ -30,6 +32,6 @@
       PackagePath="build/SparseTypes.props"
       Visible="false"
     />
-    <None Include="..\..\README.md" Pack="true" PackagePath="/" Link="README.md" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

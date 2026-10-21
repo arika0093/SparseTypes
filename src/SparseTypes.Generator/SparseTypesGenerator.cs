@@ -18,8 +18,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
     private const string ModelAttributeName = "SparseTypes.SparseModelAttribute";
     private const string MergeAttributeName = "SparseTypes.SparseMergeAttribute";
     private const string MergeStrategyBaseName = "SparseTypes.FragmentMergeStrategy<T>";
+#if !SPARSE_FRAGMENTS
     private const string RebasePolicyAttributeName = "SparseTypes.SparseRebasePolicyAttribute";
     private const string RebasePolicyBaseName = "SparseTypes.FragmentRebasePolicy<T>";
+#endif
 
     private const string EmitIsExternalInitOption = "build_property.SparseTypesEmitIsExternalInit";
     private const string IsExternalInitHintName = "SparseTypes.IsExternalInit.g.cs";
@@ -48,140 +50,159 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         + "}\n"
         + "}\n";
 
+    private const string RuntimeHelpers =
+#if SPARSE_FRAGMENTS
+        "global::SparseTypes.CompilerServices.SparseCoreRuntime";
+#else
+        "global::SparseTypes.CompilerServices.SparseFragmentRuntime";
+#endif
+
     private static readonly SparseGeneratorConfig Configuration =
+#if SPARSE_FRAGMENTS
+    new(
+#else
         SparseTypesGeneratorChildSessionConfig.Configure(
             new(
-                ModelAttributeMetadataName: ModelAttributeName,
-                IgnoreAttributeMetadataName: "SparseTypes.SparseIgnoreAttribute",
-                RedactBeforeAttributeMetadataName: "SparseTypes.SparseRedactBeforeAttribute",
-                MergeAttributeMetadataName: MergeAttributeName,
-                MergeStrategyBaseMetadataName: MergeStrategyBaseName,
-                CloneReferenceSafeAttributeMetadataName: "SparseTypes.SparseCloneReferenceSafeAttribute",
-                KeyAttributeMetadataName: "SparseTypes.SparseKeyAttribute",
-                TemporaryKeyAttributeMetadataName: "SparseTypes.SparseTemporaryKeyAttribute",
-                MergeModeMap: new SparseMergeModeMap(0, 1, 2, 3, 4, 5),
-                DiagnosticIds: new SparseDiagnosticIdMap(
-                    SparseTypesDiagnosticIds.MustBePartial,
-                    SparseTypesDiagnosticIds.UnsupportedModel,
-                    SparseTypesDiagnosticIds.MissingConstructor,
-                    SparseTypesDiagnosticIds.InvalidMergeStrategy,
-                    SparseTypesDiagnosticIds.UnsupportedMerge,
-                    SparseTypesDiagnosticIds.UnsupportedRequired,
-                    SparseTypesDiagnosticIds.UnsupportedStructural,
-                    SparseTypesDiagnosticIds.UnsupportedClone,
-                    SparseTypesDiagnosticIds.GeneratedNameCollision,
-                    SparseTypesDiagnosticIds.IncompatiblePromotedModel,
-                    SparseTypesDiagnosticIds.UnkeyedStructuralSequence,
-                    SparseTypesDiagnosticIds.MultiplePropertyKeys,
-                    SparseTypesDiagnosticIds.InvalidKeyAttributeShape,
-                    SparseTypesDiagnosticIds.InaccessibleKeyProperty,
-                    SparseTypesDiagnosticIds.UnsupportedKeyShape,
-                    SparseTypesDiagnosticIds.DuplicateJsonPropertyName,
-                    SparseTypesDiagnosticIds.SparseIgnoreOnKey,
-                    SparseTypesDiagnosticIds.SparseIgnoreUnsupportedProperty,
-                    SparseTypesDiagnosticIds.InvalidRebasePolicy,
-                    SparseTypesDiagnosticIds.InvalidEmissionPlan,
-                    SparseTypesDiagnosticIds.UnknownProductMember,
-                    SparseTypesDiagnosticIds.InvalidComparisonStrategy,
-                    UnsupportedPayloadJsonPoco: SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco
-                ),
-                HintNameSuffix: ".SparseTypes.g.cs",
-                PromotedHintNameSuffix: ".SparsePromoted.g.cs",
-                StructuralHostPrefix: "__SparseStructural_",
-                RuntimeDialect: new SparseRuntimeDialect(
-                    "global::SparseTypes.",
-                    "global::SparseTypes.Optional",
-                    "global::SparseTypes.FragmentMergeStrategy",
-                    "global::SparseTypes.CompilerServices.SparseFragmentRuntime",
-                    "global::SparseTypes.CompilerServices.SparseFragmentRuntime",
-                    "global::SparseTypes.CompilerServices.SparseFragmentRuntime",
-                    "global::SparseTypes.CompilerServices.SparseFragmentRuntime",
-                    "__sparse_merge_strategy_",
-                    "__sparse_rebase_policy_"
-                )
-                {
-                    CloneContextScopeFactory =
-                        "global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentCloneContext",
-                    OptionalEqualityType = "global::SparseTypes.SparseOptionalEquality",
-                },
-                PatchDialect: new SparseFragmentPatchEmitter.SparsePatchDialect(
-                    "global::SparseTypes.",
-                    "__sparse_whole",
-                    "__SparseMembersEmpty",
-                    SparseFragmentPatchEmitter.Field,
-                    static _ => string.Empty,
-                    "Apply",
-                    false,
-                    "global::SparseTypes.CompilerServices.SparseFragmentRuntime",
-                    "global::SparseTypes.SparseConflict",
-                    "global::SparseTypes.SparseConflictKind",
-                    static payload => "global::SparseTypes.RebaseResult<" + payload + ">",
-                    SparseFragmentPatchEmitter.ChildPatch,
-                    SparseFragmentPatchEmitter.DefaultChildChangeSet,
-                    MergeStrategyField: static member => "__sparse_merge_strategy_" + member.Id,
-                    RebaseOptionsType: "global::SparseTypes.ChangePayloadRebaseOptions",
-                    RebaseModeType: "global::SparseTypes.SparseRebaseMode",
-                    RebasePolicyType: "global::SparseTypes.FragmentRebasePolicy",
-                    RebasePolicyField: static member => "__sparse_rebase_policy_" + member.Id,
-                    InPlaceWriteUnavailableKindMemberName: "InPlaceWriteUnavailable",
-                    PayloadImplementationContainerPrefix: "__Internal",
-                    PathType: "global::SparseTypes.SparsePath",
-                    PathIsValueType: true,
-                    TypedPathInterfaceType: "global::SparseTypes.ISparseTypedPath",
-                    TransitionContracts: new SparseTransitionContracts(
-                        "global::SparseTypes.ISparseValueChange",
-                        "global::SparseTypes.ISparseChangeSet",
-                        "global::SparseTypes.ISparseKeyedChange",
-                        "global::SparseTypes.ISparseKeyedItemChange",
-                        "global::SparseTypes.ISparseTemporaryKeyedChange",
-                        "global::SparseTypes.ISparseDictionaryChange",
-                        "global::SparseTypes.ISparseDictionaryItemChange",
-                        "global::SparseTypes.ISparseStructuralDictionaryItemChange",
-                        "global::SparseTypes.Generated.SparseChangeRecord",
-                        "global::SparseTypes.Generated.SparseChangeKind"
-                    )
-                    {
-                        TypedChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSet",
-                        ScalarTransitionType = "global::SparseTypes.SparseValueTransition",
-                        ScalarRebaseType = "global::SparseTypes.SparseOptionalRebase",
-                        OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
-                    }
-                )
-                {
-                    ResolutionWorkspaceType = "global::SparseTypes.SparseResolutionWorkspace",
-                    PathTraversal = new SparsePathTraversalContracts(
-                        "global::SparseTypes.SparsePathSegment",
-                        static name => "global::SparseTypes.SparsePathSegment.Member(" + name + ")",
-                        static key => "global::SparseTypes.SparsePathSegment.KeyOf(" + key + ")",
-                        static temporary =>
-                            "global::SparseTypes.SparsePathSegment.TemporaryKeyOf("
-                            + temporary
-                            + ")",
-                        static (root, segments) =>
-                            "new global::SparseTypes.SparsePath(" + root + ", " + segments + ")"
-                    ),
-                    KeyValidationScopeFactory =
-                        "global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentKeyValidation",
-                    StateContracts = new SparseStateContracts(
-                        "global::SparseTypes.SparseFieldState",
-                        "global::SparseTypes.SparseCollectionState",
-                        "global::SparseTypes.SparseStateQueries"
-                    )
-                    {
-                        ObservedFieldType = "global::SparseTypes.SparseObservedField",
-                        ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
-                        QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
-                    },
-                    PayloadSchemaProviderType = "global::SparseTypes.ISparsePayloadSchemaProvider",
-                    PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
-                    OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
-                },
+#endif
+        ModelAttributeMetadataName: ModelAttributeName,
+        IgnoreAttributeMetadataName: "SparseTypes.SparseIgnoreAttribute",
+        RedactBeforeAttributeMetadataName: "SparseTypes.SparseRedactBeforeAttribute",
+        MergeAttributeMetadataName: MergeAttributeName,
+        MergeStrategyBaseMetadataName: MergeStrategyBaseName,
+        CloneReferenceSafeAttributeMetadataName: "SparseTypes.SparseCloneReferenceSafeAttribute",
+        KeyAttributeMetadataName: "SparseTypes.SparseKeyAttribute",
+        TemporaryKeyAttributeMetadataName: "SparseTypes.SparseTemporaryKeyAttribute",
+        MergeModeMap: new SparseMergeModeMap(0, 1, 2, 3, 4, 5),
+        DiagnosticIds: new SparseDiagnosticIdMap(
+            SparseTypesDiagnosticIds.MustBePartial,
+            SparseTypesDiagnosticIds.UnsupportedModel,
+            SparseTypesDiagnosticIds.MissingConstructor,
+            SparseTypesDiagnosticIds.InvalidMergeStrategy,
+            SparseTypesDiagnosticIds.UnsupportedMerge,
+            SparseTypesDiagnosticIds.UnsupportedRequired,
+            SparseTypesDiagnosticIds.UnsupportedStructural,
+            SparseTypesDiagnosticIds.UnsupportedClone,
+            SparseTypesDiagnosticIds.GeneratedNameCollision,
+            SparseTypesDiagnosticIds.IncompatiblePromotedModel,
+            SparseTypesDiagnosticIds.UnkeyedStructuralSequence,
+            SparseTypesDiagnosticIds.MultiplePropertyKeys,
+            SparseTypesDiagnosticIds.InvalidKeyAttributeShape,
+            SparseTypesDiagnosticIds.InaccessibleKeyProperty,
+            SparseTypesDiagnosticIds.UnsupportedKeyShape,
+            SparseTypesDiagnosticIds.DuplicateJsonPropertyName,
+            SparseTypesDiagnosticIds.SparseIgnoreOnKey,
+            SparseTypesDiagnosticIds.SparseIgnoreUnsupportedProperty,
+            SparseTypesDiagnosticIds.InvalidRebasePolicy,
+            SparseTypesDiagnosticIds.InvalidEmissionPlan,
+            SparseTypesDiagnosticIds.UnknownProductMember,
+            SparseTypesDiagnosticIds.InvalidComparisonStrategy,
+            UnsupportedPayloadJsonPoco: SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco
+        ),
+        HintNameSuffix: ".SparseTypes.g.cs",
+        PromotedHintNameSuffix: ".SparsePromoted.g.cs",
+        StructuralHostPrefix: "__SparseStructural_",
+        RuntimeDialect: new SparseRuntimeDialect(
+            "global::SparseTypes.",
+            "global::SparseTypes.Optional",
+            "global::SparseTypes.FragmentMergeStrategy",
+            RuntimeHelpers,
+            RuntimeHelpers,
+            RuntimeHelpers,
+            RuntimeHelpers,
+            "__sparse_merge_strategy_",
+            "__sparse_rebase_policy_"
+        )
+        {
+            CloneContextScopeFactory = RuntimeHelpers + ".RentCloneContext",
+            OptionalEqualityType = "global::SparseTypes.SparseOptionalEquality",
+        },
+        PatchDialect: new SparseFragmentPatchEmitter.SparsePatchDialect(
+            "global::SparseTypes.",
+            "__sparse_whole",
+            "__SparseMembersEmpty",
+            SparseFragmentPatchEmitter.Field,
+            static _ => string.Empty,
+            "Apply",
+            false,
+            RuntimeHelpers,
+            "global::SparseTypes.SparseConflict",
+            "global::SparseTypes.SparseConflictKind",
+            static payload => "global::SparseTypes.RebaseResult<" + payload + ">",
+            SparseFragmentPatchEmitter.ChildPatch,
+            SparseFragmentPatchEmitter.DefaultChildChangeSet,
+            MergeStrategyField: static member => "__sparse_merge_strategy_" + member.Id,
+            RebaseOptionsType: "global::SparseTypes.ChangePayloadRebaseOptions",
+            RebaseModeType: "global::SparseTypes.SparseRebaseMode",
+            RebasePolicyType: "global::SparseTypes.FragmentRebasePolicy",
+            RebasePolicyField: static member => "__sparse_rebase_policy_" + member.Id,
+            InPlaceWriteUnavailableKindMemberName: "InPlaceWriteUnavailable",
+            PayloadImplementationContainerPrefix: "__Internal",
+            PathType: "global::SparseTypes.SparsePath",
+            PathIsValueType: true,
+            TypedPathInterfaceType: "global::SparseTypes.ISparseTypedPath",
+            TransitionContracts: new SparseTransitionContracts(
+                "global::SparseTypes.ISparseValueChange",
+                "global::SparseTypes.ISparseChangeSet",
+                "global::SparseTypes.ISparseKeyedChange",
+                "global::SparseTypes.ISparseKeyedItemChange",
+                "global::SparseTypes.ISparseTemporaryKeyedChange",
+                "global::SparseTypes.ISparseDictionaryChange",
+                "global::SparseTypes.ISparseDictionaryItemChange",
+                "global::SparseTypes.ISparseStructuralDictionaryItemChange",
+                "global::SparseTypes.Generated.SparseChangeRecord",
+                "global::SparseTypes.Generated.SparseChangeKind"
+            )
+            {
+                TypedChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSet",
+                ScalarTransitionType = "global::SparseTypes.SparseValueTransition",
+                ScalarRebaseType = "global::SparseTypes.SparseOptionalRebase",
+                OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
+            }
+        )
+        {
+            ResolutionWorkspaceType = "global::SparseTypes.SparseResolutionWorkspace",
+            PathTraversal = new SparsePathTraversalContracts(
+                "global::SparseTypes.SparsePathSegment",
+                static name => "global::SparseTypes.SparsePathSegment.Member(" + name + ")",
+                static key => "global::SparseTypes.SparsePathSegment.KeyOf(" + key + ")",
+                static temporary =>
+                    "global::SparseTypes.SparsePathSegment.TemporaryKeyOf(" + temporary + ")",
+                static (root, segments) =>
+                    "new global::SparseTypes.SparsePath(" + root + ", " + segments + ")"
+            ),
+            KeyValidationScopeFactory =
+                "global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentKeyValidation",
+            StateContracts = new SparseStateContracts(
+                "global::SparseTypes.SparseFieldState",
+                "global::SparseTypes.SparseCollectionState",
+                "global::SparseTypes.SparseStateQueries"
+            )
+            {
+                ObservedFieldType = "global::SparseTypes.SparseObservedField",
+                ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
+                QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
+            },
+            PayloadSchemaProviderType = "global::SparseTypes.ISparsePayloadSchemaProvider",
+            PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
+            OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
+#if SPARSE_FRAGMENTS
+            EmitPatchRebase = false,
+#endif
+        },
+#if SPARSE_FRAGMENTS
+        RebasePolicyAttributeMetadataName: null,
+        RebasePolicyBaseMetadataName: null,
+#else
                 RebasePolicyAttributeMetadataName: RebasePolicyAttributeName,
                 RebasePolicyBaseMetadataName: RebasePolicyBaseName,
-                ComparisonAttributeMetadataName: "SparseTypes.SparseCompareAttribute",
+#endif
+        ComparisonAttributeMetadataName: "SparseTypes.SparseCompareAttribute",
+#if !SPARSE_FRAGMENTS
                 EditSessionInterfaceMetadataName: "SparseTypes.ISparseEditSession",
-                GeneratedImplementationNamespace: "SparseTypes.Generated",
-                EmissionFeatures: new SparseEmissionFeatures(EmitFragmentOrigins: true),
+#endif
+        GeneratedImplementationNamespace: "SparseTypes.Generated",
+        EmissionFeatures: CreateEmissionFeatures(),
+#if !SPARSE_FRAGMENTS
                 EditSessionDialect: new SparseEditSessionDialect(
                     "SparseTypes.Generated",
                     HistoryType: "global::SparseTypes.SparseEditHistory",
@@ -210,27 +231,29 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     "global::SparseTypes.Generated.SparseDescriptorShape",
                     "global::SparseTypes.Generated.SparseDescriptorValue"
                 ),
-                ReservedGeneratedNames: ImmutableArray.Create(
-                    // Reserve only names injected into the model.
-                    "Fragment",
-                    "FragmentBuilder",
-                    "Empty",
-                    "IsEmpty",
-                    "Merge",
-                    "ApplyChanges",
-                    "Diff",
-                    "DeepClone",
-                    "From",
-                    "ToModel",
-                    "ToBuilder",
-                    "Build",
+#endif
+        ReservedGeneratedNames: ImmutableArray.Create(
+            // Reserve only names injected into the model.
+            "Fragment",
+            "FragmentBuilder",
+            "Empty",
+            "IsEmpty",
+            "Merge",
+            "ApplyChanges",
+            "Diff",
+            "DeepClone",
+            "From",
+            "ToModel",
+            "ToBuilder",
+            "Build",
+            "Patch",
+#if !SPARSE_FRAGMENTS
                     "Origin",
                     "GetOrigin",
                     "TryGetOrigin",
                     "EnumerateOrigins",
                     "GetByOrigin",
                     "SplitByOrigin",
-                    "Patch",
                     "ChangeSet",
                     "ChangePayload",
                     "SparsePath",
@@ -239,14 +262,32 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     "FragmentJsonConverter",
                     "PayloadJson",
                     "PayloadJsonConverter",
-                    "ApplyTo",
-                    "TryApplyTo",
-                    "WriteTo",
-                    "ApplyInPlace",
-                    "ApplyInPlaceResult"
-                )
+#endif
+            "ApplyTo",
+            "TryApplyTo",
+            "WriteTo",
+            "ApplyInPlace",
+            "ApplyInPlaceResult"
+        )
+#if SPARSE_FRAGMENTS
+    );
+#else
             )
         );
+#endif
+
+    private static SparseEmissionFeatures CreateEmissionFeatures() =>
+#if SPARSE_FRAGMENTS
+        new(
+            EmitChangeSet: false,
+            EmitChangePayload: false,
+            EmitObservable: false,
+            EmitJsonConverters: false,
+            EmitFragmentOrigins: false
+        );
+#else
+        new(EmitFragmentOrigins: true);
+#endif
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -731,8 +772,12 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             bclHashSetSupportsCapacity,
             cancellationToken,
             configuration,
+#if SPARSE_FRAGMENTS
+            null,
+#else
             (code, generatedModel, members) =>
                 SparseModelExtensionsEmitter.Append(code, generatedModel, members, configuration),
+#endif
             analysis.PayloadJsonPocos
         );
         var additional = SparsePerModelEmitter.BuildImplementationSources(

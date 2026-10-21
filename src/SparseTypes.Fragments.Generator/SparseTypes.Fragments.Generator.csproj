@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>SparseTypes.Fragments.Generator</AssemblyName>
+    <RootNamespace>SparseTypes.Generator</RootNamespace>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsPackable>false</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <PackageDescription>Fragment and Patch source generator for SparseTypes.</PackageDescription>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <DefineConstants>$(DefineConstants);SPARSE_FRAGMENTS</DefineConstants>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.6.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" PrivateAssets="all" />
+    <PackageReference
+      Include="Microsoft.CodeAnalysis.CSharp.Workspaces"
+      Version="4.3.1"
+      PrivateAssets="all"
+    />
+    <PackageReference
+      Include="Microsoft.CodeAnalysis.Analyzers"
+      Version="3.3.4"
+      PrivateAssets="all"
+    />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource
+      Include="../SparseTypes.Generator.Shared/Sessions/SparseEditSessionCore.template"
+      LogicalName="SparseTypes.Generator.Shared.Sessions.SparseEditSessionCore.template"
+      Type="Non-Resx"
+    />
+    <EmbeddedResource
+      Include="../SparseTypes.Generator.Shared/Sessions/SparseEditSessionWithCurrentCore.template"
+      LogicalName="SparseTypes.Generator.Shared.Sessions.SparseEditSessionWithCurrentCore.template"
+      Type="Non-Resx"
+    />
+    <Compile
+      Include="../SparseTypes.Generator.Shared/**/*.cs"
+      Exclude="../SparseTypes.Generator.Shared/obj/**/*.cs;../SparseTypes.Generator.Shared/bin/**/*.cs"
+      LinkBase="Shared"
+    />
+    <Compile
+      Include="../SparseTypes.Generator/**/*.cs"
+      Exclude="../SparseTypes.Generator/obj/**/*.cs;../SparseTypes.Generator/bin/**/*.cs"
+      LinkBase="Generator"
+    />
+  </ItemGroup>
+</Project>

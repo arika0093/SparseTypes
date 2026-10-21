@@ -179,6 +179,7 @@ internal static class SparseKeyedCollectionEmitter
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        bool emitChangePayload,
         string? modelType = null,
         string? implementationNamespace = null,
         SparseOperationTarget? target = null
@@ -197,6 +198,7 @@ internal static class SparseKeyedCollectionEmitter
                     code,
                     member,
                     dialect,
+                    emitChangePayload,
                     modelType,
                     implementationNamespace,
                     target
@@ -208,6 +210,7 @@ internal static class SparseKeyedCollectionEmitter
                     code,
                     member,
                     dialect,
+                    emitChangePayload,
                     modelType,
                     implementationNamespace,
                     target

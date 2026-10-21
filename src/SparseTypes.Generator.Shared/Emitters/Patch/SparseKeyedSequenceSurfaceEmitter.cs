@@ -7,6 +7,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         SharedIndentedBuilder code,
         SparseMemberModel member,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        bool emitChangePayload = true,
         string? modelType = null,
         string? implementationNamespace = null,
         SparseOperationTarget? target = null
@@ -313,20 +314,23 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + " baseline) => Between(Apply(baseline), baseline);"
             );
         }
-        SparseKeyedSequenceRebaseEmitter.EmitKeyedRebase(
-            operations,
-            member,
-            patchName,
-            elementType,
-            keyType,
-            listType,
-            hasPatch,
-            comparer,
-            facade,
-            dialect,
-            split
-        );
-        if (modelType is not null)
+        if (dialect.EmitPatchRebase)
+        {
+            SparseKeyedSequenceRebaseEmitter.EmitKeyedRebase(
+                operations,
+                member,
+                patchName,
+                elementType,
+                keyType,
+                listType,
+                hasPatch,
+                comparer,
+                facade,
+                dialect,
+                split
+            );
+        }
+        if (emitChangePayload && modelType is not null)
         {
             SparseChangePayloadCollectionExportEmitter.AppendCollectionExport(
                 operations,

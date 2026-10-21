@@ -1,0 +1,157 @@
+[assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/arika0093/SparseTypes")]
+namespace SparseTypes.CompilerServices
+{
+    public sealed class SparseCloneContextScope : System.IDisposable
+    {
+        public System.Collections.Generic.Dictionary<object, object> Context { get; }
+        public void Dispose() { }
+    }
+    public static class SparseCoreRuntime
+    {
+        public static System.Collections.Generic.IEqualityComparer<object> ReferenceComparer { get; }
+        public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.Dictionary<TKey, TValue>? left, System.Collections.Generic.Dictionary<TKey, TValue>? right) { }
+        public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>? left, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>? right) { }
+        public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.SortedDictionary<TKey, TValue>? left, System.Collections.Generic.SortedDictionary<TKey, TValue>? right) { }
+        public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.SortedList<TKey, TValue>? left, System.Collections.Generic.SortedList<TKey, TValue>? right) { }
+        public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>? left, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TValue>>? right, System.Func<TValue, TValue, bool> valueComparer) { }
+        public static bool AreEqual(object? left, object? right) { }
+        public static bool AreEqual<T>(T? left, T? right) { }
+        public static bool AreSequenceEqual<T>(System.Collections.Generic.IEnumerable<T>? left, System.Collections.Generic.IEnumerable<T>? right) { }
+        public static bool AreSequenceEqual<T>(System.Collections.Generic.List<T>? left, System.Collections.Generic.List<T>? right) { }
+        public static bool AreSequenceEqual<T>(T[]? left, T[]? right) { }
+        public static bool AreSequenceEqual<T>(System.Collections.Generic.IEnumerable<T>? left, System.Collections.Generic.IEnumerable<T>? right, System.Func<T, T, bool> itemComparer) { }
+        public static bool AreSequenceEqual<T>(System.Collections.Generic.List<T>? left, System.Collections.Generic.List<T>? right, System.Func<T, T, bool> itemComparer) { }
+        public static bool AreSequenceEqual<T>(T[]? left, T[]? right, System.Func<T, T, bool> itemComparer) { }
+        public static bool AreSetEqual<T>(System.Collections.Generic.HashSet<T>? left, System.Collections.Generic.HashSet<T>? right) { }
+        public static bool AreSetEqual<T>(System.Collections.Generic.IEnumerable<T>? left, System.Collections.Generic.IEnumerable<T>? right) { }
+        public static bool AreSetEqual<T>(System.Collections.Generic.SortedSet<T>? left, System.Collections.Generic.SortedSet<T>? right) { }
+        public static System.Collections.Generic.Dictionary<object, object> CreateCloneContext() { }
+        public static System.Collections.Generic.HashSet<System.Collections.Generic.KeyValuePair<object, object>> CreateDiffCycleContext() { }
+        public static System.Collections.Generic.HashSet<object> CreateFromCycleContext() { }
+        public static void EnsureUniqueKeys<TKey>(System.Collections.Generic.IEnumerable<TKey> keys, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null) { }
+        public static bool KeyOrderEquals<TKey>(System.Collections.Generic.IReadOnlyList<TKey> left, System.Collections.Generic.IReadOnlyList<TKey> right, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null) { }
+        public static System.Collections.Generic.List<T> MergeAppendList<T>(System.Collections.Generic.IEnumerable<T> lower, System.Collections.Generic.IEnumerable<T> higher) { }
+        public static T[] MergeDistinctArray<T>(System.Collections.Generic.IEnumerable<T> lower, System.Collections.Generic.IEnumerable<T> higher) { }
+        public static System.Collections.Generic.List<T> MergeDistinctList<T>(System.Collections.Generic.IEnumerable<T> lower, System.Collections.Generic.IEnumerable<T> higher) { }
+        public static System.Collections.Generic.HashSet<T> MergeSet<T>(System.Collections.Generic.IEnumerable<T> lower, System.Collections.Generic.IEnumerable<T> higher) { }
+        public static SparseTypes.CompilerServices.SparseCloneContextScope RentCloneContext() { }
+        public static SparseTypes.CompilerServices.SparseKeyValidationScope<TKey> RentKeyValidation<TKey>(int capacity, System.Func<int, System.Collections.Generic.HashSet<TKey>> create)
+            where TKey :  notnull { }
+    }
+    public sealed class SparseKeyValidationScope<TKey> : System.IDisposable
+        where TKey :  notnull
+    {
+        public System.Collections.Generic.HashSet<TKey> Keys { get; }
+        public void Dispose() { }
+    }
+}
+namespace SparseTypes
+{
+    public abstract class FragmentMergeStrategy<T>
+    {
+        protected FragmentMergeStrategy() { }
+        public abstract bool AreEqual(T? left, T? right);
+        public abstract SparseTypes.Optional<T> Merge(SparseTypes.Optional<T> lowerPriority, SparseTypes.Optional<T> higherPriority);
+        public virtual bool TryRebase(SparseTypes.Optional<T> editBase, SparseTypes.Optional<T> desired, SparseTypes.Optional<T> current, out SparseTypes.Optional<T> rebased, out string? reason) { }
+    }
+    public static class FragmentOperationExtensions
+    {
+        public static void CopyFrom<T>(ref this SparseTypes.FragmentOperation<T> target, SparseTypes.FragmentOperation<T> source) { }
+        public static void CopyFrom<TSource, TDestination>(ref this SparseTypes.FragmentOperation<TDestination> target, SparseTypes.FragmentOperation<TSource> source, System.Func<TSource?, TDestination?> map) { }
+        public static void Keep<T>(ref this SparseTypes.FragmentOperation<T> target) { }
+        public static void Remove<T>(ref this SparseTypes.FragmentOperation<T> target) { }
+        public static void Set<T>(ref this SparseTypes.FragmentOperation<T> target, T? value) { }
+    }
+    public enum FragmentOperationKind
+    {
+        Keep = 0,
+        Set = 1,
+        Remove = 2,
+    }
+    public readonly struct FragmentOperation<T>
+    {
+        public SparseTypes.FragmentOperationKind Kind { get; }
+        public T Value { get; }
+        public static SparseTypes.FragmentOperation<T> Keep { get; }
+        public static SparseTypes.FragmentOperation<T> Remove { get; }
+        public SparseTypes.Optional<T> Apply(SparseTypes.Optional<T> current) { }
+        public static SparseTypes.FragmentOperation<T> Set(T? value) { }
+        public static SparseTypes.FragmentOperation<T> op_Implicit(T? value) { }
+    }
+    public enum MergeMode
+    {
+        Default = 0,
+        Replace = 1,
+        Deep = 2,
+        Append = 3,
+        SetUnion = 4,
+        Custom = 5,
+    }
+    public static class OptionalExtensions
+    {
+        public static void CopyFrom<T>(ref this SparseTypes.Optional<T> target, SparseTypes.Optional<T> source) { }
+        public static void CopyFrom<TSource, TDestination>(ref this SparseTypes.Optional<TDestination> target, SparseTypes.Optional<TSource> source, System.Func<TSource?, TDestination?> map) { }
+        public static void Remove<T>(ref this SparseTypes.Optional<T> target) { }
+        public static void Set<T>(ref this SparseTypes.Optional<T> target, T? value) { }
+    }
+    public readonly struct Optional<T> : System.IEquatable<SparseTypes.Optional<T>>
+    {
+        public bool IsPresent { get; }
+        public T Value { get; }
+        public static SparseTypes.Optional<T> Missing { get; }
+        public void CopyTo(ref SparseTypes.Optional<T> destination) { }
+        public T? GetValueOrDefault(T? fallback = default) { }
+        public override string ToString() { }
+        public static SparseTypes.Optional<T> Present(T? value) { }
+        public static SparseTypes.Optional<T> op_Implicit(T? value) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property, Inherited=true)]
+    public sealed class SparseCloneReferenceSafeAttribute : System.Attribute
+    {
+        public SparseCloneReferenceSafeAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple=true, Inherited=false)]
+    public sealed class SparseCompareAttribute : System.Attribute
+    {
+        public SparseCompareAttribute(System.Type valueType, System.Type comparerType) { }
+        public System.Type ComparerType { get; }
+        public System.Type ValueType { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
+    public sealed class SparseIgnoreAttribute : System.Attribute
+    {
+        public SparseIgnoreAttribute() { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
+    public sealed class SparseKeyAttribute : System.Attribute
+    {
+        public SparseKeyAttribute() { }
+        public object? Unassigned { get; set; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property, Inherited=true)]
+    public sealed class SparseMergeAttribute : System.Attribute
+    {
+        public SparseMergeAttribute(SparseTypes.MergeMode mode) { }
+        public SparseMergeAttribute(System.Type strategyType) { }
+        public SparseTypes.MergeMode Mode { get; }
+        public System.Type? StrategyType { get; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, Inherited=false)]
+    public sealed class SparseModelAttribute : System.Attribute
+    {
+        public SparseModelAttribute() { }
+    }
+    public static class SparseOptionalBox
+    {
+        public static SparseTypes.Optional<object?> ToObject<T>(SparseTypes.Optional<T> value) { }
+    }
+    public static class SparseOptionalEquality
+    {
+        public static bool AreEqual<T>(SparseTypes.Optional<T> left, SparseTypes.Optional<T> right, System.Func<SparseTypes.Optional<T>, SparseTypes.Optional<T>, bool> valueEquals) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
+    public sealed class SparseTemporaryKeyAttribute : System.Attribute
+    {
+        public SparseTemporaryKeyAttribute() { }
+    }
+}

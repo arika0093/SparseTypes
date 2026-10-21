@@ -218,7 +218,8 @@ internal static class SparseRebaseResolutionEmitter
         shell.AppendLine(
             "public Resolution(" + rebaseResult + " rebase, " + modelType + " current)"
         );
-        shell.Indent()
+        shell
+            .Indent()
             .AppendLine(": this(rebase, " + optionalFragment + ".Present(Fragment.From(current)))")
             .Unindent();
         shell.OpenBlock();

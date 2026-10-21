@@ -167,6 +167,32 @@ public sealed class GeneratedOnceTests
     }
 
     [Test]
+    public void FragmentAndPatchProductDoesNotRequestEditSession()
+    {
+        var features = new SparseEmissionFeatures(
+            EmitFragment: true,
+            EmitPatch: true,
+            EmitChangeSet: false,
+            EmitChangePayload: false,
+            EmitObservable: false,
+            EmitJsonConverters: false
+        );
+        var analyses = ImmutableArray.Create(
+            Analysis(false, ImmutableArray.Create(ScalarMember(0, "Name")))
+        );
+        var plan = SparseGeneratedCapabilityPlanner.Aggregate(
+            analyses,
+            ImmutableArray<SparsePromotedModel>.Empty,
+            features,
+            true,
+            true,
+            CancellationToken.None
+        );
+
+        plan.Has(SparseGeneratedCapability.EditSession).ShouldBeFalse();
+    }
+
+    [Test]
     public void CollectionsRequestCloneAndAdapters()
     {
         var plan = Aggregate(ImmutableArray.Create(ListMember(1, "Tags")));

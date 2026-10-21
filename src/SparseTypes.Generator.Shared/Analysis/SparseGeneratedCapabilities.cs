@@ -220,8 +220,8 @@ internal static class SparseGeneratedCapabilityPlanner
             return capabilities;
         }
 
-        // Edit sessions wrap reference-type models through the shared core.
-        if (!isStruct && features.EmitFragment)
+        // Edit sessions require the Fragment, ChangeSet, and Observable families.
+        if (!isStruct && features.EmitFragment && features.EmitChangeSet && features.EmitObservable)
         {
             capabilities |= SparseGeneratedCapability.EditSession;
         }

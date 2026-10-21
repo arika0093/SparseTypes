@@ -44,17 +44,27 @@ public sealed class SparseTypesApiAudienceTests
     private static readonly string[] Plumbing =
     [
         "SparseTypes.ChangePayloadWire",
+        "SparseTypes.CompilerServices.SparseCoreRuntime",
         "SparseTypes.CompilerServices.SparseCloneContextScope",
         "SparseTypes.CompilerServices.SparseKeyValidationScope`1",
         "SparseTypes.CompilerServices.SparseFragmentRuntime",
+    ];
+    private static readonly System.Reflection.Assembly FullRuntimeAssembly =
+        typeof(SparseTypes.CompilerServices.SparseFragmentRuntime).Assembly;
+    private static readonly System.Reflection.Assembly[] RuntimeAssemblies =
+    [
+        FullRuntimeAssembly,
+        System.Reflection.Assembly.Load("SparseTypes.Core"),
+        System.Reflection.Assembly.Load("SparseTypes.Fragments"),
     ];
 
     [Test]
     public void EveryPublicTypeIsClassified()
     {
-        var exported = typeof(SparseTypes.SparseModelAttribute)
-            .Assembly.GetExportedTypes()
+        var exported = RuntimeAssemblies
+            .SelectMany(GetPublicTypes)
             .Select(static type => type.FullName ?? type.Name)
+            .Distinct()
             .OrderBy(static name => name)
             .ToArray();
         exported.ShouldNotBeEmpty();
@@ -81,8 +91,8 @@ public sealed class SparseTypesApiAudienceTests
     [Test]
     public void ExtensionAndToolingTypesStayAdvanced()
     {
-        var offenders = typeof(SparseTypes.SparseModelAttribute)
-            .Assembly.GetExportedTypes()
+        var offenders = RuntimeAssemblies
+            .SelectMany(GetPublicTypes)
             .Where(static type =>
                 !FirstClass.Contains(type.FullName) && !Plumbing.Contains(type.FullName)
             )
@@ -107,7 +117,7 @@ public sealed class SparseTypesApiAudienceTests
     [Test]
     public void GenericSessionImplementationIsNotExportedByTheRuntime()
     {
-        var assembly = typeof(SparseTypes.SparseModelAttribute).Assembly;
+        var assembly = FullRuntimeAssembly;
         assembly.GetType("SparseTypes.SparseEditSession`5").ShouldBeNull();
         assembly.GetType("SparseTypes.SparseEditSession`6").ShouldBeNull();
         assembly.GetType("SparseTypes.SparseEditSessionConfiguration`6").ShouldBeNull();
@@ -134,8 +144,13 @@ public sealed class SparseTypesApiAudienceTests
     private static bool IsAdvanced(string fullName) => HasAdvancedHiding(Resolve(fullName));
 
     private static Type Resolve(string fullName) =>
-        typeof(SparseTypes.SparseModelAttribute).Assembly.GetType(fullName)
+        RuntimeAssemblies
+            .Select(assembly => assembly.GetType(fullName))
+            .FirstOrDefault(static type => type is not null)
         ?? throw new InvalidOperationException($"Unknown SparseTypes type '{fullName}'.");
+
+    private static IEnumerable<Type> GetPublicTypes(System.Reflection.Assembly assembly) =>
+        assembly.GetExportedTypes().DistinctBy(static type => type.FullName);
 
     private static bool HasBrowsableHiding(MemberInfo member) =>
         member.GetCustomAttribute<EditorBrowsableAttribute>()

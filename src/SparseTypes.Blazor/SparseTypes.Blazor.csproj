@@ -7,7 +7,7 @@
     <PackageDescription>Blazor edit sessions for SparseTypes with semantic change tracking.</PackageDescription>
     <PackageTags>blazor;forms;patch;dotnet</PackageTags>
     <!-- Dedicated package README: concise first-use page, not the core README. -->
-    <PackageReadmeFile>README.Blazor.md</PackageReadmeFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <!-- Package (not Framework) reference so Blazor WebAssembly consumers can use
        this library as an ordinary third-party package: a FrameworkReference
@@ -22,7 +22,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.Blazor.md" Pack="true" PackagePath="/" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../SparseTypes/SparseTypes.csproj" />

@@ -15,6 +15,7 @@ PartialUpdateSamples.Run();
 EditSessionGroupsDocsSamples.Run();
 EditSessionStateDocsSamples.Run();
 ApiReferenceSamples.Run();
+NativeAotDocsSample.Run();
 
 Console.WriteLine("SparseTypes docs consumer passed.");
 

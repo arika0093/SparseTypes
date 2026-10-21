@@ -109,12 +109,21 @@ internal static class SparseModelOperationAliases
         bool canApplyPatchInPlace
     )
     {
-        var aliases = new List<KeyValuePair<string, string>>
+        var aliases = new List<KeyValuePair<string, string>>();
+        if (plan.EmitPatch)
         {
-            new("Patch", modelType + ".Patch"),
-            new("ChangeSet", modelType + ".ChangeSet"),
-            new("Fragment", modelType + ".Fragment"),
-        };
+            aliases.Add(new KeyValuePair<string, string>("Patch", modelType + ".Patch"));
+        }
+
+        if (plan.EmitChangeSet)
+        {
+            aliases.Add(new KeyValuePair<string, string>("ChangeSet", modelType + ".ChangeSet"));
+        }
+
+        if (plan.EmitFragment)
+        {
+            aliases.Add(new KeyValuePair<string, string>("Fragment", modelType + ".Fragment"));
+        }
         if (plan.EmitChangePayload)
         {
             aliases.Add(
@@ -155,7 +164,7 @@ internal static class SparseModelOperationAliases
                 }
             }
         }
-        if (canApplyPatchInPlace)
+        if (canApplyPatchInPlace && plan.EmitPatch)
         {
             aliases.Add(
                 new KeyValuePair<string, string>(
@@ -179,24 +188,33 @@ internal static class SparseModelOperationAliases
                 );
             }
         }
-        foreach (var member in members.Where(SparseKeyedCollectionEmitter.IsCollectionPatch))
+        foreach (
+            var member in members.Where(member =>
+                plan.EmitPatch && SparseKeyedCollectionEmitter.IsCollectionPatch(member)
+            )
+        )
         {
             var patch = SparseKeyedCollectionEmitter.CollectionPatchName(member);
             aliases.Add(new KeyValuePair<string, string>(patch, modelType + ".Patch." + patch));
         }
-        SparseChangeSetNaming.ComputePublicNames(members, out _, out var transNames);
-        foreach (
-            var member in members.Where(member =>
-                !SparseChangeSetBasicsEmitter.IsNested(member)
-                && (
-                    !SparseChangeSetBasicsEmitter.IsScalar(member)
-                    || SparseChangeSetBasicsEmitter.IsSet(member)
+        if (plan.EmitChangeSet)
+        {
+            SparseChangeSetNaming.ComputePublicNames(members, out _, out var transNames);
+            foreach (
+                var member in members.Where(member =>
+                    !SparseChangeSetBasicsEmitter.IsNested(member)
+                    && (
+                        !SparseChangeSetBasicsEmitter.IsScalar(member)
+                        || SparseChangeSetBasicsEmitter.IsSet(member)
+                    )
                 )
             )
-        )
-        {
-            var name = transNames[member.Id];
-            aliases.Add(new KeyValuePair<string, string>(name, modelType + ".ChangeSet." + name));
+            {
+                var name = transNames[member.Id];
+                aliases.Add(
+                    new KeyValuePair<string, string>(name, modelType + ".ChangeSet." + name)
+                );
+            }
         }
         return aliases.ToImmutableArray();
     }

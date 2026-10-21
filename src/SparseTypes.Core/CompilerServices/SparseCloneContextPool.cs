@@ -9,7 +9,7 @@ internal static class SparseCloneContextPool
 
     internal static SparseCloneContextScope Rent()
     {
-        var context = _cachedContext ?? SparseFragmentRuntime.CreateCloneContext();
+        var context = _cachedContext ?? SparseCoreRuntime.CreateCloneContext();
         _cachedContext = null;
         return new SparseCloneContextScope(context);
     }

@@ -7,6 +7,7 @@ internal static class SparseDictionaryPatchEmitter
         SharedIndentedBuilder code,
         SparseMemberModel member,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        bool emitChangePayload = true,
         string? modelType = null,
         string? implementationNamespace = null,
         SparseOperationTarget? target = null
@@ -163,23 +164,26 @@ internal static class SparseDictionaryPatchEmitter
                     + " baseline) => Between(Apply(baseline), baseline);"
             );
         }
-        SparseDictionaryRebaseEmitter.EmitDictionaryRebase(
-            operations,
-            member,
-            patchName,
-            keyType,
-            valueType,
-            runtime,
-            kind,
-            optionalDict,
-            facade,
-            comparer,
-            hasPatch,
-            editedValueType,
-            dialect,
-            split
-        );
-        if (modelType is not null)
+        if (dialect.EmitPatchRebase)
+        {
+            SparseDictionaryRebaseEmitter.EmitDictionaryRebase(
+                operations,
+                member,
+                patchName,
+                keyType,
+                valueType,
+                runtime,
+                kind,
+                optionalDict,
+                facade,
+                comparer,
+                hasPatch,
+                editedValueType,
+                dialect,
+                split
+            );
+        }
+        if (emitChangePayload && modelType is not null)
         {
             SparseChangePayloadCollectionExportEmitter.AppendCollectionExport(
                 operations,

@@ -86,6 +86,8 @@ public static class NoJsonConsumerCheck
     private static void Require(bool condition, string message)
     {
         if (!condition)
+        {
             throw new InvalidOperationException("NoJson consumer check failed: " + message);
+        }
     }
 }

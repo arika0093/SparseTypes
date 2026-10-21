@@ -58,7 +58,7 @@ internal static class SparseModelOperationFileEmitter
         code.AppendLine(
             "/// <summary>Per-model generated operations for '"
                 + modelType
-                + "'. Backs the model-facing Patch and ChangeSet facades.</summary>"
+                + "'. Backs the model-facing generated operations.</summary>"
         );
         code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"

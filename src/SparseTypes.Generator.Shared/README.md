@@ -99,6 +99,12 @@ emitters require an explicit patch dialect; Shared provides no implicit
 SparseTypes runtime fallback. The product generator owns and supplies its
 runtime defaults.
 
+`SparsePatchDialect.EmitPatchRebase` controls Patch Rebase emission and
+defaults to `true` for compatibility. Set it to `false` when the product does
+not provide the Rebase runtime contracts; Shared then omits root, dictionary,
+and keyed-collection Rebase APIs while retaining Patch `Between`, `Compose`,
+and baseline-relative `Invert`.
+
 Child-session emission is also opt-in. A consumer must provide its descriptor
 dialect, typed-path type, child-path and child-session contracts, child-session
 implementation and status type, parent child-session contracts, and

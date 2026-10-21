@@ -180,37 +180,6 @@ namespace SparseTypes
         public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> ChangedPaths { get; }
         public string SectionId { get; }
     }
-    public abstract class FragmentMergeStrategy<T>
-    {
-        protected FragmentMergeStrategy() { }
-        public abstract bool AreEqual(T? left, T? right);
-        public abstract SparseTypes.Optional<T> Merge(SparseTypes.Optional<T> lowerPriority, SparseTypes.Optional<T> higherPriority);
-        public virtual bool TryRebase(SparseTypes.Optional<T> editBase, SparseTypes.Optional<T> desired, SparseTypes.Optional<T> current, out SparseTypes.Optional<T> rebased, out string? reason) { }
-    }
-    public static class FragmentOperationExtensions
-    {
-        public static void CopyFrom<T>(ref this SparseTypes.FragmentOperation<T> target, SparseTypes.FragmentOperation<T> source) { }
-        public static void CopyFrom<TSource, TDestination>(ref this SparseTypes.FragmentOperation<TDestination> target, SparseTypes.FragmentOperation<TSource> source, System.Func<TSource?, TDestination?> map) { }
-        public static void Keep<T>(ref this SparseTypes.FragmentOperation<T> target) { }
-        public static void Remove<T>(ref this SparseTypes.FragmentOperation<T> target) { }
-        public static void Set<T>(ref this SparseTypes.FragmentOperation<T> target, T? value) { }
-    }
-    public enum FragmentOperationKind
-    {
-        Keep = 0,
-        Set = 1,
-        Remove = 2,
-    }
-    public readonly struct FragmentOperation<T>
-    {
-        public SparseTypes.FragmentOperationKind Kind { get; }
-        public T Value { get; }
-        public static SparseTypes.FragmentOperation<T> Keep { get; }
-        public static SparseTypes.FragmentOperation<T> Remove { get; }
-        public SparseTypes.Optional<T> Apply(SparseTypes.Optional<T> current) { }
-        public static SparseTypes.FragmentOperation<T> Set(T? value) { }
-        public static SparseTypes.FragmentOperation<T> op_Implicit(T? value) { }
-    }
     public readonly struct FragmentOriginEntry : System.IEquatable<SparseTypes.FragmentOriginEntry>
     {
         public string? Origin { get; init; }
@@ -468,15 +437,6 @@ namespace SparseTypes
         SparseTypes.Optional<T> Before { get; }
         bool IsChanged { get; }
     }
-    public enum MergeMode
-    {
-        Default = 0,
-        Replace = 1,
-        Deep = 2,
-        Append = 3,
-        SetUnion = 4,
-        Custom = 5,
-    }
     public enum MixedAfterKind
     {
         Value = 0,
@@ -534,24 +494,6 @@ namespace SparseTypes
         public bool IsFullyComposable { get; }
         public System.Collections.Generic.IReadOnlyList<SparseTypes.MixedComposeResult> PendingContinuityChecks { get; }
         public bool Succeeded { get; }
-    }
-    public static class OptionalExtensions
-    {
-        public static void CopyFrom<T>(ref this SparseTypes.Optional<T> target, SparseTypes.Optional<T> source) { }
-        public static void CopyFrom<TSource, TDestination>(ref this SparseTypes.Optional<TDestination> target, SparseTypes.Optional<TSource> source, System.Func<TSource?, TDestination?> map) { }
-        public static void Remove<T>(ref this SparseTypes.Optional<T> target) { }
-        public static void Set<T>(ref this SparseTypes.Optional<T> target, T? value) { }
-    }
-    public readonly struct Optional<T> : System.IEquatable<SparseTypes.Optional<T>>
-    {
-        public bool IsPresent { get; }
-        public T Value { get; }
-        public static SparseTypes.Optional<T> Missing { get; }
-        public void CopyTo(ref SparseTypes.Optional<T> destination) { }
-        public T? GetValueOrDefault(T? fallback = default) { }
-        public override string ToString() { }
-        public static SparseTypes.Optional<T> Present(T? value) { }
-        public static SparseTypes.Optional<T> op_Implicit(T? value) { }
     }
     public sealed class RebaseResolutionFailure
     {
@@ -625,11 +567,6 @@ namespace SparseTypes
         OpenChanged = 2,
         TargetMissing = 3,
     }
-    [System.AttributeUsage(System.AttributeTargets.Property, Inherited=true)]
-    public sealed class SparseCloneReferenceSafeAttribute : System.Attribute
-    {
-        public SparseCloneReferenceSafeAttribute() { }
-    }
     public enum SparseCollectionEditError
     {
         None = 0,
@@ -696,13 +633,6 @@ namespace SparseTypes
         public SparseTypes.SparsePath Path { get; }
         public SparseTypes.SparseCollectionItemState GetItemState(object? key) { }
         public SparseTypes.SparseCollectionItemState GetTemporaryState(System.Guid temporaryKey) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Struct, AllowMultiple=true, Inherited=false)]
-    public sealed class SparseCompareAttribute : System.Attribute
-    {
-        public SparseCompareAttribute(System.Type valueType, System.Type comparerType) { }
-        public System.Type ComparerType { get; }
-        public System.Type ValueType { get; }
     }
     public sealed class SparseConflict
     {
@@ -837,17 +767,6 @@ namespace SparseTypes
         public SparseTypes.SparseFieldChangeKind Kind { get; }
         public SparseTypes.SparsePath Path { get; }
     }
-    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
-    public sealed class SparseIgnoreAttribute : System.Attribute
-    {
-        public SparseIgnoreAttribute() { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
-    public sealed class SparseKeyAttribute : System.Attribute
-    {
-        public SparseKeyAttribute() { }
-        public object? Unassigned { get; set; }
-    }
     public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseTypes.SparseCollectionEditor<TElement>
     {
         public SparseKeyedCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch) { }
@@ -862,19 +781,6 @@ namespace SparseTypes
         public bool TryRemoveByKey(TKey? key, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryRemoveByTemporaryKey(System.Guid temporaryKey, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryReplaceByKey(TKey? key, TElement? item, out SparseTypes.SparseCollectionEditError error) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Property, Inherited=true)]
-    public sealed class SparseMergeAttribute : System.Attribute
-    {
-        public SparseMergeAttribute(SparseTypes.MergeMode mode) { }
-        public SparseMergeAttribute(System.Type strategyType) { }
-        public SparseTypes.MergeMode Mode { get; }
-        public System.Type? StrategyType { get; }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Struct, Inherited=false)]
-    public sealed class SparseModelAttribute : System.Attribute
-    {
-        public SparseModelAttribute() { }
     }
     public sealed class SparseObservableDictionary<TKey, TModel, TView> : System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IDictionary<TKey, TView>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IReadOnlyDictionary<TKey, TView>, System.Collections.IEnumerable, System.Collections.Specialized.INotifyCollectionChanged, System.ComponentModel.INotifyPropertyChanged, System.IDisposable
         where TKey :  notnull
@@ -969,14 +875,6 @@ namespace SparseTypes
         public static bool IsEmptyTransition(bool beforePresent, bool afterPresent, bool orderChanged) { }
         public static bool IsUnassignedKey<TKey>(TKey key, TKey unassigned, System.Collections.Generic.IEqualityComparer<TKey>? comparer = null) { }
         public static bool TryComposePresence(bool firstBeforePresent, bool firstAfterPresent, bool secondAfterPresent, out bool resultBeforePresent, out bool resultAfterPresent) { }
-    }
-    public static class SparseOptionalBox
-    {
-        public static SparseTypes.Optional<object?> ToObject<T>(SparseTypes.Optional<T> value) { }
-    }
-    public static class SparseOptionalEquality
-    {
-        public static bool AreEqual<T>(SparseTypes.Optional<T> left, SparseTypes.Optional<T> right, System.Func<SparseTypes.Optional<T>, SparseTypes.Optional<T>, bool> valueEquals) { }
     }
     public static class SparseOptionalRebase
     {
@@ -1178,11 +1076,6 @@ namespace SparseTypes
         public static SparseTypes.SparseFieldState<TValue> FieldState<TModel, TValue>(this SparseTypes.ISparseChangeSet changes, SparseTypes.SparsePath<TModel, TValue> path) { }
         public static SparseTypes.SparseCollectionState KeyedState<TKey, TElement, TElementChange>(this SparseTypes.ISparseKeyedChange<TKey, TElement, TElementChange> change, SparseTypes.SparsePath path) { }
     }
-    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
-    public sealed class SparseTemporaryKeyAttribute : System.Attribute
-    {
-        public SparseTemporaryKeyAttribute() { }
-    }
     public sealed class SparseValidationConflictOptions : System.IEquatable<SparseTypes.SparseValidationConflictOptions>
     {
         public SparseValidationConflictOptions() { }
@@ -1242,11 +1135,6 @@ namespace SparseTypes
 }
 namespace SparseTypes.CompilerServices
 {
-    public sealed class SparseCloneContextScope : System.IDisposable
-    {
-        public System.Collections.Generic.Dictionary<object, object> Context { get; }
-        public void Dispose() { }
-    }
     public static class SparseFragmentRuntime
     {
         public static bool AreDictionaryEqual<TKey, TValue>(System.Collections.Generic.Dictionary<TKey, TValue>? left, System.Collections.Generic.Dictionary<TKey, TValue>? right) { }
@@ -1292,12 +1180,6 @@ namespace SparseTypes.CompilerServices
         public static bool TryRebaseSequenceSetUnionArray<T>(System.Collections.Generic.IReadOnlyList<T> before, System.Collections.Generic.IReadOnlyList<T> desired, System.Collections.Generic.IReadOnlyList<T> current, System.Collections.Generic.IEqualityComparer<T>? comparer, out T[] rebased, out string? reason) { }
         public static bool TryRebaseSetUnion(System.Collections.Generic.IReadOnlyList<object?> before, System.Collections.Generic.IReadOnlyList<object?> desired, System.Collections.Generic.IReadOnlyList<object?> current, System.Func<object?, object?, bool> equal, out System.Collections.Generic.IReadOnlyList<object?> rebased, out string? reason) { }
         public static bool TryRebaseSetUnion<T>(System.Collections.Generic.IEnumerable<T> before, System.Collections.Generic.IEnumerable<T> desired, System.Collections.Generic.IEnumerable<T> current, out System.Collections.Generic.HashSet<T> rebased, out string? reason) { }
-    }
-    public sealed class SparseKeyValidationScope<TKey> : System.IDisposable
-        where TKey :  notnull
-    {
-        public System.Collections.Generic.HashSet<TKey> Keys { get; }
-        public void Dispose() { }
     }
 }
 namespace SparseTypes.Generated

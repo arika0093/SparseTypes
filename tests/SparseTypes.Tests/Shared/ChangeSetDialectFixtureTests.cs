@@ -319,6 +319,31 @@ public sealed class ChangeSetDialectFixtureTests
     }
 
     [Test]
+    public void PatchRebaseCanBeDisabledWithoutRemovingCollectionAlgebra()
+    {
+        var dialect = DownstreamDialect() with { EmitPatchRebase = false };
+        var keyedCode = new SharedIndentedBuilder(CancellationToken.None);
+        SparseKeyedSequenceSurfaceEmitter.EmitKeyedSequencePatch(keyedCode, KeyedMember(), dialect);
+        var keyedText = keyedCode.ToString();
+        keyedText.ShouldNotContain("Rebase(");
+        keyedText.ShouldContain("Between(");
+        keyedText.ShouldContain("Compose(");
+        keyedText.ShouldContain("Invert(");
+
+        var dictionaryCode = new SharedIndentedBuilder(CancellationToken.None);
+        SparseDictionaryPatchEmitter.EmitDictionaryPatch(
+            dictionaryCode,
+            DictionaryMember(),
+            dialect
+        );
+        var dictionaryText = dictionaryCode.ToString();
+        dictionaryText.ShouldNotContain("Rebase(");
+        dictionaryText.ShouldContain("Between(");
+        dictionaryText.ShouldContain("Compose(");
+        dictionaryText.ShouldContain("Invert(");
+    }
+
+    [Test]
     public void Downstream_DictionaryPatchContainsNoSparseTypesRuntime()
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
@@ -353,6 +378,35 @@ public sealed class ChangeSetDialectFixtureTests
         // side.
         text.ShouldContain("ToChangePayloadCore");
         text.ShouldContain("Redacted()");
+    }
+
+    [Test]
+    public void PatchRebaseCanBeDisabledForTheRootPatch()
+    {
+        var code = new SharedIndentedBuilder(CancellationToken.None);
+        SparseFragmentPatchEmitter.AppendPatch(
+            code,
+            "global::Ns.Model",
+            FixtureMembers(),
+            dialect: DownstreamDialect() with
+            {
+                EmitPatchRebase = false,
+            },
+            features: new SparseEmissionFeatures(
+                EmitChangeSet: false,
+                EmitChangePayload: false,
+                EmitObservable: false,
+                EmitJsonConverters: false
+            )
+        );
+
+        var text = code.ToString();
+        text.ShouldNotContain("Rebase(");
+        text.ShouldNotContain("DownstreamRebase<");
+        text.ShouldNotContain("DownstreamConflict");
+        text.ShouldContain("Between(");
+        text.ShouldContain("Compose(");
+        text.ShouldContain("Invert(");
     }
 
     [Test]

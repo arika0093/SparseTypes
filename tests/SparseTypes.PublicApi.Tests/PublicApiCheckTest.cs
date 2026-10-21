@@ -22,8 +22,7 @@ public static class PublicApiCheck
         var publicApi = assembly.GeneratePublicApi(
             new()
             {
-                IncludeTypes = assembly
-                    .GetExportedTypes()
+                IncludeTypes = GetPublicTypes(assembly)
                     .OrderBy(static type => type.FullName, StringComparer.Ordinal)
                     .ToArray(),
                 ExcludeAttributes =
@@ -53,13 +52,45 @@ public static class PublicApiCheck
         );
         publicApi.ReplaceLineEndings("\n").ShouldBe(approvedApi.ReplaceLineEndings("\n"));
     }
+
+    private static IEnumerable<Type> GetPublicTypes(Assembly assembly) =>
+        assembly.GetExportedTypes().DistinctBy(static type => type.FullName);
 }
 
 public sealed class PublicApiCheckTest
 {
     [Test]
-    public void StandaloneFragments() => PublicApiCheck.Check<SparseModelAttribute>();
+    public void StandaloneFullRuntime() =>
+        PublicApiCheck.CheckAssembly(
+            System.Reflection.Assembly.Load("SparseTypes"),
+            "SparseTypes.approved.txt"
+        );
 
     [Test]
-    public void StandaloneGenerator() => PublicApiCheck.Check<Generator.SparseTypesGenerator>();
+    public void StandaloneCore() =>
+        PublicApiCheck.CheckAssembly(
+            System.Reflection.Assembly.Load("SparseTypes.Core"),
+            "SparseTypes.Core.approved.txt"
+        );
+
+    [Test]
+    public void StandaloneFragmentsRuntime() =>
+        PublicApiCheck.CheckAssembly(
+            System.Reflection.Assembly.Load("SparseTypes.Fragments"),
+            "SparseTypes.Fragments.approved.txt"
+        );
+
+    [Test]
+    public void StandaloneGenerator() =>
+        PublicApiCheck.CheckAssembly(
+            System.Reflection.Assembly.Load("SparseTypes.Generator"),
+            "SparseTypes.Generator.approved.txt"
+        );
+
+    [Test]
+    public void StandaloneFragmentsGenerator() =>
+        PublicApiCheck.CheckAssembly(
+            System.Reflection.Assembly.Load("SparseTypes.Fragments.Generator"),
+            "SparseTypes.Fragments.Generator.approved.txt"
+        );
 }

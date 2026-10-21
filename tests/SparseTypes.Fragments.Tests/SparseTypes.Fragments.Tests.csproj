@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>SparseTypes.Fragments.Tests</RootNamespace>
+    <AssemblyName>SparseTypes.Fragments.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SparseTypes.Fragments/SparseTypes.Fragments.csproj" />
+    <ProjectReference
+      Include="../../src/SparseTypes.Fragments.Generator/SparseTypes.Fragments.Generator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="SparseTypes" />
+  </ItemGroup>
+</Project>

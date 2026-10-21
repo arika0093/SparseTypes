@@ -230,7 +230,8 @@ internal static class SparseFragmentPatchEmitter
         string? TypedPathInterfaceType = null,
         SparseStjCapabilities? StjCapabilities = null,
         string? PayloadSchemaProviderType = null,
-        string? PayloadSchemaDescriptorType = null
+        string? PayloadSchemaDescriptorType = null,
+        bool EmitPatchRebase = true
     )
     {
         /// <summary>Optional factory for a validation scope.</summary>
@@ -440,6 +441,7 @@ internal static class SparseFragmentPatchEmitter
             code,
             members,
             dialect,
+            plan.EmitChangePayload,
             modelType,
             implementationNamespace,
             patchTarget
@@ -476,13 +478,16 @@ internal static class SparseFragmentPatchEmitter
             dialect,
             patchTarget
         );
-        SparseFragmentPatchRebaseEmitter.AppendPatchRebase(
-            code,
-            modelType,
-            members,
-            dialect,
-            patchTarget
-        );
+        if (dialect.EmitPatchRebase)
+        {
+            SparseFragmentPatchRebaseEmitter.AppendPatchRebase(
+                code,
+                modelType,
+                members,
+                dialect,
+                patchTarget
+            );
+        }
         if (plan.EmitChangePayload)
         {
             SparseChangePayloadPatchSyncEmitter.AppendPatchToPayloadCore(

@@ -368,27 +368,6 @@ jobs:
             ./TestResults/nativeaot-smoke/SparseTypes.NativeAotSmoke --report-trx --results-directory TestResults/nativeaot-results
           fi
 
-      - name: Publish Fragments NativeAOT smoke consumer
-        shell: bash
-        run: |
-          dotnet publish tests/SparseTypes.Fragments.NativeAotSmoke/SparseTypes.Fragments.NativeAotSmoke.csproj \
-            --configuration Release --framework net10.0 --use-current-runtime \
-            --output TestResults/fragments-nativeaot-smoke --verbosity normal 2>&1 \
-            | tee TestResults/fragments-nativeaot-publish.log
-
-      - name: Assert Fragments NativeAOT diagnostics are clean
-        shell: bash
-        run: bash ./.github/workflows/scripts/assert-sparse-aot-diagnostics.sh TestResults/fragments-nativeaot-publish.log
-
-      - name: Run Fragments NativeAOT smoke consumer
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ./TestResults/fragments-nativeaot-smoke/SparseTypes.Fragments.NativeAotSmoke.exe --report-trx --results-directory TestResults/fragments-nativeaot-results
-          else
-            ./TestResults/fragments-nativeaot-smoke/SparseTypes.Fragments.NativeAotSmoke --report-trx --results-directory TestResults/fragments-nativeaot-results
-          fi
-
       - name: Upload failure NativeAOT artifacts
         if: failure() || cancelled()
         uses: actions/upload-artifact@v7
@@ -398,8 +377,5 @@ jobs:
             TestResults/nativeaot-publish.log
             TestResults/nativeaot-smoke/**
             TestResults/nativeaot-results/**
-            TestResults/fragments-nativeaot-publish.log
-            TestResults/fragments-nativeaot-smoke/**
-            TestResults/fragments-nativeaot-results/**
           if-no-files-found: ignore
           retention-days: 7

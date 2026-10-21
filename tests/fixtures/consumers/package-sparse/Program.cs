@@ -85,7 +85,9 @@ static string ReadSessionRoot<TModel, TPaths>(ISparseEditSessionWithPaths<TModel
 static void Require(bool condition, string capability)
 {
     if (!condition)
+    {
         throw new InvalidOperationException("Failed: " + capability);
+    }
 }
 
 [SparseModel]

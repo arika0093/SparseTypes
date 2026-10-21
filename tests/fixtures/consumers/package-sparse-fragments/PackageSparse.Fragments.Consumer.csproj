@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <OutputType>Exe</OutputType>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <SparseTypesFragmentsPackageVersion Condition="'$(SparseTypesFragmentsPackageVersion)' == ''"
+      >0.0.0</SparseTypesFragmentsPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference
+      Include="SparseTypes.Fragments"
+      Version="$(SparseTypesFragmentsPackageVersion)"
+    />
+  </ItemGroup>
+</Project>
