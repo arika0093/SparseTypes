@@ -6,7 +6,7 @@ namespace SparseTypes.EntityFrameworkCore.Tests;
 public sealed class SparseEntityPipelineTests
 {
     [Test]
-    public async Task DocumentationSavePipelineSampleRuns() => await SparseEntityPipelineDocsSample.Run();
+    public async Task DocumentationMapperPipelineSampleRuns() => await SparseEntityPipelineDocsSample.Run();
 
     private static async Task<OrderDto> ReadOrder(SampleDbContext context, SparseEntityMapper<OrderEntity, OrderDto> mapper, int id) =>
         await context.Orders.AsNoTracking().Where(order => order.Id == id).Select(mapper.Projection).SingleAsync();
