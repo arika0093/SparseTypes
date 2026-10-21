@@ -544,20 +544,12 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         );
         // Shared JSON kernels back every split-mode fragment and payload
         // converter; single-file legacy output keeps its inline copies.
+        // Content follows the wire capability alone: the v1 bridge references
+        // these kernels whenever it is emitted, regardless of which JSON
+        // families the product feature selection enables.
         var needsJsonCodecs = hasModels
             .Combine(stjCapabilities)
-            .Select(
-                static (input, _) =>
-                    (
-                        HasModels: input.Left,
-                        EmitCodecs: input.Left
-                            && (
-                                Configuration.EffectiveEmissionFeatures.EmitJsonConverters
-                                || Configuration.EffectiveEmissionFeatures.EmitChangePayload
-                            )
-                            && input.Right.SupportsV1Wire
-                    )
-            )
+            .Select(static (input, _) => (HasModels: input.Left, EmitCodecs: input.Left && input.Right.SupportsV1Wire))
             .WithComparer(EqualityComparer<(bool HasModels, bool EmitCodecs)>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceJsonCodecs");
         context.RegisterSourceOutput(
