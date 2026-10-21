@@ -2,6 +2,8 @@ using System.ComponentModel;
 
 namespace SparseTypes.CompilerServices;
 
+#pragma warning disable CS8714 // Preserve unconstrained generated facade signatures across TFM annotations.
+
 /// <summary>Minimal generated-code runtime facade.</summary>
 /// <remarks>Generated code uses this facade; it is not intended for hand-written callers.</remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]

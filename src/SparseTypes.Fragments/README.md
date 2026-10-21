@@ -10,4 +10,4 @@ The package does not generate `ChangeSet`, patch `Rebase`, JSON payloads or conv
 
 Choose either `SparseTypes` or `SparseTypes.Fragments` for a consumer compilation. Do not reference both products in the same compilation. Generated types from the two products have no interoperability guarantee, and mixed-product model graphs are unsupported.
 
-`SparseTypes.Fragments` targets `netstandard2.0`, supports C# 9 or later, and depends on `SparseTypes.Core`. The source generator requires Roslyn 4.3.1 or later in the build environment.
+`SparseTypes.Fragments` targets `netstandard2.0`, `net6.0`, and `net10.0`, supports C# 9 or later, and depends on `SparseTypes.Core`. NuGet selects the most specific compatible runtime asset, and the public API is the same across targets. The source generator requires Roslyn 4.3.1 or later in the build environment.

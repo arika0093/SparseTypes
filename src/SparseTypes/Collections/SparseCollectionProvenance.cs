@@ -2,6 +2,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SparseTypes;
 
+#pragma warning disable CS8714 // Preserve set-union provenance support for nullable element annotations.
+
 /// <summary>Collection contribution provenance shared by generated append, set-union, and replace members.</summary>
 /// <remarks>Presence mirrors fragment merge.</remarks>
 internal static class SparseCollectionProvenance

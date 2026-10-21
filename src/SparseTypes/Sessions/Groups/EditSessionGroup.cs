@@ -378,9 +378,9 @@ public sealed class EditSessionGroup
             {
                 var asyncError = await capture.Section.ValidateAsync(capture.Changes, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!string.IsNullOrWhiteSpace(asyncError))
+                if (asyncError is string message && !string.IsNullOrWhiteSpace(message))
                 {
-                    issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, asyncError!));
+                    issues.Add(new EditSessionGroupValidationIssue(capture.Section.SectionId, message));
                 }
             }
             catch (OperationCanceledException)
@@ -483,12 +483,13 @@ public sealed class EditSessionGroup
             return false;
         }
 
-        if (!_sections.TryGetValue(handle.SectionId, out section) || !ReferenceEquals(section, handle.Section))
+        if (!_sections.TryGetValue(handle.SectionId, out var registeredSection) || !ReferenceEquals(registeredSection, handle.Section))
         {
             error = $"Section '{handle.SectionId}' was unregistered or replaced.";
             return false;
         }
 
+        section = registeredSection;
         SynchronizeBaselineRevision(section);
         if (!submission.TryGet(section, out entry))
         {
@@ -565,9 +566,9 @@ public sealed class EditSessionGroup
     {
         public static readonly ReferenceIdentityComparer Instance = new ReferenceIdentityComparer();
 
-        bool IEqualityComparer<object>.Equals(object x, object y) => ReferenceEquals(x, y);
+        bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
 
-        int IEqualityComparer<object>.GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
+        int IEqualityComparer<object>.GetHashCode(object? obj) => RuntimeHelpers.GetHashCode(obj);
     }
 
     private static void ValidateSectionId(string sectionId)

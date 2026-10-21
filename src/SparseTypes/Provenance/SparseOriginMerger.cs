@@ -1,5 +1,7 @@
 namespace SparseTypes;
 
+#pragma warning disable CS8714 // Preserve nullable element provenance behavior across TFM annotations.
+
 /// <summary>
 /// Computes per-element origin attributions for built-in collection merges.
 /// </summary>

@@ -1,6 +1,9 @@
 using System.Collections;
 using System.ComponentModel;
 using SparseTypes.Generated;
+#if NET6_0_OR_GREATER
+using System.Runtime.InteropServices;
+#endif
 
 namespace SparseTypes;
 
@@ -12,7 +15,11 @@ namespace SparseTypes;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDisposable
 {
+#if NET9_0_OR_GREATER
+    private readonly System.Threading.Lock _sync = new();
+#else
     private readonly object _sync = new();
+#endif
 
     // Buckets index by path first, then origin, so exact single-path updates
     // touch only the origins at that path instead of sorting the whole store.
@@ -242,7 +249,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             messageCount++;
         }
 
-        List<string> notifications = new();
+        List<string> notifications;
         EventHandler<DataErrorsChangedEventArgs>? handler;
         lock (_sync)
         {
@@ -476,15 +483,33 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             _buckets.Add(path, origins);
         }
 
-        if (origins.TryGetValue(origin, out var existing))
+        if (replacement.Count == 0)
         {
-            _totalCount -= existing.Count;
-            origins.Remove(origin);
+            if (origins.TryGetValue(origin, out var existing))
+            {
+                _totalCount -= existing.Count;
+                origins.Remove(origin);
+            }
         }
-
-        if (replacement.Count > 0)
+        else
         {
+#if NET6_0_OR_GREATER
+            ref var existing = ref CollectionsMarshal.GetValueRefOrAddDefault(origins, origin, out var found);
+            if (found)
+            {
+                _totalCount -= existing!.Count;
+            }
+
+            existing = replacement;
+#else
+            if (origins.TryGetValue(origin, out var existing))
+            {
+                _totalCount -= existing.Count;
+                origins.Remove(origin);
+            }
+
             origins.Add(origin, replacement);
+#endif
             _totalCount += replacement.Count;
         }
 

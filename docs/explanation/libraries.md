@@ -14,8 +14,9 @@ dotnet add package SparseTypes
 
 ### Requirements
 
-* An environment that supports `netstandard2.0`
-  * For example, it can be used with `.NET Framework 4.8` and recent .NET environments.
+* A runtime target of `netstandard2.0`, `net6.0`, or `net10.0`
+  * NuGet selects the most specific compatible asset.
+  * The `netstandard2.0` asset supports `.NET Framework 4.8` and older .NET environments.
 * `langVersion >= 9` (C# 9 or later)
   * It can be used in most recent environments.
   * For `.NET Framework 4.8`, add `<LangVersion>9</LangVersion>` (or later) to the csproj.
@@ -49,7 +50,7 @@ dotnet add package SparseTypes.Fragments
 
 Shared runtime contracts and helpers used by `SparseTypes` and `SparseTypes.Fragments`. Both product packages depend on Core and provide their own generator. Most applications should install one of those products instead of referencing Core directly.
 
-Core targets `netstandard2.0` and has no source generator.
+Core targets `netstandard2.0`, `net6.0`, and `net10.0`, with the same public API on every target. It has no source generator.
 
 ### Requirements
 

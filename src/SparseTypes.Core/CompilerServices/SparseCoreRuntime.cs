@@ -46,6 +46,8 @@ public static class SparseCoreRuntime
     /// <summary>Compares sorted sets without depending on enumeration order.</summary>
     public static bool AreSetEqual<T>(SortedSet<T>? left, SortedSet<T>? right) => SparseConcreteComparisons.AreSetEqual(left, right);
 
+#pragma warning disable CS8714 // Keep collection helper signatures compatible with nullable generic key/value sequences.
+
     /// <summary>Compares dictionaries by key and value.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(
         IEnumerable<KeyValuePair<TKey, TValue>>? left,
@@ -70,6 +72,8 @@ public static class SparseCoreRuntime
     /// <summary>Compares sorted lists by key and value.</summary>
     public static bool AreDictionaryEqual<TKey, TValue>(SortedList<TKey, TValue>? left, SortedList<TKey, TValue>? right) =>
         SparseConcreteComparisons.AreDictionaryEqual(left, right);
+
+#pragma warning restore CS8714
 
     /// <summary>Appends ordered contributions, preserving duplicates.</summary>
     public static List<T> MergeAppendList<T>(IEnumerable<T> lower, IEnumerable<T> higher) => SparseCollectionMerger.MergeAppendList(lower, higher);

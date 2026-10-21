@@ -1,5 +1,7 @@
 namespace SparseTypes;
 
+#pragma warning disable CS8714 // Preserve unconstrained dictionary helper signatures across TFM annotations.
+
 /// <summary>Statically specialized structural comparison for known collection shapes.</summary>
 /// <remarks>Generated equality uses typed comparisons per member.</remarks>
 internal static class SparseConcreteComparisons

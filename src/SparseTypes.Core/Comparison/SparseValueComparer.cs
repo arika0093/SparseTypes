@@ -3,6 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace SparseTypes;
 
+#pragma warning disable CS8714 // Keep null-capable key/value sequence comparisons source-compatible.
+
 /// <summary>Default semantic equality used by generated sparse fragments.</summary>
 internal static class SparseValueComparer
 {
