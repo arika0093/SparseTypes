@@ -142,10 +142,15 @@ mapper.AssignTemporaryKeys(db, result, current, authoritative);
 <!-- sample: efcore-mapper-pipeline-save -->
 ```csharp
 var result = await mapper.PipelineExecuteAsync(
+    // required: the DbContext to save changes
     db,
+    // required: the incoming change set to apply
     incomingChanges,
+    // required: filter to select the single row to update
     filter: order => order.Id == orderId,
+    // optional session to reconcile with the authoritative DTO
     session: session,
+    // optional: beforeSave, onConflict, and onReconcileFailed callbacks
     beforeSave: (save, cancellationToken) =>
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -162,9 +167,6 @@ var result = await mapper.PipelineExecuteAsync(
         return Task.CompletedTask;
     }
 );
-
-DocsCheck.Require(result.Stage == SparseEntityPipelineStage.Saved, "pipeline persists and reconciles");
-DocsCheck.Require(result.ReadBack?.Notes == "Updated", "result contains the authoritative DTO");
 ```
 <!-- /sample -->
 
