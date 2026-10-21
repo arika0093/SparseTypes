@@ -137,9 +137,126 @@ mapper.AssignTemporaryKeys(db, result, current, authoritative);
 
 ## Coordinate an optional save pipeline
 
-`SparseEntitySavePipeline.ExecuteAsync` is an optional orchestration helper for consumers that want the same explicit phase ordering outside the playground. The consumer supplies preparation (including its revision check, read, rebase, and mapper application), the single persistence attempt, the authoritative readback (including temporary-key assignment), and client synchronization (including `TryReconcileAndApply`). The helper performs no query, persistence, transaction, rollback, or retry on its own, and it never repeats a custom callback.
+When saving sparse modifications, applications must coordinate multiple steps: checking revisions, loading navigations with `IncludeFor`, applying changes with mappers, persisting to the database, reading authoritative state, correlating generated keys, and reconciling client edit sessions. If an exception or cancellation occurs partway through (such as during readback or while waiting for persistence), a standard `try/catch` cannot easily tell whether the database write succeeded, whether temporary keys were assigned, or whether the change set can be safely retried.
 
-The returned stage distinguishes preparation failure, a concurrency conflict, an unknown save outcome, a failed authoritative readback, and a failed client synchronization after persistence. Treat the last three as requiring recovery rather than resubmitting the same change set: the write may already exist, and newly generated keys may already have been assigned. The pipeline reports callback exceptions but does not undo arbitrary EF writes or client-side setter effects; define transaction and recovery policy in the application.
+`SparseEntitySavePipeline.ExecuteAsync` is an orchestration helper that solves this by enforcing a strict four-phase execution order and classifying outcomes into unambiguous stages:
+
+- **Strict phase progression**: Runs `prepare` → `save` → `readBack` → `synchronize` in order, executing each step at most once.
+- **Pre-persistence safety**: If `prepare` fails or is canceled, `save` is guaranteed never to run, ensuring the submission can be safely retried without database side effects.
+- **Accurate persistence status tracking**: When an exception occurs, the pipeline captures it and reports which stage was reached (`SparseEntitySaveStage`). Callers know whether persistence was not attempted (`PreparationFailed`), failed with a conflict (`ConcurrencyConflict`), completed (`ReadBackFailed`, `ClientSynchronizationFailed`), or has an unknown outcome (`SaveOutcomeUnknown`).
+- **Lossless cancellation reporting**: If a callback raises `OperationCanceledException`, the pipeline preserves the persistence status and places the exception in `result.Error` instead of throwing, avoiding blind resubmissions of already-persisted writes.
+
+The pipeline performs no queries, transactions, rollbacks, or retries on its own. It acts purely as an orchestrator across your callbacks.
+
+### Concrete execution example
+
+`ExecuteAsync<TPreparation, TReadBack>` has no generic type constraints on `TPreparation` or `TReadBack`. `TPreparation` is not a generated type; you define any container (such as a record, class, or tuple) to pass intermediate state from `prepare` to later callbacks:
+
+<!-- illustrative: pipeline execution workflow -->
+```csharp
+// Caller-defined container to carry state from prepare to later callbacks (no generic constraints)
+public sealed record SaveContext(
+    OrderEntity TrackedOrder,
+    SparseEntityApplyResult ApplyResult,
+    OrderDto Baseline
+);
+
+// Coordinate the save pipeline
+var result = await SparseEntitySavePipeline.ExecuteAsync<SaveContext, OrderDto>(
+    // 1. prepare: Prepares entities before persistence (reads state, rebases, applies changes).
+    // If this fails or cancels, returns PreparationFailed (or ConcurrencyConflict); save never runs.
+    prepare: async ct =>
+    {
+        var current = await db.Orders
+            .AsNoTracking()
+            .Where(order => order.Id == orderId)
+            .Select(mapper.Projection)
+            .SingleAsync(ct);
+
+        var rebase = incomingChanges.RebaseOnto(current);
+        if (rebase.HasConflicts)
+        {
+            throw new InvalidOperationException("Rebase conflict detected.");
+        }
+
+        var trackedOrder = await db.Orders
+            .IncludeFor(mapper, rebase.Rebased)
+            .SingleAsync(order => order.Id == orderId, ct);
+
+        var applyResult = mapper.ApplyWithResult(db, trackedOrder, rebase.Rebased);
+        return new SaveContext(trackedOrder, applyResult, current);
+    },
+
+    // 2. save: Persists changes exactly once. Receives prepared state.
+    // Unclassified errors or cancellation return SaveOutcomeUnknown; never blindly retry.
+    save: async (ctx, ct) =>
+    {
+        await db.SaveChangesAsync(ct);
+    },
+
+    // 3. readBack: Reads authoritative DTO and assigns temporary keys after successful save.
+    // Failure or cancellation returns ReadBackFailed. Persistence succeeded; do not resubmit changes.
+    readBack: async (ctx, ct) =>
+    {
+        var authoritative = await db.Orders
+            .AsNoTracking()
+            .Where(order => order.Id == orderId)
+            .Select(mapper.Projection)
+            .SingleAsync(ct);
+
+        mapper.AssignTemporaryKeys(db, ctx.ApplyResult, ctx.Baseline, authoritative);
+        return authoritative;
+    },
+
+    // 4. synchronize: Reconciles live client session with authoritative readback.
+    // Failure or cancellation returns ClientSynchronizationFailed. Database write already completed.
+    synchronize: (ctx, authoritative, ct) =>
+    {
+        if (!session.TryReconcile(incomingChanges, authoritative, out var error))
+        {
+            throw new InvalidOperationException($"Reconcile failed: {error?.Kind}");
+        }
+        return Task.CompletedTask;
+    },
+
+    // cancellationToken: Forwarded to callbacks; reported in result.Error without throwing.
+    cancellationToken: cancellationToken
+);
+```
+
+### Handle stage outcomes and recovery
+
+Evaluate `result.Stage` to determine the follow-up action:
+
+| Stage | Persistence Status | Recommended Action |
+|---|---|---|
+| `Saved` | Completed | Success. Return or use `result.ReadBack` as authoritative state. |
+| `PreparationFailed` | Not attempted | Persistence was not attempted. Safe to fix validation issues and retry with a fresh token. |
+| `ConcurrencyConflict` | Not committed | A `DbUpdateConcurrencyException` occurred during prepare or save. Re-read current database state, rebase pending changes, and retry. |
+| `SaveOutcomeUnknown` | Unknown | The write may have committed before an error or cancellation occurred. Query the database to inspect current state; do not blindly resubmit. |
+| `ReadBackFailed` | Completed | Persistence succeeded. Re-read authoritative state from the database without re-saving. |
+| `ClientSynchronizationFailed` | Completed | Persistence and readback completed. Resynchronize client session or reload state from `result.ReadBack` without re-saving. |
+
+<!-- illustrative: stage outcome handling -->
+```csharp
+switch (result.Stage)
+{
+    case SparseEntitySaveStage.Saved:
+        return Results.Ok(result.ReadBack);
+
+    case SparseEntitySaveStage.ConcurrencyConflict:
+        return Results.Conflict(result.Error?.Message);
+
+    case SparseEntitySaveStage.PreparationFailed:
+        return Results.BadRequest(result.Error?.Message);
+
+    case SparseEntitySaveStage.SaveOutcomeUnknown:
+    case SparseEntitySaveStage.ReadBackFailed:
+    case SparseEntitySaveStage.ClientSynchronizationFailed:
+        // Recovery required: database write may have succeeded or already completed
+        return Results.Problem("Persistence outcome requires verification.", statusCode: 500);
+}
+```
 
 ### Recover from cancellation without losing the persistence status
 
