@@ -57,8 +57,8 @@ internal static class SparsePayloadJsonMemberEmitter
             );
             code.AppendLine(
                 "else if (name == \"nested\") { if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) change.Nested = null; else change.Nested = "
-                    + childType
-                    + ".PayloadJsonConverter.ReadCore(ref reader, options); }"
+                    + context.ConverterReference(childType)
+                    + ".ReadCore(ref reader, options); }"
             );
             code.AppendLine("else reader.Skip();");
         }
@@ -153,8 +153,8 @@ internal static class SparsePayloadJsonMemberEmitter
             );
             code.AppendLine(
                 "if (change.Nested is not null) { writer.WritePropertyName(\"nested\"); "
-                    + writeChildModel
-                    + ".PayloadJsonConverter.WriteCore(writer, change.Nested, options); }"
+                    + context.ConverterReference(writeChildModel)
+                    + ".WriteCore(writer, change.Nested, options); }"
             );
         }
         else if (isKeyed || isDict)
@@ -280,8 +280,8 @@ internal static class SparsePayloadJsonMemberEmitter
         );
         code.AppendLine(
             "else if (reader.ValueTextEquals(\"value\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) value = "
-                + childType
-                + ".PayloadJsonConverter.ReadRoot(ref reader, options); }"
+                + context.ConverterReference(childType)
+                + ".ReadRoot(ref reader, options); }"
         );
         code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }");
         code.CloseBlock();
@@ -302,7 +302,9 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine("writer.WriteString(\"state\", " + context.Runtime + "ChangePayloadWire.ToToken(value.State));");
         code.AppendLine("writer.WritePropertyName(\"value\");");
         code.AppendLine(
-            "if (value.Value is null) writer.WriteNullValue(); else " + childType + ".PayloadJsonConverter.WriteRoot(writer, value.Value, options);"
+            "if (value.Value is null) writer.WriteNullValue(); else "
+                + context.ConverterReference(childType)
+                + ".WriteRoot(writer, value.Value, options);"
         );
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
@@ -399,8 +401,8 @@ internal static class SparsePayloadJsonMemberEmitter
             _ = editCore;
             code.AppendLine(
                 "else if (reader.ValueTextEquals(\"edit\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) item.Edit = null; else item.Edit = "
-                    + editChild
-                    + ".PayloadJsonConverter.ReadCore(ref reader, options); }"
+                    + context.ConverterReference(editChild)
+                    + ".ReadCore(ref reader, options); }"
             );
         }
         else
@@ -456,8 +458,8 @@ internal static class SparsePayloadJsonMemberEmitter
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
             code.AppendLine(
                 "if (item.Edit is not null) { writer.WritePropertyName(\"edit\"); "
-                    + writeEditChild
-                    + ".PayloadJsonConverter.WriteCore(writer, item.Edit, options); }"
+                    + context.ConverterReference(writeEditChild)
+                    + ".WriteCore(writer, item.Edit, options); }"
             );
         }
 

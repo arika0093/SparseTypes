@@ -87,7 +87,7 @@ Console.WriteLine(
 );
 Console.WriteLine(TerminalStyle.Comment("// This is the payload a client could send to an API."));
 var submitted = session.CreateChangeSet();
-var payloadTypeInfo = UserPreferencesJson.Default;
+var payloadTypeInfo = UserPreferences.PayloadJson.Default;
 using var jsonStream = new MemoryStream();
 using (var writer = new Utf8JsonWriter(jsonStream, new JsonWriterOptions { Indented = true }))
 {

@@ -30,27 +30,18 @@ public sealed class StjOptionalGenerationTests
             "StjOptionalProbe",
             [tree],
             TrustedReferences(includeStj),
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
     private static List<MetadataReference> TrustedReferences(bool includeStj)
     {
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         var references = trusted
-            .Where(path =>
-                includeStj
-                || !Path.GetFileName(path).StartsWith("System.Text.Json", StringComparison.Ordinal)
-            )
+            .Where(path => includeStj || !Path.GetFileName(path).StartsWith("System.Text.Json", StringComparison.Ordinal))
             .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         return references;
     }
 
@@ -62,25 +53,20 @@ public sealed class StjOptionalGenerationTests
             "StjStubProbe",
             [modelTree, stubTree],
             TrustedReferences(includeStj: false),
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
     private static Dictionary<string, string> Run(CSharpCompilation compilation)
     {
         var (sources, diagnostics) = RunWithDiagnostics(compilation);
-        diagnostics
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return sources;
     }
 
-    private static (
-        Dictionary<string, string> Sources,
-        System.Collections.Immutable.ImmutableArray<Diagnostic> Diagnostics
-    ) RunWithDiagnostics(CSharpCompilation compilation)
+    private static (Dictionary<string, string> Sources, System.Collections.Immutable.ImmutableArray<Diagnostic> Diagnostics) RunWithDiagnostics(
+        CSharpCompilation compilation
+    )
     {
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
@@ -88,63 +74,36 @@ public sealed class StjOptionalGenerationTests
         var sources = result
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
         return (sources, result.Diagnostics);
     }
 
-    private static (
-        Dictionary<string, string> Sources,
-        ImmutableArray<Diagnostic> Diagnostics
-    ) RunIncremental(ref GeneratorDriver driver, CSharpCompilation compilation)
+    private static (Dictionary<string, string> Sources, ImmutableArray<Diagnostic> Diagnostics) RunIncremental(
+        ref GeneratorDriver driver,
+        CSharpCompilation compilation
+    )
     {
-        driver = driver.RunGeneratorsAndUpdateCompilation(
-            compilation,
-            out var outputCompilation,
-            out _
-        );
-        outputCompilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out _);
+        outputCompilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
 
         var result = driver.GetRunResult();
         var sources = result
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
         return (sources, result.Diagnostics);
     }
 
-    private static void CombinedCompilationHasNoErrors(
-        CSharpCompilation compilation,
-        Dictionary<string, string> sources
-    )
+    private static void CombinedCompilationHasNoErrors(CSharpCompilation compilation, Dictionary<string, string> sources)
     {
-        var generated = sources.Select(pair =>
-            CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)
-        );
+        var generated = sources.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key));
         var combined = compilation.AddSyntaxTrees(generated);
-        combined
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        combined.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     // Model older or partial System.Text.Json references so each test isolates
     // one capability gap.
-    private static string StjStubSource(
-        bool includePropertyOrder,
-        bool includeUnmappedHandling,
-        bool includeTypeInfoLookup
-    )
+    private static string StjStubSource(bool includePropertyOrder, bool includeUnmappedHandling, bool includeTypeInfoLookup)
     {
         var stub = new System.Text.StringBuilder();
         stub.AppendLine("namespace System.Text.Json");
@@ -166,126 +125,50 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    }");
         stub.AppendLine("    public sealed class JsonNamingPolicy");
         stub.AppendLine("    {");
-        stub.AppendLine(
-            "        public static JsonNamingPolicy CamelCase { get; } = new JsonNamingPolicy();"
-        );
-        stub.AppendLine(
-            "        public string ConvertName(string name) => throw new System.NotImplementedException();"
-        );
+        stub.AppendLine("        public static JsonNamingPolicy CamelCase { get; } = new JsonNamingPolicy();");
+        stub.AppendLine("        public string ConvertName(string name) => throw new System.NotImplementedException();");
         stub.AppendLine("    }");
         stub.AppendLine("    public struct Utf8JsonReader");
         stub.AppendLine("    {");
-        stub.AppendLine(
-            "        public JsonTokenType TokenType => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public bool Read() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public string? GetString() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public bool GetBoolean() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public byte GetByte() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public sbyte GetSByte() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public short GetInt16() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public ushort GetUInt16() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public int GetInt32() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public uint GetUInt32() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public long GetInt64() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public ulong GetUInt64() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public float GetSingle() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public double GetDouble() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public decimal GetDecimal() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public System.Guid GetGuid() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public System.DateTime GetDateTime() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public System.DateTimeOffset GetDateTimeOffset() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public bool ValueTextEquals(System.ReadOnlySpan<byte> utf8Text) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void Skip() => throw new System.NotImplementedException();"
-        );
+        stub.AppendLine("        public JsonTokenType TokenType => throw new System.NotImplementedException();");
+        stub.AppendLine("        public bool Read() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public string? GetString() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public bool GetBoolean() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public byte GetByte() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public sbyte GetSByte() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public short GetInt16() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public ushort GetUInt16() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public int GetInt32() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public uint GetUInt32() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public long GetInt64() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public ulong GetUInt64() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public float GetSingle() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public double GetDouble() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public decimal GetDecimal() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public System.Guid GetGuid() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public System.DateTime GetDateTime() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public System.DateTimeOffset GetDateTimeOffset() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public bool ValueTextEquals(System.ReadOnlySpan<byte> utf8Text) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void Skip() => throw new System.NotImplementedException();");
         stub.AppendLine("    }");
         stub.AppendLine("    public sealed class Utf8JsonWriter");
         stub.AppendLine("    {");
-        stub.AppendLine(
-            "        public void WriteStartObject() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteEndObject() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WritePropertyName(string name) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNullValue() => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteString(string propertyName, string? value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteStringValue(string? value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteBooleanValue(bool value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(int value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(uint value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(long value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(ulong value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(float value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(double value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteNumberValue(decimal value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteStringValue(System.DateTime value) => throw new System.NotImplementedException();"
-        );
-        stub.AppendLine(
-            "        public void WriteStringValue(System.DateTimeOffset value) => throw new System.NotImplementedException();"
-        );
+        stub.AppendLine("        public void WriteStartObject() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteEndObject() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WritePropertyName(string name) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNullValue() => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteString(string propertyName, string? value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteStringValue(string? value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteBooleanValue(bool value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(int value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(uint value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(long value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(ulong value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(float value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(double value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteNumberValue(decimal value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteStringValue(System.DateTime value) => throw new System.NotImplementedException();");
+        stub.AppendLine("        public void WriteStringValue(System.DateTimeOffset value) => throw new System.NotImplementedException();");
         stub.AppendLine("    }");
         stub.AppendLine("    public enum JsonTokenType");
         stub.AppendLine("    {");
@@ -302,9 +185,7 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    {");
         stub.AppendLine("        public JsonNamingPolicy? PropertyNamingPolicy { get; set; }");
         stub.AppendLine("        public bool PropertyNameCaseInsensitive { get; set; }");
-        stub.AppendLine(
-            "        public Serialization.JsonUnmappedMemberHandling UnmappedMemberHandling { get; set; }"
-        );
+        stub.AppendLine("        public Serialization.JsonUnmappedMemberHandling UnmappedMemberHandling { get; set; }");
         if (includeTypeInfoLookup)
         {
             stub.AppendLine(
@@ -317,9 +198,7 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    {");
         stub.AppendLine("        public JsonException() { }");
         stub.AppendLine("        public JsonException(string? message) : base(message) { }");
-        stub.AppendLine(
-            "        public JsonException(string? message, System.Exception? innerException) : base(message, innerException) { }"
-        );
+        stub.AppendLine("        public JsonException(string? message, System.Exception? innerException) : base(message, innerException) { }");
         stub.AppendLine("    }");
         stub.AppendLine("}");
         stub.AppendLine("namespace System.Text.Json.Serialization");
@@ -339,9 +218,7 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    }");
         if (includePropertyOrder)
         {
-            stub.AppendLine(
-                "    public sealed class JsonPropertyOrderAttribute : System.Attribute"
-            );
+            stub.AppendLine("    public sealed class JsonPropertyOrderAttribute : System.Attribute");
             stub.AppendLine("    {");
             stub.AppendLine("        public JsonPropertyOrderAttribute(int order) { }");
             stub.AppendLine("    }");
@@ -363,15 +240,11 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("        public JsonPolymorphicAttribute() { }");
         stub.AppendLine("        public string? TypeDiscriminatorPropertyName { get; set; }");
         stub.AppendLine("    }");
-        stub.AppendLine(
-            "    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]"
-        );
+        stub.AppendLine("    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]");
         stub.AppendLine("    public sealed class JsonDerivedTypeAttribute : System.Attribute");
         stub.AppendLine("    {");
         stub.AppendLine("        public JsonDerivedTypeAttribute(System.Type derivedType) { }");
-        stub.AppendLine(
-            "        public JsonDerivedTypeAttribute(System.Type derivedType, string typeDiscriminator) { }"
-        );
+        stub.AppendLine("        public JsonDerivedTypeAttribute(System.Type derivedType, string typeDiscriminator) { }");
         stub.AppendLine("    }");
         stub.AppendLine("    public enum JsonUnmappedMemberHandling");
         stub.AppendLine("    {");
@@ -382,13 +255,9 @@ public sealed class StjOptionalGenerationTests
         }
 
         stub.AppendLine("    }");
-        stub.AppendLine(
-            "    public sealed class JsonUnmappedMemberHandlingAttribute : System.Attribute"
-        );
+        stub.AppendLine("    public sealed class JsonUnmappedMemberHandlingAttribute : System.Attribute");
         stub.AppendLine("    {");
-        stub.AppendLine(
-            "        public JsonUnmappedMemberHandlingAttribute(JsonUnmappedMemberHandling handling) { }"
-        );
+        stub.AppendLine("        public JsonUnmappedMemberHandlingAttribute(JsonUnmappedMemberHandling handling) { }");
         stub.AppendLine("    }");
         stub.AppendLine("    public sealed class JsonConverterAttribute : System.Attribute");
         stub.AppendLine("    {");
@@ -405,10 +274,7 @@ public sealed class StjOptionalGenerationTests
         return stub.ToString().Replace("\r\n", "\n");
     }
 
-    private static void JsonFreeSourcesAreIdentical(
-        Dictionary<string, string> jsonRun,
-        Dictionary<string, string> otherRun
-    )
+    private static void JsonFreeSourcesAreIdentical(Dictionary<string, string> jsonRun, Dictionary<string, string> otherRun)
     {
         foreach (var pair in jsonRun)
         {
@@ -421,21 +287,14 @@ public sealed class StjOptionalGenerationTests
         }
     }
 
-    private static void UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-        CSharpCompilation compilation,
-        string missingCapability
-    )
+    private static void UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CSharpCompilation compilation, string missingCapability)
     {
         var capabilities = SparseStjCapabilityDetector.Probe(compilation);
         capabilities.SupportsV1Wire.ShouldBeFalse();
         capabilities.DescribeMissing().ShouldContain(missingCapability);
 
         var (sources, diagnostics) = RunWithDiagnostics(compilation);
-        diagnostics
-            .Where(static diagnostic => diagnostic.Id == "SPF028")
-            .ShouldHaveSingleItem()
-            .GetMessage()
-            .ShouldContain(missingCapability);
+        diagnostics.Where(static diagnostic => diagnostic.Id == "SPF028").ShouldHaveSingleItem().GetMessage().ShouldContain(missingCapability);
         sources.Keys.ShouldContain(static hint => hint.Contains("StjProbeModel"));
         var generated = string.Concat(sources.Values);
         generated.ShouldContain("Fragment");
@@ -449,11 +308,7 @@ public sealed class StjOptionalGenerationTests
         CombinedCompilationHasNoErrors(compilation, sources);
     }
 
-    private static void HasSpf028(
-        ImmutableArray<Diagnostic> diagnostics,
-        bool expected,
-        string? expectedMessage = null
-    )
+    private static void HasSpf028(ImmutableArray<Diagnostic> diagnostics, bool expected, string? expectedMessage = null)
     {
         var spf028 = diagnostics.Where(static diagnostic => diagnostic.Id == "SPF028").ToList();
         if (expected)
@@ -478,10 +333,8 @@ public sealed class StjOptionalGenerationTests
         }
     }
 
-    private static void HasStableHints(
-        Dictionary<string, string> expected,
-        Dictionary<string, string> actual
-    ) => actual.Keys.ShouldBe(expected.Keys, ignoreOrder: true);
+    private static void HasStableHints(Dictionary<string, string> expected, Dictionary<string, string> actual) =>
+        actual.Keys.ShouldBe(expected.Keys, ignoreOrder: true);
 
     [Test]
     public void WithoutStj_EmitsSerializerIndependentCoreOnly()
@@ -519,7 +372,7 @@ public sealed class StjOptionalGenerationTests
         merged.ShouldContain("JsonPolymorphic");
         merged.ShouldContain("JsonUnmappedMemberHandling");
         merged.ShouldContain("PayloadJsonConverter");
-        merged.ShouldContain("public static class StjProbeModelJson");
+        merged.ShouldContain("public static class PayloadJson");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -530,11 +383,7 @@ public sealed class StjOptionalGenerationTests
         // The hand-built surface is complete, so the detector must accept it
         // exactly like a current reference assembly.
         var compilation = CreateStubCompilation(
-            StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+            StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
         );
         SparseStjCapabilityDetector.Probe(compilation).SupportsPayloadJsonResolver.ShouldBeFalse();
         var sources = Run(compilation);
@@ -542,7 +391,7 @@ public sealed class StjOptionalGenerationTests
 
         merged.ShouldContain("ChangePayloadEndpointJsonConverter");
         merged.ShouldContain("ChangePayloadItemKindJsonConverter");
-        merged.ShouldNotContain("public sealed class PayloadJsonConverter");
+        merged.ShouldNotContain("internal sealed class PayloadJsonConverter");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -553,17 +402,11 @@ public sealed class StjOptionalGenerationTests
         // Representative older set: no ordering attribute and no metadata
         // lookup.
         var compilation = CreateStubCompilation(
-            StjStubSource(
-                includePropertyOrder: false,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: false
-            )
+            StjStubSource(includePropertyOrder: false, includeUnmappedHandling: true, includeTypeInfoLookup: false)
         );
         var capabilities = SparseStjCapabilityDetector.Probe(compilation);
         capabilities.SupportsV1Wire.ShouldBeFalse();
-        capabilities
-            .DescribeMissing()
-            .ShouldBe("JsonPropertyOrderAttribute, JsonTypeInfo/GetTypeInfo/serializer overloads");
+        capabilities.DescribeMissing().ShouldBe("JsonPropertyOrderAttribute, JsonTypeInfo/GetTypeInfo/serializer overloads");
 
         var (sources, diagnostics) = RunWithDiagnostics(compilation);
         var spf028 = diagnostics.Where(static diagnostic => diagnostic.Id == "SPF028").ToList();
@@ -584,11 +427,7 @@ public sealed class StjOptionalGenerationTests
         // Partially available member signature: the handling enum exists but
         // Disallow is missing, so strict payloads cannot be expressed.
         var compilation = CreateStubCompilation(
-            StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: false,
-                includeTypeInfoLookup: true
-            )
+            StjStubSource(includePropertyOrder: true, includeUnmappedHandling: false, includeTypeInfoLookup: true)
         );
         var capabilities = SparseStjCapabilityDetector.Probe(compilation);
         capabilities.SupportsV1Wire.ShouldBeFalse();
@@ -610,101 +449,62 @@ public sealed class StjOptionalGenerationTests
     [Test]
     public void WrongSerializerReturnType_OmitsJsonAndReportsSpf028()
     {
-        var stub = StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+        var stub = StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
             .Replace(
                 "public static T? Deserialize<T>(ref Utf8JsonReader reader, Serialization.Metadata.JsonTypeInfo<T> typeInfo) => throw new System.NotImplementedException();",
                 "public static string? Deserialize<T>(ref Utf8JsonReader reader, Serialization.Metadata.JsonTypeInfo<T> typeInfo) => throw new System.NotImplementedException();",
                 StringComparison.Ordinal
             );
 
-        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-            CreateStubCompilation(stub),
-            "serializer overloads"
-        );
+        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CreateStubCompilation(stub), "serializer overloads");
     }
 
     [Test]
     public void SerializerArgumentMismatch_OmitsJsonAndReportsSpf028()
     {
-        var stub = StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+        var stub = StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
             .Replace(
                 "public static T? Deserialize<T>(ref Utf8JsonReader reader, Serialization.Metadata.JsonTypeInfo<T> typeInfo)",
                 "public static T? Deserialize<T>(ref Utf8JsonReader reader, object typeInfo)",
                 StringComparison.Ordinal
             );
 
-        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-            CreateStubCompilation(stub),
-            "serializer overloads"
-        );
+        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CreateStubCompilation(stub), "serializer overloads");
     }
 
     [Test]
     public void MissingReaderMethod_OmitsJsonAndReportsSpf028()
     {
-        var stub = StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
-            .Replace(
-                "        public void Skip() => throw new System.NotImplementedException();\n",
-                string.Empty,
-                StringComparison.Ordinal
-            );
+        var stub = StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
+            .Replace("        public void Skip() => throw new System.NotImplementedException();\n", string.Empty, StringComparison.Ordinal);
 
-        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-            CreateStubCompilation(stub),
-            "Utf8JsonReader/Writer"
-        );
+        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CreateStubCompilation(stub), "Utf8JsonReader/Writer");
     }
 
     [Test]
     public void ConverterRefKindMismatch_OmitsJsonAndReportsSpf028()
     {
-        var stub = StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+        var stub = StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
             .Replace(
                 "public abstract T? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options);",
                 "public abstract T? Read(System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options);",
                 StringComparison.Ordinal
             );
 
-        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-            CreateStubCompilation(stub),
-            "JsonConverter<T>"
-        );
+        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CreateStubCompilation(stub), "JsonConverter<T>");
     }
 
     [Test]
     public void UnusableAttributeSetter_OmitsJsonAndReportsSpf028()
     {
-        var stub = StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+        var stub = StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
             .Replace(
                 "public JsonIgnoreCondition Condition { get; set; }",
                 "public JsonIgnoreCondition Condition { get; private set; }",
                 StringComparison.Ordinal
             );
 
-        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(
-            CreateStubCompilation(stub),
-            "JsonIgnoreAttribute/Condition"
-        );
+        UnsupportedJsonSurfaceOmitsJsonAndReportsSpf028(CreateStubCompilation(stub), "JsonIgnoreAttribute/Condition");
     }
 
     [Test]
@@ -717,9 +517,7 @@ public sealed class StjOptionalGenerationTests
         HasSpf028(withoutStj.Diagnostics, expected: false);
         HasNoJsonArtifacts(withoutStj.Sources);
 
-        var withStjCompilation = withoutStjCompilation.WithReferences(
-            TrustedReferences(includeStj: true)
-        );
+        var withStjCompilation = withoutStjCompilation.WithReferences(TrustedReferences(includeStj: true));
         var withStj = RunIncremental(ref driver, withStjCompilation);
 
         HasSpf028(withStj.Diagnostics, expected: false);
@@ -727,9 +525,7 @@ public sealed class StjOptionalGenerationTests
         HasStableHints(withoutStj.Sources, withStj.Sources);
         JsonFreeSourcesAreIdentical(withStj.Sources, withoutStj.Sources);
 
-        var withoutStjAgainCompilation = withStjCompilation.WithReferences(
-            TrustedReferences(includeStj: false)
-        );
+        var withoutStjAgainCompilation = withStjCompilation.WithReferences(TrustedReferences(includeStj: false));
         var withoutStjAgain = RunIncremental(ref driver, withoutStjAgainCompilation);
 
         HasSpf028(withoutStjAgain.Diagnostics, expected: false);
@@ -738,40 +534,26 @@ public sealed class StjOptionalGenerationTests
         JsonFreeSourcesAreIdentical(withStj.Sources, withoutStjAgain.Sources);
 
         var partialStubTree = CSharpSyntaxTree.ParseText(
-            StjStubSource(
-                includePropertyOrder: false,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: false
-            ),
+            StjStubSource(includePropertyOrder: false, includeUnmappedHandling: true, includeTypeInfoLookup: false),
             path: "StjStubs.cs"
         );
         var partialStubCompilation = withoutStjAgainCompilation.AddSyntaxTrees(partialStubTree);
         var partialStub = RunIncremental(ref driver, partialStubCompilation);
 
-        HasSpf028(
-            partialStub.Diagnostics,
-            expected: true,
-            expectedMessage: "JsonPropertyOrderAttribute"
-        );
+        HasSpf028(partialStub.Diagnostics, expected: true, expectedMessage: "JsonPropertyOrderAttribute");
         HasNoJsonArtifacts(partialStub.Sources);
         HasStableHints(withStj.Sources, partialStub.Sources);
         JsonFreeSourcesAreIdentical(withStj.Sources, partialStub.Sources);
 
         var upgradedStubTree = CSharpSyntaxTree.ParseText(
-            StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            ),
+            StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true),
             path: "StjStubs.cs"
         );
-        var upgradedStubCompilation = (CSharpCompilation)
-            partialStubCompilation.ReplaceSyntaxTree(partialStubTree, upgradedStubTree);
+        var upgradedStubCompilation = (CSharpCompilation)partialStubCompilation.ReplaceSyntaxTree(partialStubTree, upgradedStubTree);
         var upgradedStub = RunIncremental(ref driver, upgradedStubCompilation);
 
         HasSpf028(upgradedStub.Diagnostics, expected: false);
-        string.Concat(upgradedStub.Sources.Values)
-            .ShouldContain("ChangePayloadEndpointJsonConverter");
+        string.Concat(upgradedStub.Sources.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
         HasStableHints(partialStub.Sources, upgradedStub.Sources);
         JsonFreeSourcesAreIdentical(upgradedStub.Sources, partialStub.Sources);
     }
@@ -780,21 +562,13 @@ public sealed class StjOptionalGenerationTests
     public void UpgradingPartialSurfaceToFull_RestoresBridgeWithStableHints()
     {
         var olderCompilation = CreateStubCompilation(
-            StjStubSource(
-                includePropertyOrder: false,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: false
-            )
+            StjStubSource(includePropertyOrder: false, includeUnmappedHandling: true, includeTypeInfoLookup: false)
         );
         var (olderSources, olderDiagnostics) = RunWithDiagnostics(olderCompilation);
         olderDiagnostics.Where(static diagnostic => diagnostic.Id == "SPF028").Count().ShouldBe(1);
 
         var fullCompilation = CreateStubCompilation(
-            StjStubSource(
-                includePropertyOrder: true,
-                includeUnmappedHandling: true,
-                includeTypeInfoLookup: true
-            )
+            StjStubSource(includePropertyOrder: true, includeUnmappedHandling: true, includeTypeInfoLookup: true)
         );
         var fullSources = Run(fullCompilation);
 

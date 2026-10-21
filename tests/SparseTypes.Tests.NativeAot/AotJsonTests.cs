@@ -9,13 +9,7 @@ namespace SparseTypes.Tests.NativeAot;
 public sealed class AotJsonTests
 {
     private static JsonSerializerOptions PayloadCollectionOptions() =>
-        new()
-        {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(
-                PayloadCollectionJson.Resolver,
-                PayloadLeafContext.Default
-            ),
-        };
+        new() { TypeInfoResolver = JsonTypeInfoResolver.Combine(PayloadCollection.PayloadJson.Resolver, PayloadLeafContext.Default) };
 
     private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<PayloadCollection.ChangePayload> PayloadCollectionTypeInfo(
         JsonSerializerOptions options
@@ -32,10 +26,7 @@ public sealed class AotJsonTests
 
     // Serializes through the generated converter directly (the same path the
     // Patch converter uses for fragments).
-    private static string ToCanonicalJson(
-        AotWidget.Fragment fragment,
-        JsonSerializerOptions options
-    )
+    private static string ToCanonicalJson(AotWidget.Fragment fragment, JsonSerializerOptions options)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
@@ -51,9 +42,7 @@ public sealed class AotJsonTests
         {
             Name = Optional<string?>.Present("a"),
             Count = Optional<int>.Present(1),
-            Nested = Optional<AotNested.Fragment?>.Present(
-                new AotNested.Fragment { Host = Optional<string>.Present("h") }
-            ),
+            Nested = Optional<AotNested.Fragment?>.Present(new AotNested.Fragment { Host = Optional<string>.Present("h") }),
         };
 
     [Test]
@@ -68,14 +57,9 @@ public sealed class AotJsonTests
     [Test]
     public async Task FragmentPreservesExplicitNullInJson()
     {
-        var explicitNullFragment = new AotWidget.Fragment
-        {
-            Name = Optional<string?>.Present(null),
-        };
+        var explicitNullFragment = new AotWidget.Fragment { Name = Optional<string?>.Present(null) };
 
-        await Assert
-            .That(ToCanonicalJson(explicitNullFragment, AotOptions()).Contains("\"Name\":null"))
-            .IsTrue();
+        await Assert.That(ToCanonicalJson(explicitNullFragment, AotOptions()).Contains("\"Name\":null")).IsTrue();
     }
 
     [Test]
@@ -96,21 +80,14 @@ public sealed class AotJsonTests
         var widgetBefore = WidgetState("old", "h1");
         var widgetAfter = WidgetState("new", "h2");
         var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
-        var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRootJson.Default);
+        var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRoot.PayloadJson.Default);
         // /sample
         using (var document = JsonDocument.Parse(json))
         {
             await Assert
-                .That(
-                    document
-                        .RootElement.EnumerateObject()
-                        .Select(property => property.Name)
-                        .SequenceEqual(["version", "changes"])
-                )
+                .That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "changes"]))
                 .IsTrue();
-            await Assert
-                .That(document.RootElement.GetProperty("version").GetString())
-                .IsEqualTo("0.1");
+            await Assert.That(document.RootElement.GetProperty("version").GetString()).IsEqualTo("0.1");
             var nested = document
                 .RootElement.GetProperty("changes")
                 .EnumerateArray()
@@ -123,37 +100,19 @@ public sealed class AotJsonTests
                 .EnumerateArray()
                 .Single(change => change.GetProperty("member").GetString() == "Label")
                 .GetProperty("after");
-            await Assert
-                .That(
-                    endpoint
-                        .EnumerateObject()
-                        .Select(property => property.Name)
-                        .SequenceEqual(["state", "value"])
-                )
-                .IsTrue();
+            await Assert.That(endpoint.EnumerateObject().Select(property => property.Name).SequenceEqual(["state", "value"])).IsTrue();
         }
         await Assert.That(json.Contains("\"state\":\"value\"")).IsTrue();
 
         // sample: payload-native-aot
-        var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
-        await Assert
-            .That(
-                PayloadRoot
-                    .Patch.Between(restored.ToPatch().Apply(widgetBefore), widgetAfter)
-                    .IsEmpty
-            )
-            .IsTrue();
+        var restored = JsonSerializer.Deserialize(json, PayloadRoot.PayloadJson.Default)!.ToChangeSet();
+        await Assert.That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(widgetBefore), widgetAfter).IsEmpty).IsTrue();
         // /sample
 
         Optional<PayloadCollection.Fragment?> ServerState(params PayloadItem[] items) =>
-            Optional<PayloadCollection.Fragment?>.Present(
-                PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() })
-            );
+            Optional<PayloadCollection.Fragment?>.Present(PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() }));
         var serverBefore = ServerState(new PayloadItem { Id = "a", Name = "A" });
-        var serverAfter = ServerState(
-            new PayloadItem { Id = "a", Name = "A2" },
-            new PayloadItem { Id = "b", Name = "B" }
-        );
+        var serverAfter = ServerState(new PayloadItem { Id = "a", Name = "A2" }, new PayloadItem { Id = "b", Name = "B" });
         var serverChanges = PayloadCollection.ChangeSet.Between(serverBefore, serverAfter);
         var serverOptions = PayloadCollectionOptions();
         var serverTypeInfo = PayloadCollectionTypeInfo(serverOptions);
@@ -164,62 +123,36 @@ public sealed class AotJsonTests
             .EnumerateArray()
             .Single(change => change.GetProperty("member").GetString() == "Items")
             .GetProperty("items");
-        var editedItem = serverItems
-            .EnumerateArray()
-            .Single(item => item.GetProperty("key").GetString() == "a");
+        var editedItem = serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "a");
         await Assert
-            .That(
-                editedItem
-                    .EnumerateObject()
-                    .Select(property => property.Name)
-                    .SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "edit"])
-            )
+            .That(editedItem.EnumerateObject().Select(property => property.Name).SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "edit"]))
             .IsTrue();
         await Assert.That(editedItem.GetProperty("kind").GetString()).IsEqualTo("edit");
         await Assert
-            .That(
-                serverItems
-                    .EnumerateArray()
-                    .Single(item => item.GetProperty("key").GetString() == "b")
-                    .GetProperty("kind")
-                    .GetString()
-            )
+            .That(serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "b").GetProperty("kind").GetString())
             .IsEqualTo("add");
         var serverRestored = JsonSerializer.Deserialize(serverJson, serverTypeInfo)!.ToChangeSet();
-        await Assert
-            .That(
-                PayloadCollection
-                    .Patch.Between(serverRestored.ToPatch().Apply(serverBefore), serverAfter)
-                    .IsEmpty
-            )
-            .IsTrue();
+        await Assert.That(PayloadCollection.Patch.Between(serverRestored.ToPatch().Apply(serverBefore), serverAfter).IsEmpty).IsTrue();
     }
 
     [Test]
     public async Task ChangePayloadRedactsBeforeStateWithSourceGen()
     {
         Optional<PayloadSecret.Fragment?> SecretState(string? label, string? token) =>
-            Optional<PayloadSecret.Fragment?>.Present(
-                PayloadSecret.Fragment.From(new PayloadSecret { Label = label, Token = token })
-            );
+            Optional<PayloadSecret.Fragment?>.Present(PayloadSecret.Fragment.From(new PayloadSecret { Label = label, Token = token }));
 
         var before = SecretState("before", "before-token");
         var after = SecretState("after", "after-token");
-        var json = JsonSerializer.Serialize(
-            PayloadSecret.ChangeSet.Between(before, after).ToPayload(),
-            PayloadSecretJson.Default
-        );
+        var json = JsonSerializer.Serialize(PayloadSecret.ChangeSet.Between(before, after).ToPayload(), PayloadSecret.PayloadJson.Default);
 
         await Assert.That(json.Contains("\"version\":\"0.1\"")).IsTrue();
         await Assert.That(json.Contains("\"state\":\"redacted\"")).IsTrue();
         await Assert.That(json.Contains("before-token")).IsFalse();
 
-        var restored = JsonSerializer.Deserialize(json, PayloadSecretJson.Default)!.ToPatch();
-        await Assert
-            .That(PayloadSecret.Patch.Between(restored.Apply(before), after).IsEmpty)
-            .IsTrue();
+        var restored = JsonSerializer.Deserialize(json, PayloadSecret.PayloadJson.Default)!.ToPatch();
+        await Assert.That(PayloadSecret.Patch.Between(restored.Apply(before), after).IsEmpty).IsTrue();
 
-        var incomplete = JsonSerializer.Deserialize(json, PayloadSecretJson.Default)!;
+        var incomplete = JsonSerializer.Deserialize(json, PayloadSecret.PayloadJson.Default)!;
         var rejected = false;
         try
         {
@@ -255,115 +188,62 @@ public sealed class AotJsonTests
 
         var before = EnumState(AotOrderStatus.Open);
         var after = EnumState(AotOrderStatus.Closed);
-        var json = JsonSerializer.Serialize(
-            PayloadRoot.ChangeSet.Between(before, after).ToPayload(),
-            PayloadRootJson.Default
-        );
-        var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
-        await Assert
-            .That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty)
-            .IsTrue();
+        var json = JsonSerializer.Serialize(PayloadRoot.ChangeSet.Between(before, after).ToPayload(), PayloadRoot.PayloadJson.Default);
+        var restored = JsonSerializer.Deserialize(json, PayloadRoot.PayloadJson.Default)!.ToChangeSet();
+        await Assert.That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty).IsTrue();
     }
 
     [Test]
     public async Task KeyedRemovalAndReorderRoundTripWithSourceGen()
     {
         Optional<PayloadCollection.Fragment?> ServerState(params PayloadItem[] items) =>
-            Optional<PayloadCollection.Fragment?>.Present(
-                PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() })
-            );
+            Optional<PayloadCollection.Fragment?>.Present(PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() }));
 
-        var before = ServerState(
-            new PayloadItem { Id = "a", Name = "A" },
-            new PayloadItem { Id = "b", Name = "B" }
-        );
+        var before = ServerState(new PayloadItem { Id = "a", Name = "A" }, new PayloadItem { Id = "b", Name = "B" });
         var removed = ServerState(new PayloadItem { Id = "a", Name = "A" });
         var collectionOptions = PayloadCollectionOptions();
         var collectionTypeInfo = PayloadCollectionTypeInfo(collectionOptions);
-        var removeJson = JsonSerializer.Serialize(
-            PayloadCollection.ChangeSet.Between(before, removed).ToPayload(),
-            collectionTypeInfo
-        );
+        var removeJson = JsonSerializer.Serialize(PayloadCollection.ChangeSet.Between(before, removed).ToPayload(), collectionTypeInfo);
         await Assert.That(removeJson.Contains("\"kind\":\"remove\"")).IsTrue();
-        var removeRestored = JsonSerializer
-            .Deserialize(removeJson, collectionTypeInfo)!
-            .ToChangeSet();
-        await Assert
-            .That(
-                PayloadCollection
-                    .Patch.Between(removeRestored.ToPatch().Apply(before), removed)
-                    .IsEmpty
-            )
-            .IsTrue();
+        var removeRestored = JsonSerializer.Deserialize(removeJson, collectionTypeInfo)!.ToChangeSet();
+        await Assert.That(PayloadCollection.Patch.Between(removeRestored.ToPatch().Apply(before), removed).IsEmpty).IsTrue();
 
         // Scalar removals carry the missing state explicitly, unlike keyed
         // items which omit the unneeded endpoint.
-        var missingBefore = Optional<PayloadRoot.Fragment?>.Present(
-            new PayloadRoot.Fragment { Label = Optional<string?>.Present("gone") }
-        );
+        var missingBefore = Optional<PayloadRoot.Fragment?>.Present(new PayloadRoot.Fragment { Label = Optional<string?>.Present("gone") });
         var missingAfter = Optional<PayloadRoot.Fragment?>.Present(new PayloadRoot.Fragment());
         var missingJson = JsonSerializer.Serialize(
             PayloadRoot.ChangeSet.Between(missingBefore, missingAfter).ToPayload(),
-            PayloadRootJson.Default
+            PayloadRoot.PayloadJson.Default
         );
         await Assert.That(missingJson.Contains("\"state\":\"missing\"")).IsTrue();
-        var missingRestored = JsonSerializer
-            .Deserialize(missingJson, PayloadRootJson.Default)!
-            .ToChangeSet();
-        await Assert
-            .That(
-                PayloadRoot
-                    .Patch.Between(missingRestored.ToPatch().Apply(missingBefore), missingAfter)
-                    .IsEmpty
-            )
-            .IsTrue();
+        var missingRestored = JsonSerializer.Deserialize(missingJson, PayloadRoot.PayloadJson.Default)!.ToChangeSet();
+        await Assert.That(PayloadRoot.Patch.Between(missingRestored.ToPatch().Apply(missingBefore), missingAfter).IsEmpty).IsTrue();
 
-        var reordered = ServerState(
-            new PayloadItem { Id = "b", Name = "B" },
-            new PayloadItem { Id = "a", Name = "A" }
-        );
-        var reorderJson = JsonSerializer.Serialize(
-            PayloadCollection.ChangeSet.Between(before, reordered).ToPayload(),
-            collectionTypeInfo
-        );
+        var reordered = ServerState(new PayloadItem { Id = "b", Name = "B" }, new PayloadItem { Id = "a", Name = "A" });
+        var reorderJson = JsonSerializer.Serialize(PayloadCollection.ChangeSet.Between(before, reordered).ToPayload(), collectionTypeInfo);
         await Assert.That(reorderJson.Contains("\"kind\":\"reorder\"")).IsTrue();
-        var reorderRestored = JsonSerializer
-            .Deserialize(reorderJson, collectionTypeInfo)!
-            .ToChangeSet();
-        await Assert
-            .That(
-                PayloadCollection
-                    .Patch.Between(reorderRestored.ToPatch().Apply(before), reordered)
-                    .IsEmpty
-            )
-            .IsTrue();
+        var reorderRestored = JsonSerializer.Deserialize(reorderJson, collectionTypeInfo)!.ToChangeSet();
+        await Assert.That(PayloadCollection.Patch.Between(reorderRestored.ToPatch().Apply(before), reordered).IsEmpty).IsTrue();
     }
 
     [Test]
     public async Task UnknownKindTokenRejectedWithSourceGen()
     {
         Optional<PayloadCollection.Fragment?> ServerState(params PayloadItem[] items) =>
-            Optional<PayloadCollection.Fragment?>.Present(
-                PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() })
-            );
+            Optional<PayloadCollection.Fragment?>.Present(PayloadCollection.Fragment.From(new PayloadCollection { Items = items.ToList() }));
 
         var before = ServerState(new PayloadItem { Id = "a", Name = "A" });
         var after = ServerState(new PayloadItem { Id = "a", Name = "A2" });
         var kindOptions = PayloadCollectionOptions();
         var kindTypeInfo = PayloadCollectionTypeInfo(kindOptions);
-        var json = JsonSerializer.Serialize(
-            PayloadCollection.ChangeSet.Between(before, after).ToPayload(),
-            kindTypeInfo
-        );
+        var json = JsonSerializer.Serialize(PayloadCollection.ChangeSet.Between(before, after).ToPayload(), kindTypeInfo);
         await Assert.That(json.Contains("\"kind\":\"edit\"")).IsTrue();
 
         var rejected = false;
         try
         {
-            JsonSerializer.Deserialize(
-                json.Replace("\"kind\":\"edit\"", "\"kind\":\"bogus\""),
-                kindTypeInfo
-            );
+            JsonSerializer.Deserialize(json.Replace("\"kind\":\"edit\"", "\"kind\":\"bogus\""), kindTypeInfo);
         }
         catch (JsonException)
         {
@@ -390,12 +270,7 @@ public sealed class AotJsonTests
         await Assert.That(notified).IsEqualTo(2);
     }
 
-    private static PocoLeaf SampleLeaf(
-        string name,
-        int count,
-        bool withNote = false,
-        string? secret = null
-    ) =>
+    private static PocoLeaf SampleLeaf(string name, int count, bool withNote = false, string? secret = null) =>
         new()
         {
             Name = name,
@@ -408,20 +283,13 @@ public sealed class AotJsonTests
             Note = withNote ? "note-" + name : null,
         };
 
-    private static JsonTypeInfo<PocoCatalog.ChangePayload> PocoCatalogTypeInfo(
-        JsonSerializerOptions options
-    ) =>
-        (JsonTypeInfo<PocoCatalog.ChangePayload>)
-            options.GetTypeInfo(typeof(PocoCatalog.ChangePayload));
+    private static JsonTypeInfo<PocoCatalog.ChangePayload> PocoCatalogTypeInfo(JsonSerializerOptions options) =>
+        (JsonTypeInfo<PocoCatalog.ChangePayload>)options.GetTypeInfo(typeof(PocoCatalog.ChangePayload));
 
     [Test]
     public async Task PocoLeafRoundTripsThroughDefaultResolverAlone()
     {
-        Optional<PocoCatalog.Fragment?> CatalogState(
-            PocoLeaf? leaf,
-            string suffix,
-            bool withSecond = true
-        ) =>
+        Optional<PocoCatalog.Fragment?> CatalogState(PocoLeaf? leaf, string suffix, bool withSecond = true) =>
             Optional<PocoCatalog.Fragment?>.Present(
                 PocoCatalog.Fragment.From(
                     new PocoCatalog
@@ -430,16 +298,9 @@ public sealed class AotJsonTests
                         SharedA = SampleLeaf("shared", 1),
                         SharedB = new PocoLeaf { Name = "sparse", Count = 0 },
                         Leaves = withSecond
-                            ? new List<PocoLeaf>
-                            {
-                                SampleLeaf("first", 1),
-                                SampleLeaf("second", 2, withNote: true),
-                            }
+                            ? new List<PocoLeaf> { SampleLeaf("first", 1), SampleLeaf("second", 2, withNote: true) }
                             : new List<PocoLeaf> { SampleLeaf("first", 1) },
-                        Lookup = new Dictionary<string, PocoLeaf>
-                        {
-                            ["k" + suffix] = SampleLeaf("mapped", 3),
-                        },
+                        Lookup = new Dictionary<string, PocoLeaf> { ["k" + suffix] = SampleLeaf("mapped", 3) },
                     }
                 )
             );
@@ -448,18 +309,15 @@ public sealed class AotJsonTests
         // like System.Text.Json source generation.
         var before = CatalogState(SampleLeaf("old", 1, secret: "secret-old"), "old", false);
         var after = CatalogState(SampleLeaf("new", 2, secret: "secret-new"), "new");
-        var json = JsonSerializer.Serialize(
-            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
-            PocoCatalogJson.Default
-        );
+        var json = JsonSerializer.Serialize(PocoCatalog.ChangeSet.Between(before, after).ToPayload(), PocoCatalog.PayloadJson.Default);
 
         await Assert.That(json.Contains("\"tag\":\"label-")).IsTrue();
         await Assert.That(!json.Contains("secret-")).IsTrue();
         await Assert.That(!json.Contains("\"Secret\"")).IsTrue();
 
         // The wire is stable through a second round-trip.
-        var restored = JsonSerializer.Deserialize(json, PocoCatalogJson.Default)!;
-        var stable = JsonSerializer.Serialize(restored, PocoCatalogJson.Default);
+        var restored = JsonSerializer.Deserialize(json, PocoCatalog.PayloadJson.Default)!;
+        var stable = JsonSerializer.Serialize(restored, PocoCatalog.PayloadJson.Default);
         await Assert.That(stable).IsEqualTo(json);
 
         // Before/after state arrives field-complete (custom leaves compare by
@@ -486,19 +344,13 @@ public sealed class AotJsonTests
     public async Task PocoLeafWireMatchesSystemTextJsonDefaults()
     {
         var leaf = SampleLeaf("parity", 7, withNote: true);
-        var options = new JsonSerializerOptions { TypeInfoResolver = PocoCatalogJson.Resolver };
-        var generated = JsonSerializer.Serialize(
-            leaf,
-            (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf))
-        );
+        var options = new JsonSerializerOptions { TypeInfoResolver = PocoCatalog.PayloadJson.Resolver };
+        var generated = JsonSerializer.Serialize(leaf, (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf)));
         var baseline = JsonSerializer.Serialize(leaf, PocoParityContext.Default.PocoLeaf);
 
         await Assert.That(generated).IsEqualTo(baseline);
 
-        var roundTripped = JsonSerializer.Deserialize(
-            generated,
-            (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf))
-        )!;
+        var roundTripped = JsonSerializer.Deserialize(generated, (JsonTypeInfo<PocoLeaf>)options.GetTypeInfo(typeof(PocoLeaf)))!;
         await Assert.That(roundTripped.Name).IsEqualTo("parity");
         await Assert.That(roundTripped.Count).IsEqualTo(7);
         await Assert.That(roundTripped.Child!.Code).IsEqualTo("c-parity");
@@ -512,9 +364,7 @@ public sealed class AotJsonTests
     public async Task PocoKeyedAddRemoveEditRoundTripsWithoutLeafContext()
     {
         Optional<PocoKeyed.Fragment?> KeyedState(params PocoItem[] items) =>
-            Optional<PocoKeyed.Fragment?>.Present(
-                PocoKeyed.Fragment.From(new PocoKeyed { Items = items.ToList() })
-            );
+            Optional<PocoKeyed.Fragment?>.Present(PocoKeyed.Fragment.From(new PocoKeyed { Items = items.ToList() }));
 
         var before = KeyedState(
             new PocoItem
@@ -534,10 +384,7 @@ public sealed class AotJsonTests
             },
             new PocoItem { Id = "c", Name = "C" }
         );
-        var json = JsonSerializer.Serialize(
-            PocoKeyed.ChangeSet.Between(before, after).ToPayload(),
-            PocoKeyedJson.Default
-        );
+        var json = JsonSerializer.Serialize(PocoKeyed.ChangeSet.Between(before, after).ToPayload(), PocoKeyed.PayloadJson.Default);
 
         await Assert.That(json.Contains("\"kind\":\"add\"")).IsTrue();
         await Assert.That(json.Contains("\"kind\":\"remove\"")).IsTrue();
@@ -545,8 +392,8 @@ public sealed class AotJsonTests
         await Assert.That(json.Contains("\"Display\":\"c:C\"")).IsTrue();
         await Assert.That(json.Contains("\"tag\":\"label-detail-a\"")).IsTrue();
 
-        var restored = JsonSerializer.Deserialize(json, PocoKeyedJson.Default)!;
-        var stable = JsonSerializer.Serialize(restored, PocoKeyedJson.Default);
+        var restored = JsonSerializer.Deserialize(json, PocoKeyed.PayloadJson.Default)!;
+        var stable = JsonSerializer.Serialize(restored, PocoKeyed.PayloadJson.Default);
         await Assert.That(stable).IsEqualTo(json);
 
         var applied = restored.ToPatch().Apply(before).Value!;
@@ -572,46 +419,23 @@ public sealed class AotJsonTests
                 Lookup = new Dictionary<string, PocoLeaf> { ["rk"] = SampleLeaf("root-mapped", 2) },
             }
         );
-        var root = global::SparseTypes.Generated.__Internal_8A3146FA.Root_8A3146FA.FromFragment(
-            fragment
-        );
-        var options = new JsonSerializerOptions { TypeInfoResolver = PocoCatalogJson.Resolver };
-
-        string json;
-        using (var stream = new MemoryStream())
-        {
-            using (var writer = new Utf8JsonWriter(stream))
-            {
-                PocoCatalog.PayloadJsonConverter.WriteRoot(writer, root, options);
-            }
-
-            json = Encoding.UTF8.GetString(stream.ToArray());
-        }
+        var before = Optional<PocoCatalog.Fragment?>.Missing;
+        var after = Optional<PocoCatalog.Fragment?>.Present(fragment);
+        var payload = PocoCatalog.ChangeSet.Between(before, after).ToPayload();
+        var json = JsonSerializer.Serialize(payload, PocoCatalog.PayloadJson.Default);
 
         await Assert.That(json.Contains("\"tag\":\"label-root\"")).IsTrue();
 
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var reader = new Utf8JsonReader(bytes);
-        reader.Read();
-        var restored = PocoCatalog.PayloadJsonConverter.ReadRoot(ref reader, options);
-        var restoredFragment = restored.ToFragment();
+        var restored = JsonSerializer.Deserialize(json, PocoCatalog.PayloadJson.Default)!;
+        var applied = restored.ToChangeSet().ToPatch().Apply(before);
+        var restoredFragment = applied.Value!;
         await Assert.That(restoredFragment.Leaf.Value!.Name).IsEqualTo("root");
         await Assert.That(restoredFragment.Leaf.Value!.Child!.Level).IsEqualTo(9);
         await Assert.That(restoredFragment.Leaves.Value!.Count).IsEqualTo(1);
         await Assert.That(restoredFragment.Leaves.Value[0].Label).IsEqualTo("label-root-item");
         await Assert.That(restoredFragment.Lookup.Value!["rk"].Count).IsEqualTo(2);
 
-        string stable;
-        using (var stream = new MemoryStream())
-        {
-            using (var writer = new Utf8JsonWriter(stream))
-            {
-                PocoCatalog.PayloadJsonConverter.WriteRoot(writer, restored, options);
-            }
-
-            stable = Encoding.UTF8.GetString(stream.ToArray());
-        }
-
+        var stable = JsonSerializer.Serialize(restored, PocoCatalog.PayloadJson.Default);
         await Assert.That(stable).IsEqualTo(json);
     }
 
@@ -619,23 +443,18 @@ public sealed class AotJsonTests
     public async Task PocoNamingPolicyAndCaseInsensitiveRoundTrip()
     {
         Optional<PocoCatalog.Fragment?> CatalogState(string name) =>
-            Optional<PocoCatalog.Fragment?>.Present(
-                PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 4) })
-            );
+            Optional<PocoCatalog.Fragment?>.Present(PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 4) }));
 
         var before = CatalogState("old");
         var after = CatalogState("new");
         var options = new JsonSerializerOptions
         {
-            TypeInfoResolver = PocoCatalogJson.Resolver,
+            TypeInfoResolver = PocoCatalog.PayloadJson.Resolver,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
         };
         var typeInfo = PocoCatalogTypeInfo(options);
-        var json = JsonSerializer.Serialize(
-            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
-            typeInfo
-        );
+        var json = JsonSerializer.Serialize(PocoCatalog.ChangeSet.Between(before, after).ToPayload(), typeInfo);
 
         await Assert.That(json.Contains("\"nickname\"")).IsTrue();
         await Assert.That(json.Contains("\"tag\":\"label-new\"")).IsTrue();
@@ -649,21 +468,14 @@ public sealed class AotJsonTests
         await Assert.That(applied.Leaf.Value!.Nickname).IsEqualTo("new-nick");
         await Assert.That(applied.Leaf.Value!.Child!.Level).IsEqualTo(4);
 
-        var upper = JsonSerializer.Deserialize(
-            json.Replace("\"nickname\"", "\"NICKNAME\""),
-            typeInfo
-        )!;
+        var upper = JsonSerializer.Deserialize(json.Replace("\"nickname\"", "\"NICKNAME\""), typeInfo)!;
         var upperApplied = upper.ToPatch().Apply(before).Value!;
         await Assert.That(upperApplied.Leaf.Value!.Nickname).IsEqualTo("new-nick");
     }
 
     private sealed class PocoLeafMarkerConverter : JsonConverter<PocoLeaf>
     {
-        public override PocoLeaf? Read(
-            ref Utf8JsonReader reader,
-            Type typeToConvert,
-            JsonSerializerOptions options
-        )
+        public override PocoLeaf? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType == JsonTokenType.Null)
             {
@@ -711,11 +523,7 @@ public sealed class AotJsonTests
             return new PocoLeaf { Name = marker ?? string.Empty };
         }
 
-        public override void Write(
-            Utf8JsonWriter writer,
-            PocoLeaf? value,
-            JsonSerializerOptions options
-        )
+        public override void Write(Utf8JsonWriter writer, PocoLeaf? value, JsonSerializerOptions options)
         {
             if (value is null)
             {
@@ -733,19 +541,14 @@ public sealed class AotJsonTests
     public async Task PocoCustomConverterTakesPrecedence()
     {
         Optional<PocoCatalog.Fragment?> CatalogState(string name) =>
-            Optional<PocoCatalog.Fragment?>.Present(
-                PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 5) })
-            );
+            Optional<PocoCatalog.Fragment?>.Present(PocoCatalog.Fragment.From(new PocoCatalog { Leaf = SampleLeaf(name, 5) }));
 
         var before = CatalogState("old");
         var after = CatalogState("new");
-        var options = new JsonSerializerOptions { TypeInfoResolver = PocoCatalogJson.Resolver };
+        var options = new JsonSerializerOptions { TypeInfoResolver = PocoCatalog.PayloadJson.Resolver };
         options.Converters.Add(new PocoLeafMarkerConverter());
         var typeInfo = PocoCatalogTypeInfo(options);
-        var json = JsonSerializer.Serialize(
-            PocoCatalog.ChangeSet.Between(before, after).ToPayload(),
-            typeInfo
-        );
+        var json = JsonSerializer.Serialize(PocoCatalog.ChangeSet.Between(before, after).ToPayload(), typeInfo);
 
         await Assert.That(json.Contains("\"marker\":\"new\"")).IsTrue();
         await Assert.That(!json.Contains("\"Count\"")).IsTrue();
@@ -758,25 +561,15 @@ public sealed class AotJsonTests
     [Test]
     public async Task PocoNullableStructRoundTripsThroughDefaultResolverAlone()
     {
-        Optional<PocoWaypoint.Fragment?> WaypointState(
-            PocoPoint? location,
-            params PocoPoint[] trail
-        ) =>
-            Optional<PocoWaypoint.Fragment?>.Present(
-                PocoWaypoint.Fragment.From(
-                    new PocoWaypoint { Location = location, Trail = trail.ToList() }
-                )
-            );
+        Optional<PocoWaypoint.Fragment?> WaypointState(PocoPoint? location, params PocoPoint[] trail) =>
+            Optional<PocoWaypoint.Fragment?>.Present(PocoWaypoint.Fragment.From(new PocoWaypoint { Location = location, Trail = trail.ToList() }));
 
         var before = WaypointState(null);
         var after = WaypointState(new PocoPoint { X = 1, Y = 2 }, new PocoPoint { X = 3, Y = 4 });
-        var json = JsonSerializer.Serialize(
-            PocoWaypoint.ChangeSet.Between(before, after).ToPayload(),
-            PocoWaypointJson.Default
-        );
+        var json = JsonSerializer.Serialize(PocoWaypoint.ChangeSet.Between(before, after).ToPayload(), PocoWaypoint.PayloadJson.Default);
 
-        var restored = JsonSerializer.Deserialize(json, PocoWaypointJson.Default)!;
-        var stable = JsonSerializer.Serialize(restored, PocoWaypointJson.Default);
+        var restored = JsonSerializer.Deserialize(json, PocoWaypoint.PayloadJson.Default)!;
+        var stable = JsonSerializer.Serialize(restored, PocoWaypoint.PayloadJson.Default);
         await Assert.That(stable).IsEqualTo(json);
 
         var applied = restored.ToPatch().Apply(before).Value!;
@@ -791,9 +584,7 @@ public sealed class AotJsonTests
     public async Task UnsupportedPolymorphicMemberReportsActionableError()
     {
         Optional<PocoPolyHolder.Fragment?> PolyState(object? value) =>
-            Optional<PocoPolyHolder.Fragment?>.Present(
-                PocoPolyHolder.Fragment.From(new PocoPolyHolder { Anything = value })
-            );
+            Optional<PocoPolyHolder.Fragment?>.Present(PocoPolyHolder.Fragment.From(new PocoPolyHolder { Anything = value }));
 
         // Object-typed members keep the standard System.Text.Json failure
         // pointing at source-generated registration; a combined resolver or a
@@ -804,7 +595,7 @@ public sealed class AotJsonTests
         {
             JsonSerializer.Serialize(
                 PocoPolyHolder.ChangeSet.Between(PolyState("a"), PolyState("b")).ToPayload(),
-                PocoPolyHolderJson.Default
+                PocoPolyHolder.PayloadJson.Default
             );
         }
         catch (NotSupportedException exception)

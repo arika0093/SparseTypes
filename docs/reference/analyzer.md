@@ -449,7 +449,7 @@ public partial class PolicySettings
 
 ## SPF036: Custom leaf type needs external JSON metadata
 
-* Message: `Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Default with a source-generated context for this type or simplify it to public properties with an accessible constructor`
+* Message: `Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Resolver with a source-generated context for this type or simplify it to public properties with an accessible constructor`
 * Cause: A custom value type reachable from a payload endpoint has a shape the
   generated trim-safe leaf codec does not cover: no accessible parameterless or
   property-bound constructor, a custom `[JsonConverter]`, polymorphism
@@ -457,7 +457,7 @@ public partial class PolicySettings
   `[JsonInclude]` fields, `[JsonRequired]` members, duplicate wire names, or
   required members the codec cannot construct. Generation continues; values of
   that type fall back to external `JsonTypeInfo` metadata at runtime.
-* Fix: Combine `T.PayloadJson.Default` with a source-generated context that
+* Fix: Combine `T.PayloadJson.Resolver` with a source-generated context that
   registers the type (`JsonTypeInfoResolver.Combine`), add a `JsonConverter`
   for the type to the serializer options, or simplify the type to public
   properties with an accessible constructor. This is a warning; generation

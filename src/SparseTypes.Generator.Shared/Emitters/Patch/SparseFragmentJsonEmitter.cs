@@ -69,6 +69,7 @@ internal static class SparseFragmentJsonEmitter
     {
         code.CancellationToken.ThrowIfCancellationRequested();
         code.AppendLine("/// <summary>Reads and writes sparse fragment properties without materializing absent values.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             converterAccessibility
                 + (sealedConverter ? " sealed class " : " class ")

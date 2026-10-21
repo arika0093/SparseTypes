@@ -259,7 +259,6 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 "JsonConverter",
                 "FragmentJsonConverter",
                 "PayloadJson",
-                "PayloadJsonConverter",
 #endif
             "ApplyTo",
             "TryApplyTo",
@@ -660,6 +659,23 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 
         var model = analysis.Model.Value;
         var configuration = WithCapabilities(Configuration, allowFileScopedTypes, stjCapabilities);
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(configuration);
+        Action<SharedIndentedBuilder>? appendModelMembers = null;
+        if (implementationNamespace is not null)
+        {
+            var runtime = configuration.RuntimeDialect ?? throw new InvalidOperationException("A runtime dialect is required for source emission.");
+            appendModelMembers = code =>
+                SparseModelImplementationEmitter.AppendModelMembers(
+                    code,
+                    model,
+                    analysis.Members,
+                    analysis.ReadOnlyViewModels,
+                    configuration,
+                    runtime.Namespace,
+                    implementationNamespace
+                );
+        }
+
         // Keep each model's surface and implementation in one file; only
         // compilation-scoped Generated-Once helpers use separate files.
         var (surface, implementation) = SparsePerModelEmitter.BuildSplitSurface(
@@ -677,15 +693,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 #else
             (code, generatedModel, members) => SparseModelExtensionsEmitter.Append(code, generatedModel, members, configuration),
 #endif
-            analysis.PayloadJsonPocos
+            analysis.PayloadJsonPocos,
+            appendModelMembers
         );
-        var additional = SparsePerModelEmitter.BuildImplementationSources(
-            model,
-            analysis.Members,
-            analysis.ReadOnlyViewModels,
-            cancellationToken,
-            configuration
-        );
+        var additional = SparsePerModelEmitter.BuildSupportImplementationSources(model, analysis.Members, cancellationToken, configuration);
         if (implementation.HasValue)
         {
             additional = additional.Add(implementation.Value);
@@ -757,14 +768,32 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 
         var hint = SparseFragmentEmitter.GetPromotedHintName(promoted.Model, Configuration.PromotedHintNameSuffix, cancellationToken);
         var configuration = WithCapabilities(Configuration, allowFileScopedTypes, stjCapabilities);
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(configuration);
+        Action<SharedIndentedBuilder>? appendModelMembers = null;
+        if (implementationNamespace is not null)
+        {
+            var runtime = configuration.RuntimeDialect ?? throw new InvalidOperationException("A runtime dialect is required for source emission.");
+            appendModelMembers = code =>
+                SparseModelImplementationEmitter.AppendModelMembers(
+                    code,
+                    promoted.Model,
+                    promoted.Members,
+                    promoted.ReadOnlyViewModels,
+                    configuration,
+                    runtime.Namespace,
+                    implementationNamespace
+                );
+        }
+
         var (surface, implementation) = SparsePerModelEmitter.BuildPromotedSplitSurface(
             promoted,
             bclHashSetImplementsReadOnlySet,
             bclHashSetSupportsCapacity,
             cancellationToken,
-            configuration
+            configuration,
+            appendModelMembers
         );
-        var additional = SparsePerModelEmitter.BuildPromotedImplementationSources(promoted, cancellationToken, configuration);
+        var additional = SparsePerModelEmitter.BuildSupportImplementationSources(promoted.Model, promoted.Members, cancellationToken, configuration);
         if (implementation.HasValue)
         {
             additional = additional.Add(implementation.Value);

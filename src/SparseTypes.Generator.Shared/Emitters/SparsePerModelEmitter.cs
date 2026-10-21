@@ -65,6 +65,31 @@ internal static class SparsePerModelEmitter
         SparseGeneratorConfig config
     ) => SparseFragmentEmitter.BuildImplementationSources(model, members, readOnlyViewModels, cancellationToken, config);
 
+    /// <summary>Builds per-model support sources without model-nested UI members.</summary>
+    public static ImmutableArray<SparseGeneratedSource> BuildSupportImplementationSources(
+        SparseModelInfo model,
+        ImmutableArray<SparseMemberModel> members,
+        CancellationToken cancellationToken,
+        SparseGeneratorConfig config
+    )
+    {
+        var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
+        var features = config.EffectiveEmissionFeatures;
+        if (
+            implementationNamespace is null
+            || !features.EmitFragment
+            || !features.EmitObservable
+            || model.IsStruct
+            || config.DescriptorDialect is null
+        )
+        {
+            return ImmutableArray<SparseGeneratedSource>.Empty;
+        }
+
+        var runtime = config.RuntimeDialect ?? throw new ArgumentException("A runtime dialect is required for source emission.", nameof(config));
+        return ImmutableArray.Create(SparseDescriptorFactoryEmitter.BuildSource(model, members, config, cancellationToken, runtime.Namespace));
+    }
+
     /// <summary>Builds model-nested UI and container implementation sources for one promoted model.</summary>
     /// <param name="promoted">Promoted model.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
@@ -104,7 +129,8 @@ internal static class SparsePerModelEmitter
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         var (surface, implementation) = SparseFragmentEmitter.BuildSplitSource(
@@ -118,7 +144,8 @@ internal static class SparsePerModelEmitter
             cancellationToken,
             config,
             appendProductExtensions,
-            payloadJsonPocos
+            payloadJsonPocos,
+            appendModelMembers
         );
         if (implementation is null)
         {
@@ -135,7 +162,8 @@ internal static class SparsePerModelEmitter
         bool bclHashSetImplementsReadOnlySet,
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
-        SparseGeneratorConfig config
+        SparseGeneratorConfig config,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         var (surface, implementation) = SparseFragmentEmitter.BuildPromotedSplitSource(
@@ -143,7 +171,8 @@ internal static class SparsePerModelEmitter
             bclHashSetImplementsReadOnlySet,
             bclHashSetSupportsCapacity,
             cancellationToken,
-            config
+            config,
+            appendModelMembers
         );
         if (implementation is null)
         {

@@ -17,8 +17,8 @@ Then publish for the target runtime identifier, for example with `dotnet publish
 
 ## Serialize and deserialize ChangePayload
 
-Pass the generated `{ModelName}Json.Default` metadata to both serializer calls, replacing `ModelName` with the model type's name.
-The sample uses `PayloadRootJson.Default` for the `PayloadRoot` model:
+Pass the generated `{ModelName}.PayloadJson.Default` metadata to both serializer calls, replacing `ModelName` with the model type's name.
+The sample uses `PayloadRoot.PayloadJson.Default`:
 
 <!-- sample: native-aot-json -->
 ```csharp
@@ -29,8 +29,8 @@ var after = Optional<PayloadRoot.Fragment?>.Present(
     PayloadRoot.Fragment.From(new PayloadRoot { Label = "after" })
 );
 var changes = PayloadRoot.ChangeSet.Between(before, after);
-var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRootJson.Default);
-var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
+var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRoot.PayloadJson.Default);
+var restored = JsonSerializer.Deserialize(json, PayloadRoot.PayloadJson.Default)!.ToChangeSet();
 ```
 <!-- /sample -->
 

@@ -271,7 +271,7 @@ internal static class SparsePayloadJsonPocoHelpers
         code.CloseBlock();
         code.AppendLine("try { return global::System.Text.Json.JsonSerializer.Deserialize<T>(ref reader, GetValueInfo<T>(options))!; }");
         code.AppendLine(
-            "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
+            "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Resolver with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
         );
         code.CloseBlock();
         code.AppendLine();
@@ -314,7 +314,7 @@ internal static class SparsePayloadJsonPocoHelpers
         code.CloseBlock();
         code.AppendLine("else try { global::System.Text.Json.JsonSerializer.Serialize(writer, value!, GetValueInfo<T>(options)); }");
         code.AppendLine(
-            "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Default with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
+            "catch (global::System.NotSupportedException exception) { throw new global::System.InvalidOperationException(\"No generated payload JSON codec covers value type '\" + typeof(T) + \"'. Combine PayloadJson.Resolver with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.\", exception); }"
         );
         code.CloseBlock();
         code.AppendLine();

@@ -17,18 +17,14 @@ public partial class JsonHelperScalar
 [JsonSerializable(typeof(KeyedServer))]
 internal partial class KeyedServerLeafContext : JsonSerializerContext { }
 
-/// <summary>Certifies the top-level ModelJson entry point at runtime.</summary>
+/// <summary>Certifies the model-nested payload JSON entry point at runtime.</summary>
 public sealed class PayloadJsonHelperRoundTripTests
 {
     private static Optional<JsonHelperScalar.Fragment?> ScalarBefore() =>
-        Optional<JsonHelperScalar.Fragment?>.Present(
-            JsonHelperScalar.Fragment.From(new JsonHelperScalar { Label = "before", Count = 1 })
-        );
+        Optional<JsonHelperScalar.Fragment?>.Present(JsonHelperScalar.Fragment.From(new JsonHelperScalar { Label = "before", Count = 1 }));
 
     private static Optional<JsonHelperScalar.Fragment?> ScalarAfter() =>
-        Optional<JsonHelperScalar.Fragment?>.Present(
-            JsonHelperScalar.Fragment.From(new JsonHelperScalar { Label = "after", Count = 1 })
-        );
+        Optional<JsonHelperScalar.Fragment?>.Present(JsonHelperScalar.Fragment.From(new JsonHelperScalar { Label = "after", Count = 1 }));
 
     private static Optional<KeyedServerHolder.Fragment?> KeyedBefore() =>
         Optional<KeyedServerHolder.Fragment?>.Present(
@@ -79,22 +75,17 @@ public sealed class PayloadJsonHelperRoundTripTests
         var after = ScalarAfter();
         var changes = JsonHelperScalar.ChangeSet.Between(before, after);
 
-        var json = JsonSerializer.Serialize(changes.ToPayload(), JsonHelperScalarJson.Default);
-        var restored = JsonSerializer
-            .Deserialize(json, JsonHelperScalarJson.Default)!
-            .ToChangeSet();
+        var json = JsonSerializer.Serialize(changes.ToPayload(), JsonHelperScalar.PayloadJson.Default);
+        var restored = JsonSerializer.Deserialize(json, JsonHelperScalar.PayloadJson.Default)!.ToChangeSet();
 
-        JsonHelperScalar
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        JsonHelperScalar.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void DefaultExposesJsonTypeInfoAndResolver()
     {
-        JsonHelperScalarJson.Default.ShouldBeOfType<JsonTypeInfo<JsonHelperScalar.ChangePayload>>();
-        JsonHelperScalarJson.Resolver.ShouldBeAssignableTo<IJsonTypeInfoResolver>();
-        JsonHelperScalarJson.Resolver.ShouldBe(JsonHelperScalar.PayloadJson.Default);
+        JsonHelperScalar.PayloadJson.Default.ShouldBeOfType<JsonTypeInfo<JsonHelperScalar.ChangePayload>>();
+        JsonHelperScalar.PayloadJson.Resolver.ShouldBeAssignableTo<IJsonTypeInfoResolver>();
     }
 
     [Test]
@@ -105,19 +96,15 @@ public sealed class PayloadJsonHelperRoundTripTests
         var changes = JsonHelperScalar.ChangeSet.Between(before, after);
         var options = new JsonSerializerOptions
         {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(JsonHelperScalarJson.Resolver),
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(JsonHelperScalar.PayloadJson.Resolver),
             WriteIndented = true,
         };
-        var info =
-            (JsonTypeInfo<JsonHelperScalar.ChangePayload>)
-                options.GetTypeInfo(typeof(JsonHelperScalar.ChangePayload));
+        var info = (JsonTypeInfo<JsonHelperScalar.ChangePayload>)options.GetTypeInfo(typeof(JsonHelperScalar.ChangePayload));
 
         var json = JsonSerializer.Serialize(changes.ToPayload(), info);
         var restored = JsonSerializer.Deserialize(json, info)!.ToChangeSet();
 
-        JsonHelperScalar
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        JsonHelperScalar.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -131,35 +118,24 @@ public sealed class PayloadJsonHelperRoundTripTests
         var changes = KeyedServerHolder.ChangeSet.Between(before, after);
         var options = new JsonSerializerOptions
         {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(
-                KeyedServerHolderJson.Resolver,
-                KeyedServerLeafContext.Default
-            ),
+            TypeInfoResolver = JsonTypeInfoResolver.Combine(KeyedServerHolder.PayloadJson.Resolver, KeyedServerLeafContext.Default),
         };
-        var info =
-            (JsonTypeInfo<KeyedServerHolder.ChangePayload>)
-                options.GetTypeInfo(typeof(KeyedServerHolder.ChangePayload));
+        var info = (JsonTypeInfo<KeyedServerHolder.ChangePayload>)options.GetTypeInfo(typeof(KeyedServerHolder.ChangePayload));
 
         var json = JsonSerializer.Serialize(changes.ToPayload(), info);
         var restored = JsonSerializer.Deserialize(json, info)!.ToChangeSet();
 
-        KeyedServerHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void HelperIsDiscoverableWhilePlumbingStaysHidden()
     {
-        typeof(JsonHelperScalarJson).GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
-        typeof(JsonHelperScalarJson)
-            .GetProperty("Default")!
-            .GetCustomAttribute<EditorBrowsableAttribute>()
-            .ShouldBeNull();
-        typeof(JsonHelperScalar.PayloadJson)
-            .GetCustomAttribute<EditorBrowsableAttribute>()!
-            .State.ShouldBe(EditorBrowsableState.Never);
-        typeof(JsonHelperScalar.PayloadJsonConverter)
+        typeof(JsonHelperScalar.PayloadJson).GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
+        typeof(JsonHelperScalar.PayloadJson).GetProperty("Default")!.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
+        typeof(JsonHelperScalar.PayloadJson).GetNestedType("PayloadJsonResolver", BindingFlags.NonPublic).ShouldBeNull();
+        typeof(JsonHelperScalar.ChangePayload)
+            .BaseType!.DeclaringType!.GetNestedType("PayloadJsonResolver", BindingFlags.NonPublic)!
             .GetCustomAttribute<EditorBrowsableAttribute>()!
             .State.ShouldBe(EditorBrowsableState.Never);
     }

@@ -16,8 +16,7 @@ public sealed class GeneratedApiApprovalTests
         where T : class => session.Model;
 
     private const string BlazorApprovalFile = "SparseTypes.Blazor.approved.txt";
-    private const string EntityFrameworkCoreApprovalFile =
-        "SparseTypes.EntityFrameworkCore.approved.txt";
+    private const string EntityFrameworkCoreApprovalFile = "SparseTypes.EntityFrameworkCore.approved.txt";
 
     private static readonly Type[] FixtureModels =
     [
@@ -32,18 +31,11 @@ public sealed class GeneratedApiApprovalTests
     // Blazor ships net8.0 and net10.0 from identical sources (no #if in
     // SparseEditSessionExtensions.cs); one snapshot covers both target builds.
     [Test]
-    public void BlazorSurface() =>
-        PublicApiCheck.CheckAssembly(
-            typeof(SparseEditSessionExtensions).Assembly,
-            BlazorApprovalFile
-        );
+    public void BlazorSurface() => PublicApiCheck.CheckAssembly(typeof(SparseEditSessionExtensions).Assembly, BlazorApprovalFile);
 
     [Test]
     public void EntityFrameworkCoreSurface() =>
-        PublicApiCheck.CheckAssembly(
-            typeof(SparseTypes.EntityFrameworkCore.SparseEntityMapper<,>).Assembly,
-            EntityFrameworkCoreApprovalFile
-        );
+        PublicApiCheck.CheckAssembly(typeof(SparseTypes.EntityFrameworkCore.SparseEntityMapper<,>).Assembly, EntityFrameworkCoreApprovalFile);
 
     [Test]
     public void GeneratedUserApi() => PublicApiCheck.Check<CatalogScalar>();
@@ -53,27 +45,13 @@ public sealed class GeneratedApiApprovalTests
     {
         foreach (var model in FixtureModels)
         {
-            foreach (
-                var nested in new[]
-                {
-                    "Fragment",
-                    "Patch",
-                    "ChangeSet",
-                    "ChangePayload",
-                    "Observable",
-                    "ReadOnlyView",
-                    "EditSession",
-                }
-            )
+            foreach (var nested in new[] { "Fragment", "Patch", "ChangeSet", "ChangePayload", "Observable", "ReadOnlyView", "EditSession" })
             {
                 AssertNested(model, nested);
             }
 
             // Builders and paths live in the per-model Generated container.
-            model
-                .GetNestedTypes()
-                .Select(static type => type.Name)
-                .ShouldNotContain("FragmentBuilder");
+            model.GetNestedTypes().Select(static type => type.Name).ShouldNotContain("FragmentBuilder");
             model.GetNestedTypes().Select(static type => type.Name).ShouldNotContain("SparsePaths");
 
             var changeSet = AssertNested(model, "ChangeSet");
@@ -116,30 +94,20 @@ public sealed class GeneratedApiApprovalTests
         AssertNested(dictionaryChanges, "ScoresTransition");
         AssertNested(dictionaryChanges, "DetailsTransition");
         var keyedItemChanges = AssertNested(typeof(CatalogKeyedItem), "ChangeSet");
-        keyedItemChanges
-            .GetProperty("Id")!
-            .PropertyType.ShouldBe(typeof(SparseTypes.SparseValueTransition<string>));
+        keyedItemChanges.GetProperty("Id")!.PropertyType.ShouldBe(typeof(SparseTypes.SparseValueTransition<string>));
 
         var nestedReadOnlyView = new CatalogNested().CreateEditSession().Current.GetType();
-        var metadataViewType = Nullable.GetUnderlyingType(
-            nestedReadOnlyView.GetProperty(nameof(CatalogNested.Metadata))!.PropertyType
-        );
+        var metadataViewType = Nullable.GetUnderlyingType(nestedReadOnlyView.GetProperty(nameof(CatalogNested.Metadata))!.PropertyType);
         metadataViewType.ShouldNotBeNull();
         metadataViewType!.ShouldNotBe(typeof(CatalogPoco));
         var metadataElementType = Nullable.GetUnderlyingType(
-            nestedReadOnlyView
-                .GetProperty(nameof(CatalogNested.MetadataItems))!
-                .PropertyType.GetGenericArguments()[0]
+            nestedReadOnlyView.GetProperty(nameof(CatalogNested.MetadataItems))!.PropertyType.GetGenericArguments()[0]
         );
         metadataElementType.ShouldBe(metadataViewType);
         metadataViewType.GetProperty(nameof(CatalogPoco.Label)).ShouldNotBeNull();
 
-        var keyEntriesType = nestedReadOnlyView
-            .GetProperty(nameof(CatalogNested.MetadataByKey))!
-            .PropertyType;
-        keyEntriesType
-            .GetGenericTypeDefinition()
-            .ShouldBe(typeof(System.Collections.Generic.IReadOnlyCollection<>));
+        var keyEntriesType = nestedReadOnlyView.GetProperty(nameof(CatalogNested.MetadataByKey))!.PropertyType;
+        keyEntriesType.GetGenericTypeDefinition().ShouldBe(typeof(System.Collections.Generic.IReadOnlyCollection<>));
         var entryKeyType = keyEntriesType.GetGenericArguments()[0].GetGenericArguments()[0];
         entryKeyType.ShouldNotBe(typeof(CatalogPoco));
         entryKeyType.GetProperty(nameof(CatalogPoco.Label)).ShouldNotBeNull();
@@ -155,50 +123,23 @@ public sealed class GeneratedApiApprovalTests
         {
             var changeSet = AssertNested(model, "ChangeSet");
             var session = AssertNested(model, "EditSession");
-            var withChangeSet =
-                typeof(SparseTypes.ISparseEditSessionWithChangeSet<,>).MakeGenericType(
-                    model,
-                    changeSet
-                );
-            session
-                .GetInterfaces()
-                .ShouldContain(
-                    withChangeSet,
-                    $"{model.Name}.EditSession must expose {withChangeSet}."
-                );
-            session
-                .GetInterfaces()
-                .ShouldContain(typeof(SparseTypes.ISparseEditSessionWithBaselineRevision));
-            session
-                .GetProperty(
-                    nameof(SparseTypes.ISparseEditSessionWithBaselineRevision.BaselineRevision)
-                )
-                .ShouldNotBeNull();
+            var withChangeSet = typeof(SparseTypes.ISparseEditSessionWithChangeSet<,>).MakeGenericType(model, changeSet);
+            session.GetInterfaces().ShouldContain(withChangeSet, $"{model.Name}.EditSession must expose {withChangeSet}.");
+            session.GetInterfaces().ShouldContain(typeof(SparseTypes.ISparseEditSessionWithBaselineRevision));
+            session.GetProperty(nameof(SparseTypes.ISparseEditSessionWithBaselineRevision.BaselineRevision)).ShouldNotBeNull();
         }
 
-        var withChildStatus =
-            typeof(SparseTypes.ISparseEditSessionWithChildStatus<,>).MakeGenericType(
-                typeof(CatalogNested),
-                typeof(SparseTypes.SparseConflict)
-            );
+        var withChildStatus = typeof(SparseTypes.ISparseEditSessionWithChildStatus<,>).MakeGenericType(
+            typeof(CatalogNested),
+            typeof(SparseTypes.SparseConflict)
+        );
         typeof(CatalogNested.EditSession).GetInterfaces().ShouldContain(withChildStatus);
         typeof(CatalogScalar.EditSession)
             .GetInterfaces()
-            .ShouldNotContain(
-                typeof(SparseTypes.ISparseEditSessionWithChildStatus<
-                    CatalogScalar,
-                    SparseTypes.SparseConflict
-                >)
-            );
-        typeof(CatalogScalar.EditSession)
-            .GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance)
-            .ShouldBeNull();
-        typeof(CatalogScalar.EditSession)
-            .GetMethod("ResolveChildModel", BindingFlags.Public | BindingFlags.Instance)
-            .ShouldBeNull();
-        typeof(CatalogNested.EditSession)
-            .GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance)
-            .ShouldNotBeNull();
+            .ShouldNotContain(typeof(SparseTypes.ISparseEditSessionWithChildStatus<CatalogScalar, SparseTypes.SparseConflict>));
+        typeof(CatalogScalar.EditSession).GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance).ShouldBeNull();
+        typeof(CatalogScalar.EditSession).GetMethod("ResolveChildModel", BindingFlags.Public | BindingFlags.Instance).ShouldBeNull();
+        typeof(CatalogNested.EditSession).GetMethod("OpenChildSession", BindingFlags.Public | BindingFlags.Instance).ShouldNotBeNull();
 
         foreach (
             var definition in new[]
@@ -209,9 +150,7 @@ public sealed class GeneratedApiApprovalTests
             }
         )
         {
-            definition
-                .GetCustomAttribute<EditorBrowsableAttribute>()
-                ?.State.ShouldBe(EditorBrowsableState.Advanced);
+            definition.GetCustomAttribute<EditorBrowsableAttribute>()?.State.ShouldBe(EditorBrowsableState.Advanced);
         }
     }
 
@@ -222,12 +161,7 @@ public sealed class GeneratedApiApprovalTests
 
         session.GetType().Namespace.ShouldBe("SparseTypes.GeneratedApiFixtures");
         session.GetType().Name.ShouldBe("EditSession");
-        session
-            .GetType()
-            .GetInterfaces()
-            .ShouldContain(
-                typeof(SparseTypes.ISparseEditSession<CatalogScalar, CatalogScalar.ChangeSet>)
-            );
+        session.GetType().GetInterfaces().ShouldContain(typeof(SparseTypes.ISparseEditSession<CatalogScalar, CatalogScalar.ChangeSet>));
         session.Current.Name.ShouldBe(string.Empty);
         Raw(session).Name.ShouldBe(string.Empty);
 
@@ -247,15 +181,10 @@ public sealed class GeneratedApiApprovalTests
         foreach (var model in FixtureModels)
         {
             var session = AssertNested(model, "EditSession");
-            var factory = session.GetMethod(
-                "CreateHistory",
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var factory = session.GetMethod("CreateHistory", BindingFlags.Public | BindingFlags.Instance);
             factory.ShouldNotBeNull($"Expected {model.Name}.EditSession.CreateHistory.");
             factory!.ReturnType.IsGenericType.ShouldBeTrue();
-            factory
-                .ReturnType.GetGenericTypeDefinition()
-                .ShouldBe(typeof(SparseTypes.SparseEditHistory<>));
+            factory.ReturnType.GetGenericTypeDefinition().ShouldBe(typeof(SparseTypes.SparseEditHistory<>));
             factory.ReturnType.GetGenericArguments()[0].ShouldBe(model.GetNestedType("ChangeSet"));
             var options = factory.GetParameters();
             options.Length.ShouldBe(1);
@@ -280,17 +209,11 @@ public sealed class GeneratedApiApprovalTests
         {
             var session = AssertNested(model, "EditSession");
 
-            var historyProperty = session.GetProperty(
-                "History",
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var historyProperty = session.GetProperty("History", BindingFlags.Public | BindingFlags.Instance);
             historyProperty.ShouldNotBeNull($"Expected {model.Name}.EditSession.History.");
             historyProperty!.PropertyType.ShouldBe(typeof(SparseTypes.ISparseEditHistory));
 
-            var enable = session.GetMethod(
-                "EnableHistory",
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var enable = session.GetMethod("EnableHistory", BindingFlags.Public | BindingFlags.Instance);
             enable.ShouldNotBeNull($"Expected {model.Name}.EditSession.EnableHistory.");
             enable!.ReturnType.ShouldBe(typeof(SparseTypes.ISparseEditHistory));
             var options = enable.GetParameters();
@@ -298,17 +221,11 @@ public sealed class GeneratedApiApprovalTests
             options[0].ParameterType.ShouldBe(typeof(SparseTypes.EditHistoryOptions));
             options[0].HasDefaultValue.ShouldBeTrue();
 
-            var disable = session.GetMethod(
-                "DisableHistory",
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var disable = session.GetMethod("DisableHistory", BindingFlags.Public | BindingFlags.Instance);
             disable.ShouldNotBeNull($"Expected {model.Name}.EditSession.DisableHistory.");
             disable!.GetParameters().Length.ShouldBe(0);
 
-            var availability = session.GetEvent(
-                "HistoryChanged",
-                BindingFlags.Public | BindingFlags.Instance
-            );
+            var availability = session.GetEvent("HistoryChanged", BindingFlags.Public | BindingFlags.Instance);
             availability.ShouldNotBeNull($"Expected {model.Name}.EditSession.HistoryChanged.");
             availability!.EventHandlerType.ShouldBe(typeof(Action));
         }
@@ -349,28 +266,20 @@ public sealed class GeneratedApiApprovalTests
         }
 
         var implementationTypes = containers
-            .SelectMany(static container =>
-                container.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
-            )
+            .SelectMany(static container => container.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
             .ToArray();
         implementationTypes.ShouldNotBeEmpty();
         foreach (var container in containers)
         {
-            container
-                .GetCustomAttribute<EditorBrowsableAttribute>()
-                ?.State.ShouldBe(EditorBrowsableState.Never);
+            container.GetCustomAttribute<EditorBrowsableAttribute>()?.State.ShouldBe(EditorBrowsableState.Never);
         }
 
         foreach (var implementationType in implementationTypes)
         {
-            implementationType
-                .GetCustomAttribute<EditorBrowsableAttribute>()
-                ?.State.ShouldBe(EditorBrowsableState.Never);
+            implementationType.GetCustomAttribute<EditorBrowsableAttribute>()?.State.ShouldBe(EditorBrowsableState.Never);
         }
 
-        var scalarContainer = typeof(CatalogScalar)
-            .GetNestedType("ChangePayload")!
-            .BaseType!.DeclaringType!;
+        var scalarContainer = typeof(CatalogScalar).GetNestedType("ChangePayload")!.BaseType!.DeclaringType!;
         scalarContainer.Name.ShouldStartWith("__Internal_");
         var scalarMemberChange = scalarContainer
             .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
@@ -398,6 +307,17 @@ public sealed class GeneratedApiApprovalTests
             .GetValue(null)!
             .GetType();
         converter.IsPublic.ShouldBeFalse();
+        converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+
+        var operationsTypes = typeof(CatalogScalar)
+            .Assembly.GetTypes()
+            .Where(static type => type.Name.EndsWith("FragmentOperations", StringComparison.Ordinal))
+            .ToArray();
+        operationsTypes.ShouldNotBeEmpty();
+        foreach (var operationsType in operationsTypes)
+        {
+            operationsType.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+        }
     }
 
     [Test]
@@ -406,15 +326,9 @@ public sealed class GeneratedApiApprovalTests
         var before = new CatalogScalar { Name = "before", Count = 1 };
         var after = new CatalogScalar { Name = "after", Count = 1 };
         var payload = before.CreateChangeSet(after).ToPayload();
-        var json = JsonSerializer.Serialize(
-            payload,
-            CatalogSerializerContext.Default.CatalogScalarChangePayload
-        );
+        var json = JsonSerializer.Serialize(payload, CatalogSerializerContext.Default.CatalogScalarChangePayload);
 
-        var restored = JsonSerializer.Deserialize(
-            json,
-            CatalogSerializerContext.Default.CatalogScalarChangePayload
-        );
+        var restored = JsonSerializer.Deserialize(json, CatalogSerializerContext.Default.CatalogScalarChangePayload);
 
         restored.ShouldNotBeNull();
         restored!.Changes.ShouldHaveSingleItem();
@@ -422,35 +336,32 @@ public sealed class GeneratedApiApprovalTests
     }
 
     [Test]
-    public void TopLevelPayloadJsonHelpersExposeDefaultAndResolver()
+    public void NestedPayloadJsonHelpersExposeDefaultAndResolver()
     {
-        // Each model namespace carries one ModelJson entry point whose
-        // Default is the shared JsonTypeInfo and whose Resolver composes
-        // with caller-provided options. The nested resolver stays hidden
-        // plumbing behind the same instance.
+        // The discoverable model-nested helper exposes JsonTypeInfo and the
+        // resolver interface while implementation types stay hidden.
         foreach (var model in FixtureModels)
         {
-            var helper = model.Assembly.GetType(model.Namespace + "." + model.Name + "Json");
-            helper.ShouldNotBeNull($"Expected top-level {model.Name}Json helper.");
-            helper!.IsPublic.ShouldBeTrue();
-            helper
-                .GetCustomAttribute<EditorBrowsableAttribute>()
-                .ShouldBeNull($"Expected {helper.Name} to stay discoverable.");
+            var helper = model.GetNestedType("PayloadJson");
+            helper.ShouldNotBeNull($"Expected {model.Name}.PayloadJson helper.");
+            helper!.IsNestedPublic.ShouldBeTrue();
+            helper.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull($"Expected {helper.Name} to stay discoverable.");
             var changePayload = model.GetNestedType("ChangePayload");
             changePayload.ShouldNotBeNull();
-            helper
-                .GetProperty("Default")!
-                .PropertyType.ShouldBe(typeof(JsonTypeInfo<>).MakeGenericType(changePayload!));
+            changePayload!.GetCustomAttribute<EditorBrowsableAttribute>(inherit: false)!.State.ShouldBe(EditorBrowsableState.Always);
+            helper.GetProperty("Default")!.PropertyType.ShouldBe(typeof(JsonTypeInfo<>).MakeGenericType(changePayload!));
             helper.GetProperty("Resolver")!.PropertyType.ShouldBe(typeof(IJsonTypeInfoResolver));
-            var nested = model.GetNestedType("PayloadJson");
-            nested.ShouldNotBeNull();
-            nested!
-                .GetCustomAttribute<EditorBrowsableAttribute>()!
-                .State.ShouldBe(EditorBrowsableState.Never);
-            var shared = nested
-                .GetProperty("ChangePayload")!
-                .GetValue(nested.GetProperty("Default")!.GetValue(null));
-            helper.GetProperty("Default")!.GetValue(null).ShouldBe(shared);
+
+            var container = changePayload.BaseType!.DeclaringType!;
+            var converter = container.GetNestedType("PayloadJsonConverter", BindingFlags.Public | BindingFlags.NonPublic)!;
+            converter.IsNestedAssembly.ShouldBeTrue();
+            converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+            var resolver = container.GetNestedType("PayloadJsonResolver", BindingFlags.Public | BindingFlags.NonPublic)!;
+            resolver.IsNestedAssembly.ShouldBeTrue();
+            resolver.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+            changePayload.GetProperty("Version")!.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+            changePayload.GetProperty("Changes")!.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+            changePayload.GetMethod("ToPatch")!.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
         }
     }
 
@@ -471,9 +382,7 @@ public sealed class GeneratedApiApprovalTests
         var blazor = typeof(SparseEditSessionExtensions).Assembly;
         var blazorOffenders = blazor
             .GetExportedTypes()
-            .SelectMany(static type =>
-                type.GetMethods().Select(method => $"{type.FullName}.{method.Name}")
-            )
+            .SelectMany(static type => type.GetMethods().Select(method => $"{type.FullName}.{method.Name}"))
             .Where(static name => name.Contains("Submit", StringComparison.Ordinal))
             .OrderBy(static name => name, StringComparer.Ordinal)
             .ToArray();
@@ -492,10 +401,7 @@ public sealed class GeneratedApiApprovalTests
     {
         var container = model
             .Assembly.GetExportedTypes()
-            .Where(candidate =>
-                candidate.DeclaringType is null
-                && candidate.Name.StartsWith(model.Name + "Extensions_", StringComparison.Ordinal)
-            )
+            .Where(candidate => candidate.DeclaringType is null && candidate.Name.StartsWith(model.Name + "Extensions_", StringComparison.Ordinal))
             .ToArray();
         container.Length.ShouldBe(1);
         return container[0];
@@ -503,12 +409,7 @@ public sealed class GeneratedApiApprovalTests
 
     private static void AssertMethods(Type type, string[] names)
     {
-        var methods = type.GetMethods(
-                BindingFlags.Public
-                    | BindingFlags.Static
-                    | BindingFlags.Instance
-                    | BindingFlags.DeclaredOnly
-            )
+        var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Select(static method => method.Name)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var name in names)
@@ -518,8 +419,5 @@ public sealed class GeneratedApiApprovalTests
     }
 }
 
-[JsonSerializable(
-    typeof(CatalogScalar.ChangePayload),
-    TypeInfoPropertyName = "CatalogScalarChangePayload"
-)]
+[JsonSerializable(typeof(CatalogScalar.ChangePayload), TypeInfoPropertyName = "CatalogScalarChangePayload")]
 internal partial class CatalogSerializerContext : JsonSerializerContext { }

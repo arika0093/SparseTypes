@@ -132,38 +132,35 @@ appends a stable model hash to that prefix. The container and DTOs are marked
 `System.Text.Json` source generation can collide on nested types with identical
 simple names across models.
 
-Each model with JSON enabled also emits a top-level `ModelJson` helper in the
-model's namespace alongside the nested `PayloadJson` resolver and
-`PayloadJsonConverter`. The helper exposes the shared
-`JsonTypeInfo<Model.ChangePayload>` as `Default` and the underlying resolver
-as `Resolver`, so normal call sites pass `ModelJson.Default` directly to the
-`JsonSerializer` overloads while advanced call sites compose
-`ModelJson.Resolver` with a source-generated context through
-caller-provided `JsonSerializerOptions`. The helper reuses the nested
-resolver instead of emitting a second wire codec, and it carries no
-`EditorBrowsable` hiding while the nested resolver, converter, and DTO
-container stay hidden. The resolver supplies trim-safe `JsonTypeInfo` metadata
-for the payload envelope without a source-generated context, so primitive
-for the payload envelope without a source-generated context, so primitive
-endpoint values need no extra registration. Ordinary custom value types
-reachable from endpoints additionally get generated trim-safe leaf codecs
-(public classes and structs with an accessible constructor and public
-serializable properties, including nested objects, collections, and arrays),
-so they need no registration either. Only shapes outside the leaf contract
-(polymorphic members, custom converters, extension data, and other
-`UnsupportedPayloadJsonPoco` shapes) still resolve through
-`JsonSerializerOptions.GetTypeInfo`; combine the generated resolver with a
-source-generated context declared next to the models for those types. Only
-custom shapes need entries; primitives, enums, and collections are covered by
-generated fast paths. The leaf-codec models travel through
+Each model with JSON enabled emits a nested `Model.PayloadJson` helper. Its
+`Default` property exposes the shared
+`JsonTypeInfo<Model.ChangePayload>`, and `Resolver` exposes the underlying
+resolver for composition with a source-generated context through
+caller-provided `JsonSerializerOptions`. The helper delegates to the
+model-specific resolver and converter emitted inside the payload
+implementation container; it does not emit a second wire codec. The helper is
+discoverable, while the implementation container, converter, resolver, and
+wire DTO editing members carry `EditorBrowsable(Never)`.
+
+The resolver supplies trim-safe `JsonTypeInfo` metadata for the payload
+envelope without an application context. Primitive endpoint values use
+generated codecs, and ordinary custom value types reachable from endpoints
+additionally get trim-safe leaf codecs (public classes and structs with an
+accessible constructor and public serializable properties, including nested
+objects, collections, and arrays). These shapes need no application context.
+Only shapes outside the leaf contract (polymorphic members, custom converters,
+extension data, and other `UnsupportedPayloadJsonPoco` shapes) resolve
+through `JsonSerializerOptions.GetTypeInfo`; combine the generated resolver
+with a source-generated context declared next to the models for those types.
+Enums and supported collections are covered by generated fast paths. The
+leaf-codec models travel through
 `SparseGenerationAnalysis.PayloadJsonPocos`
 (`SparsePromotedModel.PayloadJsonPocos` for promoted models); pass them from
 analysis into `SparsePerModelEmitter.BuildSurface`/`BuildSplitSurface` (or
 `SparseFragmentEmitter.BuildSource`/`BuildSplitSource`) so payload emission can
 use them. The parameters default to empty, keeping products that ignore them
-byte-identical. A namespace member already named `ModelJson` fails the
-model with the configured `GeneratedNameCollision` diagnostic instead of
-emitting a duplicate type.
+byte-identical. The nested `PayloadJson` name is reserved on models that emit
+the JSON helper.
 
 `SparseFragmentEmitter` retains the standalone `Fragment`/`Patch` API vocabulary.
 It does not add product-specific model extension APIs unless the caller supplies

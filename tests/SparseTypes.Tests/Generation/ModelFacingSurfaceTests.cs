@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SparseTypes.Generator;
 
 namespace SparseTypes.Tests.Generation;
@@ -87,22 +88,14 @@ public sealed class ModelFacingSurfaceTests
     private static Compilation Generate(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "ModelFacingSurfaceProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
@@ -111,10 +104,7 @@ public sealed class ModelFacingSurfaceTests
 
     private static void AssertClean(Compilation compilation)
     {
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     private static INamedTypeSymbol RequireModel(Compilation compilation, string metadataName)
@@ -124,11 +114,7 @@ public sealed class ModelFacingSurfaceTests
         return model!;
     }
 
-    private static void AssertIntendedSurface(
-        Compilation compilation,
-        INamedTypeSymbol model,
-        bool expectSessionFamily
-    )
+    private static void AssertIntendedSurface(Compilation compilation, INamedTypeSymbol model, bool expectSessionFamily)
     {
         var nested = model.GetTypeMembers().Select(static type => type.Name).ToArray();
         foreach (var banned in BannedNested)
@@ -136,13 +122,9 @@ public sealed class ModelFacingSurfaceTests
             nested.ShouldNotContain(banned);
         }
 
-        nested
-            .Where(static name => name.EndsWith("FragmentOperations", StringComparison.Ordinal))
-            .ShouldBeEmpty();
-        nested
-            .Where(static name => name.EndsWith("FragmentJsonConverter", StringComparison.Ordinal))
-            .ShouldBeEmpty();
-        foreach (var expected in new[] { "Fragment", "Patch", "ChangeSet" })
+        nested.Where(static name => name.EndsWith("FragmentOperations", StringComparison.Ordinal)).ShouldBeEmpty();
+        nested.Where(static name => name.EndsWith("FragmentJsonConverter", StringComparison.Ordinal)).ShouldBeEmpty();
+        foreach (var expected in new[] { "Fragment", "Patch", "ChangeSet", "ChangePayload", "PayloadJson" })
         {
             nested.ShouldContain(expected);
         }
@@ -166,19 +148,12 @@ public sealed class ModelFacingSurfaceTests
         compilation
             .GetSymbolsWithName("FragmentBuilder")
             .OfType<INamedTypeSymbol>()
-            .Where(static symbol =>
-                symbol
-                    .ContainingNamespace.ToDisplayString()
-                    .StartsWith("SparseTypes.Generated", StringComparison.Ordinal)
-            )
+            .Where(static symbol => symbol.ContainingNamespace.ToDisplayString().StartsWith("SparseTypes.Generated", StringComparison.Ordinal))
             .ShouldNotBeEmpty();
 
         // The public converter accessor is the Fragment serialization surface.
         var fragment = model.GetTypeMembers("Fragment").ShouldHaveSingleItem();
-        var jsonConverter = fragment
-            .GetMembers("JsonConverter")
-            .OfType<IPropertySymbol>()
-            .ShouldHaveSingleItem();
+        var jsonConverter = fragment.GetMembers("JsonConverter").OfType<IPropertySymbol>().ShouldHaveSingleItem();
         jsonConverter.DeclaredAccessibility.ShouldBe(Accessibility.Public);
         jsonConverter.IsStatic.ShouldBeTrue();
         jsonConverter.Type.ToDisplayString().ShouldContain("JsonConverter");
@@ -189,22 +164,12 @@ public sealed class ModelFacingSurfaceTests
             // scope the lookup to the model's own namespace.
             var modelNamespace = model.ContainingNamespace.ToDisplayString();
             var extensions = compilation
-                .GetSymbolsWithName(name =>
-                    name.StartsWith(model.Name + "Extensions_", StringComparison.Ordinal)
-                )
+                .GetSymbolsWithName(name => name.StartsWith(model.Name + "Extensions_", StringComparison.Ordinal))
                 .OfType<INamedTypeSymbol>()
                 .Where(static symbol => symbol.DeclaringSyntaxReferences.Length > 0)
-                .Where(symbol =>
-                    string.Equals(
-                        symbol.ContainingNamespace.ToDisplayString(),
-                        modelNamespace,
-                        StringComparison.Ordinal
-                    )
-                )
+                .Where(symbol => string.Equals(symbol.ContainingNamespace.ToDisplayString(), modelNamespace, StringComparison.Ordinal))
                 .ShouldHaveSingleItem();
-            foreach (
-                var method in extensions.GetMembers("CreateEditSession").OfType<IMethodSymbol>()
-            )
+            foreach (var method in extensions.GetMembers("CreateEditSession").OfType<IMethodSymbol>())
             {
                 // Sessions nest in the model; the return type stays
                 // model-scoped.
@@ -218,26 +183,28 @@ public sealed class ModelFacingSurfaceTests
     {
         var compilation = Generate(ShapesSource);
         AssertClean(compilation);
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.SurfaceClass"),
-            expectSessionFamily: true
-        );
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.SurfaceRecord"),
-            expectSessionFamily: true
-        );
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.SurfaceStruct"),
-            expectSessionFamily: false
-        );
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.SurfaceInternal"),
-            expectSessionFamily: true
-        );
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.SurfaceClass"), expectSessionFamily: true);
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.SurfaceRecord"), expectSessionFamily: true);
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.SurfaceStruct"), expectSessionFamily: false);
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.SurfaceInternal"), expectSessionFamily: true);
+    }
+
+    [Test]
+    public void GeneratedModelMembersShareOnePartialDeclaration()
+    {
+        var compilation = Generate(ShapesSource);
+        var generatedTrees = compilation.SyntaxTrees.Skip(1).ToArray();
+        var declarations = generatedTrees
+            .SelectMany(static tree => tree.GetRoot().DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
+            .Where(static declaration =>
+                declaration.Identifier.ValueText is "SurfaceClass" or "SurfaceRecord" or "SurfaceStruct" or "SurfaceInternal" or "SurfaceSecondRoot"
+            )
+            .ToArray();
+
+        foreach (var modelName in new[] { "SurfaceClass", "SurfaceRecord", "SurfaceStruct", "SurfaceInternal", "SurfaceSecondRoot" })
+        {
+            declarations.Count(declaration => declaration.Identifier.ValueText == modelName).ShouldBe(1);
+        }
     }
 
     [Test]
@@ -245,11 +212,7 @@ public sealed class ModelFacingSurfaceTests
     {
         var compilation = Generate(GlobalSource);
         AssertClean(compilation);
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "GlobalSurfaceModel"),
-            expectSessionFamily: true
-        );
+        AssertIntendedSurface(compilation, RequireModel(compilation, "GlobalSurfaceModel"), expectSessionFamily: true);
     }
 
     [Test]
@@ -257,16 +220,8 @@ public sealed class ModelFacingSurfaceTests
     {
         var compilation = Generate(ShapesSource);
         AssertClean(compilation);
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.First.Dup"),
-            expectSessionFamily: true
-        );
-        AssertIntendedSurface(
-            compilation,
-            RequireModel(compilation, "Surface.Probe.Second.Dup"),
-            expectSessionFamily: true
-        );
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.First.Dup"), expectSessionFamily: true);
+        AssertIntendedSurface(compilation, RequireModel(compilation, "Surface.Probe.Second.Dup"), expectSessionFamily: true);
         var sessions = compilation
             .GetSymbolsWithName("EditSession")
             .OfType<INamedTypeSymbol>()
@@ -319,10 +274,7 @@ public sealed class ModelFacingSurfaceTests
         var compilation = Generate(source);
         // The generated session nests in the model, so a user-nested
         // EditSession is a duplicate definition.
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldNotBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldNotBeEmpty();
     }
 
     [Test]

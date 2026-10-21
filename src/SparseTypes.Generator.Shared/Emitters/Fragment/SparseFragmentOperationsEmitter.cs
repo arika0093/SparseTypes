@@ -29,6 +29,7 @@ internal static class SparseFragmentOperationsEmitter
         var modelIsReferenceType = !model.IsStruct;
         var operationsName = SparseGeneratedPlacement.GetFragmentOperationsSimpleName(model, code.CancellationToken);
         code.AppendLine("/// <summary>Per-model Fragment conversion, merge, diff, and clone operations.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(operationsAccessibility + " static class " + operationsName);
         code.OpenBlock();
         // Public-first order: public operations precede internal bridges,

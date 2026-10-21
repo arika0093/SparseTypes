@@ -22,7 +22,8 @@ internal static class SparseFragmentEmitter
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         return BuildSplitSource(
@@ -36,7 +37,8 @@ internal static class SparseFragmentEmitter
             cancellationToken,
             config,
             appendProductExtensions,
-            payloadJsonPocos
+            payloadJsonPocos,
+            appendModelMembers
         ).Surface;
     }
 
@@ -53,7 +55,8 @@ internal static class SparseFragmentEmitter
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         return BuildSourceInternal(
@@ -67,7 +70,8 @@ internal static class SparseFragmentEmitter
             cancellationToken,
             config,
             appendProductExtensions,
-            payloadJsonPocos
+            payloadJsonPocos,
+            appendModelMembers
         );
     }
 
@@ -76,10 +80,18 @@ internal static class SparseFragmentEmitter
         bool bclHashSetImplementsReadOnlySet,
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
-        SparseGeneratorConfig config
+        SparseGeneratorConfig config,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
-        return BuildPromotedSplitSource(promoted, bclHashSetImplementsReadOnlySet, bclHashSetSupportsCapacity, cancellationToken, config).Surface;
+        return BuildPromotedSplitSource(
+            promoted,
+            bclHashSetImplementsReadOnlySet,
+            bclHashSetSupportsCapacity,
+            cancellationToken,
+            config,
+            appendModelMembers
+        ).Surface;
     }
 
     /// <summary>Builds split sources for one promoted model.</summary>
@@ -89,7 +101,8 @@ internal static class SparseFragmentEmitter
         bool bclHashSetImplementsReadOnlySet,
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken,
-        SparseGeneratorConfig config
+        SparseGeneratorConfig config,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         return BuildSourceInternal(
@@ -103,7 +116,8 @@ internal static class SparseFragmentEmitter
             cancellationToken,
             config,
             appendProductExtensions: null,
-            payloadJsonPocos: promoted.PayloadJsonPocos
+            payloadJsonPocos: promoted.PayloadJsonPocos,
+            appendModelMembers
         );
     }
 
@@ -184,7 +198,8 @@ internal static class SparseFragmentEmitter
         CancellationToken cancellationToken,
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        Action<SharedIndentedBuilder>? appendModelMembers = null
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -408,6 +423,24 @@ internal static class SparseFragmentEmitter
 
         code.Append(generatedType).Append(name).AppendLine();
         code.OpenBlock();
+        // Model-facing generated types precede implementation bridges.
+        appendModelMembers?.Invoke(code);
+        if (features.EmitFragment && features.EmitObservable && implementationNamespace is null)
+        {
+            if (!model.IsStruct)
+            {
+                SparseObservableEmitter.AppendObservable(code, modelType, members, runtime.Namespace, config.DescriptorDialect);
+            }
+            SparseReadOnlyViewEmitter.AppendReadOnlyView(code, modelType, members, readOnlyViewModels, implementationNamespace);
+        }
+        if (features.EmitChangePayload)
+        {
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, patchDialect, modelType, implementationNamespace);
+            if (payloadJson is not null)
+            {
+                SparsePayloadJsonHelperEmitter.AppendHelper(code, model, payloadJson);
+            }
+        }
         if (!splitOperations)
         {
             SparseFragmentCoreEmitter.AppendRootProjectionConstructor(code, name, members, model.Constructor, bridgeAccessibility: "private");
@@ -484,17 +517,6 @@ internal static class SparseFragmentEmitter
                 SparseFragmentCoreEmitter.AppendDeepCloneInternalFacade(code, modelType, operationsType);
             }
         }
-        if (features.EmitFragment && features.EmitObservable && implementationNamespace is null)
-        {
-            // Legacy single-file emission: UI/editing types nest in the model
-            // partial alongside Fragment state.
-            if (!model.IsStruct)
-            {
-                SparseObservableEmitter.AppendObservable(code, modelType, members, runtime.Namespace, config.DescriptorDialect);
-            }
-            SparseReadOnlyViewEmitter.AppendReadOnlyView(code, modelType, members, readOnlyViewModels, implementationNamespace);
-        }
-
         // Emit bridges whenever relocation is active so relocated descriptors
         // can access private attribute arrays.
         if (implementationNamespace is not null && features.EmitFragment && features.EmitObservable)
@@ -516,16 +538,6 @@ internal static class SparseFragmentEmitter
         }
 
         code.CloseBlock();
-        if (features.EmitChangePayload)
-        {
-            // The top-level ModelJson helper reuses the nested payload
-            // resolver, so it shares the emission gate with the facade.
-            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, patchDialect, modelType, implementationNamespace);
-            if (payloadJson is not null)
-            {
-                SparsePayloadJsonHelperEmitter.AppendHelper(code, model, payloadJson);
-            }
-        }
         appendProductExtensions?.Invoke(code, model, members);
         if (!model.IsGlobalNamespace)
         {

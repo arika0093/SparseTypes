@@ -24,6 +24,55 @@ internal static class SparseModelImplementationEmitter
         SparseDescriptorDialect? descriptorDialect
     )
     {
+        var inner = BuildObservableMembers(model, members, config, cancellationToken, runtimeNamespace, descriptorDialect);
+        var source = WrapInModel(model, inner, cancellationToken);
+        return new SparseGeneratedSource(SparseGeneratedPlacement.ObservableHintName(model, cancellationToken), source);
+    }
+
+    /// <summary>Builds the nested UI/editing members for direct inclusion in a model surface.</summary>
+    public static void AppendModelMembers(
+        SharedIndentedBuilder code,
+        SparseModelInfo model,
+        ImmutableArray<SparseMemberModel> members,
+        ImmutableArray<SparseReadOnlyViewModel> readOnlyViewModels,
+        SparseGeneratorConfig config,
+        string runtimeNamespace,
+        string? implementationNamespace
+    )
+    {
+        var cancellationToken = code.CancellationToken;
+        var features = config.EffectiveEmissionFeatures;
+        if (!features.EmitFragment || !features.EmitObservable)
+        {
+            return;
+        }
+
+        if (!model.IsStruct)
+        {
+            code.Append(BuildObservableMembers(model, members, config, cancellationToken, runtimeNamespace, null));
+        }
+
+        using (var innerBuilder = new SharedIndentedBuilder(cancellationToken))
+        {
+            SparseReadOnlyViewEmitter.AppendReadOnlyView(innerBuilder, model.ModelTypeName, members, readOnlyViewModels, implementationNamespace);
+            code.Append(innerBuilder.ToString());
+        }
+
+        if (!model.IsStruct)
+        {
+            AppendEditSessionMembers(code, model, members, config, cancellationToken);
+        }
+    }
+
+    private static string BuildObservableMembers(
+        SparseModelInfo model,
+        ImmutableArray<SparseMemberModel> members,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken,
+        string runtimeNamespace,
+        SparseDescriptorDialect? descriptorDialect
+    )
+    {
         using var innerBuilder = new SharedIndentedBuilder(cancellationToken);
         SparseObservableEmitter.AppendObservable(innerBuilder, model.ModelTypeName, members, runtimeNamespace, descriptorDialect);
         var inner = innerBuilder.ToString();
@@ -59,9 +108,7 @@ internal static class SparseModelImplementationEmitter
                 }
             }
         }
-
-        var source = WrapInModel(model, inner, cancellationToken);
-        return new SparseGeneratedSource(SparseGeneratedPlacement.ObservableHintName(model, cancellationToken), source);
+        return inner;
     }
 
     /// <summary>Builds the model-nested read-only-view implementation source.</summary>
@@ -102,15 +149,26 @@ internal static class SparseModelImplementationEmitter
         CancellationToken cancellationToken
     )
     {
+        using var code = new SharedIndentedBuilder(cancellationToken);
+        AppendEditSessionMembers(code, model, members, config, cancellationToken);
+        var source = WrapInModel(model, code.ToString(), cancellationToken);
+        return new SparseGeneratedSource(SparseGeneratedPlacement.EditSessionHintName(model, cancellationToken), source);
+    }
+
+    private static void AppendEditSessionMembers(
+        SharedIndentedBuilder code,
+        SparseModelInfo model,
+        ImmutableArray<SparseMemberModel> members,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
         var family = config.EffectiveFamilyNames;
         var observableSimple = SparseObservableEmitter.ObservableTypeName(members, family);
         var readOnlySimple = SparseReadOnlyViewEmitter.ReadOnlyViewTypeName(members, family);
         var observableRef = SparseGeneratedPlacement.GetObservableReference(model, observableSimple, config, cancellationToken);
         var readOnlyRef = SparseGeneratedPlacement.GetReadOnlyViewReference(model, readOnlySimple, config, cancellationToken);
-        using var code = new SharedIndentedBuilder(cancellationToken);
         SparseRelocatedEditSessionCore.Append(code, model, members, config, observableRef, readOnlyRef);
-        var source = WrapInModel(model, code.ToString(), cancellationToken);
-        return new SparseGeneratedSource(SparseGeneratedPlacement.EditSessionHintName(model, cancellationToken), source);
     }
 
     private static string WrapInModel(SparseModelInfo model, string inner, CancellationToken cancellationToken)

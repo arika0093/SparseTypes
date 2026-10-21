@@ -3,13 +3,13 @@ namespace SparseTypes.Generator.Shared;
 /// <summary>Emits the per-model trim-safe payload JSON converter envelope.</summary>
 internal static class SparsePayloadJsonConverterEmitter
 {
-    /// <summary>Emits the converter nested in the model.</summary>
+    /// <summary>Emits the converter inside the payload implementation container.</summary>
     internal static void AppendConverter(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var members = context.Members.Where(static m => !m.Property.IsJsonIgnored).ToArray();
         code.AppendLine("/// <summary>Trim-safe JSON converter for this model's change payload.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine("public sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>");
+        code.AppendLine("internal sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>");
         code.OpenBlock();
         AppendPayload(code, context);
         AppendCore(code, context);
@@ -36,6 +36,7 @@ internal static class SparsePayloadJsonConverterEmitter
     {
         var change = context.Dto("Change");
         code.AppendLine("/// <inheritdoc />");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "public override ChangePayload? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -81,6 +82,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <inheritdoc />");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, ChangePayload? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -103,8 +105,9 @@ internal static class SparsePayloadJsonConverterEmitter
         var core = context.Dto("Core");
         var change = context.Dto("Change");
         code.AppendLine("/// <summary>Reads a nested change core.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public static "
+            "internal static "
                 + core
                 + " ReadCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -143,8 +146,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <summary>Writes a nested change core.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, "
+            "internal static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, "
                 + core
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -165,8 +169,9 @@ internal static class SparsePayloadJsonConverterEmitter
     {
         var root = context.Dto("Root");
         code.AppendLine("/// <summary>Reads a snapshot root.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public static "
+            "internal static "
                 + root
                 + " ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -204,8 +209,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <summary>Writes a snapshot root.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, "
+            "internal static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, "
                 + root
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );

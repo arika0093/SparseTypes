@@ -180,7 +180,8 @@ internal static class SparseChangeSetEmitter
                     emitContainers: true,
                     emitFacade: false,
                     implementationNamespace: implementationNamespace,
-                    containerAccessibility: accessibility
+                    containerAccessibility: accessibility,
+                    payloadJsonPocos: payloadJsonPocos
                 );
             }
             else

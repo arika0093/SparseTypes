@@ -106,9 +106,9 @@ public static class ChangePayloadDocsSamples
         );
 
         // sample: payload-context
-        var contextJson = JsonSerializer.Serialize(setPayload, WireSettingsJson.Default);
+        var contextJson = JsonSerializer.Serialize(setPayload, WireSettings.PayloadJson.Default);
         var contextRestored = JsonSerializer
-            .Deserialize(contextJson, WireSettingsJson.Default)!
+            .Deserialize(contextJson, WireSettings.PayloadJson.Default)!
             .ToChangeSet();
         // contextRestored.ToPatch().Apply(setBefore) replays setAfter
         // /sample
@@ -254,9 +254,9 @@ public static class ChangePayloadDocsSamples
             )
         );
         var pocoPayload = PocoWidget.ChangeSet.Between(pocoBefore, pocoAfter).ToPayload();
-        var pocoJson = JsonSerializer.Serialize(pocoPayload, PocoWidgetJson.Default);
+        var pocoJson = JsonSerializer.Serialize(pocoPayload, PocoWidget.PayloadJson.Default);
         var pocoRestored = JsonSerializer
-            .Deserialize(pocoJson, PocoWidgetJson.Default)!
+            .Deserialize(pocoJson, PocoWidget.PayloadJson.Default)!
             .ToChangeSet();
         // pocoRestored.ToPatch().Apply(pocoBefore) replays pocoAfter
         // /sample

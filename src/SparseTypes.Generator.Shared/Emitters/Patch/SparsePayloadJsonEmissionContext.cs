@@ -38,7 +38,7 @@ internal sealed record PayloadJsonEmissionContext(
             runtime,
             containerAlias,
             "PayloadJsonConverter",
-            "PayloadJson",
+            "PayloadJsonResolver",
             RootDiscriminatorFor(members),
             pocos.IsDefault ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty : pocos
         );
@@ -59,16 +59,8 @@ internal sealed record PayloadJsonEmissionContext(
     public string Dto(string suffix) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
 
     /// <summary>Documented composition entry point for diagnostics.</summary>
-    /// <remarks>Points custom-type failures at the top-level ModelJson helper instead of the nested resolver instance it delegates to.</remarks>
-    public string ResolverReference
-    {
-        get
-        {
-            var dot = ModelType.LastIndexOf('.');
-            var simple = dot >= 0 ? ModelType.Substring(dot + 1) : ModelType;
-            return simple + "Json.Resolver";
-        }
-    }
+    /// <remarks>Points custom-type failures at the model-facing JSON helper.</remarks>
+    public string ResolverReference => ModelType + ".PayloadJson.Resolver";
 
     /// <summary>Qualified member DTO type for the current model.</summary>
     public string MemberDto(string suffix, int id) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
@@ -76,4 +68,21 @@ internal sealed record PayloadJsonEmissionContext(
     /// <summary>Qualified child DTO type.</summary>
     public string ChildDto(string childModel, string suffix) =>
         SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(Dialect, childModel, suffix, ImplementationNamespace);
+
+    /// <summary>Qualified converter implementation for a model's payload.</summary>
+    public string ConverterReference(string modelType)
+    {
+        return ImplementationContainerReference(modelType) + "." + ConverterName;
+    }
+
+    /// <summary>Qualified resolver implementation for the current model.</summary>
+    public string ResolverTypeReference => ImplementationContainerReference(ModelType) + "." + ResolverName;
+
+    private string ImplementationContainerReference(string modelType)
+    {
+        var container = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(Dialect, modelType);
+        return string.IsNullOrEmpty(ImplementationNamespace)
+            ? modelType + "." + container
+            : SparseGeneratedPlacement.QualifyPayloadContainer(container, ImplementationNamespace);
+    }
 }

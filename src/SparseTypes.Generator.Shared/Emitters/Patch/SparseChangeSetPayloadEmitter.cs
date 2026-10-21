@@ -49,12 +49,6 @@ internal static class SparseChangeSetPayloadEmitter
         if (emitFacade)
         {
             AppendChangePayloadFacadeBlock(code, members, dialect, modelType);
-            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, dialect, modelType, implementationNamespace, payloadJsonPocos);
-            if (payloadJson is not null)
-            {
-                SparsePayloadJsonConverterEmitter.AppendConverter(code, payloadJson);
-                SparsePayloadJsonResolverEmitter.AppendResolver(code, payloadJson);
-            }
         }
 
         if (emitContainers)
@@ -72,7 +66,28 @@ internal static class SparseChangeSetPayloadEmitter
                 implementationNamespace,
                 containerAccessibility
             );
+            var payloadJson = PayloadJsonEmissionContext.TryCreate(members, dialect, modelType, implementationNamespace, payloadJsonPocos);
+            if (payloadJson is not null)
+            {
+                AppendPayloadJsonImplementation(code, dialect, modelType, containerAccessibility, payloadJson);
+            }
         }
+    }
+
+    private static void AppendPayloadJsonImplementation(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? modelType,
+        string containerAccessibility,
+        PayloadJsonEmissionContext context
+    )
+    {
+        code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
+        code.OpenBlock();
+        SparsePayloadJsonConverterEmitter.AppendConverter(code, context);
+        SparsePayloadJsonResolverEmitter.AppendResolver(code, context);
+        code.CloseBlock();
+        code.AppendLine();
     }
 
     private static void AppendPayloadCoreContainer(
@@ -102,6 +117,7 @@ internal static class SparseChangeSetPayloadEmitter
         // them with the member (CS1591).
         code.AppendLine("/// <summary>Gets or sets the member changes carried by this core.</summary>");
         AppendJsonProperty(code, "Changes", 1, dialect.EmitJson);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public global::System.Collections.Generic.List<" + payloadChange + ">? Changes { get; set; }");
         // Public DTO surface precedes the internal conversion seams so the
         // emitted container reads public -> internal -> private.
@@ -140,7 +156,7 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         code.AppendLine("/// <summary>Serializable envelope carrying the validated transition for transport.</summary>");
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Advanced)]");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Always)]");
         code.AppendLine(
             "public sealed class ChangePayload : "
                 + PayloadTypeName(dialect, modelType, "Core")
@@ -227,6 +243,7 @@ internal static class SparseChangeSetPayloadEmitter
         }
         code.AppendLine("/// <summary>Gets or sets the provisional wire version token.</summary>");
         AppendJsonProperty(code, "Version", 0, dialect.EmitJson);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public string? Version { get; set; }");
         if (modelType is not null)
         {
@@ -426,6 +443,7 @@ internal static class SparseChangeSetPayloadEmitter
         code.OpenBlock();
         code.AppendLine("/// <summary>Gets or sets the snapshot member values.</summary>");
         AppendJsonProperty(code, "Members", 0, dialect.EmitJson);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public global::System.Collections.Generic.List<" + payloadChange + "> Members { get; set; } = new();");
         code.AppendLine("/// <summary>Builds a snapshot from a fragment.</summary>");
         code.AppendLine("/// <param name=\"value\">The fragment to snapshot.</param>");
@@ -592,6 +610,7 @@ internal static class SparseChangeSetPayloadEmitter
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, payloadRoot, implementationNamespace);
         }
 
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public " + endpoint + "<" + payloadRoot + ">? Before { get; set; }");
         code.AppendLine("/// <summary>Gets or sets the after snapshot.</summary>");
         AppendIgnoreNull(code, dialect.EmitJson);
@@ -601,6 +620,7 @@ internal static class SparseChangeSetPayloadEmitter
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, payloadRoot, implementationNamespace);
         }
 
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public " + endpoint + "<" + payloadRoot + ">? After { get; set; }");
         code.CloseBlock();
         code.AppendLine();

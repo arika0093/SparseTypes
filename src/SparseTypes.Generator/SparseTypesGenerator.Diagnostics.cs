@@ -282,7 +282,7 @@ public sealed partial class SparseTypesGenerator
     private static readonly DiagnosticDescriptor UnsupportedPayloadJsonPoco = new(
         SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco,
         "Custom leaf type needs external JSON metadata",
-        "Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Default with a source-generated context for this type or simplify it to public properties with an accessible constructor",
+        "Custom leaf type '{0}' has a shape without a generated payload JSON codec; combine PayloadJson.Resolver with a source-generated context for this type or simplify it to public properties with an accessible constructor",
         "SparseTypes",
         DiagnosticSeverity.Warning,
         true,
