@@ -14,14 +14,14 @@
   <Folder Name="/tests/">
     <Project Path="tests/SparseTypes.Tests/SparseTypes.Tests.csproj" />
     <Project Path="tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj" />
-    <Project Path="tests/SparseTypes.DesktopBinding.Tests/SparseTypes.DesktopBinding.Tests.csproj" />
+    <Project Path="tests/SparseTypes.Tests.Binding/SparseTypes.Tests.Binding.csproj" />
     <Project Path="tests/SparseTypes.EntityFrameworkCore.Tests/SparseTypes.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.Blazor.Tests/SparseTypes.Blazor.Tests.csproj" />
-    <Project Path="tests/SparseTypes.NativeAotSmoke/SparseTypes.NativeAotSmoke.csproj" />
-    <Project Path="tests/SparseTypes.PublicApi.Tests/SparseTypes.PublicApi.Tests.csproj" />
+    <Project Path="tests/SparseTypes.Tests.NativeAot/SparseTypes.Tests.NativeAot.csproj" />
+    <Project Path="tests/SparseTypes.Tests.PublicApi/SparseTypes.Tests.PublicApi.csproj" />
     <Project Path="tests/SparseTypes.OpenApi.AspNetCore.Tests/SparseTypes.OpenApi.AspNetCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.OpenApi.Swashbuckle.Tests/SparseTypes.OpenApi.Swashbuckle.Tests.csproj" />
-    <Project Path="tests/SparseTypes.GeneratedApiFixtures/SparseTypes.GeneratedApiFixtures.csproj" />
+    <Project Path="tests/SparseTypes.Tests.Fixture/SparseTypes.Tests.Fixture.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/SparseTypes.Benchmarks/SparseTypes.Benchmarks.csproj" />

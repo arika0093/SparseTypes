@@ -7,9 +7,9 @@ This suite pins the public surface that v0.1 supports. It runs in the
 
 - `SparseTypes.approved.txt`: runtime assembly.
 - `SparseTypes.Generator.approved.txt`: generator assembly.
-- `SparseTypes.GeneratedApiFixtures.approved.txt`: compiled output of the
-  generator for the fixture models in
-  `../SparseTypes.GeneratedApiFixtures`. It covers `Fragment`, `Patch`,
+- `SparseTypes.Tests.Fixture.approved.txt`: compiled output of the
+  generator for the fixture models in `../SparseTypes.Tests.Fixture`. It covers
+  `Fragment`, `Patch`,
   `ChangeSet`, `ChangePayload`, `Observable`, `FragmentBuilder`, typed
   transitions, model extensions (`CreateChangeSet`, `CreateEditSession`,
   `ToObservable`), and the absence of removed APIs such as `Submit` and
@@ -30,7 +30,7 @@ Generated contract diffs appear in the nested blocks.
 1. Run the suite with the update flag set:
 
    ```sh
-   SPARSETYPES_UPDATE_PUBLIC_API=1 dotnet test tests/SparseTypes.PublicApi.Tests --configuration Release
+   SPARSETYPES_UPDATE_PUBLIC_API=1 dotnet test tests/SparseTypes.Tests.PublicApi --configuration Release
    ```
 
    On PowerShell, set the variable first with

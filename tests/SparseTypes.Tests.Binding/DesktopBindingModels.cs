@@ -1,4 +1,4 @@
-namespace SparseTypes.DesktopBinding.Tests;
+namespace SparseTypes.Tests.Binding;
 
 /// <summary>Order edited through desktop bindings in the smoke tests.</summary>
 [SparseModel]

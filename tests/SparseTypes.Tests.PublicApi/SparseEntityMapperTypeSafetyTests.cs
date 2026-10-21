@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SparseTypes;
 using SparseTypes.EntityFrameworkCore;
 
-namespace SparseTypes.PublicApi.Tests;
+namespace SparseTypes.Tests.PublicApi;
 
 public sealed class SparseEntityMapperTypeSafetyTests
 {

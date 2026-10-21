@@ -1,7 +1,7 @@
 using SparseTypes.Generated;
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 /// <summary>Session capability contracts under NativeAOT.</summary>
 /// <remarks>Proves generated sessions expose history, field and collection state, batch edit, and descriptors through typed contracts without runtime member lookup.</remarks>

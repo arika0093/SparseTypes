@@ -6,7 +6,7 @@ using System.Text.Json.Serialization.Metadata;
 using SparseTypes.Blazor;
 using SparseTypes.GeneratedApiFixtures;
 
-namespace SparseTypes.PublicApi.Tests;
+namespace SparseTypes.Tests.PublicApi;
 
 /// <summary>Approval tests for generated user APIs and the Blazor surface.</summary>
 public sealed class GeneratedApiApprovalTests

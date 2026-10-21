@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 using System.Text;
 using PublicApiGenerator;
 
-namespace SparseTypes.PublicApi.Tests;
+namespace SparseTypes.Tests.PublicApi;
 
 public static class PublicApiCheck
 {

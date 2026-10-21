@@ -1,7 +1,7 @@
 using SparseTypes.CompilerServices;
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 /// <summary>NativeAOT regression coverage for collection comparison.</summary>
 public sealed class AotCollectionComparisonTests

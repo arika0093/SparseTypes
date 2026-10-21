@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 
-namespace SparseTypes.PublicApi.Tests;
+namespace SparseTypes.Tests.PublicApi;
 
 /// <summary>Guards the SparseTypes API boundary from, reduced by.</summary>
 public sealed class SparseTypesApiAudienceTests

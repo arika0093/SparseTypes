@@ -44,4 +44,4 @@ Public accessibility alone does not make a type an application entry point. `Com
 
 `SparseTypes.Generator.Shared` serves authors of other source generators. Its configuration and dialect contracts are documented in its [consumer README](../../src/SparseTypes.Generator.Shared/README.md), separately from this application API reference.
 
-The public API approvals under `tests/SparseTypes.PublicApi.Tests/Approvals/` record signatures for compatibility checks. They supplement this reference; they do not describe ownership, notifications, or workflow semantics.
+The public API approvals under `tests/SparseTypes.Tests.PublicApi/Approvals/` record signatures for compatibility checks. They supplement this reference; they do not describe ownership, notifications, or workflow semantics.

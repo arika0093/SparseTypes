@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 [JsonSerializable(typeof(PayloadLongKeyItem))]
 [JsonSerializable(typeof(PayloadEnumKeyItem))]

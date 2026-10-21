@@ -1,6 +1,6 @@
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 public sealed class AotFragmentCoreTests
 {

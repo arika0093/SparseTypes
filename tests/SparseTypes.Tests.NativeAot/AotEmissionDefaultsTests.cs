@@ -1,6 +1,6 @@
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 /// <summary>Standalone emission defaults under NativeAOT.</summary>
 public sealed class AotEmissionDefaultsTests

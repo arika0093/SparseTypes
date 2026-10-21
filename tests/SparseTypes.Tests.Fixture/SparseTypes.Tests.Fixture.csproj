@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>SparseTypes.GeneratedApiFixtures</RootNamespace>
-    <AssemblyName>SparseTypes.GeneratedApiFixtures</AssemblyName>
+    <AssemblyName>SparseTypes.Tests.Fixture</AssemblyName>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <!-- Enable on-disk generated output for inspection (obj/, git-ignored). -->

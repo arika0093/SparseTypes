@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>SparseTypes.PublicApi.Tests</RootNamespace>
-    <AssemblyName>SparseTypes.PublicApi.Tests</AssemblyName>
+    <RootNamespace>SparseTypes.Tests.PublicApi</RootNamespace>
+    <AssemblyName>SparseTypes.Tests.PublicApi</AssemblyName>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
@@ -22,7 +22,7 @@
     <ProjectReference Include="../../src/SparseTypes.Fragments.Generator/SparseTypes.Fragments.Generator.csproj" />
     <ProjectReference Include="../../src/SparseTypes.Blazor/SparseTypes.Blazor.csproj" />
     <ProjectReference Include="../../src/SparseTypes.EntityFrameworkCore/SparseTypes.EntityFrameworkCore.csproj" />
-    <ProjectReference Include="../SparseTypes.GeneratedApiFixtures/SparseTypes.GeneratedApiFixtures.csproj" />
+    <ProjectReference Include="../SparseTypes.Tests.Fixture/SparseTypes.Tests.Fixture.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Approvals/**/*.approved.txt" CopyToOutputDirectory="PreserveNewest" />

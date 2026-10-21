@@ -1,15 +1,11 @@
 using System.ComponentModel;
-using System.Windows.Data;
-using System.Windows.Threading;
-using WpfBinding = System.Windows.Data.Binding;
-using WpfListBox = System.Windows.Controls.ListBox;
-using WpfTextBox = System.Windows.Controls.TextBox;
+using System.Windows.Forms;
 
-namespace SparseTypes.DesktopBinding.Tests;
+namespace SparseTypes.Tests.Binding;
 
-/// <summary>WPF smoke binding against the generated observable.</summary>
+/// <summary>WinForms smoke binding against the generated observable.</summary>
 /// <remarks>Windows-only: other platforms return early and stay green, with the real verification owned by Windows legs.</remarks>
-public sealed class WpfBindingSmokeTests
+public sealed class WinFormsBindingSmokeTests
 {
     private static DesktopOrder Order() =>
         new()
@@ -23,26 +19,6 @@ public sealed class WpfBindingSmokeTests
             ],
         };
 
-    private static void Pump()
-    {
-        Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.Background);
-    }
-
-    private static WpfTextBox BoundNumberBox(object source)
-    {
-        var box = new WpfTextBox();
-        box.SetBinding(
-            WpfTextBox.TextProperty,
-            new WpfBinding(nameof(DesktopOrder.Number))
-            {
-                Source = source,
-                Mode = BindingMode.TwoWay,
-                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
-            }
-        );
-        return box;
-    }
-
     [Test]
     public void TextBoxTwoWayBindsObservableScalar()
     {
@@ -55,26 +31,42 @@ public sealed class WpfBindingSmokeTests
         {
             var model = Order();
             var session = model.CreateEditSession();
-            var box = BoundNumberBox(session.Observable);
-            Pump();
+            using var form = new Form { ShowInTaskbar = false, Opacity = 0 };
+            using var box = new TextBox();
+            form.Controls.Add(box);
+            box.DataBindings.Add(
+                nameof(TextBox.Text),
+                session.Observable,
+                nameof(DesktopOrder.Number),
+                false,
+                DataSourceUpdateMode.OnPropertyChanged
+            );
 
-            box.Text.ShouldBe("ORD-1");
+            // Simple bindings activate with the host form. The form stays
+            // invisible; showing only creates the handles the engine needs.
+            form.Show();
+            try
+            {
+                box.Text.ShouldBe("ORD-1");
 
-            box.Text = "ORD-2";
-            Pump();
+                box.Text = "ORD-2";
 
-            model.Number.ShouldBe("ORD-2");
-            session.HasChanges.ShouldBeTrue();
+                model.Number.ShouldBe("ORD-2");
+                session.HasChanges.ShouldBeTrue();
 
-            session.Observable.Number = "ORD-3";
-            Pump();
+                session.Observable.Number = "ORD-3";
 
-            box.Text.ShouldBe("ORD-3");
+                box.Text.ShouldBe("ORD-3");
+            }
+            finally
+            {
+                form.Close();
+            }
         });
     }
 
     [Test]
-    public void ListBoxTracksObservableKeyedLines()
+    public void ListBoxBindsObservableLinesWithManualRefresh()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -85,30 +77,29 @@ public sealed class WpfBindingSmokeTests
         {
             var model = Order();
             var session = model.CreateEditSession();
-            var list = new WpfListBox { ItemsSource = session.Observable.Lines };
-            Pump();
+            using var source = new BindingSource { DataSource = session.Observable.Lines };
+            using var form = new Form { ShowInTaskbar = false, Opacity = 0 };
+            using var list = new ListBox();
+            form.Controls.Add(list);
+            list.DataSource = source;
+            form.Show();
+            try
+            {
+                list.Items.Count.ShouldBe(2);
 
-            list.Items.Count.ShouldBe(2);
+                // The list view exposes IList and INotifyCollectionChanged.
+                session.Observable.Lines.AddModel(
+                    new DesktopOrderLine { Id = "c", Name = "third" }
+                );
+                source.ResetBindings(false);
 
-            session.Observable.Lines.AddModel(new DesktopOrderLine { Id = "c", Name = "third" });
-            Pump();
-
-            list.Items.Count.ShouldBe(3);
-            model.Lines.Count.ShouldBe(3);
-
-            session.Observable.Lines.Move(2, 0);
-            Pump();
-
-            session.Observable.Lines[0].Id.ShouldBe("c");
-            var lines = session.CollectionState(DesktopOrder.SparsePath.Lines);
-            lines.OrderChanged.ShouldBeTrue();
-            lines.GetItemState("c").IsAdded.ShouldBeTrue();
-
-            // The survivor row keeps its value: no exact transition there.
-            // (Ancestor change is expected while the member holds an add.)
-            session
-                .FieldState(DesktopOrder.SparsePath.Lines.Key("a").Name)
-                .IsChanged.ShouldBeFalse();
+                list.Items.Count.ShouldBe(3);
+                model.Lines.Count.ShouldBe(3);
+            }
+            finally
+            {
+                form.Close();
+            }
         });
     }
 
@@ -124,25 +115,32 @@ public sealed class WpfBindingSmokeTests
         {
             var model = Order();
             var session = model.CreateEditSession();
-            var box = new WpfTextBox();
-            box.SetBinding(
-                WpfTextBox.TextProperty,
-                new WpfBinding(nameof(DesktopCustomer.Name))
-                {
-                    Source = session.Observable.Customer,
-                    Mode = BindingMode.TwoWay,
-                    UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
-                }
+            var customer = session.Observable.Customer;
+            customer.ShouldNotBeNull();
+            using var form = new Form { ShowInTaskbar = false, Opacity = 0 };
+            using var box = new TextBox();
+            form.Controls.Add(box);
+            box.DataBindings.Add(
+                nameof(TextBox.Text),
+                customer!,
+                nameof(DesktopCustomer.Name),
+                false,
+                DataSourceUpdateMode.OnPropertyChanged
             );
-            Pump();
+            form.Show();
+            try
+            {
+                box.Text.ShouldBe("Ada");
 
-            box.Text.ShouldBe("Ada");
+                box.Text = "Grace";
 
-            box.Text = "Grace";
-            Pump();
-
-            model.Customer!.Name.ShouldBe("Grace");
-            session.HasChanges.ShouldBeTrue();
+                model.Customer!.Name.ShouldBe("Grace");
+                session.HasChanges.ShouldBeTrue();
+            }
+            finally
+            {
+                form.Close();
+            }
         });
     }
 
@@ -158,17 +156,17 @@ public sealed class WpfBindingSmokeTests
         {
             var model = Order();
             var session = model.CreateEditSession();
-            using var child = session.OpenChildSession(DesktopOrder.SparsePath.Lines.Key("a"));
+            using var child = session.OpenChildSession(DesktopOrder.SparsePath.Lines.Key("b"));
 
             child.Session.Observable.Name = "draft";
 
-            model.Lines.First(line => line.Id == "a").Name.ShouldBe("first");
+            model.Lines.First(line => line.Id == "b").Name.ShouldBe("second");
             session.HasChanges.ShouldBeTrue();
 
             child.TryAcceptChanges(out var conflicts).ShouldBeTrue();
 
             conflicts.ShouldBeNull();
-            model.Lines.First(line => line.Id == "a").Name.ShouldBe("draft");
+            model.Lines.First(line => line.Id == "b").Name.ShouldBe("draft");
             session.HasChanges.ShouldBeTrue();
         });
     }

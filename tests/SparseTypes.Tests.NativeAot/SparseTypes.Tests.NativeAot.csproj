@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>SparseTypes.NativeAotSmoke</RootNamespace>
-    <AssemblyName>SparseTypes.NativeAotSmoke</AssemblyName>
+    <RootNamespace>SparseTypes.Tests.NativeAot</RootNamespace>
+    <AssemblyName>SparseTypes.Tests.NativeAot</AssemblyName>
     <IsPackable>false</IsPackable>
     <!-- NativeAOT TUnit gate: this test project publishes ahead-of-time and the
       native binary runs real TUnit tests (source-generation mode is AOT

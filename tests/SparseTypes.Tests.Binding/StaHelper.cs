@@ -1,6 +1,6 @@
 using System.Runtime.ExceptionServices;
 
-namespace SparseTypes.DesktopBinding.Tests;
+namespace SparseTypes.Tests.Binding;
 
 /// <summary>Runs desktop binding bodies on a dedicated STA thread.</summary>
 internal static class StaHelper

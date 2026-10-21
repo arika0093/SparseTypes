@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using SparseTypes.NativeAotFixtures;
 
-namespace SparseTypes.NativeAotSmoke;
+namespace SparseTypes.Tests.NativeAot;
 
 // Verification-only parity context: the feature needs no registration, this
 // context only proves the generated wire matches System.Text.Json defaults.
