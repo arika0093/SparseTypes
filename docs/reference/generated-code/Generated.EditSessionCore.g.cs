@@ -1,0 +1,1668 @@
+﻿#nullable enable
+
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+
+namespace SparseTypes.Generated
+{
+    /// <summary>Tracks edits to a live model against a retained fragment baseline without depending on a UI framework.</summary>
+    /// <typeparam name="TModel">The editable model type. Must be a reference type.</typeparam>
+    /// <typeparam name="TFragment">The generated fragment type for <typeparamref name="TModel"/>.</typeparam>
+    /// <typeparam name="TPatch">The generated baseline-free patch type for <typeparamref name="TModel"/>.</typeparam>
+    /// <typeparam name="TChangeSet">The generated baseline-aware change set type for <typeparamref name="TModel"/>.</typeparam>
+    /// <typeparam name="TObservable">The generated observable proxy type for <typeparamref name="TModel"/>.</typeparam>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    internal class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>
+        where TModel : class
+        where TFragment : class
+        where TPatch : class
+        where TChangeSet : class
+        where TObservable : class
+    {
+        // Public surface first; internal constructors and private state follow.
+        /// <summary>Creates a session capturing the current model state as its baseline.</summary>
+        public static EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(
+            TModel model,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, TObservable> toObservable
+        )
+        {
+            if (model is null)
+                throw new ArgumentNullException(nameof(model));
+            ValidateDelegates(fromModel, between, toPatch, isEmpty, advanceBaseline, toObservable);
+
+            return new EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>(
+                model,
+                fromModel(model),
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                (value, _) => toObservable(value)
+            );
+        }
+
+        /// <summary>Creates a session whose observable proxy reports model changes to the session.</summary>
+        public static EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(
+            TModel model,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, Action?, TObservable> toObservable,
+            Action? onChanged = null
+        )
+        {
+            if (model is null)
+                throw new ArgumentNullException(nameof(model));
+            ValidateNotificationDelegates(
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                toObservable
+            );
+            return new EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>(
+                model,
+                fromModel(model),
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                toObservable,
+                onChanged
+            );
+        }
+
+        /// <summary>Creates a session editing <paramref name="current"/>
+        /// against a separate baseline snapshot.</summary>
+        public static EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(
+            TModel baseline,
+            TModel current,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, TObservable> toObservable
+        )
+        {
+            if (baseline is null)
+                throw new ArgumentNullException(nameof(baseline));
+            if (current is null)
+                throw new ArgumentNullException(nameof(current));
+            ValidateDelegates(fromModel, between, toPatch, isEmpty, advanceBaseline, toObservable);
+
+            return new EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>(
+                current,
+                fromModel(baseline),
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                (value, _) => toObservable(value)
+            );
+        }
+
+        /// <summary>Creates a session with a separate baseline and an observable change callback.</summary>
+        public static EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Create(
+            TModel baseline,
+            TModel current,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, Action?, TObservable> toObservable,
+            Action? onChanged = null
+        )
+        {
+            if (baseline is null)
+                throw new ArgumentNullException(nameof(baseline));
+            if (current is null)
+                throw new ArgumentNullException(nameof(current));
+            ValidateNotificationDelegates(
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                toObservable
+            );
+            return new EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>(
+                current,
+                fromModel(baseline),
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                toObservable,
+                onChanged
+            );
+        }
+
+        /// <summary>The live editable model. The UI or application mutates this instance directly.</summary>
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        public TModel Model
+        {
+            get
+            {
+                DisableHasChangesCache();
+                return _model;
+            }
+            private set => _model = value;
+        }
+
+        /// <summary>Returns the live model for trusted framework use without affecting the change cache.</summary>
+        /// <remarks>Unlike <see cref="Model"/>, this access keeps observable-change caching intact.</remarks>
+        public TModel GetModelForFrameworkAccess() => _model;
+
+        /// <summary>A stable typed observable proxy over <see cref="Model"/>.</summary>
+        public TObservable Observable => _observable;
+
+        /// <summary>The revision of the retained baseline.</summary>
+        public long BaselineRevision => _baselineRevision;
+
+        /// <summary>Whether the current model differs semantically from the retained baseline.</summary>
+        /// <remarks>Observable edits defer the baseline comparison until this property is read, reusing the latest observed snapshot.</remarks>
+        public bool HasChanges
+        {
+            get
+            {
+                if (_hasChangesCacheValid)
+                {
+                    return _cachedHasChanges;
+                }
+
+                var cachePending = _cacheObservableChanges && _hasChangesSnapshotPending;
+                TChangeSet changes;
+                try
+                {
+                    changes = cachePending ? _between(_baseline, _lastObserved) : CreateChangeSet();
+                }
+                catch (InvalidOperationException exception) when (IsDuplicateKeyError(exception))
+                {
+                    return true;
+                }
+
+                if (cachePending)
+                {
+                    CacheHasChanges(changes);
+                    return _cachedHasChanges;
+                }
+
+                return !_isEmpty(changes);
+            }
+        }
+
+        /// <summary>Raised when session state or its observable model may have changed.</summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>Raised with the leaf transitions produced by each observable edit.</summary>
+        public event Action<TChangeSet>? TransitionObserved;
+
+        /// <summary>Runs observable edits as one transition notification, including nested batches.</summary>
+        /// <remarks>Intermediate snapshot and diff work is deferred.</remarks>
+        public void BatchEdit(Action edit)
+        {
+            if (edit is null)
+                throw new ArgumentNullException(nameof(edit));
+
+            var isOuterBatch = _batchDepth == 0;
+            if (isOuterBatch)
+            {
+                _batchStart = _lastObserved;
+                _batchDirty = false;
+                _batchPropertyChanged = false;
+                _batchOnChanged = false;
+            }
+
+            _batchDepth++;
+            try
+            {
+                edit();
+            }
+            finally
+            {
+                _batchDepth--;
+                if (isOuterBatch)
+                {
+                    CompleteBatchEdit();
+                }
+            }
+        }
+
+        /// <summary>Derives the baseline-aware change set between the retained baseline and current model.</summary>
+        public TChangeSet CreateChangeSet()
+        {
+            var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+            var changes = _between(_baseline, current);
+            if (_cacheObservableChanges && (_hasChangesCacheValid || _hasChangesSnapshotPending))
+            {
+                CacheHasChanges(changes);
+            }
+
+            return changes;
+        }
+
+        /// <summary>Derives the baseline-free patch from the current baseline-aware change set.</summary>
+        public TPatch CreatePatch() => _toPatch(CreateChangeSet());
+
+        /// <summary>Enumerates changed generated member paths from the current model.</summary>
+        public IReadOnlyList<global::SparseTypes.SparsePath> EnumerateChangedPaths()
+        {
+            if (_enumerateChangedPaths is null)
+            {
+                throw new NotSupportedException(
+                    "This edit session does not provide generated change paths."
+                );
+            }
+
+            return _enumerateChangedPaths(CreateChangeSet());
+        }
+
+        /// <summary>Applies a change set in place after checking its before-state.</summary>
+        /// <param name="changes">The transition to apply.</param>
+        /// <param name="conflicts">Structured conflicts when the before-state cannot be applied.</param>
+        /// <returns><see langword="true"/> when the model was updated; otherwise <see langword="false"/>.</returns>
+        /// <remarks>Conflicts leave the live model unchanged and return details.</remarks>
+        public bool TryApplyInPlace(
+            TChangeSet changes,
+            out IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts
+        )
+        {
+            if (changes is null)
+                throw new ArgumentNullException(nameof(changes));
+            if (_tryApplyTo is null || _writeModel is null)
+            {
+                throw new NotSupportedException("This model cannot be updated in place.");
+            }
+
+            var result = _tryApplyTo(changes, _model);
+            if (result.Conflicts is not null)
+            {
+                conflicts = result.Conflicts;
+                return false;
+            }
+
+            if (result.Updated is null)
+            {
+                throw new InvalidOperationException(
+                    "Applying the change set did not produce a model."
+                );
+            }
+
+            var committed = false;
+            try
+            {
+                _writeModel(_model, result.Updated);
+                committed = true;
+            }
+            finally
+            {
+                if (!committed)
+                {
+                    // The model may be partially mutated.
+                    ResynchronizeAfterFailedMutation();
+                }
+            }
+            conflicts = null;
+            RefreshAfterModelMutation();
+            return true;
+        }
+
+        /// <summary>Applies a change set in place or throws when its before-state conflicts.</summary>
+        /// <remarks>See <see cref="TryApplyInPlace"/> for the failure contract.</remarks>
+        public void ApplyInPlace(TChangeSet changes)
+        {
+            if (!TryApplyInPlace(changes, out _))
+            {
+                throw new InvalidOperationException(
+                    "The change set cannot be applied to the current model because its before-state conflicts."
+                );
+            }
+        }
+
+        /// <summary>Reverts the current model to its retained baseline in place.</summary>
+        /// <remarks>When the live model is temporarily invalid (duplicate keyed keys or unassigned keyed sentinels) it cannot be diffed.</remarks>
+        public void RevertChanges()
+        {
+            if (!TryRevertChanges(out _))
+            {
+                throw new InvalidOperationException(
+                    "The pending changes cannot be reverted in place because their "
+                        + "before-state conflicts or they include members that cannot be "
+                        + "written to an existing model. Use TryRevertChanges for structured "
+                        + "conflicts."
+                );
+            }
+        }
+
+        /// <summary>Reverts the current model to its retained baseline when possible in place.</summary>
+        /// <param name="conflicts">Structured conflicts when the pending changes cannot be reverted in place.</param>
+        /// <returns><see langword="true"/> when the model was reverted; otherwise <see langword="false"/>.</returns>
+        /// <remarks>A <see langword="false"/> result leaves both the live model and the retained baseline untouched.</remarks>
+        public bool TryRevertChanges(out IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts)
+        {
+            if (_invert is null)
+            {
+                throw new NotSupportedException("This edit session cannot invert its change sets.");
+            }
+
+            TChangeSet changes;
+            try
+            {
+                changes = CreateChangeSet();
+            }
+            catch (InvalidOperationException exception) when (IsInvalidKeyedStateError(exception))
+            {
+                RevertFromInvalidKeyedState(exception);
+                conflicts = null;
+                return true;
+            }
+
+            if (_isEmpty(changes))
+            {
+                conflicts = null;
+                return true;
+            }
+
+            TChangeSet inverted;
+            try
+            {
+                inverted = _invert(changes);
+            }
+            catch (InvalidOperationException exception) when (IsInvalidKeyedStateError(exception))
+            {
+                RevertFromInvalidKeyedState(exception);
+                conflicts = null;
+                return true;
+            }
+
+            try
+            {
+                return TryApplyInPlace(inverted, out conflicts);
+            }
+            catch (InvalidOperationException exception) when (IsInvalidKeyedStateError(exception))
+            {
+                RevertFromInvalidKeyedState(exception);
+                conflicts = null;
+                return true;
+            }
+        }
+
+        /// <summary>Reloads authoritative server state and rebases pending local edits onto it.</summary>
+        /// <remarks>Conflicts leave both the live model and retained baseline untouched.</remarks>
+        public global::SparseTypes.RebaseResult<TChangeSet> Reload(TModel serverState)
+        {
+            if (serverState is null)
+                throw new ArgumentNullException(nameof(serverState));
+            if (_rebase is null || _tryApplyTo is null || _writeModel is null)
+            {
+                throw new NotSupportedException("This model cannot be reloaded in place.");
+            }
+
+            var serverBaseline = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(serverState));
+            _between(serverBaseline, _baseline);
+            var rebased = _rebase(CreateChangeSet(), serverState);
+            if (rebased.HasConflicts)
+            {
+                return rebased;
+            }
+
+            var applied = _tryApplyTo(rebased.Rebased, serverState);
+            if (applied.Conflicts is not null)
+            {
+                return new global::SparseTypes.RebaseResult<TChangeSet>(rebased.Rebased, applied.Conflicts);
+            }
+
+            if (applied.Updated is null)
+            {
+                throw new InvalidOperationException("Reloading did not produce a model.");
+            }
+
+            // The in-place writer copies only writable members.
+            try
+            {
+                var drift = _between(
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model)),
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(applied.Updated))
+                );
+                if (!_isEmpty(drift))
+                {
+                    var probe = _tryApplyTo(drift, _model);
+                    if (probe.Conflicts is not null)
+                    {
+                        return new global::SparseTypes.RebaseResult<TChangeSet>(rebased.Rebased, probe.Conflicts);
+                    }
+                }
+            }
+            catch (InvalidOperationException exception) when (IsInvalidKeyedStateError(exception))
+            {
+                // The probe baseline cannot be diffed.
+            }
+
+            try
+            {
+                _writeModel(_model, applied.Updated);
+            }
+            catch
+            {
+                // The writer runs arbitrary setters and may have partially
+                // mutated the live model.
+                ResynchronizeAfterFailedMutation();
+                throw;
+            }
+
+            SetBaseline(serverBaseline);
+            RefreshAfterModelMutation();
+            return rebased;
+        }
+
+        /// <summary>Reconciles a submitted change set with the authoritative persisted model.</summary>
+        /// <remarks>Matches submitted and persisted elements by temporary key.</remarks>
+        /// <param name="submitted">The submitted transition to acknowledge.</param>
+        /// <param name="persisted">The authoritative persisted model.</param>
+        /// <param name="buildMap">Correlates submitted and persisted models into an opaque map or reports the first mismatch.</param>
+        /// <param name="retarget">Assigns mapped keys into the live model from the submitted, persisted, and current states.</param>
+        /// <param name="error">The failure reason, or null on success.</param>
+        /// <typeparam name="TMap">The opaque temporary-to-permanent correlation.</typeparam>
+        /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException">An argument is null.</exception>
+        /// <exception cref="NotSupportedException">
+        /// The session was built without baseline materialization or in-place write support.
+        /// </exception>
+        public bool TryReconcile<TMap>(
+            TChangeSet submitted,
+            TModel persisted,
+            Func<TModel, TModel, (TMap? Map, string? Error)> buildMap,
+            Func<TModel, TModel, TModel, TMap?, TChangeSet, string?> retarget,
+            out string? error
+        )
+            where TMap : class
+        {
+            if (submitted is null)
+                throw new ArgumentNullException(nameof(submitted));
+            if (persisted is null)
+                throw new ArgumentNullException(nameof(persisted));
+            if (buildMap is null)
+                throw new ArgumentNullException(nameof(buildMap));
+            if (retarget is null)
+                throw new ArgumentNullException(nameof(retarget));
+            if (_baselineToModel is null || _writeModel is null)
+            {
+                throw new NotSupportedException(
+                    "This edit session cannot reconcile submissions because it was built without baseline materialization or in-place write support."
+                );
+            }
+
+            error = null;
+            var persistedBaseline = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(persisted));
+
+            // Re-acknowledging an already-reconciled state is a no-op success
+            // only for a verified submission.
+            try
+            {
+                var reconcileCurrent = _between(
+                    persistedBaseline,
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                );
+                if (_isEmpty(reconcileCurrent))
+                {
+                    if (ReferenceEquals(submitted, _lastReconciledSubmission))
+                    {
+                        SetBaseline(persistedBaseline);
+                        _lastObserved = persistedBaseline;
+                        RefreshAfterModelMutation();
+                        error = null;
+                        return true;
+                    }
+
+                    var verifiedAdvanced = _advanceBaseline(submitted, _baseline);
+                    if (verifiedAdvanced.IsPresent)
+                    {
+                        var verifiedValue = verifiedAdvanced.Value;
+                        if (verifiedValue is null)
+                        {
+                            error =
+                                "Advancing the baseline did not produce a valid model state.";
+                            return false;
+                        }
+
+                        var verifiedAfter = _baselineToModel(verifiedValue);
+                        var verifiedPending = _between(
+                            global::SparseTypes.Optional<TFragment?>.Present(_fromModel(verifiedAfter)),
+                            global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                        );
+                        if (_isEmpty(verifiedPending))
+                        {
+                            SetBaseline(persistedBaseline);
+                            _lastObserved = persistedBaseline;
+                            _lastReconciledSubmission = submitted;
+                            RefreshAfterModelMutation();
+                            error = null;
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (InvalidOperationException) { }
+
+            // Reconstruct the submitted-after state; a stale or incompatible
+            // submission fails here before anything is mutated.
+            TModel submittedAfter;
+            try
+            {
+                var advanced = _advanceBaseline(submitted, _baseline);
+                if (!advanced.IsPresent || advanced.Value is null)
+                {
+                    error = "Advancing the baseline did not produce a valid model state.";
+                    return false;
+                }
+
+                submittedAfter = _baselineToModel(advanced.Value);
+            }
+            catch (InvalidOperationException exception)
+            {
+                error =
+                    "The submitted change set is stale or incompatible with the retained baseline: "
+                    + exception.Message;
+                return false;
+            }
+
+            // The persisted model must diff cleanly; duplicates or otherwise
+            // invalid keyed state fail before the live model is touched.
+            try
+            {
+                _ = _between(_baseline, persistedBaseline);
+            }
+            catch (InvalidOperationException exception)
+            {
+                error =
+                    "The persisted model cannot serve as a keyed baseline: " + exception.Message;
+                return false;
+            }
+
+            // Post-submit local changes, diffed while temporary identities
+            // still align.
+            TChangeSet pending;
+            try
+            {
+                pending = _between(
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(submittedAfter)),
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                );
+            }
+            catch (InvalidOperationException exception)
+            {
+                error =
+                    "The current model cannot be diffed against the submitted state: "
+                    + exception.Message;
+                return false;
+            }
+
+            // Correlate before mutating; mismatches leave all state untouched.
+            var (map, mapError) = buildMap(submittedAfter, persisted);
+            if (mapError is not null || map is null)
+            {
+                error = mapError ?? "Temporary correlation did not produce a mapping.";
+                return false;
+            }
+
+            var backup = CloneLiveModel(_model);
+            var backupSnapshot = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(backup));
+            string? retargetError;
+            try
+            {
+                retargetError = retarget(_model, submittedAfter, persisted, map, pending);
+            }
+            catch
+            {
+                // An arbitrary retarget failure may have partially mutated the
+                // live graph.
+                try
+                {
+                    RestoreReconcileBackup(backup, backupSnapshot);
+                }
+                catch
+                {
+                    // Preserve the original retarget failure; the resync below
+                    // still makes later reads observe the live state.
+                }
+
+                ResynchronizeAfterFailedMutation();
+                throw;
+            }
+
+            if (retargetError is not null)
+            {
+                try
+                {
+                    RestoreReconcileBackup(backup, backupSnapshot);
+                }
+                catch
+                {
+                    // The rollback writer runs arbitrary setters.
+                    ResynchronizeAfterFailedMutation();
+                    throw;
+                }
+
+                RefreshAfterModelMutation();
+                error = retargetError;
+                return false;
+            }
+
+            // The rewritten live model must diff cleanly against the persisted
+            // baseline; anything else rolls back instead of retaining damage.
+            try
+            {
+                _ = _between(
+                    persistedBaseline,
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                );
+            }
+            catch (InvalidOperationException exception)
+            {
+                try
+                {
+                    _writeModel(_model, backup);
+                }
+                catch
+                {
+                    // The rollback writer runs arbitrary setters.
+                    ResynchronizeAfterFailedMutation();
+                    throw;
+                }
+
+                RefreshAfterModelMutation();
+                error =
+                    "Reconciling produced a model that cannot serve as a keyed baseline: "
+                    + exception.Message;
+                return false;
+            }
+
+            SetBaseline(persistedBaseline);
+            // Observe post-submit edits from the persisted baseline so the
+            // published transition spans exactly what remains pending.
+            _lastObserved = persistedBaseline;
+            _lastReconciledSubmission = submitted;
+            RefreshAfterModelMutation();
+            return true;
+        }
+
+        /// <summary>Reconciles a submission, adopts authoritative values, and preserves post-submit edits.</summary>
+        /// <remarks>Temporary identities are correlated before the pending transition is rebased onto persisted state. Conflicting transitions leave the live model and retained baseline unchanged.</remarks>
+        /// <param name="submitted">The transition sent to persistence.</param>
+        /// <param name="persisted">The authoritative persisted model.</param>
+        /// <param name="buildMap">Correlates submitted and persisted models into an opaque map or reports the first mismatch.</param>
+        /// <param name="retarget">Applies temporary-key correlation to a staged model.</param>
+        /// <param name="createReconcileConflict">Creates a structured conflict for a reconciliation planning failure.</param>
+        /// <param name="conflicts">Typed-path conflicts when reconciliation cannot be applied.</param>
+        /// <typeparam name="TMap">The opaque temporary-to-permanent correlation.</typeparam>
+        /// <returns><see langword="true"/> when persisted values were adopted; otherwise <see langword="false"/>.</returns>
+        public bool TryReconcileAndApply<TMap>(
+            TChangeSet submitted,
+            TModel persisted,
+            Func<TModel, TModel, (TMap? Map, string? Error)> buildMap,
+            Func<TModel, TModel, TModel, TMap?, TChangeSet?, string?> retarget,
+            Func<string, global::SparseTypes.SparseConflict> createReconcileConflict,
+            out IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts
+        )
+            where TMap : class
+        {
+            if (submitted is null)
+                throw new ArgumentNullException(nameof(submitted));
+            if (persisted is null)
+                throw new ArgumentNullException(nameof(persisted));
+            if (buildMap is null)
+                throw new ArgumentNullException(nameof(buildMap));
+            if (retarget is null)
+                throw new ArgumentNullException(nameof(retarget));
+            if (createReconcileConflict is null)
+                throw new ArgumentNullException(nameof(createReconcileConflict));
+            if (
+                _baselineToModel is null
+                || _writeModel is null
+                || _tryApplyTo is null
+                || _rebase is null
+            )
+            {
+                throw new NotSupportedException(
+                    "This edit session cannot reconcile submissions because it was built without baseline materialization, rebase, or in-place write support."
+                );
+            }
+
+            conflicts = null;
+            var persistedBaseline = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(persisted));
+
+            TModel submittedAfter;
+            try
+            {
+                var advanced = _advanceBaseline(submitted, _baseline);
+                if (!advanced.IsPresent || advanced.Value is null)
+                {
+                    return Fail(
+                        "Advancing the baseline did not produce a valid model state.",
+                        out conflicts
+                    );
+                }
+
+                submittedAfter = _baselineToModel(advanced.Value);
+                _ = _between(_baseline, persistedBaseline);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The submitted change set or persisted model is stale or incompatible: "
+                        + exception.Message,
+                    out conflicts
+                );
+            }
+
+            TChangeSet pending;
+            try
+            {
+                pending = _between(
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(submittedAfter)),
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                );
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The current model cannot be diffed against the submitted state: "
+                        + exception.Message,
+                    out conflicts
+                );
+            }
+
+            var (map, mapError) = buildMap(submittedAfter, persisted);
+            if (mapError is not null || map is null)
+            {
+                return Fail(
+                    mapError ?? "Temporary correlation did not produce a mapping.",
+                    out conflicts
+                );
+            }
+
+            TModel mappedSubmitted;
+            TModel mappedCurrent;
+            try
+            {
+                mappedSubmitted = CloneLiveModel(submittedAfter);
+                mappedCurrent = CloneLiveModel(_model);
+                var submittedError = retarget(
+                    mappedSubmitted,
+                    submittedAfter,
+                    persisted,
+                    map,
+                    null
+                );
+                if (submittedError is not null)
+                {
+                    return Fail(submittedError, out conflicts);
+                }
+
+                var currentError = retarget(
+                    mappedCurrent,
+                    submittedAfter,
+                    persisted,
+                    map,
+                    pending
+                );
+                if (currentError is not null)
+                {
+                    return Fail(currentError, out conflicts);
+                }
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "Temporary identities could not be reconciled: " + exception.Message,
+                    out conflicts
+                );
+            }
+
+            TChangeSet mappedPending;
+            try
+            {
+                mappedPending = _between(
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(mappedSubmitted)),
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(mappedCurrent))
+                );
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The retargeted model cannot be diffed: " + exception.Message,
+                    out conflicts
+                );
+            }
+
+            global::SparseTypes.RebaseResult<TChangeSet> rebased;
+            try
+            {
+                rebased = _rebase(mappedPending, persisted);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The post-submit changes could not be rebased: " + exception.Message,
+                    out conflicts
+                );
+            }
+
+            if (rebased.HasConflicts)
+            {
+                conflicts = rebased.Conflicts;
+                return false;
+            }
+
+            (TModel? Updated, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts) applied;
+            try
+            {
+                applied = _tryApplyTo(rebased.Rebased, persisted);
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The rebased changes could not be applied: " + exception.Message,
+                    out conflicts
+                );
+            }
+
+            if (applied.Conflicts is not null)
+            {
+                conflicts = applied.Conflicts;
+                return false;
+            }
+
+            if (applied.Updated is null)
+            {
+                return Fail(
+                    "Applying the post-submit changes did not produce a model.",
+                    out conflicts
+                );
+            }
+
+            try
+            {
+                _ = _between(
+                    persistedBaseline,
+                    global::SparseTypes.Optional<TFragment?>.Present(_fromModel(applied.Updated))
+                );
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Fail(
+                    "The reconciled model cannot serve as a keyed baseline: "
+                        + exception.Message,
+                    out conflicts
+                );
+            }
+
+            var backup = CloneLiveModel(_model);
+            var backupSnapshot = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(backup));
+            try
+            {
+                _writeModel(_model, applied.Updated);
+            }
+            catch
+            {
+                try
+                {
+                    RestoreReconcileBackup(backup, backupSnapshot);
+                }
+                catch
+                {
+                    // Preserve the original setter failure.
+                }
+
+                ResynchronizeAfterFailedMutation();
+                throw;
+            }
+
+            SetBaseline(persistedBaseline);
+            _lastObserved = persistedBaseline;
+            _lastReconciledSubmission = submitted;
+            RefreshAfterModelMutation();
+            conflicts = null;
+            return true;
+
+            bool Fail(string reason, out IReadOnlyList<global::SparseTypes.SparseConflict>? result)
+            {
+                result = new[] { createReconcileConflict(reason) };
+                return false;
+            }
+        }
+
+        /// <summary>Accepts the current model state as the new baseline.</summary>
+        /// <remarks>Rejects sentinels and duplicate keys before retaining the baseline.</remarks>
+        public void AcceptChanges()
+        {
+            // Read the backing field directly.
+            var candidate = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+            // Fail-fast when the live model cannot serve as a keyed baseline.
+            _between(candidate, _baseline);
+            SetBaseline(candidate);
+            _lastObserved = candidate;
+            InvalidateHasChangesCache();
+            OnPropertyChanged(nameof(HasChanges));
+        }
+
+        /// <summary>Advances the retained baseline by the supplied transition without touching the live model.</summary>
+        /// <remarks>The transition's before-state must match the retained baseline on every changed path.</remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="changes"/>
+        /// is null.</exception>
+        /// <exception cref="InvalidOperationException">The transition is stale or cannot produce a valid baseline.</exception>
+        public void AcceptChanges(TChangeSet changes)
+        {
+            if (changes is null)
+                throw new ArgumentNullException(nameof(changes));
+            // Validate and project first; only a valid candidate replaces the
+            // baseline.
+            var advanced = _advanceBaseline(changes, _baseline);
+            if (!advanced.IsPresent || advanced.Value is null)
+                throw new InvalidOperationException(
+                    "Advancing the baseline did not produce a valid model state."
+                );
+            try
+            {
+                // Reject candidates that would break future keyed diffs, such
+                // as unassigned keyed sentinels.
+                _between(advanced, _baseline);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException(
+                    "Accepting this change set would retain an invalid baseline, such as unassigned keyed sentinels.",
+                    ex
+                );
+            }
+            SetBaseline(advanced);
+            InvalidateHasChangesCache();
+            OnPropertyChanged(nameof(HasChanges));
+        }
+
+        /// <summary>Creates an independent speculative branch of this session.</summary>
+        /// <remarks>The fork snapshots the current model as its baseline.</remarks>
+        /// <returns>A new session of the same runtime type with its own live model.</returns>
+        /// <exception cref="NotSupportedException">
+        /// The session was built without baseline materialization support, or the model
+        /// graph cannot be snapshotted (such as a cyclic graph).
+        /// </exception>
+        public virtual EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Fork()
+        {
+            // ToModel aliases its source fragment, so the live copy needs its
+            // own snapshot to stay independent of the fork baseline.
+            var forkPoint = _fromModel(_model);
+            var forkLive = CloneLiveModel(_model);
+            return CreateBranched(
+                forkLive,
+                global::SparseTypes.Optional<TFragment?>.Present(forkPoint),
+                _rootId,
+                onChanged: null
+            );
+        }
+
+        /// <summary>Attempts to merge the changes of a fork into this session without modifying either session.</summary>
+        /// <remarks>The fork's changes are rebased onto this session's current model.</remarks>
+        /// <param name="fork">A session created by <see cref="Fork"/> in the same lineage.</param>
+        /// <param name="merged">The new session with this session's baseline and the merged model, or null on failure.</param>
+        /// <param name="conflicts">Structured rebase conflicts on failure; otherwise null.</param>
+        /// <returns><see langword="true"/> when the fork merged cleanly; otherwise <see langword="false"/>.</returns>
+        /// <exception cref="ArgumentNullException"><paramref name="fork"/> is
+        /// null.</exception>
+        /// <exception cref="InvalidOperationException">The fork is invalid for this session.</exception>
+        /// <exception cref="NotSupportedException">
+        /// Either session was built without rebase or baseline materialization support,
+        /// or the merged model graph cannot be snapshotted.
+        /// </exception>
+        public virtual bool TryMergeFrom(
+            EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> fork,
+            out EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>? merged,
+            out IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts
+        )
+        {
+            if (fork is null)
+                throw new ArgumentNullException(nameof(fork));
+            if (ReferenceEquals(this, fork))
+                throw new InvalidOperationException(
+                    "Cannot merge an edit session into itself. Fork the session first and merge the fork."
+                );
+            if (fork._rootId != _rootId)
+                throw new InvalidOperationException(
+                    "Cannot merge an edit session from an unrelated branch lineage. Only sessions created by Fork share a lineage."
+                );
+            if (_rebase is null || _tryApplyTo is null || _baselineToModel is null)
+            {
+                throw new NotSupportedException(
+                    "This edit session cannot merge forks because it was built without rebase or baseline materialization support."
+                );
+            }
+
+            if (!_baseline.IsPresent || _baseline.Value is null)
+                throw new InvalidOperationException(
+                    "Cannot merge into an edit session with a missing baseline."
+                );
+
+            // Fork changes B -> D; invalid keyed state throws before anything
+            // is published.
+            var forkChanges = fork.CreateChangeSet();
+            var rebased = _rebase(forkChanges, _model);
+            if (rebased.HasConflicts)
+            {
+                merged = null;
+                conflicts = rebased.Conflicts;
+                return false;
+            }
+
+            var applied = _tryApplyTo(rebased.Rebased, _model);
+            if (applied.Conflicts is not null)
+            {
+                merged = null;
+                conflicts = applied.Conflicts;
+                return false;
+            }
+
+            if (applied.Updated is null)
+            {
+                throw new InvalidOperationException("Merging the fork did not produce a model.");
+            }
+
+            // Clone through the fragment snapshot to detach mutable references.
+            var detached = CloneLiveModel(applied.Updated);
+            // Fail fast when the merged state cannot serve as a future diff
+            // baseline.
+            _between(_baseline, global::SparseTypes.Optional<TFragment?>.Present(_fromModel(detached)));
+
+            merged = CreateBranched(detached, _baseline, _rootId, _onChanged);
+            conflicts = null;
+            return true;
+        }
+
+        /// <summary>Creates a session of this runtime type with an explicit baseline and lineage.</summary>
+        /// <param name="live">The independent live model for the new session.</param>
+        /// <param name="baseline">The retained baseline snapshot.</param>
+        /// <param name="rootId">The branch lineage to continue.</param>
+        /// <param name="onChanged">The change callback for the new session.</param>
+        /// <returns>A new session with fresh bindings.</returns>
+        protected virtual EditSessionCore<
+            TModel,
+            TFragment,
+            TPatch,
+            TChangeSet,
+            TObservable
+        > CreateBranched(
+            TModel live,
+            global::SparseTypes.Optional<TFragment?> baseline,
+            Guid rootId,
+            Action? onChanged
+        )
+        {
+            if (live is null)
+                throw new ArgumentNullException(nameof(live));
+            if (!baseline.IsPresent || baseline.Value is null)
+                throw new InvalidOperationException(
+                    "Cannot branch an edit session with a missing baseline."
+                );
+            var branched = new EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable>(
+                live,
+                baseline.Value,
+                _fromModel,
+                _between,
+                _toPatch,
+                _isEmpty,
+                _advanceBaseline,
+                _toObservable,
+                onChanged,
+                _tryApplyTo,
+                _writeModel,
+                _invert,
+                _rebase,
+                _enumerateChangedPaths,
+                _refreshObservable,
+                _initialCacheObservableChanges,
+                _baselineToModel
+            );
+            branched.AdoptBranchRoot(rootId);
+            return branched;
+        }
+
+        /// <summary>Initializes a session with observable notifications.</summary>
+        /// <param name="model">The live editable model.</param>
+        /// <param name="baseline">The retained baseline fragment.</param>
+        /// <param name="fromModel">Captures a model as a fragment.</param>
+        /// <param name="between">Derives a change set between fragment states.</param>
+        /// <param name="toPatch">Projects a change set to a patch.</param>
+        /// <param name="isEmpty">Tests whether a change set is empty.</param>
+        /// <param name="advanceBaseline">Advances a baseline by a change set.</param>
+        /// <param name="toObservable">Creates an observable proxy.</param>
+        /// <param name="onChanged">Callback raised after observable edits.</param>
+        internal EditSessionCore(
+            TModel model,
+            TFragment baseline,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, Action?, TObservable> toObservable,
+            Action? onChanged = null
+        )
+            : this(
+                model,
+                baseline,
+                fromModel,
+                between,
+                toPatch,
+                isEmpty,
+                advanceBaseline,
+                (value, changed, _) => toObservable(value, changed),
+                onChanged
+            ) { }
+
+        /// <summary>Initializes a session with full in-place support.</summary>
+        /// <param name="model">The live editable model.</param>
+        /// <param name="baseline">The retained baseline fragment.</param>
+        /// <param name="fromModel">Captures a model as a fragment.</param>
+        /// <param name="between">Derives a change set between fragment states.</param>
+        /// <param name="toPatch">Projects a change set to a patch.</param>
+        /// <param name="isEmpty">Tests whether a change set is empty.</param>
+        /// <param name="advanceBaseline">Advances a baseline by a change set.</param>
+        /// <param name="toObservable">Creates an observable proxy with raw-model access.</param>
+        /// <param name="onChanged">Callback raised after observable edits.</param>
+        /// <param name="tryApplyTo">Applies a change set to a model.</param>
+        /// <param name="writeModel">Writes an updated model into the live instance.</param>
+        /// <param name="invert">Inverts a change set.</param>
+        /// <param name="rebase">Rebases a change set onto newer state.</param>
+        /// <param name="enumerateChangedPaths">Enumerates changed paths.</param>
+        /// <param name="refreshObservable">Refreshes observable notifications.</param>
+        /// <param name="cacheObservableChanges">Whether to cache observable changes.</param>
+        /// <param name="baselineToModel">Materializes a fragment as a model.</param>
+        internal EditSessionCore(
+            TModel model,
+            TFragment baseline,
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, Action?, Action?, TObservable> toObservable,
+            Action? onChanged,
+            Func<
+                TChangeSet,
+                TModel,
+                (TModel? Updated, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)
+            >? tryApplyTo = null,
+            Action<TModel, TModel>? writeModel = null,
+            Func<TChangeSet, TChangeSet>? invert = null,
+            Func<TChangeSet, TModel, global::SparseTypes.RebaseResult<TChangeSet>>? rebase = null,
+            Func<TChangeSet, IReadOnlyList<global::SparseTypes.SparsePath>>? enumerateChangedPaths = null,
+            Action<TObservable>? refreshObservable = null,
+            bool cacheObservableChanges = false,
+            Func<TFragment, TModel>? baselineToModel = null
+        )
+        {
+            Model = model;
+            _fromModel = fromModel;
+            _between = between;
+            _toPatch = toPatch;
+            _isEmpty = isEmpty;
+            _advanceBaseline = advanceBaseline;
+            _toObservable = toObservable;
+            _tryApplyTo = tryApplyTo;
+            _writeModel = writeModel;
+            _invert = invert;
+            _rebase = rebase;
+            _enumerateChangedPaths = enumerateChangedPaths;
+            _refreshObservable = refreshObservable;
+            _onChanged = onChanged;
+            _cacheObservableChanges = cacheObservableChanges;
+            _initialCacheObservableChanges = cacheObservableChanges;
+            _baselineToModel = baselineToModel;
+            // Fresh sessions start their own branch lineage; Fork keeps the
+            // receiver lineage while TryMergeFrom preserves it on the result.
+            _branchId = Guid.NewGuid();
+            _rootId = _branchId;
+            _baseline = global::SparseTypes.Optional<TFragment?>.Present(baseline);
+            _lastObserved = global::SparseTypes.Optional<TFragment?>.Present(fromModel(model));
+            _observable = toObservable(model, OnObservableMutation, DisableHasChangesCache);
+        }
+
+        internal void AdoptBranchRoot(Guid rootId) => _rootId = rootId;
+
+        internal bool IsInSameLineage(
+            EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> other
+        ) => other is not null && _rootId == other._rootId;
+
+        internal void RefreshAfterExternalMutation() => RefreshAfterModelMutation();
+
+        // Private state and helpers trail the internal surface.
+        private const string DuplicateKeyErrorMessage = "Duplicate key in keyed collection.";
+        private const string UnassignedBaselineErrorMessage =
+            "An unassigned key cannot appear in the baseline of a keyed collection transition.";
+        private const string UnassignedChangeSetBaselineErrorMessage =
+            "An unassigned key cannot appear in the current baseline of a keyed ChangeSet.";
+        private readonly Func<TModel, TFragment> _fromModel;
+        private readonly Func<
+            global::SparseTypes.Optional<TFragment?>,
+            global::SparseTypes.Optional<TFragment?>,
+            TChangeSet
+        > _between;
+        private readonly Func<TChangeSet, TPatch> _toPatch;
+        private readonly Func<TChangeSet, bool> _isEmpty;
+        private readonly Func<
+            TChangeSet,
+            global::SparseTypes.Optional<TFragment?>,
+            global::SparseTypes.Optional<TFragment?>
+        > _advanceBaseline;
+        private readonly TObservable _observable;
+        private readonly Func<
+            TChangeSet,
+            TModel,
+            (TModel? Updated, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)
+        >? _tryApplyTo;
+        private readonly Action<TModel, TModel>? _writeModel;
+        private readonly Func<TChangeSet, TChangeSet>? _invert;
+        private readonly Func<TChangeSet, TModel, global::SparseTypes.RebaseResult<TChangeSet>>? _rebase;
+        private readonly Func<TChangeSet, IReadOnlyList<global::SparseTypes.SparsePath>>? _enumerateChangedPaths;
+        private readonly Func<TFragment, TModel>? _baselineToModel;
+        private readonly Func<TModel, Action?, Action?, TObservable> _toObservable;
+        private readonly Action<TObservable>? _refreshObservable;
+        private readonly Action? _onChanged;
+        private readonly bool _initialCacheObservableChanges;
+        private Guid _branchId;
+        private Guid _rootId;
+        private bool _cacheObservableChanges;
+        private bool _hasChangesCacheValid;
+        private bool _cachedHasChanges;
+        private bool _hasChangesSnapshotPending;
+        private global::SparseTypes.Optional<TFragment?> _lastObserved;
+        private global::SparseTypes.Optional<TFragment?> _baseline;
+        private long _baselineRevision;
+        // Last submission returned as reconciled by TryReconcile, by reference.
+        private TChangeSet? _lastReconciledSubmission;
+        private global::SparseTypes.Optional<TFragment?> _batchStart;
+        private int _batchDepth;
+        private bool _batchDirty;
+        private bool _batchPropertyChanged;
+        private bool _batchOnChanged;
+
+        private TModel _model = null!;
+
+        private void SetBaseline(global::SparseTypes.Optional<TFragment?> baseline)
+        {
+            var revision = checked(_baselineRevision + 1);
+            _baseline = baseline;
+            _baselineRevision = revision;
+        }
+
+        private void OnObservableChanged()
+        {
+            if (_batchDepth > 0)
+            {
+                // Defer all snapshot/diff work to the outermost batch exit.
+                _batchDirty = true;
+                InvalidateHasChangesCache();
+                OnPropertyChanged(nameof(HasChanges));
+                return;
+            }
+
+            var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+            TChangeSet transition;
+            try
+            {
+                transition = _between(_lastObserved, current);
+            }
+            catch (InvalidOperationException exception) when (IsDuplicateKeyError(exception))
+            {
+                InvalidateHasChangesCache();
+                OnPropertyChanged(nameof(HasChanges));
+                return;
+            }
+
+            _lastObserved = current;
+            InvalidateHasChangesCache();
+            if (_cacheObservableChanges)
+            {
+                _hasChangesSnapshotPending = true;
+            }
+
+            if (_batchDepth == 0 && !_isEmpty(transition))
+            {
+                TransitionObserved?.Invoke(transition);
+            }
+
+            OnPropertyChanged(nameof(HasChanges));
+        }
+
+        private void RefreshAfterModelMutation()
+        {
+            var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+            var transition = _between(_lastObserved, current);
+            _lastObserved = current;
+            InvalidateHasChangesCache();
+            _refreshObservable?.Invoke(_observable);
+            if (_batchDepth == 0 && !_isEmpty(transition))
+            {
+                TransitionObserved?.Invoke(transition);
+            }
+
+            OnPropertyChanged(nameof(HasChanges));
+        }
+
+        /// <summary>Resynchronizes observations after arbitrary user code partially mutated the live model and threw.</summary>
+        /// <remarks>Refreshes the observation snapshot.</remarks>
+        private void ResynchronizeAfterFailedMutation()
+        {
+            try
+            {
+                RefreshAfterModelMutation();
+            }
+            catch
+            {
+                // Keep the last valid observation so later diffs still start
+                // from valid state.
+                InvalidateHasChangesCache();
+                try
+                {
+                    _refreshObservable?.Invoke(_observable);
+                }
+                catch
+                {
+                    // Notification failures yield to the original exception.
+                }
+
+                try
+                {
+                    OnPropertyChanged(nameof(HasChanges));
+                }
+                catch
+                {
+                    // Notification failures yield to the original exception.
+                }
+            }
+        }
+
+        /// <summary>Restores the live model from a reconcile backup when it diverged.</summary>
+        /// <remarks>Only rewrites when the live model actually diverged.</remarks>
+        private void RestoreReconcileBackup(
+            TModel backup,
+            global::SparseTypes.Optional<TFragment?> backupSnapshot
+        )
+        {
+            var restoreBackup = true;
+            try
+            {
+                restoreBackup = !_isEmpty(
+                    _between(
+                        backupSnapshot,
+                        global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                    )
+                );
+            }
+            catch (InvalidOperationException)
+            {
+                restoreBackup = true;
+            }
+
+            if (restoreBackup)
+            {
+                // Callers verify in-place write support up front; the bang only
+                // reflects flow analysis that does not cross this helper.
+                _writeModel!(_model, backup);
+            }
+        }
+
+        private void DisableHasChangesCache()
+        {
+            _cacheObservableChanges = false;
+            InvalidateHasChangesCache();
+        }
+
+        private void InvalidateHasChangesCache()
+        {
+            _hasChangesCacheValid = false;
+            _hasChangesSnapshotPending = false;
+        }
+
+        private void CacheHasChanges(TChangeSet changes)
+        {
+            _cachedHasChanges = !_isEmpty(changes);
+            _hasChangesCacheValid = true;
+            _hasChangesSnapshotPending = false;
+        }
+
+        private void OnObservableMutation()
+        {
+            OnObservableChanged();
+            if (_batchDepth > 0)
+            {
+                _batchOnChanged = true;
+            }
+            else
+            {
+                _onChanged?.Invoke();
+            }
+        }
+
+        private void CompleteBatchEdit()
+        {
+            var start = _batchStart;
+            _batchStart = default;
+            var notifyPropertyChanged = _batchPropertyChanged;
+            _batchPropertyChanged = false;
+            var notifyOnChanged = _batchOnChanged;
+            _batchOnChanged = false;
+            var dirty = _batchDirty;
+            _batchDirty = false;
+
+            if (dirty)
+            {
+                PublishBatchedTransition(start);
+            }
+            else if (start.IsPresent)
+            {
+                // No observable mutation ran inside the batch. Recompute
+                // nothing; deferred notifications below still flush.
+            }
+
+            if (notifyPropertyChanged)
+            {
+                OnPropertyChanged(nameof(HasChanges));
+            }
+
+            if (notifyOnChanged)
+            {
+                _onChanged?.Invoke();
+            }
+        }
+
+        private void PublishBatchedTransition(global::SparseTypes.Optional<TFragment?> start)
+        {
+            var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+            if (!start.IsPresent)
+            {
+                _lastObserved = current;
+                InvalidateHasChangesCache();
+                return;
+            }
+
+            TChangeSet transition;
+            try
+            {
+                transition = _between(start, current);
+            }
+            catch (InvalidOperationException exception) when (IsDuplicateKeyError(exception))
+            {
+                // The net batch state cannot be diffed; keep the last valid
+                // observation so later diffs still start from valid state.
+                InvalidateHasChangesCache();
+                return;
+            }
+
+            _lastObserved = current;
+            InvalidateHasChangesCache();
+            if (_cacheObservableChanges)
+            {
+                _hasChangesSnapshotPending = true;
+            }
+
+            if (!_isEmpty(transition))
+            {
+                TransitionObserved?.Invoke(transition);
+            }
+        }
+
+        private static bool IsDuplicateKeyError(InvalidOperationException exception) =>
+            string.Equals(exception.Message, DuplicateKeyErrorMessage, StringComparison.Ordinal);
+
+        private static bool IsInvalidKeyedStateError(InvalidOperationException exception) =>
+            IsDuplicateKeyError(exception)
+            || string.Equals(
+                exception.Message,
+                UnassignedBaselineErrorMessage,
+                StringComparison.Ordinal
+            )
+            || string.Equals(
+                exception.Message,
+                UnassignedChangeSetBaselineErrorMessage,
+                StringComparison.Ordinal
+            );
+
+        private void RevertFromInvalidKeyedState(InvalidOperationException exception)
+        {
+            if (
+                _writeModel is null
+                || _baselineToModel is null
+                || !_baseline.IsPresent
+                || _baseline.Value is null
+            )
+            {
+                throw new InvalidOperationException(
+                    "The live model cannot be diffed because its keyed state is invalid, "
+                        + "and this session cannot materialize its baseline for recovery.",
+                    exception
+                );
+            }
+
+            _writeModel(_model, _baselineToModel(_baseline.Value));
+            RefreshAfterModelMutation();
+        }
+
+        private TModel CloneLiveModel(TModel source)
+        {
+            if (_baselineToModel is null)
+            {
+                throw new NotSupportedException(
+                    "This edit session cannot copy its model because it was built without baseline materialization support."
+                );
+            }
+
+            // Snapshots isolate containers and nested models; reference-safe
+            // members stay shared.
+            return _baselineToModel(_fromModel(source));
+        }
+
+        private void OnPropertyChanged(string propertyName)
+        {
+            if (_batchDepth > 0)
+            {
+                _batchPropertyChanged = true;
+                return;
+            }
+
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private static void ValidateNotificationDelegates(
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, Action?, TObservable> toObservable
+        )
+        {
+            if (fromModel is null)
+                throw new ArgumentNullException(nameof(fromModel));
+            if (between is null)
+                throw new ArgumentNullException(nameof(between));
+            if (toPatch is null)
+                throw new ArgumentNullException(nameof(toPatch));
+            if (isEmpty is null)
+                throw new ArgumentNullException(nameof(isEmpty));
+            if (advanceBaseline is null)
+                throw new ArgumentNullException(nameof(advanceBaseline));
+            if (toObservable is null)
+                throw new ArgumentNullException(nameof(toObservable));
+        }
+
+        private static void ValidateDelegates(
+            Func<TModel, TFragment> fromModel,
+            Func<global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>, TChangeSet> between,
+            Func<TChangeSet, TPatch> toPatch,
+            Func<TChangeSet, bool> isEmpty,
+            Func<
+                TChangeSet,
+                global::SparseTypes.Optional<TFragment?>,
+                global::SparseTypes.Optional<TFragment?>
+            > advanceBaseline,
+            Func<TModel, TObservable> toObservable
+        )
+        {
+            if (fromModel is null)
+                throw new ArgumentNullException(nameof(fromModel));
+            if (between is null)
+                throw new ArgumentNullException(nameof(between));
+            if (toPatch is null)
+                throw new ArgumentNullException(nameof(toPatch));
+            if (isEmpty is null)
+                throw new ArgumentNullException(nameof(isEmpty));
+            if (advanceBaseline is null)
+                throw new ArgumentNullException(nameof(advanceBaseline));
+            if (toObservable is null)
+                throw new ArgumentNullException(nameof(toObservable));
+        }
+    }
+}

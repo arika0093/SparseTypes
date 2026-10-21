@@ -71,6 +71,8 @@ Start with the [API reference index](reference/README.md) for package types and 
 * [T.Observable and T.ReadOnlyView](reference/generated-views.md): Write-through proxies, collection facades, and live read-only views.
 * [Generated paths and transitions](reference/generated-paths-and-transitions.md): Shape-specific navigation and collection member APIs.
 
+The actual generated code is located in the [generated-code](reference/generated-code) directory.
+
 ### Specifications and integration contracts
 
 * [Model shapes](reference/model-shapes.md): `[SparseModel]` requirements, nested model promotion, `[SparseKey]` constraints, `[SparseIgnore]` vs `[JsonIgnore]`, and C# language version requirements.

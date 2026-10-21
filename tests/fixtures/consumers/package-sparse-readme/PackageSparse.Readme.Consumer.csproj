@@ -5,6 +5,9 @@
     <IsTestProject>false</IsTestProject>
     <IsPackable>false</IsPackable>
     <AssemblyName>PackageSparse.Readme.Consumer</AssemblyName>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
+    <ReadmeGeneratedCodeDirectory>$(MSBuildThisFileDirectory)../../../../docs/reference/generated-code</ReadmeGeneratedCodeDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Remove="TUnit;Shouldly" />
@@ -21,4 +24,20 @@
   <ItemGroup Condition="'$(SparseTypesPackageVersion)' != ''">
     <PackageReference Include="SparseTypes" Version="$(SparseTypesPackageVersion)" />
   </ItemGroup>
+  <!-- Roslyn groups emitted files by generator; keep the documentation snapshot flat. -->
+  <Target Name="CopyReadmeGeneratedCode" AfterTargets="CoreCompile">
+    <ItemGroup>
+      <_ReadmeGeneratedSource Include="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+    </ItemGroup>
+    <Error
+      Condition="'@(_ReadmeGeneratedSource)' == ''"
+      Text="The README consumer did not emit any generated source files."
+    />
+    <RemoveDir Directories="$(ReadmeGeneratedCodeDirectory)" />
+    <MakeDir Directories="$(ReadmeGeneratedCodeDirectory)" />
+    <Copy
+      SourceFiles="@(_ReadmeGeneratedSource)"
+      DestinationFiles="@(_ReadmeGeneratedSource->'$(ReadmeGeneratedCodeDirectory)/%(Filename)%(Extension)')"
+    />
+  </Target>
 </Project>
