@@ -14,7 +14,6 @@
     <Project Path="tests/SparseTypes.EntityFrameworkCore.Tests/SparseTypes.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.Blazor.Tests/SparseTypes.Blazor.Tests.csproj" />
     <Project Path="tests/SparseTypes.NativeAotSmoke/SparseTypes.NativeAotSmoke.csproj" />
-    <Project Path="tests/SparseTypes.NativeAotFixtures/SparseTypes.NativeAotFixtures.csproj" />
     <Project Path="tests/SparseTypes.PublicApi.Tests/SparseTypes.PublicApi.Tests.csproj" />
     <Project Path="tests/SparseTypes.OpenApi.AspNetCore.Tests/SparseTypes.OpenApi.AspNetCore.Tests.csproj" />
     <Project Path="tests/SparseTypes.GeneratedApiFixtures/SparseTypes.GeneratedApiFixtures.csproj" />

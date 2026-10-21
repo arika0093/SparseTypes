@@ -33,9 +33,7 @@ public sealed class AotEmissionDefaultsTests
         await Assert
             .That(session.Observable.GetType().DeclaringType)
             .IsEqualTo(typeof(PayloadRoot));
-        await Assert
-            .That(session.Current.GetType().Namespace!.StartsWith("SparseTypes"))
-            .IsTrue();
+        await Assert.That(session.Current.GetType().Namespace!.StartsWith("SparseTypes")).IsTrue();
         await Assert.That(session.Current.GetType().DeclaringType).IsEqualTo(typeof(PayloadRoot));
         await Assert.That(session.GetType().Namespace!.StartsWith("SparseTypes")).IsTrue();
         await Assert.That(session.GetType().DeclaringType).IsEqualTo(typeof(PayloadRoot));

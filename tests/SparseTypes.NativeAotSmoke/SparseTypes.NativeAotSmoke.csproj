@@ -22,7 +22,11 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/SparseTypes/SparseTypes.csproj" />
-    <ProjectReference Include="../SparseTypes.NativeAotFixtures/SparseTypes.NativeAotFixtures.csproj" />
+    <ProjectReference
+      Include="../../src/SparseTypes.Generator/SparseTypes.Generator.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
   <ItemGroup>
     <Using Include="SparseTypes" />
