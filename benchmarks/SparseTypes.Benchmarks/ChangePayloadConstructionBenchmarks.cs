@@ -33,7 +33,10 @@ public class ChangePayloadConstructionBenchmarks
         var after = before.DeepClone();
         var edits = Dense ? Size : 1;
         for (var index = 0; index < edits; index++)
+        {
             after.Items[index].Name = "edited-" + index;
+        }
+
         after.Items.Add(new CertBenchKeyedItem { Id = "new", Name = "added" });
         var keyedBefore = Optional<CertBenchKeyedHolder.Fragment?>.Present(
             CertBenchKeyedHolder.Fragment.From(before)
@@ -51,7 +54,10 @@ public class ChangePayloadConstructionBenchmarks
         };
         var dictionaryAfter = dictionaryBefore.DeepClone();
         for (var index = 0; index < edits; index++)
+        {
             dictionaryAfter.Entries["key-" + index] = "edited-" + index;
+        }
+
         dictionaryAfter.Entries.Add("new", "added");
         var dictBefore = Optional<CertBenchDictHolder.Fragment?>.Present(
             CertBenchDictHolder.Fragment.From(dictionaryBefore)
@@ -80,9 +86,11 @@ public class ChangePayloadConstructionBenchmarks
                     .Patch.Between(dictionary.ToPatch().Apply(dictBefore), dictAfter)
                     .IsEmpty
             )
+            {
                 throw new InvalidOperationException(
                     "Payload construction must preserve every edit and addition."
                 );
+            }
         }
     }
 

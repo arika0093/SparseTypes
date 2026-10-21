@@ -18,7 +18,10 @@ internal static class SparseChangeSetPayloadValidateEmitter
     )
     {
         if (modelType is null)
+        {
             return;
+        }
+
         var runtime = dialect.RuntimeNamespace;
         var result = runtime + "ChangePayloadValidationResult";
         var error = runtime + "ChangePayloadValidationError";

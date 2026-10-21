@@ -59,12 +59,15 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         code.AppendLineAt(7, "if ((object?)b[i] is null || (object?)a[i] is null) return false;");
         code.AppendLineAt(7, "var k = " + keyOf + "(b[i]);");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 7,
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
                     + ") return false;"
             );
+        }
+
         code.AppendLineAt(7, "if (!comparer.Equals(k, " + keyOf + "(a[i]))) return false;");
         code.AppendLineAt(6, "}");
         if (dialect.KeyValidationScopeFactory is not null)
@@ -166,10 +169,13 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         code.AppendLineAt(indent, "{");
         code.AppendLineAt(indent + 1, "var k = " + keyOf + "(b[i]);");
         if (useSet)
+        {
             code.AppendLineAt(
                 indent + 1,
                 "if ((object?)k is null) throw new global::System.ArgumentNullException(\"key\");"
             );
+        }
+
         code.AppendLineAt(
             indent + 1,
             useSet
@@ -249,7 +255,10 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         code.AppendLineAt(6, "}");
         var arguments = "__before" + id + ", __after" + id;
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+        {
             arguments += ", __bT" + id + ", __bTO" + id + ", __aT" + id + ", __aTO" + id;
+        }
+
         code.AppendLineAt(
             6,
             "(__h"

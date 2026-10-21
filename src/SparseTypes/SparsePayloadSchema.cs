@@ -79,24 +79,39 @@ public static class SparsePayloadSchemaNames
         {
             var name = RemoveGeneratedHash(current.Name);
             if (!name.StartsWith("__Internal", StringComparison.Ordinal))
+            {
                 names.Push(name);
+            }
         }
 
         if (!string.IsNullOrEmpty(type.Namespace))
+        {
             names.Push(type.Namespace);
+        }
+
         var result = string.Join("_", names).Replace('.', '_');
         if (!type.IsGenericType)
+        {
             return result;
+        }
 
         var arguments = type.GetGenericArguments();
         if (type.IsGenericTypeDefinition)
+        {
             arguments = Array.Empty<Type>();
+        }
+
         if (arguments.Length == 0)
+        {
             return result;
+        }
 
         var builder = new System.Text.StringBuilder(result);
         foreach (var argument in arguments)
+        {
             builder.Append('_').Append(GetName(argument, resolve));
+        }
+
         return builder.ToString();
     }
 
@@ -105,14 +120,22 @@ public static class SparsePayloadSchemaNames
         var separator = name.LastIndexOf('_');
         var arity = name.IndexOf('`');
         if (arity >= 0)
+        {
             name = name[..arity];
+        }
+
         separator = name.LastIndexOf('_');
         if (separator < 0 || name.Length - separator != 9)
+        {
             return name;
+        }
+
         for (var index = separator + 1; index < name.Length; index++)
         {
             if (!Uri.IsHexDigit(name[index]))
+            {
                 return name;
+            }
         }
         return name[..separator];
     }

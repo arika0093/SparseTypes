@@ -150,7 +150,10 @@ internal static class SparsePerModelEmitter
             payloadJsonPocos
         );
         if (implementation is null)
+        {
             return (surface, null);
+        }
+
         var hint = SparseGeneratedPlacement.ImplementationHintName(
             model,
             config.EffectiveGeneratedImplementationSuffix,
@@ -176,7 +179,10 @@ internal static class SparsePerModelEmitter
             config
         );
         if (implementation is null)
+        {
             return (surface, null);
+        }
+
         var hint = SparseGeneratedPlacement.ImplementationHintName(
             promoted.Model,
             config.EffectiveGeneratedImplementationSuffix,

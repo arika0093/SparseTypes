@@ -17,7 +17,10 @@ internal static class SparseCloneContextPool
     internal static void Return(Dictionary<object, object> context)
     {
         if (context.Count > MaximumRetainedEntries)
+        {
             return;
+        }
+
         context.Clear();
         _cachedContext ??= context;
     }

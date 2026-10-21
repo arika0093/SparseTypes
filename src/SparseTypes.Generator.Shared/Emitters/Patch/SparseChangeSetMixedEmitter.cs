@@ -175,7 +175,9 @@ internal static class SparseChangeSetMixedEmitter
                 continue;
             }
             if (SparseChangeSetBasicsEmitter.IsNested(member))
+            {
                 args.Add("__payloadNested" + id);
+            }
             else if (
                 SparseChangeSetBasicsEmitter.IsKeyed(member)
                 || SparseChangeSetBasicsEmitter.IsDict(member)
@@ -203,9 +205,11 @@ internal static class SparseChangeSetMixedEmitter
                 }
             }
             else
+            {
                 args.AddRange(
                     new[] { "__payloadBefore" + id, "__payloadAfter" + id, "__payloadHas" + id }
                 );
+            }
         }
         code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
         code.AppendLineAt(2, "}");

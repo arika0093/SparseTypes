@@ -15,7 +15,9 @@ internal static class SparseTypesSingleFileMerger
     public static string Merge(string surface, ImmutableArray<SparseGeneratedSource> additional)
     {
         if (additional.IsDefaultOrEmpty)
+        {
             return surface;
+        }
         // File-level aliases hoist before the first namespace so the merged
         // unit keeps one header plus the union of using aliases.
         SplitFileHeader(surface, out var headerLength, out var bodyStart);
@@ -62,26 +64,41 @@ internal static class SparseTypesSingleFileMerger
         var headerEndsWithLineFeed =
             surface.Length == 0 || EndsWithLineFeed(surface, 0, headerLength);
         if (surface.Length == 0)
+        {
             builder.Append('\n');
+        }
         else
+        {
             AppendHeader(builder, surface, headerLength);
+        }
+
         if (hoisted.Count > 0)
         {
             if (!headerEndsWithLineFeed)
+            {
                 builder.AppendLine();
+            }
+
             foreach (var line in hoisted)
+            {
                 builder.AppendLine(line);
+            }
         }
 
         builder.Append(surface, bodyStart, surface.Length - bodyStart);
         if (!EndsWithLineFeed(surface, bodyStart, surface.Length - bodyStart))
+        {
             builder.AppendLine();
+        }
+
         foreach (var (source, start, length) in bodies)
         {
             builder.AppendLine();
             builder.Append(source, start, length);
             if (!EndsWithLineFeed(source, start, length))
+            {
                 builder.AppendLine();
+            }
         }
 
         return builder.ToString();
@@ -98,7 +115,10 @@ internal static class SparseTypesSingleFileMerger
             var lineEnd = source.IndexOf('\n', offset);
             var contentLength = (lineEnd < 0 ? source.Length : lineEnd) - offset;
             if (!IsHeaderLine(source, offset, contentLength))
+            {
                 break;
+            }
+
             offset = lineEnd < 0 ? source.Length : lineEnd + 1;
         }
 
@@ -112,12 +132,21 @@ internal static class SparseTypesSingleFileMerger
         var contentStart = start;
         var contentEnd = end;
         while (contentStart < contentEnd && char.IsWhiteSpace(source[contentStart]))
+        {
             contentStart++;
+        }
+
         while (contentEnd > contentStart && char.IsWhiteSpace(source[contentEnd - 1]))
+        {
             contentEnd--;
+        }
+
         var trimmedLength = contentEnd - contentStart;
         if (trimmedLength == 0)
+        {
             return true;
+        }
+
         return StartsWithAt(source, contentStart, trimmedLength, "//")
             || StartsWithAt(source, contentStart, trimmedLength, "#nullable")
             || StartsWithAt(source, contentStart, trimmedLength, "using ")
@@ -127,11 +156,16 @@ internal static class SparseTypesSingleFileMerger
     private static bool StartsWithAt(string source, int start, int length, string value)
     {
         if (length < value.Length)
+        {
             return false;
+        }
+
         for (var i = 0; i < value.Length; i++)
         {
             if (source[start + i] != value[i])
+            {
                 return false;
+            }
         }
 
         return true;
@@ -185,17 +219,29 @@ internal static class SparseTypesSingleFileMerger
     {
         var end = start + length;
         while (start < end && char.IsWhiteSpace(source[start]))
+        {
             start++;
+        }
+
         while (end > start && char.IsWhiteSpace(source[end - 1]))
+        {
             end--;
+        }
+
         var trimmedLength = end - start;
         if (trimmedLength >= 2 && source[start] == '/' && source[start + 1] == '/')
+        {
             return StrippableLine.Comment;
+        }
+
         if (
             trimmedLength >= "#nullable".Length
             && StartsWithAt(source, start, trimmedLength, "#nullable")
         )
+        {
             return StrippableLine.Nullable;
+        }
+
         return StrippableLine.Other;
     }
 
@@ -213,9 +259,15 @@ internal static class SparseTypesSingleFileMerger
         {
             var boundary = offset;
             while (boundary < end && text[boundary] != '\r' && text[boundary] != '\n')
+            {
                 boundary++;
+            }
+
             if (boundary > offset)
+            {
                 yield return text.Substring(offset, boundary - offset);
+            }
+
             offset = boundary + 1;
         }
     }
@@ -224,7 +276,9 @@ internal static class SparseTypesSingleFileMerger
     {
         builder.Append(surface, 0, headerLength);
         if (headerLength > 0 && surface[headerLength - 1] != '\n')
+        {
             builder.Append('\n');
+        }
     }
 
     private static bool EndsWithLineFeed(string text, int start, int length) =>

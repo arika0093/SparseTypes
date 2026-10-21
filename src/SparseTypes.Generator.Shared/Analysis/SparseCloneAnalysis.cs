@@ -36,7 +36,10 @@ internal static class SparseCloneAnalysis
                         == config.CloneReferenceSafeAttributeMetadataName
                     )
             )
+            {
                 continue;
+            }
+
             if (cycleAnalyzer.ContainsUnregisterableCloneCycle(property.Type))
             {
                 yield return property;
@@ -49,16 +52,24 @@ internal static class SparseCloneAnalysis
                 cancellationToken.ThrowIfCancellationRequested();
                 var (type, referenceSafe) = types.Pop();
                 if (referenceSafe)
+                {
                     continue;
+                }
+
                 if (type is INamedTypeSymbol alreadySeen && visited.Contains(alreadySeen))
+                {
                     continue;
+                }
+
                 if (!IsCloneSupported(type, config, cancellationToken, visited))
                 {
                     yield return property;
                     break;
                 }
                 foreach (var nested in GetCloneChildren(type, config, cancellationToken))
+                {
                     types.Push(nested);
+                }
             }
             visited.Clear();
         }
@@ -72,33 +83,60 @@ internal static class SparseCloneAnalysis
     )
     {
         if (type is IArrayTypeSymbol array)
+        {
             return IsCloneSupported(array.ElementType, config, cancellationToken, visited);
+        }
+
         if (type is not INamedTypeSymbol named)
+        {
             return type.IsValueType;
+        }
+
         if (!visited.Add(named))
+        {
             return true;
+        }
+
         if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
             return IsCloneSupported(named.TypeArguments[0], config, cancellationToken, visited);
+        }
+
         if (named.TypeKind == TypeKind.Enum)
+        {
             return true;
+        }
+
         if (named.SpecialType != SpecialType.None)
+        {
             return named.SpecialType != SpecialType.System_Object;
+        }
+
         var collection = SparseCollectionAnalyzer.GetCollectionInfo(named);
         if (collection.CloneKind != SparseCloneCollectionKind.Unsupported)
+        {
             return true;
+        }
+
         var fullName = named
             .WithNullableAnnotation(NullableAnnotation.NotAnnotated)
             .ToDisplayString();
         if (fullName is "System.Uri" or "System.Version" or "System.Type")
+        {
             return true;
+        }
+
         if (named.IsValueType)
         {
             if (SparseModelDiscovery.IsFrameworkType(named))
+            {
                 return IsSafeToCopyValue(
                     named,
                     config,
                     new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default)
                 );
+            }
+
             return IsSafeToCopyValue(
                 named,
                 config,
@@ -106,9 +144,15 @@ internal static class SparseCloneAnalysis
             );
         }
         if (SparseModelDiscovery.IsFragmentModel(named, config, cancellationToken))
+        {
             return true;
+        }
+
         if (SparseModelDiscovery.IsFrameworkType(named))
+        {
             return false;
+        }
+
         return SparseModelDiscovery.ClassifyStructuralType(named, config, cancellationToken)
                 == SparseModelDiscovery.StructuralTypeKind.StructuralObject
             && SparseModelDiscovery.IsAccessibleForGeneration(named);
@@ -126,14 +170,23 @@ internal static class SparseCloneAnalysis
             yield break;
         }
         if (type is not INamedTypeSymbol named)
+        {
             yield break;
+        }
+
         var collection = SparseCollectionAnalyzer.GetCollectionInfo(named);
         if (collection.CloneKind != SparseCloneCollectionKind.Unsupported)
         {
             if (collection.ElementType is not null)
+            {
                 yield return (collection.ElementType, false);
+            }
+
             if (collection.ValueType is not null)
+            {
                 yield return (collection.ValueType, false);
+            }
+
             yield break;
         }
         if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
@@ -144,10 +197,17 @@ internal static class SparseCloneAnalysis
         if (named.IsValueType && !SparseModelDiscovery.IsFrameworkType(named))
         {
             foreach (var field in named.GetMembers().OfType<IFieldSymbol>())
+            {
                 if (!field.IsStatic && field.AssociatedSymbol is not IPropertySymbol)
+                {
                     yield return (field.Type, false);
+                }
+            }
+
             foreach (var property in named.GetMembers().OfType<IPropertySymbol>())
+            {
                 if (!property.IsStatic && IsCloneRelevantProperty(property))
+                {
                     yield return (
                         property.Type,
                         property
@@ -157,6 +217,9 @@ internal static class SparseCloneAnalysis
                                 == config.CloneReferenceSafeAttributeMetadataName
                             )
                     );
+                }
+            }
+
             yield break;
         }
         if (
@@ -167,11 +230,13 @@ internal static class SparseCloneAnalysis
                     == SparseModelDiscovery.StructuralTypeKind.StructuralObject
             )
         )
+        {
             foreach (
                 var member in SparseModelDiscovery
                     .GetMembers(named, config, cancellationToken)
                     .Select(static member => member.Property)
             )
+            {
                 yield return (
                     member.Type,
                     member
@@ -181,6 +246,8 @@ internal static class SparseCloneAnalysis
                             == config.CloneReferenceSafeAttributeMetadataName
                         )
                 );
+            }
+        }
     }
 
     private static bool IsCloneRelevantProperty(IPropertySymbol property) =>
@@ -195,27 +262,51 @@ internal static class SparseCloneAnalysis
     )
     {
         if (type is IArrayTypeSymbol)
+        {
             return false;
+        }
+
         if (type is not INamedTypeSymbol named)
+        {
             return type.IsValueType;
+        }
+
         if (named.SpecialType == SpecialType.System_String)
+        {
             return true;
+        }
+
         if (named.SpecialType != SpecialType.None || named.TypeKind == TypeKind.Enum)
+        {
             return named.IsValueType;
+        }
+
         if (!named.IsValueType)
+        {
             return named.ToDisplayString() is "System.Uri" or "System.Version" or "System.Type";
+        }
+
         if (SparseModelDiscovery.IsFrameworkType(named))
         {
             if (named.TypeArguments.Length == 0)
+            {
                 return true;
+            }
+
             if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+            {
                 return IsSafeToCopyValue(named.TypeArguments[0], config, visited);
+            }
+
             return !named.TypeArguments.Any(argument =>
                 !IsSafeToCopyValue(argument, config, visited)
             );
         }
         if (!visited.Add(named))
+        {
             return true;
+        }
+
         return !named
                 .GetMembers()
                 .OfType<IFieldSymbol>()

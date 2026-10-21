@@ -30,6 +30,7 @@ internal static class SparseModelDiagnostics
                 cancellationToken
             )
         )
+        {
             diagnostics.Add(
                 new SparseGeneratorDiagnostic(
                     config.EffectiveDiagnosticIds.UnsupportedRequired,
@@ -37,8 +38,10 @@ internal static class SparseModelDiagnostics
                     member.Name
                 )
             );
+        }
 
         foreach (var property in UnsupportedStructuralMembers(model, config, cancellationToken))
+        {
             diagnostics.Add(
                 new SparseGeneratorDiagnostic(
                     config.EffectiveDiagnosticIds.UnsupportedStructural,
@@ -46,6 +49,7 @@ internal static class SparseModelDiagnostics
                     property.Name
                 )
             );
+        }
 
         // Suppress downstream clone diagnostics when invalid key declarations
         // already provide the actionable error.
@@ -383,7 +387,10 @@ internal static class SparseModelDiagnostics
         {
             var current = pending.Pop();
             if (!seen.Add(current))
+            {
                 continue;
+            }
+
             foreach (
                 var property in SparseModelDiscovery
                     .GetMembers(current, config, cancellationToken)
@@ -401,12 +408,18 @@ internal static class SparseModelDiagnostics
                     || SparseModelDiscovery.IsFrameworkType(type)
                     || SparseModelDiscovery.IsFragmentModel(type, config, cancellationToken)
                 )
+                {
                     continue;
+                }
+
                 if (
                     SparseCollectionAnalyzer.GetCollectionInfo(type).CloneKind
                     != SparseCloneCollectionKind.Unsupported
                 )
+                {
                     continue;
+                }
+
                 if (
                     SparseModelDiscovery.IsStructuralType(type, config, cancellationToken)
                     || SparsePromotedDiscovery.IsPromotablePartial(type, config, cancellationToken)
@@ -424,7 +437,9 @@ internal static class SparseModelDiagnostics
                         && config.EffectiveMergeModeMap.Normalize(mode) == SparseMergeModes.Replace
                     );
                 if (!replace)
+                {
                     yield return property;
+                }
             }
         }
     }

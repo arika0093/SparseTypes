@@ -66,12 +66,18 @@ public sealed class KeyValidationScopeTests
     public void LargerRequestGetsEnoughStorageAndCanBeReusedForSmallerRequests()
     {
         using (var small = Rent<decimal>(16))
+        {
             small.Keys.Add(1);
+        }
+
         var large = Rent<decimal>(2048);
         var keys = large.Keys;
         keys.ShouldBeEmpty();
         for (var i = 0; i < 2048; i++)
+        {
             keys.Add(i);
+        }
+
         large.Dispose();
         using var next = Rent<decimal>(16);
         next.Keys.ShouldBeSameAs(keys);
@@ -113,7 +119,10 @@ public sealed class KeyValidationScopeTests
             return new HashSet<DateTime>(capacity);
         }
         using (var first = SparseFragmentRuntime.RentKeyValidation<DateTime>(2048, Create))
+        {
             first.Keys.Add(DateTime.MinValue);
+        }
+
         using var next = SparseFragmentRuntime.RentKeyValidation<DateTime>(2048, Create);
         next.Keys.ShouldBeEmpty();
         calls.ShouldBe(1);

@@ -67,9 +67,12 @@ internal static class SparsePayloadJsonMemberEmitter
         if (isNested)
         {
             if (member.ChildModel is not { } child)
+            {
                 throw new global::System.InvalidOperationException(
                     "Nested member is missing its child model."
                 );
+            }
+
             var childType = child.NonNullableName;
             code.AppendLineAt(
                 4,
@@ -192,9 +195,12 @@ internal static class SparsePayloadJsonMemberEmitter
         if (isNested)
         {
             if (member.ChildModel is not { } writeChild)
+            {
                 throw new global::System.InvalidOperationException(
                     "Nested member is missing its child model."
                 );
+            }
+
             var writeChildModel = writeChild.NonNullableName;
             code.AppendLineAt(
                 3,
@@ -288,8 +294,12 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLineAt(2, "}");
         code.AppendLine();
         if (isNested)
+        {
             AppendChildEndpoint(code, context, member);
+        }
+
         if (isValueCollection && valueCollection is not null)
+        {
             SparseJsonCollectionShapes.AppendCollectionCodec(
                 code,
                 valueType,
@@ -298,8 +308,12 @@ internal static class SparsePayloadJsonMemberEmitter
                 "WriteCollection" + member.Id,
                 "GetValueInfo"
             );
+        }
+
         if (isKeyed || isDict)
+        {
             AppendItems(code, context, member);
+        }
     }
 
     private static void AppendChildEndpoint(
@@ -309,9 +323,12 @@ internal static class SparsePayloadJsonMemberEmitter
     )
     {
         if (member.ChildModel is not { } child)
+        {
             throw new global::System.InvalidOperationException(
                 "Nested member is missing its child model."
             );
+        }
+
         var childType = child.NonNullableName;
         var childRoot = context.ChildDto(childType, "Root");
         var endpoint = context.Runtime + "ChangePayloadEndpoint<" + childRoot + "?";
@@ -517,9 +534,12 @@ internal static class SparsePayloadJsonMemberEmitter
         if (isModelValue)
         {
             if (member.Collection.ValueType is null && !isKeyed)
+            {
                 throw new global::System.InvalidOperationException(
                     "Dictionary item is missing its value model."
                 );
+            }
+
             var editChild = isKeyed
                 ? member.Collection.ElementType.NonNullableName
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
@@ -599,9 +619,12 @@ internal static class SparsePayloadJsonMemberEmitter
         if (isModelValue)
         {
             if (member.Collection.ValueType is null && !isKeyed)
+            {
                 throw new global::System.InvalidOperationException(
                     "Dictionary item is missing its value model."
                 );
+            }
+
             var writeEditChild = isKeyed
                 ? member.Collection.ElementType.NonNullableName
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;

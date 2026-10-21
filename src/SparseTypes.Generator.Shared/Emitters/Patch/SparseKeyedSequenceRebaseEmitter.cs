@@ -351,12 +351,15 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + ");"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member) || hasTempPatchRebase)
+        {
             code.AppendLineAt(
                 4,
                 "var __desiredUnassigned = new global::System.Collections.Generic.List<"
                     + elementType
                     + ">();"
             );
+        }
+
         string desiredUnassignedFragment;
         if (hasTempPatchRebase)
         {

@@ -43,9 +43,11 @@ public class DictionaryTransitionProjectionBenchmarks
             || FirstView() != expected
             || FirstLookup() != changed
         )
+        {
             throw new InvalidOperationException(
                 "Dictionary projections must preserve edited entries."
             );
+        }
     }
 
     [Benchmark]

@@ -530,12 +530,15 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 + ".Reorder) throw new global::System.ArgumentException(\"Unsupported payload item kind.\");"
         );
         if (!isKeyed)
+        {
             code.AppendLineAt(
                 8,
                 "if (changeItem.Kind == "
                     + itemKind
                     + ".Reorder) throw new global::System.ArgumentException(\"Reorder is not supported for dictionary payload items.\");"
             );
+        }
+
         code.AppendLineAt(
             8,
             "var __validateItemBefore"
@@ -567,15 +570,21 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 + ".IsPresent) throw new global::System.ArgumentException(\"An added payload item must omit 'before' and contain 'after'.\");"
         );
         if (isModelValue)
+        {
             code.AppendLineAt(
                 9,
                 "if (changeItem.Edit is not null) throw new global::System.ArgumentException(\"An added payload item must not contain 'edit'.\");"
             );
+        }
+
         if (isKeyed)
+        {
             code.AppendLineAt(
                 9,
                 "if (changeItem.BeforeIndex != -1 || changeItem.AfterIndex < 0 || changeItem.IsReordered) throw new global::System.ArgumentException(\"An added keyed payload item has invalid indices.\");"
             );
+        }
+
         code.AppendLineAt(8, "}");
         code.AppendLineAt(8, "else if (" + removed + ")");
         code.AppendLineAt(8, "{");
@@ -588,15 +597,21 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 + ".IsPresent) throw new global::System.ArgumentException(\"A removed payload item must contain 'before' and omit 'after'.\");"
         );
         if (isModelValue)
+        {
             code.AppendLineAt(
                 9,
                 "if (changeItem.Edit is not null) throw new global::System.ArgumentException(\"A removed payload item must not contain 'edit'.\");"
             );
+        }
+
         if (isKeyed)
+        {
             code.AppendLineAt(
                 9,
                 "if (changeItem.BeforeIndex < 0 || changeItem.AfterIndex != -1 || changeItem.IsReordered) throw new global::System.ArgumentException(\"A removed keyed payload item has invalid indices.\");"
             );
+        }
+
         code.AppendLineAt(8, "}");
         code.AppendLineAt(8, "else if (" + edited + ")");
         code.AppendLineAt(8, "{");
@@ -615,10 +630,13 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 "if (changeItem.Edit is null) throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\");"
             );
             if (isKeyed)
+            {
                 code.AppendLineAt(
                     9,
                     "if (changeItem.BeforeIndex < 0 || changeItem.AfterIndex < 0) throw new global::System.ArgumentException(\"An edited keyed payload item has invalid indices.\");"
                 );
+            }
+
             code.AppendLineAt(
                 9,
                 "if (changeItem.Edit is not null) changeItem.Edit.__SparseValidateInto(errors, "
@@ -637,10 +655,12 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                     + ".IsPresent) throw new global::System.ArgumentException(\"An edited scalar payload item must contain 'before' and 'after'.\");"
             );
             if (isKeyed)
+            {
                 code.AppendLineAt(
                     9,
                     "if (changeItem.BeforeIndex < 0 || changeItem.AfterIndex < 0) throw new global::System.ArgumentException(\"An edited keyed payload item has invalid indices.\");"
                 );
+            }
         }
         code.AppendLineAt(8, "}");
         code.AppendLineAt(8, "else");
@@ -654,15 +674,21 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
                 + ".IsPresent) throw new global::System.ArgumentException(\"A reordered payload item must omit 'before' and 'after'.\");"
         );
         if (isModelValue)
+        {
             code.AppendLineAt(
                 9,
                 "if (changeItem.Edit is not null) throw new global::System.ArgumentException(\"A reordered payload item must not contain 'edit'.\");"
             );
+        }
+
         if (isKeyed)
+        {
             code.AppendLineAt(
                 9,
                 "if (!changeItem.IsReordered || changeItem.BeforeIndex < 0 || changeItem.AfterIndex < 0) throw new global::System.ArgumentException(\"A reordered keyed payload item has invalid indices.\");"
             );
+        }
+
         code.AppendLineAt(8, "}");
         code.AppendLineAt(7, "}");
         code.AppendLineAt(

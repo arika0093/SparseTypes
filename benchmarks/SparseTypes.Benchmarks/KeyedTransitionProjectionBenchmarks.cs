@@ -32,7 +32,9 @@ public class KeyedTransitionProjectionBenchmarks
             || FirstView() != expected
             || FirstLookup() != (expected > 0)
         )
+        {
             throw new InvalidOperationException("Typed projections must preserve edited entries.");
+        }
     }
 
     [Benchmark]

@@ -31,7 +31,10 @@ internal static class SparseChangeSetTransitionEmitter
     )
     {
         if (members.IsDefaultOrEmpty)
+        {
             return string.Empty;
+        }
+
         System.Text.StringBuilder? projectionFields = null;
         var runtime = dialect.RuntimeNamespace;
         SparseChangeSetNaming.ComputePublicNames(members, out var propNames, out var transNames);
@@ -43,7 +46,10 @@ internal static class SparseChangeSetTransitionEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 continue;
+            }
+
             var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
             var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
             if (IsKeyed(member) || IsDict(member))
@@ -194,6 +200,7 @@ internal static class SparseChangeSetTransitionEmitter
         {
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             if (IsSet(member))
+            {
                 AppendSetTransition(
                     code,
                     member,
@@ -204,7 +211,9 @@ internal static class SparseChangeSetTransitionEmitter
                     target,
                     dialect
                 );
+            }
             else if (IsScalar(member))
+            {
                 AppendScalarTransition(
                     code,
                     member,
@@ -214,8 +223,11 @@ internal static class SparseChangeSetTransitionEmitter
                     target,
                     dialect
                 );
+            }
             else if (IsNested(member))
+            {
                 AppendNestedProperty(code, member, prop, dialect, target);
+            }
             else if (IsKeyed(member) || IsDict(member))
             {
                 var cacheBuilder = new System.Text.StringBuilder(

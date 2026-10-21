@@ -21,7 +21,10 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
             cancellationToken
         );
         if (constructor is null)
+        {
             return true;
+        }
+
         var hierarchy = new Stack<INamedTypeSymbol>();
         for (
             var current = pocoType;
@@ -161,7 +164,9 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
                     && RoslynSymbolCompat.IsRequired(member)
                     && !represented.Contains(member)
                 )
+                {
                     yield return member;
+                }
             }
         }
     }
@@ -199,7 +204,9 @@ internal readonly record struct ModelConstructionPlan(bool CanOverlayAfterConstr
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (constructor.Parameters.IsEmpty)
+            {
                 return true;
+            }
         }
         return model.IsValueType;
     }

@@ -65,7 +65,9 @@ public sealed class GeneratedApiApprovalTests
                     "EditSession",
                 }
             )
+            {
                 AssertNested(model, nested);
+            }
 
             // Builders and paths live in the per-model Generated container.
             model
@@ -206,9 +208,11 @@ public sealed class GeneratedApiApprovalTests
                 typeof(SparseTypes.ISparseEditSessionWithBaselineRevision),
             }
         )
+        {
             definition
                 .GetCustomAttribute<EditorBrowsableAttribute>()
                 ?.State.ShouldBe(EditorBrowsableState.Advanced);
+        }
     }
 
     [Test]
@@ -325,10 +329,12 @@ public sealed class GeneratedApiApprovalTests
         // Stage 3: typed DTOs live in the per-model implementation namespace,
         // not nested in the annotated model.
         foreach (var model in FixtureModels)
+        {
             model
                 .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
                 .Where(static type => type.Name.StartsWith("__Internal_", StringComparison.Ordinal))
                 .ShouldBeEmpty();
+        }
 
         var containers = FixtureModels
             .Select(static model => model.GetNestedType("ChangePayload")?.BaseType?.DeclaringType)
@@ -338,7 +344,10 @@ public sealed class GeneratedApiApprovalTests
 
         containers.Length.ShouldBe(FixtureModels.Length);
         foreach (var container in containers)
+        {
             container.Namespace.ShouldBe("SparseTypes.Generated");
+        }
+
         var implementationTypes = containers
             .SelectMany(static container =>
                 container.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
@@ -346,13 +355,18 @@ public sealed class GeneratedApiApprovalTests
             .ToArray();
         implementationTypes.ShouldNotBeEmpty();
         foreach (var container in containers)
+        {
             container
                 .GetCustomAttribute<EditorBrowsableAttribute>()
                 ?.State.ShouldBe(EditorBrowsableState.Never);
+        }
+
         foreach (var implementationType in implementationTypes)
+        {
             implementationType
                 .GetCustomAttribute<EditorBrowsableAttribute>()
                 ?.State.ShouldBe(EditorBrowsableState.Never);
+        }
 
         var scalarContainer = typeof(CatalogScalar)
             .GetNestedType("ChangePayload")!
@@ -498,7 +512,9 @@ public sealed class GeneratedApiApprovalTests
             .Select(static method => method.Name)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var name in names)
+        {
             methods.Contains(name).ShouldBeTrue($"Expected {type.Name}.{name} to stay public.");
+        }
     }
 }
 

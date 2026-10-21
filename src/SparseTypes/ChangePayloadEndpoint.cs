@@ -17,9 +17,15 @@ public sealed class ChangePayloadEndpoint<T>
     public static ChangePayloadEndpoint<T> FromOptional(Optional<T> value)
     {
         if (!value.IsPresent)
+        {
             return new ChangePayloadEndpoint<T> { State = ChangePayloadState.Missing };
+        }
+
         if (value.Value is null)
+        {
             return new ChangePayloadEndpoint<T> { State = ChangePayloadState.Null };
+        }
+
         return new ChangePayloadEndpoint<T>
         {
             State = ChangePayloadState.Value,
@@ -45,7 +51,9 @@ public sealed class ChangePayloadEndpoint<T>
     {
         var error = GetInvariantError();
         if (error is not null)
+        {
             throw new System.InvalidOperationException(error);
+        }
     }
 
     /// <summary>Returns the value-free invariant outcome without throwing.</summary>
@@ -92,9 +100,12 @@ public sealed class ChangePayloadEndpoint<T>
     {
         Validate();
         if (State == ChangePayloadState.Redacted)
+        {
             throw new InvalidOperationException(
                 "A redacted payload endpoint has no known value. Project it through a baseline-free patch instead of converting it to an optional value."
             );
+        }
+
         return State switch
         {
             ChangePayloadState.Missing => Optional<T>.Missing,

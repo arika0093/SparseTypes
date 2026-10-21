@@ -20,7 +20,9 @@ public static class SparsePathQueries
         {
             var conflict = conflicts[index];
             if (conflict.Path.Equals(path))
+            {
                 return conflict;
+            }
         }
 
         return null;

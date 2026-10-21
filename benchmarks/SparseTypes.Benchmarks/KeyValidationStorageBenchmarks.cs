@@ -25,7 +25,9 @@ public class KeyValidationStorageBenchmarks
         for (var i = 0; i < Size; i++)
         {
             if (!keys.Add(i))
+            {
                 throw new InvalidOperationException("Duplicate key.");
+            }
         }
         return keys.Count;
     }

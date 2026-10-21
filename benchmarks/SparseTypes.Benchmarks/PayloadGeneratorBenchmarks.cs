@@ -35,7 +35,9 @@ public class PayloadGeneratorBenchmarks
         _generated = BaselineGeneratorBenchmarks.Generate(_input, out _);
         var expected = Compile();
         if (Compile() != expected)
+        {
             throw new InvalidOperationException("Fresh compilation must preserve assembly size.");
+        }
     }
 
     [Benchmark]
@@ -98,6 +100,7 @@ public class PayloadGeneratorBenchmarks
         };
         var sources = new List<SyntaxTree>();
         if (shape != PayloadGeneratorShape.ScalarDictionary)
+        {
             sources.Add(
                 CSharpSyntaxTree.ParseText(
                     """
@@ -113,7 +116,10 @@ public class PayloadGeneratorBenchmarks
                     path: "PayloadValue.cs"
                 )
             );
+        }
+
         for (var index = 0; index < count; index++)
+        {
             sources.Add(
                 CSharpSyntaxTree.ParseText(
                     $$"""
@@ -130,6 +136,8 @@ public class PayloadGeneratorBenchmarks
                     path: $"PayloadModel{index}.cs"
                 )
             );
+        }
+
         return ThreeLayerGeneratorBenchmarks
             .CreateCollectionCompilation(1)
             .WithAssemblyName("PayloadBenchGenerator")

@@ -31,10 +31,16 @@ internal static class SparsePayloadJsonConverterEmitter
         // Public-first order: the internal leaf-codec converter follows the
         // public readers and precedes the private member codecs below.
         if (SparsePayloadJsonPocoEmitter.HasPocos(context))
+        {
             SparsePayloadJsonPocoEmitter.AppendPocos(code, context);
+        }
+
         AppendDispatch(code, context, members);
         foreach (var member in members)
+        {
             SparsePayloadJsonMemberEmitter.AppendMember(code, context, member);
+        }
+
         SparsePayloadJsonSharedEmitter.AppendShared(code, context);
         code.AppendLineAt(1, "}");
         code.AppendLine();
@@ -388,6 +394,7 @@ internal static class SparsePayloadJsonConverterEmitter
                 + ") return ReadRootChange(ref reader, options);"
         );
         foreach (var member in members)
+        {
             code.AppendLineAt(
                 3,
                 "if (member == "
@@ -396,6 +403,8 @@ internal static class SparsePayloadJsonConverterEmitter
                     + member.Id
                     + "(ref reader, options);"
             );
+        }
+
         code.AppendLineAt(
             3,
             "throw new global::System.Text.Json.JsonException(\"Unknown payload member.\");"

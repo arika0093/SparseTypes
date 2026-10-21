@@ -110,11 +110,13 @@ public sealed class ChangePayloadWireTests
             .ToArray();
         endpointProperties.ShouldNotBeEmpty();
         foreach (var property in endpointProperties)
+        {
             property
                 .GetCustomAttribute<JsonConverterAttribute>()
                 .ShouldNotBeNull(property.DeclaringType!.Name + "." + property.Name)
                 .ConverterType!.GetGenericTypeDefinition()
                 .ShouldBe(endpointConverter.GetGenericTypeDefinition());
+        }
     }
 
     [Test]
@@ -308,17 +310,22 @@ public sealed class ChangePayloadWireTests
             .SequenceEqual(ChangePayloadWire.ValuePropertyUtf8())
             .ShouldBeTrue();
         foreach (var state in Enum.GetValues<ChangePayloadState>())
+        {
             System
                 .Text.Encoding.UTF8.GetBytes(ChangePayloadWire.ToToken(state))
                 .AsSpan()
                 .SequenceEqual(ChangePayloadWire.StateTokenUtf8(state))
                 .ShouldBeTrue();
+        }
+
         foreach (var kind in Enum.GetValues<ChangePayloadItemKind>())
+        {
             System
                 .Text.Encoding.UTF8.GetBytes(ChangePayloadWire.ToToken(kind))
                 .AsSpan()
                 .SequenceEqual(ChangePayloadWire.KindTokenUtf8(kind))
                 .ShouldBeTrue();
+        }
 
         Should.Throw<System.ArgumentOutOfRangeException>(() =>
             ChangePayloadWire.StateTokenUtf8((ChangePayloadState)99)

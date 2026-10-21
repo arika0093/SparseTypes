@@ -41,11 +41,20 @@ internal sealed class SparseCloneCycleAnalyzer
     {
         _cancellationToken.ThrowIfCancellationRequested();
         if (type is IArrayTypeSymbol array)
+        {
             return ContainsUnregisterableCloneCycle(array.ElementType);
+        }
+
         if (type is not INamedTypeSymbol named)
+        {
             return false;
+        }
+
         if (named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+        {
             return ContainsUnregisterableCloneCycle(named.TypeArguments[0]);
+        }
+
         var collection = SparseCollectionAnalyzer.GetCollectionInfo(named);
         if (collection.CloneKind != SparseCloneCollectionKind.Unsupported)
         {
@@ -53,7 +62,10 @@ internal sealed class SparseCloneCycleAnalyzer
                 collection.ElementType is not null
                 && ContainsUnregisterableCloneCycle(collection.ElementType)
             )
+            {
                 return true;
+            }
+
             return collection.ValueType is not null
                 && ContainsUnregisterableCloneCycle(collection.ValueType);
         }
@@ -62,7 +74,9 @@ internal sealed class SparseCloneCycleAnalyzer
             && SparseModelDiscovery.ClassifyStructuralType(named, _config, _cancellationToken)
                 != SparseModelDiscovery.StructuralTypeKind.StructuralObject
         )
+        {
             return false;
+        }
 
         return AnalyzeCloneNode(named);
     }
@@ -71,7 +85,10 @@ internal sealed class SparseCloneCycleAnalyzer
     {
         _cancellationToken.ThrowIfCancellationRequested();
         if (_completed.TryGetValue(named, out var completed))
+        {
             return completed;
+        }
+
         var cycleStart = _path.FindIndex(candidate =>
             SymbolEqualityComparer.Default.Equals(candidate, named)
         );
@@ -81,8 +98,13 @@ internal sealed class SparseCloneCycleAnalyzer
             // former path walk would have evaluated, then return without
             // re-expanding children that are already on the stack.
             for (var index = cycleStart; index < _path.Count; index++)
+            {
                 if (HasPreRegistrationCloneCycle(_path[index]))
+                {
                     return true;
+                }
+            }
+
             return false;
         }
 
@@ -103,7 +125,10 @@ internal sealed class SparseCloneCycleAnalyzer
                         == _config.CloneReferenceSafeAttributeMetadataName
                     )
             )
+            {
                 continue;
+            }
+
             if (ContainsUnregisterableCloneCycle(property.Type))
             {
                 result = true;
@@ -121,7 +146,10 @@ internal sealed class SparseCloneCycleAnalyzer
     private bool HasPreRegistrationCloneCycle(INamedTypeSymbol model)
     {
         if (_preRegistrationCycles.TryGetValue(model, out var cached))
+        {
             return cached;
+        }
+
         var result = ComputePreRegistrationCloneCycle(model);
         _preRegistrationCycles.Add(model, result);
         return result;
@@ -138,13 +166,17 @@ internal sealed class SparseCloneCycleAnalyzer
             .GetMembers(model, _config, _cancellationToken)
             .ToImmutableArray();
         if (model.TypeKind == TypeKind.Struct)
+        {
             return members.Any(member => CanReachCloneType(member.Property.Type, model));
+        }
 
         var constructor = fragmentModel
             ? ModelConstructorBinding.AnalyzeRoot(model, _config, _cancellationToken)
             : ModelConstructorBinding.AnalyzeStructural(model, _config, _cancellationToken);
         if (constructor is null)
+        {
             return false;
+        }
 
         IEnumerable<SparseSymbolMemberModel> preRegistrationMembers;
         if (fragmentModel)
@@ -159,13 +191,19 @@ internal sealed class SparseCloneCycleAnalyzer
                 constructor.Parameters.IsEmpty
                 && ModelConstructionPlan.ForMembers(generatedMembers).CanOverlayAfterConstruction
             )
+            {
                 return false;
+            }
+
             preRegistrationMembers = members;
         }
         else
         {
             if (constructor.Parameters.IsEmpty)
+            {
                 return false;
+            }
+
             var boundNames = new HashSet<string>(
                 constructor.Parameters.Select(static parameter => parameter.PropertyName),
                 StringComparer.Ordinal
@@ -188,9 +226,15 @@ internal sealed class SparseCloneCycleAnalyzer
             _cancellationToken.ThrowIfCancellationRequested();
             var current = pending.Pop();
             if (SymbolEqualityComparer.Default.Equals(current, target))
+            {
                 return true;
+            }
+
             if (!visited.Add(current))
+            {
                 continue;
+            }
+
             foreach (
                 var (nested, referenceSafe) in SparseCloneAnalysis.GetCloneChildren(
                     current,
@@ -198,8 +242,12 @@ internal sealed class SparseCloneCycleAnalyzer
                     _cancellationToken
                 )
             )
+            {
                 if (!referenceSafe)
+                {
                     pending.Push(nested);
+                }
+            }
         }
         return false;
     }

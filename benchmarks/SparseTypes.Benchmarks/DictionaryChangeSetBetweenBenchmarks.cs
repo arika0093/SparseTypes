@@ -82,9 +82,11 @@ public class DictionaryChangeSetBetweenBenchmarks
                 )
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Dictionary differences must preserve endpoints and invert correctly."
             );
+        }
     }
 
     private int Value(int index, bool after) =>
@@ -164,8 +166,12 @@ public class DictionaryChangeSetBetweenBenchmarks
     public static void ValidateInputs()
     {
         foreach (var size in new[] { 16, 2048 })
-        foreach (var shape in Enum.GetValues<DictionaryChangeSetBetweenShape>())
-            new DictionaryChangeSetBetweenBenchmarks { Size = size, Shape = shape }.Setup();
+        {
+            foreach (var shape in Enum.GetValues<DictionaryChangeSetBetweenShape>())
+            {
+                new DictionaryChangeSetBetweenBenchmarks { Size = size, Shape = shape }.Setup();
+            }
+        }
     }
 
     [Benchmark]

@@ -181,12 +181,18 @@ public class ThreeLayerOpsBenchmarks
             || !ComparisonSequence()
             || !ComparisonNoopBetween()
         )
+        {
             throw new InvalidOperationException("Equal fixtures must have independent references.");
+        }
+
         _equalValues[^1]++;
         if (ComparisonSequence())
+        {
             throw new InvalidOperationException(
                 "Sequence comparison must inspect the last element."
             );
+        }
+
         _equalValues[^1]--;
         if (
             _leaf.DeepClone().Values.Count != Size

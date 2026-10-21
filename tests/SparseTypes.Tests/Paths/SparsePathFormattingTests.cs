@@ -23,7 +23,10 @@ public sealed class SparsePathFormattingTests
             .Key(new FormattingKey(nested.ToString))
             .Member("Name");
         for (var index = 0; index < 3; index++)
+        {
             path.ToString().ShouldBe("Items[\"Nested.Value\"].Name");
+        }
+
         nested.ToString().ShouldBe("Nested.Value");
     }
 

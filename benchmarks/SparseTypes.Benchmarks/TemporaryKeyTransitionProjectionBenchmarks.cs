@@ -51,7 +51,9 @@ public class TemporaryKeyTransitionProjectionBenchmarks
                 }
             );
             if (index == 0 || !assigned)
+            {
                 _temporaryKey = temporaryKey;
+            }
         }
         var changes = BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after);
         var before = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(
@@ -73,9 +75,11 @@ public class TemporaryKeyTransitionProjectionBenchmarks
             || JsonSerializer.Serialize(changes.Invert().ToPatch().Apply(after).Value!.ToModel())
                 != JsonSerializer.Serialize(_before)
         )
+        {
             throw new InvalidOperationException(
                 "Typed projections must preserve assigned and temporary edits."
             );
+        }
     }
 
     [Benchmark]

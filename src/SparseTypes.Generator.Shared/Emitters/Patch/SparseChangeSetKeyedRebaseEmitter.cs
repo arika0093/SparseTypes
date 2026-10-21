@@ -75,6 +75,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         code.AppendLineAt(4, "{");
         code.AppendLineAt(4, "var __curM" + id + " = __cur." + esc + ";");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member) && !hasTempRebase)
+        {
             code.AppendLineAt(
                 4,
                 "if ("
@@ -85,6 +86,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__baselineKey")
                     + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed ChangeSet.\");"
             );
+        }
         // Replay via member patch rebase is not sparse; report member conflict
         // unless already applied, else keep whole.
         code.AppendLineAt(4, "if (" + KeyedWholeFlag(member) + ")");
@@ -205,6 +207,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 5,
                 "foreach (var __e in __curM"
@@ -231,6 +234,8 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + id
                     + ".Add(__ck); }"
             );
+        }
+
         code.AppendLineAt(
             5,
             "var __rebaseCurrentOrder"
@@ -280,6 +285,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         code.AppendLineAt(6, "if (__it.IsAdded)");
         code.AppendLineAt(6, "{");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 6,
                 "if ("
@@ -345,7 +351,9 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + id
                     + ".Add(__it.Key); }"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 6,
                 "if (!__cmap"
@@ -384,6 +392,8 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + id
                     + ".Add(__it.Key); }"
             );
+        }
+
         code.AppendLineAt(
             6,
             "else if (!"

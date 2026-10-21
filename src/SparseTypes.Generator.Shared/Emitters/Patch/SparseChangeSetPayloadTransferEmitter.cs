@@ -123,7 +123,10 @@ internal static class SparseChangeSetPayloadTransferEmitter
             "/// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>"
         );
         if (target is not null)
+        {
             code.AppendLineAt(2, "/// <param name=\"self\">The change set to convert.</param>");
+        }
+
         code.AppendLineAt(
             2,
             "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"
@@ -265,9 +268,12 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     : member.Collection.ValueType?.IsFragmentModel == true;
                 var omitItemEndpoints = "";
                 if (isModelValue)
+                {
                     omitItemEndpoints = SparseChangeSetBasicsEmitter.IsKeyed(member)
                         ? "item.IsEdited || item.IsReordered || "
                         : "item.IsEdited || ";
+                }
+
                 var beforeEndpoint =
                     "("
                     + omitItemEndpoints
@@ -330,12 +336,15 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     }
                 }
                 if (isModelValue)
+                {
                     code.AppendLineAt(
                         6,
                         "if (item.IsEdited) mapped.Edit = item.Edit.ToPayloadCore("
                             + redactBefore
                             + ");"
                     );
+                }
+
                 code.AppendLineAt(6, "entry.Items.Add(mapped);");
                 code.AppendLineAt(5, "}");
                 if (SparseChangeSetBasicsEmitter.IsKeyed(member))
@@ -435,7 +444,10 @@ internal static class SparseChangeSetPayloadTransferEmitter
             "/// <summary>Builds the transport core for this change set.</summary>"
         );
         if (target is not null)
+        {
             code.AppendLineAt(2, "/// <param name=\"self\">The change set to convert.</param>");
+        }
+
         code.AppendLineAt(
             2,
             "/// <param name=\"redactBefores\">Whether to redact before-states.</param>"

@@ -161,9 +161,12 @@ public class ProvenanceBenchmarks
             || !SetSetUnion_Reset()
             || SetSetUnion_Mismatch()
         )
+        {
             throw new InvalidOperationException(
                 "Provenance must accept matching merges and reject mismatches."
             );
+        }
+
         ValidateSequenceOrigins(
             _sequenceContributions,
             _sequenceUnionEffective,
@@ -207,9 +210,12 @@ public class ProvenanceBenchmarks
                 out _
             )
         )
+        {
             throw new InvalidOperationException(
                 "Duplicate effective set elements must be rejected."
             );
+        }
+
         if (
             SparseFragmentRuntime.TryExplainSetProvenance(
                 _setContributions,
@@ -220,9 +226,12 @@ public class ProvenanceBenchmarks
                 out _
             )
         )
+        {
             throw new InvalidOperationException(
                 "Effective and contribution set comparers must match."
             );
+        }
+
         try
         {
             SparseFragmentRuntime.TryExplainCollectionProvenance(
@@ -252,14 +261,19 @@ public class ProvenanceBenchmarks
         {
             var contribution = contributions[index];
             if (!contribution.IsPresent)
+            {
                 continue;
+            }
+
             if (contribution.Value is null)
             {
                 expected.Clear();
                 continue;
             }
             foreach (var value in contribution.Value)
+            {
                 expected.TryAdd(value, index);
+            }
         }
         if (
             !SparseFragmentRuntime.TryExplainCollectionProvenance(
@@ -271,9 +285,11 @@ public class ProvenanceBenchmarks
                 out _
             ) || !origins.SequenceEqual((effective.Value ?? []).Select(value => expected[value]))
         )
+        {
             throw new InvalidOperationException(
                 "Sequence provenance must preserve first contribution indices after resets."
             );
+        }
     }
 
     private static void ValidateSetOrigins(
@@ -287,14 +303,19 @@ public class ProvenanceBenchmarks
         {
             var contribution = contributions[index];
             if (!contribution.IsPresent)
+            {
                 continue;
+            }
+
             if (contribution.Value is null)
             {
                 expected.Clear();
                 continue;
             }
             foreach (var value in contribution.Value)
+            {
                 expected.TryAdd(value, index);
+            }
         }
         if (
             !SparseFragmentRuntime.TryExplainSetProvenance(
@@ -304,9 +325,11 @@ public class ProvenanceBenchmarks
                 out _
             ) || !origins.SequenceEqual((effective.Value ?? []).Select(value => expected[value]))
         )
+        {
             throw new InvalidOperationException(
                 "Set provenance must preserve first contribution indices in effective traversal order."
             );
+        }
     }
 
     [Benchmark(Description = "Provenance Replace: highest contribution wins")]

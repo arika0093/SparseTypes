@@ -90,8 +90,11 @@ internal static class SparseChangeSetBasicsEmitter
         var expression =
             $"!{facade}.KeyOrderEquals<{KeyTypeOf(member)}>({KeyedBeforeOrder(member)}, {KeyedAfterOrder(member)})";
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+        {
             expression +=
                 $" || ({KeyedTempBeforeOrder(member)} is not null && {KeyedTempAfterOrder(member)} is not null && !{facade}.KeyOrderEquals<global::System.Guid>({KeyedTempBeforeOrder(member)}, {KeyedTempAfterOrder(member)}))";
+        }
+
         return expression;
     }
 
@@ -518,19 +521,26 @@ internal static class SparseChangeSetBasicsEmitter
     {
         var parts = new List<string> { "false", "default", "default" };
         foreach (var member in members)
+        {
             parts.AddRange(EmptyMemberArgs(member));
+        }
+
         return string.Join(", ", parts);
     }
 
     internal static string[] EmptyMemberArgs(SparseMemberModel member)
     {
         if (IsNested(member))
+        {
             return ["null"];
+        }
+
         if (IsKeyed(member) || IsDict(member))
         {
             if (IsKeyed(member))
             {
                 if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+                {
                     return
                     [
                         "false",
@@ -543,6 +553,8 @@ internal static class SparseChangeSetBasicsEmitter
                         "null",
                         "null",
                     ];
+                }
+
                 return ["false", "false", "default", "default", "null", "null", "null"];
             }
             return ["false", "false", "default", "default", "null"];
@@ -563,11 +575,15 @@ internal static class SparseChangeSetBasicsEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 expr.Add(
                     "(" + NestedField(member) + " is null || " + NestedField(member) + ".IsEmpty)"
                 );
+            }
             else
+            {
                 expr.Add("!" + HasField(member));
+            }
         }
         code.AppendLineAt(2, "public bool IsEmpty => " + string.Join(" && ", expr) + ";");
     }
@@ -590,12 +606,17 @@ internal static class SparseChangeSetBasicsEmitter
     internal static string MemberEmptyTail(ImmutableArray<SparseMemberModel> members)
     {
         if (members.IsDefaultOrEmpty || members.Length == 0)
+        {
             return string.Empty.Trim();
+        }
+
         var parts = new List<string>();
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 parts.Add("null");
+            }
             else if (IsKeyed(member) || IsDict(member))
             {
                 parts.AddRange(new[] { "false", "false", "default", "default", "null" });
@@ -603,11 +624,15 @@ internal static class SparseChangeSetBasicsEmitter
                 {
                     parts.AddRange(new[] { "null", "null" });
                     if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+                    {
                         parts.AddRange(new[] { "null", "null" });
+                    }
                 }
             }
             else
+            {
                 parts.AddRange(new[] { "default", "default", "false" });
+            }
         }
         return string.Join(", ", parts);
     }
@@ -650,7 +675,10 @@ internal static class SparseChangeSetBasicsEmitter
     internal static string KeyTypeOf(SparseMemberModel m)
     {
         if (IsDict(m))
+        {
             return m.Collection.ElementType.Name;
+        }
+
         return m.Collection.KeyTypeName ?? "object?";
     }
 

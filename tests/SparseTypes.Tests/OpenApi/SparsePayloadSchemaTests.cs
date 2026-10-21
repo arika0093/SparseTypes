@@ -126,7 +126,10 @@ public sealed class SparsePayloadSchemaTests
         while (schema is OpenApiSchemaReference reference && guard++ < 8)
         {
             if (reference.Target is not IOpenApiSchema target)
+            {
                 break;
+            }
+
             schema = target;
         }
         return (OpenApiSchema)schema;

@@ -23,18 +23,26 @@ internal static class SparseOperationOrdering
     {
         var blocks = FindBlocks(operations);
         if (blocks is null)
+        {
             return operations;
+        }
+
         var result = new StringBuilder(operations.Length);
         for (var rank = 0; rank < 3; rank++)
         {
             foreach (var block in blocks)
             {
                 if (block.Rank == rank)
+                {
                     AppendBlock(result, operations, block.Start, block.End);
+                }
             }
         }
         if (operations[operations.Length - 1] == '\n')
+        {
             result.Append('\n');
+        }
+
         return result.ToString();
     }
 
@@ -55,20 +63,29 @@ internal static class SparseOperationOrdering
             foreach (var block in blocks)
             {
                 if (block.Rank == rank)
+                {
                     AppendBlock(code, operations, block.Start, block.End, ref hasLine);
+                }
             }
         }
         if (operations[operations.Length - 1] == '\n')
+        {
             code.Append('\n');
+        }
     }
 
     private static List<(int Start, int End, int Rank)>? FindBlocks(string operations)
     {
         if (string.IsNullOrEmpty(operations))
+        {
             return null;
+        }
+
         var topIndent = FindTopIndent(operations);
         if (topIndent < 0)
+        {
             return null;
+        }
 
         var blocks = new List<(int Start, int End, int Rank)>();
         var blockStart = -1;
@@ -92,7 +109,10 @@ internal static class SparseOperationOrdering
                 )
                 {
                     if (blockStart >= 0)
+                    {
                         blocks.Add((blockStart, start, blockRank));
+                    }
+
                     blockStart = start;
                     blockRank = 1;
                     hasRank = false;
@@ -113,7 +133,9 @@ internal static class SparseOperationOrdering
             start = line.End + 1;
         }
         if (blockStart >= 0)
+        {
             blocks.Add((blockStart, operations.Length, blockRank));
+        }
 
         return blocks;
     }
@@ -124,7 +146,10 @@ internal static class SparseOperationOrdering
         {
             var line = ReadLine(source, start);
             if (line.Kind != LineKind.Other)
+            {
                 return line.TrimmedStart - start;
+            }
+
             start = line.End + 1;
         }
         return -1;
@@ -134,24 +159,39 @@ internal static class SparseOperationOrdering
     {
         var end = source.IndexOf('\n', start);
         if (end < 0)
+        {
             end = source.Length;
+        }
+
         var trimmed = TrimStart(source, start, end);
         var kind = LineKind.Other;
         if (HasPrefix(source, trimmed, end, "///"))
+        {
             kind = LineKind.Documentation;
+        }
         else if (HasPrefix(source, trimmed, end, "public "))
+        {
             kind = LineKind.Public;
+        }
         else if (HasPrefix(source, trimmed, end, "internal "))
+        {
             kind = LineKind.Internal;
+        }
         else if (HasPrefix(source, trimmed, end, "private "))
+        {
             kind = LineKind.Private;
+        }
+
         return (end, trimmed, kind);
     }
 
     private static int TrimStart(string source, int start, int end)
     {
         while (start < end && char.IsWhiteSpace(source[start]))
+        {
             start++;
+        }
+
         return start;
     }
 
@@ -165,11 +205,17 @@ internal static class SparseOperationOrdering
         {
             var lineEnd = source.IndexOf('\n', start);
             if (lineEnd < 0 || lineEnd > end)
+            {
                 lineEnd = end;
+            }
+
             if (TrimStart(source, start, lineEnd) < lineEnd)
             {
                 if (result.Length != 0)
+                {
                     result.Append('\n');
+                }
+
                 result.Append(source, start, lineEnd - start);
             }
             start = lineEnd + 1;
@@ -188,11 +234,17 @@ internal static class SparseOperationOrdering
         {
             var lineEnd = source.IndexOf('\n', start);
             if (lineEnd < 0 || lineEnd > end)
+            {
                 lineEnd = end;
+            }
+
             if (TrimStart(source, start, lineEnd) < lineEnd)
             {
                 if (hasLine)
+                {
                     code.Append('\n');
+                }
+
                 code.Append(source, start, lineEnd - start);
                 hasLine = true;
             }

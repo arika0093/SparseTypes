@@ -95,10 +95,15 @@ internal static class SparseFragmentPatchRebaseEmitter
         {
             into.AppendLineAt(3, "{");
             if (member.ChildModel is not null)
+            {
                 AppendNestedMemberRebase(into, member, conflict, conflictKind, dialect);
+            }
             else if (SparseFragmentPatchEmitter.IsCollectionPatch(member))
+            {
                 AppendCollectionMemberRebase(into, member, conflict, conflictKind, dialect);
+            }
             else
+            {
                 AppendScalarMemberRebase(
                     into,
                     member,
@@ -108,6 +113,8 @@ internal static class SparseFragmentPatchRebaseEmitter
                     dialect,
                     modeType
                 );
+            }
+
             into.AppendLineAt(3, "}");
         }
 

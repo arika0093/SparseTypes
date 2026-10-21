@@ -81,9 +81,12 @@ public class FragmentJsonBenchmarks
             options
         )!;
         if (value.Value.Value != 2 || value.Ignored.IsPresent || value.Other.IsPresent)
+        {
             throw new InvalidOperationException(
                 "Explicit Unicode names, duplicate names, and ignored members must retain their behavior."
             );
+        }
+
         reader = new Utf8JsonReader(Encoding.UTF8.GetBytes("{\"unknown\":1}"));
         reader.Read();
         try
@@ -119,9 +122,11 @@ public class FragmentJsonBenchmarks
             || value.Second.IsPresent != Dense
             || (Dense && (value.First.Value != 1 || value.Second.Value != 2))
         )
+        {
             throw new InvalidOperationException(
                 "Fragment JSON must preserve sparse values, naming policies, case handling, and escaped names."
             );
+        }
     }
 
     [Benchmark]

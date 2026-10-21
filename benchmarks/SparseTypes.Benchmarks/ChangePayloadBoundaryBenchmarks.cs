@@ -79,9 +79,11 @@ public class ChangePayloadBoundaryBenchmarks
                 || !json.AsSpan()
                     .SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(restored.ToPayload()))
             )
+            {
                 throw new InvalidOperationException(
                     "Restoration must preserve the payload and the complete expected state."
                 );
+            }
         }
     }
 

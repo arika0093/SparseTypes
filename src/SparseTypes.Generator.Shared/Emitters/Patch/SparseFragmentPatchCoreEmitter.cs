@@ -290,6 +290,7 @@ internal static class SparseFragmentPatchCoreEmitter
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
             var field = dialect.MemberField(member);
             if (member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member))
+            {
                 code.AppendLineAt(
                     3,
                     field
@@ -303,6 +304,7 @@ internal static class SparseFragmentPatchCoreEmitter
                         + name
                         + ".Value) : default;"
                 );
+            }
             else if (SparseFragmentPatchEmitter.IsCollectionPatch(member))
             {
                 var collectionPatch = SparseFragmentPatchEmitter.GetCollectionPatchName(

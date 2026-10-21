@@ -452,7 +452,9 @@ internal static class FragmentJsonIndexSetup
         if (shape == "dense")
         {
             for (var i = 0; i < memberCount; i++)
+            {
                 AppendProperty(WireName(naming, i), i.ToString());
+            }
         }
         else
         {
@@ -460,7 +462,9 @@ internal static class FragmentJsonIndexSetup
             if (shape == "unknown")
             {
                 for (var u = 0; u < 20; u++)
+                {
                     AppendProperty("u" + u.ToString("00"), """{"nested":[1,2]}""");
+                }
             }
         }
         builder.Append('}');
@@ -497,16 +501,26 @@ public class FragmentJsonIndexBenchmarks
     {
         _options = new Dictionary<string, JsonSerializerOptions>(StringComparer.Ordinal);
         foreach (var naming in Namings)
+        {
             _options[naming] = FragmentJsonIndexSetup.CreateOptions(naming);
+        }
+
         _payloads = new Dictionary<(int, string, string), byte[]>();
         foreach (var size in MemberCounts)
-        foreach (var shape in Shapes)
-        foreach (var naming in Namings)
+        {
+            foreach (var shape in Shapes)
+            {
+                foreach (var naming in Namings)
         {
             var payload = FragmentJsonIndexSetup.BuildPayload(size, shape, naming);
             if (!IsLastPresent(size, payload, _options[naming]))
-                throw new InvalidOperationException("Fragment index payload validation failed.");
-            _payloads[(size, shape, naming)] = payload;
+                    {
+                        throw new InvalidOperationException("Fragment index payload validation failed.");
+                    }
+
+                    _payloads[(size, shape, naming)] = payload;
+        }
+            }
         }
     }
 
@@ -635,7 +649,8 @@ public class FragmentJsonIndexArrayBenchmarks
         };
         _arrays = new Dictionary<(int, string), byte[]>();
         foreach (var size in new[] { 1, 100, 10000 })
-        foreach (var naming in _options.Keys)
+        {
+            foreach (var naming in _options.Keys)
         {
             var element = Encoding.UTF8.GetString(
                 FragmentJsonIndexSetup.BuildPayload(8, "dense", naming)
@@ -644,8 +659,12 @@ public class FragmentJsonIndexArrayBenchmarks
                 "[" + string.Join(",", Enumerable.Repeat(element, size)) + "]"
             );
             if (ReadArray(payload, _options[naming]) != size)
-                throw new InvalidOperationException("Fragment index array validation failed.");
-            _arrays[(size, naming)] = payload;
+                {
+                    throw new InvalidOperationException("Fragment index array validation failed.");
+                }
+
+                _arrays[(size, naming)] = payload;
+        }
         }
     }
 
@@ -655,7 +674,10 @@ public class FragmentJsonIndexArrayBenchmarks
     {
         var count = ReadArray(_arrays[(ArraySize, Naming)], _options[Naming]);
         if (count != ArraySize)
+        {
             throw new InvalidOperationException("Array payload mismatch.");
+        }
+
         return count;
     }
 

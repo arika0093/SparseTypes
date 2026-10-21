@@ -19,9 +19,15 @@ internal static class SparseStjConstructorCapabilityProbe
         foreach (var ctor in type.InstanceConstructors)
         {
             if (!IsAccessibleTo(ctor, compilation))
+            {
                 continue;
+            }
+
             if (ctor.Parameters.Length < requiredParameters.Length)
+            {
                 continue;
+            }
+
             var matches = true;
             for (var index = 0; index < ctor.Parameters.Length; index++)
             {
@@ -48,7 +54,9 @@ internal static class SparseStjConstructorCapabilityProbe
             }
 
             if (matches)
+            {
                 return true;
+            }
         }
 
         return false;

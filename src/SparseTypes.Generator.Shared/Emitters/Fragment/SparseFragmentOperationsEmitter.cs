@@ -88,6 +88,7 @@ internal static class SparseFragmentOperationsEmitter
             modelIsReferenceType
         );
         foreach (var poco in pocoCloneModels)
+        {
             operationsCore.AppendPocoCloneHelper(
                 code,
                 poco.Model.ModelTypeName,
@@ -96,6 +97,8 @@ internal static class SparseFragmentOperationsEmitter
                 poco.Model.Constructor,
                 helperAccessibility: "internal"
             );
+        }
+
         operationsCore.AppendDiffPrivateBodies(code, modelType, members, modelIsReferenceType);
         operationsCore.AppendOriginPathCacheFields(code, members, modelType);
 

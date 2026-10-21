@@ -73,30 +73,48 @@ internal static class SparsePayloadJsonPocoDiscovery
                     // Dictionary keys travel as strings, never as values.
                     pending.Push((collection.ElementType, false));
                     if (collection.ValueType is not null)
+                    {
                         pending.Push((collection.ValueType, isValue));
+                    }
                 }
                 else
                 {
                     pending.Push((collection.ElementType, isValue));
                     if (collection.ValueType is not null)
+                    {
                         pending.Push((collection.ValueType, isValue));
+                    }
                 }
 
                 continue;
             }
 
             if (unwrapped is not INamedTypeSymbol named)
+            {
                 continue;
+            }
+
             var key = StripNullability(named);
             if (isValue)
+            {
                 valueReached.Add(key);
+            }
+
             if (!seen.Add(key))
+            {
                 continue;
+            }
+
             if (IsDirectScalar(key))
+            {
                 continue;
+            }
+
             var isPocoOwner = !IsFragmentOrPromoted(key, config, cancellationToken);
             foreach (var nested in GetNestedTypes(key, isPocoOwner, config, cancellationToken))
+            {
                 pending.Push(nested);
+            }
         }
 
         // Codecs cover value positions only: nested-only children travel
@@ -110,12 +128,19 @@ internal static class SparsePayloadJsonPocoDiscovery
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (reached is not INamedTypeSymbol named)
+            {
                 continue;
+            }
+
             if (IsDirectScalar(named))
+            {
                 continue;
+            }
+
             if (!TryCreatePoco(named, config, cancellationToken, out var poco, out var reason))
             {
                 if (IsUserDefinedLeaf(named) && reason is not null)
+                {
                     warnings[reason] = new SparseGeneratorDiagnostic(
                         config.EffectiveDiagnosticIds.UnsupportedPayloadJsonPoco,
                         named.Locations.FirstOrDefault(),
@@ -124,6 +149,8 @@ internal static class SparsePayloadJsonPocoDiscovery
                     {
                         IsWarning = true,
                     };
+                }
+
                 continue;
             }
 
@@ -166,7 +193,10 @@ internal static class SparsePayloadJsonPocoDiscovery
             .GetMembers(type, config, cancellationToken)
             .ToArray();
         if (!includeIgnoredExtras)
+        {
             return baseMembers.ToImmutableArray();
+        }
+
         var covered = new HashSet<ISymbol>(
             baseMembers.Select(static member => member.Property),
             SymbolEqualityComparer.Default
@@ -215,7 +245,10 @@ internal static class SparsePayloadJsonPocoDiscovery
     {
         var depth = 0;
         for (var current = type?.BaseType; current is not null; current = current.BaseType)
+        {
             depth++;
+        }
+
         return depth;
     }
 
@@ -243,7 +276,10 @@ internal static class SparsePayloadJsonPocoDiscovery
     private static bool IsDirectScalar(INamedTypeSymbol type)
     {
         if (type.SpecialType != SpecialType.None || type.TypeKind == TypeKind.Enum)
+        {
             return true;
+        }
+
         return type.ContainingNamespace.ToDisplayString() == "System"
             && type.Name is "Guid" or "DateTime" or "DateTimeOffset" or "TimeSpan" or "Decimal";
     }
@@ -282,7 +318,9 @@ internal static class SparsePayloadJsonPocoDiscovery
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!covered.Contains(property))
+            {
                 yield return (property.Type, true);
+            }
         }
     }
 
@@ -434,7 +472,10 @@ internal static class SparsePayloadJsonPocoDiscovery
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (covered.Contains(property))
+            {
                 continue;
+            }
+
             if (HasAttribute(property, JsonIncludeAttribute, JsonConverterAttribute))
             {
                 reason = DisplayName(type);
@@ -539,7 +580,9 @@ internal static class SparsePayloadJsonPocoDiscovery
                         && field.DeclaredAccessibility == Accessibility.Public
                     )
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -564,7 +607,9 @@ internal static class SparsePayloadJsonPocoDiscovery
                         attribute.AttributeClass?.ToDisplayString() == JsonIncludeAttribute
                     )
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -587,7 +632,9 @@ internal static class SparsePayloadJsonPocoDiscovery
                     string.Equals(modifier.Text, "file", System.StringComparison.Ordinal)
                 )
             )
+            {
                 return true;
+            }
         }
 
         return false;

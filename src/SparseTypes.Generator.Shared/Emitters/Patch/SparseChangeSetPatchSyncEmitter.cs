@@ -292,7 +292,10 @@ internal static class SparseChangeSetPatchSyncEmitter
         foreach (var member in members)
         {
             if (!IsKeyed(member) && !IsDict(member))
+            {
                 continue;
+            }
+
             AppendItemInverter(into, members, member, runtime);
         }
         if (target is not null)
@@ -333,25 +336,32 @@ internal static class SparseChangeSetPatchSyncEmitter
         code.AppendLineAt(3, "if (__sparse_hasWhole)");
         code.AppendLineAt(3, "{");
         if (string.IsNullOrEmpty(emptyTail))
+        {
             code.AppendLineAt(
                 4,
                 "return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore);"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 4,
                 "return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, "
                     + emptyTail
                     + ");"
             );
+        }
+
         code.AppendLineAt(3, "}");
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 args.Add(
                     NestedField(member) + " is null ? null : " + NestedField(member) + ".Invert()"
                 );
+            }
             else if (IsKeyed(member))
             {
                 AddKeyedChangeSetArgs(
@@ -386,7 +396,9 @@ internal static class SparseChangeSetPatchSyncEmitter
                 );
             }
             else
+            {
                 args.AddRange(new[] { AfterField(member), BeforeField(member), HasField(member) });
+            }
         }
         code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
         code.AppendLineAt(2, "}");
@@ -536,19 +548,23 @@ internal static class SparseChangeSetPatchSyncEmitter
         {
             var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
             if (hasPatch)
+            {
                 code.AppendLineAt(
                     4,
                     "__out.Add(new "
                         + trans
                         + ".Item(__it.Key, __it.After, __it.Before, __it.IsRemoved, __it.IsAdded, __it.IsEdited, __it.Edit.Invert(), false));"
                 );
+            }
             else
+            {
                 code.AppendLineAt(
                     4,
                     "__out.Add(new "
                         + trans
                         + ".Item(__it.Key, __it.After, __it.Before, __it.IsRemoved, __it.IsAdded, __it.IsEdited, false));"
                 );
+            }
         }
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "return __out;");
@@ -608,12 +624,17 @@ internal static class SparseChangeSetPatchSyncEmitter
         );
         code.AppendLineAt(5, "{");
         if (isKeyed)
+        {
             code.AppendLineAt(6, "if (__it.IsAdded) __coll" + id + ".Add(__it.After.Value!);");
+        }
         else
+        {
             code.AppendLineAt(
                 6,
                 "if (__it.IsAdded) __coll" + id + ".SetEntry(__it.Key!, __it.After.Value!);"
             );
+        }
+
         code.AppendLineAt(6, "else if (__it.IsRemoved)");
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
@@ -629,7 +650,9 @@ internal static class SparseChangeSetPatchSyncEmitter
             );
         }
         else if (isKeyed)
+        {
             code.AppendLineAt(6, "{ __coll" + id + ".Remove(__it.Key); }");
+        }
         else
         {
             code.AppendLineAt(6, "{");

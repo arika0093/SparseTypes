@@ -40,9 +40,11 @@ public class DictionaryChangeSetEqualityComposeBenchmarks
                 .Patch.Between(result.Invert().ToPatch().Apply(after), before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Dictionary compositions must retain null, NaN, enum, object equality, and enumerable struct semantics."
             );
+        }
 
         // The custom scalar deliberately implements different object and typed
         // equality.
@@ -67,7 +69,9 @@ public class DictionaryChangeSetEqualityComposeBenchmarks
                 .Compose(BenchEqualityDictHolder.ChangeSet.Between(customMiddle, customAfter))
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException("Custom structs must retain object equality.");
+        }
     }
 
     private static Optional<BenchEqualityDictHolder.Fragment?> State(int step) =>

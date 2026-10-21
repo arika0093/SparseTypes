@@ -53,7 +53,9 @@ public class DescriptorAccessBenchmarks
         };
         _session = model.CreateEditSession();
         if (!_session.Descriptors.TryGet(nameof(BenchDescriptorHolder.Title), out _))
+        {
             throw new InvalidOperationException("Descriptors must resolve the title member.");
+        }
     }
 
     [Benchmark(Description = "100 repeated root descriptor lookups")]

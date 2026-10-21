@@ -24,7 +24,10 @@ internal static class SparseGeneratedOnceChangePayloadJsonConverters
             cancellationToken
         );
         if (emitConverters)
+        {
             SparseChangePayloadJsonBridgeEmitter.AppendBridgeConverters(code, dialect);
+        }
+
         code.AppendLine("}");
         return code.ToString();
     }

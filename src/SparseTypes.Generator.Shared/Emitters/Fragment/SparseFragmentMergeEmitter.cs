@@ -106,15 +106,23 @@ internal sealed class SparseFragmentMergeEmitter
             );
             code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
             if (isOperationsBody)
+            {
                 code.AppendLineAt(
                     2,
                     "public static Fragment Merge(Fragment self, Fragment higherPriority)"
                 );
+            }
             else
+            {
                 code.AppendLineAt(2, "public Fragment Merge(Fragment higherPriority)");
+            }
+
             code.AppendLineAt(2, "{");
             if (isOperationsBody)
+            {
                 SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            }
+
             SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "higherPriority");
             AppendMergeFastPaths(code, members, receiver, hasCustomMergeStrategy, replaceOnly);
             code.AppendLineAt(3, "return new Fragment");
@@ -343,15 +351,23 @@ internal sealed class SparseFragmentMergeEmitter
             code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
             code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
             if (isOperationsBody)
+            {
                 code.AppendLineAt(
                     2,
                     "public static Fragment ApplyChanges(Fragment self, Fragment changes)"
                 );
+            }
             else
+            {
                 code.AppendLineAt(2, "public Fragment ApplyChanges(Fragment changes)");
+            }
+
             code.AppendLineAt(2, "{");
             if (isOperationsBody)
+            {
                 SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            }
+
             SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "changes");
             code.AppendLineAt(3, "return new Fragment");
             code.AppendLineAt(3, "{");

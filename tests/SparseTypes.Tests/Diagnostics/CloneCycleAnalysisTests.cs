@@ -127,13 +127,19 @@ public sealed class CloneCycleAnalysisTests
         builder.AppendLine("public partial class DiamondRoot");
         builder.AppendLine("{");
         for (var index = 0; index < 8; index++)
+        {
             builder.AppendLine($"    public DiamondChild Child{index} {{ get; set; }} = new();");
+        }
+
         builder.AppendLine("}");
         builder.AppendLine("[SparseModel]");
         builder.AppendLine("public partial class DiamondChild");
         builder.AppendLine("{");
         for (var index = 0; index < 8; index++)
+        {
             builder.AppendLine($"    public DiamondLeaf Leaf{index} {{ get; set; }} = new();");
+        }
+
         builder.AppendLine("}");
         builder.AppendLine("[SparseModel]");
         builder.AppendLine("public partial class DiamondLeaf");

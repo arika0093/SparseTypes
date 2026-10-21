@@ -209,7 +209,10 @@ public partial class BaselineConstructionSettings
     public BaselineConstructionSettings(int count, string name = "base", List<int>? items = null)
     {
         if (count <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(count));
+        }
+
         Count = count;
         Name = name;
         Items = items ?? new();

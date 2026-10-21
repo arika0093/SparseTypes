@@ -101,9 +101,13 @@ internal static class SparseFragmentJsonEmitter
         for (var memberIndex = 0; memberIndex < members.Length; memberIndex++)
         {
             if (members[memberIndex].Property.IsJsonIgnored)
+            {
                 ignoredMemberIndexes.Add(memberIndex);
+            }
             else
+            {
                 jsonMemberIndexes.Add(memberIndex);
+            }
         }
         // Public readers first; private buffers and helpers trail the writers
         // below.
@@ -125,7 +129,10 @@ internal static class SparseFragmentJsonEmitter
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "var jsonPropertyCache = GetJsonPropertyCache(options, true);");
         if (indexedDispatch)
+        {
             code.AppendLineAt(4, "var propertyIndexes = jsonPropertyCache.Indexes!;");
+        }
+
         code.AppendLineAt(
             4,
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) { throw new global::System.Text.Json.JsonException(\"A fragment must be a JSON object.\"); }"
@@ -155,6 +162,7 @@ internal static class SparseFragmentJsonEmitter
             code.AppendLineAt(6, "else");
             code.AppendLineAt(6, "{");
             foreach (var index in jsonMemberIndexes.Concat(ignoredMemberIndexes))
+            {
                 code.AppendLineAt(
                     7,
                     "if (propertyIndex < 0 && Matches(propertyName, jsonPropertyCache.PropertyNames["
@@ -163,6 +171,8 @@ internal static class SparseFragmentJsonEmitter
                         + index.ToString()
                         + "; }"
                 );
+            }
+
             code.AppendLineAt(6, "}");
         }
         code.AppendLineAt(5, "}");
@@ -202,7 +212,9 @@ internal static class SparseFragmentJsonEmitter
                 var member = members[index];
                 var property = SparseNaming.EscapeIdentifier(member.Property.Name);
                 if (indexedDispatch)
+                {
                     code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
+                }
                 else
                 {
                     code.AppendIndent(5).Append(first ? "if (" : "else if (");
@@ -231,10 +243,14 @@ internal static class SparseFragmentJsonEmitter
                                 out memberCollection
                             ) && memberCollection is not null
                         )
+                        {
                             readExpression = "ReadCollection" + member.Id + "(ref reader, options)";
+                        }
                         else
+                        {
                             readExpression =
                                 "ReadMemberValue<" + memberValueType + ">(ref reader, options)";
+                        }
                     }
 
                     code.AppendIndent(indexedDispatch ? 8 : 6)
@@ -263,14 +279,19 @@ internal static class SparseFragmentJsonEmitter
                         );
                 }
                 if (indexedDispatch)
+                {
                     code.AppendLineAt(8, "break;");
+                }
+
                 first = false;
             }
 
             foreach (var index in ignoredMemberIndexes)
             {
                 if (indexedDispatch)
+                {
                     code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
+                }
                 else
                 {
                     code.AppendIndent(5).Append(first ? "if (" : "else if (");
@@ -284,7 +305,10 @@ internal static class SparseFragmentJsonEmitter
                 }
                 code.AppendLineAt(indexedDispatch ? 8 : 6, "{ reader.Skip(); }");
                 if (indexedDispatch)
+                {
                     code.AppendLineAt(8, "break;");
+                }
+
                 first = false;
             }
 
@@ -305,10 +329,12 @@ internal static class SparseFragmentJsonEmitter
                 code.AppendLineAt(5, "}");
             }
             else
+            {
                 code.AppendLineAt(
                     5,
                     "else HandleUnknownFragmentProperty(ref reader, options, propertyName);"
                 );
+            }
         }
         else
         {
@@ -446,7 +472,10 @@ internal static class SparseFragmentJsonEmitter
         code.AppendLineAt(3, "}");
         code.AppendLine();
         if (emitFastPaths)
+        {
             SparseFragmentJsonFastPathEmitter.AppendFastPaths(code, members);
+        }
+
         code.AppendLineAt(
             3,
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember> GetMemberTypeInfo<TMember>(global::System.Text.Json.JsonSerializerOptions options)"
@@ -645,6 +674,7 @@ internal static class SparseFragmentJsonEmitter
                     + ")) { throw new global::System.Text.Json.JsonException(\"Multiple fragment members map to the same JSON property name.\"); }"
             );
             if (indexedDispatch)
+            {
                 code.AppendLineAt(
                     4,
                     "if (indexes is not null) { indexes.Add(__jsonName_"
@@ -653,6 +683,7 @@ internal static class SparseFragmentJsonEmitter
                         + index
                         + "); }"
                 );
+            }
         }
         foreach (var index in ignoredMemberIndexes)
         {
@@ -675,6 +706,7 @@ internal static class SparseFragmentJsonEmitter
                     + ");"
             );
             if (indexedDispatch)
+            {
                 code.AppendLineAt(
                     4,
                     "if (indexes is not null && !indexes.ContainsKey(__jsonName_"
@@ -685,6 +717,7 @@ internal static class SparseFragmentJsonEmitter
                         + index
                         + "); }"
                 );
+            }
         }
         code.AppendLineAt(
             4,

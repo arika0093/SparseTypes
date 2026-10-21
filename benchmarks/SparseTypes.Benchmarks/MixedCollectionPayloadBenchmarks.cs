@@ -113,9 +113,12 @@ public class MixedCollectionPayloadBenchmarks
                 .UTF8.GetString(payloadJson)
                 .Contains("secret-base-", StringComparison.Ordinal)
         )
+        {
             throw new InvalidOperationException(
                 "Redacted payloads must omit previous secret values."
             );
+        }
+
         for (var repeat = 0; repeat < 3; repeat++)
         {
             if (
@@ -135,9 +138,11 @@ public class MixedCollectionPayloadBenchmarks
                     .AsSpan()
                     .SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(_payload))
             )
+            {
                 throw new InvalidOperationException(
                     "Mixed application must preserve both changes, write-only paths, payload bytes, and the original model."
                 );
+            }
         }
     }
 
@@ -145,14 +150,20 @@ public class MixedCollectionPayloadBenchmarks
     public BenchMixedPayloadHolder Apply()
     {
         if (!_payload.TryApplyMixedTo(_prototype, out var updated, out _) || updated is null)
+        {
             throw new InvalidOperationException("Mixed application must succeed.");
+        }
+
         return updated;
     }
 
     internal static void ValidateInputs()
     {
         foreach (var shape in Enum.GetValues<MixedCollectionShape>())
+        {
             new MixedCollectionPayloadBenchmarks { Shape = shape }.Setup();
+        }
+
         Console.WriteLine("Mixed collection payload inputs validated for all nine shapes.");
     }
 

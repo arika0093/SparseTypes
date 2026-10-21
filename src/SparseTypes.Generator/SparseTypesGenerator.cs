@@ -445,7 +445,9 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             static (productionContext, emit) =>
             {
                 if (emit)
+                {
                     SparseEditSessionEmitter.EmitCore(productionContext, Configuration);
+                }
             }
         );
         // Emit shared helpers from the capability plan.
@@ -468,6 +470,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     Configuration
                 );
                 if (plan.Needed && implementationNamespace is not null)
+                {
                     productionContext.AddSource(
                         SparseGeneratedOnceEmitter.CloneKernelsHintName(implementationNamespace),
                         SourceText.From(
@@ -480,6 +483,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                             Encoding.UTF8
                         )
                     );
+                }
             }
         );
         var needsReadOnlyAdapters = generatedOncePlan
@@ -494,6 +498,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     Configuration
                 );
                 if (emit && implementationNamespace is not null)
+                {
                     productionContext.AddSource(
                         SparseGeneratedOnceEmitter.ReadOnlyAdaptersHintName(
                             implementationNamespace
@@ -506,6 +511,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                             Encoding.UTF8
                         )
                     );
+                }
             }
         );
         var needsRemovalIndex = generatedOncePlan
@@ -520,6 +526,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                     Configuration
                 );
                 if (emit && implementationNamespace is not null)
+                {
                     productionContext.AddSource(
                         SparseGeneratedOnceEmitter.RemovalIndexHintName(implementationNamespace),
                         SourceText.From(
@@ -530,6 +537,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                             Encoding.UTF8
                         )
                     );
+                }
             }
         );
         var needsChangePayloadJsonConverters = hasModels
@@ -597,10 +605,12 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             static (productionContext, emit) =>
             {
                 if (emit)
+                {
                     productionContext.AddSource(
                         IsExternalInitHintName,
                         SourceText.From(IsExternalInitSource, Encoding.UTF8)
                     );
+                }
             }
         );
         var shouldEmitNotNullWhen = context
@@ -617,10 +627,12 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             static (productionContext, emit) =>
             {
                 if (emit)
+                {
                     productionContext.AddSource(
                         NotNullWhenHintName,
                         SourceText.From(NotNullWhenSource, Encoding.UTF8)
                     );
+                }
             }
         );
 
@@ -731,7 +743,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             configuration
         );
         if (implementation.HasValue)
+        {
             additional = additional.Add(implementation.Value);
+        }
+
         var merged = MergePerModelSources(surface, additional);
         return new SparseGenerationResult(
             model.HintName,
@@ -830,7 +845,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             configuration
         );
         if (implementation.HasValue)
+        {
             additional = additional.Add(implementation.Value);
+        }
+
         var merged = MergePerModelSources(surface, additional);
         return new SparseGenerationResult(
             hint,

@@ -57,22 +57,45 @@ internal sealed record SparseEmissionFeatures
         if (!EmitFragment)
         {
             if (EmitPatch)
+            {
                 errors.Add("EmitPatch requires EmitFragment.");
+            }
+
             if (EmitChangeSet)
+            {
                 errors.Add("EmitChangeSet requires EmitFragment.");
+            }
+
             if (EmitChangePayload)
+            {
                 errors.Add("EmitChangePayload requires EmitFragment.");
+            }
+
             if (EmitObservable)
+            {
                 errors.Add("EmitObservable requires EmitFragment.");
+            }
+
             if (EmitJsonConverters)
+            {
                 errors.Add("EmitJsonConverters requires EmitFragment.");
+            }
+
             if (EmitFragmentOrigins)
+            {
                 errors.Add("EmitFragmentOrigins requires EmitFragment.");
+            }
         }
         if (EmitChangeSet && !EmitPatch)
+        {
             errors.Add("EmitChangeSet requires EmitPatch.");
+        }
+
         if (EmitChangePayload && !EmitChangeSet)
+        {
             errors.Add("EmitChangePayload requires EmitChangeSet.");
+        }
+
         return errors.ToImmutable();
     }
 
@@ -93,11 +116,20 @@ internal sealed record SparseEmissionFeatures
             names.Add(family.FragmentBuilder);
         }
         if (EmitPatch)
+        {
             names.Add(family.Patch);
+        }
+
         if (EmitChangeSet)
+        {
             names.Add(family.ChangeSet);
+        }
+
         if (EmitChangePayload)
+        {
             names.Add(family.ChangePayload);
+        }
+
         if (EmitObservable)
         {
             names.Add(family.Observable);

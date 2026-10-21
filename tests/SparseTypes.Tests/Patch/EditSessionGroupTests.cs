@@ -254,7 +254,9 @@ public sealed class EditSessionGroupTests
         session.PropertyChanged += (_, _) =>
         {
             if (failNotifications)
+            {
                 throw new InvalidOperationException("Notification handler failed.");
+            }
         };
         var group = new EditSessionGroup();
         var handle = group.Register("profile", Registration(session));
@@ -313,7 +315,9 @@ public sealed class EditSessionGroupTests
         session.PropertyChanged += (_, _) =>
         {
             if (failNotifications)
+            {
                 throw failure;
+            }
         };
         var group = new EditSessionGroup();
         var handle = group.Register("profile", Registration(session));
@@ -341,7 +345,9 @@ public sealed class EditSessionGroupTests
         session.PropertyChanged += (_, _) =>
         {
             if (failNotifications)
+            {
                 throw new InvalidOperationException("Notification handler failed.");
+            }
         };
         var group = new EditSessionGroup();
         var handle = group.Register("profile", Registration(session, reconcile: true));
@@ -1035,7 +1041,10 @@ public sealed class EditSessionGroupTests
                 validateAsync: async (_, cancellationToken) =>
                 {
                     if (Interlocked.Increment(ref callCount) == 1)
+                    {
                         return null;
+                    }
+
                     validationStarted.TrySetResult(true);
                     await releaseValidation.Task.WaitAsync(cancellationToken);
                     return null;
@@ -1084,7 +1093,10 @@ public sealed class EditSessionGroupTests
                 validateAsync: async (changes, cancellationToken) =>
                 {
                     if (Interlocked.Increment(ref callCount) == 1)
+                    {
                         return null;
+                    }
+
                     changes.Name.After.Value.ShouldBe("second");
                     validationStarted.TrySetResult(true);
                     await releaseValidation.Task.WaitAsync(cancellationToken);

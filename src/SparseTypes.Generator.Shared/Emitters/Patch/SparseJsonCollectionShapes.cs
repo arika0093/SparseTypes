@@ -41,14 +41,23 @@ internal static class SparseJsonCollectionShapes
     {
         model = null;
         if (SparseChangeSetBasicsEmitter.IsNested(member))
+        {
             return false;
+        }
+
         if (SparseChangeSetBasicsEmitter.IsKeyed(member))
         {
             if (!IsSequenceType(valueType))
+            {
                 return false;
+            }
+
             var element = member.Collection.ElementType;
             if (string.IsNullOrEmpty(element.NonNullableName))
+            {
                 return false;
+            }
+
             model = new SparseJsonCollectionModel(
                 SparseJsonCollectionShape.Sequence,
                 NormalizePrimitive(element.NonNullableName),
@@ -61,14 +70,26 @@ internal static class SparseJsonCollectionShapes
         if (SparseChangeSetBasicsEmitter.IsDict(member))
         {
             if (!IsMapType(valueType))
+            {
                 return false;
+            }
+
             if (member.Collection.ValueType is not { } value)
+            {
                 return false;
+            }
+
             if (string.IsNullOrEmpty(value.NonNullableName))
+            {
                 return false;
+            }
+
             var keyName = NormalizePrimitive(SparseChangeSetBasicsEmitter.KeyTypeOf(member));
             if (!IsSupportedKey(keyName))
+            {
                 return false;
+            }
+
             model = new SparseJsonCollectionModel(
                 SparseJsonCollectionShape.Map,
                 NormalizePrimitive(value.NonNullableName),
@@ -82,7 +103,10 @@ internal static class SparseJsonCollectionShapes
         {
             var element = member.Collection.ElementType;
             if (string.IsNullOrEmpty(element.NonNullableName))
+            {
                 return false;
+            }
+
             var shape = IsSetType(valueType)
                 ? SparseJsonCollectionShape.Set
                 : SparseJsonCollectionShape.Sequence;
@@ -107,7 +131,10 @@ internal static class SparseJsonCollectionShapes
         {
             var wholeKeyName = NormalizePrimitive(member.Collection.ElementType.NonNullableName);
             if (!IsSupportedKey(wholeKeyName))
+            {
                 return false;
+            }
+
             model = new SparseJsonCollectionModel(
                 SparseJsonCollectionShape.Map,
                 NormalizePrimitive(wholeValue.NonNullableName),

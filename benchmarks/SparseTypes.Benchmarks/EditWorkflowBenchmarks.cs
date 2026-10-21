@@ -56,24 +56,37 @@ public class EditWorkflowBenchmarks
             || result.Items[^1].Id != "local-new"
             || result.Items[^1].Name != "added"
         )
+        {
             throw new InvalidOperationException(
                 "Workflow must retain remote state and local additions."
             );
+        }
+
         for (var index = 0; index < Size; index++)
         {
             var expected = index < 64 ? "edited-" + index : "name-" + index;
             if (index == 0 && Shape == EditWorkflowShape.Conflict)
+            {
                 expected = "remote-name";
+            }
+
             if (result.Items[index].Name != expected || result.Items[index].Count != index)
+            {
                 throw new InvalidOperationException(
                     "Workflow must apply edits and preserve conflict policy."
                 );
+            }
         }
         if (_prototype.Items[0].Name != "name-0" || _prototype.Items.Count != Size)
+        {
             throw new InvalidOperationException("Workflow input must remain stationary.");
+        }
+
         var remoteName = Shape == EditWorkflowShape.Conflict ? "remote-name" : "name-0";
         if (_remote.Items.Count != Size || _remote.Items[0].Name != remoteName)
+        {
             throw new InvalidOperationException("Rebase and apply must retain the remote input.");
+        }
     }
 
     [Benchmark]
@@ -91,7 +104,10 @@ public class EditWorkflowBenchmarks
         session.BatchEdit(() =>
         {
             for (var index = 0; index < 64; index++)
+            {
                 session.Observable.Items[index].Name = "edited-" + index;
+            }
+
             session.Observable.Items.AddModel(
                 new CertBenchKeyedItem { Id = "local-new", Name = "added" }
             );
@@ -113,7 +129,10 @@ public class EditWorkflowBenchmarks
         var remote = _prototype.DeepClone();
         remote.Label = "remote";
         if (Shape == EditWorkflowShape.Conflict)
+        {
             remote.Items[0].Name = "remote-name";
+        }
+
         return remote;
     }
 
@@ -131,7 +150,10 @@ public class EditWorkflowBenchmarks
             )
         );
         if (rebased.HasConflicts != (Shape == EditWorkflowShape.Conflict))
+        {
             throw new InvalidOperationException("Unexpected workflow conflict result.");
+        }
+
         return rebased.Rebased.ToPatch().ApplyTo(remote);
     }
 }

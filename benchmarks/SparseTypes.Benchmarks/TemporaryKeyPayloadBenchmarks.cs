@@ -44,7 +44,10 @@ public class TemporaryKeyPayloadBenchmarks
         };
         var after = before.DeepClone();
         for (var index = 0; index < (Dense ? Size : 1); index++)
+        {
             after.Items[index].Name = "edited-" + index;
+        }
+
         after.Items.Add(CreateItem(Size + 1));
         var original = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(
             BenchTemporaryPayloadHolder.Fragment.From(before)
@@ -66,9 +69,12 @@ public class TemporaryKeyPayloadBenchmarks
                     .AsSpan()
                     .SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(applied.Value!.ToModel()))
             )
+            {
                 throw new InvalidOperationException(
                     "Restored edits must apply to the expected state."
                 );
+            }
+
             if (
                 !originalModelJson
                     .AsSpan()
@@ -78,28 +84,41 @@ public class TemporaryKeyPayloadBenchmarks
                         )
                     )
             )
+            {
                 throw new InvalidOperationException(
                     "Inverse edits must restore the original state."
                 );
+            }
+
             if (
                 !json.AsSpan()
                     .SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(restored.ToPayload()))
             )
+            {
                 throw new InvalidOperationException(
                     "Restoration must preserve exact payload JSON."
                 );
+            }
+
             if (
                 restored.Items.GetTemporaryChange(before.Items[0].TemporaryId!.Value).IsEmpty
                 != Assigned
             )
+            {
                 throw new InvalidOperationException(
                     "Temporary lookup must respect assigned-key precedence."
                 );
+            }
+
             foreach (var item in restored.Items)
+            {
                 if (item.TemporaryKey.HasValue == Assigned)
+                {
                     throw new InvalidOperationException(
                         "Only unassigned items may expose temporary identity."
                     );
+                }
+            }
         }
     }
 
@@ -109,14 +128,21 @@ public class TemporaryKeyPayloadBenchmarks
     internal static void ValidateInputs()
     {
         foreach (var size in new[] { 16, 2048 })
-        foreach (var dense in new[] { false, true })
-        foreach (var assigned in new[] { false, true })
-            new TemporaryKeyPayloadBenchmarks
+        {
+            foreach (var dense in new[] { false, true })
+            {
+                foreach (var assigned in new[] { false, true })
+                {
+                    new TemporaryKeyPayloadBenchmarks
             {
                 Size = size,
                 Dense = dense,
                 Assigned = assigned,
             }.Setup();
+                }
+            }
+        }
+
         Console.WriteLine("Temporary-key payload inputs validated for all eight cases.");
     }
 

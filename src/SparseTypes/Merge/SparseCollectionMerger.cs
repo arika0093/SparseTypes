@@ -49,20 +49,32 @@ internal static class SparseCollectionMerger
         if (values is T[] array)
         {
             foreach (var value in array)
+            {
                 if (seen.Add(value))
+                {
                     result.Add(value);
+                }
+            }
         }
         else if (values is List<T> list)
         {
             foreach (var value in list)
+            {
                 if (seen.Add(value))
+                {
                     result.Add(value);
+                }
+            }
         }
         else
         {
             foreach (var value in values)
+            {
                 if (seen.Add(value))
+                {
                     result.Add(value);
+                }
+            }
         }
     }
 

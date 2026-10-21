@@ -117,6 +117,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                 SparseChangeSetKeyedTempBetweenEmitter.AppendTempWholeValidation(code, member, id);
             }
             else
+            {
                 code.AppendLineAt(
                     4,
                     "if (__beforeHas"
@@ -130,6 +131,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                         )
                         + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection transition.\");"
                 );
+            }
         }
         code.IndentOffset--;
         code.AppendLineAt(
@@ -165,14 +167,18 @@ internal static class SparseChangeSetKeyedBetweenEmitter
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             if (hasTemp)
+            {
                 SparseChangeSetKeyedTempBetweenEmitter.AppendTempBeforeBranch(code, member, id);
+            }
             else
+            {
                 code.AppendLineAt(
                     6,
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                         + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection transition.\");"
                 );
+            }
         }
         code.AppendLineAt(
             6,
@@ -182,6 +188,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
         code.AppendLineAt(5, "}");
         SparseKeyedCollectionEmitter.AppendChangeSetBetweenStorage(code, member, "after");
         if (!hasTemp)
+        {
             code.AppendLineAt(
                 5,
                 "var __unassignedAfter"
@@ -190,14 +197,19 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                     + elementType
                     + ">();"
             );
+        }
+
         code.AppendLineAt(5, "foreach (var __item in __after" + id + ".Value!)");
         code.AppendLineAt(5, "{");
         code.AppendLineAt(6, "var __k = __SparseKeyOf_ChangeSet_" + id + "(__item);");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             if (hasTemp)
+            {
                 SparseChangeSetKeyedTempBetweenEmitter.AppendTempAfterBranch(code, member, id);
+            }
             else
+            {
                 code.AppendLineAt(
                     6,
                     "if ("
@@ -208,6 +220,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                         + id
                         + ".Add(__item); continue; }"
                 );
+            }
         }
         code.AppendLineAt(
             6,
@@ -441,9 +454,13 @@ internal static class SparseChangeSetKeyedBetweenEmitter
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             if (hasTemp)
+            {
                 code.AppendLineAt(6, "var __tempOrdinal" + id + " = 0;");
+            }
             else
+            {
                 code.AppendLineAt(6, "var __unassignedOrdinal = 0;");
+            }
         }
         code.AppendLineAt(
             6,
@@ -466,6 +483,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                 );
             }
             else
+            {
                 code.AppendLineAt(
                     7,
                     "if ("
@@ -490,6 +508,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                         + elementType
                         + ">.Present(__ua), -1, __afterItemIndex, true, false, false, false, __uaEdit, false)); continue; }"
                 );
+            }
         }
         code.AppendLineAt(
             7,

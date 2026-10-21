@@ -28,7 +28,10 @@ internal sealed record PayloadJsonEmissionContext(
             || !dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
             || modelType is null
         )
+        {
             return null;
+        }
+
         var runtime = dialect.RuntimeNamespace;
         var containerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
             dialect,
@@ -64,7 +67,10 @@ internal sealed record PayloadJsonEmissionContext(
                 )
             )
         )
+        {
             builder.Append('$');
+        }
+
         return builder.ToString();
     }
 

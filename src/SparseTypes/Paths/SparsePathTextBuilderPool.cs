@@ -19,7 +19,10 @@ internal static class SparsePathTextBuilderPool
     internal static void Return(StringBuilder builder)
     {
         if (builder.Capacity > MaximumRetainedCapacity)
+        {
             return;
+        }
+
         builder.Clear();
         _cached ??= builder;
     }

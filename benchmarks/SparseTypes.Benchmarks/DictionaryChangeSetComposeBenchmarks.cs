@@ -60,9 +60,11 @@ public class DictionaryChangeSetComposeBenchmarks
                 )
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Dictionary compositions must preserve endpoints, invert correctly, and cancel restored changes."
             );
+        }
     }
 
     private Optional<BenchScalarDictHolder.Fragment?> ScalarState(int step) =>

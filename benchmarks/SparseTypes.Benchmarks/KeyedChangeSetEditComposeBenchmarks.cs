@@ -39,9 +39,12 @@ public class KeyedChangeSetEditComposeBenchmarks
                 .Patch.Between(combined.Invert().ToPatch().Apply(after), before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Disjoint and overlapping edited items must compose and invert correctly."
             );
+        }
+
         ExpectRejected(
             BenchKeyedServerHolder.ChangeSet.Between(State(1, skipIndex: Size - 1), State(2))
         );
@@ -96,11 +99,20 @@ public class KeyedChangeSetEditComposeBenchmarks
     private int Increment(int index, int step)
     {
         if (step == 0)
+        {
             return 0;
+        }
+
         if (Shape == KeyedComposeEditShape.SparseDisjoint)
+        {
             return index == 0 || (step == 2 && index == Size - 1) ? 1 : 0;
+        }
+
         if (Shape == KeyedComposeEditShape.DenseOverlap)
+        {
             return index < Size / 2 ? step : 0;
+        }
+
         return index < Size / 2 || step == 2 ? 1 : 0;
     }
 

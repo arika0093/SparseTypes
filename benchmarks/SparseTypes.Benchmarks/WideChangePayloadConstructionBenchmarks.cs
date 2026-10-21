@@ -151,9 +151,12 @@ public class WideChangePayloadConstructionBenchmarks
         );
         var model = new BenchPayloadWide();
         for (var index = 0; index < Changes; index++)
+        {
             typeof(BenchPayloadWide)
                 .GetProperty("Value" + index.ToString("D2", CultureInfo.InvariantCulture))!
                 .SetValue(model, 1);
+        }
+
         var after = Optional<BenchPayloadWide.Fragment?>.Present(
             BenchPayloadWide.Fragment.From(model)
         );
@@ -167,9 +170,11 @@ public class WideChangePayloadConstructionBenchmarks
             !BenchPayloadWide.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty
             || _change.IsEmpty != (Changes == 0)
         )
+        {
             throw new InvalidOperationException(
                 "Wide payloads must retain empty, sparse and dense transitions."
             );
+        }
     }
 
     [Benchmark]

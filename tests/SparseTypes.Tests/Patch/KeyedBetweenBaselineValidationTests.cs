@@ -108,7 +108,10 @@ public sealed class KeyedBetweenBaselineValidationTests
         };
         List<TempOrderLine> lines = [new() { TemporaryId = identity }];
         if (invalidKind == 2)
+        {
             lines.Add(new() { TemporaryId = identity });
+        }
+
         var before = Optional<TempOrderHolder.Fragment?>.Present(
             new() { Lines = Optional<List<TempOrderLine>>.Present(lines) }
         );
@@ -137,7 +140,10 @@ public sealed class KeyedBetweenBaselineValidationTests
         {
             Enumerations++;
             if (Enumerations != 1)
+            {
                 throw new InvalidOperationException("Input was enumerated more than once.");
+            }
+
             return ((IEnumerable<T>)items).GetEnumerator();
         }
 

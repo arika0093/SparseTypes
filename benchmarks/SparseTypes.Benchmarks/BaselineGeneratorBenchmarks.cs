@@ -39,10 +39,14 @@ public class BaselineGeneratorBenchmarks
         _ = Generate(_input, out _incremental);
         var expected = IncrementalUnrelatedEdit();
         for (var repeat = 0; repeat < 4; repeat++)
+        {
             if (IncrementalUnrelatedEdit() != expected)
+            {
                 throw new InvalidOperationException(
                     "Comment edits must preserve generated output size."
                 );
+            }
+        }
     }
 
     [Benchmark]
@@ -148,9 +152,11 @@ public class BaselineGeneratorBenchmarks
     {
         var errors = diagnostics.Where(item => item.Severity == DiagnosticSeverity.Error).ToArray();
         if (errors.Length != 0)
+        {
             throw new InvalidOperationException(
                 string.Join<Diagnostic>(Environment.NewLine, errors)
             );
+        }
     }
 }
 

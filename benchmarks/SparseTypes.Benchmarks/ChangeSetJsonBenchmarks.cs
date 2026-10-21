@@ -65,7 +65,10 @@ public class ChangeSetJsonBenchmarks
                 .ToChangeSet()
         );
         if (!Serialize().SequenceEqual(_json))
+        {
             throw new InvalidOperationException("Payload serialization must remain deterministic.");
+        }
+
         ReadEmptyFragment(BenchJsonCaseNames.Fragment.JsonConverter, _options);
         AssertNameCollision(BenchJsonCaseNames.Fragment.JsonConverter, alternateOptions);
         var namingPolicy = new BenchCountingJsonNamingPolicy();
@@ -76,13 +79,19 @@ public class ChangeSetJsonBenchmarks
         };
         AssertNameCollision(BenchChangeSetRebaseRecord.Fragment.JsonConverter, collisionOptions);
         if (namingPolicy.Calls != 2)
+        {
             throw new InvalidOperationException(
                 "Name validation must stop at the first collision."
             );
+        }
+
         using var document = JsonDocument.Parse(_json);
         using var reordered = new MemoryStream();
         using (var writer = new Utf8JsonWriter(reordered))
+        {
             WriteReordered(document.RootElement, writer);
+        }
+
         Validate(
             JsonSerializer
                 .Deserialize<BenchChangeSetRebaseRecord.ChangePayload>(
@@ -109,11 +118,16 @@ public class ChangeSetJsonBenchmarks
         {
             writer.WriteStartArray();
             foreach (var item in element.EnumerateArray())
+            {
                 WriteReordered(item, writer);
+            }
+
             writer.WriteEndArray();
         }
         else
+        {
             element.WriteTo(writer);
+        }
     }
 
     private Optional<BenchChangeSetRebaseRecord.Fragment?> State(int step) =>
@@ -178,9 +192,12 @@ public class ChangeSetJsonBenchmarks
             || (actual.GetValueOrDefault() is null) != (expected.GetValueOrDefault() is null)
             || change.IsEmpty != (Shape is ChangeSetJsonShape.Missing or ChangeSetJsonShape.Null)
         )
+        {
             throw new InvalidOperationException(
                 "ChangeSet JSON must preserve root presence and emptiness."
             );
+        }
+
         var fragment = actual.GetValueOrDefault();
         if (fragment is not null)
         {
@@ -193,9 +210,11 @@ public class ChangeSetJsonBenchmarks
                 || expectedValues is null
                 || !actualValues.SequenceEqual(expectedValues)
             )
+            {
                 throw new InvalidOperationException(
                     "ChangeSet JSON must preserve scalar and collection values."
                 );
+            }
         }
     }
 

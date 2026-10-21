@@ -25,7 +25,10 @@ internal static class SharedSourceBufferPool
             {
                 var buffer = buffers[index];
                 if (buffer is null)
+                {
                     continue;
+                }
+
                 buffers[index] = null;
                 return buffer;
             }
@@ -40,14 +43,22 @@ internal static class SharedSourceBufferPool
     public static StringBuilder Rent(int initialCapacity)
     {
         if (initialCapacity < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(initialCapacity));
+        }
+
         var compatible = TryRent(initialCapacity);
         if (compatible is not null)
+        {
             return compatible;
+        }
         // Preserve ordinary cached buffers when no retained buffer fits a large
         // rewrite.
         if (initialCapacity > OrdinaryCapacity)
+        {
             return new StringBuilder(initialCapacity);
+        }
+
         var buffer = Rent();
         buffer.EnsureCapacity(initialCapacity);
         return buffer;
@@ -57,18 +68,29 @@ internal static class SharedSourceBufferPool
     {
         var buffers = _buffers;
         if (buffers is null)
+        {
             return null;
+        }
+
         var best = -1;
         for (var index = 0; index < buffers.Length; index++)
         {
             var buffer = buffers[index];
             if (buffer is null || buffer.Capacity < minimumCapacity)
+            {
                 continue;
+            }
+
             if (best < 0 || buffer.Capacity < buffers[best]!.Capacity)
+            {
                 best = index;
+            }
         }
         if (best < 0)
+        {
             return null;
+        }
+
         var result = buffers[best];
         buffers[best] = null;
         return result;
@@ -79,7 +101,10 @@ internal static class SharedSourceBufferPool
     public static void Return(StringBuilder buffer)
     {
         if (buffer.Capacity > MaximumCapacity)
+        {
             return;
+        }
+
         var buffers = _buffers ??= new StringBuilder?[SlotCount];
         var smallest = -1;
         var empty = -1;
@@ -90,24 +115,35 @@ internal static class SharedSourceBufferPool
             if (cached is null)
             {
                 if (empty < 0)
+                {
                     empty = index;
+                }
+
                 continue;
             }
             retainedCapacity += cached.Capacity;
             if (smallest < 0 || cached.Capacity < buffers[smallest]!.Capacity)
+            {
                 smallest = index;
+            }
         }
         var target = empty;
         if (target < 0)
         {
             var previousCapacity = buffers[smallest]!.Capacity;
             if (buffer.Capacity <= previousCapacity)
+            {
                 return;
+            }
+
             retainedCapacity -= previousCapacity;
             target = smallest;
         }
         if (retainedCapacity + buffer.Capacity > MaximumCapacity)
+        {
             return;
+        }
+
         buffer.Clear();
         buffers[target] = buffer;
     }

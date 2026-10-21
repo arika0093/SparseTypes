@@ -121,7 +121,9 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
             || !metadataServices.IsAccessibleTo(compilation)
             || resolver.TypeKind != TypeKind.Interface
         )
+        {
             return "required resolver types";
+        }
 
         var byteSpan = readOnlySpan.Construct(byteType);
         var hasParseValue = document

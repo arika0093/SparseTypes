@@ -122,7 +122,10 @@ internal static class SparseChangeSetTraversalEmitter
             );
             var changed = property + ".IsChanged";
             if (IsNested(member))
+            {
                 changed = "!" + property + ".IsEmpty";
+            }
+
             if (IsSet(member))
             {
                 changed = setTransition + ".IsChanged";

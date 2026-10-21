@@ -59,9 +59,11 @@ public sealed partial class SparseTypesGenerator
             static (productionContext, message) =>
             {
                 if (message.Length != 0)
+                {
                     productionContext.ReportDiagnostic(
                         Diagnostic.Create(InvalidEmissionPlan, Location.None, message)
                     );
+                }
             }
         );
     }
@@ -80,10 +82,13 @@ public sealed partial class SparseTypesGenerator
             StjCapabilities = stjCapabilities,
         };
         if (withCapabilities.PatchDialect is { } patchDialect)
+        {
             withCapabilities = withCapabilities with
             {
                 PatchDialect = patchDialect with { StjCapabilities = stjCapabilities },
             };
+        }
+
         return withCapabilities;
     }
 }

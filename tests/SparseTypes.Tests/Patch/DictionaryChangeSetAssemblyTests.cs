@@ -22,7 +22,10 @@ public sealed class DictionaryChangeSetAssemblyTests
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
         var items = changes.Scores.ToDictionary(static item => item.Key);
         foreach (var key in new[] { "remove-0", "add-0", "remove-2047", "add-2047", "remove-0" })
+        {
             changes.Scores.GetChange(key).ShouldBeSameAs(items[key]);
+        }
+
         changes.Scores.GetChange("missing").IsEmpty.ShouldBeTrue();
         Should.Throw<ArgumentNullException>(() => changes.Scores.GetChange(null!));
     }
@@ -53,7 +56,9 @@ public sealed class DictionaryChangeSetAssemblyTests
         var replayed = changes.ToPatch().ApplyTo(before);
         replayed.Scores.Count.ShouldBe(after.Scores.Count);
         foreach (var pair in after.Scores)
+        {
             replayed.Scores[pair.Key].ShouldBe(pair.Value);
+        }
     }
 
     [Test]

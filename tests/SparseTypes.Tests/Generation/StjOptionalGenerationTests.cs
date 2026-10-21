@@ -306,9 +306,12 @@ public sealed class StjOptionalGenerationTests
             "        public Serialization.JsonUnmappedMemberHandling UnmappedMemberHandling { get; set; }"
         );
         if (includeTypeInfoLookup)
+        {
             stub.AppendLine(
                 "        public Serialization.Metadata.JsonTypeInfo GetTypeInfo(System.Type type) => throw new System.NotImplementedException();"
             );
+        }
+
         stub.AppendLine("    }");
         stub.AppendLine("    public class JsonException : System.Exception");
         stub.AppendLine("    {");
@@ -374,7 +377,10 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("    {");
         stub.AppendLine("        Skip,");
         if (includeUnmappedHandling)
+        {
             stub.AppendLine("        Disallow,");
+        }
+
         stub.AppendLine("    }");
         stub.AppendLine(
             "    public sealed class JsonUnmappedMemberHandlingAttribute : System.Attribute"
@@ -407,7 +413,10 @@ public sealed class StjOptionalGenerationTests
         foreach (var pair in jsonRun)
         {
             if (pair.Value.Contains("System.Text.Json", StringComparison.Ordinal))
+            {
                 continue;
+            }
+
             otherRun[pair.Key].ShouldBe(pair.Value);
         }
     }
@@ -433,7 +442,9 @@ public sealed class StjOptionalGenerationTests
         generated.ShouldContain("ChangePayload");
         generated.ShouldNotContain("StjProbeModelJson");
         foreach (var source in sources.Values)
+        {
             source.ShouldNotContain("System.Text.Json");
+        }
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -449,7 +460,9 @@ public sealed class StjOptionalGenerationTests
         {
             spf028.ShouldHaveSingleItem();
             if (expectedMessage is not null)
+            {
                 spf028[0].GetMessage().ShouldContain(expectedMessage);
+            }
         }
         else
         {
@@ -460,7 +473,9 @@ public sealed class StjOptionalGenerationTests
     private static void HasNoJsonArtifacts(Dictionary<string, string> sources)
     {
         foreach (var source in sources.Values)
+        {
             source.ShouldNotContain("System.Text.Json");
+        }
     }
 
     private static void HasStableHints(
@@ -483,7 +498,9 @@ public sealed class StjOptionalGenerationTests
 
         // No JSON surface anywhere.
         foreach (var pair in sources)
+        {
             pair.Value.ShouldNotContain("System.Text.Json");
+        }
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -554,7 +571,9 @@ public sealed class StjOptionalGenerationTests
         spf028[0].GetMessage().ShouldContain("JsonPropertyOrderAttribute");
 
         foreach (var pair in sources)
+        {
             pair.Value.ShouldNotContain("System.Text.Json");
+        }
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -581,7 +600,9 @@ public sealed class StjOptionalGenerationTests
         spf028[0].GetMessage().ShouldContain("Disallow");
 
         foreach (var pair in sources)
+        {
             pair.Value.ShouldNotContain("System.Text.Json");
+        }
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }
@@ -779,7 +800,10 @@ public sealed class StjOptionalGenerationTests
 
         fullSources.Keys.ShouldBe(olderSources.Keys, ignoreOrder: true);
         foreach (var source in olderSources.Values)
+        {
             source.ShouldNotContain("System.Text.Json");
+        }
+
         string.Concat(fullSources.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
         JsonFreeSourcesAreIdentical(fullSources, olderSources);
     }
@@ -793,7 +817,10 @@ public sealed class StjOptionalGenerationTests
         withStj.Keys.ShouldBe(withoutStj.Keys, ignoreOrder: true);
         string.Concat(withStj.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
         foreach (var source in withoutStj.Values)
+        {
             source.ShouldNotContain("System.Text.Json");
+        }
+
         JsonFreeSourcesAreIdentical(withStj, withoutStj);
     }
 }

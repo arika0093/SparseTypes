@@ -59,28 +59,61 @@ internal readonly record struct SparseStjCapabilities(
     public string DescribeMissing()
     {
         if (SupportsV1Wire)
+        {
             return string.Empty;
+        }
+
         var missing = new System.Collections.Generic.List<string>();
         if (!HasSystemTextJson)
+        {
             missing.Add("System.Text.Json");
+        }
+
         if (!HasJsonPropertyName)
+        {
             missing.Add("JsonPropertyNameAttribute");
+        }
+
         if (!HasJsonPropertyOrder)
+        {
             missing.Add("JsonPropertyOrderAttribute");
+        }
+
         if (!HasJsonIgnore)
+        {
             missing.Add("JsonIgnoreAttribute/Condition");
+        }
+
         if (!HasJsonPolymorphic)
+        {
             missing.Add("JsonPolymorphicAttribute");
+        }
+
         if (!HasJsonDerivedType)
+        {
             missing.Add("JsonDerivedTypeAttribute");
+        }
+
         if (!HasUnmappedMemberHandling)
+        {
             missing.Add("JsonUnmappedMemberHandling.Disallow");
+        }
+
         if (!HasJsonConverter)
+        {
             missing.Add("JsonConverter<T>");
+        }
+
         if (!HasUtf8JsonReaderWriter)
+        {
             missing.Add("Utf8JsonReader/Writer");
+        }
+
         if (!HasJsonTypeInfo)
+        {
             missing.Add("JsonTypeInfo/GetTypeInfo/serializer overloads");
+        }
+
         return string.Join(", ", missing);
     }
 }

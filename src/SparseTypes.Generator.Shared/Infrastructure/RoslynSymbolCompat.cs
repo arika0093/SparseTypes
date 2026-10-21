@@ -20,17 +20,25 @@ internal static class RoslynSymbolCompat
                 declaration is VariableDeclaratorSyntax
                 && declaration.Parent?.Parent is FieldDeclarationSyntax field
             )
+            {
                 declaration = field;
+            }
+
             if (
                 declaration is PropertyDeclarationSyntax syntax
                 && syntax.Modifiers.Any(static token => token.ValueText == "required")
             )
+            {
                 return true;
+            }
+
             if (
                 declaration is FieldDeclarationSyntax fieldSyntax
                 && fieldSyntax.Modifiers.Any(static token => token.ValueText == "required")
             )
+            {
                 return true;
+            }
         }
         return property
             .GetAttributes()

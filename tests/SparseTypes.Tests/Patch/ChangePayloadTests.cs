@@ -92,11 +92,13 @@ public sealed class ChangePayloadTests
         };
 
         foreach (var before in states)
-        foreach (var after in states)
+        {
+            foreach (var after in states)
         {
             var changes = Settings.ChangeSet.Between(before, after);
             var restored = RoundTrip(changes.ToPayload()).ToChangeSet();
             Settings.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
+        }
         }
     }
 
@@ -209,7 +211,8 @@ public sealed class ChangePayloadTests
         };
 
         foreach (var beforeLabel in states)
-        foreach (var afterLabel in states)
+        {
+            foreach (var afterLabel in states)
         {
             var before = Optional<Settings.Fragment?>.Present(
                 new Settings.Fragment { Label = beforeLabel }
@@ -221,6 +224,7 @@ public sealed class ChangePayloadTests
                 .ToChangeSet();
 
             Settings.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
+        }
         }
     }
 

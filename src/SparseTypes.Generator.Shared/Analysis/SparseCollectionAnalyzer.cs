@@ -83,10 +83,16 @@ internal static class SparseCollectionAnalyzer
             "System.Collections.Generic.IReadOnlySet`1"
         );
         if (readOnlySet is null)
+        {
             return false;
+        }
+
         var hashSet = compilation.GetTypeByMetadataName("System.Collections.Generic.HashSet`1");
         if (hashSet is null)
+        {
             return false;
+        }
+
         var constructed = hashSet.Construct(compilation.GetSpecialType(SpecialType.System_Int32));
         return constructed.AllInterfaces.Any(implemented =>
             SymbolEqualityComparer.Default.Equals(implemented.OriginalDefinition, readOnlySet)

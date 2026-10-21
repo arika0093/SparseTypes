@@ -106,7 +106,10 @@ internal static class SparseChangeSetMatchEmitter
             code.AppendLineAt(3, "if (!state.IsPresent || state.Value is null) return false;");
             code.AppendLineAt(3, "var __st = state.Value!;");
             if (__hasSparseMatch)
+            {
                 AppendPragmaDisableNullKey(code, 3);
+            }
+
             foreach (var member in members)
             {
                 var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -148,7 +151,10 @@ internal static class SparseChangeSetMatchEmitter
                 }
             }
             if (__hasSparseMatch)
+            {
                 AppendPragmaRestoreNullKey(code, 3);
+            }
+
             code.AppendLineAt(3, "return true;");
             code.AppendLineAt(2, "}");
         }
@@ -342,6 +348,7 @@ internal static class SparseChangeSetMatchEmitter
         {
             code.AppendLineAt(5, "if (__it.IsAdded) continue;");
             if (hasPatch)
+            {
                 code.AppendLineAt(
                     5,
                     "if (!__cur"
@@ -354,7 +361,9 @@ internal static class SparseChangeSetMatchEmitter
                         + valueFrag
                         + ".From(__cv)))) return false;"
                 );
+            }
             else
+            {
                 code.AppendLineAt(
                     5,
                     "if (!__cur"
@@ -363,11 +372,13 @@ internal static class SparseChangeSetMatchEmitter
                         + facade
                         + ".AreEqual(__cv, __it.Before.Value)) return false;"
                 );
+            }
         }
         else
         {
             code.AppendLineAt(5, "if (__it.IsRemoved) continue;");
             if (hasPatch)
+            {
                 code.AppendLineAt(
                     5,
                     "if (!__cur"
@@ -380,7 +391,9 @@ internal static class SparseChangeSetMatchEmitter
                         + valueFrag
                         + ".From(__cv2)))) return false;"
                 );
+            }
             else
+            {
                 code.AppendLineAt(
                     5,
                     "if (!__cur"
@@ -389,6 +402,7 @@ internal static class SparseChangeSetMatchEmitter
                         + facade
                         + ".AreEqual(__cv2, __it.After.Value)) return false;"
                 );
+            }
         }
     }
 }

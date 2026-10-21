@@ -406,7 +406,10 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     ? "TryRebaseSequenceAppend"
                     : "TryRebaseSequenceSetUnion";
             if (member.Collection.CloneKind == SparseCloneCollectionKind.Array)
+            {
                 typedMethod += "Array";
+            }
+
             var boxedMethod =
                 member.MergeMode == SparseMergeModes.Append
                     ? "TryRebaseAppend"

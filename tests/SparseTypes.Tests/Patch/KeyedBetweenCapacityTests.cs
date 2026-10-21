@@ -66,7 +66,10 @@ public sealed class KeyedBetweenCapacityTests
         {
             Enumerations++;
             if (Enumerations != 1)
+            {
                 throw new InvalidOperationException("Input was enumerated more than once.");
+            }
+
             return ((IEnumerable<KeyedServer>)items).GetEnumerator();
         }
 

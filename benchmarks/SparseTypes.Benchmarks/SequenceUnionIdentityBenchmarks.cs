@@ -49,9 +49,11 @@ public class SequenceUnionIdentityBenchmarks
             || !_desired.SequenceEqual(desiredCopy)
             || !_current.SequenceEqual(currentCopy)
         )
+        {
             throw new InvalidOperationException(
                 "Identity replay must copy the current values without changing inputs or dropping duplicates and nulls."
             );
+        }
     }
 
     [Benchmark]
@@ -67,7 +69,10 @@ public class SequenceUnionIdentityBenchmarks
                 out var reason
             ) || reason is not null
         )
+        {
             throw new InvalidOperationException("Identity replay must succeed.");
+        }
+
         return result;
     }
 
@@ -84,7 +89,10 @@ public class SequenceUnionIdentityBenchmarks
                 out var reason
             ) || reason is not null
         )
+        {
             throw new InvalidOperationException("Identity array replay must succeed.");
+        }
+
         return result;
     }
 }

@@ -159,7 +159,10 @@ internal static class SparsePayloadJsonPocoHelpers
     )
     {
         if (!context.Pocos.Any(static poco => poco.IsValueType))
+        {
             return;
+        }
+
         code.AppendLineAt(
             3,
             "var underlying = global::System.Nullable.GetUnderlyingType(typeof(TValue));"
@@ -170,7 +173,10 @@ internal static class SparsePayloadJsonPocoHelpers
         {
             var poco = context.Pocos[pocoIndex];
             if (!poco.IsValueType)
+            {
                 continue;
+            }
+
             code.CancellationToken.ThrowIfCancellationRequested();
             code.AppendLineAt(
                 4,

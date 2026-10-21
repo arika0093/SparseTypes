@@ -81,7 +81,10 @@ internal static class SparseChangeSetInPlaceEmitter
             "/// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>"
         );
         if (target is not null)
+        {
             code.AppendLineAt(2, "/// <param name=\"self\">The change set to apply.</param>");
+        }
+
         code.AppendLineAt(
             2,
             "/// <param name=\"current\">The existing model instance to update.</param>"
@@ -214,7 +217,10 @@ internal static class SparseChangeSetInPlaceEmitter
             "/// <summary>Applies this change to an existing model or throws when its before-state conflicts or it includes an immutable member.</summary>"
         );
         if (target is not null)
+        {
             code.AppendLineAt(2, "/// <param name=\"self\">The change set to apply.</param>");
+        }
+
         code.AppendLineAt(
             2,
             "/// <param name=\"current\">The existing model instance to update.</param>"

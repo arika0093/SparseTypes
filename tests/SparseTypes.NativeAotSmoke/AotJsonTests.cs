@@ -666,26 +666,44 @@ public sealed class AotJsonTests
         )
         {
             if (reader.TokenType == JsonTokenType.Null)
+            {
                 return null;
+            }
+
             if (reader.TokenType != JsonTokenType.StartObject)
+            {
                 throw new JsonException("A marker must be an object.");
+            }
+
             string? marker = null;
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.EndObject)
+                {
                     break;
+                }
+
                 if (reader.TokenType != JsonTokenType.PropertyName)
+                {
                     throw new JsonException("Malformed marker.");
+                }
+
                 if (reader.ValueTextEquals("marker"))
                 {
                     if (!reader.Read())
+                    {
                         throw new JsonException("Malformed marker.");
+                    }
+
                     marker = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
                 }
                 else
                 {
                     if (!reader.Read())
+                    {
                         throw new JsonException("Malformed marker.");
+                    }
+
                     reader.Skip();
                 }
             }

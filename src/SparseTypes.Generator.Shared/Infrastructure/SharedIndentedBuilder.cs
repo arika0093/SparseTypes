@@ -52,11 +52,20 @@ internal sealed class SharedIndentedBuilder : IDisposable
     public SharedIndentedBuilder Append(string value, int start, int length)
     {
         if (value is null)
+        {
             throw new ArgumentNullException(nameof(value));
+        }
+
         if (start < 0 || start > value.Length)
+        {
             throw new ArgumentOutOfRangeException(nameof(start));
+        }
+
         if (length < 0 || length > value.Length - start)
+        {
             throw new ArgumentOutOfRangeException(nameof(length));
+        }
+
         return AppendRange(value, start, start + length);
     }
 
@@ -131,6 +140,8 @@ internal sealed class SharedIndentedBuilder : IDisposable
     {
         var buffer = Interlocked.Exchange(ref _builder, null);
         if (buffer is not null)
+        {
             SharedSourceBufferPool.Return(buffer);
+        }
     }
 }

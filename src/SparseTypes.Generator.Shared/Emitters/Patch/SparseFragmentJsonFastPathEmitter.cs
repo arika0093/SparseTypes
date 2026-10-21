@@ -14,7 +14,10 @@ internal static class SparseFragmentJsonFastPathEmitter
         foreach (var codecMember in members)
         {
             if (codecMember.ChildModel is not null)
+            {
                 continue;
+            }
+
             SparseJsonCollectionModel? codecModel = null;
             if (
                 !SparseJsonCollectionShapes.TryResolve(
@@ -23,7 +26,10 @@ internal static class SparseFragmentJsonFastPathEmitter
                     out codecModel
                 ) || codecModel is null
             )
+            {
                 continue;
+            }
+
             SparseJsonCollectionShapes.AppendCollectionCodec(
                 code,
                 SparseFragmentEmitHelpers.FragmentValueType(codecMember),

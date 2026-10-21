@@ -374,7 +374,10 @@ public sealed class FragmentAndChangeSetJsonTests
         const string cachedPayload =
             """{"alpha":1,"bravo":2,"charlie":3,"delta":4,"echo":5,"fixedName":6}""";
         for (var i = 0; i < 10; i++)
+        {
             ReadWideFragment(cachedPayload, cachedOptions);
+        }
+
         var cachedOptionsPerRead = Enumerable.Repeat(cachedOptions, 200).ToArray();
         var cachedBytes = MeasureWideReadBytes(cachedPayload, cachedOptionsPerRead);
 
@@ -403,7 +406,10 @@ public sealed class FragmentAndChangeSetJsonTests
         System.GC.Collect();
         var before = System.GC.GetAllocatedBytesForCurrentThread();
         foreach (var options in optionsPerRead)
+        {
             ReadWideFragment(bytes, options);
+        }
+
         return System.GC.GetAllocatedBytesForCurrentThread() - before;
     }
 

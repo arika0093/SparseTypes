@@ -658,6 +658,7 @@ internal static class SparseEditSessionEmitter
         var assembly = typeof(SparseEditSessionEmitter).Assembly;
         using var stream = assembly.GetManifestResourceStream(resourceName);
         if (stream is null)
+        {
             throw new InvalidOperationException(
                 "Embedded edit-session source template is missing: "
                     + resourceName
@@ -666,6 +667,8 @@ internal static class SparseEditSessionEmitter
                     + ". Available resources: "
                     + string.Join(", ", assembly.GetManifestResourceNames())
             );
+        }
+
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }

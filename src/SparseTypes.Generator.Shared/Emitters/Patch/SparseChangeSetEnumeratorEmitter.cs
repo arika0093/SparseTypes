@@ -667,10 +667,13 @@ internal static class SparseChangeSetEnumeratorEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 5,
                 "var " + itemPath + " = " + memberPath + ".Key(" + item + ".Key);"
             );
+        }
+
         code.AppendLineAt(
             5,
             "if ("

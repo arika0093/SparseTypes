@@ -86,9 +86,15 @@ internal static class SparseFragmentPatchEmitter
     )
     {
         if (writeContract is null)
+        {
             return;
+        }
+
         if (string.Equals(writeContract.WriteModelType, modelType, StringComparison.Ordinal))
+        {
             return;
+        }
+
         code.AppendLineAt(
             2,
             "/// <summary>Writes this fragment into an existing write-command instance.</summary>"
@@ -370,7 +376,10 @@ internal static class SparseFragmentPatchEmitter
     )
     {
         if (members.IsEmpty)
+        {
             return "true";
+        }
+
         return string.Join(
             " && ",
             members.Select(member => MemberEmptyExpression(member, dialect))
@@ -416,7 +425,10 @@ internal static class SparseFragmentPatchEmitter
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
         if (!plan.EmitPatch)
+        {
             return;
+        }
+
         var optional = dialect.RuntimeNamespace + "Optional<Fragment?>";
         code.AppendLineAt(
             1,

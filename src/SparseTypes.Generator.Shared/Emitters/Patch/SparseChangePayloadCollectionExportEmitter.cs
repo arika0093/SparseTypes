@@ -119,9 +119,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
         code.AppendLineAt(4, "else");
         code.AppendLineAt(4, "{");
         if (isKeyed)
+        {
             AppendExportKeyedItems(code, member, dialect, modelType, id, implementationNamespace);
+        }
         else
+        {
             AppendExportDictItems(code, member, dialect, modelType, id, implementationNamespace);
+        }
+
         code.AppendLineAt(4, "}");
     }
 
@@ -247,6 +252,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         );
         code.AppendLineAt(5, "{");
         if (isModelValue)
+        {
             code.AppendLineAt(
                 6,
                 "entry"
@@ -259,7 +265,9 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + childCore
                     + ".FromPatchCore(editedPair.Value), BeforeIndex = -1, AfterIndex = -1 });"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 6,
                 "entry"
@@ -282,6 +290,8 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + itemKind
                     + ".Edit, BeforeIndex = -1, AfterIndex = -1 });"
             );
+        }
+
         code.AppendLineAt(5, "}");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
@@ -295,6 +305,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
             );
             code.AppendLineAt(5, "{");
             if (isModelValue)
+            {
                 code.AppendLineAt(
                     6,
                     "entry"
@@ -309,7 +320,9 @@ internal static class SparseChangePayloadCollectionExportEmitter
                         + childCore
                         + ".FromPatchCore(editedTempPair.Value), BeforeIndex = -1, AfterIndex = -1 });"
                 );
+            }
             else
+            {
                 code.AppendLineAt(
                     6,
                     "entry"
@@ -334,6 +347,8 @@ internal static class SparseChangePayloadCollectionExportEmitter
                         + itemKind
                         + ".Edit, BeforeIndex = -1, AfterIndex = -1 });"
                 );
+            }
+
             code.AppendLineAt(5, "}");
         }
         code.AppendLineAt(
@@ -454,6 +469,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         );
         code.AppendLineAt(5, "{");
         if (isModelValue)
+        {
             code.AppendLineAt(
                 6,
                 "entry"
@@ -466,7 +482,9 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + childCore
                     + ".FromPatchCore(editedPair.Value) });"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 6,
                 "entry"
@@ -489,6 +507,8 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + itemKind
                     + ".Edit });"
             );
+        }
+
         code.AppendLineAt(5, "}");
     }
 }

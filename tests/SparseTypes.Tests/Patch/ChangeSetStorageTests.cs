@@ -70,7 +70,8 @@ public sealed class ChangeSetStorageTests
             ),
         ];
         foreach (var before in states)
-        foreach (var after in states)
+        {
+            foreach (var after in states)
         {
             var change = CompactStorageRecord.ChangeSet.Between(before, after);
             RequireState(change.ToPatch().Apply(before), after);
@@ -85,6 +86,7 @@ public sealed class ChangeSetStorageTests
                 var next = CompactStorageRecord.ChangeSet.Between(after, final);
                 RequireState(change.Compose(next).ToPatch().Apply(before), final);
             }
+        }
         }
     }
 
@@ -120,7 +122,10 @@ public sealed class ChangeSetStorageTests
     {
         actual.IsPresent.ShouldBe(expected.IsPresent);
         if (expected.IsPresent && expected.Value is null)
+        {
             actual.Value.ShouldBeNull();
+        }
+
         CompactStorageRecord.Patch.Between(actual, expected).IsEmpty.ShouldBeTrue();
     }
 }

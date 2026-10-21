@@ -143,11 +143,17 @@ internal static class SparseChangeSetComposeEmitter
         code.AppendLineAt(4, "return Between(__mergedBefore, next.__sparse_wholeAfter);");
         code.AppendLineAt(3, "}");
         if (__hasSparse)
+        {
             AppendPragmaDisableNullKey(code, 3);
+        }
+
         foreach (var member in members)
         {
             if (!IsNested(member))
+            {
                 continue;
+            }
+
             var child = ChildChangeSet(member, dialect);
             code.AppendLineAt(3, child + "? __c" + member.Id + ";");
             code.AppendLineAt(
@@ -191,7 +197,10 @@ internal static class SparseChangeSetComposeEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 continue;
+            }
+
             if (IsKeyed(member))
             {
                 AppendKeyedComposeSparse(code, members, member, runtime, dialect);
@@ -262,8 +271,11 @@ internal static class SparseChangeSetComposeEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 args.Add("__c" + member.Id);
+            }
             else if (IsKeyed(member))
+            {
                 AddKeyedChangeSetArgs(
                     args,
                     member,
@@ -281,7 +293,9 @@ internal static class SparseChangeSetComposeEmitter
                         ? "__cb" + member.Id + "_taO"
                         : null
                 );
+            }
             else if (IsDict(member))
+            {
                 args.AddRange(
                     new[]
                     {
@@ -292,7 +306,9 @@ internal static class SparseChangeSetComposeEmitter
                         "__cb" + member.Id + "_items",
                     }
                 );
+            }
             else
+            {
                 args.AddRange(
                     new[]
                     {
@@ -301,9 +317,13 @@ internal static class SparseChangeSetComposeEmitter
                         "__cb" + member.Id + "_has",
                     }
                 );
+            }
         }
         if (__hasSparse)
+        {
             AppendPragmaRestoreNullKey(code, 3);
+        }
+
         code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
         code.AppendLineAt(2, "}");
         if (target is null)

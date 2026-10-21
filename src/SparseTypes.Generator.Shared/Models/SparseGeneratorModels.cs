@@ -402,7 +402,10 @@ internal static class SparseSequence
     public static int Hash<T>(ImmutableArray<T> values)
     {
         if (values.IsDefault)
+        {
             return 0;
+        }
+
         var hash = 17;
         foreach (var value in values)
         {

@@ -29,9 +29,11 @@ public class KeyedChangeSetCancellationComposeBenchmarks
                 .Patch.Between(result.ToPatch().Apply(before), State(Size, 0))
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Canceled keyed changes must produce an empty composition and preserve the original state."
             );
+        }
     }
 
     private static Optional<BenchKeyedServerHolder.Fragment?> State(int count, int step) =>

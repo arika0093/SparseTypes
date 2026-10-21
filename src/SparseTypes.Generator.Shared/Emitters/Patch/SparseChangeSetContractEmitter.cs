@@ -21,7 +21,9 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return string.Empty;
+        }
 
         var contracts = dialect.TransitionContracts!;
         if (
@@ -49,7 +51,10 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return string.Empty;
+        }
+
         var contracts = dialect.TransitionContracts!;
         var open = SparseKeyedCollectionEmitter.HasTemporaryKey(member)
             ? contracts.TemporaryKeyedChangeInterfaceType
@@ -87,7 +92,10 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return string.Empty;
+        }
+
         var contracts = dialect.TransitionContracts!;
         return ", "
             + contracts.DictionaryChangeInterfaceType
@@ -106,9 +114,13 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return string.Empty;
+        }
+
         var contracts = dialect.TransitionContracts!;
         if (member.Collection.ValueType?.IsFragmentModel == true)
+        {
             return " : "
                 + contracts.StructuralDictionaryItemChangeInterfaceType
                 + "<"
@@ -118,6 +130,8 @@ internal static class SparseChangeSetContractEmitter
                 + ", "
                 + ValueChangeSetOf(member)
                 + ">";
+        }
+
         return " : "
             + contracts.DictionaryItemChangeInterfaceType
             + "<"
@@ -142,7 +156,10 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return;
+        }
+
         var contracts = dialect.TransitionContracts!;
         // GetChange lives on the base keyed contract even for temporary
         // members, while GetTemporaryChange lives on the derived temporary
@@ -219,7 +236,10 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return;
+        }
+
         var contracts = dialect.TransitionContracts!;
         var keyType = KeyTypeOf(member);
         var valueType = ValueTypeOf(member);
@@ -267,7 +287,10 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         if (!HasContracts(dialect))
+        {
             return;
+        }
+
         var contracts = dialect.TransitionContracts!;
         var iface = contracts.ChangeSetInterfaceType;
         ComputePublicNames(members, out var propNames, out _);
@@ -340,7 +363,10 @@ internal static class SparseChangeSetContractEmitter
         foreach (var member in members)
         {
             if (!IsNested(member))
+            {
                 continue;
+            }
+
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
                 member.Property.Name,
@@ -398,7 +424,10 @@ internal static class SparseChangeSetContractEmitter
         foreach (var member in members)
         {
             if (IsNested(member) || IsKeyed(member) || IsDict(member))
+            {
                 continue;
+            }
+
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
                 member.Property.Name,
@@ -471,7 +500,10 @@ internal static class SparseChangeSetContractEmitter
         foreach (var member in members)
         {
             if (!IsKeyed(member))
+            {
                 continue;
+            }
+
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
                 member.Property.Name,
@@ -543,7 +575,10 @@ internal static class SparseChangeSetContractEmitter
         foreach (var member in members)
         {
             if (!IsDict(member))
+            {
                 continue;
+            }
+
             var prop = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(
                 member.Property.Name,

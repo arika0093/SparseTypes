@@ -36,7 +36,10 @@ internal static class SparseChangeSetBetweenEmitter
         var emptyName = "__sparse_empty";
         var emptySuffix = 0;
         while (members.Any(member => member.Property.Name == emptyName))
+        {
             emptyName = "__sparse_empty" + (++emptySuffix).ToString(CultureInfo.InvariantCulture);
+        }
+
         if (target is not null)
         {
             code.AppendLineAt(
@@ -235,17 +238,24 @@ internal static class SparseChangeSetBetweenEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 conds.Add("__nn" + member.Id + " is null");
+            }
             else
+            {
                 conds.Add("!__h" + member.Id);
+            }
         }
         code.AppendLineAt(3, "if (" + string.Join(" && ", conds) + ") return " + emptyName + ";");
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 args.Add("__nn" + member.Id);
+            }
             else if (IsKeyed(member))
+            {
                 AddKeyedChangeSetArgs(
                     args,
                     member,
@@ -263,7 +273,9 @@ internal static class SparseChangeSetBetweenEmitter
                         ? "__aTO" + member.Id
                         : null
                 );
+            }
             else if (IsDict(member))
+            {
                 args.AddRange(
                     new[]
                     {
@@ -274,8 +286,11 @@ internal static class SparseChangeSetBetweenEmitter
                         "__items" + member.Id,
                     }
                 );
+            }
             else
+            {
                 args.AddRange(new[] { "__b" + member.Id, "__a" + member.Id, "__h" + member.Id });
+            }
         }
         code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
         code.AppendLineAt(2, "}");
@@ -361,6 +376,7 @@ internal static class SparseChangeSetBetweenEmitter
         }
         code.AppendLineAt(2, "{");
         if (SparseChangeSetModelBetweenEmitter.CanCompareDirectly(members))
+        {
             SparseChangeSetModelBetweenEmitter.AppendBody(
                 code,
                 members,
@@ -368,7 +384,9 @@ internal static class SparseChangeSetBetweenEmitter
                 runtime,
                 optionalFragment
             );
+        }
         else
+        {
             SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(
                 code,
                 optionalFragment,
@@ -376,6 +394,8 @@ internal static class SparseChangeSetBetweenEmitter
                 modelIsReferenceType,
                 members
             );
+        }
+
         code.AppendLineAt(2, "}");
     }
 }

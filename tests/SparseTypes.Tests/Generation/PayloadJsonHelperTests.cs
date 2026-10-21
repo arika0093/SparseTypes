@@ -192,6 +192,8 @@ public sealed class PayloadJsonHelperTests
             .ShouldContain("CollisionWidgetJson");
         // The failed model emits no surface, so no helper is generated.
         foreach (var pair in sources)
+        {
             pair.Value.ShouldNotContain("partial class CollisionWidget");
+        }
     }
 }

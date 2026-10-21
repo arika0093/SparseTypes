@@ -18,7 +18,10 @@ internal static class SparseMemberAttributeFixes
     {
         property = null;
         if (diagnostic.Location.SourceTree is null)
+        {
             return false;
+        }
+
         var token = root.FindToken(diagnostic.Location.SourceSpan.Start);
         property = token
             .Parent?.AncestorsAndSelf()
@@ -61,7 +64,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (TryFindAttribute(property, "SparseMerge", out _))
+        {
             return document;
+        }
+
         var merge = SyntaxFactory.Attribute(
             SyntaxFactory.ParseName("global::SparseTypes.SparseMerge"),
             SyntaxFactory.AttributeArgumentList(
@@ -88,7 +94,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (TryFindAttribute(property, "SparseCloneReferenceSafe", out _))
+        {
             return document;
+        }
+
         var marker = SyntaxFactory.Attribute(
             SyntaxFactory.ParseName("global::SparseTypes.SparseCloneReferenceSafe")
         );
@@ -109,9 +118,15 @@ internal static class SparseMemberAttributeFixes
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null)
+        {
             return document;
+        }
+
         if (attribute.Parent is not AttributeListSyntax list)
+        {
             return document;
+        }
+
         if (list.Attributes.Count == 1)
         {
             // The whole list decorates a member; drop the list itself.
@@ -119,7 +134,9 @@ internal static class SparseMemberAttributeFixes
             {
                 var withoutList = member.RemoveNode(list, SyntaxRemoveOptions.KeepNoTrivia);
                 if (withoutList is not null)
+                {
                     return document.WithSyntaxRoot(root.ReplaceNode(member, withoutList));
+                }
             }
 
             return document;
@@ -127,7 +144,10 @@ internal static class SparseMemberAttributeFixes
 
         var withoutAttribute = list.RemoveNode(attribute, SyntaxRemoveOptions.KeepNoTrivia);
         if (withoutAttribute is null)
+        {
             return document;
+        }
+
         return document.WithSyntaxRoot(root.ReplaceNode(list, withoutAttribute));
     }
 
@@ -138,7 +158,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (!TryFindAttribute(property, "SparseMerge", out var attribute) || attribute is null)
+        {
             return document;
+        }
+
         return await RemoveAttributeAsync(document, attribute, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -150,7 +173,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (!TryFindAttribute(property, "SparseIgnore", out var attribute) || attribute is null)
+        {
             return document;
+        }
+
         return await RemoveAttributeAsync(document, attribute, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -162,7 +188,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (attribute.ArgumentList is null)
+        {
             return document;
+        }
+
         var updated = attribute.WithArgumentList(null);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         return root is null
@@ -177,7 +206,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (attribute.ArgumentList is null)
+        {
             return document;
+        }
+
         var remaining = attribute.ArgumentList.Arguments.Where(static argument =>
             !argument.ToString().Contains("Unassigned")
         );
@@ -199,7 +231,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (property.Initializer is null)
+        {
             return document;
+        }
+
         var updated = property.WithInitializer(null).WithSemicolonToken(default);
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         return root is null
@@ -214,7 +249,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (!property.Modifiers.Any(SyntaxKind.RequiredKeyword))
+        {
             return document;
+        }
+
         var updated = property.WithModifiers(
             SyntaxFactory.TokenList(
                 property.Modifiers.Where(static modifier =>
@@ -235,7 +273,10 @@ internal static class SparseMemberAttributeFixes
     )
     {
         if (property.Modifiers.Any(SyntaxKind.StaticKeyword))
+        {
             return document;
+        }
+
         var modifiers = property.Modifiers;
         var withoutAccess = modifiers.Where(static modifier =>
             !modifier.IsKind(SyntaxKind.PublicKeyword)
@@ -292,7 +333,10 @@ internal static class SparseMemberAttributeFixes
             .Skip(1)
             .ToArray();
         if (matches.Length == 0)
+        {
             return document;
+        }
+
         var current = document;
         foreach (var match in matches)
         {
@@ -301,7 +345,9 @@ internal static class SparseMemberAttributeFixes
             // Refresh the node reference after each edit.
             var root = await current.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
             if (root is null)
+            {
                 return current;
+            }
         }
 
         return current;

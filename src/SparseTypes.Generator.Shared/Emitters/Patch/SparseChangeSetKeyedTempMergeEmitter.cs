@@ -36,9 +36,13 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
             + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__baselineKey")
             + ") throw new global::System.InvalidOperationException(\"A ChangeSet whose before-state contains an unassigned key cannot be composed.\"); }";
         if (hasTempCompose)
+        {
             code.AppendLineAt(4, "if (!__hasTemp" + id + ") { " + check + " }");
+        }
         else
+        {
             code.AppendLineAt(4, check);
+        }
     }
 
     /// <summary>Emits the granular before-state guard, temp-aware.</summary>
@@ -58,9 +62,13 @@ internal static class SparseChangeSetKeyedTempMergeEmitter
             + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__baselineKey")
             + ") throw new global::System.InvalidOperationException(\"A ChangeSet whose before-state contains an unassigned key cannot be composed.\");";
         if (hasTempCompose)
+        {
             code.AppendLineAt(5, "if (!__hasTemp" + id + ") " + granularCheck);
+        }
         else
+        {
             code.AppendLineAt(5, granularCheck);
+        }
     }
 
     /// <summary>Emits temp map declarations plus the temp-presence scan.</summary>

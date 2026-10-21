@@ -39,7 +39,10 @@ internal static class SparseNaming
                 names.Contains(prefix.ToString() + name)
             )
         )
+        {
             prefix.Append("Sparse");
+        }
+
         return prefix.ToString();
     }
 
@@ -52,7 +55,10 @@ internal static class SparseNaming
                 names.Contains(prefix.ToString() + name)
             )
         )
+        {
             prefix.Append("Sparse");
+        }
+
         return prefix.ToString();
     }
 

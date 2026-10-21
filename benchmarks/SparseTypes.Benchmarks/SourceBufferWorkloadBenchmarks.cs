@@ -17,17 +17,25 @@ public class SourceBufferWorkloadBenchmarks
     {
         _ordinarySource = string.Concat(Enumerable.Repeat("    // generated member body\n", 1024));
         if (EmitLarge().Length <= _ordinarySource.Length)
+        {
             throw new InvalidOperationException(
                 "The large emission must exceed an ordinary group."
             );
+        }
+
         if (EmitOrdinaryGroup() != 4 * _ordinarySource.Length)
+        {
             throw new InvalidOperationException(
                 "All simultaneous source owners must remain intact."
             );
+        }
+
         if (EmitThenEmit() != EmitLarge().Length + OrdinaryGroups * 4 * _ordinarySource.Length)
+        {
             throw new InvalidOperationException(
                 "Mixed source workloads must preserve output sizes."
             );
+        }
     }
 
     [Benchmark]
@@ -35,7 +43,10 @@ public class SourceBufferWorkloadBenchmarks
     {
         var length = EmitLarge().Length;
         for (var group = 0; group < OrdinaryGroups; group++)
+        {
             length += EmitOrdinaryGroup();
+        }
+
         return length;
     }
 
@@ -46,7 +57,10 @@ public class SourceBufferWorkloadBenchmarks
     {
         using var code = new SharedIndentedBuilder(CancellationToken.None);
         for (var index = 0; index < LargeRepetitions; index++)
+        {
             code.AppendLine("var view = global::Ns.Child.Observable.Create();");
+        }
+
         return code.ToString();
     }
 
@@ -70,9 +84,12 @@ public class SourceBufferWorkloadBenchmarks
             || c != _ordinarySource
             || d != _ordinarySource
         )
+        {
             throw new InvalidOperationException(
                 "Borrowed source buffers must have exclusive owners."
             );
+        }
+
         return a.Length + b.Length + c.Length + d.Length;
     }
 }

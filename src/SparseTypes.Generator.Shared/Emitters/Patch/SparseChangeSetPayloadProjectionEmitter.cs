@@ -18,10 +18,13 @@ internal static class SparseChangeSetPayloadProjectionEmitter
     )
     {
         if (modelType is null)
+        {
             throw new ArgumentException(
                 "A payload projection requires a model type.",
                 nameof(modelType)
             );
+        }
+
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, dialect);
         var runtime = dialect.RuntimeNamespace;
         var payloadRoot = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Root");
@@ -66,7 +69,10 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLineAt(4, "switch (change)");
         code.AppendLineAt(4, "{");
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        {
             AppendMemberProjection(code, member, members, dialect, modelType, strict);
+        }
+
         code.AppendLineAt(
             5,
             "default: throw new global::System.ArgumentException(\"Payload contains a null or unknown change variant.\", nameof(Changes));"
@@ -85,9 +91,15 @@ internal static class SparseChangeSetPayloadProjectionEmitter
     )
     {
         if (modelType is null)
+        {
             return;
+        }
+
         if (!SparseDownstreamPolicy.HasOwnNonFullPolicy(members, dialect))
+        {
             return;
+        }
+
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
         code.AppendLineAt(
             2,

@@ -29,7 +29,9 @@ public sealed class SparseKeyValidationScope<TKey> : IDisposable
     {
         var keys = Interlocked.Exchange(ref _keys, null);
         if (keys is not null)
+        {
             SparseKeyValidationPool<TKey>.Return(keys, _capacity);
+        }
     }
 }
 
@@ -47,15 +49,25 @@ internal static class SparseKeyValidationPool<TKey>
     )
     {
         if (capacity < 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(capacity));
+        }
+
         if (create is null)
+        {
             throw new ArgumentNullException(nameof(create));
+        }
 
         var keys = _cached.Key;
         if (keys is null || _cached.Value < capacity)
+        {
             keys = create(capacity);
+        }
         else
+        {
             capacity = _cached.Value;
+        }
+
         _cached = default;
         return new SparseKeyValidationScope<TKey>(keys, capacity);
     }
@@ -64,7 +76,10 @@ internal static class SparseKeyValidationPool<TKey>
     {
         capacity = Math.Max(capacity, keys.Count);
         if (capacity > MaximumRetainedEntries)
+        {
             return;
+        }
+
         keys.Clear();
         if (_cached.Key is null || capacity > _cached.Value)
         {

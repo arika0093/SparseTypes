@@ -110,7 +110,9 @@ public sealed class OpenApiRegistrationTests
         var integers = 0;
         var visited = new HashSet<IOpenApiSchema>(ReferenceEqualityComparer.Instance);
         foreach (var schema in document.Components!.Schemas!.Values)
+        {
             CollectWireEnums(schema, states, kinds, ref integers, visited);
+        }
 
         (states.Count > 0).ShouldBeTrue();
         (kinds.Count > 0).ShouldBeTrue();
@@ -139,16 +141,25 @@ public sealed class OpenApiRegistrationTests
     )
     {
         if (schema is null || !visited.Add(schema))
+        {
             return;
+        }
+
         if (schema is OpenApiSchemaReference reference)
         {
             CollectWireEnums(reference.Target, states, kinds, ref integers, visited);
             return;
         }
         if (schema is not OpenApiSchema concrete)
+        {
             return;
+        }
+
         if (concrete.Type == JsonSchemaType.Integer)
+        {
             integers++;
+        }
+
         if (concrete.Properties is not null)
         {
             foreach (var entry in concrete.Properties)
@@ -156,36 +167,53 @@ public sealed class OpenApiRegistrationTests
                 var target = entry.Value;
                 var guard = 0;
                 while (target is OpenApiSchemaReference inner && guard++ < 8)
+                {
                     target = inner.Target;
+                }
+
                 if (
                     string.Equals(entry.Key, "state", StringComparison.Ordinal)
                     && target is OpenApiSchema stateSchema
                 )
+                {
                     states.Add(stateSchema);
+                }
                 else if (
                     string.Equals(entry.Key, "kind", StringComparison.Ordinal)
                     && target is OpenApiSchema kindSchema
                 )
+                {
                     kinds.Add(kindSchema);
+                }
+
                 CollectWireEnums(entry.Value, states, kinds, ref integers, visited);
             }
         }
         if (concrete.Items is not null)
+        {
             CollectWireEnums(concrete.Items, states, kinds, ref integers, visited);
+        }
+
         if (concrete.OneOf is not null)
         {
             foreach (var variant in concrete.OneOf)
+            {
                 CollectWireEnums(variant, states, kinds, ref integers, visited);
+            }
         }
         if (concrete.AnyOf is not null)
         {
             foreach (var variant in concrete.AnyOf)
+            {
                 CollectWireEnums(variant, states, kinds, ref integers, visited);
+            }
         }
         if (concrete.AllOf is not null)
         {
             foreach (var variant in concrete.AllOf)
+            {
                 CollectWireEnums(variant, states, kinds, ref integers, visited);
+            }
         }
     }
 

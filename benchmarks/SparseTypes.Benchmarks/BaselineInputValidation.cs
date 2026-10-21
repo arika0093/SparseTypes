@@ -28,7 +28,10 @@ internal static class BaselineInputValidation
             ValidateStationary(invalidation.Setup, invalidation.IncrementalSharedEdit);
         }
         foreach (var shape in Enum.GetValues<ChangeSetJsonShape>())
+        {
             new ChangeSetJsonBenchmarks { Size = 16, Shape = shape }.Setup();
+        }
+
         Console.WriteLine("Bounded incremental inputs and payload round trips validated.");
     }
 
@@ -37,9 +40,13 @@ internal static class BaselineInputValidation
         setup();
         var expected = operation();
         for (var repeat = 0; repeat < 8; repeat++)
+        {
             if (operation() != expected)
+            {
                 throw new InvalidOperationException(
                     "Incremental workload size must remain constant across invocations."
                 );
+            }
+        }
     }
 }

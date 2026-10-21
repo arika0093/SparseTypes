@@ -27,9 +27,14 @@ internal static class SparsePayloadEnumSchemas
         var type =
             Nullable.GetUnderlyingType(context.JsonTypeInfo.Type) ?? context.JsonTypeInfo.Type;
         if (type == typeof(SparseTypes.ChangePayloadState))
+        {
             ApplyStateSchema(schema);
+        }
         else if (type == typeof(SparseTypes.ChangePayloadItemKind))
+        {
             ApplyKindSchema(schema);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -70,33 +75,48 @@ internal static class SparsePayloadEnumSchemas
     internal static void FixDocument(OpenApiDocument document)
     {
         if (document.Components?.Schemas is null)
+        {
             return;
+        }
+
         foreach (var entry in document.Components.Schemas)
         {
             if (TryResolveTarget(entry.Value, out var target) && target is OpenApiSchema concrete)
             {
                 if (entry.Key.Contains("ChangePayloadState", StringComparison.Ordinal))
+                {
                     ApplyStateSchema(concrete);
+                }
                 else if (entry.Key.Contains("ChangePayloadItemKind", StringComparison.Ordinal))
+                {
                     ApplyKindSchema(concrete);
+                }
             }
         }
         var visited = new HashSet<IOpenApiSchema>(ReferenceEqualityComparer.Instance);
         foreach (var schema in document.Components.Schemas.Values)
+        {
             FixSchema(schema, visited);
+        }
     }
 
     private static void FixSchema(IOpenApiSchema? schema, HashSet<IOpenApiSchema> visited)
     {
         if (schema is null || !visited.Add(schema))
+        {
             return;
+        }
+
         if (schema is OpenApiSchemaReference reference)
         {
             FixSchema(reference.Target, visited);
             return;
         }
         if (schema is not OpenApiSchema concrete)
+        {
             return;
+        }
+
         if (concrete.Properties is not null)
         {
             foreach (var entry in concrete.Properties)
@@ -110,37 +130,56 @@ internal static class SparsePayloadEnumSchemas
                     && TryResolveTarget(entry.Value, out var stateTarget)
                     && stateTarget is OpenApiSchema stateSchema
                 )
+                {
                     ApplyStateSchema(stateSchema);
+                }
                 else if (
                     string.Equals(entry.Key, "kind", StringComparison.Ordinal)
                     && TryResolveTarget(entry.Value, out var kindTarget)
                     && kindTarget is OpenApiSchema kindSchema
                 )
+                {
                     ApplyKindSchema(kindSchema);
+                }
+
                 FixSchema(entry.Value, visited);
             }
         }
         if (concrete.Items is not null)
+        {
             FixSchema(concrete.Items, visited);
+        }
+
         if (concrete.AdditionalProperties is not null)
+        {
             FixSchema(concrete.AdditionalProperties, visited);
+        }
+
         if (concrete.OneOf is not null)
         {
             foreach (var variant in concrete.OneOf)
+            {
                 FixSchema(variant, visited);
+            }
         }
         if (concrete.AnyOf is not null)
         {
             foreach (var variant in concrete.AnyOf)
+            {
                 FixSchema(variant, visited);
+            }
         }
         if (concrete.AllOf is not null)
         {
             foreach (var variant in concrete.AllOf)
+            {
                 FixSchema(variant, visited);
+            }
         }
         if (concrete.Not is not null)
+        {
             FixSchema(concrete.Not, visited);
+        }
     }
 
     private static bool TryResolveTarget(IOpenApiSchema? schema, out IOpenApiSchema? target)
@@ -148,7 +187,10 @@ internal static class SparsePayloadEnumSchemas
         target = schema;
         var guard = 0;
         while (target is OpenApiSchemaReference reference && guard++ < 8)
+        {
             target = reference.Target;
+        }
+
         return target is not null;
     }
 

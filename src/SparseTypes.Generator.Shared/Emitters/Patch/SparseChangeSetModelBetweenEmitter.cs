@@ -108,13 +108,18 @@ internal static class SparseChangeSetModelBetweenEmitter
             args.Add("__h" + id);
         }
         if (conditions.Count > 0)
+        {
             code.AppendLineAt(3, "if (" + string.Join(" && ", conditions) + ")");
+        }
+
         code.AppendLineAt(
             conditions.Count > 0 ? 4 : 3,
             "return Between(default(" + optionalFragment + "), default(" + optionalFragment + "));"
         );
         if (conditions.Count > 0)
+        {
             code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
+        }
     }
 
     internal static void AppendProjectedReturn(

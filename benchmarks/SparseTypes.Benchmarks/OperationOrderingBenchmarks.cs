@@ -19,26 +19,43 @@ public class OperationOrderingBenchmarks
         var source = new StringBuilder();
         var expected = new StringBuilder();
         for (var rank = 0; rank < 3; rank++)
-        for (var index = 0; index < MembersPerGroup; index++)
-            AppendMember(expected, rank, index);
-        if (AlreadyOrdered)
-            source.Append(expected);
-        else
+        {
             for (var index = 0; index < MembersPerGroup; index++)
-            for (var rank = 2; rank >= 0; rank--)
+            {
+                AppendMember(expected, rank, index);
+            }
+        }
+
+        if (AlreadyOrdered)
+        {
+            source.Append(expected);
+        }
+        else
+        {
+            for (var index = 0; index < MembersPerGroup; index++)
+            {
+                for (var rank = 2; rank >= 0; rank--)
             {
                 source.AppendLine();
                 AppendMember(source, rank, index);
             }
+            }
+        }
+
         _source = source.ToString();
         if (SparseOperationOrdering.ReorderInternalFirst(_source) != expected.ToString())
+        {
             throw new InvalidOperationException(
                 "Ordering must preserve bodies and relative member order."
             );
+        }
+
         if (AppendReordered() != expected.ToString() || AppendOrdered() != expected.ToString())
+        {
             throw new InvalidOperationException(
                 "Streaming and buffered ordering must emit identical text."
             );
+        }
     }
 
     private static void AppendMember(StringBuilder source, int rank, int index)

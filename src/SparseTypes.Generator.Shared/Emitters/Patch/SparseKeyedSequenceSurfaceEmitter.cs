@@ -352,6 +352,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             split
         );
         if (modelType is not null)
+        {
             SparseChangePayloadCollectionExportEmitter.AppendCollectionExport(
                 operations,
                 member,
@@ -360,6 +361,8 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 implementationNamespace,
                 split
             );
+        }
+
         if (surfaceDeferred is not null)
         {
             code.Append(surfaceDeferred.ToString());
@@ -551,12 +554,15 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         code.AppendLineAt(4, guard + "EnsureGranular(\"Remove\");");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 4,
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                     + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be removed by key.\");"
             );
+        }
+
         code.AppendLineAt(
             4,
             "if (__added is not null) { for (var i = __added.Count - 1; i >= 0; i--) if ("
@@ -625,12 +631,15 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             }
             code.AppendLineAt(4, guard + "EnsureGranular(\"Edit\");");
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+            {
                 code.AppendLineAt(
                     4,
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                         + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be edited by key.\");"
                 );
+            }
+
             code.AppendLineAt(
                 4,
                 sharedRemoval is null
@@ -731,12 +740,15 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 );
             }
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+            {
                 code.AppendLineAt(
                     4,
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                         + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be updated by key; add it as a new item instead.\");"
                 );
+            }
+
             code.AppendLineAt(
                 4,
                 sharedRemoval is null
@@ -828,7 +840,10 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             );
         }
         else
+        {
             code.AppendLineAt(4, facade + ".EnsureUniqueKeys<" + keyType + ">(list);");
+        }
+
         code.AppendLineAt(4, "__order = list;");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {

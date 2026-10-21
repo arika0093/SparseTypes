@@ -509,15 +509,26 @@ internal static class SparseKeyAnalyzer
             )!,
         };
         if (constant.Value is long)
+        {
             literal += "L";
+        }
         else if (constant.Value is ulong)
+        {
             literal += "UL";
+        }
         else if (constant.Value is uint)
+        {
             literal += "U";
+        }
         else if (constant.Value is float)
+        {
             literal += "F";
+        }
         else if (constant.Value is decimal)
+        {
             literal += "M";
+        }
+
         expression = "(" + NonNullableTypeName(keyType) + ")(" + literal + ")";
         return true;
     }
@@ -544,7 +555,9 @@ internal static class SparseKeyAnalyzer
             _ => null,
         };
         if (runtimeType is null || !IsNumeric(sourceType))
+        {
             return false;
+        }
 
         try
         {

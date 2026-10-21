@@ -18,13 +18,19 @@ internal static class SparsePayloadJsonPocoEmitter
     internal static void AppendPocos(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         if (!HasPocos(context))
+        {
             return;
+        }
+
         var pocos = context.Pocos;
         // Public-first order: the internal delegating converters precede the
         // private codec methods below.
         SparsePayloadJsonPocoHelpers.AppendValueConverter(code);
         if (pocos.Any(static poco => poco.IsValueType))
+        {
             SparsePayloadJsonPocoHelpers.AppendNullableConverter(code);
+        }
+
         var suffixByName = pocos.ToDictionary(
             static poco => poco.RuntimeName,
             poco => CodecSuffix(poco, code),
@@ -47,7 +53,10 @@ internal static class SparsePayloadJsonPocoEmitter
     )
     {
         if (!HasPocos(context))
+        {
             return;
+        }
+
         for (var pocoIndex = 0; pocoIndex < context.Pocos.Length; pocoIndex++)
         {
             var poco = context.Pocos[pocoIndex];
@@ -69,7 +78,10 @@ internal static class SparsePayloadJsonPocoEmitter
         {
             var poco = context.Pocos[pocoIndex];
             if (!poco.IsValueType)
+            {
                 continue;
+            }
+
             code.CancellationToken.ThrowIfCancellationRequested();
             code.AppendLineAt(3, "if (type == typeof(" + poco.RuntimeName + "?))");
             code.AppendLineAt(
@@ -123,7 +135,9 @@ internal static class SparsePayloadJsonPocoEmitter
             var init = InitializerFor(poco, member);
             code.AppendLineAt(3, member.Property.Type.Name + " " + local + " = " + init + ";");
             if (member.Property.IsRequired)
+            {
                 code.AppendLineAt(3, "var " + HasName(suffix, index) + " = false;");
+            }
         }
 
         code.AppendLineAt(3, "while (reader.Read())");
@@ -164,15 +178,20 @@ internal static class SparsePayloadJsonPocoEmitter
         }
 
         if (members.Length > 0)
+        {
             code.AppendLineAt(
                 4,
                 "else { if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) throw new global::System.Text.Json.JsonException(\"Unknown leaf property.\"); if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\"); reader.Skip(); }"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 4,
                 "if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) throw new global::System.Text.Json.JsonException(\"Unknown leaf property.\"); if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\"); reader.Skip();"
             );
+        }
+
         code.AppendLineAt(3, "}");
         foreach (
             var required in members
@@ -230,6 +249,7 @@ internal static class SparsePayloadJsonPocoEmitter
                 + (poco.IsValueType ? "value.Value;" : "value!;")
         );
         if (poco.HasPublicInstanceFields)
+        {
             code.AppendLineAt(
                 3,
                 "if (options.IncludeFields) throw new global::System.Text.Json.JsonException("
@@ -242,6 +262,8 @@ internal static class SparsePayloadJsonPocoEmitter
                     )
                     + ");"
             );
+        }
+
         code.AppendLineAt(3, "writer.WriteStartObject();");
         var members = poco.Members.Where(static member => !member.Property.IsJsonIgnored).ToArray();
         for (var index = 0; index < members.Length; index++)
@@ -268,7 +290,10 @@ internal static class SparsePayloadJsonPocoEmitter
         {
             var property = poco.ReadOnly[index];
             if (property.IsJsonIgnored)
+            {
                 continue;
+            }
+
             var local = "sparse_poco_ro_" + suffix + "_" + index;
             var access = target + "." + SparseNaming.EscapeIdentifier(property.Name);
             code.AppendLineAt(3, "if (!options.IgnoreReadOnlyProperties)");
@@ -303,7 +328,10 @@ internal static class SparsePayloadJsonPocoEmitter
     {
         var wire = Format(property.JsonPropertyName ?? property.Name);
         if (property.HasExplicitJsonPropertyName)
+        {
             return wire;
+        }
+
         return "(options.PropertyNamingPolicy is null ? "
             + wire
             + " : options.PropertyNamingPolicy.ConvertName("
@@ -344,6 +372,7 @@ internal static class SparsePayloadJsonPocoEmitter
                         out var collection
                     ) && collection is not null
                 )
+                {
                     SparseJsonCollectionShapes.AppendCollectionCodec(
                         code,
                         member.Property.Type.Name,
@@ -352,6 +381,7 @@ internal static class SparsePayloadJsonPocoEmitter
                         "WritePocoCollection_" + suffix + "_" + index,
                         "GetValueInfo"
                     );
+                }
             }
         }
     }
@@ -432,9 +462,12 @@ internal static class SparsePayloadJsonPocoEmitter
     {
         var direct = "ReadPocoScalar<" + elementName + ">(ref reader, options)";
         if (nullable)
+        {
             return "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : "
                 + direct
                 + ")";
+        }
+
         return element.IsReferenceType
             ? direct
             : "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\") : "
@@ -454,7 +487,10 @@ internal static class SparsePayloadJsonPocoEmitter
                 is { } bound
             && bound.HasExplicitDefaultValue
         )
+        {
             return bound.DefaultExpression;
+        }
+
         return "default!";
     }
 
@@ -471,9 +507,12 @@ internal static class SparsePayloadJsonPocoEmitter
         {
             var call = "ReadPayloadPoco_" + nestedSuffix + "(ref reader, options)";
             if (IsNullableMember(member))
+            {
                 return "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : "
                     + call
                     + ")";
+            }
+
             return member.Property.Type.IsReferenceType
                 ? call
                 : "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\") : "
@@ -482,12 +521,18 @@ internal static class SparsePayloadJsonPocoEmitter
         }
 
         if (IsArrayMember(member))
+        {
             return "ReadPocoArray_" + suffix + "_" + index + "(ref reader, options)";
+        }
+
         if (
             SparseJsonCollectionShapes.TryResolve(member, declared, out var collection)
             && collection is not null
         )
+        {
             return "ReadPocoCollection_" + suffix + "_" + index + "(ref reader, options)";
+        }
+
         return ScalarRead(member.Property.Type, nonNull, IsNullableMember(member));
     }
 
@@ -507,11 +552,15 @@ internal static class SparsePayloadJsonPocoEmitter
         }
 
         if (IsArrayMember(member))
+        {
             return "WritePocoArray_" + suffix + "_" + index + "(writer, " + access + ", options)";
+        }
+
         if (
             SparseJsonCollectionShapes.TryResolve(member, declared, out var collection)
             && collection is not null
         )
+        {
             return "WritePocoCollection_"
                 + suffix
                 + "_"
@@ -519,6 +568,8 @@ internal static class SparsePayloadJsonPocoEmitter
                 + "(writer, "
                 + access
                 + ", options)";
+        }
+
         return ScalarWrite(nonNull, access);
     }
 

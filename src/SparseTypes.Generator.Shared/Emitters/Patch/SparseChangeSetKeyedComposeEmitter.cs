@@ -329,6 +329,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 5,
                 "if (next."
@@ -339,6 +340,8 @@ internal static class SparseChangeSetKeyedComposeEmitter
                     + id
                     + "[__it.Key] = __it;"
             );
+        }
+
         code.AppendLineAt(
             5,
             "var __keys"

@@ -36,10 +36,13 @@ internal static class SparseFragmentCollectionCloneEmitter
         code.AppendLineAt(2, "{");
         code.AppendLineAt(3, "if (existing is TSet typed) return typed;");
         if (includePortableSetView)
+        {
             code.AppendLineAt(
                 3,
                 "if (existing is __SparseReadOnlySet<T> view && view.Inner is TSet inner) return inner;"
             );
+        }
+
         code.AppendLineAt(3, "return (TSet)existing;");
         code.AppendLineAt(2, "}");
         code.AppendLineAt(2, "global::System.Collections.Generic.ISet<T> clone;");

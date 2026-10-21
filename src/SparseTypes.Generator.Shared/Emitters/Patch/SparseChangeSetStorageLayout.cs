@@ -64,10 +64,16 @@ internal sealed class SparseChangeSetStorageLayout
     private string Reserve(string candidate)
     {
         if (_usedNames.Add(candidate))
+        {
             return candidate;
+        }
+
         var prefix = new System.Text.StringBuilder("_");
         while (_usedNames.Contains(prefix.ToString() + candidate))
+        {
             prefix.Append('_');
+        }
+
         var name = prefix.ToString() + candidate;
         _usedNames.Add(name);
         return name;

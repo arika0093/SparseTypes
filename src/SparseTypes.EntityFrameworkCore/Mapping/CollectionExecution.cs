@@ -27,7 +27,9 @@ internal static class CollectionExecution
         // Child edits already have queued writes; an edits-only plan changes no
         // collection state.
         if (plan.Added.Count == 0 && plan.Removed.Count == 0 && !plan.OrderChanged)
+        {
             return;
+        }
 
         var list = CollectionState.EnsureList<TDtoChild, TEntityChild>(
             runtime,

@@ -22,6 +22,8 @@ public sealed class SparseCloneContextScope : IDisposable
     {
         var context = Interlocked.Exchange(ref _context, null);
         if (context is not null)
+        {
             SparseCloneContextPool.Return(context);
+        }
     }
 }

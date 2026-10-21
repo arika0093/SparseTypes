@@ -144,12 +144,17 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.AppendLineAt(4, "}");
         // Removals.
         if (hasTempApply)
+        {
             SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedRemovals(code, member);
+        }
         else
+        {
             code.AppendLineAt(
                 4,
                 "if (__removed is not null) foreach (var k in __removed) map.Remove(k);"
             );
+        }
+
         if (hasTempApply)
         {
             SparseKeyedSequenceTempBetweenEmitter.AppendApplyTempRemovals(code, member);
@@ -189,11 +194,14 @@ internal static class SparseKeyedSequenceApplyEmitter
             );
             code.AppendLineAt(5, "map[kv.Key] = updated;");
             if (hasTempApply)
+            {
                 SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(
                     code,
                     member,
                     "updated"
                 );
+            }
+
             code.AppendLineAt(4, "}");
         }
         else
@@ -214,11 +222,14 @@ internal static class SparseKeyedSequenceApplyEmitter
             );
             code.AppendLineAt(5, "map[kv.Key] = kv.Value;");
             if (hasTempApply)
+            {
                 SparseKeyedSequenceTempBetweenEmitter.AppendApplyAssignedEdit(
                     code,
                     member,
                     "kv.Value"
                 );
+            }
+
             code.AppendLineAt(4, "}");
         }
         if (hasTempApply)
@@ -236,12 +247,15 @@ internal static class SparseKeyedSequenceApplyEmitter
             SparseKeyedCollectionEmitter.HasUnassignedKey(member)
             || SparseKeyedCollectionEmitter.HasTemporaryKey(member)
         )
+        {
             code.AppendLineAt(
                 4,
                 "var __unassignedAdded = new global::System.Collections.Generic.List<"
                     + elementType
                     + ">();"
             );
+        }
+
         code.AppendLineAt(4, "if (__added is not null) foreach (var item in __added)");
         code.AppendLineAt(4, "{");
         code.AppendLineAt(
@@ -319,7 +333,10 @@ internal static class SparseKeyedSequenceApplyEmitter
         else
         {
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+            {
                 code.AppendLineAt(5, "var __unassignedIndex = 0;");
+            }
+
             code.AppendLineAt(5, "foreach (var k in __order)");
             code.AppendLineAt(5, "{");
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
@@ -380,7 +397,10 @@ internal static class SparseKeyedSequenceApplyEmitter
             );
         }
         else
+        {
             code.AppendLineAt(6, "if (map.TryGetValue(k, out var current2)) result.Add(current2);");
+        }
+
         code.AppendLineAt(5, "}");
         code.AppendLineAt(5, "if (__added is not null)");
         code.AppendLineAt(5, "{");
@@ -413,7 +433,10 @@ internal static class SparseKeyedSequenceApplyEmitter
                 + "if (__emitted.Add(k)) result.Add(map[k]); }"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(6, "result.AddRange(__unassignedAdded);");
+        }
+
         code.AppendLineAt(5, "}");
         code.AppendLineAt(4, "}");
         code.AppendLineAt(
@@ -673,7 +696,10 @@ internal static class SparseKeyedSequenceApplyEmitter
                 + ">(global::System.Math.Max(0, afterMap.Count - beforeMap.Count + removed.Count));"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(4, "var unassignedIndex = 0;");
+        }
+
         code.AppendLineAt(4, "foreach (var k in afterOrder)");
         code.AppendLineAt(4, "{");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))

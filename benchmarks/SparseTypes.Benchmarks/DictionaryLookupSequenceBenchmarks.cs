@@ -54,7 +54,9 @@ public class DictionaryLookupSequenceBenchmarks
         };
         var expected = Sequence == DictionaryLookupSequence.MissThenRemoved ? 1 : _keys.Length;
         if (LookupSequence() != expected)
+        {
             throw new InvalidOperationException("Lookup sequences must preserve item membership.");
+        }
     }
 
     [Benchmark]
@@ -65,13 +67,17 @@ public class DictionaryLookupSequenceBenchmarks
         {
             var changes = _input.StructuralBetween();
             foreach (var key in _keys)
+            {
                 count += changes.Servers.GetChange(key).IsChanged ? 1 : 0;
+            }
         }
         else
         {
             var changes = _input.ScalarBetween();
             foreach (var key in _keys)
+            {
                 count += changes.Scores.GetChange(key).IsChanged ? 1 : 0;
+            }
         }
         return count;
     }

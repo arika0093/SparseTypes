@@ -152,15 +152,20 @@ internal static class SparseChangeSetDictProjectionEmitter
                 + ");"
         );
         if (hasPatch)
+        {
             code.AppendLineAt(
                 3,
                 "foreach (var __it in __stored) { if (__it.IsAdded) __added[__it.Key] = __it.After.Value!; else if (__it.IsRemoved) __removed[__it.Key] = __it.Before.Value!; else if (__it.IsEdited) __edited[__it.Key] = __it.Edit; }"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 3,
                 "foreach (var __it in __stored) { if (__it.IsAdded) __added[__it.Key] = __it.After.Value!; else if (__it.IsRemoved) __removed[__it.Key] = __it.Before.Value!; else if (__it.IsEdited) __edited[__it.Key] = __it.After.Value!; }"
             );
+        }
+
         code.AppendLineAt(
             3,
             "return new "

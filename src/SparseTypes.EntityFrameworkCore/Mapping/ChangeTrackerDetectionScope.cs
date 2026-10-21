@@ -34,7 +34,10 @@ internal sealed class ChangeTrackerDetectionScope : IDisposable
         var tracker = context.ChangeTracker;
         var enabled = tracker.AutoDetectChangesEnabled;
         if (enabled)
+        {
             tracker.DetectChanges();
+        }
+
         tracker.AutoDetectChangesEnabled = false;
         return new ChangeTrackerDetectionScope(tracker, enabled);
     }
@@ -43,7 +46,10 @@ internal sealed class ChangeTrackerDetectionScope : IDisposable
     public void Dispose()
     {
         if (_disposed)
+        {
             return;
+        }
+
         _disposed = true;
         _tracker.AutoDetectChangesEnabled = _restore;
     }

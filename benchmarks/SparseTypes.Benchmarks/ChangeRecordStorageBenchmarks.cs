@@ -21,7 +21,10 @@ public class ChangeRecordStorageBenchmarks
         var classes = (List<SparseChangeRecord>)ClassRecords();
         var values = (List<ValueRecord>)StructRecords();
         if (classes.Count != Count || values.Count != Count)
+        {
             throw new InvalidOperationException("Record storage must retain every entry.");
+        }
+
         for (var index = 0; index < Count; index++)
         {
             if (
@@ -30,9 +33,11 @@ public class ChangeRecordStorageBenchmarks
                 || !classes[index].After.Equals(values[index].After)
                 || classes[index].Kind != values[index].Kind
             )
+            {
                 throw new InvalidOperationException(
                     "Record representations must retain the same data."
                 );
+            }
         }
     }
 
@@ -41,7 +46,10 @@ public class ChangeRecordStorageBenchmarks
     {
         var records = new List<SparseChangeRecord>(Preallocate ? Count : 0);
         for (var index = 0; index < Count; index++)
+        {
             records.Add(new SparseChangeRecord(_path, _before, _after, SparseChangeKind.Changed));
+        }
+
         return records;
     }
 
@@ -50,6 +58,7 @@ public class ChangeRecordStorageBenchmarks
     {
         var records = new List<ValueRecord>(Preallocate ? Count : 0);
         for (var index = 0; index < Count; index++)
+        {
             records.Add(
                 new ValueRecord
                 {
@@ -59,6 +68,8 @@ public class ChangeRecordStorageBenchmarks
                     Kind = SparseChangeKind.Changed,
                 }
             );
+        }
+
         return records;
     }
 

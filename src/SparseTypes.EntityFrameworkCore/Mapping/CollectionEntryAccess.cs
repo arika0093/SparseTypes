@@ -10,7 +10,9 @@ internal static class CollectionEntryAccess
         var tracker = context.ChangeTracker;
         var detectChanges = tracker.AutoDetectChangesEnabled;
         if (detectChanges)
+        {
             tracker.DetectChanges();
+        }
 
         // Per-child detection revisits ancestors and rescans the parent
         // collection.

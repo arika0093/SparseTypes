@@ -43,7 +43,9 @@ public class KeyedChangeSetCapacityBenchmarks
                 .Patch.Between(changes.Invert().ToPatch().Apply(_after), _before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException("Keyed storage must preserve both endpoints.");
+        }
     }
 
     private Optional<BenchEnumerableKeyedHolder.Fragment?> State(bool after)
@@ -118,7 +120,10 @@ public class TemporaryKeyChangeSetCapacityBenchmarks
         var after = before.DeepClone();
         after.Items[0].Name = "edited";
         if (Reordered)
+        {
             after.Items.Reverse();
+        }
+
         _before = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(
             BenchTemporaryPayloadHolder.Fragment.From(before)
         );
@@ -145,9 +150,11 @@ public class TemporaryKeyChangeSetCapacityBenchmarks
                     )
                 )
         )
+        {
             throw new InvalidOperationException(
                 "Temporary identities must preserve both endpoints."
             );
+        }
     }
 
     [Benchmark]
@@ -160,15 +167,22 @@ public class TemporaryKeyChangeSetCapacityBenchmarks
         foreach (var size in new[] { 16, 2048 })
         {
             foreach (var assigned in new[] { false, true })
-            foreach (var reordered in new[] { false, true })
-                new TemporaryKeyChangeSetCapacityBenchmarks
+            {
+                foreach (var reordered in new[] { false, true })
+                {
+                    new TemporaryKeyChangeSetCapacityBenchmarks
                 {
                     Size = size,
                     Assigned = assigned,
                     Reordered = reordered,
                 }.Setup();
+                }
+            }
+
             foreach (var storage in Enum.GetValues<KeyedBetweenStorage>())
+            {
                 new KeyedChangeSetCapacityBenchmarks { Size = size, Storage = storage }.Setup();
+            }
         }
     }
 }

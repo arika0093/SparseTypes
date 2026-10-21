@@ -60,11 +60,16 @@ public sealed class SharedSourceBufferPoolTests
             .Select(_ => SharedSourceBufferPool.Rent(128 * 1024))
             .ToArray();
         foreach (var buffer in ordinary)
+        {
             SharedSourceBufferPool.Return(buffer);
+        }
+
         var large = SharedSourceBufferPool.Rent(256 * 1024);
         SharedSourceBufferPool.Return(large);
         for (var index = 0; index < 4; index++)
+        {
             SharedSourceBufferPool.Rent().ShouldBeSameAs(ordinary[index]);
+        }
     }
 
     [Test]
@@ -95,9 +100,15 @@ public sealed class SharedSourceBufferPoolTests
         DrainPool();
         var buffers = Enumerable.Range(0, 5).Select(_ => SharedSourceBufferPool.Rent()).ToArray();
         foreach (var buffer in buffers)
+        {
             SharedSourceBufferPool.Return(buffer);
+        }
+
         for (var index = 0; index < 4; index++)
+        {
             SharedSourceBufferPool.Rent().ShouldBeSameAs(buffers[index]);
+        }
+
         SharedSourceBufferPool.Rent().ShouldNotBeSameAs(buffers[4]);
     }
 
@@ -109,7 +120,10 @@ public sealed class SharedSourceBufferPoolTests
         var large = SharedSourceBufferPool.Rent();
         large.EnsureCapacity(4096);
         foreach (var buffer in small)
+        {
             SharedSourceBufferPool.Return(buffer);
+        }
+
         SharedSourceBufferPool.Return(large);
         SharedSourceBufferPool.Rent().ShouldBeSameAs(large);
     }
@@ -174,6 +188,8 @@ public sealed class SharedSourceBufferPoolTests
     private static void DrainPool()
     {
         for (var index = 0; index < 4; index++)
+        {
             SharedSourceBufferPool.Rent();
+        }
     }
 }

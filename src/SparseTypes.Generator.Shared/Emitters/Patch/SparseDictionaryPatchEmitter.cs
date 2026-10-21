@@ -185,6 +185,7 @@ internal static class SparseDictionaryPatchEmitter
             split
         );
         if (modelType is not null)
+        {
             SparseChangePayloadCollectionExportEmitter.AppendCollectionExport(
                 operations,
                 member,
@@ -193,6 +194,8 @@ internal static class SparseDictionaryPatchEmitter
                 implementationNamespace,
                 split
             );
+        }
+
         if (surfaceDeferred is not null)
         {
             code.Append(surfaceDeferred.ToString());

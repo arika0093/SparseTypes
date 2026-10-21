@@ -194,7 +194,10 @@ internal sealed class SparseFragmentCloneEmitter
             )
             {
                 if (boundClones.ContainsKey(propertyName))
+                {
                     continue;
+                }
+
                 var member = members.Single(candidate => candidate.Property.Name == propertyName);
                 var local = "__constructor_clone_" + boundClones.Count;
                 boundClones.Add(propertyName, local);
@@ -446,7 +449,10 @@ internal sealed class SparseFragmentCloneEmitter
         // Stage 4: POCO helpers move to the operations class with no surface
         // counterpart.
         if (operationsType is not null)
+        {
             return;
+        }
+
         code.CancellationToken.ThrowIfCancellationRequested();
         code.AppendIndent(1)
             .Append(helperAccessibility + " static ")
@@ -479,7 +485,10 @@ internal sealed class SparseFragmentCloneEmitter
             )
             {
                 if (boundClones.ContainsKey(propertyName))
+                {
                     continue;
+                }
+
                 var member = members.Single(candidate => candidate.Property.Name == propertyName);
                 var local = "__constructor_clone_" + boundClones.Count;
                 boundClones.Add(propertyName, local);

@@ -121,12 +121,15 @@ internal static class SparseChangeSetKeyedBuildEmitter
             SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempBeforeBranch(code, member);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 4,
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                     + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed transition.\");"
             );
+        }
+
         code.AppendLineAt(
             4,
             SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap", "__k", "__item")
@@ -159,12 +162,15 @@ internal static class SparseChangeSetKeyedBuildEmitter
             SparseChangeSetKeyedTempTransitionEmitter.AppendBuildTempAfterBranch(code, member);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 4,
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                     + ") { __afterOrder.Add(__k!); __unassignedAfter.Add(__item); continue; }"
             );
+        }
+
         code.AppendLineAt(
             4,
             SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap", "__k", "__item")
@@ -185,10 +191,13 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 3,
                 "foreach (var __k in __afterOrder) if (!__beforeMap.ContainsKey(__k)) __added.Add(__afterMap[__k]);"
             );
+        }
+
         code.AppendLineAt(
             3,
             "var __removed = new global::System.Collections.Generic.List<" + elementType + ">();"
@@ -211,10 +220,13 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 3,
                 "foreach (var __k in __beforeOrder) if (!__afterMap.ContainsKey(__k)) __removed.Add(__beforeMap[__k]);"
             );
+        }
+
         code.AppendLineAt(
             3,
             "var __edited = new global::System.Collections.Generic.Dictionary<"
@@ -316,6 +328,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
                 + ", int>(__comparer);"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 3,
                 "for (var __i = 0; __i < __afterOrder.Count; __i++) if (!"
@@ -325,17 +338,24 @@ internal static class SparseChangeSetKeyedBuildEmitter
                     )
                     + ") __afterIndex[__afterOrder[__i]] = __i;"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 3,
                 "for (var __i = 0; __i < __afterOrder.Count; __i++) __afterIndex[__afterOrder[__i]] = __i;"
             );
+        }
+
         code.AppendLineAt(
             3,
             "var __items = new global::System.Collections.Generic.List<" + trans + ".Item>();"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(3, "var __afterPosition = 0; var __unassignedPosition = 0;");
+        }
+
         code.AppendLineAt(3, "foreach (var __k in __afterOrder)");
         code.AppendLineAt(3, "{");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
@@ -372,7 +392,10 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(4, "__afterPosition++;");
+        }
+
         code.AppendLineAt(4, "bool __inBefore = __beforeMap.TryGetValue(__k, out var __b);");
         code.AppendLineAt(4, "var __a = __afterMap[__k];");
         code.AppendLineAt(4, "bool __isEdited = __edited.TryGetValue(__k, out var __edit);");

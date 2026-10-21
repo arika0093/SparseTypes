@@ -700,7 +700,10 @@ public sealed class SparseGeneratorDiagnosticTests
         const uint prime = 16777619;
         var hash = offsetBasis;
         foreach (var character in modelTypeName)
+        {
             hash = unchecked((hash ^ character) * prime);
+        }
+
         var nestedTypeName = "__Internal_" + hash.ToString("X8");
         var source = """
             using SparseTypes;

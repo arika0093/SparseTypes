@@ -24,14 +24,22 @@ public class RecursiveCollectionCloneBenchmarks
     {
         var nodes = new BenchCloneBranch[NodeCount];
         for (var index = 0; index < nodes.Length; index++)
+        {
             nodes[index] = new BenchCloneBranch { Value = index };
+        }
+
         for (var index = 1; index < nodes.Length; index++)
+        {
             nodes[(index - 1) / 2].Children.Add(nodes[index]);
+        }
+
         _tree = nodes[0];
         _cycle = new BenchCloneBranch();
         _cycle.Children.Add(_cycle);
         for (var index = 1; index < NodeCount; index++)
+        {
             _cycle.Children.Add(_tree);
+        }
 
         var clone = _tree.DeepClone();
         var visited = new HashSet<BenchCloneBranch>();
@@ -40,12 +48,20 @@ public class RecursiveCollectionCloneBenchmarks
         while (pending.TryPop(out var node))
         {
             if (!visited.Add(node) || ReferenceEquals(node, nodes[node.Value]))
+            {
                 throw new InvalidOperationException("Tree clone must copy each distinct node.");
+            }
+
             foreach (var child in node.Children)
+            {
                 pending.Push(child);
+            }
         }
         if (visited.Count != NodeCount)
+        {
             throw new InvalidOperationException("Tree clone must retain every node.");
+        }
+
         var cycleClone = _cycle.DeepClone();
         if (
             !ReferenceEquals(cycleClone, cycleClone.Children[0])
@@ -54,7 +70,9 @@ public class RecursiveCollectionCloneBenchmarks
                 .Children.Skip(1)
                 .Any(child => !ReferenceEquals(child, cycleClone.Children[1]))
         )
+        {
             throw new InvalidOperationException("Graph clone must preserve cycles and aliases.");
+        }
     }
 
     [Benchmark]

@@ -24,17 +24,22 @@ public class KeyedChangeSetComposeBenchmarks
         _second = BenchKeyedServerHolder.ChangeSet.Between(State(Size + added), after);
         var composed = Compose();
         if (!BenchKeyedServerHolder.Patch.Between(composed.ToPatch().Apply(before), after).IsEmpty)
+        {
             throw new InvalidOperationException(
                 "Composed additions must retain every item and its order."
             );
+        }
+
         if (
             !BenchKeyedServerHolder
                 .Patch.Between(composed.Invert().ToPatch().Apply(after), before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Inverting composed additions must restore the baseline."
             );
+        }
         // Disjoint transitions may start from different unrelated collection
         // states.
         var secondIndices = Enumerable
@@ -52,9 +57,11 @@ public class KeyedChangeSetComposeBenchmarks
                 .Patch.Between(combined.Invert().ToPatch().Apply(expected), before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Disjoint additions and removals must preserve composed order and inversion."
             );
+        }
     }
 
     private static Optional<BenchKeyedServerHolder.Fragment?> State(int count) =>

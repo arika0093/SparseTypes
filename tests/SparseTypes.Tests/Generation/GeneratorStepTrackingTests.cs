@@ -271,7 +271,9 @@ public sealed class GeneratorStepTrackingTests
         var actual = after.Sources();
         actual.Count.ShouldBe(expected.Count);
         foreach (var source in actual)
+        {
             source.Value.ShouldBe(expected[source.Key]);
+        }
     }
 
     [Test]

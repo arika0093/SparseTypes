@@ -80,9 +80,12 @@ public class EditSessionChildCloneBenchmarks
         using (var child = session.OpenChildSession(ScopeBenchRoot.SparsePath.Target))
         {
             if (Raw(child.Session).Name != "target" || Raw(child.Session).Servers.Count != 4)
+            {
                 throw new InvalidOperationException(
                     "Child-session harness must resolve the small child subtree."
                 );
+            }
+
             Raw(child.Session).Name = "edited";
         }
 
@@ -90,7 +93,9 @@ public class EditSessionChildCloneBenchmarks
         {
             Raw(child.Session).Name = "edited";
             if (!child.TryAcceptChanges(out var conflicts) || conflicts is not null)
+            {
                 throw new InvalidOperationException("Child-session harness must accept cleanly.");
+            }
         }
 
         var observable =
@@ -104,9 +109,11 @@ public class EditSessionChildCloneBenchmarks
             || check.Target.Name != "edited"
             || _prototype.Target.Name != "target"
         )
+        {
             throw new InvalidOperationException(
                 "Child-session harness must update the session while leaving the prototype stationary."
             );
+        }
     }
 
     [Benchmark]

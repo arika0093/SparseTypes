@@ -27,7 +27,10 @@ internal sealed class SparsePayloadDocumentFilter(
             if (names.TryGetValue(name, out var previousType))
             {
                 if (previousType == type)
+                {
                     continue;
+                }
+
                 throw new InvalidOperationException(
                     $"SparseTypes schema name collision for '{type}'."
                 );
@@ -66,6 +69,7 @@ internal sealed class SparsePayloadDocumentFilter(
 
         var schema = new OpenApiSchema();
         if (source.TryGetProperty("type", out var type))
+        {
             schema.Type = type.GetString() switch
             {
                 "object" => JsonSchemaType.Object,
@@ -76,15 +80,30 @@ internal sealed class SparsePayloadDocumentFilter(
                 "boolean" => JsonSchemaType.Boolean,
                 _ => null,
             };
+        }
+
         if (source.TryGetProperty("properties", out var properties))
+        {
             foreach (var property in properties.EnumerateObject())
+            {
                 (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] =
                     ConvertSchema(property.Value, document);
+            }
+        }
+
         if (source.TryGetProperty("items", out var items))
+        {
             schema.Items = ConvertSchema(items, document);
+        }
+
         if (source.TryGetProperty("oneOf", out var oneOf))
+        {
             foreach (var variant in oneOf.EnumerateArray())
+            {
                 (schema.OneOf ??= new List<IOpenApiSchema>()).Add(ConvertSchema(variant, document));
+            }
+        }
+
         if (source.TryGetProperty("discriminator", out var discriminator))
         {
             schema.Discriminator = new OpenApiDiscriminator

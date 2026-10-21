@@ -19,7 +19,9 @@ internal static class SparseStjCapabilityDetector
             && IsUsableType(serializer, compilation)
             && IsUsableType(converter, compilation);
         if (!hasSystemTextJson)
+        {
             return SparseStjCapabilities.None;
+        }
 
         var reader = SafeGet(compilation, "System.Text.Json.Utf8JsonReader");
         var writer = SafeGet(compilation, "System.Text.Json.Utf8JsonWriter");
@@ -115,7 +117,10 @@ internal static class SparseStjCapabilityDetector
     {
         var attribute = SafeGet(compilation, metadataName);
         if (!IsUsableAttribute(attribute, compilation))
+        {
             return false;
+        }
+
         foreach (var ctor in attribute!.InstanceConstructors)
         {
             if (
@@ -123,7 +128,9 @@ internal static class SparseStjCapabilityDetector
                 && ctor.Parameters.Length == parameterTypes.Length
                 && ParametersMatch(ctor.Parameters, parameterTypes)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -139,12 +146,18 @@ internal static class SparseStjCapabilityDetector
             || condition.TypeKind != TypeKind.Enum
             || !condition.IsAccessibleTo(compilation)
         )
+        {
             return false;
+        }
+
         if (
             !HasEnumMember(condition, "WhenWritingNull", compilation)
             || !HasEnumMember(condition, "WhenWritingDefault", compilation)
         )
+        {
             return false;
+        }
+
         return HasAttributeCtor(
                 compilation,
                 "System.Text.Json.Serialization.JsonIgnoreAttribute",
@@ -179,7 +192,9 @@ internal static class SparseStjCapabilityDetector
             "System.Text.Json.Serialization.JsonDerivedTypeAttribute"
         );
         if (!IsUsableAttribute(attribute, compilation))
+        {
             return false;
+        }
 
         var systemType = SafeGet(compilation, "System.Type");
         return systemType is not null
@@ -197,7 +212,9 @@ internal static class SparseStjCapabilityDetector
             || converter.TypeParameters.Length != 1
             || !IsUsableType(converter, compilation)
         )
+        {
             return false;
+        }
 
         var attributeUsable = HasAttributeCtor(
             compilation,
@@ -253,7 +270,9 @@ internal static class SparseStjCapabilityDetector
                 )
                 && ParameterMatches(method.Parameters[2], options, RefKind.None)
             )
+            {
                 foundRead = true;
+            }
         }
 
         foreach (var member in converter.GetMembers("Write"))
@@ -269,7 +288,9 @@ internal static class SparseStjCapabilityDetector
                 && ParameterMatches(method.Parameters[1], valueType, RefKind.None)
                 && ParameterMatches(method.Parameters[2], options, RefKind.None)
             )
+            {
                 foundWrite = true;
+            }
         }
 
         return foundRead && foundWrite;
@@ -307,7 +328,9 @@ internal static class SparseStjCapabilityDetector
             || tokens.TypeKind != TypeKind.Enum
             || unmapped.TypeKind != TypeKind.Enum
         )
+        {
             return false;
+        }
 
         var readOnlySpan = SafeGet(compilation, "System.ReadOnlySpan`1");
         var byteType = compilation.GetSpecialType(SpecialType.System_Byte);
@@ -434,7 +457,10 @@ internal static class SparseStjCapabilityDetector
             || !dateTime.IsAccessibleTo(compilation)
             || !dateTimeOffset.IsAccessibleTo(compilation)
         )
+        {
             return false;
+        }
+
         return HasInstanceMethod(
                 reader,
                 "GetBoolean",
@@ -621,7 +647,9 @@ internal static class SparseStjCapabilityDetector
                 )
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, typeInfo)
             )
+            {
                 found = true;
+            }
         }
 
         return found;
@@ -643,7 +671,10 @@ internal static class SparseStjCapabilityDetector
         foreach (var member in serializer.GetMembers("Deserialize"))
         {
             if (member is not IMethodSymbol method || !IsUsableMethod(method, compilation, true, 1))
+            {
                 continue;
+            }
+
             var valueType = method.TypeParameters[0];
             if (
                 method.Parameters.Length == 2
@@ -655,13 +686,18 @@ internal static class SparseStjCapabilityDetector
                 )
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, valueType)
             )
+            {
                 hasGenericDeserialize = true;
+            }
         }
 
         foreach (var member in serializer.GetMembers("Serialize"))
         {
             if (member is not IMethodSymbol method || !IsUsableMethod(method, compilation, true, 1))
+            {
                 continue;
+            }
+
             var valueType = method.TypeParameters[0];
             if (
                 method.Parameters.Length == 3
@@ -674,7 +710,9 @@ internal static class SparseStjCapabilityDetector
                 )
                 && method.ReturnsVoid
             )
+            {
                 hasGenericSerialize = true;
+            }
         }
 
         foreach (var member in serializer.GetMembers("Deserialize"))
@@ -690,7 +728,9 @@ internal static class SparseStjCapabilityDetector
                     compilation.GetSpecialType(SpecialType.System_Object)
                 )
             )
+            {
                 hasDeserialize = true;
+            }
         }
 
         foreach (var member in serializer.GetMembers("Serialize"))
@@ -708,7 +748,9 @@ internal static class SparseStjCapabilityDetector
                 && ParameterMatches(method.Parameters[2], typeInfo, RefKind.None)
                 && method.ReturnsVoid
             )
+            {
                 hasSerialize = true;
+            }
         }
 
         return hasGenericDeserialize && hasGenericSerialize && hasDeserialize && hasSerialize;
@@ -731,7 +773,9 @@ internal static class SparseStjCapabilityDetector
                 && property.GetMethod.IsAccessibleTo(compilation)
                 && SymbolEqualityComparer.Default.Equals(property.Type, propertyType)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -754,7 +798,9 @@ internal static class SparseStjCapabilityDetector
                 && property.SetMethod.IsAccessibleTo(compilation)
                 && SymbolEqualityComparer.Default.Equals(property.Type, propertyType)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -777,7 +823,9 @@ internal static class SparseStjCapabilityDetector
                 && property.SetMethod.IsAccessibleTo(compilation)
                 && SymbolEqualityComparer.Default.Equals(property.Type, propertyType)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -801,7 +849,9 @@ internal static class SparseStjCapabilityDetector
                 && SymbolEqualityComparer.Default.Equals(method.ReturnType, returnType)
                 && ParametersMatch(method.Parameters, parameterTypes)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -820,7 +870,9 @@ internal static class SparseStjCapabilityDetector
                 && ctor.Parameters.Length == parameterTypes.Length
                 && ParametersMatch(ctor.Parameters, parameterTypes)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -832,11 +884,16 @@ internal static class SparseStjCapabilityDetector
     )
     {
         if (parameters.Length != parameterTypes.Length)
+        {
             return false;
+        }
+
         for (var index = 0; index < parameters.Length; index++)
         {
             if (!ParameterMatches(parameters[index], parameterTypes[index], RefKind.None))
+            {
                 return false;
+            }
         }
 
         return true;
@@ -870,15 +927,22 @@ internal static class SparseStjCapabilityDetector
             || type.IsAbstract
             || !type.IsAccessibleTo(compilation)
         )
+        {
             return false;
+        }
 
         var attributeBase = SafeGet(compilation, "System.Attribute");
         if (attributeBase is null)
+        {
             return false;
+        }
+
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
             if (SymbolEqualityComparer.Default.Equals(current, attributeBase))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -897,7 +961,9 @@ internal static class SparseStjCapabilityDetector
                 && field.HasConstantValue
                 && field.IsAccessibleTo(compilation)
             )
+            {
                 return true;
+            }
         }
 
         return false;
@@ -908,7 +974,9 @@ internal static class SparseStjCapabilityDetector
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
             if (SymbolEqualityComparer.Default.Equals(current, expectedBase))
+            {
                 return true;
+            }
         }
 
         return false;

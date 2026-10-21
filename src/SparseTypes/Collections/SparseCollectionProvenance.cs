@@ -506,11 +506,14 @@ internal static class SparseCollectionProvenance
             foreach (var value in effectiveSet)
             {
                 if (!originsByValue.TryGetValue(value, out var origin))
+                {
                     return Fail(
                         "The effective set is not the comparer-aware union of the present contributions after the last reset.",
                         out origins,
                         out reason
                     );
+                }
+
                 origins[position++] = origin;
             }
             reason = null;

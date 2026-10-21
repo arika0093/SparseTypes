@@ -97,6 +97,7 @@ internal static class SparseModelAnalyzer
         {
             var containerPrefix = config.PatchDialect.Value.PayloadImplementationContainerPrefix;
             if (!string.IsNullOrWhiteSpace(containerPrefix))
+            {
                 reservedNames = reservedNames.Add(
                     containerPrefix
                         + "_"
@@ -105,6 +106,7 @@ internal static class SparseModelAnalyzer
                             cancellationToken
                         )
                 );
+            }
         }
         var reservedCollision = SparseShapeValidation.FindFirstReservedNameCollision(
             memberModels,
@@ -268,10 +270,13 @@ internal static class SparseModelAnalyzer
         // Non-JSON products skip the traversal entirely: no codecs, no
         // diagnostics, byte-identical output.
         if (!SparsePayloadJsonPocoDiscovery.IsEnabledFor(config))
+        {
             return (
                 ImmutableArray<SparsePayloadJsonPocoModel>.Empty,
                 ImmutableArray<SparseGeneratorDiagnostic>.Empty
             );
+        }
+
         return SparsePayloadJsonPocoDiscovery.Collect(members, config, cancellationToken);
     }
 

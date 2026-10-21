@@ -100,7 +100,10 @@ internal static class SparseChangeSetRebaseEmitter
             "/// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>"
         );
         if (target is not null)
+        {
             code.AppendLineAt(2, "/// <param name=\"self\">The change set to rebase.</param>");
+        }
+
         code.AppendLineAt(2, "/// <param name=\"current\">The newer state to rebase onto.</param>");
         code.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
         code.AppendLineAt(2, "/// <returns>The rebased change and conflicts.</returns>");
@@ -275,14 +278,20 @@ internal static class SparseChangeSetRebaseEmitter
             }
         }
         if (__hasSparseRb)
+        {
             AppendPragmaDisableNullKey(code, 3);
+        }
+
         if (SparseChangeSetMemberRebaseEmitter.UsesDefaultMode(members))
+        {
             code.AppendLineAt(
                 3,
                 "var __mode = options is null ? "
                     + modeType
                     + ".Default : options.DefaultRebaseMode;"
             );
+        }
+
         foreach (var member in members)
         {
             var prop = member.Property.Name;
@@ -492,8 +501,11 @@ internal static class SparseChangeSetRebaseEmitter
         foreach (var member in members)
         {
             if (IsNested(member))
+            {
                 rargs.Add("__r" + member.Id);
+            }
             else if (IsKeyed(member))
+            {
                 AddKeyedChangeSetArgs(
                     rargs,
                     member,
@@ -511,7 +523,9 @@ internal static class SparseChangeSetRebaseEmitter
                         ? "__rtaO" + member.Id
                         : null
                 );
+            }
             else if (IsDict(member))
+            {
                 rargs.AddRange(
                     new[]
                     {
@@ -522,14 +536,20 @@ internal static class SparseChangeSetRebaseEmitter
                         "__ritems" + member.Id,
                     }
                 );
+            }
             else
+            {
                 rargs.AddRange(
                     new[] { "__rb" + member.Id, "__ra" + member.Id, "__rh" + member.Id }
                 );
+            }
         }
         code.AppendLineAt(3, "var __rebased = new ChangeSet(" + string.Join(", ", rargs) + ");");
         if (__hasSparseRb)
+        {
             AppendPragmaRestoreNullKey(code, 3);
+        }
+
         code.AppendLineAt(3, "return new " + rebaseResult + "(__rebased, __conflicts);");
         code.AppendLineAt(2, "}");
         if (modelType is not null)

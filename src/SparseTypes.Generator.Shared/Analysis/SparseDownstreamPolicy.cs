@@ -153,7 +153,10 @@ internal static class SparseDownstreamPolicy
     {
         var policies = dialect.EffectiveMemberPolicies;
         if (policies.IsEmpty)
+        {
             return false;
+        }
+
         return members.Any(member =>
             GetTransport(policies, member.Property.Name) != SparseMemberTransport.Full
         );
@@ -172,9 +175,12 @@ internal static class SparseDownstreamPolicy
         var candidates = dialect.EffectiveMemberPolicies.Select(static policy => policy.MemberName);
         var contract = dialect.WriteContract;
         if (contract is not null)
+        {
             candidates = candidates.Concat(
                 contract.EffectiveMembers.Select(static mapping => mapping.ReadMemberName)
             );
+        }
+
         return candidates
             .Where(candidate => !known.Contains(candidate))
             .Distinct()
@@ -189,7 +195,10 @@ internal static class SparseDownstreamPolicy
     {
         var policies = dialect.EffectiveMemberPolicies;
         if (policies.IsEmpty)
+        {
             return ImmutableArray<string>.Empty;
+        }
+
         return members
             .Where(member =>
                 !IsScalarMember(member)
@@ -207,16 +216,21 @@ internal static class SparseDownstreamPolicy
     {
         var unknown = FindUnknownMemberNames(members, dialect);
         if (!unknown.IsDefaultOrEmpty && unknown.Length > 0)
+        {
             throw new ArgumentException(
                 "A product policy references unknown member '" + unknown[0] + "'.",
                 nameof(dialect)
             );
+        }
+
         var offenders = FindNonScalarPolicyMembers(members, dialect);
         if (!offenders.IsDefaultOrEmpty && offenders.Length > 0)
+        {
             throw new ArgumentException(
                 "Member '" + offenders[0] + "' cannot carry a redacted or write-only policy.",
                 nameof(dialect)
             );
+        }
     }
 
     /// <summary>Validates the emission plan during analysis.</summary>

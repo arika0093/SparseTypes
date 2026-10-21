@@ -230,9 +230,15 @@ public sealed class DeferredHasChangesTests
                 {
                     Diffs++;
                     if (RejectBaseline && ReferenceEquals(before.Value, _baseline))
+                    {
                         throw new InvalidOperationException("baseline diff failed");
+                    }
+
                     if (RejectTransition && !ReferenceEquals(before.Value, _baseline))
+                    {
                         throw new InvalidOperationException("transition diff failed");
+                    }
+
                     return NeutralSessionModel.ChangeSet.Between(before, after);
                 },
                 ToPatch = static changes => changes.ToPatch(),

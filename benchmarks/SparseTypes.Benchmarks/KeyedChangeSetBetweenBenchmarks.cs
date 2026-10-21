@@ -40,9 +40,11 @@ public class KeyedChangeSetBetweenBenchmarks
                 .Patch.Between(changes.Invert().ToPatch().Apply(_after), _before)
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 "Keyed differences must preserve endpoints and invert correctly."
             );
+        }
     }
 
     private Optional<BenchKeyedServerHolder.Fragment?> State(bool after)
@@ -62,10 +64,17 @@ public class KeyedChangeSetBetweenBenchmarks
             })
             .ToList();
         if (after && Shape == KeyedChangeSetBetweenShape.Reorder)
+        {
             items.Reverse();
+        }
+
         if (after && Shape == KeyedChangeSetBetweenShape.RemoveFirst)
+        {
             items.RemoveAt(0);
+        }
+
         if (after && Shape == KeyedChangeSetBetweenShape.AddLast)
+        {
             items.Add(
                 new BenchKeyedServer
                 {
@@ -74,8 +83,13 @@ public class KeyedChangeSetBetweenBenchmarks
                     Count = Size,
                 }
             );
+        }
+
         if (after && Shape == KeyedChangeSetBetweenShape.ReplaceLast)
+        {
             items[^1].Id = "replacement-last";
+        }
+
         return Optional<BenchKeyedServerHolder.Fragment?>.Present(
             BenchKeyedServerHolder.Fragment.From(new() { Items = items })
         );
@@ -95,7 +109,11 @@ public class KeyedChangeSetBetweenBenchmarks
     public static void ValidateInputs()
     {
         foreach (var size in new[] { 16, 2048 })
-        foreach (var shape in Enum.GetValues<KeyedChangeSetBetweenShape>())
-            new KeyedChangeSetBetweenBenchmarks { Size = size, Shape = shape }.Setup();
+        {
+            foreach (var shape in Enum.GetValues<KeyedChangeSetBetweenShape>())
+            {
+                new KeyedChangeSetBetweenBenchmarks { Size = size, Shape = shape }.Setup();
+            }
+        }
     }
 }

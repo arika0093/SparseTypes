@@ -17,9 +17,11 @@ public class KeyedEmptyChangeSetBetweenBenchmarks
             BenchKeyedServerHolder.Fragment.From(new())
         );
         if (!Between().IsEmpty)
+        {
             throw new InvalidOperationException(
                 "Two empty keyed collections must have no changes."
             );
+        }
     }
 
     [Benchmark]

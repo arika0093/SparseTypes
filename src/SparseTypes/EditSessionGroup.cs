@@ -37,16 +37,20 @@ public sealed class EditSessionGroup
         lock (_gate)
         {
             if (_sections.ContainsKey(sectionId))
+            {
                 throw new ArgumentException(
                     $"Section '{sectionId}' is already registered. Use Replace to replace it explicitly.",
                     nameof(sectionId)
                 );
+            }
 
             if (!_sessions.Add(registration.Session))
+            {
                 throw new ArgumentException(
                     $"The session is already registered as section '{FindSectionId(registration.Session)}'. A session instance cannot back multiple live sections.",
                     nameof(registration)
                 );
+            }
 
             var revision = _baselineRevisions.TryGetValue(sectionId, out var previousRevision)
                 ? checked(previousRevision + 1)
@@ -163,9 +167,14 @@ public sealed class EditSessionGroup
             }
 
             if (!section.TryValidate(out var readinessError))
+            {
                 issues.Add(new EditSessionGroupValidationIssue(section.SectionId, readinessError!));
+            }
+
             if (!section.TryValidateChanges(capture.Changes, out var changesError))
+            {
                 issues.Add(new EditSessionGroupValidationIssue(section.SectionId, changesError!));
+            }
         }
 
         ThrowIfInvalid(issues);
@@ -257,7 +266,10 @@ public sealed class EditSessionGroup
         where TChangeSet : class
     {
         if (persisted is null)
+        {
             throw new ArgumentNullException(nameof(persisted));
+        }
+
         lock (_gate)
         {
             if (
@@ -269,7 +281,10 @@ public sealed class EditSessionGroup
                     out error
                 )
             )
+            {
                 return false;
+            }
+
             bool success;
             try
             {
@@ -299,18 +314,27 @@ public sealed class EditSessionGroup
         where TChangeSet : class
     {
         if (handle is null)
+        {
             throw new ArgumentNullException(nameof(handle));
+        }
+
         if (!ReferenceEquals(handle.Owner, this))
+        {
             throw new EditSessionStaleSubmissionException(
                 "The section handle belongs to another group."
             );
+        }
+
         if (
             !_sections.TryGetValue(handle.SectionId, out var current)
             || !ReferenceEquals(current, handle.Section)
         )
+        {
             throw new EditSessionStaleSubmissionException(
                 $"Section '{handle.SectionId}' was unregistered or replaced."
             );
+        }
+
         return current;
     }
 
@@ -320,7 +344,9 @@ public sealed class EditSessionGroup
         lock (_gate)
         {
             foreach (var section in _sections.Values)
+            {
                 SynchronizeBaselineRevision(section);
+            }
             // Run capture delegates outside the lock to allow re-entrant calls.
             registeredSections = _sections
                 .Values.OrderBy(value => value.SectionId, StringComparer.Ordinal)
@@ -358,7 +384,9 @@ public sealed class EditSessionGroup
     private static void ThrowIfInvalid(List<EditSessionGroupValidationIssue> issues)
     {
         if (issues.Count != 0)
+        {
             throw new EditSessionGroupValidationException(Array.AsReadOnly(issues.ToArray()));
+        }
     }
 
     private async Task<EditSessionGroupSubmission> ValidateAsynchronously(
@@ -375,13 +403,18 @@ public sealed class EditSessionGroup
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!capture.Section.TryValidate(out var readinessError))
+            {
                 issues.Add(
                     new EditSessionGroupValidationIssue(capture.Section.SectionId, readinessError!)
                 );
+            }
+
             if (!capture.Section.TryValidateChanges(capture.Changes, out var changesError))
+            {
                 issues.Add(
                     new EditSessionGroupValidationIssue(capture.Section.SectionId, changesError!)
                 );
+            }
         }
 
         // Phase 2: asynchronous captured validation, no gate held across
@@ -390,7 +423,10 @@ public sealed class EditSessionGroup
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (!capture.Section.HasAsyncValidation)
+            {
                 continue;
+            }
+
             try
             {
                 var asyncError = await capture.Section.ValidateAsync(
@@ -399,9 +435,11 @@ public sealed class EditSessionGroup
                 );
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.IsNullOrWhiteSpace(asyncError))
+                {
                     issues.Add(
                         new EditSessionGroupValidationIssue(capture.Section.SectionId, asyncError!)
                     );
+                }
             }
             catch (OperationCanceledException)
             {
@@ -464,15 +502,24 @@ public sealed class EditSessionGroup
     {
         SynchronizeBaselineRevision(section);
         if (submission is null)
+        {
             throw new ArgumentNullException(nameof(submission));
+        }
+
         if (!submission.BelongsTo(this) || !submission.TryGet(section, out var entry))
+        {
             throw new EditSessionStaleSubmissionException(
                 $"The submission does not contain section '{section.SectionId}'."
             );
+        }
+
         if (entry!.BaselineRevision != section.BaselineRevision)
+        {
             throw new EditSessionStaleSubmissionException(
                 $"The submission for section '{section.SectionId}' was prepared against an older baseline revision."
             );
+        }
+
         return entry;
     }
 
@@ -539,19 +586,29 @@ public sealed class EditSessionGroup
     )
     {
         if (policy == EditSessionGroupRemovalPolicy.DetachWithPendingChanges)
+        {
             return;
+        }
+
         if (policy != EditSessionGroupRemovalPolicy.RequireClean)
+        {
             throw new ArgumentOutOfRangeException(nameof(policy));
+        }
+
         if (section.HasChanges())
+        {
             throw new InvalidOperationException(
                 $"Section '{section.SectionId}' has pending changes. Use DetachWithPendingChanges to remove it explicitly."
             );
+        }
     }
 
     private void AdvanceBaselineRevision(IEditSessionGroupSection section)
     {
         if (SynchronizeBaselineRevision(section))
+        {
             return;
+        }
 
         var revision = checked(section.BaselineRevision + 1);
         section.BaselineRevision = revision;
@@ -561,12 +618,16 @@ public sealed class EditSessionGroup
     private bool SynchronizeBaselineRevision(IEditSessionGroupSection section)
     {
         if (!section.TryGetBaselineRevision(out var sessionRevision))
+        {
             return false;
+        }
 
         var previousSessionRevision = section.ObservedBaselineRevision;
         section.ObservedBaselineRevision = sessionRevision;
         if (previousSessionRevision == sessionRevision)
+        {
             return false;
+        }
 
         var revisionDelta =
             previousSessionRevision is long previous && sessionRevision > previous
@@ -600,10 +661,12 @@ public sealed class EditSessionGroup
             string.IsNullOrWhiteSpace(sectionId)
             || !string.Equals(sectionId, sectionId.Trim(), StringComparison.Ordinal)
         )
+        {
             throw new ArgumentException(
                 "A section identifier must be non-empty and have no surrounding whitespace.",
                 nameof(sectionId)
             );
+        }
     }
 
     private static void ValidateRegistration<TModel, TChangeSet>(
@@ -613,24 +676,38 @@ public sealed class EditSessionGroup
         where TChangeSet : class
     {
         if (registration is null)
+        {
             throw new ArgumentNullException(nameof(registration));
+        }
+
         if (registration.Session is null)
+        {
             throw new ArgumentException("A session is required.", nameof(registration));
+        }
+
         if (registration.CreateChangeSet is null)
+        {
             throw new ArgumentException(
                 "A change-set capture delegate is required.",
                 nameof(registration)
             );
+        }
+
         if (registration.IsEmpty is null)
+        {
             throw new ArgumentException(
                 "An empty-check delegate is required.",
                 nameof(registration)
             );
+        }
+
         if (registration.EnumerateChangedPaths is null)
+        {
             throw new ArgumentException(
                 "A changed-path delegate is required.",
                 nameof(registration)
             );
+        }
     }
 
     private sealed class EditSessionGroupSection<TModel, TChangeSet> : IEditSessionGroupSection
@@ -778,7 +855,10 @@ public sealed class EditSessionGroup
         )
         {
             if (Registration.ValidateAsync is null)
+            {
                 return null;
+            }
+
             return await Registration
                 .ValidateAsync((TChangeSet)changes, cancellationToken)
                 .ConfigureAwait(false);
@@ -796,17 +876,28 @@ public sealed class EditSessionGroup
             {
                 var fresh = Registration.CreateChangeSet();
                 if (fresh is null)
+                {
                     return false;
+                }
+
                 if (Registration.IsEmpty(fresh))
+                {
                     return true;
+                }
+
                 var freshPaths = Registration.EnumerateChangedPaths(fresh);
                 if (freshPaths is null)
+                {
                     return false;
+                }
                 // Structured set membership: typed keys and root types with
                 // identical display text must not falsely overlap.
                 var pending = new HashSet<SparsePath>();
                 foreach (var path in freshPaths)
+                {
                     pending.Add(path);
+                }
+
                 return HasNoPendingCollision(entry.ChangedPaths, pending);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
@@ -828,7 +919,9 @@ public sealed class EditSessionGroup
             foreach (var path in paths)
             {
                 if (pending.Contains(path))
+                {
                     return false;
+                }
             }
 
             return true;

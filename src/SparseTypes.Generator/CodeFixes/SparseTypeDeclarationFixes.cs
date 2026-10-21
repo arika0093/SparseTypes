@@ -18,7 +18,10 @@ internal static class SparseTypeDeclarationFixes
     {
         declaration = null;
         if (diagnostic.Location.SourceTree is null)
+        {
             return false;
+        }
+
         var token = root.FindToken(diagnostic.Location.SourceSpan.Start);
         declaration = token
             .Parent?.AncestorsAndSelf()
@@ -34,7 +37,10 @@ internal static class SparseTypeDeclarationFixes
     )
     {
         if (declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+        {
             return document;
+        }
+
         var partialToken = SyntaxFactory
             .Token(SyntaxKind.PartialKeyword)
             .WithTrailingTrivia(SyntaxFactory.Space);
@@ -53,7 +59,10 @@ internal static class SparseTypeDeclarationFixes
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null)
+        {
             return document;
+        }
+
         var updated = root;
         var current = (SyntaxNode?)mapper;
         while (current is not null)
@@ -85,10 +94,15 @@ internal static class SparseTypeDeclarationFixes
             modifier.IsKind(SyntaxKind.AbstractKeyword)
         );
         if (abstractToken == default)
+        {
             return document;
+        }
         // A static class is abstract and sealed; removing abstract alone is invalid.
         if (declaration.Modifiers.Any(SyntaxKind.StaticKeyword))
+        {
             return document;
+        }
+
         var updated = declaration.WithModifiers(
             SyntaxFactory.TokenList(
                 declaration.Modifiers.Where(static modifier =>
@@ -109,13 +123,19 @@ internal static class SparseTypeDeclarationFixes
     )
     {
         if (declaration is not ClassDeclarationSyntax)
+        {
             return document;
+        }
+
         if (
             declaration
                 .Members.OfType<ConstructorDeclarationSyntax>()
                 .Any(static ctor => ctor.ParameterList.Parameters.Count == 0)
         )
+        {
             return document;
+        }
+
         var hasRequiredMembers = declaration
             .Members.OfType<PropertyDeclarationSyntax>()
             .Any(static property => property.Modifiers.Any(SyntaxKind.RequiredKeyword));

@@ -76,9 +76,11 @@ public class DictionaryChangeSetMembershipComposeBenchmarks
                 )
                 .IsEmpty
         )
+        {
             throw new InvalidOperationException(
                 $"Dictionary membership composition failed: shape={Shape}, scalarEmpty={scalar.IsEmpty}, structuralEmpty={structural.IsEmpty}, scalarApply={BenchScalarDictHolder.Patch.Between(scalar.ToPatch().Apply(scalarBefore), scalarAfter).IsEmpty}, scalarInverse={BenchScalarDictHolder.Patch.Between(scalar.Invert().ToPatch().Apply(scalarAfter), scalarBefore).IsEmpty}, structuralApply={BenchStructuralDictHolder.Patch.Between(structural.ToPatch().Apply(structuralBefore), structuralAfter).IsEmpty}, structuralInverse={BenchStructuralDictHolder.Patch.Between(structural.Invert().ToPatch().Apply(structuralAfter), structuralBefore).IsEmpty}."
             );
+        }
     }
 
     private IEnumerable<int> Keys(int step) =>

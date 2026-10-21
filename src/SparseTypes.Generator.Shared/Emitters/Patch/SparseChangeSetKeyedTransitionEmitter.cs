@@ -175,7 +175,10 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         code.AppendLineAt(4, "{");
         code.AppendLineAt(5, "Key = key;");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+        {
             code.AppendLineAt(5, "TemporaryKey = temporaryKey;");
+        }
+
         code.AppendLineAt(5, "Before = before;");
         code.AppendLineAt(5, "After = after;");
         code.AppendLineAt(5, "BeforeIndex = beforeIndex;");
@@ -250,7 +253,10 @@ internal static class SparseChangeSetKeyedTransitionEmitter
             );
         }
         else
+        {
             code.AppendLineAt(5, "foreach (var __item in _items) __lookup[__item.Key] = __item;");
+        }
+
         code.AppendLineAt(5, "_lookup = __lookup;");
         code.AppendLineAt(4, "}");
         code.AppendLineAt(
@@ -402,10 +408,13 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         // tuple or value object for composite identity.
         var keys = member.Collection.KeyPropertyNames;
         if (keys.Length == 1)
+        {
             return "return element."
                 + SparseNaming.EscapeIdentifier(keys[0])
                 + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? "!" : "")
                 + ";";
+        }
+
         return "throw new global::System.InvalidOperationException(\"Keyed collection has no usable key property.\");";
     }
 }

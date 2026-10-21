@@ -273,7 +273,10 @@ internal static class SparseFragmentEmitter
         var features = config.EffectiveEmissionFeatures;
         var planErrors = features.ValidateDependencies();
         if (!planErrors.IsDefaultOrEmpty && planErrors.Length > 0)
+        {
             throw new ArgumentException(planErrors[0], nameof(config));
+        }
+
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, patchDialect);
         // Generated-Once: with an explicit namespace the collection clone
         // kernels live once per compilation.
@@ -288,6 +291,7 @@ internal static class SparseFragmentEmitter
         var splitOperations = implementationNamespace is not null && features.EmitFragment;
         string? operationsType = null;
         if (splitOperations)
+        {
             operationsType =
                 "global::"
                 + implementationNamespace
@@ -296,6 +300,8 @@ internal static class SparseFragmentEmitter
                     model,
                     cancellationToken
                 );
+        }
+
         var expressions = new SparseFragmentExpressions(
             "__sparse_clone_context",
             runtime.ValueComparer,
@@ -583,6 +589,7 @@ internal static class SparseFragmentEmitter
         if (!splitOperations)
         {
             foreach (var poco in pocoCloneModels)
+            {
                 core.AppendPocoCloneHelper(
                     code,
                     poco.Model.ModelTypeName,
@@ -591,6 +598,7 @@ internal static class SparseFragmentEmitter
                     poco.Model.Constructor,
                     operationsType: operationsType
                 );
+            }
         }
         // Shared kernels are emitted once per compilation; only the
         // legacy single-file path redefines them per model.
@@ -635,6 +643,7 @@ internal static class SparseFragmentEmitter
             // Stage 4: moved algorithms live in the operations class in the
             // Keep each model's hint distinct while using the same source file.
             if (splitOperations && implementationBuilder is not null && operationsCore is not null)
+            {
                 SparseFragmentOperationsEmitter.AppendOperations(
                     implementationBuilder,
                     model,
@@ -643,6 +652,7 @@ internal static class SparseFragmentEmitter
                     operationsCore,
                     operationsAccessibility: config.AllowFileScopedTypes ? "file" : "internal"
                 );
+            }
             // Public-first order: model internal bridges trail public nested
             // types, so no internal member precedes the Fragment facade.
             if (splitOperations && operationsType is not null)
@@ -717,7 +727,9 @@ internal static class SparseFragmentEmitter
                 implementationNamespace
             );
             if (payloadJson is not null)
+            {
                 SparsePayloadJsonHelperEmitter.AppendHelper(code, model, payloadJson);
+            }
         }
         appendProductExtensions?.Invoke(code, model, members);
         if (!model.IsGlobalNamespace)
@@ -994,7 +1006,10 @@ internal static class SparseFragmentEmitter
         // Relocated builders live in the per-model implementation container;
         // legacy single-file emission keeps them nested in the model.
         if (operationTarget is null)
+        {
             core.AppendBuilder(code, members, generatedAccessibility);
+        }
+
         SparseFragmentPatchEmitter.AppendPatch(
             code,
             modelType,

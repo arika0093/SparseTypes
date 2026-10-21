@@ -130,6 +130,7 @@ internal static class SparseChangeSetDictTransitionEmitter
             "/// <summary>Shared allocation-light empty entry; retains no value snapshots.</summary>"
         );
         if (hasPatch)
+        {
             code.AppendLineAt(
                 4,
                 "public static Item Empty { get; } = new Item(default!, default, default, false, false, false, "
@@ -140,12 +141,17 @@ internal static class SparseChangeSetDictTransitionEmitter
                     + optionalValueFragment
                     + ".Missing), true);"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 4,
                 "public static Item Empty { get; } = new Item(default!, default, default, false, false, false, true);"
             );
+        }
+
         if (hasPatch)
+        {
             code.AppendLineAt(
                 4,
                 "internal Item("
@@ -158,7 +164,9 @@ internal static class SparseChangeSetDictTransitionEmitter
                     + valueCs
                     + " edit, bool isEmpty)"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 4,
                 "internal Item("
@@ -169,6 +177,8 @@ internal static class SparseChangeSetDictTransitionEmitter
                     + optValue
                     + " after, bool isAdded, bool isRemoved, bool isEdited, bool isEmpty)"
             );
+        }
+
         code.AppendLineAt(4, "{");
         code.AppendLineAt(5, "Key = key;");
         code.AppendLineAt(5, "Before = before;");
@@ -177,7 +187,10 @@ internal static class SparseChangeSetDictTransitionEmitter
         code.AppendLineAt(5, "IsRemoved = isRemoved;");
         code.AppendLineAt(5, "IsEdited = isEdited;");
         if (hasPatch)
+        {
             code.AppendLineAt(5, "Edit = edit;");
+        }
+
         code.AppendLineAt(5, "IsEmpty = isEmpty;");
         code.AppendLineAt(4, "}");
         code.AppendLineAt(3, "}");

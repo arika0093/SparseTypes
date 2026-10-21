@@ -39,8 +39,13 @@ public class NestedKeyedChangeSetBetweenBenchmarks
         var after = before.DeepClone();
         after.Groups.Reverse();
         if (Edited)
+        {
             foreach (var group in after.Groups)
+            {
                 group.Members[0].Count++;
+            }
+        }
+
         _before = Optional<BenchKeyedGroupHolder.Fragment?>.Present(
             BenchKeyedGroupHolder.Fragment.From(before)
         );
@@ -55,7 +60,9 @@ public class NestedKeyedChangeSetBetweenBenchmarks
             || JsonSerializer.Serialize(changes.Invert().ToPatch().Apply(_after).Value!.ToModel())
                 != JsonSerializer.Serialize(before)
         )
+        {
             throw new InvalidOperationException("Nested changes must preserve both endpoints.");
+        }
     }
 
     [Benchmark]

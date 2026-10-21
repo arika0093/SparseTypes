@@ -93,7 +93,10 @@ public sealed partial class SoftDeleteOrderPlanningTests
         var entity = await SeedLines(context, Enumerable.Range(1, 200).ToArray());
         // A large previously deleted population leaves the DTO projection.
         foreach (var line in entity.Lines.Where(static line => line.Qty <= 100))
+        {
             line.IsDeleted = true;
+        }
+
         await context.SaveChangesAsync();
         var trackedBefore = entity.Lines.ToDictionary(static line => line.Qty);
         var current = ReadActive(entity);
@@ -108,7 +111,9 @@ public sealed partial class SoftDeleteOrderPlanningTests
         // No duplicate retained entities and tracked instances preserved.
         entity.Lines.Distinct().Count().ShouldBe(200);
         foreach (var line in entity.Lines)
+        {
             ReferenceEquals(line, trackedBefore[line.Qty]).ShouldBeTrue();
+        }
         // Stable order: surviving actives, then planned removals, then the
         // previously deleted rows in tracked order.
         var actives = entity.Lines.Take(50).Select(static line => line.Qty).ToList();

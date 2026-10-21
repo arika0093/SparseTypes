@@ -201,7 +201,10 @@ public sealed class KeyedGetChangeTests
         _ = transition.GetChange("unknown");
         var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < 1000; i++)
+        {
             _ = transition.GetChange("unknown");
+        }
+
         var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
         (allocatedAfter - allocatedBefore).ShouldBe(0);
     }

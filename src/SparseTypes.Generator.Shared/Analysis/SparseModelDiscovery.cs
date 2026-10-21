@@ -92,10 +92,13 @@ internal static class SparseModelDiscovery
         // parameter bindings again for every property.
         HashSet<string>? boundNames = null;
         if (constructor is not null && !constructor.Parameters.IsEmpty)
+        {
             boundNames = new HashSet<string>(
                 constructor.Parameters.Select(static parameter => parameter.PropertyName),
                 StringComparer.Ordinal
             );
+        }
+
         var index = 0;
         foreach (
             var property in GetReadableProperties(model, config, cancellationToken)
@@ -1052,7 +1055,10 @@ internal static class SparseModelDiscovery
     )
     {
         if (!SparsePayloadJsonPocoDiscovery.IsEnabledFor(config))
+        {
             return ImmutableArray<SparsePayloadJsonPocoModel>.Empty;
+        }
+
         var (pocos, _) = SparsePayloadJsonPocoDiscovery.Collect(members, config, cancellationToken);
         return pocos;
     }

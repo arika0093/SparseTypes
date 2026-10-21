@@ -223,6 +223,7 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
             );
         }
         else
+        {
             code.AppendLineAt(
                 6,
                 "{ foreach (var __k in __naO"
@@ -233,6 +234,8 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
                     + id
                     + ".Add(__e); }"
             );
+        }
+
         code.AppendLineAt(
             6,
             "else foreach (var __kv in __net"
@@ -242,6 +245,7 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
                 + ".Add(__kv.Value);"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
+        {
             code.AppendLineAt(
                 6,
                 "if (__naO"
@@ -252,6 +256,8 @@ internal static class SparseChangeSetKeyedComposeOrdersEmitter
                     + id
                     + ");"
             );
+        }
+
         code.AppendLineAt(6, "if (__nbO" + id + " is not null)");
         code.AppendLineAt(
             6,

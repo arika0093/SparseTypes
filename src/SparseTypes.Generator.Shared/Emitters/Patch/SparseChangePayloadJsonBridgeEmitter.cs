@@ -396,7 +396,10 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     internal static void AppendBareJsonIgnore(SharedIndentedBuilder code, int indent, bool emitJson)
     {
         if (!emitJson)
+        {
             return;
+        }
+
         code.AppendLineAt(indent, "[global::System.Text.Json.Serialization.JsonIgnore]");
     }
 

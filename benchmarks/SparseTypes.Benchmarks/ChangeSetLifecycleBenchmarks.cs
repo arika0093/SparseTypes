@@ -44,9 +44,14 @@ public class ChangeSetLifecycleBenchmarks
         Validate(Invert().ToPatch().Apply(_after), _before);
         Validate(Compose().ToPatch().Apply(_before), _final);
         if (_change.IsEmpty != (Shape == ChangeSetLifecycleShape.Empty))
+        {
             throw new InvalidOperationException("ChangeSet emptiness must match the transition.");
+        }
+
         if (ReferenceEquals(ToPatch(), ToPatch()))
+        {
             throw new InvalidOperationException("ToPatch must return independent patch instances.");
+        }
     }
 
     private Optional<BenchChangeSetRebaseRecord.Fragment?> State(int step) =>
@@ -80,9 +85,11 @@ public class ChangeSetLifecycleBenchmarks
                 .Value.Values.GetValueOrDefault()
                 ?.SequenceEqual(expected.Value.Values.GetValueOrDefault()!) != true
         )
+        {
             throw new InvalidOperationException(
                 "ChangeSet operations must preserve the expected state."
             );
+        }
     }
 
     [Benchmark]

@@ -57,10 +57,13 @@ internal static class SparseGeneratedOnceCloneKernels
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "if (existing is TSet typed) return typed;");
         if (includePortableSetView)
+        {
             code.AppendLineAt(
                 4,
                 "if (existing is __SparseReadOnlySet<T> view && view.Inner is TSet inner) return inner;"
             );
+        }
+
         code.AppendLineAt(4, "return (TSet)existing;");
         code.AppendLineAt(3, "}");
         code.AppendLineAt(3, "global::System.Collections.Generic.ISet<T> clone;");

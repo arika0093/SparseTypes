@@ -132,7 +132,10 @@ public sealed class ModelFacingSurfaceTests
     {
         var nested = model.GetTypeMembers().Select(static type => type.Name).ToArray();
         foreach (var banned in BannedNested)
+        {
             nested.ShouldNotContain(banned);
+        }
+
         nested
             .Where(static name => name.EndsWith("FragmentOperations", StringComparison.Ordinal))
             .ShouldBeEmpty();
@@ -140,18 +143,24 @@ public sealed class ModelFacingSurfaceTests
             .Where(static name => name.EndsWith("FragmentJsonConverter", StringComparison.Ordinal))
             .ShouldBeEmpty();
         foreach (var expected in new[] { "Fragment", "Patch", "ChangeSet" })
+        {
             nested.ShouldContain(expected);
+        }
         // UI/editing types nest in the model; structs skip the session family.
         nested.ShouldContain("ReadOnlyView");
         if (expectSessionFamily)
         {
             foreach (var expected in new[] { "Observable", "EditSession" })
+            {
                 nested.ShouldContain(expected);
+            }
         }
         else
         {
             foreach (var unexpected in new[] { "Observable", "EditSession" })
+            {
                 nested.ShouldNotContain(unexpected);
+            }
         }
         // FragmentBuilder lives in the per-model Generated container.
         compilation
@@ -324,6 +333,8 @@ public sealed class ModelFacingSurfaceTests
         var poco = RequireModel(compilation, "Surface.Probe.SharedPoco");
         var nested = poco.GetTypeMembers().Select(static type => type.Name).ToArray();
         foreach (var banned in BannedNested)
+        {
             nested.ShouldNotContain(banned);
+        }
     }
 }

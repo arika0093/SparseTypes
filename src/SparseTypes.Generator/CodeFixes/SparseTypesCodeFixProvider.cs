@@ -51,12 +51,17 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
             candidate.Id.StartsWith("SPF", System.StringComparison.Ordinal)
         );
         if (diagnostic is null || diagnostic.Location.SourceTree is null)
+        {
             return;
+        }
+
         var root = await context
             .Document.GetSyntaxRootAsync(context.CancellationToken)
             .ConfigureAwait(false);
         if (root is null)
+        {
             return;
+        }
 
         switch (diagnostic.Id)
         {
@@ -123,7 +128,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var declaration
             )
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add 'partial' modifier",
@@ -152,11 +160,20 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var declaration
             )
         )
+        {
             return;
+        }
+
         if (!declaration!.Modifiers.Any(SyntaxKind.AbstractKeyword))
+        {
             return;
+        }
+
         if (declaration.Modifiers.Any(SyntaxKind.StaticKeyword))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove 'abstract' modifier",
@@ -185,7 +202,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var declaration
             )
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add parameterless constructor",
@@ -208,9 +228,15 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (!SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseMerge", out _))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove unsupported merge mode",
@@ -233,9 +259,15 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (!property!.Modifiers.Any(SyntaxKind.RequiredKeyword))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove 'required' modifier",
@@ -258,7 +290,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Use MergeMode.Replace",
@@ -281,7 +316,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Mark reference-safe for cloning",
@@ -310,7 +348,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var declaration
             )
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Keep first [SparseKey] and remove the rest",
@@ -360,7 +401,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
 
         // Property-level with arguments: strip the argument list.
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (
             !SparseMemberAttributeFixes.TryFindAttribute(
                 property!,
@@ -368,7 +412,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var keyAttribute
             ) || keyAttribute?.ArgumentList is null
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Use parameterless [SparseKey]",
@@ -391,9 +438,15 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (property!.Modifiers.Any(SyntaxKind.StaticKeyword))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Make key property publicly readable",
@@ -416,9 +469,15 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (!SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseIgnore", out _))
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove [SparseIgnore]",
@@ -441,12 +500,18 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (
             !SparseMemberAttributeFixes.TryFindAttribute(property!, "SparseKey", out var attribute)
             || attribute?.ArgumentList is null
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove invalid Unassigned sentinel",
@@ -581,9 +646,15 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!SparseMemberAttributeFixes.TryFindProperty(root, diagnostic, out var property))
+        {
             return;
+        }
+
         if (property!.Initializer is null)
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Remove temporary key initializer",
@@ -606,7 +677,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
     )
     {
         if (!diagnostic.GetMessage().Contains("partial"))
+        {
             return;
+        }
+
         if (
             !SparseTypeDeclarationFixes.TryFindTypeDeclaration(
                 root,
@@ -614,7 +688,10 @@ public sealed class SparseTypesCodeFixProvider : CodeFixProvider
                 out var declaration
             )
         )
+        {
             return;
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
                 "Add 'partial' to mapper chain",

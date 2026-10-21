@@ -36,7 +36,10 @@ internal sealed record ModelConstructorBinding(
         var hash =
             (SetsRequiredMembers ? 1 : 0) + (IsImplicitParameterlessClassConstructor ? 2 : 0);
         foreach (var parameter in Parameters)
+        {
             hash = unchecked(hash * 31 + parameter.GetHashCode());
+        }
+
         return hash;
     }
 
@@ -99,11 +102,14 @@ internal sealed record ModelConstructorBinding(
             if (constructorParameters.IsEmpty)
             {
                 if (model.TypeKind == TypeKind.Class && constructor.IsImplicitlyDeclared)
+                {
                     return new(
                         ImmutableArray<ConstructorParameterBinding>.Empty,
                         setsRequiredMembers,
                         true
                     );
+                }
+
                 return setsRequiredMembers
                     ? new(ImmutableArray<ConstructorParameterBinding>.Empty, true)
                     : Parameterless;
@@ -114,7 +120,10 @@ internal sealed record ModelConstructorBinding(
                 propertyIndex ??= BuildPropertyIndex(properties);
                 var match = FindUniqueMatch(propertyIndex, parameter);
                 if (parameter.RefKind != RefKind.None || match is null)
+                {
                     break;
+                }
+
                 parameters.Add(
                     new ConstructorParameterBinding(
                         match.Name,
@@ -124,7 +133,9 @@ internal sealed record ModelConstructorBinding(
                 );
             }
             if (parameters.Count == constructorParameters.Length)
+            {
                 return new(parameters.ToImmutable(), setsRequiredMembers);
+            }
         }
         return model.IsValueType ? Parameterless : null;
     }
@@ -140,7 +151,10 @@ internal sealed record ModelConstructorBinding(
         foreach (var property in properties)
         {
             if (!index.TryGetValue(property.Name, out var bucket))
+            {
                 index[property.Name] = bucket = new List<IPropertySymbol>(1);
+            }
+
             bucket.Add(property);
         }
         return index;
@@ -152,14 +166,23 @@ internal sealed record ModelConstructorBinding(
     )
     {
         if (!index.TryGetValue(parameter.Name, out var bucket))
+        {
             return null;
+        }
+
         IPropertySymbol? match = null;
         foreach (var candidate in bucket)
         {
             if (!SymbolEqualityComparer.Default.Equals(parameter.Type, candidate.Type))
+            {
                 continue;
+            }
+
             if (match is not null)
+            {
                 return null;
+            }
+
             match = candidate;
         }
         return match;
@@ -169,14 +192,26 @@ internal sealed record ModelConstructorBinding(
     {
         var typeName = SparseNaming.TypeName(parameter.Type);
         if (!parameter.HasExplicitDefaultValue || parameter.ExplicitDefaultValue is null)
+        {
             return "default(" + typeName + ")!";
+        }
+
         var value = parameter.ExplicitDefaultValue;
         if (value is string text)
+        {
             return SymbolDisplay.FormatLiteral(text, true);
+        }
+
         if (value is char character)
+        {
             return SymbolDisplay.FormatLiteral(character, true);
+        }
+
         if (value is bool boolean)
+        {
             return boolean ? "true" : "false";
+        }
+
         var literal = Convert.ToString(value, CultureInfo.InvariantCulture)!;
         if (
             value is float specialSingle
@@ -185,7 +220,10 @@ internal sealed record ModelConstructorBinding(
         {
             var field = specialSingle > 0 ? "PositiveInfinity" : "NegativeInfinity";
             if (float.IsNaN(specialSingle))
+            {
                 field = "NaN";
+            }
+
             return "global::System.Single." + field;
         }
         if (
@@ -195,15 +233,27 @@ internal sealed record ModelConstructorBinding(
         {
             var field = specialDouble > 0 ? "PositiveInfinity" : "NegativeInfinity";
             if (double.IsNaN(specialDouble))
+            {
                 field = "NaN";
+            }
+
             return "global::System.Double." + field;
         }
         if (value is float single)
+        {
             literal = single.ToString("R", CultureInfo.InvariantCulture) + "F";
+        }
+
         if (value is double number)
+        {
             literal = number.ToString("R", CultureInfo.InvariantCulture) + "D";
+        }
+
         if (value is decimal)
+        {
             literal += "M";
+        }
+
         return "(" + typeName + ")(" + literal + ")";
     }
 }

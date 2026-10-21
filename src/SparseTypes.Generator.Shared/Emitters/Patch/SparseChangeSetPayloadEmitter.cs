@@ -149,6 +149,7 @@ internal static class SparseChangeSetPayloadEmitter
         );
         SparseChangeSetPayloadValidateEmitter.AppendCoreValidate(code, members, dialect, modelType);
         if (modelType is not null)
+        {
             code.AppendLineAt(
                 2,
                 "internal "
@@ -157,7 +158,10 @@ internal static class SparseChangeSetPayloadEmitter
                     + modelType
                     + ".ChangeSet.FromPayloadCore(this);"
             );
+        }
+
         if (modelType is not null && !SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
+        {
             code.AppendLineAt(
                 2,
                 "internal "
@@ -166,7 +170,10 @@ internal static class SparseChangeSetPayloadEmitter
                     + modelType
                     + ".ChangeSet.PatchFromPayloadCore(this);"
             );
+        }
+
         if (modelType is not null)
+        {
             code.AppendLineAt(
                 2,
                 "internal static "
@@ -175,6 +182,8 @@ internal static class SparseChangeSetPayloadEmitter
                     + modelType
                     + ".Patch patch) => patch.ToChangePayloadCore();"
             );
+        }
+
         if (modelType is not null && SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
         {
             SparseChangeSetPayloadProjectionEmitter.AppendCoreToPatch(
@@ -283,6 +292,7 @@ internal static class SparseChangeSetPayloadEmitter
                     + ", \"{}\"),"
             );
             foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+            {
                 code.AppendLineAt(
                     3,
                     "new(typeof("
@@ -294,6 +304,8 @@ internal static class SparseChangeSetPayloadEmitter
                         )
                         + ", \"{}\"),"
                 );
+            }
+
             foreach (
                 var member in members.Where(static member =>
                     !member.Property.IsJsonIgnored
@@ -303,6 +315,7 @@ internal static class SparseChangeSetPayloadEmitter
                     )
                 )
             )
+            {
                 code.AppendLineAt(
                     3,
                     "new(typeof("
@@ -316,6 +329,8 @@ internal static class SparseChangeSetPayloadEmitter
                         )
                         + ", \"{}\"),"
                 );
+            }
+
             code.AppendLineAt(2, "};");
         }
         code.AppendLineAt(
@@ -427,11 +442,17 @@ internal static class SparseChangeSetPayloadEmitter
         foreach (var character in name)
         {
             if (char.IsLetterOrDigit(character))
+            {
                 builder.Append(character);
+            }
             else if (character == '_')
+            {
                 builder.Append("__");
+            }
             else
+            {
                 builder.Append("_x").Append(((int)character).ToString("X4")).Append('_');
+            }
         }
         return builder.ToString();
     }
@@ -454,17 +475,23 @@ internal static class SparseChangeSetPayloadEmitter
                 && member.Property.Name == rootDiscriminator.ToString()
             )
         )
+        {
             rootDiscriminator.Append('$');
+        }
+
         var result = new System.Text.StringBuilder("{\"oneOf\":[{\"$ref\":\"#/components/schemas/")
             .Append(baseName)
             .Append("_RootChange\"}");
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        {
             result
                 .Append(",{\"$ref\":\"#/components/schemas/")
                 .Append(baseName)
                 .Append("_Change_")
                 .Append(SchemaNamePart(member.Property.Name))
                 .Append("\"}");
+        }
+
         result
             .Append("],\"discriminator\":{\"propertyName\":\"member\",\"mapping\":{\"")
             .Append(rootDiscriminator)
@@ -476,6 +503,7 @@ internal static class SparseChangeSetPayloadEmitter
                 .Where(static member => !member.Property.IsJsonIgnored)
                 .Select(static member => member.Property.Name)
         )
+        {
             result
                 .Append(",\"")
                 .Append(JsonStringContent(property))
@@ -484,6 +512,8 @@ internal static class SparseChangeSetPayloadEmitter
                 .Append("_Change_")
                 .Append(SchemaNamePart(property))
                 .Append("\"");
+        }
+
         return result.Append("}}}").ToString();
     }
 
@@ -517,9 +547,14 @@ internal static class SparseChangeSetPayloadEmitter
                     break;
                 default:
                     if (character < 0x20)
+                    {
                         builder.Append("\\u").Append(((int)character).ToString("x4"));
+                    }
                     else
+                    {
                         builder.Append(character);
+                    }
+
                     break;
             }
         }
@@ -614,7 +649,10 @@ internal static class SparseChangeSetPayloadEmitter
             );
         }
         foreach (var member in readable)
+        {
             code.AppendLineAt(3, "bool seen" + member.Id + " = false;");
+        }
+
         code.AppendLineAt(3, "foreach (var member in Members)");
         code.AppendLineAt(3, "{");
         code.AppendLineAt(4, "switch (member)");
@@ -682,6 +720,7 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLineAt(3, "return new Fragment");
         code.AppendLineAt(3, "{");
         foreach (var member in readable)
+        {
             code.AppendLineAt(
                 4,
                 SparseNaming.EscapeIdentifier(member.Property.Name)
@@ -689,6 +728,8 @@ internal static class SparseChangeSetPayloadEmitter
                     + member.Id
                     + ","
             );
+        }
+
         code.AppendLineAt(3, "};");
         code.AppendLineAt(2, "}");
         code.AppendLineAt(
@@ -728,7 +769,10 @@ internal static class SparseChangeSetPayloadEmitter
             while (
                 variants.Any(member => member.Property.Name == rootDiscriminatorBuilder.ToString())
             )
+            {
                 rootDiscriminatorBuilder.Append('$');
+            }
+
             var rootDiscriminator = rootDiscriminatorBuilder.ToString();
             code.AppendLineAt(
                 1,
@@ -774,23 +818,29 @@ internal static class SparseChangeSetPayloadEmitter
         AppendIgnoreNull(code, 2, dialect.EmitJson);
         AppendJsonProperty(code, 2, "Before", 0, dialect.EmitJson);
         if (dialect.EmitJson)
+        {
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                 code,
                 2,
                 payloadRoot,
                 implementationNamespace
             );
+        }
+
         code.AppendLineAt(2, "public " + endpoint + "<" + payloadRoot + ">? Before { get; set; }");
         code.AppendLineAt(2, "/// <summary>Gets or sets the after snapshot.</summary>");
         AppendIgnoreNull(code, 2, dialect.EmitJson);
         AppendJsonProperty(code, 2, "After", 1, dialect.EmitJson);
         if (dialect.EmitJson)
+        {
             SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(
                 code,
                 2,
                 payloadRoot,
                 implementationNamespace
             );
+        }
+
         code.AppendLineAt(2, "public " + endpoint + "<" + payloadRoot + ">? After { get; set; }");
         code.AppendLineAt(1, "}");
         code.AppendLine();
@@ -810,7 +860,10 @@ internal static class SparseChangeSetPayloadEmitter
         // The endpoint/kind bridge preserves the v1 wire shape once the runtime
         // stopped carrying serializer attributes.
         if (dialect.EmitJson && implementationNamespace is null)
+        {
             SparseChangePayloadJsonBridgeEmitter.AppendBridgeConverters(code, dialect);
+        }
+
         code.IndentOffset--;
         code.AppendLineAt(1, "}");
     }
@@ -907,7 +960,10 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         if (string.IsNullOrEmpty(implementationNamespace))
+        {
             return childModelType + "." + PayloadTypeName(dialect, childModelType, suffix);
+        }
+
         var simple = RequirePayloadContainerName(dialect, childModelType);
         return SparseGeneratedPlacement.QualifyPayloadContainer(simple, implementationNamespace)
             + "."
@@ -921,7 +977,10 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         if (!emitJson)
+        {
             return;
+        }
+
         code.AppendLineAt(
             indent,
             "[global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]"
@@ -937,7 +996,10 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         if (!emitJson)
+        {
             return;
+        }
+
         var jsonName = char.ToLowerInvariant(name[0]) + name.Substring(1);
         code.AppendLineAt(
             indent,
@@ -956,7 +1018,10 @@ internal static class SparseChangeSetPayloadEmitter
     )
     {
         if (!emitJson)
+        {
             return;
+        }
+
         code.AppendLineAt(
             indent,
             "[global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]"

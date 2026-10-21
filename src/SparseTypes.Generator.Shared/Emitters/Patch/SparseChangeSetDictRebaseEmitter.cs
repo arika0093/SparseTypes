@@ -160,6 +160,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLineAt(6, "{");
         code.AppendLineAt(7, "__any" + id + " = true;");
         if (hasPatch)
+        {
             code.AppendLineAt(
                 7,
                 "__rlist"
@@ -168,7 +169,9 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + trans
                     + ".Item(__it.Key!, default, __it.After, true, false, false, __it.Edit, false));"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 7,
                 "__rlist"
@@ -177,6 +180,8 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + trans
                     + ".Item(__it.Key!, default, __it.After, true, false, false, false));"
             );
+        }
+
         code.AppendLineAt(6, "}");
         code.AppendLineAt(
             6,
@@ -238,6 +243,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         code.AppendLineAt(6, "{");
         code.AppendLineAt(7, "__any" + id + " = true;");
         if (hasPatch)
+        {
             code.AppendLineAt(
                 7,
                 "__rlist"
@@ -246,7 +252,9 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + trans
                     + ".Item(__it.Key!, __it.Before, default, false, true, false, __it.Edit, false));"
             );
+        }
         else
+        {
             code.AppendLineAt(
                 7,
                 "__rlist"
@@ -255,6 +263,8 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + trans
                     + ".Item(__it.Key!, __it.Before, default, false, true, false, false));"
             );
+        }
+
         code.AppendLineAt(6, "}");
         code.AppendLineAt(6, "}");
         code.AppendLineAt(6, "else");

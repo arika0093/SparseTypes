@@ -58,21 +58,33 @@ public sealed class EditSessionGroupSubmission
         where TChangeSet : class
     {
         if (handle is null)
+        {
             throw new ArgumentNullException(nameof(handle));
+        }
+
         if (!ReferenceEquals(handle.Owner, _owner))
+        {
             throw new ArgumentException(
                 "The handle belongs to another edit-session group.",
                 nameof(handle)
             );
+        }
+
         if (!_bySection.TryGetValue(handle.Section, out var section))
+        {
             throw new KeyNotFoundException(
                 "The section has no changes in this submission or its registration was replaced."
             );
+        }
+
         if (section is not EditSessionSubmissionEntry<TChangeSet> typed)
+        {
             throw new ArgumentException(
                 "The handle does not match the submitted section type.",
                 nameof(handle)
             );
+        }
+
         return typed;
     }
 
