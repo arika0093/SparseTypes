@@ -17,9 +17,9 @@ fi
 # Each shipped lib package must carry every asset in the target policy.
 # Generator.Shared is source-only (no lib/) and is tracked separately below.
 declare -A portable_package_assets=(
-    [SparseTypes]="netstandard2.0"
-    [SparseTypes.Core]="netstandard2.0"
-    [SparseTypes.Fragments]="netstandard2.0"
+    [SparseTypes]="netstandard2.0 net6.0 net10.0"
+    [SparseTypes.Core]="netstandard2.0 net6.0 net10.0"
+    [SparseTypes.Fragments]="netstandard2.0 net6.0 net10.0"
     [SparseTypes.Blazor]="net8.0 net10.0"
 )
 
@@ -84,6 +84,34 @@ require_no_dependency() {
     fi
 }
 
+require_dependency_frameworks() {
+    local dependency_id="$1"
+    shift
+    if ! python3 -c '
+import sys
+import xml.etree.ElementTree as ET
+
+namespace = {"n": "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"}
+dependency_id = sys.argv[1].lower()
+expected = sorted(sys.argv[2:])
+root = ET.fromstring(sys.stdin.read())
+actual = sorted(
+    group.attrib.get("targetFramework", "")
+    for group in root.findall(".//n:dependencies/n:group", namespace)
+    if any(
+        dependency.attrib.get("id", "").lower() == dependency_id
+        for dependency in group.findall("n:dependency", namespace)
+    )
+)
+if actual != expected:
+    print(f"Expected {dependency_id} dependency groups {expected}, found {actual}.", file=sys.stderr)
+    sys.exit(1)
+' "${dependency_id}" "$@" <<<"${nuspec}"; then
+        echo "Package '${package_id}' has unexpected '${dependency_id}' target framework dependencies." >&2
+        exit 1
+    fi
+}
+
 declare -A found_package_ids=()
 
 for package_file in "${package_files[@]}"; do
@@ -111,18 +139,26 @@ for package_file in "${package_files[@]}"; do
     case "${package_id}" in
         SparseTypes)
             require_entry 'analyzers/dotnet/cs/SparseTypes.Generator.dll'
-            require_entry 'lib/netstandard2.0/SparseTypes.dll'
+            for framework in ${portable_package_assets[${package_id}]}; do
+                require_entry "lib/${framework}/SparseTypes.dll"
+                require_entry "lib/${framework}/SparseTypes.xml"
+            done
             require_readme 'README.md'
             require_dependency 'SparseTypes.Core'
+            require_dependency_frameworks 'SparseTypes.Core' '.NETStandard2.0' 'net6.0' 'net10.0'
             require_no_dependency 'SparseTypes.Fragments'
             # Serializer-agnostic runtime: the base package must
             # not bring System.Text.Json transitively.
             require_no_dependency 'System.Text.Json'
             ;;
         SparseTypes.Core)
-            require_entry 'lib/netstandard2.0/SparseTypes.Core.dll'
+            for framework in ${portable_package_assets[${package_id}]}; do
+                require_entry "lib/${framework}/SparseTypes.Core.dll"
+                require_entry "lib/${framework}/SparseTypes.Core.xml"
+            done
             require_readme 'README.md'
             require_dependency 'System.Memory'
+            require_dependency_frameworks 'System.Memory' '.NETStandard2.0'
             require_no_dependency 'SparseTypes'
             require_no_dependency 'SparseTypes.Fragments'
             require_no_dependency 'System.Text.Json'
@@ -134,9 +170,13 @@ for package_file in "${package_files[@]}"; do
         SparseTypes.Fragments)
             require_entry 'analyzers/dotnet/cs/SparseTypes.Fragments.Generator.dll'
             require_entry 'build/SparseTypes.Fragments.props'
-            require_entry 'lib/netstandard2.0/SparseTypes.Fragments.dll'
+            for framework in ${portable_package_assets[${package_id}]}; do
+                require_entry "lib/${framework}/SparseTypes.Fragments.dll"
+                require_entry "lib/${framework}/SparseTypes.Fragments.xml"
+            done
             require_readme 'README.md'
             require_dependency 'SparseTypes.Core'
+            require_dependency_frameworks 'SparseTypes.Core' '.NETStandard2.0' 'net6.0' 'net10.0'
             require_no_dependency 'SparseTypes'
             require_no_dependency 'System.Text.Json'
             unexpected_analyzers="$(grep -E '^analyzers/' <<<"${entries}" | grep -F -x -v 'analyzers/dotnet/cs/SparseTypes.Fragments.Generator.dll' || true)"

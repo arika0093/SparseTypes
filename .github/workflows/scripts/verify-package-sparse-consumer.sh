@@ -43,6 +43,11 @@ lower_version="$(printf '%s' "${version}" | tr '[:upper:]' '[:lower:]')"
 
 assert_candidate_resolved() {
     local assets_file="$1"
+    local framework="$2"
+    local asset_framework="${framework}"
+    if [[ "${framework}" == "net8.0" || "${framework}" == "net9.0" ]]; then
+        asset_framework="net6.0"
+    fi
     if [[ ! -f "${assets_file}" ]]; then
         echo "Restore did not produce '${assets_file}'." >&2
         exit 1
@@ -51,18 +56,26 @@ assert_candidate_resolved() {
         echo "Isolated restore did not resolve 'SparseTypes/${version}' (see '${assets_file}')." >&2
         exit 1
     fi
+    if ! grep -F -q "lib/${asset_framework}/SparseTypes.dll" "${assets_file}"; then
+        echo "Restore did not select the SparseTypes ${asset_framework} asset for '${framework}' (see '${assets_file}')." >&2
+        exit 1
+    fi
+    if ! grep -F -q "lib/${asset_framework}/SparseTypes.Core.dll" "${assets_file}"; then
+        echo "Restore did not select the SparseTypes.Core ${asset_framework} asset for '${framework}' (see '${assets_file}')." >&2
+        exit 1
+    fi
     if [[ ! -d "${isolated_packages}/sparsetypes/${lower_version}" ]]; then
         echo "Isolated global-packages has no 'sparsetypes/${lower_version}': restore did not extract the candidate nupkg." >&2
         exit 1
     fi
 }
 
-for framework in net10.0; do
+for framework in net6.0 net8.0 net9.0 net10.0; do
     dotnet build "${fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
         -p:RestoreAdditionalProjectSources="${feed}"
-    assert_candidate_resolved "${fixture_dir}/obj/project.assets.json"
+    assert_candidate_resolved "${fixture_dir}/obj/project.assets.json" "${framework}"
     output="$(dotnet "${fixture_dir}/bin/Release/${framework}/${fixture_dll}" 2>&1)"
     echo "${output}"
     if [[ "${output}" != *"${success_marker}"* ]]; then
@@ -80,7 +93,7 @@ dotnet build "${netstandard_csproj}" \
     --configuration Release \
     -p:SparseTypesPackageVersion="${version}" \
     -p:RestoreAdditionalProjectSources="${feed}"
-assert_candidate_resolved "tests/fixtures/consumers/package-sparse-netstandard/obj/project.assets.json"
+assert_candidate_resolved "tests/fixtures/consumers/package-sparse-netstandard/obj/project.assets.json" netstandard2.0
 
 # Compile a netstandard2.0 consumer without System.Text.Json.
 # Any generated JSON dependency must fail this build.
@@ -102,7 +115,7 @@ dotnet build "${nojson_csproj}" \
     --configuration Release \
     -p:SparseTypesPackageVersion="${version}" \
     -p:RestoreAdditionalProjectSources="${feed}"
-assert_candidate_resolved "${nojson_dir}/obj/project.assets.json"
+assert_candidate_resolved "${nojson_dir}/obj/project.assets.json" netstandard2.0
 if grep -F -q "System.Text.Json" "${nojson_dir}/obj/project.assets.json"; then
     echo "Serializer-free restore closure must not contain System.Text.Json." >&2
     exit 1

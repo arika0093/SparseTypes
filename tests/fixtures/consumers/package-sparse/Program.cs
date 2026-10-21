@@ -38,31 +38,18 @@ next.Child.Host = "next";
 var combined = edits.Compose(next);
 var applied = combined.Apply(before);
 var restored = combined.Invert(before).Apply(applied);
-Require(
-    restored.Value!.Label.Value == "original" && restored.Value.Child.Value!.Count.Value == 7,
-    "exact inversion"
-);
-Require(
-    applied.Value!.Child.Value!.Count.Value == 11 && applied.Value.Child.Value.Host.Value == "next",
-    "patch composition"
-);
+Require(restored.Value!.Label.Value == "original" && restored.Value.Child.Value!.Count.Value == 7, "exact inversion");
+Require(applied.Value!.Child.Value!.Count.Value == 11 && applied.Value.Child.Value.Host.Value == "next", "patch composition");
 var between = Settings.Patch.Between(before, applied);
 Require(between.Apply(before).Value!.Child.Value!.Host.Value == "next", "sparse Between");
 var upstream = original.ToBuilder();
 upstream.Label = Optional<string?>.Present("upstream");
 var local = new Settings.Patch();
 local.Child.Count = 12;
-var rebased = Settings.Patch.Rebase(
-    before,
-    local,
-    Optional<Settings.Fragment?>.Present(upstream.Build())
-);
+var rebased = Settings.Patch.Rebase(before, local, Optional<Settings.Fragment?>.Present(upstream.Build()));
 Require(!rebased.HasConflicts, "structured rebase");
 var replayed = rebased.Rebased.Apply(Optional<Settings.Fragment?>.Present(upstream.Build()));
-Require(
-    replayed.Value!.Label.Value == "upstream" && replayed.Value.Child.Value!.Count.Value == 12,
-    "replay on current state"
-);
+Require(replayed.Value!.Label.Value == "upstream" && replayed.Value.Child.Value!.Count.Value == 12, "replay on current state");
 var mergedUpstream = original.Merge(upstream.Build()).ToModel();
 Require(mergedUpstream.Label == "upstream", "layered merge");
 
@@ -76,6 +63,18 @@ SparseTypes.SparsePath<Settings, string?> labelPath = session.Paths.Label;
 Require(labelPath.ToString() == "Label", "session typed path");
 Require(session.FieldState(session.Paths.Label).HasChanges == false, "session path field state");
 Require(ReadSessionRoot(session) == "$root", "generic session path provider");
+using var validationStore = new SparseValidationStore<Settings>();
+validationStore.SetErrors(Settings.SparsePath.Label, "consumer", "invalid");
+validationStore.SetErrors(Settings.SparsePath.Label, "consumer", new object?[] { "invalid", "still invalid" });
+var validationErrorCount = 0;
+foreach (var _ in validationStore.GetErrors(nameof(Settings.Label)))
+{
+    validationErrorCount++;
+}
+Require(validationErrorCount == 2, "validation origin replacement");
+Require(validationStore.HasErrors, "validation lock update");
+validationStore.ClearErrors(Settings.SparsePath.Label);
+Require(!validationStore.HasErrors, "validation lock clear");
 Console.WriteLine("SparseTypes packed consumer passed.");
 
 static string ReadSessionRoot<TModel, TPaths>(ISparseEditSessionWithPaths<TModel, TPaths> session)

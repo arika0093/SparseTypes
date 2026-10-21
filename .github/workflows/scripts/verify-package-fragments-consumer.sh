@@ -38,32 +38,61 @@ else
 fi
 cp "${fixture_csproj}" "${fixture_dir}/Program.cs" "${work}/"
 
-dotnet build "${work}/PackageSparse.Fragments.Consumer.csproj" \
-    --configuration Release \
-    -p:SparseTypesFragmentsPackageVersion="${version}" \
-    -p:RestoreAdditionalProjectSources="${feed}"
+for framework in netstandard2.0 net6.0 net8.0 net9.0 net10.0; do
+    dotnet build "${work}/PackageSparse.Fragments.Consumer.csproj" \
+        --configuration Release --framework "${framework}" \
+        -p:SparseTypesFragmentsPackageVersion="${version}" \
+        -p:RestoreAdditionalProjectSources="${feed}"
 
-assets_file="${work}/obj/project.assets.json"
-if [[ ! -f "${assets_file}" ]]; then
-    echo "Restore did not produce '${assets_file}'." >&2
-    exit 1
-fi
-if ! grep -F -q "SparseTypes.Fragments/${version}" "${assets_file}"; then
-    echo "Isolated restore did not resolve 'SparseTypes.Fragments/${version}'." >&2
-    exit 1
-fi
-if ! grep -F -q "SparseTypes.Core/" "${assets_file}"; then
-    echo "Fragments restore did not include its SparseTypes.Core dependency." >&2
-    exit 1
-fi
-if grep -F -q '"SparseTypes/' "${assets_file}"; then
-    echo "Fragments restore unexpectedly depends on the full SparseTypes package." >&2
-    exit 1
-fi
-if grep -F -q '"System.Text.Json/' "${assets_file}"; then
-    echo "Fragments restore unexpectedly depends on System.Text.Json." >&2
-    exit 1
-fi
+    assets_file="${work}/obj/project.assets.json"
+    if [[ ! -f "${assets_file}" ]]; then
+        echo "Restore did not produce '${assets_file}'." >&2
+        exit 1
+    fi
+    if ! grep -F -q "SparseTypes.Fragments/${version}" "${assets_file}"; then
+        echo "Isolated restore did not resolve 'SparseTypes.Fragments/${version}'." >&2
+        exit 1
+    fi
+    asset_framework="${framework}"
+    if [[ "${framework}" == "net8.0" || "${framework}" == "net9.0" ]]; then
+        asset_framework="net6.0"
+    fi
+    if ! grep -F -q "lib/${asset_framework}/SparseTypes.Fragments.dll" "${assets_file}"; then
+        echo "Restore did not select the SparseTypes.Fragments ${asset_framework} asset for '${framework}'." >&2
+        exit 1
+    fi
+    if ! grep -F -q "lib/${asset_framework}/SparseTypes.Core.dll" "${assets_file}"; then
+        echo "Restore did not select the SparseTypes.Core ${asset_framework} asset for '${framework}'." >&2
+        exit 1
+    fi
+    if ! grep -F -q "SparseTypes.Core/" "${assets_file}"; then
+        echo "Fragments restore did not include its SparseTypes.Core dependency." >&2
+        exit 1
+    fi
+    if grep -F -q '"SparseTypes/' "${assets_file}"; then
+        echo "Fragments restore unexpectedly depends on the full SparseTypes package." >&2
+        exit 1
+    fi
+    if grep -F -q '"System.Text.Json/' "${assets_file}"; then
+        echo "Fragments restore unexpectedly depends on System.Text.Json." >&2
+        exit 1
+    fi
+
+    if [[ "${framework}" != netstandard2.0 ]]; then
+        consumer_dll="${work}/bin/Release/${framework}/PackageSparse.Fragments.Consumer.dll"
+        output="$(dotnet "${consumer_dll}" 2>&1)"
+        echo "${output}"
+        if [[ "${output}" != *"${success_marker}"* ]]; then
+            echo "Fragments package consumer did not reach its success marker on '${framework}'." >&2
+            exit 1
+        fi
+        if [[ -e "${work}/bin/Release/${framework}/SparseTypes.dll" || -e "${work}/bin/Release/${framework}/SparseTypes.Generator.dll" ]]; then
+            echo "Fragments consumer output contains the full runtime or generator on '${framework}'." >&2
+            exit 1
+        fi
+    fi
+done
+
 lower_version="$(printf '%s' "${version}" | tr '[:upper:]' '[:lower:]')"
 if [[ ! -d "${isolated_packages}/sparsetypes.fragments/${lower_version}" ]]; then
     echo "Isolated global-packages did not extract the Fragments candidate package." >&2
@@ -71,18 +100,6 @@ if [[ ! -d "${isolated_packages}/sparsetypes.fragments/${lower_version}" ]]; the
 fi
 if [[ ! -d "${isolated_packages}/sparsetypes.core/${lower_version}" ]]; then
     echo "Isolated global-packages did not extract the Core dependency package." >&2
-    exit 1
-fi
-
-consumer_dll="${work}/bin/Release/net10.0/PackageSparse.Fragments.Consumer.dll"
-output="$(dotnet "${consumer_dll}" 2>&1)"
-echo "${output}"
-if [[ "${output}" != *"${success_marker}"* ]]; then
-    echo "Fragments package consumer did not reach its success marker." >&2
-    exit 1
-fi
-if [[ -e "${work}/bin/Release/net10.0/SparseTypes.dll" || -e "${work}/bin/Release/net10.0/SparseTypes.Generator.dll" ]]; then
-    echo "Fragments consumer output contains the full runtime or generator." >&2
     exit 1
 fi
 

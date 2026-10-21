@@ -27,4 +27,12 @@
   <ItemGroup>
     <None Include="Approvals/**/*.approved.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="BuildRuntimeTargetAssetsForApiParity" BeforeTargets="ResolveProjectReferences">
+    <MSBuild
+      Projects="$(MSBuildThisFileDirectory)../../src/SparseTypes.Core/SparseTypes.Core.csproj;$(MSBuildThisFileDirectory)../../src/SparseTypes/SparseTypes.csproj;$(MSBuildThisFileDirectory)../../src/SparseTypes.Fragments/SparseTypes.Fragments.csproj"
+      Targets="Build"
+      Properties="Configuration=$(Configuration)"
+      BuildInParallel="false"
+    />
+  </Target>
 </Project>
