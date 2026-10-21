@@ -11,21 +11,20 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     )
     {
-        code.AppendLineAt(6, "var beforeValues = baseMember.Value!;");
-        code.AppendLineAt(6, "var currentValues = currentMember.Value!;");
-        code.AppendLineAt(6, "var desiredValues = desiredMember.Value!;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("var beforeValues = baseMember.Value!;");
+        code.AppendLine("var currentValues = currentMember.Value!;");
+        code.AppendLine("var desiredValues = desiredMember.Value!;");
+        code.AppendLine(
             "if ("
                 + dialect.RuntimeFacade
                 + ".TryRebaseSetUnion<"
                 + member.Collection.ElementType.Name
                 + ">(beforeValues, desiredValues, currentValues, out var rebasedValues, out var reason))"
         );
-        code.AppendLineAt(6, "{");
+        code.OpenBlock();
         var operationType =
             operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
-        code.AppendLineAt(7, "result." + field + " = " + operationType + ".Set(rebasedValues);");
+        code.AppendLine("result." + field + " = " + operationType + ".Set(rebasedValues);");
     }
 
     internal static void AppendTypedSequenceRebase(
@@ -53,11 +52,10 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
         string NativeInput(string state, string variable) =>
             $"(object?){state}.Value is {readOnlyType} {variable} && ({variable} is {elementType}[] || {variable}.GetType() == typeof({listType}))";
 
-        code.AppendLineAt(6, $"{valueType} __rebasedCollection = default!;");
-        code.AppendLineAt(6, "string? reason;");
-        code.AppendLineAt(6, "bool __rebaseSucceeded;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine($"{valueType} __rebasedCollection = default!;");
+        code.AppendLine("string? reason;");
+        code.AppendLine("bool __rebaseSucceeded;");
+        code.AppendLine(
             "if ("
                 + NativeInput("baseMember", "beforeValues")
                 + " && "
@@ -66,39 +64,33 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
                 + NativeInput("currentMember", "currentValues")
                 + ")"
         );
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.OpenBlock();
+        code.AppendLine(
             $"__rebaseSucceeded = {dialect.RuntimeFacade}.{typedMethod}<{elementType}>(beforeValues, desiredValues, currentValues, null, out var __typedValues, out reason);"
         );
-        code.AppendLineAt(7, "if (__rebaseSucceeded) __rebasedCollection = __typedValues;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
+        code.AppendLine("if (__rebaseSucceeded) __rebasedCollection = __typedValues;");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         foreach (var state in new[] { "before", "current", "desired" })
         {
             var memberState = state == "before" ? "baseMember" : state + "Member";
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 $"var {state}Boxed = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable){memberState}.Value));"
             );
         }
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             $"__rebaseSucceeded = {dialect.RuntimeFacade}.{boxedMethod}(beforeBoxed, desiredBoxed, currentBoxed, (object? left, object? right) => {dialect.RuntimeFacade}.AreEqual(left, right), out var __boxedValues, out reason);"
         );
         var boxedResult = SparseFragmentExpressions.MaterializeCollection(
             member,
             $"global::System.Linq.Enumerable.Cast<{elementType}>(__boxedValues)"
         );
-        code.AppendLineAt(7, $"if (__rebaseSucceeded) __rebasedCollection = {boxedResult};");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "if (__rebaseSucceeded)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
-            $"result.{field} = {operation}<{valueType}>.Set(__rebasedCollection);"
-        );
+        code.AppendLine($"if (__rebaseSucceeded) __rebasedCollection = {boxedResult};");
+        code.CloseBlock();
+        code.AppendLine("if (__rebaseSucceeded)");
+        code.OpenBlock();
+        code.AppendLine($"result.{field} = {operation}<{valueType}>.Set(__rebasedCollection);");
     }
 
     internal static void AppendBoxedCollectionRebase(
@@ -109,20 +101,16 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     )
     {
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var beforeValues = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)baseMember.Value));"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var currentValues = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)currentMember.Value));"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var desiredValues = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)desiredMember.Value));"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if ("
                 + dialect.RuntimeFacade
                 + "."
@@ -135,7 +123,7 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
                 + dialect.RuntimeFacade
                 + ".AreEqual(left, right), out var rebasedValues, out var reason))"
         );
-        code.AppendLineAt(6, "{");
+        code.OpenBlock();
         var operationType =
             operation + "<" + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member) + ">";
         var materialized = SparseFragmentExpressions.MaterializeCollection(
@@ -144,9 +132,6 @@ internal static class SparseFragmentPatchCollectionRebaseEmitter
                 + member.Collection.ElementType.Name
                 + ">(rebasedValues)"
         );
-        code.AppendLineAt(
-            7,
-            "result." + field + " = " + operationType + ".Set(" + materialized + ");"
-        );
+        code.AppendLine("result." + field + " = " + operationType + ".Set(" + materialized + ");");
     }
 }

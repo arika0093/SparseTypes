@@ -16,18 +16,47 @@ internal sealed class SharedIndentedBuilder : IDisposable
 
     public CancellationToken CancellationToken => _cancellationToken;
 
-    public int IndentOffset { get; set; }
+    public int IndentLevel { get; set; }
 
     private StringBuilder Buffer =>
         _builder ?? throw new ObjectDisposedException(nameof(SharedIndentedBuilder));
 
-    public SharedIndentedBuilder AppendIndent(int level)
+    public SharedIndentedBuilder Indent()
+    {
+        IndentLevel = checked(IndentLevel + 1);
+        return this;
+    }
+
+    public SharedIndentedBuilder Unindent()
+    {
+        if (IndentLevel == 0)
+        {
+            throw new InvalidOperationException("Cannot unindent when indentation is zero.");
+        }
+
+        IndentLevel--;
+        return this;
+    }
+
+    public SharedIndentedBuilder OpenBlock()
+    {
+        AppendLine("{");
+        return Indent();
+    }
+
+    public SharedIndentedBuilder CloseBlock()
+    {
+        Unindent();
+        return AppendLine("}");
+    }
+
+    public SharedIndentedBuilder AppendIndent()
     {
         var buffer = Buffer;
-        var effective = level + IndentOffset;
+        var effective = IndentLevel;
         if (effective < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(level));
+            throw new InvalidOperationException("Indentation cannot be negative.");
         }
 
         if (!_atLineStart)
@@ -73,7 +102,7 @@ internal sealed class SharedIndentedBuilder : IDisposable
     {
         if (value != '\n' && _atLineStart)
         {
-            AppendIndent(0);
+            AppendIndent();
         }
         Buffer.Append(value);
         _atLineStart = value == '\n';
@@ -98,7 +127,7 @@ internal sealed class SharedIndentedBuilder : IDisposable
             {
                 if (_atLineStart)
                 {
-                    AppendIndent(0);
+                    AppendIndent();
                 }
                 buffer.Append(value, start, end - start);
             }
@@ -118,15 +147,6 @@ internal sealed class SharedIndentedBuilder : IDisposable
         Append(value);
         Append('\n');
         return this;
-    }
-
-    public SharedIndentedBuilder AppendLineAt(int level, string value)
-    {
-        if (value.Length != 0)
-        {
-            AppendIndent(level);
-        }
-        return AppendLine(value);
     }
 
     public override string ToString()

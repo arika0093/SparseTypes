@@ -58,13 +58,12 @@ internal static class SparseChangeSetDictRebaseEmitter
                 "__ritems" + id + " = " + KeyedItems(member) + ";",
             ]
         );
-        code.AppendLineAt(4, "if (" + HasField(member) + " && !__red" + id + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(4, "var __curM" + id + " = __cur." + esc + ";");
-        code.AppendLineAt(4, "if (" + KeyedWholeFlag(member) + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (" + HasField(member) + " && !__red" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("var __curM" + id + " = __cur." + esc + ";");
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "if (Fragment.__SparseEqual_"
                 + id
                 + "("
@@ -73,8 +72,7 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + id
                 + ")) { }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else if (Fragment.__SparseEqual_"
                 + id
                 + "("
@@ -95,8 +93,7 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + KeyedWholeAfter(member)
                 + "; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else { __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -111,14 +108,12 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + BoxExpression(dialect, "__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -133,36 +128,33 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + BoxExpression(dialect, "__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "var __rlist"
                 + id
                 + " = new global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>();"
         );
-        code.AppendLineAt(5, "bool __any" + id + " = false;");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("bool __any" + id + " = false;");
+        code.AppendLine(
             "if ("
                 + KeyedItems(member)
                 + " is not null) foreach (var __it in "
                 + KeyedItems(member)
                 + ")"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "if (__it.IsAdded)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "if (!__curM" + id + ".Value!.ContainsKey(__it.Key!))");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "__any" + id + " = true;");
+        code.OpenBlock();
+        code.AppendLine("if (__it.IsAdded)");
+        code.OpenBlock();
+        code.AppendLine("if (!__curM" + id + ".Value!.ContainsKey(__it.Key!))");
+        code.OpenBlock();
+        code.AppendLine("__any" + id + " = true;");
         if (hasPatch)
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
@@ -172,8 +164,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         }
         else
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
@@ -182,17 +173,15 @@ internal static class SparseChangeSetDictRebaseEmitter
             );
         }
 
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine(
             "else if (!"
                 + facade
                 + ".AreEqual(__curM"
                 + id
                 + ".Value![__it.Key!], __it.After.Value))"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -209,20 +198,18 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + id
                 + ".Value![__it.Key!]), \"The dictionary entry conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else if (__it.IsRemoved)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "if (!__curM" + id + ".Value!.ContainsKey(__it.Key!)) { }");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine("else if (__it.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine("if (!__curM" + id + ".Value!.ContainsKey(__it.Key!)) { }");
+        code.AppendLine(
             "else if (!"
                 + facade
                 + ".AreEqual(__curM"
                 + id
                 + ".Value![__it.Key!], __it.Before.Value))"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -239,13 +226,12 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + id
                 + ".Value![__it.Key!]), \"The dictionary entry conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "__any" + id + " = true;");
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("__any" + id + " = true;");
         if (hasPatch)
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
@@ -255,8 +241,7 @@ internal static class SparseChangeSetDictRebaseEmitter
         }
         else
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
@@ -265,18 +250,14 @@ internal static class SparseChangeSetDictRebaseEmitter
             );
         }
 
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         if (hasPatch)
         {
-            code.AppendLineAt(
-                6,
-                "if (!__curM" + id + ".Value!.TryGetValue(__it.Key!, out var __cev))"
-            );
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (!__curM" + id + ".Value!.TryGetValue(__it.Key!, out var __cev))");
+            code.AppendLine(
                 "{ __conflicts.Add(new "
                     + conflict
                     + "(__SparseRootPath.Member("
@@ -291,10 +272,9 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + runtime
                     + "Optional<object?>.Missing, \"The dictionary entry conflicts with a concurrent change.\")); }"
             );
-            code.AppendLineAt(6, "else");
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(
-                7,
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __nr = __it.Edit.RebaseOnto("
                     + runtime
                     + "Optional<"
@@ -303,16 +283,14 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + valueFrag
                     + ".From(__cev)));"
             );
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member("
                     + lit
                     + ").Key(__it.Key!)));"
             );
-            code.AppendLineAt(7, "if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
-            code.AppendLineAt(7, "{");
-            code.AppendLineAt(
-                8,
+            code.AppendLine("if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __applied = __nr.Rebased.ToPatch().Apply("
                     + runtime
                     + "Optional<"
@@ -321,11 +299,10 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + valueFrag
                     + ".From(__cev)));"
             );
-            code.AppendLineAt(8, "if (__applied.IsPresent && __applied.Value is not null)");
-            code.AppendLineAt(8, "{");
-            code.AppendLineAt(8, "__any" + id + " = true;");
-            code.AppendLineAt(
-                8,
+            code.AppendLine("if (__applied.IsPresent && __applied.Value is not null)");
+            code.OpenBlock();
+            code.AppendLine("__any" + id + " = true;");
+            code.AppendLine(
                 optValue
                     + " __nb = "
                     + optValue
@@ -335,26 +312,21 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + optValue
                     + ".Present(__applied.Value!.ToModel());"
             );
-            code.AppendLineAt(
-                8,
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
                     + trans
                     + ".Item(__it.Key!, __nb, __na2, false, false, true, __nr.Rebased, false));"
             );
-            code.AppendLineAt(8, "}");
-            code.AppendLineAt(7, "}");
-            code.AppendLineAt(6, "}");
+            code.CloseBlock();
+            code.CloseBlock();
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(
-                6,
-                "if (!__curM" + id + ".Value!.TryGetValue(__it.Key!, out var __cev2))"
-            );
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (!__curM" + id + ".Value!.TryGetValue(__it.Key!, out var __cev2))");
+            code.AppendLine(
                 "{ __conflicts.Add(new "
                     + conflict
                     + "(__SparseRootPath.Member("
@@ -369,10 +341,9 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + runtime
                     + "Optional<object?>.Missing, \"The dictionary entry conflicts with a concurrent change.\")); }"
             );
-            code.AppendLineAt(6, "else if (" + facade + ".AreEqual(__cev2, __it.After.Value)) { }");
-            code.AppendLineAt(6, "else if (!" + facade + ".AreEqual(__cev2, __it.Before.Value))");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("else if (" + facade + ".AreEqual(__cev2, __it.After.Value)) { }");
+            code.AppendLine("else if (!" + facade + ".AreEqual(__cev2, __it.Before.Value))");
+            code.AppendLine(
                 "{ __conflicts.Add(new "
                     + conflict
                     + "(__SparseRootPath.Member("
@@ -387,23 +358,21 @@ internal static class SparseChangeSetDictRebaseEmitter
                     + runtime
                     + "Optional<object?>.Present((object?)__cev2), \"The dictionary entry conflicts with a concurrent change.\")); }"
             );
-            code.AppendLineAt(6, "else");
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(7, "__any" + id + " = true;");
-            code.AppendLineAt(
-                7,
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine("__any" + id + " = true;");
+            code.AppendLine(
                 "__rlist"
                     + id
                     + ".Add(new "
                     + trans
                     + ".Item(__it.Key!, __it.Before, __it.After, false, false, true, false));"
             );
-            code.AppendLineAt(6, "}");
+            code.CloseBlock();
         }
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "if (__any"
                 + id
                 + ") { __rh"
@@ -414,7 +383,7 @@ internal static class SparseChangeSetDictRebaseEmitter
                 + id
                 + "; }"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

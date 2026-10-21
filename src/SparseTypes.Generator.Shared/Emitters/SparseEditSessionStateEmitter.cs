@@ -40,20 +40,16 @@ internal static class SparseEditSessionStateEmitter
 
         // One capture per refresh generation: the view retains the change set
         // so F field queries share one root snapshot/diff and one projection.
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Captures one reusable state-query snapshot over the pending changes.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Snapshot: derives one change set from the retained baseline and retains it for repeated point-in-time lookups. Live <c>FieldState</c> queries stay unnotified-mutation accurate; share the snapshot only for an explicitly captured generation.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns>A view serving repeated field queries without re-deriving the diff.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public "
                 + states.QueryViewType
                 + " CaptureStateSnapshot() => new "
@@ -73,77 +69,63 @@ internal static class SparseEditSessionStateEmitter
         // The concrete path struct (like ChangeSet.Find) keeps overload
         // resolution unambiguous against the model-agnostic overload.
         var typedPath = SparseFragmentPatchEmitter.GetTypedPathType(dialect, modelType, "TValue");
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Queries the semantic field state at a typed path against the current baseline.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Live query: derives a fresh change set from the retained baseline on each call and never retains subscriptions or per-field caches. Snapshot <see cref=\"CreateChangeSet\"/> for repeated point-in-time lookups.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"path\">The typed path to inspect.</param>");
-        code.AppendLineAt(
-            2,
-            "/// <typeparam name=\"TValue\">The addressed value type.</typeparam>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"path\">The typed path to inspect.</param>");
+        code.AppendLine("/// <typeparam name=\"TValue\">The addressed value type.</typeparam>");
+        code.AppendLine(
             "/// <returns>The live field state with presence-aware endpoints.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public "
                 + states.FieldStateType
                 + "<TValue> FieldState<TValue>("
                 + typedPath
                 + " path)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (!dialect.PathIsValueType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (path is null) throw new global::System.ArgumentNullException(nameof(path));"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return "
                 + states.StateQueryType
                 + ".FieldState<"
                 + modelType
                 + ", TValue>(_session.CreateChangeSet(), path);"
         );
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Queries the semantic field state at a model-agnostic path against the current baseline.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Covers paths without a compile-time typed form, such as nested-model builders and missing or deleted members. Unknown paths report a clean state. See the typed overload for the exact/ancestor/descendant contract.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"path\">The path to inspect.</param>");
-        code.AppendLineAt(2, "/// <returns>The live field state with boxed endpoints.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"path\">The path to inspect.</param>");
+        code.AppendLine("/// <returns>The live field state with boxed endpoints.</returns>");
+        code.AppendLine(
             "public " + states.FieldStateType + "<object?> FieldState(" + pathType + " path)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (!dialect.PathIsValueType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (path is null) throw new global::System.ArgumentNullException(nameof(path));"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return " + states.StateQueryType + ".FieldState(_session.CreateChangeSet(), path);"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static void AppendObserveMembers(
@@ -203,14 +185,12 @@ internal static class SparseEditSessionStateEmitter
         var typeParameters = typed ? "<TValue>" : string.Empty;
         var watcherType = states.ObservedFieldType + (typed ? "<TValue>" : "<object?>");
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Observes the semantic field state at "
                 + kind
                 + " with binding notifications.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Opt-in live subscription: refreshes on every session state notification (observable edits, batches, in-place apply, revert, both baseline accepts, reload, reconcile) and raises <see cref=\"global::System.ComponentModel.INotifyPropertyChanged.PropertyChanged\"/> only on effective changes, synchronously with no UI thread marshaling. <c>IsChanged</c> is the semantic baseline diff, not a visited flag. Dispose the watcher to unsubscribe. Key segments keep identity across moves; index segments stay positional."
                 + (
                     coordinated
@@ -219,17 +199,14 @@ internal static class SparseEditSessionStateEmitter
                 )
                 + "</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"path\">The path to observe.</param>");
+        code.AppendLine("/// <param name=\"path\">The path to observe.</param>");
         if (typed)
         {
-            code.AppendLineAt(
-                2,
-                "/// <typeparam name=\"TValue\">The addressed value type.</typeparam>"
-            );
+            code.AppendLine("/// <typeparam name=\"TValue\">The addressed value type.</typeparam>");
         }
 
-        code.AppendLineAt(2, "/// <returns>A disposable watcher bound to this session.</returns>");
-        code.AppendLineAt(2, "public " + watcherType + " ObserveField" + typeParameters);
+        code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
+        code.AppendLine("public " + watcherType + " ObserveField" + typeParameters);
         AppendObserveBody(
             code,
             modelType,
@@ -241,27 +218,22 @@ internal static class SparseEditSessionStateEmitter
             true,
             coordinated
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Observes the semantic field state at "
                 + kind
                 + " with binding notifications.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Alias for <c>ObserveField</c>; both spellings return the same watcher.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"path\">The path to observe.</param>");
+        code.AppendLine("/// <param name=\"path\">The path to observe.</param>");
         if (typed)
         {
-            code.AppendLineAt(
-                2,
-                "/// <typeparam name=\"TValue\">The addressed value type.</typeparam>"
-            );
+            code.AppendLine("/// <typeparam name=\"TValue\">The addressed value type.</typeparam>");
         }
 
-        code.AppendLineAt(2, "/// <returns>A disposable watcher bound to this session.</returns>");
-        code.AppendLineAt(2, "public " + watcherType + " WatchField" + typeParameters);
+        code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
+        code.AppendLine("public " + watcherType + " WatchField" + typeParameters);
         AppendObserveBody(
             code,
             modelType,
@@ -287,12 +259,11 @@ internal static class SparseEditSessionStateEmitter
         bool coordinated
     )
     {
-        code.AppendLineAt(2, "(" + pathParameterType + " path)");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("(" + pathParameterType + " path)");
+        code.OpenBlock();
         if (!dialect.PathIsValueType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (path is null) throw new global::System.ArgumentNullException(nameof(path));"
             );
         }
@@ -307,8 +278,7 @@ internal static class SparseEditSessionStateEmitter
                 var snapshotQuery = typed
                     ? "view.FieldState<" + modelType + ", " + valueType + ">(path)"
                     : "view.FieldState(path)";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "var hooks = new "
                         + states.ObservedFieldHooksType
                         + "<"
@@ -320,8 +290,7 @@ internal static class SparseEditSessionStateEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "var hooks = new "
                         + states.ObservedFieldHooksType
                         + "<"
@@ -330,18 +299,17 @@ internal static class SparseEditSessionStateEmitter
                 );
             }
 
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "return new " + states.ObservedFieldType + "<" + valueType + ">(path, hooks);"
             );
         }
         else
         {
             var typeArguments = typed ? "<TValue>" : string.Empty;
-            code.AppendLineAt(3, "return ObserveField" + typeArguments + "(path);");
+            code.AppendLine("return ObserveField" + typeArguments + "(path);");
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     // Session-owned observation fan-out: the first watcher subscribes once to
@@ -372,102 +340,99 @@ internal static class SparseEditSessionStateEmitter
         var handlerList =
             "global::System.Collections.Generic.List<global::System.ComponentModel.PropertyChangedEventHandler>";
         var handlerArray = "global::System.ComponentModel.PropertyChangedEventHandler[]";
-        code.AppendLineAt(2, "private " + handlerList + "? __observationHandlers;");
+        code.AppendLine("private " + handlerList + "? __observationHandlers;");
         // Lazily built snapshot of the subscriber list: stable membership
         // reuses one array across dispatch generations instead of copying
         // per generation, while subscribe/dispose during delivery stays safe
         // by traversing the local array.
-        code.AppendLineAt(2, "private " + handlerArray + "? __observationHandlerSnapshot;");
-        code.AppendLineAt(2, "private " + states.QueryViewType + "? __observationView;");
-        code.AppendLineAt(2, "private bool __observationDispatching;");
-        code.AppendLineAt(2, "private bool __observationPending;");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("private " + handlerArray + "? __observationHandlerSnapshot;");
+        code.AppendLine("private " + states.QueryViewType + "? __observationView;");
+        code.AppendLine("private bool __observationDispatching;");
+        code.AppendLine("private bool __observationPending;");
+        code.AppendLine(
             "private void __ObservationSubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "__observationHandlers ??= new " + handlerList + "();");
-        code.AppendLineAt(3, "if (__observationHandlers.Count == 0)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "PropertyChanged += __ObservationInvalidated;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "__observationHandlers.Add(handler);");
-        code.AppendLineAt(3, "__observationHandlerSnapshot = null;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("__observationHandlers ??= new " + handlerList + "();");
+        code.AppendLine("if (__observationHandlers.Count == 0)");
+        code.OpenBlock();
+        code.AppendLine("PropertyChanged += __ObservationInvalidated;");
+        code.CloseBlock();
+        code.AppendLine("__observationHandlers.Add(handler);");
+        code.AppendLine("__observationHandlerSnapshot = null;");
+        code.CloseBlock();
+        code.AppendLine(
             "private void __ObservationUnsubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (__observationHandlers is null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "if (__observationHandlers.Remove(handler))");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__observationHandlerSnapshot = null;");
-        code.AppendLineAt(4, "if (__observationHandlers.Count == 0)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "PropertyChanged -= __ObservationInvalidated;");
-        code.AppendLineAt(5, "__observationHandlers = null;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("if (__observationHandlers is null)");
+        code.OpenBlock();
+        code.AppendLine("return;");
+        code.CloseBlock();
+        code.AppendLine("if (__observationHandlers.Remove(handler))");
+        code.OpenBlock();
+        code.AppendLine("__observationHandlerSnapshot = null;");
+        code.AppendLine("if (__observationHandlers.Count == 0)");
+        code.OpenBlock();
+        code.AppendLine("PropertyChanged -= __ObservationInvalidated;");
+        code.AppendLine("__observationHandlers = null;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "private void __ObservationInvalidated(object? sender, global::System.ComponentModel.PropertyChangedEventArgs e)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (__observationDispatching)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__observationPending = true;");
-        code.AppendLineAt(4, "return;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "__observationDispatching = true;");
-        code.AppendLineAt(3, "try");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "do");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "__observationPending = false;");
-        code.AppendLineAt(5, "var handlers = __observationHandlers;");
-        code.AppendLineAt(5, "if (handlers is null || handlers.Count == 0)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "break;");
-        code.AppendLineAt(5, "}");
+        code.OpenBlock();
+        code.AppendLine("if (__observationDispatching)");
+        code.OpenBlock();
+        code.AppendLine("__observationPending = true;");
+        code.AppendLine("return;");
+        code.CloseBlock();
+        code.AppendLine("__observationDispatching = true;");
+        code.AppendLine("try");
+        code.OpenBlock();
+        code.AppendLine("do");
+        code.OpenBlock();
+        code.AppendLine("__observationPending = false;");
+        code.AppendLine("var handlers = __observationHandlers;");
+        code.AppendLine("if (handlers is null || handlers.Count == 0)");
+        code.OpenBlock();
+        code.AppendLine("break;");
+        code.CloseBlock();
         // Transient keyed states skip one generation without retaining the
         // snapshot; the next notification captures fresh.
-        code.AppendLineAt(5, states.QueryViewType + " view;");
-        code.AppendLineAt(5, "try");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "view = CaptureStateSnapshot();");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "catch (global::System.InvalidOperationException)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "break;");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "__observationView = view;");
-        code.AppendLineAt(5, "try");
-        code.AppendLineAt(5, "{");
+        code.AppendLine(states.QueryViewType + " view;");
+        code.AppendLine("try");
+        code.OpenBlock();
+        code.AppendLine("view = CaptureStateSnapshot();");
+        code.CloseBlock();
+        code.AppendLine("catch (global::System.InvalidOperationException)");
+        code.OpenBlock();
+        code.AppendLine("break;");
+        code.CloseBlock();
+        code.AppendLine("__observationView = view;");
+        code.AppendLine("try");
+        code.OpenBlock();
         // The cached array is reused across generations with stable
         // membership; membership changes invalidate it, so the local array
         // stays fixed for this delivery while the next generation rebuilds.
-        code.AppendLineAt(6, "var dispatch = __observationHandlerSnapshot ??= handlers.ToArray();");
-        code.AppendLineAt(6, "foreach (var handler in dispatch)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "handler(sender, e);");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "finally");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "__observationView = null;");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "} while (__observationPending);");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "finally");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__observationDispatching = false;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("var dispatch = __observationHandlerSnapshot ??= handlers.ToArray();");
+        code.AppendLine("foreach (var handler in dispatch)");
+        code.OpenBlock();
+        code.AppendLine("handler(sender, e);");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("finally");
+        code.OpenBlock();
+        code.AppendLine("__observationView = null;");
+        code.CloseBlock();
+        code.AppendLine("} while (__observationPending);");
+        code.CloseBlock();
+        code.AppendLine("finally");
+        code.OpenBlock();
+        code.AppendLine("__observationDispatching = false;");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendCollectionState(
@@ -478,32 +443,27 @@ internal static class SparseEditSessionStateEmitter
         SparseStateContracts states
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Queries the keyed or dictionary collection state at a root collection path.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session. Root collection members only; navigate the change set for nested collections and use <see cref=\"FieldState\"/> for other members.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"collectionPath\">The root collection member path.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The live collection state view.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The live collection state view.</returns>");
+        code.AppendLine(
             "/// <exception cref=\"global::System.ArgumentException\">The path does not address a root keyed or dictionary collection member.</exception>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public "
                 + states.CollectionStateType
                 + " CollectionState("
                 + pathType
                 + " collectionPath)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         SparseChangeSetNaming.ComputePublicNames(members, out var propNames, out _);
         var emitted = false;
         foreach (var member in members)
@@ -521,8 +481,7 @@ internal static class SparseEditSessionStateEmitter
                 modelType + ".SparsePath." + SparseNaming.EscapeIdentifier(member.Property.Name);
             var property = SparseNaming.EscapeIdentifier(propNames[member.Id]);
             var factory = isKeyed ? "KeyedState" : "DictionaryState";
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (collectionPath.Equals(("
                     + pathType
                     + ")"
@@ -540,19 +499,17 @@ internal static class SparseEditSessionStateEmitter
 
         if (!emitted)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "throw new global::System.ArgumentException(\"This model has no keyed or dictionary collection members. Use FieldState for other members.\", nameof(collectionPath));"
             );
         }
         else
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "throw new global::System.ArgumentException(\"The path does not address a root keyed or dictionary collection member. Use FieldState for other members.\", nameof(collectionPath));"
             );
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 }

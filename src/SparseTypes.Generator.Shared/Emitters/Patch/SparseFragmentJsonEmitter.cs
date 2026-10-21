@@ -22,12 +22,8 @@ internal static class SparseFragmentJsonEmitter
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            2,
-            "/// <summary>Gets the JSON converter for this fragment type.</summary>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the JSON converter for this fragment type.</summary>");
+        code.AppendLine(
             "public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter { get; } = new FragmentJsonConverter();"
         );
         code.AppendLine();
@@ -56,12 +52,8 @@ internal static class SparseFragmentJsonEmitter
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            2,
-            "/// <summary>Gets the JSON converter for this fragment type.</summary>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the JSON converter for this fragment type.</summary>");
+        code.AppendLine(
             "public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter { get; } = new "
                 + jsonConverterQualifiedName
                 + "();"
@@ -82,18 +74,16 @@ internal static class SparseFragmentJsonEmitter
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reads and writes sparse fragment properties without materializing absent values.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             converterAccessibility
                 + (sealedConverter ? " sealed class " : " class ")
                 + converterClassName
                 + " : global::System.Text.Json.Serialization.JsonConverter<Fragment>"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         // Wider converters use a per-options name index for case-insensitive reads.
         var indexedDispatch = members.Length > 3;
         var jsonMemberIndexes = ImmutableArray.CreateBuilder<int>(members.Length);
@@ -111,60 +101,52 @@ internal static class SparseFragmentJsonEmitter
         }
         // Public readers first; private buffers and helpers trail the writers
         // below.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Reads a fragment from its JSON object representation.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <param name=\"reader\">The reader positioned at the fragment object.</param>"
         );
-        code.AppendLineAt(3, "/// <param name=\"typeToConvert\">The type to convert.</param>");
-        code.AppendLineAt(3, "/// <param name=\"options\">The serializer options.</param>");
-        code.AppendLineAt(3, "/// <returns>The deserialized fragment.</returns>");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <param name=\"typeToConvert\">The type to convert.</param>");
+        code.AppendLine("/// <param name=\"options\">The serializer options.</param>");
+        code.AppendLine("/// <returns>The deserialized fragment.</returns>");
+        code.AppendLine(
             "public override Fragment Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var jsonPropertyCache = GetJsonPropertyCache(options, true);");
+        code.OpenBlock();
+        code.AppendLine("var jsonPropertyCache = GetJsonPropertyCache(options, true);");
         if (indexedDispatch)
         {
-            code.AppendLineAt(4, "var propertyIndexes = jsonPropertyCache.Indexes!;");
+            code.AppendLine("var propertyIndexes = jsonPropertyCache.Indexes!;");
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) { throw new global::System.Text.Json.JsonException(\"A fragment must be a JSON object.\"); }"
         );
-        code.AppendLineAt(4, "var builder = new FragmentBuilder();");
-        code.AppendLineAt(4, "while (reader.Read())");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("var builder = new FragmentBuilder();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { return builder.Build(); }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { throw new global::System.Text.Json.JsonException(\"Expected a fragment property name.\"); }"
         );
-        code.AppendLineAt(5, "var propertyIndex = -1;");
-        code.AppendLineAt(5, "string? propertyName;");
-        code.AppendLineAt(5, "if (options.PropertyNameCaseInsensitive)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "propertyName = reader.GetString();");
+        code.AppendLine("var propertyIndex = -1;");
+        code.AppendLine("string? propertyName;");
+        code.AppendLine("if (options.PropertyNameCaseInsensitive)");
+        code.OpenBlock();
+        code.AppendLine("propertyName = reader.GetString();");
         if (indexedDispatch)
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (propertyIndexes is not null && propertyIndexes.TryGetValue(propertyName!, out var matchedPropertyIndex)) { propertyIndex = matchedPropertyIndex; }"
             );
-            code.AppendLineAt(6, "else");
-            code.AppendLineAt(6, "{");
+            code.AppendLine("else");
+            code.OpenBlock();
             foreach (var index in jsonMemberIndexes.Concat(ignoredMemberIndexes))
             {
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "if (propertyIndex < 0 && Matches(propertyName, jsonPropertyCache.PropertyNames["
                         + index.ToString()
                         + "], options)) { propertyIndex = "
@@ -173,12 +155,12 @@ internal static class SparseFragmentJsonEmitter
                 );
             }
 
-            code.AppendLineAt(6, "}");
+            code.CloseBlock();
         }
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
-        code.AppendIndent(6).Append("propertyIndex = ");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendIndent().Append("propertyIndex = ");
         foreach (var index in jsonMemberIndexes.Concat(ignoredMemberIndexes))
         {
             code.Append("reader.ValueTextEquals(jsonPropertyCache.Utf8Names[")
@@ -188,13 +170,11 @@ internal static class SparseFragmentJsonEmitter
                 .Append(" : ");
         }
         code.AppendLine("-1;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "propertyName = propertyIndex < 0 && options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow ? reader.GetString() : null;"
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine(
             "if (!reader.Read()) { throw new global::System.Text.Json.JsonException(\"Unexpected end of fragment.\"); }"
         );
         if (jsonMemberIndexes.Count + ignoredMemberIndexes.Count > 0)
@@ -202,10 +182,10 @@ internal static class SparseFragmentJsonEmitter
             var first = true;
             if (indexedDispatch)
             {
-                code.AppendLineAt(5, "if (propertyIndex >= 0)");
-                code.AppendLineAt(5, "{");
-                code.AppendLineAt(6, "switch (propertyIndex)");
-                code.AppendLineAt(6, "{");
+                code.AppendLine("if (propertyIndex >= 0)");
+                code.OpenBlock();
+                code.AppendLine("switch (propertyIndex)");
+                code.OpenBlock();
             }
             foreach (var index in jsonMemberIndexes)
             {
@@ -213,11 +193,11 @@ internal static class SparseFragmentJsonEmitter
                 var property = SparseNaming.EscapeIdentifier(member.Property.Name);
                 if (indexedDispatch)
                 {
-                    code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
+                    code.AppendIndent().Append("case ").Append(index.ToString()).AppendLine(":");
                 }
                 else
                 {
-                    code.AppendIndent(5).Append(first ? "if (" : "else if (");
+                    code.AppendIndent().Append(first ? "if (" : "else if (");
                     code.Append("propertyIndex == ")
                         .Append(index.ToString())
                         .Append(
@@ -253,7 +233,7 @@ internal static class SparseFragmentJsonEmitter
                         }
                     }
 
-                    code.AppendIndent(indexedDispatch ? 8 : 6)
+                    code.AppendIndent()
                         .Append("builder.")
                         .Append(property)
                         .Append(" = " + optional + "<")
@@ -263,7 +243,7 @@ internal static class SparseFragmentJsonEmitter
                 else
                 {
                     var childFragment = member.ChildFragmentType!;
-                    code.AppendIndent(indexedDispatch ? 8 : 6)
+                    code.AppendIndent()
                         .Append("builder.")
                         .Append(property)
                         .Append(" = " + optional + "<")
@@ -280,7 +260,7 @@ internal static class SparseFragmentJsonEmitter
                 }
                 if (indexedDispatch)
                 {
-                    code.AppendLineAt(8, "break;");
+                    code.AppendLine("break;");
                 }
 
                 first = false;
@@ -290,11 +270,11 @@ internal static class SparseFragmentJsonEmitter
             {
                 if (indexedDispatch)
                 {
-                    code.AppendIndent(7).Append("case ").Append(index.ToString()).AppendLine(":");
+                    code.AppendIndent().Append("case ").Append(index.ToString()).AppendLine(":");
                 }
                 else
                 {
-                    code.AppendIndent(5).Append(first ? "if (" : "else if (");
+                    code.AppendIndent().Append(first ? "if (" : "else if (");
                     code.Append("propertyIndex == ")
                         .Append(index.ToString())
                         .Append(
@@ -303,10 +283,10 @@ internal static class SparseFragmentJsonEmitter
                         .Append(index.ToString())
                         .AppendLine("], options)))");
                 }
-                code.AppendLineAt(indexedDispatch ? 8 : 6, "{ reader.Skip(); }");
+                code.AppendLine("{ reader.Skip(); }");
                 if (indexedDispatch)
                 {
-                    code.AppendLineAt(8, "break;");
+                    code.AppendLine("break;");
                 }
 
                 first = false;
@@ -314,79 +294,69 @@ internal static class SparseFragmentJsonEmitter
 
             if (indexedDispatch)
             {
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "default: HandleUnknownFragmentProperty(ref reader, options, propertyName); break;"
                 );
-                code.AppendLineAt(6, "}");
-                code.AppendLineAt(5, "}");
-                code.AppendLineAt(5, "else");
-                code.AppendLineAt(5, "{");
-                code.AppendLineAt(
-                    6,
+                code.CloseBlock();
+                code.CloseBlock();
+                code.AppendLine("else");
+                code.OpenBlock();
+                code.AppendLine(
                     "HandleUnknownFragmentProperty(ref reader, options, propertyName);"
                 );
-                code.AppendLineAt(5, "}");
+                code.CloseBlock();
             }
             else
             {
-                code.AppendLineAt(
-                    5,
+                code.AppendLine(
                     "else HandleUnknownFragmentProperty(ref reader, options, propertyName);"
                 );
             }
         }
         else
         {
-            code.AppendLineAt(
-                5,
-                "HandleUnknownFragmentProperty(ref reader, options, propertyName);"
-            );
+            code.AppendLine("HandleUnknownFragmentProperty(ref reader, options, propertyName);");
         }
 
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "throw new global::System.Text.Json.JsonException(\"Unexpected end of fragment.\");"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Writes the present members of a fragment as a JSON object.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <param name=\"writer\">The writer receiving the fragment object.</param>"
         );
-        code.AppendLineAt(3, "/// <param name=\"value\">The fragment to write.</param>");
-        code.AppendLineAt(3, "/// <param name=\"options\">The serializer options.</param>");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <param name=\"value\">The fragment to write.</param>");
+        code.AppendLine("/// <param name=\"options\">The serializer options.</param>");
+        code.AppendLine(
             "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, Fragment value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var jsonPropertyCache = GetJsonPropertyCache(options, false);");
-        code.AppendLineAt(4, "writer.WriteStartObject();");
+        code.OpenBlock();
+        code.AppendLine("var jsonPropertyCache = GetJsonPropertyCache(options, false);");
+        code.AppendLine("writer.WriteStartObject();");
         foreach (var index in jsonMemberIndexes)
         {
             var member = members[index];
             var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendIndent(4).Append("if (value.").Append(property).AppendLine(".IsPresent)");
-            code.AppendLineAt(4, "{");
+            code.AppendIndent().Append("if (value.").Append(property).AppendLine(".IsPresent)");
+            code.OpenBlock();
             var conditionalIndent = 5;
             if (member.Property.IsJsonIgnoreWhenWritingNull)
             {
-                code.AppendIndent(5)
+                code.AppendIndent()
                     .Append("if (value.")
                     .Append(property)
                     .AppendLine(".Value is not null)");
-                code.AppendLineAt(5, "{");
+                code.OpenBlock();
                 conditionalIndent = 6;
             }
             else if (member.Property.IsJsonIgnoreWhenWritingDefault)
             {
-                code.AppendIndent(5)
+                code.AppendIndent()
                     .Append(
                         "if (!global::System.Collections.Generic.EqualityComparer<"
                             + FragmentValueType(member)
@@ -394,10 +364,10 @@ internal static class SparseFragmentJsonEmitter
                     )
                     .Append(property)
                     .AppendLine(".Value!, default))");
-                code.AppendLineAt(5, "{");
+                code.OpenBlock();
                 conditionalIndent = 6;
             }
-            code.AppendIndent(conditionalIndent)
+            code.AppendIndent()
                 .Append("writer.WritePropertyName(jsonPropertyCache.PropertyNames[")
                 .Append(index.ToString())
                 .AppendLine("]);");
@@ -416,7 +386,7 @@ internal static class SparseFragmentJsonEmitter
                     && writeCollection is not null;
                 if (isWriteCollection)
                 {
-                    code.AppendIndent(conditionalIndent)
+                    code.AppendIndent()
                         .Append("WriteCollection")
                         .Append(member.Id.ToString())
                         .Append("(writer, value.")
@@ -425,7 +395,7 @@ internal static class SparseFragmentJsonEmitter
                 }
                 else if (emitFastPaths)
                 {
-                    code.AppendIndent(conditionalIndent)
+                    code.AppendIndent()
                         .Append("WriteMemberValue<")
                         .Append(writeValueType)
                         .Append(">(writer, value.")
@@ -434,7 +404,7 @@ internal static class SparseFragmentJsonEmitter
                 }
                 else
                 {
-                    code.AppendIndent(conditionalIndent)
+                    code.AppendIndent()
                         .Append("global::System.Text.Json.JsonSerializer.Serialize<")
                         .Append(writeValueType)
                         .Append(">(writer, value.")
@@ -447,96 +417,87 @@ internal static class SparseFragmentJsonEmitter
             else
             {
                 var childFragment = member.ChildFragmentType!;
-                code.AppendIndent(conditionalIndent)
+                code.AppendIndent()
                     .Append("if (value.")
                     .Append(property)
                     .AppendLine(".Value is null)");
-                code.AppendLineAt(conditionalIndent, "{ writer.WriteNullValue(); }");
-                code.AppendIndent(conditionalIndent).AppendLine("else");
-                code.AppendLineAt(conditionalIndent, "{");
-                code.AppendIndent(conditionalIndent + 1)
+                code.AppendLine("{ writer.WriteNullValue(); }");
+                code.AppendIndent().AppendLine("else");
+                code.OpenBlock();
+                code.AppendIndent()
                     .Append(childFragment)
                     .Append(".JsonConverter.Write(writer, value.")
                     .Append(property)
                     .AppendLine(".Value, options);");
-                code.AppendLineAt(conditionalIndent, "}");
+                code.CloseBlock();
             }
             if (conditionalIndent > 5)
             {
-                code.AppendLineAt(5, "}");
+                code.CloseBlock();
             }
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
         }
 
-        code.AppendLineAt(4, "writer.WriteEndObject();");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
         if (emitFastPaths)
         {
             SparseFragmentJsonFastPathEmitter.AppendFastPaths(code, members);
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember> GetMemberTypeInfo<TMember>(global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var cache = GetJsonOptionsCache(options);");
-        code.AppendLineAt(4, "lock (cache.Gate)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine("var cache = GetJsonOptionsCache(options);");
+        code.AppendLine("lock (cache.Gate)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (cache.TypeInfos.TryGetValue(typeof(TMember), out var cached)) { return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember>)cached; }"
         );
-        code.AppendLineAt(5, "var resolved = ResolveMemberTypeInfo<TMember>(options);");
-        code.AppendLineAt(5, "cache.TypeInfos.Add(typeof(TMember), resolved);");
-        code.AppendLineAt(5, "return resolved;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("var resolved = ResolveMemberTypeInfo<TMember>(options);");
+        code.AppendLine("cache.TypeInfos.Add(typeof(TMember), resolved);");
+        code.AppendLine("return resolved;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember> ResolveMemberTypeInfo<TMember>(global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "try");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine("try");
+        code.OpenBlock();
+        code.AppendLine(
             "return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TMember>)options.GetTypeInfo(typeof(TMember));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "catch (global::System.NotSupportedException exception)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine("catch (global::System.NotSupportedException exception)");
+        code.OpenBlock();
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"The generated fragment converter requires JsonTypeInfo metadata for member type '\" + typeof(TMember) + \"'. Add the model/member types to a source-generated JsonSerializerContext and set it as JsonSerializerOptions.TypeInfoResolver.\", exception);"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private static bool Matches(string? actual, string expected, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (actual is null) { return false; }");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("if (actual is null) { return false; }");
+        code.AppendLine(
             "return global::System.String.Equals(actual, expected, options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal);"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private static void HandleUnknownFragmentProperty(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? propertyName)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) { throw new global::System.Text.Json.JsonException(\"The JSON property '\" + propertyName + \"' could not be mapped to fragment '\" + typeof(Fragment) + \"'.\"); }"
         );
-        code.AppendLineAt(4, "reader.Skip();");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("reader.Skip();");
+        code.CloseBlock();
         AppendJsonOptionsCache(
             code,
             members,
@@ -544,7 +505,7 @@ internal static class SparseFragmentJsonEmitter
             ignoredMemberIndexes,
             indexedDispatch
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static void AppendJsonOptionsCache(
@@ -555,98 +516,82 @@ internal static class SparseFragmentJsonEmitter
         bool indexedDispatch
     )
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private static readonly global::System.Runtime.CompilerServices.ConditionalWeakTable<global::System.Text.Json.JsonSerializerOptions, JsonOptionsCache> __jsonOptionsCaches = new global::System.Runtime.CompilerServices.ConditionalWeakTable<global::System.Text.Json.JsonSerializerOptions, JsonOptionsCache>();"
         );
-        code.AppendLineAt(3, "private sealed class JsonOptionsCache");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "public readonly object Gate = new object();");
-        code.AppendLineAt(4, "public JsonPropertyIndexCache? Properties;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("private sealed class JsonOptionsCache");
+        code.OpenBlock();
+        code.AppendLine("public readonly object Gate = new object();");
+        code.AppendLine("public JsonPropertyIndexCache? Properties;");
+        code.AppendLine(
             "public readonly global::System.Collections.Generic.Dictionary<global::System.Type, global::System.Text.Json.Serialization.Metadata.JsonTypeInfo> TypeInfos = new global::System.Collections.Generic.Dictionary<global::System.Type, global::System.Text.Json.Serialization.Metadata.JsonTypeInfo>();"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "private sealed class JsonPropertyIndexCache");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine("private sealed class JsonPropertyIndexCache");
+        code.OpenBlock();
+        code.AppendLine(
             "public JsonPropertyIndexCache(string[] propertyNames, byte[][] utf8Names, global::System.Collections.Generic.Dictionary<string, int>? indexes, global::System.Text.Json.JsonNamingPolicy? namingPolicy, bool caseInsensitive, bool namesValidated)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "PropertyNames = propertyNames;");
-        code.AppendLineAt(5, "Utf8Names = utf8Names;");
-        code.AppendLineAt(5, "Indexes = indexes;");
-        code.AppendLineAt(5, "NamingPolicy = namingPolicy;");
-        code.AppendLineAt(5, "CaseInsensitive = caseInsensitive;");
-        code.AppendLineAt(5, "NamesValidated = namesValidated;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "public readonly string[] PropertyNames;");
-        code.AppendLineAt(4, "public readonly byte[][] Utf8Names;");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("PropertyNames = propertyNames;");
+        code.AppendLine("Utf8Names = utf8Names;");
+        code.AppendLine("Indexes = indexes;");
+        code.AppendLine("NamingPolicy = namingPolicy;");
+        code.AppendLine("CaseInsensitive = caseInsensitive;");
+        code.AppendLine("NamesValidated = namesValidated;");
+        code.CloseBlock();
+        code.AppendLine("public readonly string[] PropertyNames;");
+        code.AppendLine("public readonly byte[][] Utf8Names;");
+        code.AppendLine(
             "public readonly global::System.Collections.Generic.Dictionary<string, int>? Indexes;"
         );
-        code.AppendLineAt(
-            4,
-            "public readonly global::System.Text.Json.JsonNamingPolicy? NamingPolicy;"
-        );
-        code.AppendLineAt(4, "public readonly bool CaseInsensitive;");
-        code.AppendLineAt(4, "public readonly bool NamesValidated;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public readonly global::System.Text.Json.JsonNamingPolicy? NamingPolicy;");
+        code.AppendLine("public readonly bool CaseInsensitive;");
+        code.AppendLine("public readonly bool NamesValidated;");
+        code.CloseBlock();
+        code.AppendLine(
             "private static JsonOptionsCache GetJsonOptionsCache(global::System.Text.Json.JsonSerializerOptions options) => __jsonOptionsCaches.GetValue(options, _ => new JsonOptionsCache());"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private static JsonPropertyIndexCache GetJsonPropertyCache(global::System.Text.Json.JsonSerializerOptions options, bool validateNames)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var namingPolicy = options.PropertyNamingPolicy;");
-        code.AppendLineAt(4, "var caseInsensitive = options.PropertyNameCaseInsensitive;");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("var namingPolicy = options.PropertyNamingPolicy;");
+        code.AppendLine("var caseInsensitive = options.PropertyNameCaseInsensitive;");
+        code.AppendLine(
             "var buildIndexes = validateNames && "
                 + (indexedDispatch ? "caseInsensitive;" : "false;")
         );
         // Each options instance owns the first evaluated names, including results from custom policies.
-        code.AppendLineAt(4, "var cache = GetJsonOptionsCache(options);");
-        code.AppendLineAt(4, "lock (cache.Gate)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "var current = cache.Properties;");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("var cache = GetJsonOptionsCache(options);");
+        code.AppendLine("lock (cache.Gate)");
+        code.OpenBlock();
+        code.AppendLine("var current = cache.Properties;");
+        code.AppendLine(
             "if (current is not null && global::System.Object.ReferenceEquals(current.NamingPolicy, namingPolicy) && current.CaseInsensitive == caseInsensitive && (!validateNames || current.NamesValidated) && (!buildIndexes || current.Indexes is not null)) { return current; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var built = BuildJsonPropertyCache(options, validateNames, buildIndexes);"
         );
-        code.AppendLineAt(5, "cache.Properties = built;");
-        code.AppendLineAt(5, "return built;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("cache.Properties = built;");
+        code.AppendLine("return built;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "private static JsonPropertyIndexCache BuildJsonPropertyCache(global::System.Text.Json.JsonSerializerOptions options, bool validateNames, bool buildIndexes)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "var comparer = options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var visibleNames = validateNames ? new global::System.Collections.Generic.HashSet<string>(comparer) : null;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "global::System.Collections.Generic.Dictionary<string, int>? indexes = buildIndexes ? new global::System.Collections.Generic.Dictionary<string, int>(comparer) : null;"
         );
-        code.AppendLineAt(4, "var propertyNames = new string[" + members.Length.ToString() + "];");
-        code.AppendLineAt(4, "var utf8Names = new byte[" + members.Length.ToString() + "][];");
+        code.AppendLine("var propertyNames = new string[" + members.Length.ToString() + "];");
+        code.AppendLine("var utf8Names = new byte[" + members.Length.ToString() + "][];");
         foreach (var index in jsonMemberIndexes)
         {
             var property = members[index].Property;
@@ -657,26 +602,23 @@ internal static class SparseFragmentJsonEmitter
             var expression = property.HasExplicitJsonPropertyName
                 ? literal
                 : "options.PropertyNamingPolicy?.ConvertName(" + literal + ") ?? " + literal;
-            code.AppendLineAt(4, "var __jsonName_" + index + " = " + expression + ";");
-            code.AppendLineAt(4, "propertyNames[" + index + "] = __jsonName_" + index + ";");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("var __jsonName_" + index + " = " + expression + ";");
+            code.AppendLine("propertyNames[" + index + "] = __jsonName_" + index + ";");
+            code.AppendLine(
                 "utf8Names["
                     + index
                     + "] = global::System.Text.Encoding.UTF8.GetBytes(__jsonName_"
                     + index
                     + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (visibleNames is not null && !visibleNames.Add(__jsonName_"
                     + index
                     + ")) { throw new global::System.Text.Json.JsonException(\"Multiple fragment members map to the same JSON property name.\"); }"
             );
             if (indexedDispatch)
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "if (indexes is not null) { indexes.Add(__jsonName_"
                         + index
                         + ", "
@@ -695,10 +637,9 @@ internal static class SparseFragmentJsonEmitter
             var expression = property.HasExplicitJsonPropertyName
                 ? literal
                 : "options.PropertyNamingPolicy?.ConvertName(" + literal + ") ?? " + literal;
-            code.AppendLineAt(4, "var __jsonName_" + index + " = " + expression + ";");
-            code.AppendLineAt(4, "propertyNames[" + index + "] = __jsonName_" + index + ";");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("var __jsonName_" + index + " = " + expression + ";");
+            code.AppendLine("propertyNames[" + index + "] = __jsonName_" + index + ";");
+            code.AppendLine(
                 "utf8Names["
                     + index
                     + "] = global::System.Text.Encoding.UTF8.GetBytes(__jsonName_"
@@ -707,8 +648,7 @@ internal static class SparseFragmentJsonEmitter
             );
             if (indexedDispatch)
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "if (indexes is not null && !indexes.ContainsKey(__jsonName_"
                         + index
                         + ")) { indexes.Add(__jsonName_"
@@ -719,10 +659,9 @@ internal static class SparseFragmentJsonEmitter
                 );
             }
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "return new JsonPropertyIndexCache(propertyNames, utf8Names, indexes, options.PropertyNamingPolicy, options.PropertyNameCaseInsensitive, validateNames);"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 }

@@ -10,21 +10,18 @@ internal static class SparsePayloadJsonConverterEmitter
     )
     {
         var members = context.Members.Where(static m => !m.Property.IsJsonIgnored).ToArray();
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Trim-safe JSON converter for this model's change payload.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public sealed class "
                 + context.ConverterName
                 + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>"
         );
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         AppendPayload(code, context);
         AppendCore(code, context);
         AppendRoot(code, context);
@@ -42,7 +39,7 @@ internal static class SparsePayloadJsonConverterEmitter
         }
 
         SparsePayloadJsonSharedEmitter.AppendShared(code, context);
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -52,94 +49,78 @@ internal static class SparsePayloadJsonConverterEmitter
     )
     {
         var change = context.Dto("Change");
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override ChangePayload? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A payload must be an object.\");"
         );
-        code.AppendLineAt(3, "string? version = null;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("string? version = null;");
+        code.AppendLine(
             "var changes = new global::System.Collections.Generic.List<" + change + ">();"
         );
-        code.AppendLineAt(3, "var hasChanges = false;");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var hasChanges = false;");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"version\"))");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (reader.ValueTextEquals(\"version\"))");
+        code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); }"
         );
-        code.AppendLineAt(4, "else if (reader.ValueTextEquals(\"changes\"))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("else if (reader.ValueTextEquals(\"changes\"))");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\");"
         );
-        code.AppendLineAt(5, "hasChanges = true;");
-        code.AppendLineAt(
-            5,
-            "if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null)"
-        );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("hasChanges = true;");
+        code.AppendLine("if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Payload changes must be an array.\");"
         );
-        code.AppendLineAt(6, "while (reader.Read())");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
         );
-        code.AppendLineAt(7, "changes.Add(ReadChange(ref reader, options));");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("changes.Add(ReadChange(ref reader, options));");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); reader.Skip(); }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var payload = new ChangePayload { Version = version };");
-        code.AppendLineAt(3, "if (hasChanges) payload.Changes = changes;");
-        code.AppendLineAt(3, "return payload;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("var payload = new ChangePayload { Version = version };");
+        code.AppendLine("if (hasChanges) payload.Changes = changes;");
+        code.AppendLine("return payload;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, ChangePayload? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(3, "writer.WriteString(\"version\", value.Version);");
-        code.AppendLineAt(3, "writer.WritePropertyName(\"changes\");");
-        code.AppendLineAt(3, "if (value.Changes is null) writer.WriteNullValue();");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("writer.WriteString(\"version\", value.Version);");
+        code.AppendLine("writer.WritePropertyName(\"changes\");");
+        code.AppendLine("if (value.Changes is null) writer.WriteNullValue();");
+        code.AppendLine(
             "else { writer.WriteStartArray(); foreach (var item in value.Changes) WriteChange(writer, item, options); writer.WriteEndArray(); }"
         );
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -147,169 +128,144 @@ internal static class SparsePayloadJsonConverterEmitter
     {
         var core = context.Dto("Core");
         var change = context.Dto("Change");
-        code.AppendLineAt(2, "/// <summary>Reads a nested change core.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Reads a nested change core.</summary>");
+        code.AppendLine(
             "public static "
                 + core
                 + " ReadCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A core must be an object.\");"
         );
-        code.AppendLineAt(3, "var core = new " + core + "();");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var core = new " + core + "();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed core.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"changes\"))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (reader.ValueTextEquals(\"changes\"))");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\");"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) core.Changes = null;"
         );
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Payload changes must be an array.\");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var list = new global::System.Collections.Generic.List<" + change + ">();"
         );
-        code.AppendLineAt(6, "while (reader.Read())");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
         );
-        code.AppendLineAt(7, "list.Add(ReadChange(ref reader, options));");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "core.Changes = list;");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("list.Add(ReadChange(ref reader, options));");
+        code.CloseBlock();
+        code.AppendLine("core.Changes = list;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed core.\"); reader.Skip(); }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return core;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return core;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(2, "/// <summary>Writes a nested change core.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Writes a nested change core.</summary>");
+        code.AppendLine(
             "public static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, "
                 + core
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(3, "writer.WritePropertyName(\"changes\");");
-        code.AppendLineAt(3, "if (value.Changes is null) writer.WriteNullValue();");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("writer.WritePropertyName(\"changes\");");
+        code.AppendLine("if (value.Changes is null) writer.WriteNullValue();");
+        code.AppendLine(
             "else { writer.WriteStartArray(); foreach (var item in value.Changes) WriteChange(writer, item, options); writer.WriteEndArray(); }"
         );
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
     private static void AppendRoot(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var root = context.Dto("Root");
-        code.AppendLineAt(2, "/// <summary>Reads a snapshot root.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Reads a snapshot root.</summary>");
+        code.AppendLine(
             "public static "
                 + root
                 + " ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A root must be an object.\");"
         );
-        code.AppendLineAt(3, "var root = new " + root + "();");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var root = new " + root + "();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed root.\");"
         );
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(\"members\"))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (reader.ValueTextEquals(\"members\"))");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\");"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) root.Members = new();"
         );
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Root members must be an array.\");"
         );
-        code.AppendLineAt(6, "root.Members.Clear();");
-        code.AppendLineAt(6, "while (reader.Read())");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("root.Members.Clear();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
         );
-        code.AppendLineAt(7, "root.Members.Add(ReadChange(ref reader, options));");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("root.Members.Add(ReadChange(ref reader, options));");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed root.\"); reader.Skip(); }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return root;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return root;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(2, "/// <summary>Writes a snapshot root.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Writes a snapshot root.</summary>");
+        code.AppendLine(
             "public static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, "
                 + root
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(3, "writer.WritePropertyName(\"members\");");
-        code.AppendLineAt(3, "writer.WriteStartArray();");
-        code.AppendLineAt(
-            3,
-            "foreach (var item in value.Members) WriteChange(writer, item, options);"
-        );
-        code.AppendLineAt(3, "writer.WriteEndArray();");
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("writer.WritePropertyName(\"members\");");
+        code.AppendLine("writer.WriteStartArray();");
+        code.AppendLine("foreach (var item in value.Members) WriteChange(writer, item, options);");
+        code.AppendLine("writer.WriteEndArray();");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -321,82 +277,68 @@ internal static class SparsePayloadJsonConverterEmitter
     {
         var change = context.Dto("Change");
         var rootChange = context.Dto("RootChange");
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + change
                 + " ReadChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A change must be an object.\");"
         );
-        code.AppendLineAt(3, "var lookahead = reader;");
-        code.AppendLineAt(3, "string? member = null;");
-        code.AppendLineAt(3, "var hasMember = false;");
-        code.AppendLineAt(3, "var hasEndObject = false;");
-        code.AppendLineAt(3, "while (lookahead.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var lookahead = reader;");
+        code.AppendLine("string? member = null;");
+        code.AppendLine("var hasMember = false;");
+        code.AppendLine("var hasEndObject = false;");
+        code.AppendLine("while (lookahead.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (lookahead.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { hasEndObject = true; break; }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (lookahead.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { lookahead.Skip(); continue; }"
         );
-        code.AppendLineAt(4, "var isMember = lookahead.ValueTextEquals(\"member\");");
-        code.AppendLineAt(4, "if (!lookahead.Read()) break;");
-        code.AppendLineAt(4, "if (isMember)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "hasMember = true;");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("var isMember = lookahead.ValueTextEquals(\"member\");");
+        code.AppendLine("if (!lookahead.Read()) break;");
+        code.AppendLine("if (isMember)");
+        code.OpenBlock();
+        code.AppendLine("hasMember = true;");
+        code.AppendLine(
             "member = lookahead.TokenType == global::System.Text.Json.JsonTokenType.String ? lookahead.GetString() : null;"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "lookahead.Skip();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine("lookahead.Skip();");
+        code.CloseBlock();
+        code.AppendLine(
             "if (hasEndObject && hasMember) return ReadDispatchedChange(ref reader, options, member);"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);"
         );
-        code.AppendLineAt(3, "var element = document.RootElement;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("var element = document.RootElement;");
+        code.AppendLine(
             "if (element.TryGetProperty(\"member\", out var discriminator) && discriminator.ValueKind == global::System.Text.Json.JsonValueKind.String) member = discriminator.GetString();"
         );
-        code.AppendLineAt(
-            3,
-            "var bytes = System.Text.Encoding.UTF8.GetBytes(element.GetRawText());"
-        );
-        code.AppendLineAt(3, "var nested = new global::System.Text.Json.Utf8JsonReader(bytes);");
-        code.AppendLineAt(3, "nested.Read();");
-        code.AppendLineAt(3, "return ReadDispatchedChange(ref nested, options, member);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("var bytes = System.Text.Encoding.UTF8.GetBytes(element.GetRawText());");
+        code.AppendLine("var nested = new global::System.Text.Json.Utf8JsonReader(bytes);");
+        code.AppendLine("nested.Read();");
+        code.AppendLine("return ReadDispatchedChange(ref nested, options, member);");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + change
                 + " ReadDispatchedChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? member)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (member == "
                 + Format(context.RootDiscriminator)
                 + ") return ReadRootChange(ref reader, options);"
         );
         foreach (var member in members)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (member == "
                     + Format(member.Property.Name)
                     + ") return ReadMember"
@@ -405,121 +347,103 @@ internal static class SparsePayloadJsonConverterEmitter
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "throw new global::System.Text.Json.JsonException(\"Unknown payload member.\");"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WriteChange(global::System.Text.Json.Utf8JsonWriter writer, "
                 + change
                 + " item, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(3, "var written = false;");
+        code.OpenBlock();
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("var written = false;");
         foreach (var member in members)
         {
             var memberChange = context.MemberDto("Change", member.Id);
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!written && item is " + memberChange + " member" + member.Id + ")"
             );
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(
-                4,
+            code.OpenBlock();
+            code.AppendLine(
                 "writer.WriteString(\"member\", " + Format(member.Property.Name) + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "WriteMember" + member.Id + "Body(writer, member" + member.Id + ", options);"
             );
-            code.AppendLineAt(4, "written = true;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("written = true;");
+            code.CloseBlock();
         }
 
-        code.AppendLineAt(3, "if (!written && item is " + rootChange + " rootChange)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (!written && item is " + rootChange + " rootChange)");
+        code.OpenBlock();
+        code.AppendLine(
             "writer.WriteString(\"member\", " + Format(context.RootDiscriminator) + ");"
         );
-        code.AppendLineAt(4, "WriteRootChangeBody(writer, rootChange, options);");
-        code.AppendLineAt(4, "written = true;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("WriteRootChangeBody(writer, rootChange, options);");
+        code.AppendLine("written = true;");
+        code.CloseBlock();
+        code.AppendLine(
             "if (!written) throw new global::System.Text.Json.JsonException(\"Unknown payload change.\");"
         );
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + rootChange
                 + " ReadRootChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A change must be an object.\");"
         );
-        code.AppendLineAt(3, "var change = new " + rootChange + "();");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var change = new " + rootChange + "();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
-        code.AppendLineAt(4, "var name = reader.GetString() ?? string.Empty;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var name = reader.GetString() ?? string.Empty;");
+        code.AppendLine(
             "if (name == \"member\") { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\"); reader.Skip(); continue; }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                 + context.Dto("Root")
                 + ">(ref reader, options, ReadRoot, null); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (name == \"after\") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<"
                 + context.Dto("Root")
                 + ">(ref reader, options, ReadRoot, null); }"
         );
-        code.AppendLineAt(4, "else reader.Skip();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return change;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("else reader.Skip();");
+        code.CloseBlock();
+        code.AppendLine("return change;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WriteRootChangeBody(global::System.Text.Json.Utf8JsonWriter writer, "
                 + rootChange
                 + " change, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options, WriteRoot); }"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options, WriteRoot); }"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 

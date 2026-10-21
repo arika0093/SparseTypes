@@ -42,25 +42,16 @@ internal static class SparseChangeSetBetweenEmitter
 
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Derives the canonical baseline-aware diff between two states.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
             );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"before\">The state before the transition.</param>"
-            );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"after\">The state after the transition.</param>"
-            );
-            code.AppendLineAt(2, "/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
                 "public static ChangeSet Between("
                     + optionalFragment
                     + " before, "
@@ -73,13 +64,11 @@ internal static class SparseChangeSetBetweenEmitter
             code = target.ChangeSetOperations;
         }
         // Empty storage contains no retained endpoints or mutable containers.
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static readonly ChangeSet " + emptyName + " = new ChangeSet(" + empty + ");"
         );
-        code.AppendLineAt(2, "/// <summary>Deep-clones a retained whole-root fragment.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Deep-clones a retained whole-root fragment.</summary>");
+        code.AppendLine(
             "private static "
                 + optionalFragment
                 + " __SparseCloneRoot("
@@ -88,19 +77,16 @@ internal static class SparseChangeSetBetweenEmitter
                 + optionalFragment
                 + ".Present(value.Value!.DeepClone());"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Derives the canonical baseline-aware diff between two states.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"before\">The state before the transition.</param>");
-        code.AppendLineAt(2, "/// <param name=\"after\">The state after the transition.</param>");
-        code.AppendLineAt(2, "/// <returns>The baseline-aware diff.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
+        code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
+        code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+        code.AppendLine(
             (
                 target is null
                     ? "public static ChangeSet Between("
@@ -111,52 +97,47 @@ internal static class SparseChangeSetBetweenEmitter
                 + optionalFragment
                 + " after)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (before.IsPresent != after.IsPresent)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("if (before.IsPresent != after.IsPresent)");
+        code.OpenBlock();
+        code.AppendLine(
             "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
                 + MemberEmptyTail(members)
                 + ");"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "if (!before.IsPresent) return " + emptyName + ";");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine("if (!before.IsPresent) return " + emptyName + ";");
+        code.AppendLine(
             "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return "
                 + emptyName
                 + ";"
         );
-        code.AppendLineAt(3, "if (before.Value is null || after.Value is null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (before.Value is null || after.Value is null)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (before.Value is null && after.Value is null) return " + emptyName + ";"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
                 + MemberEmptyTail(members)
                 + ");"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         if (members.IsDefaultOrEmpty || members.Length == 0)
         {
-            code.AppendLineAt(3, "return " + emptyName + ";");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("return " + emptyName + ";");
+            code.CloseBlock();
             return;
         }
-        code.AppendLineAt(3, "var bf = before.Value!;");
-        code.AppendLineAt(3, "var af = after.Value!;");
+        code.AppendLine("var bf = before.Value!;");
+        code.AppendLine("var af = after.Value!;");
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
             if (IsNested(member))
             {
                 var child = ChildChangeSet(member, dialect);
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "var __n"
                         + member.Id
                         + " = "
@@ -167,8 +148,7 @@ internal static class SparseChangeSetBetweenEmitter
                         + name
                         + ");"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     child
                         + "? __nn"
                         + member.Id
@@ -197,8 +177,7 @@ internal static class SparseChangeSetBetweenEmitter
                     beforeAccess = "__SparseSnapshot_" + member.Id + "(" + beforeAccess + ")";
                     afterAccess = "__SparseSnapshot_" + member.Id + "(" + afterAccess + ")";
                 }
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "bool __h"
                         + member.Id
                         + " = !Fragment.__SparseEqual_"
@@ -209,8 +188,7 @@ internal static class SparseChangeSetBetweenEmitter
                         + name
                         + ");"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     opt
                         + " __b"
                         + member.Id
@@ -220,8 +198,7 @@ internal static class SparseChangeSetBetweenEmitter
                         + beforeAccess
                         + " : default;"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     opt
                         + " __a"
                         + member.Id
@@ -246,7 +223,7 @@ internal static class SparseChangeSetBetweenEmitter
                 conds.Add("!__h" + member.Id);
             }
         }
-        code.AppendLineAt(3, "if (" + string.Join(" && ", conds) + ") return " + emptyName + ";");
+        code.AppendLine("if (" + string.Join(" && ", conds) + ") return " + emptyName + ";");
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
@@ -292,8 +269,8 @@ internal static class SparseChangeSetBetweenEmitter
                 args.AddRange(new[] { "__b" + member.Id, "__a" + member.Id, "__h" + member.Id });
             }
         }
-        code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
+        code.CloseBlock();
     }
 
     internal static void AppendModelBetween(
@@ -308,21 +285,13 @@ internal static class SparseChangeSetBetweenEmitter
     {
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
             );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"before\">The model before the transition.</param>"
-            );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"after\">The model after the transition.</param>"
-            );
-            code.AppendLineAt(2, "/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
                 "public static ChangeSet Between("
                     + modelType
                     + " before, "
@@ -332,21 +301,13 @@ internal static class SparseChangeSetBetweenEmitter
                     + ".Between(before, after);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
             );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"before\">The model before the transition.</param>"
-            );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"after\">The model after the transition.</param>"
-            );
-            code.AppendLineAt(2, "/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
                 "internal static ChangeSet Between("
                     + modelType
                     + " before, "
@@ -356,25 +317,17 @@ internal static class SparseChangeSetBetweenEmitter
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>"
             );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"before\">The model before the transition.</param>"
-            );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"after\">The model after the transition.</param>"
-            );
-            code.AppendLineAt(2, "/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
                 "public static ChangeSet Between(" + modelType + " before, " + modelType + " after)"
             );
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (SparseChangeSetModelBetweenEmitter.CanCompareDirectly(members))
         {
             SparseChangeSetModelBetweenEmitter.AppendBody(
@@ -390,12 +343,11 @@ internal static class SparseChangeSetBetweenEmitter
             SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(
                 code,
                 optionalFragment,
-                3,
                 modelIsReferenceType,
                 members
             );
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 }

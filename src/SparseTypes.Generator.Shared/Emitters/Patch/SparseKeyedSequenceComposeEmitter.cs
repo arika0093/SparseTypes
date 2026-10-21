@@ -21,12 +21,10 @@ internal static class SparseKeyedSequenceComposeEmitter
         var operation = runtime + "FragmentOperation<" + listType + ">";
         if (split is not null)
         {
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "/// <summary>Composes this keyed patch with a following patch.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public "
                     + patchName
                     + " Compose("
@@ -35,9 +33,8 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + split.OperationsType
                     + ".Compose(this, next);"
             );
-            split.Shell.AppendLineAt(3, "/// <summary>Composes two keyed patches.</summary>");
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine("/// <summary>Composes two keyed patches.</summary>");
+            split.Shell.AppendLine(
                 "public static "
                     + patchName
                     + " Compose("
@@ -48,12 +45,10 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + split.OperationsType
                     + ".Compose(first, second);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Composes a keyed patch with a following patch.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "internal static "
                     + patchName
                     + " Compose("
@@ -65,44 +60,40 @@ internal static class SparseKeyedSequenceComposeEmitter
         }
         else
         {
-            code.AppendLineAt(3, "public " + patchName + " Compose(" + patchName + " next)");
+            code.AppendLine("public " + patchName + " Compose(" + patchName + " next)");
         }
-        code.AppendLineAt(3, "{");
+        code.OpenBlock();
         if (split is not null)
         {
             SparseKeyedSequenceApplyEmitter.AppendKeyedFieldAliases(code, member);
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
         );
-        code.AppendLineAt(4, "var result = new " + patchName + "();");
-        code.AppendLineAt(4, "if (next.__whole.Kind != " + kind + ".Keep)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "result.__whole = next.__whole;");
-        code.AppendLineAt(5, "return result;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "if (__whole.Kind != " + kind + ".Keep)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("var result = new " + patchName + "();");
+        code.AppendLine("if (next.__whole.Kind != " + kind + ".Keep)");
+        code.OpenBlock();
+        code.AppendLine("result.__whole = next.__whole;");
+        code.AppendLine("return result;");
+        code.CloseBlock();
+        code.AppendLine("if (__whole.Kind != " + kind + ".Keep)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__whole.Kind == "
                 + kind
                 + ".Remove) throw new global::System.InvalidOperationException(\"Cannot compose granular operations after a whole Remove.\");"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var applied = next.Apply("
                 + runtime
                 + "Optional<"
                 + listType
                 + ">.Present(__whole.Value));"
         );
-        code.AppendLineAt(5, "result.__whole = " + operation + ".Set(applied.Value!);");
-        code.AppendLineAt(5, "return result;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("result.__whole = " + operation + ".Set(applied.Value!);");
+        code.AppendLine("return result;");
+        code.CloseBlock();
+        code.AppendLine(
             "if (" + (split is null ? "this" : "self") + ".IsEmpty && next.IsEmpty) return result;"
         );
         // Granular + granular: merge key operation logs preserving sequential
@@ -175,8 +166,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                 member.Id
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var thisAdded = new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -185,8 +175,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var thisUnassignedAdded = new global::System.Collections.Generic.List<"
                 + elementType
                 + ">();"
@@ -205,8 +194,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                 : "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
                     + ") thisUnassignedAdded.Add(item); else thisAdded[k] = item; }";
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__added is not null) foreach (var item in __added) { var k = "
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item); "
@@ -215,15 +203,13 @@ internal static class SparseKeyedSequenceComposeEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__added is not null) foreach (var item in __added) thisAdded["
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item)] = item;"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var nextAdded = new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -232,16 +218,14 @@ internal static class SparseKeyedSequenceComposeEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var nextUnassignedAdded = new global::System.Collections.Generic.List<"
                 + elementType
                 + ">();"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (next.__added is not null) foreach (var item in next.__added) { var k = "
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item); if ("
@@ -251,15 +235,13 @@ internal static class SparseKeyedSequenceComposeEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (next.__added is not null) foreach (var item in next.__added) nextAdded["
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item)] = item;"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var thisRemoved = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">(("
@@ -274,8 +256,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var nextRemoved = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">(("
@@ -291,47 +272,40 @@ internal static class SparseKeyedSequenceComposeEmitter
                 + ");"
         );
         // Net removals: removed by either.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var netRemoved = new global::System.Collections.Generic.List<"
                 + keyType
                 + ">(thisRemoved.Count + nextRemoved.Count);"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __netRemovedSet = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "foreach (var k in thisRemoved) if (!nextAdded.ContainsKey(k) && __netRemovedSet.Add(k)) netRemoved.Add(k);"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "foreach (var k in nextRemoved) if ((!thisAdded.ContainsKey(k) || thisRemoved.Contains(k)) && __netRemovedSet.Add(k)) netRemoved.Add(k);"
         );
         // Net adds: this-added surviving next-removal (with next edits
         // applied), plus next-added.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var netAdded = new global::System.Collections.Generic.List<" + elementType + ">();"
         );
         if (hasPatch)
         {
             var elementFragment = SparseKeyedCollectionEmitter.ElementFragmentType(member);
-            code.AppendLineAt(4, "foreach (var kv in thisAdded)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(5, "if (nextRemoved.Contains(kv.Key)) continue;");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var kv in thisAdded)");
+            code.OpenBlock();
+            code.AppendLine("if (nextRemoved.Contains(kv.Key)) continue;");
+            code.AppendLine(
                 "if (next.__edited is not null && next.__edited.TryGetValue(kv.Key, out var nextEdit))"
             );
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
+            code.OpenBlock();
+            code.AppendLine(
                 "var applied = nextEdit.Apply("
                     + runtime
                     + "Optional<"
@@ -340,40 +314,35 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + elementFragment
                     + ".From(kv.Value)));"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (!applied.IsPresent || applied.Value is null) throw new global::System.InvalidOperationException(\"Element edit removed the element. Use Remove instead.\");"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (!"
                     + comparer
                     + ".Equals("
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(applied.Value!.ToModel()), kv.Key)) throw new global::System.InvalidOperationException(\"Changing an element's identity through an edit is not allowed. Use remove-old + add-new instead.\");"
             );
-            code.AppendLineAt(6, "netAdded.Add(applied.Value!.ToModel());");
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(5, "else netAdded.Add(kv.Value);");
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("netAdded.Add(applied.Value!.ToModel());");
+            code.CloseBlock();
+            code.AppendLine("else netAdded.Add(kv.Value);");
+            code.CloseBlock();
+            code.AppendLine(
                 "foreach (var item in thisUnassignedAdded) netAdded.Add(item); if (next.__added is not null) foreach (var item in next.__added) netAdded.Add(item);"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
                     + SparseKeyedCollectionEmitter.ElementPatchType(member)
                     + ">? netEdited = null;"
             );
-            code.AppendLineAt(4, "if (__edited is not null) foreach (var kv in __edited)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(5, "if (nextRemoved.Contains(kv.Key)) continue;");
-            code.AppendLineAt(5, "if (nextAdded.ContainsKey(kv.Key)) continue;");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (__edited is not null) foreach (var kv in __edited)");
+            code.OpenBlock();
+            code.AppendLine("if (nextRemoved.Contains(kv.Key)) continue;");
+            code.AppendLine("if (nextAdded.ContainsKey(kv.Key)) continue;");
+            code.AppendLine(
                 "if (next.__edited is not null && next.__edited.TryGetValue(kv.Key, out var n2) && !n2.__SparseIsEmpty()) { var __c = kv.Value.Compose(n2); if (__c.__SparseIsEmpty()) { netEdited?.Remove(kv.Key); } else (netEdited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -382,8 +351,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + comparer
                     + "))[kv.Key] = __c; }"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "else if ((next.__edited is null || !next.__edited.ContainsKey(kv.Key)) && !kv.Value.__SparseIsEmpty()) (netEdited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -392,23 +360,17 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value;"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
-                "if (next.__edited is not null) foreach (var kv in next.__edited)"
-            );
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.CloseBlock();
+            code.AppendLine("if (next.__edited is not null) foreach (var kv in next.__edited)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (thisAdded.ContainsKey(kv.Key) || thisRemoved.Contains(kv.Key)) continue;"
             );
-            code.AppendLineAt(5, "if (kv.Value.__SparseIsEmpty()) continue;");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (kv.Value.__SparseIsEmpty()) continue;");
+            code.AppendLine(
                 "if (netEdited is not null && netEdited.ContainsKey(kv.Key)) continue;"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "(netEdited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -417,7 +379,7 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value;"
             );
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
             if (hasTempPatchCompose)
             {
                 SparseKeyedSequenceTempPatchMergeEmitter.AppendPatchTempMerge(
@@ -428,29 +390,25 @@ internal static class SparseKeyedSequenceComposeEmitter
                     runtime
                 );
             }
-            code.AppendLineAt(4, "if (netRemoved.Count > 0) result.__removed = netRemoved;");
-            code.AppendLineAt(4, "if (netAdded.Count > 0) result.__added = netAdded;");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (netRemoved.Count > 0) result.__removed = netRemoved;");
+            code.AppendLine("if (netAdded.Count > 0) result.__added = netAdded;");
+            code.AppendLine(
                 "if (netEdited is not null && netEdited.Count > 0) result.__edited = netEdited;"
             );
         }
         else
         {
-            code.AppendLineAt(4, "foreach (var kv in thisAdded)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(5, "if (nextRemoved.Contains(kv.Key)) continue;");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var kv in thisAdded)");
+            code.OpenBlock();
+            code.AppendLine("if (nextRemoved.Contains(kv.Key)) continue;");
+            code.AppendLine(
                 "if (next.__edited is not null && next.__edited.TryGetValue(kv.Key, out var upd)) netAdded.Add(upd); else netAdded.Add(kv.Value);"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
+            code.CloseBlock();
+            code.AppendLine(
                 "foreach (var item in thisUnassignedAdded) netAdded.Add(item); if (next.__added is not null) foreach (var item in next.__added) netAdded.Add(item);"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var netEdited = new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -459,12 +417,10 @@ internal static class SparseKeyedSequenceComposeEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__edited is not null) foreach (var kv in __edited) if (!nextRemoved.Contains(kv.Key) && !nextAdded.ContainsKey(kv.Key)) netEdited[kv.Key] = kv.Value;"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (next.__edited is not null) foreach (var kv in next.__edited) { if (thisAdded.ContainsKey(kv.Key) || thisRemoved.Contains(kv.Key)) continue; netEdited[kv.Key] = kv.Value; }"
             );
             if (hasTempPatchCompose)
@@ -477,9 +433,9 @@ internal static class SparseKeyedSequenceComposeEmitter
                     runtime
                 );
             }
-            code.AppendLineAt(4, "if (netRemoved.Count > 0) result.__removed = netRemoved;");
-            code.AppendLineAt(4, "if (netAdded.Count > 0) result.__added = netAdded;");
-            code.AppendLineAt(4, "if (netEdited.Count > 0) result.__edited = netEdited;");
+            code.AppendLine("if (netRemoved.Count > 0) result.__removed = netRemoved;");
+            code.AppendLine("if (netAdded.Count > 0) result.__added = netAdded;");
+            code.AppendLine("if (netEdited.Count > 0) result.__edited = netEdited;");
         }
 
         // Order: next order wins when present (filtered to net keys), else this
@@ -496,8 +452,8 @@ internal static class SparseKeyedSequenceComposeEmitter
         }
         else
         {
-            code.AppendLineAt(4, "if (next.__order is not null && next.__order.Count > 0)");
-            code.AppendLineAt(4, "{");
+            code.AppendLine("if (next.__order is not null && next.__order.Count > 0)");
+            code.OpenBlock();
             // The removal set and the order-membership set both use the
             // configured key comparer, which is EqualityComparer<T>.Default at
             // every construction site today; List.Contains and
@@ -505,55 +461,47 @@ internal static class SparseKeyedSequenceComposeEmitter
             // set membership, and the sets only replace linear scans. The
             // filtered list keeps every surviving entry (duplicates included);
             // the set only gates later additions.
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __nextOrder = new global::System.Collections.Generic.List<" + keyType + ">();"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __nextOrderSet = new global::System.Collections.Generic.HashSet<"
                     + keyType
                     + ">("
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "foreach (var k in next.__order) if (!__netRemovedSet.Contains(k)) { __nextOrder.Add(k); __nextOrderSet.Add(k); }"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (next.__added is not null) foreach (var item in next.__added) { var __ak = "
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item); if (__nextOrderSet.Add(__ak)) __nextOrder.Add(__ak); }"
             );
-            code.AppendLineAt(5, "if (__nextOrder.Count > 0) result.__order = __nextOrder;");
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else if (__order is not null && __order.Count > 0)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (__nextOrder.Count > 0) result.__order = __nextOrder;");
+            code.CloseBlock();
+            code.AppendLine("else if (__order is not null && __order.Count > 0)");
+            code.OpenBlock();
+            code.AppendLine(
                 "var order = new global::System.Collections.Generic.List<" + keyType + ">();"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "foreach (var k in __order) if (!nextRemoved.Contains(k)) order.Add(k);"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (next.__added is not null) foreach (var item in next.__added) order.Add("
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(item));"
             );
-            code.AppendLineAt(5, "if (order.Count > 0) result.__order = order;");
-            code.AppendLineAt(4, "}");
+            code.AppendLine("if (order.Count > 0) result.__order = order;");
+            code.CloseBlock();
         }
-        code.AppendLineAt(4, "return result;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("return result;");
+        code.CloseBlock();
         if (split is null)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "public static "
                     + patchName
                     + " Compose("

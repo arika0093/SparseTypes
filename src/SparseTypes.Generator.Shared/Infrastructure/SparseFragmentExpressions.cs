@@ -22,23 +22,17 @@ internal sealed class SparseFragmentExpressions(
 
     /// <summary>Emits a clone context whose lifetime covers the enclosing generated operation.</summary>
     /// <param name="code">Target source builder.</param>
-    /// <param name="indent">Declaration indentation.</param>
     /// <param name="referenceComparer">Runtime type providing the unscoped context factory.</param>
-    public void AppendCloneContext(SharedIndentedBuilder code, int indent, string referenceComparer)
+    public void AppendCloneContext(SharedIndentedBuilder code, string referenceComparer)
     {
         if (CloneContextScopeFactory is null)
         {
-            SparseFragmentEmitHelpers.AppendCloneContext(
-                code,
-                indent,
-                CloneContext,
-                referenceComparer
-            );
+            SparseFragmentEmitHelpers.AppendCloneContext(code, CloneContext, referenceComparer);
             return;
         }
         var scope = CloneContext + "_scope";
-        code.AppendLineAt(indent, "using var " + scope + " = " + CloneContextScopeFactory + "();");
-        code.AppendLineAt(indent, "var " + CloneContext + " = " + scope + ".Context;");
+        code.AppendLine("using var " + scope + " = " + CloneContextScopeFactory + "();");
+        code.AppendLine("var " + CloneContext + " = " + scope + ".Context;");
     }
 
     private string OptionalType { get; } = optionalType;

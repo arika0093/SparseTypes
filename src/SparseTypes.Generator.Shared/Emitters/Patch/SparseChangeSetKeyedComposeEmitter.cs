@@ -39,49 +39,44 @@ internal static class SparseChangeSetKeyedComposeEmitter
         var comparer =
             "global::System.Collections.Generic.EqualityComparer<" + keyType + ">.Default";
         var trans = TransNameFor(members, member);
-        code.AppendLineAt(3, "bool __cb" + id + "_has = false;");
-        code.AppendLineAt(3, "bool __cb" + id + "_whole = false;");
-        code.AppendLineAt(3, opt + " __cb" + id + "_wb = default;");
-        code.AppendLineAt(3, opt + " __cb" + id + "_wa = default;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("bool __cb" + id + "_has = false;");
+        code.AppendLine("bool __cb" + id + "_whole = false;");
+        code.AppendLine(opt + " __cb" + id + "_wb = default;");
+        code.AppendLine(opt + " __cb" + id + "_wa = default;");
+        code.AppendLine(
             "global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>? __cb"
                 + id
                 + "_items = null;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "global::System.Collections.Generic.List<" + keyType + ">? __cb" + id + "_bO = null;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "global::System.Collections.Generic.List<" + keyType + ">? __cb" + id + "_aO = null;"
         );
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "global::System.Collections.Generic.List<global::System.Guid>? __cb"
                     + id
                     + "_tbO = null;"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "global::System.Collections.Generic.List<global::System.Guid>? __cb"
                     + id
                     + "_taO = null;"
             );
         }
-        code.AppendLineAt(3, "{");
+        code.OpenBlock();
         var hasTempCompose = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         if (hasTempCompose)
         {
             SparseChangeSetKeyedTempMergeEmitter.AppendTempLocals(code, member, trans, id);
         }
-        code.AppendLineAt(4, "var __first" + id + "_has = " + HasField(member) + ";");
-        code.AppendLineAt(4, "var __second" + id + "_has = next." + HasField(member) + ";");
+        code.AppendLine("var __first" + id + "_has = " + HasField(member) + ";");
+        code.AppendLine("var __second" + id + "_has = next." + HasField(member) + ";");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             SparseChangeSetKeyedTempMergeEmitter.AppendWholeBeforeGuard(
@@ -91,10 +86,9 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 hasTempCompose
             );
         }
-        code.AppendLineAt(4, "if (!__first" + id + "_has)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (!__first" + id + "_has)");
+        code.OpenBlock();
+        code.AppendLine(
             "__cb"
                 + id
                 + "_has = __second"
@@ -105,8 +99,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + KeyedWholeFlag(member)
                 + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "__cb"
                 + id
                 + "_wb = next."
@@ -117,8 +110,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + KeyedWholeAfter(member)
                 + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "__cb"
                 + id
                 + "_items = next."
@@ -133,15 +125,13 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + KeyedAfterOrder(member)
                 + ";"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else if (!__second" + id + "_has)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine("else if (!__second" + id + "_has)");
+        code.OpenBlock();
+        code.AppendLine(
             "__cb" + id + "_has = true; __cb" + id + "_whole = " + KeyedWholeFlag(member) + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "__cb"
                 + id
                 + "_wb = "
@@ -152,8 +142,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + KeyedWholeAfter(member)
                 + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "__cb"
                 + id
                 + "_items = "
@@ -168,47 +157,40 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + KeyedAfterOrder(member)
                 + ";"
         );
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
         // Whole member transitions (Missing/null/value): endpoint composition.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (" + KeyedWholeFlag(member) + " || next." + KeyedWholeFlag(member) + ")"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "__cb" + id + "_has = true;");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine("__cb" + id + "_has = true;");
+        code.AppendLine(
             "var __w1b = "
                 + KeyedWholeBefore(member)
                 + "; var __w1a = "
                 + KeyedWholeAfter(member)
                 + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __w2b = next."
                 + KeyedWholeBefore(member)
                 + "; var __w2a = next."
                 + KeyedWholeAfter(member)
                 + ";"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (" + KeyedWholeFlag(member) + " && next." + KeyedWholeFlag(member) + ")"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.OpenBlock();
+        code.AppendLine(
             "if (!Fragment.__SparseEqual_"
                 + id
                 + "(__w1a, __w2b)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (Fragment.__SparseEqual_" + id + "(__w1b, __w2a)) { __cb" + id + "_has = false; }"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "else { __cb"
                 + id
                 + "_whole = true; __cb"
@@ -217,17 +199,16 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + id
                 + "_wa = __w2a; }"
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
             SparseChangeSetKeyedTempMergeEmitter.AppendGranularBeforeGuard(
@@ -251,8 +232,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __map1"
                     + id
                     + " = new global::System.Collections.Generic.Dictionary<"
@@ -265,8 +245,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if ("
                     + KeyedItems(member)
                     + " is not null) foreach (var __it in "
@@ -278,8 +257,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
         }
         if (!hasTempCompose)
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __map2"
                     + id
                     + " = new global::System.Collections.Generic.Dictionary<"
@@ -309,8 +287,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __unassignedNetItems"
                     + id
                     + " = new global::System.Collections.Generic.List<"
@@ -330,8 +307,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (next."
                     + KeyedItems(member)
                     + " is not null) foreach (var __it in next."
@@ -342,8 +318,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
             );
         }
 
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __keys"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<"
@@ -354,10 +329,9 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(5, "__keys" + id + ".UnionWith(__map2" + id + ".Keys);");
+        code.AppendLine("__keys" + id + ".UnionWith(__map2" + id + ".Keys);");
         // Keys occurring in only one input always survive composition.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __net"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<"
@@ -379,8 +353,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
         // Index only second-only keys that occur in the retained first order.
         var continuityDictionary =
             "global::System.Collections.Generic.Dictionary<" + keyType + ", " + trans + ".Item>";
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "static global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">? __IndexContinuity"
@@ -393,37 +366,32 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + continuityDictionary
                 + " second, int capacity)"
         );
-        code.AppendLineAt(5, "{");
+        code.OpenBlock();
         if (dialect.HashSetSupportsCapacity)
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "global::System.Collections.Generic.HashSet<" + keyType + ">? present = null;"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "foreach (var key in order!) if (second.ContainsKey(key) && !first.ContainsKey(key)) (present ??= new global::System.Collections.Generic.HashSet<"
                     + keyType
                     + ">(capacity, "
                     + comparer
                     + ")).Add(key);"
             );
-            code.AppendLineAt(6, "return present;");
+            code.AppendLine("return present;");
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "global::System.Collections.Generic.List<" + keyType + ">? present = null;"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "foreach (var key in order!) if (second.ContainsKey(key) && !first.ContainsKey(key)) (present ??= new global::System.Collections.Generic.List<"
                     + keyType
                     + ">()).Add(key);"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "return present is null ? null : new global::System.Collections.Generic.HashSet<"
                     + keyType
                     + ">(present, "
@@ -431,9 +399,8 @@ internal static class SparseChangeSetKeyedComposeEmitter
                     + ");"
             );
         }
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine(
             "var __indexContinuity"
                 + id
                 + " = "
@@ -446,8 +413,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + id
                 + ".Count > 4;"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __presentSecondOnly"
                 + id
                 + " = __indexContinuity"
@@ -468,10 +434,9 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + id
                 + ".Count)) : null;"
         );
-        code.AppendLineAt(5, "foreach (var __k in __keys" + id + ")");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("foreach (var __k in __keys" + id + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "var __has1 = __map1"
                 + id
                 + ".TryGetValue(__k, out var __a1); var __has2 = __map2"
@@ -480,11 +445,10 @@ internal static class SparseChangeSetKeyedComposeEmitter
         );
         // Directional continuity: second's expected before must hold in first's
         // after.
-        code.AppendLineAt(6, "if (!__has1)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "var __o1aChk = " + KeyedAfterOrder(member) + ";");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (!__has1)");
+        code.OpenBlock();
+        code.AppendLine("var __o1aChk = " + KeyedAfterOrder(member) + ";");
+        code.AppendLine(
             "if (__o1aChk is not null) { bool __in1; if (__indexContinuity"
                 + id
                 + ") __in1 = __presentSecondOnly"
@@ -493,20 +457,18 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + comparer
                 + ".Equals(__ok, __k)) { __in1 = true; break; } } if (__a2!.IsAdded ? __in1 : !__in1) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\"); }"
         );
-        code.AppendLineAt(7, "__net" + id + "[__k] = __a2!; continue;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "if (!__has2) { __net" + id + "[__k] = __a1!; continue; }");
+        code.AppendLine("__net" + id + "[__k] = __a2!; continue;");
+        code.CloseBlock();
+        code.AppendLine("if (!__has2) { __net" + id + "[__k] = __a1!; continue; }");
         // Both changed: validate continuity and merge by membership kind.
         // Added (Missing->after) cases.
-        code.AppendLineAt(6, "if (__a1!.IsAdded && __a2!.IsAdded)");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("if (__a1!.IsAdded && __a2!.IsAdded)");
+        code.AppendLine(
             "{ throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\"); }"
         );
-        code.AppendLineAt(6, "if (__a1!.IsAdded && __a2!.IsRemoved)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (__a1!.IsAdded && __a2!.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!"
                 + elementCs
                 + ".Between("
@@ -523,12 +485,11 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementFrag
                 + ".From(__a2.Before.Value!))).IsEmpty) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "if (__a1!.IsRemoved && __a2!.IsAdded)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__a1!.IsRemoved && __a2!.IsAdded)");
+        code.OpenBlock();
+        code.AppendLine(
             "if ("
                 + elementCs
                 + ".Between("
@@ -545,8 +506,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementFrag
                 + ".From(__a2.After.Value!))).IsEmpty) continue;"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -558,8 +518,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementFrag
                 + ".From(__a1.Before.Value!));"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -571,35 +530,31 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementFrag
                 + ".From(__a2.After.Value!));"
         );
-        code.AppendLineAt(7, "var __edit = " + elementCs + ".Between(__eb, __ea);");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __edit = " + elementCs + ".Between(__eb, __ea);");
+        code.AppendLine(
             "__net"
                 + id
                 + "[__k] = new "
                 + trans
                 + ".Item(__k, null, __a1.Before, __a2.After, __a1.BeforeIndex, __a2.AfterIndex, false, false, true, false, __edit, false);"
         );
-        code.AppendLineAt(6, "continue;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "if (__a1!.IsRemoved || __a2!.IsAdded)");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__a1!.IsRemoved || __a2!.IsAdded)");
+        code.AppendLine(
             "{ throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\"); }"
         );
         // Added then edited: compose the nested transitions and materialize
         // only the final added value.
-        code.AppendLineAt(6, "if (__a1!.IsAdded && __a2!.IsEdited)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "var __edit2 = __a1.Edit.Compose(__a2.Edit);");
-        code.AppendLineAt(7, "var __addedState = __edit2.ToPatch().Apply(default);");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (__a1!.IsAdded && __a2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine("var __edit2 = __a1.Edit.Compose(__a2.Edit);");
+        code.AppendLine("var __addedState = __edit2.ToPatch().Apply(default);");
+        code.AppendLine(
             "if (!__addedState.IsPresent || __addedState.Value is null) throw new global::System.InvalidOperationException(\"Composed addition did not produce an element value.\");"
         );
-        code.AppendLineAt(7, "var __addedValue = __addedState.Value!.ToModel();");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __addedValue = __addedState.Value!.ToModel();");
+        code.AppendLine(
             "__net"
                 + id
                 + "[__k] = new "
@@ -610,27 +565,21 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementType
                 + ">.Present(__addedValue), -1, __a2.AfterIndex, true, false, false, false, __edit2, false);"
         );
-        code.AppendLineAt(6, "continue;");
-        code.AppendLineAt(6, "}");
+        code.AppendLine("continue;");
+        code.CloseBlock();
         // Edited then removed: invert the composed transition to recover only
         // the required removed value.
-        code.AppendLineAt(6, "if ((__a1!.IsEdited || __a1!.IsReordered) && __a2!.IsRemoved)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if ((__a1!.IsEdited || __a1!.IsReordered) && __a2!.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine(
             "var __removedEdit = __a1.IsEdited ? __a1.Edit.Compose(__a2.Edit) : __a2.Edit;"
         );
-        code.AppendLineAt(
-            7,
-            "var __removedState = __removedEdit.Invert().ToPatch().Apply(default);"
-        );
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __removedState = __removedEdit.Invert().ToPatch().Apply(default);");
+        code.AppendLine(
             "if (!__removedState.IsPresent || __removedState.Value is null) throw new global::System.InvalidOperationException(\"Composed removal did not produce an element value.\");"
         );
-        code.AppendLineAt(7, "var __removedValue = __removedState.Value!.ToModel();");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __removedValue = __removedState.Value!.ToModel();");
+        code.AppendLine(
             "__net"
                 + id
                 + "[__k] = new "
@@ -641,51 +590,46 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementType
                 + ">.Present(__removedValue), default, __a1.BeforeIndex >= 0 ? __a1.BeforeIndex : __a2.BeforeIndex, -1, false, true, false, false, __removedEdit, false);"
         );
-        code.AppendLineAt(6, "continue;");
-        code.AppendLineAt(6, "}");
+        code.AppendLine("continue;");
+        code.CloseBlock();
         // Edited/edited (or reorder-involved) continuity via nested compose;
         // scalar fallback via equality.
-        code.AppendLineAt(6, "if (__a1!.IsEdited && __a2!.IsEdited)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "var __cc = __a1.Edit.Compose(__a2.Edit);");
-        code.AppendLineAt(7, "if (__cc.IsEmpty) { continue; }");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (__a1!.IsEdited && __a2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine("var __cc = __a1.Edit.Compose(__a2.Edit);");
+        code.AppendLine("if (__cc.IsEmpty) { continue; }");
+        code.AppendLine(
             "__net"
                 + id
                 + "[__k] = new "
                 + trans
                 + ".Item(__k, null, __a1.Before, __a2.After, __a1.BeforeIndex, __a2.AfterIndex, false, false, true, __a1.IsReordered || __a2.IsReordered, __cc, false);"
         );
-        code.AppendLineAt(6, "continue;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "if (__a1!.IsEdited || __a2!.IsEdited)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__a1!.IsEdited || __a2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__a1.IsEdited && __a2.IsReordered && !__a2.IsEdited) { __net"
                 + id
                 + "[__k] = new "
                 + trans
                 + ".Item(__k, null, __a1.Before, __a1.After, __a1.BeforeIndex, __a2.AfterIndex, false, false, true, true, __a1.Edit, false); continue; }"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "if (__a2.IsEdited && __a1.IsReordered && !__a1.IsEdited) { var __cc2 = __a2.Edit; __net"
                 + id
                 + "[__k] = new "
                 + trans
                 + ".Item(__k, null, __a2.Before, __a2.After, __a1.BeforeIndex, __a2.AfterIndex, false, false, true, true, __cc2, false); continue; }"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         // Reorder-only on both or one side: continuity holds (same values); net
         // keeps reorder flag.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (__a1!.IsReordered || __a2!.IsReordered) { var __keep = __a2!.IsReordered || __a1!.IsReordered; var __b = __a1.Before.IsPresent ? __a1.Before : __a2.Before; var __a = __a2.After.IsPresent ? __a2.After : __a1.After; var __bi = __a1.BeforeIndex >= 0 ? __a1.BeforeIndex : __a2.BeforeIndex; var __ai = __a2.AfterIndex >= 0 ? __a2.AfterIndex : __a1.AfterIndex; __net"
                 + id
                 + "[__k] = new "
@@ -706,11 +650,10 @@ internal static class SparseChangeSetKeyedComposeEmitter
                 + elementFrag
                 + ".From(__a.Value!))), false); continue; }"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
         if (hasTempCompose)
         {
             SparseChangeSetKeyedTempPairEmitter.AppendTempPairMerge(
@@ -731,7 +674,7 @@ internal static class SparseChangeSetKeyedComposeEmitter
             dialect,
             hasTempCompose
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

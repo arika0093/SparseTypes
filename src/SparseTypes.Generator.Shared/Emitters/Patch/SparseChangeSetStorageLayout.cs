@@ -42,23 +42,20 @@ internal sealed class SparseChangeSetStorageLayout
         var optional = _runtime + "Optional<" + valueType + ">";
         var fieldName = Reserve(field + "Optional");
         _fields.Add(field, (fieldName, optional));
-        code.AppendLineAt(2, "private " + optional + " " + field + " => " + fieldName + ";");
+        code.AppendLine("private " + optional + " " + field + " => " + fieldName + ";");
     }
 
     internal void AppendPrivateFields(SharedIndentedBuilder code)
     {
         foreach (var field in _fields.Values)
         {
-            code.AppendLineAt(
-                2,
-                "private readonly " + field.OptionalType + " " + field.FieldName + ";"
-            );
+            code.AppendLine("private readonly " + field.OptionalType + " " + field.FieldName + ";");
         }
     }
 
     internal void AppendAssignment(SharedIndentedBuilder code, string field, string source)
     {
-        code.AppendLineAt(3, _fields[field].FieldName + " = " + source + ";");
+        code.AppendLine(_fields[field].FieldName + " = " + source + ";");
     }
 
     private string Reserve(string candidate)

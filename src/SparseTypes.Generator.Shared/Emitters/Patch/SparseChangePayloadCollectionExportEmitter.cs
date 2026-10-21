@@ -23,24 +23,20 @@ internal static class SparseChangePayloadCollectionExportEmitter
         if (split is not null)
         {
             // ChangeSet payload projection calls through the facade bridge.
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "internal void __SparseExportChangePayload("
                     + change
                     + " entry) => "
                     + split.OperationsType
                     + ".__SparseExportChangePayload(this, entry);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "internal static void __SparseExportChangePayload("
                     + SparseKeyedCollectionEmitter.CollectionPatchName(member)
                     + " self, "
@@ -50,20 +46,18 @@ internal static class SparseChangePayloadCollectionExportEmitter
         }
         else
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Exports whole and granular operations as a payload change entry.</summary>"
             );
-            code.AppendLineAt(3, "internal void __SparseExportChangePayload(" + change + " entry)");
+            code.AppendLine("internal void __SparseExportChangePayload(" + change + " entry)");
         }
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             split is null ? "var collection" + id + " = this;" : "var collection" + id + " = self;"
         );
-        code.AppendLineAt(4, "var entry" + id + " = entry;");
+        code.AppendLine("var entry" + id + " = entry;");
         AppendExportEntryBody(code, member, dialect, modelType, id, implementationNamespace);
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     private static void AppendExportEntryBody(
@@ -83,14 +77,12 @@ internal static class SparseChangePayloadCollectionExportEmitter
         var collectionType = isKeyed
             ? SparseKeyedCollectionEmitter.MemberListType(member)
             : SparseKeyedCollectionEmitter.DictionaryType(member);
-        code.AppendLineAt(4, "if (collection" + id + ".__whole.Kind != " + kind + ".Keep)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (collection" + id + ".__whole.Kind != " + kind + ".Keep)");
+        code.OpenBlock();
+        code.AppendLine(
             "entry" + id + ".Before = " + endpoint + "<" + collectionType + ">.Redacted();"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "entry"
                 + id
                 + ".After = collection"
@@ -115,9 +107,9 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + state
                 + ".Missing };"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         if (isKeyed)
         {
             AppendExportKeyedItems(code, member, dialect, modelType, id, implementationNamespace);
@@ -127,7 +119,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
             AppendExportDictItems(code, member, dialect, modelType, id, implementationNamespace);
         }
 
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
     }
 
     private static void AppendExportKeyedItems(
@@ -159,16 +151,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
             )
             : string.Empty;
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__added is not null) foreach (var element in collection"
                 + id
                 + ".__added)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "entry"
                 + id
                 + ".Items.Add(new "
@@ -195,16 +185,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 )
                 + " });"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__removed is not null) foreach (var removedKey in collection"
                 + id
                 + ".__removed)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "entry"
                 + id
                 + ".Items.Add(new "
@@ -221,16 +209,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
         {
             // Temporary removals and edits travel with their Guid identity;
             // unassigned permanent keys alone would collide on restore.
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (collection"
                     + id
                     + ".__removedTemp is not null) foreach (var removedTemp in collection"
                     + id
                     + ".__removedTemp)"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "entry"
                     + id
                     + ".Items.Add(new "
@@ -242,19 +228,17 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     + ".Remove, BeforeIndex = -1, AfterIndex = -1 });"
             );
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__edited is not null) foreach (var editedPair in collection"
                 + id
                 + ".__edited)"
         );
-        code.AppendLineAt(5, "{");
+        code.OpenBlock();
         if (isModelValue)
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "entry"
                     + id
                     + ".Items.Add(new "
@@ -268,8 +252,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "entry"
                     + id
                     + ".Items.Add(new "
@@ -292,22 +275,20 @@ internal static class SparseChangePayloadCollectionExportEmitter
             );
         }
 
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (collection"
                     + id
                     + ".__editedTemp is not null) foreach (var editedTempPair in collection"
                     + id
                     + ".__editedTemp)"
             );
-            code.AppendLineAt(5, "{");
+            code.OpenBlock();
             if (isModelValue)
             {
-                code.AppendLineAt(
-                    6,
+                code.AppendLine(
                     "entry"
                         + id
                         + ".Items.Add(new "
@@ -323,8 +304,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    6,
+                code.AppendLine(
                     "entry"
                         + id
                         + ".Items.Add(new "
@@ -349,10 +329,9 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 );
             }
 
-            code.AppendLineAt(5, "}");
+            code.CloseBlock();
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__order is not null) entry"
@@ -367,8 +346,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         {
             // Parallel temporary order exports as the entry temporary order
             // (assigned slots contribute nothing to the Guid sequence).
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (collection"
                     + id
                     + ".__orderTemp is not null) { entry"
@@ -411,16 +389,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
                     implementationNamespace
                 )
                 : string.Empty;
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__set is not null) foreach (var setPair in collection"
                 + id
                 + ".__set)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "entry"
                 + id
                 + ".Items.Add(new "
@@ -437,16 +413,14 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + itemKind
                 + ".Add });"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__removed is not null) foreach (var removedKey in collection"
                 + id
                 + ".__removed)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "entry"
                 + id
                 + ".Items.Add(new "
@@ -459,19 +433,17 @@ internal static class SparseChangePayloadCollectionExportEmitter
                 + itemKind
                 + ".Remove });"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (collection"
                 + id
                 + ".__edited is not null) foreach (var editedPair in collection"
                 + id
                 + ".__edited)"
         );
-        code.AppendLineAt(5, "{");
+        code.OpenBlock();
         if (isModelValue)
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "entry"
                     + id
                     + ".Items.Add(new "
@@ -485,8 +457,7 @@ internal static class SparseChangePayloadCollectionExportEmitter
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "entry"
                     + id
                     + ".Items.Add(new "
@@ -509,6 +480,6 @@ internal static class SparseChangePayloadCollectionExportEmitter
             );
         }
 
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
     }
 }

@@ -26,45 +26,37 @@ internal static class SparseChangeSetMixedEmitter
         if (target is not null)
         {
             // Payload DTO bridges keep calling through the facade.
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Converts a validated root envelope to a change set.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.ArgumentException\">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>"
             );
-            code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-            code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
                 "internal static ChangeSet FromPayloadCore("
                     + payloadCore
                     + " payload) => "
                     + target.ChangeSetOperationsType
                     + ".FromPayloadCore(payload);"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>"
             );
-            code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-            code.AppendLineAt(2, "/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+            code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
+            code.AppendLine(
                 "/// <param name=\"blindSets\">The blind patch for redacted paths.</param>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"blindPaths\">The redacted paths routed to the blind patch.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
                 "internal static ChangeSet __SparseMixedPartition("
                     + payloadCore
                     + " payload, string pathPrefix, out Patch blindSets, out global::System.Collections.Generic.List<string> blindPaths) => "
@@ -73,73 +65,57 @@ internal static class SparseChangeSetMixedEmitter
             );
             code = target.ChangeSetOperations;
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Converts a validated root envelope to a change set.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <exception cref=\"global::System.ArgumentException\">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>"
         );
-        code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-        code.AppendLineAt(
-            2,
-            "internal static ChangeSet FromPayloadCore(" + payloadCore + " payload)"
-        );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+        code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+        code.AppendLine("internal static ChangeSet FromPayloadCore(" + payloadCore + " payload)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __changes = __SparseMixedPartition(payload, string.Empty, out var __blind, out var __blindPaths);"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!__blind.__SparseIsEmpty()) throw new global::System.ArgumentException(\"The payload contains redacted before-states (\" + string.Join(\", \", __blindPaths) + \") and cannot form a baseline-aware ChangeSet. Use ToPatch() for the baseline-free projection, or InvertReversibleChanges()/TryApplyMixedTo() for mixed requests.\", nameof(payload));"
         );
-        code.AppendLineAt(3, "return __changes;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return __changes;");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLineAt(2, "/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+        code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
+        code.AppendLine(
             "/// <param name=\"blindSets\">The blind patch for redacted paths.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"blindPaths\">The redacted paths routed to the blind patch.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+        code.AppendLine(
             "internal static ChangeSet __SparseMixedPartition("
                 + payloadCore
                 + " payload, string pathPrefix, out Patch blindSets, out global::System.Collections.Generic.List<string> blindPaths)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));"
         );
-        code.AppendLineAt(3, "blindSets = new Patch();");
-        code.AppendLineAt(3, "blindPaths = new global::System.Collections.Generic.List<string>();");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("blindSets = new Patch();");
+        code.AppendLine("blindPaths = new global::System.Collections.Generic.List<string>();");
+        code.AppendLine(
             "if (payload.Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(payload));"
         );
         AppendWholePartition(code, members, dialect, modelType, rootChange);
@@ -149,22 +125,21 @@ internal static class SparseChangeSetMixedEmitter
         }
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
-            code.AppendLineAt(3, "bool __payloadSeen" + member.Id + " = false;");
+            code.AppendLine("bool __payloadSeen" + member.Id + " = false;");
         }
-        code.AppendLineAt(3, "foreach (var change in payload.Changes)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "switch (change)");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("foreach (var change in payload.Changes)");
+        code.OpenBlock();
+        code.AppendLine("switch (change)");
+        code.OpenBlock();
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
             AppendPartitionCase(code, member, dialect, modelType);
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "default: throw new global::System.ArgumentException(\"Payload contains a null or unknown change variant.\", nameof(payload));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
@@ -211,8 +186,8 @@ internal static class SparseChangeSetMixedEmitter
                 );
             }
         }
-        code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
+        code.CloseBlock();
     }
 
     private static void AppendPartitionLocals(
@@ -226,8 +201,7 @@ internal static class SparseChangeSetMixedEmitter
         var id = member.Id;
         if (SparseChangeSetBasicsEmitter.IsNested(member))
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 SparseChangeSetBasicsEmitter.ChildChangeSet(member, dialect)
                     + "? __payloadNested"
                     + id
@@ -246,12 +220,11 @@ internal static class SparseChangeSetMixedEmitter
                 + SparseChangeSetBasicsEmitter.FragmentValueType(member)
                 + ">";
             var trans = SparseChangeSetBasicsEmitter.TransNameFor(members, member);
-            code.AppendLineAt(3, "bool __payloadHas" + id + " = false;");
-            code.AppendLineAt(3, "bool __payloadWhole" + id + " = false;");
-            code.AppendLineAt(3, opt + " __payloadBefore" + id + " = default;");
-            code.AppendLineAt(3, opt + " __payloadAfter" + id + " = default;");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("bool __payloadHas" + id + " = false;");
+            code.AppendLine("bool __payloadWhole" + id + " = false;");
+            code.AppendLine(opt + " __payloadBefore" + id + " = default;");
+            code.AppendLine(opt + " __payloadAfter" + id + " = default;");
+            code.AppendLine(
                 "global::System.Collections.Generic.List<"
                     + trans
                     + ".Item>? __payloadItems"
@@ -261,16 +234,14 @@ internal static class SparseChangeSetMixedEmitter
             if (SparseChangeSetBasicsEmitter.IsKeyed(member))
             {
                 var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "global::System.Collections.Generic.List<"
                         + keyType
                         + ">? __payloadBeforeOrder"
                         + id
                         + " = null;"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "global::System.Collections.Generic.List<"
                         + keyType
                         + ">? __payloadAfterOrder"
@@ -279,14 +250,12 @@ internal static class SparseChangeSetMixedEmitter
                 );
                 if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                 {
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "global::System.Collections.Generic.List<global::System.Guid>? __payloadTempBeforeOrder"
                             + id
                             + " = null;"
                     );
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "global::System.Collections.Generic.List<global::System.Guid>? __payloadTempAfterOrder"
                             + id
                             + " = null;"
@@ -297,9 +266,9 @@ internal static class SparseChangeSetMixedEmitter
         }
         var scalarOpt =
             runtime + "Optional<" + SparseChangeSetBasicsEmitter.FragmentValueType(member) + ">";
-        code.AppendLineAt(3, "bool __payloadHas" + id + " = false;");
-        code.AppendLineAt(3, scalarOpt + " __payloadBefore" + id + " = default;");
-        code.AppendLineAt(3, scalarOpt + " __payloadAfter" + id + " = default;");
+        code.AppendLine("bool __payloadHas" + id + " = false;");
+        code.AppendLine(scalarOpt + " __payloadBefore" + id + " = default;");
+        code.AppendLine(scalarOpt + " __payloadAfter" + id + " = default;");
     }
 
     private static void AppendPartitionCase(
@@ -336,23 +305,20 @@ internal static class SparseChangeSetMixedEmitter
             );
             return;
         }
-        code.AppendLineAt(5, "case " + variant + " item:");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("case " + variant + " item:");
+        code.AppendLine(
             "if (__payloadSeen"
                 + id
                 + ") throw new global::System.ArgumentException(\"A payload cannot contain duplicate member changes.\", nameof(payload));"
         );
-        code.AppendLineAt(6, "__payloadSeen" + id + " = true;");
+        code.AppendLine("__payloadSeen" + id + " = true;");
         if (SparseChangeSetBasicsEmitter.IsNested(member))
         {
             var childChangeSet = SparseChangeSetBasicsEmitter.ChildChangeSet(member, dialect);
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(payload));"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "var __nested"
                     + id
                     + " = "
@@ -365,9 +331,8 @@ internal static class SparseChangeSetMixedEmitter
                     + id
                     + ");"
             );
-            code.AppendLineAt(6, "__payloadNested" + id + " = __nested" + id + ";");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("__payloadNested" + id + " = __nested" + id + ";");
+            code.AppendLine(
                 "if (!__nestedBlind"
                     + id
                     + ".__SparseIsEmpty()) blindSets."
@@ -376,8 +341,8 @@ internal static class SparseChangeSetMixedEmitter
                     + id
                     + ";"
             );
-            code.AppendLineAt(6, "blindPaths.AddRange(__nestedPaths" + id + ");");
-            code.AppendLineAt(6, "break;");
+            code.AppendLine("blindPaths.AddRange(__nestedPaths" + id + ");");
+            code.AppendLine("break;");
             return;
         }
         if (
@@ -400,24 +365,21 @@ internal static class SparseChangeSetMixedEmitter
             + "FragmentOperation<"
             + SparseFragmentPatchEmitter.GetMemberValueType(dialect, member)
             + ">";
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (item.Before is null || item.After is null) throw new global::System.ArgumentException(\"Both transition endpoints are required.\", nameof(payload));"
         );
         // A redacted endpoint is value-free by contract; validate before the
         // redacted branch bypasses ToOptional.
-        code.AppendLineAt(6, "item.Before.Validate(); item.After.Validate();");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("item.Before.Validate(); item.After.Validate();");
+        code.AppendLine(
             "if (item.After.IsRedacted) throw new global::System.ArgumentException(\"The payload contains a redacted after-state for '\" + "
                 + path
                 + " + \"'. After-states must stay concrete (value, null, or missing).\", nameof(payload));"
         );
-        code.AppendLineAt(6, "if (item.Before.IsRedacted)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "var __blindAfter" + id + " = item.After.ToOptional();");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (item.Before.IsRedacted)");
+        code.OpenBlock();
+        code.AppendLine("var __blindAfter" + id + " = item.After.ToOptional();");
+        code.AppendLine(
             "blindSets."
                 + esc
                 + " = __blindAfter"
@@ -430,15 +392,15 @@ internal static class SparseChangeSetMixedEmitter
                 + operation
                 + ".Remove;"
         );
-        code.AppendLineAt(6, "blindPaths.Add(" + path + ");");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "__payloadHas" + id + " = true;");
-        code.AppendLineAt(6, "__payloadBefore" + id + " = item.Before.ToOptional();");
-        code.AppendLineAt(6, "__payloadAfter" + id + " = item.After.ToOptional();");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "break;");
+        code.AppendLine("blindPaths.Add(" + path + ");");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("__payloadHas" + id + " = true;");
+        code.AppendLine("__payloadBefore" + id + " = item.Before.ToOptional();");
+        code.AppendLine("__payloadAfter" + id + " = item.After.ToOptional();");
+        code.CloseBlock();
+        code.AppendLine("break;");
     }
 
     private static void AppendWholePartition(
@@ -449,62 +411,54 @@ internal static class SparseChangeSetMixedEmitter
         string rootChange
     )
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (payload.Changes.Count == 1 && payload.Changes[0] is " + rootChange + " whole)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "if (whole.Before is null || whole.After is null) throw new global::System.ArgumentException(\"A whole-root payload must contain both endpoints.\", nameof(payload));"
         );
-        code.AppendLineAt(4, "whole.Before.Validate(); whole.After.Validate();");
+        code.AppendLine("whole.Before.Validate(); whole.After.Validate();");
         if (SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
         {
             // A whole-root snapshot cannot prove redacted paths complete.
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "throw new global::System.ArgumentException(\"A redacted payload cannot be converted to a complete ChangeSet. Use ToPatch() for the baseline-free projection.\", nameof(payload));"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (whole.After.IsRedacted) throw new global::System.ArgumentException(\"The payload contains a redacted after-state for '\" + pathPrefix + \"$root\" + \"'. After-states must stay concrete (value, null, or missing).\", nameof(payload));"
         );
-        code.AppendLineAt(4, "if (whole.Before.IsRedacted)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(4, "var __wholeAfter = whole.After.ToOptional();");
-        code.AppendLineAt(4, "if (!__wholeAfter.IsPresent) blindSets.__SparseRemove();");
-        code.AppendLineAt(4, "else if (__wholeAfter.Value is null) blindSets.__SparseSetNull();");
+        code.AppendLine("if (whole.Before.IsRedacted)");
+        code.OpenBlock();
+        code.AppendLine("var __wholeAfter = whole.After.ToOptional();");
+        code.AppendLine("if (!__wholeAfter.IsPresent) blindSets.__SparseRemove();");
+        code.AppendLine("else if (__wholeAfter.Value is null) blindSets.__SparseSetNull();");
         if (modelType is null)
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "else throw new global::System.ArgumentException(\"A whole-root blind set requires a model-typed envelope.\", nameof(payload));"
             );
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "else blindSets.__SparseSet(__wholeAfter.Value.ToFragment().ToModel());"
             );
         }
-        code.AppendLineAt(4, "blindPaths.Add(pathPrefix + \"$root\");");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("blindPaths.Add(pathPrefix + \"$root\");");
+        code.AppendLine(
             "return new ChangeSet(false, default, default, "
                 + SparseChangeSetBasicsEmitter.MemberEmptyTail(members)
                 + ");"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "return new ChangeSet(true, __SparsePayloadFragment(whole.Before), __SparsePayloadFragment(whole.After), "
                 + SparseChangeSetBasicsEmitter.MemberEmptyTail(members)
                 + ");"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the envelope version guard for public payload entry points.</summary>
@@ -518,8 +472,7 @@ internal static class SparseChangeSetMixedEmitter
             dialect.ChangePayloadVersion,
             true
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!global::System.String.Equals(Version, "
                 + versionLiteral
                 + ", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException(\"Unsupported ChangePayload version.\", nameof(Version));"
@@ -534,56 +487,48 @@ internal static class SparseChangeSetMixedEmitter
         string modelType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Inverts the reversible transitions and reports write-only paths.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"skippedPaths\">The write-only paths excluded from the result.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The inverted change set.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The inverted change set.</returns>");
+        code.AppendLine(
             "public new "
                 + modelType
                 + ".ChangeSet InvertReversibleChanges(out global::System.Collections.Generic.IReadOnlyList<string> skippedPaths)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         AppendVersionGuard(code, dialect);
-        code.AppendLineAt(3, "return base.InvertReversibleChanges(out skippedPaths);");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return base.InvertReversibleChanges(out skippedPaths);");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Applies a mixed request to an ordinary model without committing a subset on conflict.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"current\">The current model.</param>");
-        code.AppendLineAt(2, "/// <param name=\"updated\">The updated model when applied.</param>");
-        code.AppendLineAt(2, "/// <param name=\"result\">The apply outcome.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"current\">The current model.</param>");
+        code.AppendLine("/// <param name=\"updated\">The updated model when applied.</param>");
+        code.AppendLine("/// <param name=\"result\">The apply outcome.</param>");
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the request was applied.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public new bool TryApplyMixedTo("
                 + modelType
                 + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
                 + modelType
                 + "? updated, out MixedApplyResult result)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         AppendVersionGuard(code, dialect);
-        code.AppendLineAt(3, "return base.TryApplyMixedTo(current, out updated, out result);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return base.TryApplyMixedTo(current, out updated, out result);");
+        code.CloseBlock();
     }
 
     internal static void AppendMixedPayloadSurface(
@@ -597,48 +542,40 @@ internal static class SparseChangeSetMixedEmitter
         var prefix = SparseNaming.PatchApiPrefix(
             members.Select(static member => member.Property.Name)
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Redacted before-states project to their requested after-state without historical comparison; ordinary members project their after-state too. The result is baseline-free and can no longer rebase or report conflicts. Public callers enter through the version-validated envelope override.</remarks>"
         );
-        code.AppendLineAt(2, "/// <returns>The baseline-free patch.</returns>");
-        code.AppendLineAt(2, "public Patch ToPatch()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <returns>The baseline-free patch.</returns>");
+        code.AppendLine("public Patch ToPatch()");
+        code.OpenBlock();
+        code.AppendLine(
             "var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out var __blind, out _);"
         );
-        code.AppendLineAt(3, "return __changes.ToPatch()." + prefix + "Compose(__blind);");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return __changes.ToPatch()." + prefix + "Compose(__blind);");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Inverts the reversible transitions and reports write-only paths.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Write-only operations have no prior value to restore, so they are excluded. A non-empty <paramref name=\"skippedPaths\"/> means the result is not a complete inverse; use <c>ChangeSet.Invert()</c> on complete change sets for true inversion.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"skippedPaths\">The write-only paths excluded from the result.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The inverted change set.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The inverted change set.</returns>");
+        code.AppendLine(
             "public ChangeSet InvertReversibleChanges(out global::System.Collections.Generic.IReadOnlyList<string> skippedPaths)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out _, out var __blindPaths);"
         );
-        code.AppendLineAt(3, "skippedPaths = __blindPaths.ToArray();");
-        code.AppendLineAt(3, "return __changes.Invert();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("skippedPaths = __blindPaths.ToArray();");
+        code.AppendLine("return __changes.Invert();");
+        code.CloseBlock();
         if (modelType is null)
         {
             return;
@@ -660,60 +597,51 @@ internal static class SparseChangeSetMixedEmitter
     )
     {
         var conflict = dialect.ConflictType;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>The outcome of applying a mixed request to an ordinary model.</summary>"
         );
-        code.AppendLineAt(2, "public sealed class MixedApplyResult");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("public sealed class MixedApplyResult");
+        code.OpenBlock();
         // Public-first order: public properties precede internal construction
         // helpers.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Whether rebasing the baseline-aware members produced conflicts.</summary>"
         );
-        code.AppendLineAt(3, "public bool HasConflicts => Conflicts.Count != 0;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public bool HasConflicts => Conflicts.Count != 0;");
+        code.AppendLine(
             "/// <summary>Structured conflicts for baseline-aware members only.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "public global::System.Collections.Generic.IReadOnlyList<"
                 + conflict
                 + "> Conflicts { get; }"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Write-only member paths applied without baseline comparison.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "public global::System.Collections.Generic.IReadOnlyList<string> WriteOnlyPaths { get; }"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "internal MixedApplyResult(global::System.Collections.Generic.IReadOnlyList<"
                 + conflict
                 + "> conflicts, global::System.Collections.Generic.IReadOnlyList<string> writeOnlyPaths)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "Conflicts = conflicts;");
-        code.AppendLineAt(4, "WriteOnlyPaths = writeOnlyPaths;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("Conflicts = conflicts;");
+        code.AppendLine("WriteOnlyPaths = writeOnlyPaths;");
+        code.CloseBlock();
+        code.AppendLine(
             "internal static MixedApplyResult Applied(global::System.Collections.Generic.List<string> writeOnlyPaths) => new(global::System.Array.Empty<"
                 + conflict
                 + ">(), writeOnlyPaths.ToArray());"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "internal static MixedApplyResult Conflicted(global::System.Collections.Generic.IReadOnlyList<"
                 + conflict
                 + "> conflicts, global::System.Collections.Generic.List<string> writeOnlyPaths) => new(conflicts, writeOnlyPaths.ToArray());"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static void AppendTryApplyMixed(
@@ -728,66 +656,53 @@ internal static class SparseChangeSetMixedEmitter
         _ = members;
         var runtime = dialect.RuntimeNamespace;
         var optionalFragment = runtime + "Optional<Fragment?>";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies a mixed request to an ordinary model without committing a subset on conflict.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Baseline-aware members rebase onto the current model; redacted-before members pass their requested after-state through. When rebasing conflicts, nothing is applied and the current model is left untouched. This default passes write-only operations through; it does not claim conflict reconciliation, and revision checks stay with the application.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"current\">The current model.</param>");
-        code.AppendLineAt(2, "/// <param name=\"updated\">The updated model when applied.</param>");
-        code.AppendLineAt(2, "/// <param name=\"result\">The apply outcome.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"current\">The current model.</param>");
+        code.AppendLine("/// <param name=\"updated\">The updated model when applied.</param>");
+        code.AppendLine("/// <param name=\"result\">The apply outcome.</param>");
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the request was applied.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryApplyMixedTo("
                 + modelType
                 + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
                 + modelType
                 + "? updated, out MixedApplyResult result)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out var __blind, out var __blindPaths);"
         );
-        code.AppendLineAt(
-            3,
-            "var __state = " + optionalFragment + ".Present(Fragment.From(current));"
-        );
-        code.AppendLineAt(3, "ChangeSet __toApply;");
-        code.AppendLineAt(3, "if (__changes.__SparseBeforeMatches(__state))");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__toApply = __changes;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var __rebase = __changes.RebaseOnto(__state);");
-        code.AppendLineAt(4, "if (__rebase.HasConflicts)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "updated = null;");
-        code.AppendLineAt(
-            5,
-            "result = MixedApplyResult.Conflicted(__rebase.Conflicts, __blindPaths);"
-        );
-        code.AppendLineAt(5, "return false;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "__toApply = __rebase.Rebased;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("var __state = " + optionalFragment + ".Present(Fragment.From(current));");
+        code.AppendLine("ChangeSet __toApply;");
+        code.AppendLine("if (__changes.__SparseBeforeMatches(__state))");
+        code.OpenBlock();
+        code.AppendLine("__toApply = __changes;");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var __rebase = __changes.RebaseOnto(__state);");
+        code.AppendLine("if (__rebase.HasConflicts)");
+        code.OpenBlock();
+        code.AppendLine("updated = null;");
+        code.AppendLine("result = MixedApplyResult.Conflicted(__rebase.Conflicts, __blindPaths);");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("__toApply = __rebase.Rebased;");
+        code.CloseBlock();
+        code.AppendLine(
             "var __applied = __toApply.ToPatch()." + prefix + "Compose(__blind).Apply(__state);"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException(\"Advancing the baseline did not produce a valid model state.\");"
         );
-        code.AppendLineAt(3, "var __updatedModel = __applied.Value.ToModel();");
+        code.AppendLine("var __updatedModel = __applied.Value.ToModel();");
         foreach (
             var ignoredName in ignoredSettablePropertyNames.IsDefault
                 ? ImmutableArray<string>.Empty
@@ -795,12 +710,12 @@ internal static class SparseChangeSetMixedEmitter
         )
         {
             var name = SparseNaming.EscapeIdentifier(ignoredName);
-            code.AppendLineAt(3, "__updatedModel." + name + " = current." + name + ";");
+            code.AppendLine("__updatedModel." + name + " = current." + name + ";");
         }
-        code.AppendLineAt(3, "updated = __updatedModel;");
-        code.AppendLineAt(3, "result = MixedApplyResult.Applied(__blindPaths);");
-        code.AppendLineAt(3, "return true;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("updated = __updatedModel;");
+        code.AppendLine("result = MixedApplyResult.Applied(__blindPaths);");
+        code.AppendLine("return true;");
+        code.CloseBlock();
         _ = runtime;
     }
 }

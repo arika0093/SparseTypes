@@ -38,181 +38,152 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var state = runtime + "ChangePayloadState";
         var kind = runtime + "ChangePayloadItemKind";
 
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Preserves the v1 endpoint wire shape for one value type.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <remarks>State tokens and names come from the runtime wire constants so the contract stays single-sourced.</remarks>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public sealed class "
                 + EndpointConverterName
                 + "<TValue> : global::System.Text.Json.Serialization.JsonConverter<"
                 + endpoint
                 + "<TValue>>"
         );
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override "
                 + endpoint
                 + "<TValue>? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"An endpoint must be an object.\");"
         );
-        code.AppendLineAt(3, "var state = default(" + state + ");");
-        code.AppendLineAt(3, "var hasState = false;");
-        code.AppendLineAt(3, "TValue? value = default;");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var state = default(" + state + ");");
+        code.AppendLine("var hasState = false;");
+        code.AppendLine("TValue? value = default;");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
         // Byte-level envelope dispatch while the reader is still on the
         // property name: ValueTextEquals decodes escaped names exactly like
         // the previously materialized string did, without allocating it.
-        code.AppendLineAt(4, "if (reader.ValueTextEquals(" + wire + ".StatePropertyUtf8()))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (reader.ValueTextEquals(" + wire + ".StatePropertyUtf8()))");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
-        AppendStateTokenComparison(code, 5, dialect, "state");
-        code.AppendLineAt(5, "hasState = true;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else if (reader.ValueTextEquals(" + wire + ".ValuePropertyUtf8()))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        AppendStateTokenComparison(code, dialect, "state");
+        code.AppendLine("hasState = true;");
+        code.CloseBlock();
+        code.AppendLine("else if (reader.ValueTextEquals(" + wire + ".ValuePropertyUtf8()))");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
         // Typed declared-type metadata keeps scalar values off the object
         // serializer boundary; reader comparison tokens stay wired into the
         // runtime vocabulary.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         // Unknown supplemental properties are additive extensions: skip
         // them without changing the interpreted endpoints. Unknown
         // operations (member discriminators, kinds, states) still fail.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
-        code.AppendLineAt(5, "reader.Skip();");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("reader.Skip();");
+        code.CloseBlock();
+        code.CloseBlock();
         // State is required: an omitted state is not an explicit missing
         // endpoint. Unknown tokens already failed above.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");"
         );
-        code.AppendLineAt(
-            3,
-            "return new " + endpoint + "<TValue> { State = state, Value = value };"
-        );
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return new " + endpoint + "<TValue> { State = state, Value = value };");
+        code.CloseBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, "
                 + endpoint
                 + "<TValue>? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine(
             "writer.WriteString(" + wire + ".StateProperty, " + wire + ".ToToken(value.State));"
         );
-        code.AppendLineAt(3, "writer.WritePropertyName(" + wire + ".ValueProperty);");
+        code.AppendLine("writer.WritePropertyName(" + wire + ".ValueProperty);");
         // Explicit null keeps value-free envelopes byte-identical; otherwise
         // the declared-type metadata serializes exactly like before.
-        code.AppendLineAt(3, "if (value.Value is null) writer.WriteNullValue();");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("if (value.Value is null) writer.WriteNullValue();");
+        code.AppendLine(
             "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueTypeTypeInfo(options));"
         );
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
-        SparseJsonScalarShapes.AppendScalarHelpers(code, 2, "TScalar");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
+        SparseJsonScalarShapes.AppendScalarHelpers(code, "TScalar");
         AppendValueTypeTypeInfo(code);
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         code.AppendLine();
 
-        code.AppendLineAt(
-            1,
-            "/// <summary>Preserves the lower-case v1 item-kind tokens.</summary>"
-        );
-        code.AppendLineAt(
-            1,
+        code.AppendLine("/// <summary>Preserves the lower-case v1 item-kind tokens.</summary>");
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public sealed class "
                 + ItemKindConverterName
                 + " : global::System.Text.Json.Serialization.JsonConverter<"
                 + kind
                 + ">"
         );
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override "
                 + kind
                 + " Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(2, "var kind = default(" + kind + ");");
-        AppendKindTokenComparison(code, 2, dialect, "kind");
-        code.AppendLineAt(2, "return kind;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("var kind = default(" + kind + ");");
+        AppendKindTokenComparison(code, dialect, "kind");
+        code.AppendLine("return kind;");
+        code.CloseBlock();
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, "
                 + kind
                 + " value, global::System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue("
                 + wire
                 + ".ToToken(value));"
         );
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -225,12 +196,10 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <c>GetString</c>'s InvalidOperationException.
     /// </remarks>
     /// <param name="code">Converter body builder.</param>
-    /// <param name="indent">Body indent.</param>
     /// <param name="dialect">Owning patch dialect for runtime type names.</param>
     /// <param name="stateVariable">The state local compared through the wire token table.</param>
     private static void AppendStateTokenComparison(
         SharedIndentedBuilder code,
-        int indent,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string stateVariable
     )
@@ -238,33 +207,30 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
         var state = runtime + "ChangePayloadState";
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;"
         );
-        code.AppendLineAt(indent, "if (tokenMatched)");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, stateVariable + " = " + state + ".Missing;");
-        AppendTokenComparison(code, indent + 1, wire, "StateTokenUtf8", stateVariable);
-        AppendTokenFallback(code, indent + 1, stateVariable + " = " + state + ".Null;");
-        AppendTokenComparison(code, indent + 1, wire, "StateTokenUtf8", stateVariable);
-        AppendTokenFallback(code, indent + 1, stateVariable + " = " + state + ".Value;");
-        AppendTokenComparison(code, indent + 1, wire, "StateTokenUtf8", stateVariable);
-        AppendTokenFallback(code, indent + 1, stateVariable + " = " + state + ".Redacted;");
-        AppendTokenComparison(code, indent + 1, wire, "StateTokenUtf8", stateVariable);
-        code.AppendLineAt(indent, "}");
-        AppendUnknownTokenFailure(code, indent, "Unknown endpoint state.");
+        code.AppendLine("if (tokenMatched)");
+        code.OpenBlock();
+        code.AppendLine(stateVariable + " = " + state + ".Missing;");
+        AppendTokenComparison(code, wire, "StateTokenUtf8", stateVariable);
+        AppendTokenFallback(code, stateVariable + " = " + state + ".Null;");
+        AppendTokenComparison(code, wire, "StateTokenUtf8", stateVariable);
+        AppendTokenFallback(code, stateVariable + " = " + state + ".Value;");
+        AppendTokenComparison(code, wire, "StateTokenUtf8", stateVariable);
+        AppendTokenFallback(code, stateVariable + " = " + state + ".Redacted;");
+        AppendTokenComparison(code, wire, "StateTokenUtf8", stateVariable);
+        code.CloseBlock();
+        AppendUnknownTokenFailure(code, "Unknown endpoint state.");
     }
 
     /// <summary>Emits the non-allocating comparison of one item-kind token.</summary>
     /// <remarks>The candidate order mirrors <c>ChangePayloadWire.TryParseKind</c>.</remarks>
     /// <param name="code">Converter body builder.</param>
-    /// <param name="indent">Body indent.</param>
     /// <param name="dialect">Owning patch dialect for runtime type names.</param>
     /// <param name="kindVariable">The kind local compared through the wire token table.</param>
     private static void AppendKindTokenComparison(
         SharedIndentedBuilder code,
-        int indent,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string kindVariable
     )
@@ -272,43 +238,35 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         var runtime = dialect.RuntimeNamespace;
         var wire = runtime + "ChangePayloadWire";
         var kind = runtime + "ChangePayloadItemKind";
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;"
         );
-        code.AppendLineAt(indent, "if (tokenMatched)");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, kindVariable + " = " + kind + ".Add;");
-        AppendTokenComparison(code, indent + 1, wire, "KindTokenUtf8", kindVariable);
+        code.AppendLine("if (tokenMatched)");
+        code.OpenBlock();
+        code.AppendLine(kindVariable + " = " + kind + ".Add;");
+        AppendTokenComparison(code, wire, "KindTokenUtf8", kindVariable);
         foreach (var kindMember in (string[])["Remove", "Edit", "Reorder"])
         {
-            AppendTokenFallback(
-                code,
-                indent + 1,
-                kindVariable + " = " + kind + "." + kindMember + ";"
-            );
-            AppendTokenComparison(code, indent + 1, wire, "KindTokenUtf8", kindVariable);
+            AppendTokenFallback(code, kindVariable + " = " + kind + "." + kindMember + ";");
+            AppendTokenComparison(code, wire, "KindTokenUtf8", kindVariable);
         }
 
-        code.AppendLineAt(indent, "}");
-        AppendUnknownTokenFailure(code, indent, "Unknown item kind.");
+        code.CloseBlock();
+        AppendUnknownTokenFailure(code, "Unknown item kind.");
     }
 
     /// <summary>Emits one candidate token comparison against the wire table.</summary>
     /// <param name="code">Converter body builder.</param>
-    /// <param name="indent">Body indent.</param>
     /// <param name="wire">The runtime wire type name.</param>
     /// <param name="tokenAccessor">The wire token accessor name (state or kind table).</param>
     /// <param name="tokenVariable">The enum local holding the current candidate.</param>
     private static void AppendTokenComparison(
         SharedIndentedBuilder code,
-        int indent,
         string wire,
         string tokenAccessor,
         string tokenVariable
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "tokenMatched = reader.ValueTextEquals("
                 + wire
                 + "."
@@ -320,13 +278,11 @@ internal static class SparseChangePayloadJsonBridgeEmitter
 
     /// <summary>Emits the fallback assignment of the next candidate; polarity is already false.</summary>
     /// <param name="code">Converter body builder.</param>
-    /// <param name="indent">Body indent.</param>
     /// <param name="candidateAssignment">The complete candidate enum assignment.</param>
     private static void AppendTokenFallback(
         SharedIndentedBuilder code,
-        int indent,
         string candidateAssignment
-    ) => code.AppendLineAt(indent, "if (!tokenMatched) " + candidateAssignment);
+    ) => code.AppendLine("if (!tokenMatched) " + candidateAssignment);
 
     /// <summary>Emits the failure path for a token outside the wire vocabulary.</summary>
     /// <remarks>
@@ -336,25 +292,16 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// materializing recognized token names.
     /// </remarks>
     /// <param name="code">Converter body builder.</param>
-    /// <param name="indent">Body indent.</param>
     /// <param name="message">The unchanged JsonException message.</param>
-    private static void AppendUnknownTokenFailure(
-        SharedIndentedBuilder code,
-        int indent,
-        string message
-    )
+    private static void AppendUnknownTokenFailure(SharedIndentedBuilder code, string message)
     {
-        code.AppendLineAt(indent, "if (!tokenMatched)");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine("if (!tokenMatched)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) _ = reader.GetString();"
         );
-        code.AppendLineAt(
-            indent + 1,
-            "throw new global::System.Text.Json.JsonException(\"" + message + "\");"
-        );
-        code.AppendLineAt(indent, "}");
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"" + message + "\");");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the typed declared-type metadata lookup shared by endpoint reads and writes.</summary>
@@ -366,55 +313,48 @@ internal static class SparseChangePayloadJsonBridgeEmitter
     /// <param name="code">Converter body builder (converter class interior).</param>
     private static void AppendValueTypeTypeInfo(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueTypeTypeInfo(global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "try");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("try");
+        code.OpenBlock();
+        code.AppendLine(
             "return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue));"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "catch (global::System.NotSupportedException exception)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine("catch (global::System.NotSupportedException exception)");
+        code.OpenBlock();
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"The generated ChangePayload endpoint converter requires JsonTypeInfo metadata for value type '\" + typeof(TValue) + \"'. Add the model/member types to a source-generated JsonSerializerContext and set it as JsonSerializerOptions.TypeInfoResolver.\", exception);"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     /// <summary>Emits a bare exclude-from-JSON marker when JSON is enabled.</summary>
     /// <remarks>Computed transition projections must not serialize.</remarks>
     /// <param name="code">Target builder.</param>
-    /// <param name="indent">Member indent.</param>
     /// <param name="emitJson">Whether the v1 JSON surface is enabled.</param>
-    internal static void AppendBareJsonIgnore(SharedIndentedBuilder code, int indent, bool emitJson)
+    internal static void AppendBareJsonIgnore(SharedIndentedBuilder code, bool emitJson)
     {
         if (!emitJson)
         {
             return;
         }
 
-        code.AppendLineAt(indent, "[global::System.Text.Json.Serialization.JsonIgnore]");
+        code.AppendLine("[global::System.Text.Json.Serialization.JsonIgnore]");
     }
 
     /// <summary>Emits the endpoint converter attribute for one endpoint property.</summary>
     /// <param name="code">DTO target builder.</param>
-    /// <param name="indent">Member indent.</param>
     /// <param name="valueType">The endpoint value type name.</param>
     internal static void AppendEndpointConverterAttribute(
         SharedIndentedBuilder code,
-        int indent,
         string valueType,
         string? implementationNamespace = null
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "[global::System.Text.Json.Serialization.JsonConverter(typeof("
                 + EndpointConverterType(implementationNamespace)
                 + "<"
@@ -424,14 +364,11 @@ internal static class SparseChangePayloadJsonBridgeEmitter
 
     /// <summary>Emits the item-kind converter attribute for one kind property.</summary>
     /// <param name="code">DTO target builder.</param>
-    /// <param name="indent">Member indent.</param>
     internal static void AppendItemKindConverterAttribute(
         SharedIndentedBuilder code,
-        int indent,
         string? implementationNamespace = null
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "[global::System.Text.Json.Serialization.JsonConverter(typeof("
                 + ItemKindConverterType(implementationNamespace)
                 + "))]"

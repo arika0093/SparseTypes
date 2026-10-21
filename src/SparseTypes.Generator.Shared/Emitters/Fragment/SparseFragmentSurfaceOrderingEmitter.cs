@@ -46,12 +46,11 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             patchDialect.WriteContract,
             features
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates a mutable builder seeded from this fragment.</summary>"
         );
-        code.AppendLineAt(2, "/// <returns>The seeded builder.</returns>");
-        code.AppendLineAt(2, "public FragmentBuilder ToBuilder() => new(this);");
+        code.AppendLine("/// <returns>The seeded builder.</returns>");
+        code.AppendLine("public FragmentBuilder ToBuilder() => new(this);");
         // JSON converters need both the requested family and a compatible
         // probed compilation surface.
         if (features.EmitJsonConverters && patchDialect.EmitJson)
@@ -126,12 +125,11 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             patchDialect.WriteContract,
             features
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates a mutable builder seeded from this fragment.</summary>"
         );
-        code.AppendLineAt(2, "/// <returns>The seeded builder.</returns>");
-        code.AppendLineAt(2, "public FragmentBuilder ToBuilder() => new(this);");
+        code.AppendLine("/// <returns>The seeded builder.</returns>");
+        code.AppendLine("public FragmentBuilder ToBuilder() => new(this);");
         if (features.EmitJsonConverters && patchDialect.EmitJson)
         {
             if (
@@ -220,15 +218,14 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         ImmutableArray<SparseMemberModel> members
     )
     {
-        code.AppendLineAt(2, "internal void __SparseWriteWritableTo(" + modelType + " model)");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("internal void __SparseWriteWritableTo(" + modelType + " model)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (model is null) throw new global::System.ArgumentNullException(nameof(model));"
         );
         if (!members.IsEmpty)
         {
-            code.AppendLineAt(3, "var __sparse_updated = ToModel();");
+            code.AppendLine("var __sparse_updated = ToModel();");
         }
 
         foreach (var member in members)
@@ -243,8 +240,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     "global::System.Collections.Generic.List<"
                     + member.Collection.ElementType.Name
                     + ">";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (model."
                         + property
                         + " is "
@@ -255,15 +251,13 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                         + property
                         + " is not null)"
                 );
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(4, "__sparse_list" + member.Id + ".Clear();");
-                code.AppendLineAt(
-                    4,
+                code.OpenBlock();
+                code.AppendLine("__sparse_list" + member.Id + ".Clear();");
+                code.AppendLine(
                     "__sparse_list" + member.Id + ".AddRange(__sparse_updated." + property + ");"
                 );
-                code.AppendLineAt(3, "}");
-                code.AppendLineAt(
-                    3,
+                code.CloseBlock();
+                code.AppendLine(
                     "else model." + property + " = __sparse_updated." + property + "!;"
                 );
             }
@@ -275,8 +269,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                     + ", "
                     + member.Collection.ValueType!.Value.Name
                     + ">";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (model."
                         + property
                         + " is "
@@ -287,10 +280,9 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                         + property
                         + " is not null)"
                 );
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(4, "__sparse_dict" + member.Id + ".Clear();");
-                code.AppendLineAt(
-                    4,
+                code.OpenBlock();
+                code.AppendLine("__sparse_dict" + member.Id + ".Clear();");
+                code.AppendLine(
                     "foreach (var __sparse_pair"
                         + member.Id
                         + " in __sparse_updated."
@@ -303,22 +295,18 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                         + member.Id
                         + ".Value);"
                 );
-                code.AppendLineAt(3, "}");
-                code.AppendLineAt(
-                    3,
+                code.CloseBlock();
+                code.AppendLine(
                     "else model." + property + " = __sparse_updated." + property + "!;"
                 );
             }
             else
             {
-                code.AppendLineAt(
-                    3,
-                    "model." + property + " = __sparse_updated." + property + "!;"
-                );
+                code.AppendLine("model." + property + " = __sparse_updated." + property + "!;");
             }
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     internal static void AppendFragmentEquality(
@@ -331,29 +319,27 @@ internal static class SparseFragmentSurfaceOrderingEmitter
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal static bool __SparseAreEqual("
                 + optionalType
                 + "<Fragment?> left, "
                 + optionalType
                 + "<Fragment?> right)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (!left.IsPresent) return !right.IsPresent;");
-        code.AppendLineAt(3, "if (!right.IsPresent) return false;");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (!left.IsPresent) return !right.IsPresent;");
+        code.AppendLine("if (!right.IsPresent) return false;");
+        code.AppendLine(
             "if (global::System.Object.ReferenceEquals(left.Value, right.Value)) return true;"
         );
-        code.AppendLineAt(3, "if (left.Value is null || right.Value is null) return false;");
+        code.AppendLine("if (left.Value is null || right.Value is null) return false;");
         if (members.IsEmpty)
         {
-            code.AppendLineAt(3, "return true;");
+            code.AppendLine("return true;");
         }
         else
         {
-            code.AppendIndent(3).Append("return ");
+            code.AppendIndent().Append("return ");
             for (var index = 0; index < members.Length; index++)
             {
                 if (index > 0)
@@ -374,7 +360,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             code.AppendLine(";");
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         foreach (var member in members)
         {
             var valueType = SparseFragmentEmitHelpers.FragmentValueType(member);
@@ -382,7 +368,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
             var rightOptional = optionalEqualityType is null ? "right" : "__right";
             var leftValue = leftOptional + ".Value";
             var rightValue = rightOptional + ".Value";
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("internal static bool __SparseEqual_")
                 .Append(member.Id)
                 .Append("(")

@@ -181,12 +181,10 @@ internal static class SparseChangeSetContractEmitter
             + ", "
             + ElementChangeSetOf(member)
             + ">";
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Looks up the item change through the shared keyed contract.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             item + " " + keyed + ".GetChange(" + KeyTypeOf(member) + " key) => GetChange(key);"
         );
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
@@ -200,24 +198,20 @@ internal static class SparseChangeSetContractEmitter
                 + ", "
                 + ElementChangeSetOf(member)
                 + ">";
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Looks up the temporary change through the shared temporary contract.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 item
                     + " "
                     + temporary
                     + ".GetTemporaryChange(global::System.Guid temporaryKey) => GetTemporaryChange(temporaryKey);"
             );
         }
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Enumerates item changes through the shared keyed contract.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "global::System.Collections.Generic.IEnumerable<"
                 + item
                 + "> "
@@ -254,20 +248,14 @@ internal static class SparseChangeSetContractEmitter
             + ">";
         var item =
             contracts.DictionaryItemChangeInterfaceType + "<" + keyType + ", " + valueType + ">";
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Looks up the entry change through the shared dictionary contract.</summary>"
         );
-        code.AppendLineAt(
-            3,
-            item + " " + dict + ".GetChange(" + keyType + " key) => GetChange(key);"
-        );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(item + " " + dict + ".GetChange(" + keyType + " key) => GetChange(key);");
+        code.AppendLine(
             "/// <summary>Enumerates entry changes through the shared dictionary contract.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "global::System.Collections.Generic.IEnumerable<"
                 + item
                 + "> "
@@ -294,35 +282,31 @@ internal static class SparseChangeSetContractEmitter
         var contracts = dialect.TransitionContracts!;
         var iface = contracts.ChangeSetInterfaceType;
         ComputePublicNames(members, out var propNames, out _);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets whether this change set contains any semantic changes.</summary>"
         );
-        code.AppendLineAt(2, "public bool IsChanged => !IsEmpty;");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("public bool IsChanged => !IsEmpty;");
+        code.AppendLine(
             "/// <summary>Enumerates flattened change records reusing the typed enumeration projection.</summary>"
         );
-        code.AppendLineAt(2, "/// <returns>The flattened transitions.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The flattened transitions.</returns>");
+        code.AppendLine(
             "global::System.Collections.Generic.IReadOnlyList<"
                 + contracts.ChangeRecordType
                 + "> "
                 + iface
                 + ".EnumerateChangeRecords()"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var records = new global::System.Collections.Generic.List<"
                 + contracts.ChangeRecordType
                 + ">();"
         );
-        code.AppendLineAt(3, "foreach (var change in EnumerateChanges())");
-        code.AppendLineAt(4, "records.Add(change);");
-        code.AppendLineAt(3, "return records.AsReadOnly();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("foreach (var change in EnumerateChanges())");
+        code.AppendLine("records.Add(change);");
+        code.AppendLine("return records.AsReadOnly();");
+        code.CloseBlock();
         AppendTryGetNested(code, members, propNames, iface);
         AppendTryGetValue(code, members, propNames, dialect, iface);
         AppendTryGetKeyed(code, members, propNames, dialect, iface);
@@ -336,21 +320,17 @@ internal static class SparseChangeSetContractEmitter
         string iface
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets the nested change set for a nested-model member.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"memberName\">The member CLR name.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"memberName\">The member CLR name.</param>");
+        code.AppendLine(
             "/// <param name=\"child\">The nested change set when the member is a nested model.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns>True when the member is a nested model; otherwise false.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "bool "
                 + iface
                 + ".TryGetNestedChange(string memberName, "
@@ -359,7 +339,7 @@ internal static class SparseChangeSetContractEmitter
                 + iface
                 + "? child)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
             if (!IsNested(member))
@@ -372,8 +352,7 @@ internal static class SparseChangeSetContractEmitter
                 member.Property.Name,
                 true
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (global::System.String.Equals(memberName, "
                     + literal
                     + ", global::System.StringComparison.Ordinal)) { child = "
@@ -381,9 +360,9 @@ internal static class SparseChangeSetContractEmitter
                     + "; return true; }"
             );
         }
-        code.AppendLineAt(3, "child = null;");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("child = null;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 
     private static void AppendTryGetValue(
@@ -395,22 +374,14 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         var contracts = dialect.TransitionContracts!;
-        code.AppendLineAt(
-            2,
-            "/// <summary>Gets the scalar transition for an atomic member.</summary>"
-        );
-        code.AppendLineAt(2, "/// <param name=\"memberName\">The member CLR name.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the scalar transition for an atomic member.</summary>");
+        code.AppendLine("/// <param name=\"memberName\">The member CLR name.</param>");
+        code.AppendLine(
             "/// <param name=\"change\">The transition on an exact member and value-type match.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>True on an exact match; otherwise false.</returns>");
-        code.AppendLineAt(
-            2,
-            "/// <typeparam name=\"T\">The expected member value type.</typeparam>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>True on an exact match; otherwise false.</returns>");
+        code.AppendLine("/// <typeparam name=\"T\">The expected member value type.</typeparam>");
+        code.AppendLine(
             "bool "
                 + iface
                 + ".TryGetValueChange<T>(string memberName, "
@@ -419,8 +390,8 @@ internal static class SparseChangeSetContractEmitter
                 + contracts.ValueChangeInterfaceType
                 + "<T>? change)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (memberName is null) { change = null; return false; }");
+        code.OpenBlock();
+        code.AppendLine("if (memberName is null) { change = null; return false; }");
         foreach (var member in members)
         {
             if (IsNested(member) || IsKeyed(member) || IsDict(member))
@@ -434,8 +405,7 @@ internal static class SparseChangeSetContractEmitter
                 true
             );
             // Exact-match dispatch through interface pattern matching.
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (global::System.String.Equals(memberName, "
                     + literal
                     + ", global::System.StringComparison.Ordinal) && "
@@ -449,9 +419,9 @@ internal static class SparseChangeSetContractEmitter
                     + "; return true; }"
             );
         }
-        code.AppendLineAt(3, "change = null;");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("change = null;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 
     private static void AppendTryGetKeyed(
@@ -463,30 +433,20 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         var contracts = dialect.TransitionContracts!;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets the keyed-sequence transition for a keyed collection member.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"memberName\">The member CLR name.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"memberName\">The member CLR name.</param>");
+        code.AppendLine(
             "/// <param name=\"change\">The transition on an exact member and type match.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>True on an exact match; otherwise false.</returns>");
-        code.AppendLineAt(
-            2,
-            "/// <typeparam name=\"TKey\">The expected stable key type.</typeparam>"
-        );
-        code.AppendLineAt(
-            2,
-            "/// <typeparam name=\"TElement\">The expected element type.</typeparam>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>True on an exact match; otherwise false.</returns>");
+        code.AppendLine("/// <typeparam name=\"TKey\">The expected stable key type.</typeparam>");
+        code.AppendLine("/// <typeparam name=\"TElement\">The expected element type.</typeparam>");
+        code.AppendLine(
             "/// <typeparam name=\"TElementChange\">The expected element change-set type.</typeparam>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "bool "
                 + iface
                 + ".TryGetKeyedChange<TKey, TElement, TElementChange>(string memberName, "
@@ -495,8 +455,8 @@ internal static class SparseChangeSetContractEmitter
                 + contracts.KeyedChangeInterfaceType
                 + "<TKey, TElement, TElementChange>? change)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (memberName is null) { change = null; return false; }");
+        code.OpenBlock();
+        code.AppendLine("if (memberName is null) { change = null; return false; }");
         foreach (var member in members)
         {
             if (!IsKeyed(member))
@@ -509,8 +469,7 @@ internal static class SparseChangeSetContractEmitter
                 member.Property.Name,
                 true
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (global::System.String.Equals(memberName, "
                     + literal
                     + ", global::System.StringComparison.Ordinal) && "
@@ -524,9 +483,9 @@ internal static class SparseChangeSetContractEmitter
                     + "; return true; }"
             );
         }
-        code.AppendLineAt(3, "change = null;");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("change = null;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 
     private static void AppendTryGetDictionary(
@@ -538,30 +497,24 @@ internal static class SparseChangeSetContractEmitter
     )
     {
         var contracts = dialect.TransitionContracts!;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets the dictionary transition for a dictionary member.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"memberName\">The member CLR name.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"memberName\">The member CLR name.</param>");
+        code.AppendLine(
             "/// <param name=\"change\">The transition on an exact member and type match.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>True on an exact match; otherwise false.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>True on an exact match; otherwise false.</returns>");
+        code.AppendLine(
             "/// <typeparam name=\"TKey\">The expected dictionary key type.</typeparam>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <typeparam name=\"TValue\">The expected dictionary value type.</typeparam>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <typeparam name=\"TEdited\">The expected edited-projection type.</typeparam>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "bool "
                 + iface
                 + ".TryGetDictionaryChange<TKey, TValue, TEdited>(string memberName, "
@@ -570,8 +523,8 @@ internal static class SparseChangeSetContractEmitter
                 + contracts.DictionaryChangeInterfaceType
                 + "<TKey, TValue, TEdited>? change)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (memberName is null) { change = null; return false; }");
+        code.OpenBlock();
+        code.AppendLine("if (memberName is null) { change = null; return false; }");
         foreach (var member in members)
         {
             if (!IsDict(member))
@@ -584,8 +537,7 @@ internal static class SparseChangeSetContractEmitter
                 member.Property.Name,
                 true
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (global::System.String.Equals(memberName, "
                     + literal
                     + ", global::System.StringComparison.Ordinal) && "
@@ -599,8 +551,8 @@ internal static class SparseChangeSetContractEmitter
                     + "; return true; }"
             );
         }
-        code.AppendLineAt(3, "change = null;");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("change = null;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 }

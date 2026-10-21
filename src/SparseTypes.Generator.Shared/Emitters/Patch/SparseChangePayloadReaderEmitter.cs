@@ -22,55 +22,47 @@ internal static class SparseChangePayloadReaderEmitter
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Converts a validated envelope to a complete change set.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref=\"ChangePayload.ToPatch\"/> instead.</remarks>"
             );
-            code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-            code.AppendLineAt(2, "/// <returns>The complete change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+            code.AppendLine("/// <returns>The complete change set.</returns>");
+            code.AppendLine(
                 "public static ChangeSet FromPayload(ChangePayload payload) => "
                     + target.ChangeSetOperationsType
                     + ".FromPayload(payload);"
             );
             code = target.ChangeSetOperations;
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Converts a validated envelope to a complete change set.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref=\"ChangePayload.ToPatch\"/> instead.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLineAt(2, "/// <returns>The complete change set.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+        code.AppendLine("/// <returns>The complete change set.</returns>");
+        code.AppendLine(
             (
                 target is null
                     ? "public static ChangeSet FromPayload(ChangePayload payload)"
                     : "internal static ChangeSet FromPayload(ChangePayload payload)"
             )
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!global::System.String.Equals(payload.Version, "
                 + versionLiteral
                 + ", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException(\"Unsupported ChangePayload version.\", nameof(payload));"
         );
-        code.AppendLineAt(3, "return FromPayloadCore(payload);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return FromPayloadCore(payload);");
+        code.CloseBlock();
         // The strict conversion partitions the envelope first and rejects blind
         // paths, so there is exactly one routing seam for mixed requests.
         foreach (
@@ -93,8 +85,7 @@ internal static class SparseChangePayloadReaderEmitter
             );
         }
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + runtime
                 + "Optional<Fragment?> __SparsePayloadFragment("
@@ -103,20 +94,18 @@ internal static class SparseChangePayloadReaderEmitter
                 + payloadRoot
                 + "> endpoint)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (endpoint is null) throw new global::System.ArgumentException(\"A root endpoint is required.\", nameof(endpoint));"
         );
-        code.AppendLineAt(3, "var root = endpoint.ToOptional();");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("var root = endpoint.ToOptional();");
+        code.AppendLine(
             "return !root.IsPresent ? "
                 + runtime
                 + "Optional<Fragment?>.Missing : "
                 + runtime
                 + "Optional<Fragment?>.Present(root.Value?.ToFragment());"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 }

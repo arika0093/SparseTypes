@@ -71,13 +71,12 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             HasField(member),
             redactedAssignments.ToArray()
         );
-        code.AppendLineAt(4, "if (" + HasField(member) + " && !__red" + id + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(4, "var __curM" + id + " = __cur." + esc + ";");
+        code.AppendLine("if (" + HasField(member) + " && !__red" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("var __curM" + id + " = __cur." + esc + ";");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member) && !hasTempRebase)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if ("
                     + KeyedBeforeOrder(member)
                     + " is not null) foreach (var __baselineKey in "
@@ -89,10 +88,9 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
         // Replay via member patch rebase is not sparse; report member conflict
         // unless already applied, else keep whole.
-        code.AppendLineAt(4, "if (" + KeyedWholeFlag(member) + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "if (Fragment.__SparseEqual_"
                 + id
                 + "("
@@ -101,8 +99,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + ")) { }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else if (Fragment.__SparseEqual_"
                 + id
                 + "("
@@ -123,8 +120,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + KeyedWholeAfter(member)
                 + "; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else { __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -139,14 +135,12 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + BoxExpression(dialect, "__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "else if (!__curM" + id + ".IsPresent || (object?)__curM" + id + ".Value is null)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -161,12 +155,11 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + BoxExpression(dialect, "__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         // Current map + order (transient, not retained).
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __cmap"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<"
@@ -177,8 +170,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __corder"
                 + id
                 + " = new global::System.Collections.Generic.List<"
@@ -187,8 +179,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         );
         // Current-position index built in the same pass as the map/order so
         // per-item position lookups below stay indexed instead of scanning.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __cpos"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<"
@@ -208,8 +199,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "foreach (var __e in __curM"
                     + id
                     + ".Value!) { var __ck = __SparseKeyOf_ChangeSet_"
@@ -236,8 +226,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             );
         }
 
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __rebaseCurrentOrder"
                 + id
                 + " = new global::System.Collections.Generic.List<"
@@ -246,24 +235,22 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + ");"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __rlist"
                 + id
                 + " = new global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>();"
         );
-        code.AppendLineAt(5, "bool __any" + id + " = false;");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("bool __any" + id + " = false;");
+        code.AppendLine(
             "if ("
                 + KeyedItems(member)
                 + " is not null) foreach (var __it in "
                 + KeyedItems(member)
                 + ")"
         );
-        code.AppendLineAt(5, "{");
+        code.OpenBlock();
         if (hasTempRebase)
         {
             SparseChangeSetKeyedTempRebaseEmitter.AppendTempItemBranch(
@@ -282,12 +269,11 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
         // Added: replay when absent; already-applied when equal; conflict
         // otherwise.
-        code.AppendLineAt(6, "if (__it.IsAdded)");
-        code.AppendLineAt(6, "{");
+        code.AppendLine("if (__it.IsAdded)");
+        code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__it.Key")
                     + ") { __any"
@@ -354,8 +340,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (!__cmap"
                     + id
                     + ".ContainsKey(__it.Key)) { __any"
@@ -394,8 +379,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             );
         }
 
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "else if (!"
                 + elementCs
                 + ".Between("
@@ -414,8 +398,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + elementFrag
                 + ".From(__it.After.Value!))).IsEmpty)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -432,14 +415,13 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + "[__it.Key]), \"The keyed element conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         // Removed: already-applied when absent; replay when still base;
         // conflict otherwise.
-        code.AppendLineAt(6, "else if (__it.IsRemoved)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "if (!__cmap" + id + ".ContainsKey(__it.Key)) { }");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("else if (__it.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine("if (!__cmap" + id + ".ContainsKey(__it.Key)) { }");
+        code.AppendLine(
             "else if (!"
                 + elementCs
                 + ".Between("
@@ -458,8 +440,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + elementFrag
                 + ".From(__it.Before.Value!))).IsEmpty)"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -476,8 +457,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + "[__it.Key]), \"The keyed element conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "else { __any"
                 + id
                 + " = true; int __bi = __cpos"
@@ -490,13 +470,12 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + ".Remove(__it.Key); }"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         // Edited: nested rebase distinguishes clean/already-applied/conflict.
-        code.AppendLineAt(6, "else if (__it.IsEdited)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "if (!__cmap" + id + ".TryGetValue(__it.Key, out var __cev))");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("else if (__it.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine("if (!__cmap" + id + ".TryGetValue(__it.Key, out var __cev))");
+        code.AppendLine(
             "{ __conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -511,10 +490,9 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + runtime
                 + "Optional<object?>.Missing, \"The keyed element conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "var __nr = __it.Edit.RebaseOnto("
                 + runtime
                 + "Optional<"
@@ -523,16 +501,14 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + elementFrag
                 + ".From(__cev)));"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "foreach (var __cc in __nr.Conflicts) __conflicts.Add(__cc.WithPathPrefix(__SparseRootPath.Member("
                 + lit
                 + ").Key(__it.Key)));"
         );
-        code.AppendLineAt(7, "if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("if (__nr.Conflicts.Count == 0 && !__nr.Rebased.IsEmpty)");
+        code.OpenBlock();
+        code.AppendLine(
             "var __applied = __nr.Rebased.ToPatch().Apply("
                 + runtime
                 + "Optional<"
@@ -541,11 +517,10 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + elementFrag
                 + ".From(__cev)));"
         );
-        code.AppendLineAt(8, "if (__applied.IsPresent && __applied.Value is not null)");
-        code.AppendLineAt(8, "{");
-        code.AppendLineAt(8, "var __um = __applied.Value!.ToModel(); __any" + id + " = true;");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("if (__applied.IsPresent && __applied.Value is not null)");
+        code.OpenBlock();
+        code.AppendLine("var __um = __applied.Value!.ToModel(); __any" + id + " = true;");
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementType
@@ -563,9 +538,8 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + elementType
                 + ">.Present(__um);"
         );
-        code.AppendLineAt(8, "int __bi2 = __cpos" + id + "[__it.Key];");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("int __bi2 = __cpos" + id + "[__it.Key];");
+        code.AppendLine(
             "__rlist"
                 + id
                 + ".Add(new "
@@ -574,16 +548,15 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + "[__it.Key] = __um;"
         );
-        code.AppendLineAt(8, "}");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
         // Reorder-only: keep when current order still matches base rank; else
         // coincidentally ordered.
-        code.AppendLineAt(6, "else if (__it.IsReordered)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("else if (__it.IsReordered)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__cmap"
                 + id
                 + ".ContainsKey(__it.Key)) { __any"
@@ -596,12 +569,11 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + trans
                 + ".Item(__it.Key, __it.TemporaryKey, __it.Before, __it.After, __bi3, __bi3, false, false, false, true, __it.Edit, false)); }"
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
+        code.CloseBlock();
         // Order reconciliation: no local order change preserves current order
         // (concurrent adds kept).
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "global::System.Collections.Generic.List<"
                 + keyType
                 + ">? __nbO"
@@ -614,9 +586,8 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(5, "bool __unassignedOnlyAdds" + id + " = false;");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("bool __unassignedOnlyAdds" + id + " = false;");
+            code.AppendLine(
                 "if ("
                     + KeyedBeforeOrder(member)
                     + " is not null && "
@@ -643,8 +614,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + id
                     + " = true; break; } }"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (__unassignedOnlyAdds"
                     + id
                     + ") { __nbO"
@@ -668,8 +638,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                     + ".Add(__newItem.Key); }"
             );
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if ("
                 + (
                     SparseKeyedCollectionEmitter.HasUnassignedKey(member)
@@ -711,8 +680,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + (SparseKeyedCollectionEmitter.HasUnassignedKey(member) ? " }" : "")
                 + " }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "else if ("
                 + (
                     SparseKeyedCollectionEmitter.HasUnassignedKey(member)
@@ -724,9 +692,8 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + KeyedAfterOrder(member)
                 + " is not null)"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.OpenBlock();
+        code.AppendLine(
             "if ("
                 + facade
                 + ".KeyOrderEquals<"
@@ -749,8 +716,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + KeyedAfterOrder(member)
                 + "); }"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "else if (!"
                 + facade
                 + ".KeyOrderEquals<"
@@ -779,13 +745,12 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + "), \"The collection order conflicts with a concurrent change.\")); }"
         );
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
         if (hasTempRebase)
         {
             SparseChangeSetKeyedTempRebaseEmitter.AppendTempOrderOutput(code, id);
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (__any"
                 + id
                 + ") { __rh"
@@ -804,7 +769,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                 + id
                 + "; }"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

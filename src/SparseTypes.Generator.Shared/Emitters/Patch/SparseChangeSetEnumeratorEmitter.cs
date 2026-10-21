@@ -136,12 +136,10 @@ internal static class SparseChangeSetEnumeratorEmitter
         string recordType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public global::System.Collections.Generic.IEnumerable<"
                 + recordType
                 + "> EnumerateChanges() => "
@@ -156,44 +154,36 @@ internal static class SparseChangeSetEnumeratorEmitter
         string pathType
     )
     {
-        code.AppendLineAt(2, "/// <summary>Classifies a flattened change-set entry.</summary>");
-        code.AppendLineAt(2, "public enum ChangeKind");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "/// <summary>A value changed while remaining present.</summary>");
-        code.AppendLineAt(3, "Changed = 0,");
-        code.AppendLineAt(3, "/// <summary>A value was added.</summary>");
-        code.AppendLineAt(3, "Added = 1,");
-        code.AppendLineAt(3, "/// <summary>A value was removed.</summary>");
-        code.AppendLineAt(3, "Removed = 2,");
-        code.AppendLineAt(3, "/// <summary>A keyed collection order changed.</summary>");
-        code.AppendLineAt(3, "Order = 3,");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Classifies a flattened change-set entry.</summary>");
+        code.AppendLine("public enum ChangeKind");
+        code.OpenBlock();
+        code.AppendLine("/// <summary>A value changed while remaining present.</summary>");
+        code.AppendLine("Changed = 0,");
+        code.AppendLine("/// <summary>A value was added.</summary>");
+        code.AppendLine("Added = 1,");
+        code.AppendLine("/// <summary>A value was removed.</summary>");
+        code.AppendLine("Removed = 2,");
+        code.AppendLine("/// <summary>A keyed collection order changed.</summary>");
+        code.AppendLine("Order = 3,");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>A path and its before and after values in a change set.</summary>"
         );
-        code.AppendLineAt(2, "public sealed class ChangeInfo");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("public sealed class ChangeInfo");
+        code.OpenBlock();
         // Public-first order: public properties precede the internal
         // constructor.
-        code.AppendLineAt(3, "/// <summary>Gets the changed member path.</summary>");
-        code.AppendLineAt(3, "public " + pathType + " Path { get; }");
-        code.AppendLineAt(3, "/// <summary>Gets the wire-compatible path text.</summary>");
-        code.AppendLineAt(3, "public string PathText => Path.ToString();");
-        code.AppendLineAt(
-            3,
-            "/// <summary>Gets the presence-aware value before the change.</summary>"
-        );
-        code.AppendLineAt(3, "public " + optionalObject + " Before { get; }");
-        code.AppendLineAt(
-            3,
-            "/// <summary>Gets the presence-aware value after the change.</summary>"
-        );
-        code.AppendLineAt(3, "public " + optionalObject + " After { get; }");
-        code.AppendLineAt(3, "/// <summary>Gets the kind of change.</summary>");
-        code.AppendLineAt(3, "public ChangeKind Kind { get; }");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Gets the changed member path.</summary>");
+        code.AppendLine("public " + pathType + " Path { get; }");
+        code.AppendLine("/// <summary>Gets the wire-compatible path text.</summary>");
+        code.AppendLine("public string PathText => Path.ToString();");
+        code.AppendLine("/// <summary>Gets the presence-aware value before the change.</summary>");
+        code.AppendLine("public " + optionalObject + " Before { get; }");
+        code.AppendLine("/// <summary>Gets the presence-aware value after the change.</summary>");
+        code.AppendLine("public " + optionalObject + " After { get; }");
+        code.AppendLine("/// <summary>Gets the kind of change.</summary>");
+        code.AppendLine("public ChangeKind Kind { get; }");
+        code.AppendLine(
             "internal ChangeInfo("
                 + pathType
                 + " path, "
@@ -202,13 +192,13 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + optionalObject
                 + " after, ChangeKind kind)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "Path = path;");
-        code.AppendLineAt(4, "Before = before;");
-        code.AppendLineAt(4, "After = after;");
-        code.AppendLineAt(4, "Kind = kind;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
+        code.OpenBlock();
+        code.AppendLine("Path = path;");
+        code.AppendLine("Before = before;");
+        code.AppendLine("After = after;");
+        code.AppendLine("Kind = kind;");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendChangeKindCompatibilityFacade(
@@ -216,21 +206,20 @@ internal static class SparseChangeSetEnumeratorEmitter
         string kindType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Named change-kind values for compatibility with earlier generated APIs.</summary>"
         );
-        code.AppendLineAt(2, "public static class ChangeKind");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "/// <summary>A value changed while remaining present.</summary>");
-        code.AppendLineAt(3, "public const " + kindType + " Changed = " + kindType + ".Changed;");
-        code.AppendLineAt(3, "/// <summary>A value was added.</summary>");
-        code.AppendLineAt(3, "public const " + kindType + " Added = " + kindType + ".Added;");
-        code.AppendLineAt(3, "/// <summary>A value was removed.</summary>");
-        code.AppendLineAt(3, "public const " + kindType + " Removed = " + kindType + ".Removed;");
-        code.AppendLineAt(3, "/// <summary>A keyed collection order changed.</summary>");
-        code.AppendLineAt(3, "public const " + kindType + " Order = " + kindType + ".Order;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("public static class ChangeKind");
+        code.OpenBlock();
+        code.AppendLine("/// <summary>A value changed while remaining present.</summary>");
+        code.AppendLine("public const " + kindType + " Changed = " + kindType + ".Changed;");
+        code.AppendLine("/// <summary>A value was added.</summary>");
+        code.AppendLine("public const " + kindType + " Added = " + kindType + ".Added;");
+        code.AppendLine("/// <summary>A value was removed.</summary>");
+        code.AppendLine("public const " + kindType + " Removed = " + kindType + ".Removed;");
+        code.AppendLine("/// <summary>A keyed collection order changed.</summary>");
+        code.AppendLine("public const " + kindType + " Order = " + kindType + ".Order;");
+        code.CloseBlock();
     }
 
     private static void AppendValueHelpers(
@@ -245,12 +234,10 @@ internal static class SparseChangeSetEnumeratorEmitter
     )
     {
         var optional = runtime + "Optional";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Model-rooted path factory for changes and rebase conflicts.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal static readonly "
                 + pathType
                 + " __SparseRootPath = "
@@ -261,8 +248,7 @@ internal static class SparseChangeSetEnumeratorEmitter
         );
         if (optionalBoxType is null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private static "
                     + optionalObject
                     + " __SparseBox<T>("
@@ -274,8 +260,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                     + ".Missing;"
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + recordType
                 + " __SparseCreateChangeInfo<T>("
@@ -286,9 +271,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + optional
                 + "<T> after)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var kind = before.IsPresent == after.IsPresent ? "
                 + kindType
                 + ".Changed : before.IsPresent ? "
@@ -297,8 +281,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + kindType
                 + ".Added;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return new "
                 + recordType
                 + "(path, "
@@ -312,7 +295,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                 )
                 + ", kind);"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static void AppendMethod(
@@ -330,58 +313,51 @@ internal static class SparseChangeSetEnumeratorEmitter
         var rootModel = modelType ?? "global::System.Object";
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to enumerate.</param>");
-            code.AppendLineAt(2, "/// <returns>The flattened transitions.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"self\">The change set to enumerate.</param>");
+            code.AppendLine("/// <returns>The flattened transitions.</returns>");
+            code.AppendLine(
                 "internal static global::System.Collections.Generic.IEnumerable<"
                     + recordType
                     + "> EnumerateChanges(ChangeSet self)"
             );
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             AppendSelfAliases(code, members, includeMemberState: traversal is null);
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>A whole-root presence transition emits a single root entry that replaces member entries; nested whole-child presence transitions appear under the parent member path alongside other member entries. Presence-derived kinds apply: missing to present-null reads as <c>Added</c>, present-null to missing as <c>Removed</c>, and present-null to present-value as <c>Changed</c>. Each entry carries a canonical <c>SparsePath</c>: member segments, typed key segments for keyed and dictionary entries, index segments for positions, and set-membership segments carrying the element value. The wire text exposed by <c>PathText</c> keeps the historical grammar: member segments joined by <c>.</c>; keyed, dictionary and set entries as <c>Name[\"key\"]</c> with the key JSON-escaped; order transitions at the member path with kind <c>Order</c>.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public global::System.Collections.Generic.IEnumerable<"
                     + recordType
                     + "> EnumerateChanges()"
             );
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
         }
-        code.AppendLineAt(3, target is null ? "if (IsEmpty)" : "if (self.IsEmpty)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return global::System.Array.Empty<" + recordType + ">();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine(target is null ? "if (IsEmpty)" : "if (self.IsEmpty)");
+        code.OpenBlock();
+        code.AppendLine("return global::System.Array.Empty<" + recordType + ">();");
+        code.CloseBlock();
+        code.AppendLine(
             "var changes = new global::System.Collections.Generic.List<" + recordType + ">();"
         );
         // Root presence transitions carry no member values but are nonempty
         // history; report them instead of silently dropping them.
-        code.AppendLineAt(3, "var __sparse_prefix = __SparseRootPath;");
-        code.AppendLineAt(3, "if (__sparse_hasWhole)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var __sparse_prefix = __SparseRootPath;");
+        code.AppendLine("if (__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(__SparseCreateChangeInfo(__sparse_prefix, __sparse_wholeBefore, __sparse_wholeAfter));"
         );
-        code.AppendLineAt(4, "return changes;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("return changes;");
+        code.CloseBlock();
         if (traversal is not null)
         {
             SparseChangeSetTraversalEmitter.AppendRootWalk(
@@ -409,11 +385,10 @@ internal static class SparseChangeSetEnumeratorEmitter
                 var changed = IsNested(member)
                     ? "!" + property + ".IsEmpty"
                     : property + ".IsChanged";
-                code.AppendLineAt(3, "if (" + changed + ")");
-                code.AppendLineAt(3, "{");
-                code.IndentOffset++;
-                code.AppendLineAt(
-                    3,
+                code.AppendLine("if (" + changed + ")");
+                code.OpenBlock();
+                code.Indent();
+                code.AppendLine(
                     "var " + memberPath + " = __sparse_prefix.Member(" + literal + ");"
                 );
                 if (IsNested(member))
@@ -423,7 +398,6 @@ internal static class SparseChangeSetEnumeratorEmitter
                         property,
                         memberPath,
                         "nested" + member.Id,
-                        3,
                         recordType
                     );
                 }
@@ -459,13 +433,13 @@ internal static class SparseChangeSetEnumeratorEmitter
                 {
                     AppendValueChange(code, property, memberPath, "value" + member.Id);
                 }
-                code.IndentOffset--;
-                code.AppendLineAt(3, "}");
+                code.Unindent();
+                code.CloseBlock();
             }
         }
 
-        code.AppendLineAt(3, "return changes;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return changes;");
+        code.CloseBlock();
     }
 
     private static void AppendValueChange(
@@ -475,11 +449,10 @@ internal static class SparseChangeSetEnumeratorEmitter
         string local
     )
     {
-        code.AppendLineAt(3, "var " + local + " = " + property + ";");
-        code.AppendLineAt(3, "if (" + local + ".IsChanged)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var " + local + " = " + property + ";");
+        code.AppendLine("if (" + local + ".IsChanged)");
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(__SparseCreateChangeInfo("
                 + memberPath
                 + ", "
@@ -488,7 +461,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + local
                 + ".After));"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     private static void AppendSetChanges(
@@ -505,11 +478,10 @@ internal static class SparseChangeSetEnumeratorEmitter
         var transition = "__sparse_set_transition_" + member.Id;
         var added = "__sparse_set_added_" + member.Id;
         var removed = "__sparse_set_removed_" + member.Id;
-        code.AppendLineAt(3, "var " + transition + " = " + property + ";");
-        code.AppendLineAt(3, "if (" + transition + ".IsChanged)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var " + transition + " = " + property + ";");
+        code.AppendLine("if (" + transition + ".IsChanged)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!"
                 + transition
                 + ".Before.IsPresent || !"
@@ -520,9 +492,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + transition
                 + ".After.Value is null)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(__SparseCreateChangeInfo("
                 + memberPath
                 + ", "
@@ -531,12 +502,11 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + transition
                 + ".After));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "foreach (var " + added + " in " + transition + ".Added)");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("foreach (var " + added + " in " + transition + ".Added)");
+        code.AppendLine(
             "changes.Add(new "
                 + recordType
                 + "("
@@ -553,9 +523,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + kindType
                 + ".Added));"
         );
-        code.AppendLineAt(5, "foreach (var " + removed + " in " + transition + ".Removed)");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("foreach (var " + removed + " in " + transition + ".Removed)");
+        code.AppendLine(
             "changes.Add(new "
                 + recordType
                 + "("
@@ -572,8 +541,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + kindType
                 + ".Removed));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendNestedChanges(
@@ -581,18 +550,13 @@ internal static class SparseChangeSetEnumeratorEmitter
         string property,
         string memberPath,
         string suffix,
-        int indent,
         string recordType
     )
     {
         var change = "__sparse_nested_change_" + suffix;
-        code.AppendLineAt(
-            indent,
-            "foreach (var " + change + " in " + property + ".EnumerateChanges())"
-        );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine("foreach (var " + change + " in " + property + ".EnumerateChanges())");
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(new "
                 + recordType
                 + "("
@@ -607,7 +571,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + change
                 + ".Kind));"
         );
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
     }
 
     private static void AppendKeyedChanges(
@@ -624,14 +588,12 @@ internal static class SparseChangeSetEnumeratorEmitter
         var item = "__sparse_keyed_item_" + member.Id;
         var itemPath = "__sparse_keyed_path_" + member.Id;
         var order = "__sparse_keyed_order_" + member.Id;
-        code.AppendLineAt(3, "var " + transition + " = " + property + ";");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("var " + transition + " = " + property + ";");
+        code.AppendLine(
             "if (" + transition + ".Before.IsPresent || " + transition + ".After.IsPresent)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(__SparseCreateChangeInfo("
                 + memberPath
                 + ", "
@@ -640,17 +602,16 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + transition
                 + ".After));"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "foreach (var " + item + " in " + transition + ")");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("foreach (var " + item + " in " + transition + ")");
+        code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             // Temporary entries address by Guid; assigned entries keep key
             // paths.
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var "
                     + itemPath
                     + " = "
@@ -668,14 +629,10 @@ internal static class SparseChangeSetEnumeratorEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
-                "var " + itemPath + " = " + memberPath + ".Key(" + item + ".Key);"
-            );
+            code.AppendLine("var " + itemPath + " = " + memberPath + ".Key(" + item + ".Key);");
         }
 
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if ("
                 + item
                 + ".IsAdded || "
@@ -688,26 +645,23 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + item
                 + ".After));"
         );
-        code.AppendLineAt(5, "if (" + item + ".IsEdited)");
-        code.AppendLineAt(5, "{");
-        AppendNestedChanges(code, item + ".Edit", itemPath, "keyed" + member.Id, 5, recordType);
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (" + item + ".IsEdited)");
+        code.OpenBlock();
+        AppendNestedChanges(code, item + ".Edit", itemPath, "keyed" + member.Id, recordType);
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "if (!global::System.Linq.Enumerable.SequenceEqual("
                 + transition
                 + ".BeforeOrder, "
                 + transition
                 + ".AfterOrder))"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "var " + order + " = " + optionalObject + ".Present(" + transition + ".BeforeOrder);"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var "
                 + order
                 + "After = "
@@ -716,8 +670,7 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + transition
                 + ".AfterOrder);"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "changes.Add(new "
                 + recordType
                 + "("
@@ -730,8 +683,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + kindType
                 + ".Order));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendDictionaryChanges(
@@ -743,23 +696,21 @@ internal static class SparseChangeSetEnumeratorEmitter
     )
     {
         var transition = "__sparse_dictionary_transition_" + member.Id;
-        code.AppendLineAt(3, "if (!__sparse_hasWhole && !" + KeyedWholeFlag(member) + ")");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (" + KeyedItems(member) + " is not null)");
-        code.AppendLineAt(4, "{");
-        AppendDictionaryItems(code, member, KeyedItems(member), memberPath, 5, recordType);
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var " + transition + " = " + property + ";");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (!__sparse_hasWhole && !" + KeyedWholeFlag(member) + ")");
+        code.OpenBlock();
+        code.AppendLine("if (" + KeyedItems(member) + " is not null)");
+        code.OpenBlock();
+        AppendDictionaryItems(code, member, KeyedItems(member), memberPath, recordType);
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var " + transition + " = " + property + ";");
+        code.AppendLine(
             "if (" + transition + ".Before.IsPresent || " + transition + ".After.IsPresent)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "changes.Add(__SparseCreateChangeInfo("
                 + memberPath
                 + ", "
@@ -768,12 +719,12 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + transition
                 + ".After));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
-        AppendDictionaryItems(code, member, transition, memberPath, 5, recordType);
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        AppendDictionaryItems(code, member, transition, memberPath, recordType);
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendDictionaryItems(
@@ -781,20 +732,15 @@ internal static class SparseChangeSetEnumeratorEmitter
         SparseMemberModel member,
         string items,
         string memberPath,
-        int indent,
         string recordType
     )
     {
         var item = "__sparse_dictionary_item_" + member.Id;
         var itemPath = "__sparse_dictionary_path_" + member.Id;
-        code.AppendLineAt(indent, "foreach (var " + item + " in " + items + ")");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
-            "var " + itemPath + " = " + memberPath + ".Key(" + item + ".Key);"
-        );
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine("foreach (var " + item + " in " + items + ")");
+        code.OpenBlock();
+        code.AppendLine("var " + itemPath + " = " + memberPath + ".Key(" + item + ".Key);");
+        code.AppendLine(
             "if ("
                 + item
                 + ".IsAdded || "
@@ -807,8 +753,8 @@ internal static class SparseChangeSetEnumeratorEmitter
                 + item
                 + ".After));"
         );
-        code.AppendLineAt(indent + 1, "if (" + item + ".IsEdited)");
-        code.AppendLineAt(indent + 1, "{");
+        code.AppendLine("if (" + item + ".IsEdited)");
+        code.OpenBlock();
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
             AppendNestedChanges(
@@ -816,14 +762,12 @@ internal static class SparseChangeSetEnumeratorEmitter
                 item + ".Edit",
                 itemPath,
                 "dictionary" + member.Id,
-                indent + 1,
                 recordType
             );
         }
         else
         {
-            code.AppendLineAt(
-                indent + 2,
+            code.AppendLine(
                 "changes.Add(__SparseCreateChangeInfo("
                     + itemPath
                     + ", "
@@ -834,7 +778,7 @@ internal static class SparseChangeSetEnumeratorEmitter
             );
         }
 
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

@@ -11,17 +11,14 @@ internal static class SparseChangeSetPathEmitter
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Enumerates changed member paths, descending through nested models.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>"
             );
-            code.AppendLineAt(2, "/// <returns>The changed member paths.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The changed member paths.</returns>");
+            code.AppendLine(
                 "public global::System.Collections.Generic.IReadOnlyList<"
                     + pathType
                     + "> EnumerateChangedPaths() => "
@@ -29,18 +26,15 @@ internal static class SparseChangeSetPathEmitter
                     + ".EnumerateChangedPaths(this);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Enumerates changed member paths, descending through nested models.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to enumerate.</param>");
-            code.AppendLineAt(2, "/// <returns>The changed member paths.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"self\">The change set to enumerate.</param>");
+            code.AppendLine("/// <returns>The changed member paths.</returns>");
+            code.AppendLine(
                 "internal static global::System.Collections.Generic.IReadOnlyList<"
                     + pathType
                     + "> EnumerateChangedPaths(ChangeSet self)"
@@ -48,48 +42,42 @@ internal static class SparseChangeSetPathEmitter
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Enumerates changed member paths, descending through nested models.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>"
             );
-            code.AppendLineAt(2, "/// <returns>The changed member paths.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The changed member paths.</returns>");
+            code.AppendLine(
                 "public global::System.Collections.Generic.IReadOnlyList<"
                     + pathType
                     + "> EnumerateChangedPaths()"
             );
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         var enumerate = target is null ? "EnumerateChanges()" : "EnumerateChanges(self)";
-        code.AppendLineAt(3, target is null ? "if (IsEmpty)" : "if (self.IsEmpty)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return global::System.Array.Empty<" + pathType + ">();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine(target is null ? "if (IsEmpty)" : "if (self.IsEmpty)");
+        code.OpenBlock();
+        code.AppendLine("return global::System.Array.Empty<" + pathType + ">();");
+        code.CloseBlock();
+        code.AppendLine(
             "var paths = new global::System.Collections.Generic.List<" + pathType + ">();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var seen = new global::System.Collections.Generic.HashSet<" + pathType + ">();"
         );
-        code.AppendLineAt(3, "foreach (var change in " + enumerate + ")");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (seen.Add(change.Path)) paths.Add(change.Path);");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "if (paths.Count > 1)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("foreach (var change in " + enumerate + ")");
+        code.OpenBlock();
+        code.AppendLine("if (seen.Add(change.Path)) paths.Add(change.Path);");
+        code.CloseBlock();
+        code.AppendLine("if (paths.Count > 1)");
+        code.OpenBlock();
+        code.AppendLine(
             "paths.Sort(static (left, right) => global::System.StringComparer.Ordinal.Compare(left.ToString(), right.ToString()));"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return paths.AsReadOnly();");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return paths.AsReadOnly();");
+        code.CloseBlock();
     }
 }

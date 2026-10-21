@@ -43,26 +43,24 @@ internal class SparseReadOnlyViewRetention(ImmutableArray<string> memberNames)
 
     /// <summary>Emits immutable cache holders and their atomically published references.</summary>
     /// <param name="code">The builder receiving the declarations.</param>
-    /// <param name="indent">The member-level indent of the emitted type.</param>
-    public void Flush(SharedIndentedBuilder code, int indent)
+    public void Flush(SharedIndentedBuilder code)
     {
         for (var index = 0; index < _names.Count; index++)
         {
             var (cache, holder, adapter) = _names[index];
-            code.AppendLineAt(indent, "private sealed class " + holder);
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(
-                indent + 1,
+            code.AppendLine("private sealed class " + holder);
+            code.OpenBlock();
+            code.AppendLine(
                 "public "
                     + holder
                     + "(object source, "
                     + adapter
                     + " adapter) { Source = source; Adapter = adapter; }"
             );
-            code.AppendLineAt(indent + 1, "public readonly object Source;");
-            code.AppendLineAt(indent + 1, "public readonly " + adapter + " Adapter;");
-            code.AppendLineAt(indent, "}");
-            code.AppendLineAt(indent, "private volatile " + holder + "? " + cache + ";");
+            code.AppendLine("public readonly object Source;");
+            code.AppendLine("public readonly " + adapter + " Adapter;");
+            code.CloseBlock();
+            code.AppendLine("private volatile " + holder + "? " + cache + ";");
         }
 
         _names.Clear();

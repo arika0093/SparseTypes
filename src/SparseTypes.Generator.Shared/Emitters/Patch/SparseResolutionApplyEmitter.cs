@@ -26,42 +26,22 @@ internal static class SparseResolutionApplyEmitter
         var workspace = dialect.ResolutionWorkspaceType;
         var workspaceParameter = WorkspaceParameter(workspace);
         var workspaceArgument = WorkspaceArgument(workspace);
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>"
         );
-        shell.AppendLineAt(
-            2,
-            "/// <param name=\"fragment\">The fragment subtree to update.</param>"
-        );
-        shell.AppendLineAt(
-            2,
-            "/// <param name=\"path\">Canonical path addressing the value.</param>"
-        );
-        shell.AppendLineAt(
-            2,
-            "/// <param name=\"offset\">The segment this level consumes.</param>"
-        );
-        shell.AppendLineAt(
-            2,
-            "/// <param name=\"desired\">The presence-aware value to write.</param>"
-        );
+        shell.AppendLine("/// <param name=\"fragment\">The fragment subtree to update.</param>");
+        shell.AppendLine("/// <param name=\"path\">Canonical path addressing the value.</param>");
+        shell.AppendLine("/// <param name=\"offset\">The segment this level consumes.</param>");
+        shell.AppendLine("/// <param name=\"desired\">The presence-aware value to write.</param>");
         if (workspace is not null)
         {
-            shell.AppendLineAt(
-                2,
-                "/// <param name=\"workspace\">Per-build collection staging.</param>"
-            );
+            shell.AppendLine("/// <param name=\"workspace\">Per-build collection staging.</param>");
         }
 
-        shell.AppendLineAt(2, "/// <param name=\"updated\">The updated fragment.</param>");
-        shell.AppendLineAt(2, "/// <param name=\"error\">A value-free reason on failure.</param>");
-        shell.AppendLineAt(
-            2,
-            "/// <returns><see langword=\"true\"/> when the value applied.</returns>"
-        );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("/// <param name=\"updated\">The updated fragment.</param>");
+        shell.AppendLine("/// <param name=\"error\">A value-free reason on failure.</param>");
+        shell.AppendLine("/// <returns><see langword=\"true\"/> when the value applied.</returns>");
+        shell.AppendLine(
             "internal static bool __SparseTryApplyResolution(Fragment fragment, "
                 + pathType
                 + " path, int offset, "
@@ -103,12 +83,10 @@ internal static class SparseResolutionApplyEmitter
         var segmentKind = runtime + "SparsePathSegmentKind";
         var workspace = dialect.ResolutionWorkspaceType;
         var workspaceParameter = WorkspaceParameter(workspace);
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "/// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>"
         );
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "internal static bool __SparseTryApplyResolution("
                 + "Fragment fragment, "
                 + pathType
@@ -118,34 +96,33 @@ internal static class SparseResolutionApplyEmitter
                 + workspaceParameter
                 + ", out Fragment? updated, out string? error)"
         );
-        body.AppendLineAt(2, "{");
-        body.AppendLineAt(3, "updated = null;");
-        body.AppendLineAt(3, "error = null;");
-        body.AppendLineAt(
-            3,
+        body.OpenBlock();
+        body.AppendLine("updated = null;");
+        body.AppendLine("error = null;");
+        body.AppendLine(
             "if ("
                 + (dialect.PathIsValueType ? "" : "path is null || ")
                 + "offset < 0 || offset >= path.Depth)"
         );
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "error = \"The resolution path is empty.\";");
-        body.AppendLineAt(4, "return false;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "var head = path.Segments[offset];");
-        body.AppendLineAt(3, "if (head.Kind != " + segmentKind + ".Member)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "error = \"The resolution path must start with a member segment.\";");
-        body.AppendLineAt(4, "return false;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "var builder = fragment.ToBuilder();");
+        body.OpenBlock();
+        body.AppendLine("error = \"The resolution path is empty.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var head = path.Segments[offset];");
+        body.AppendLine("if (head.Kind != " + segmentKind + ".Member)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The resolution path must start with a member segment.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var builder = fragment.ToBuilder();");
         foreach (var member in members)
         {
             AppendMemberBranch(body, member, runtime, segmentKind, dialect, workspace);
         }
 
-        body.AppendLineAt(3, "error = \"Unknown member '\" + head.Name + \"'.\";");
-        body.AppendLineAt(3, "return false;");
-        body.AppendLineAt(2, "}");
+        body.AppendLine("error = \"Unknown member '\" + head.Name + \"'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         SparseResolutionCollectionEmitter.AppendKeyHelpers(body, members);
     }
 
@@ -161,15 +138,14 @@ internal static class SparseResolutionApplyEmitter
         var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
         var name = member.Property.Name;
         var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(name, true);
-        body.AppendLineAt(
-            3,
+        body.AppendLine(
             "if (head.Kind == "
                 + segmentKind
                 + ".Member && global::System.StringComparer.Ordinal.Equals(head.Name, "
                 + literal
                 + "))"
         );
-        body.AppendLineAt(3, "{");
+        body.OpenBlock();
         if (IsNested(member) && !member.ChildIsStructural)
         {
             AppendNestedBranch(body, member, esc, name, dialect, workspace);
@@ -209,7 +185,7 @@ internal static class SparseResolutionApplyEmitter
             AppendScalarBranch(body, member, esc, name, runtime);
         }
 
-        body.AppendLineAt(3, "}");
+        body.CloseBlock();
     }
 
     private static bool IsCollection(SparseMemberModel member) =>
@@ -230,11 +206,11 @@ internal static class SparseResolutionApplyEmitter
     {
         var valueType = FragmentValueType(member);
         var optional = runtime + "Optional<" + valueType + ">";
-        body.AppendLineAt(4, "if (offset + 1 != path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "error = \"Member '" + name + "' has no nested paths.\";");
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.AppendLine("if (offset + 1 != path.Depth)");
+        body.OpenBlock();
+        body.AppendLine("error = \"Member '" + name + "' has no nested paths.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         AppendCheckedSlot(
             body,
             "builder." + esc,
@@ -244,8 +220,8 @@ internal static class SparseResolutionApplyEmitter
             member.Id,
             rejectNull: !member.Property.Type.IsReferenceType && !member.Property.IsNullable
         );
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 
     private static void AppendWholeOnlyBranch(
@@ -259,18 +235,17 @@ internal static class SparseResolutionApplyEmitter
     {
         var valueType = FragmentValueType(member);
         var optional = runtime + "Optional<" + valueType + ">";
-        body.AppendLineAt(4, "if (offset + 1 != path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.AppendLine("if (offset + 1 != path.Depth)");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \""
                 + label
                 + " '"
                 + name
                 + "' resolves as a whole; deeper paths are not supported.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         AppendCheckedSlot(
             body,
             "builder." + esc,
@@ -280,8 +255,8 @@ internal static class SparseResolutionApplyEmitter
             member.Id,
             rejectNull: false
         );
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 
     internal static void AppendCheckedSlot(
@@ -295,37 +270,33 @@ internal static class SparseResolutionApplyEmitter
     )
     {
         var checkType = NonNullable(valueType);
-        body.AppendLineAt(4, "if (!desired.IsPresent)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, slot + " = " + optional + ".Missing;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else if (desired.Value is null)");
-        body.AppendLineAt(4, "{");
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine(slot + " = " + optional + ".Missing;");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is null)");
+        body.OpenBlock();
         if (rejectNull)
         {
-            body.AppendLineAt(5, "error = \"Member '" + name + "' does not accept null.\";");
-            body.AppendLineAt(5, "return false;");
+            body.AppendLine("error = \"Member '" + name + "' does not accept null.\";");
+            body.AppendLine("return false;");
         }
         else
         {
-            body.AppendLineAt(
-                5,
-                slot + " = " + optional + ".Present(default(" + valueType + ")!);"
-            );
+            body.AppendLine(slot + " = " + optional + ".Present(default(" + valueType + ")!);");
         }
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else if (desired.Value is " + checkType + " typed" + id + ")");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, slot + " = " + optional + ".Present(typed" + id + ");");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + checkType + " typed" + id + ")");
+        body.OpenBlock();
+        body.AppendLine(slot + " = " + optional + ".Present(typed" + id + ");");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The resolution value for member '" + name + "' has an unsupported type.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.AppendLine("return false;");
+        body.CloseBlock();
     }
 
     private static void AppendNestedBranch(
@@ -341,36 +312,27 @@ internal static class SparseResolutionApplyEmitter
         var childChangeSet = ChildChangeSet(member, dialect);
         var childModel = member.ChildModel?.NonNullableName ?? "object";
         var childOptional = dialect.RuntimeNamespace + "Optional<" + childFragment + "?>";
-        body.AppendLineAt(4, "if (offset + 1 == path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (!desired.IsPresent)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "builder." + esc + " = " + childOptional + ".Missing;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else if (desired.Value is null)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("if (offset + 1 == path.Depth)");
+        body.OpenBlock();
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("builder." + esc + " = " + childOptional + ".Missing;");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is null)");
+        body.OpenBlock();
+        body.AppendLine(
             "builder." + esc + " = " + childOptional + ".Present((" + childFragment + "?)null);"
         );
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
-            "else if (desired.Value is " + childFragment + " whole" + member.Id + ")"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + childFragment + " whole" + member.Id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "builder." + esc + " = " + childOptional + ".Present(whole" + member.Id + ");"
         );
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
-            "else if (desired.Value is " + childModel + " model" + member.Id + ")"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + childModel + " model" + member.Id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "builder."
                 + esc
                 + " = "
@@ -381,32 +343,28 @@ internal static class SparseResolutionApplyEmitter
                 + member.Id
                 + "));"
         );
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The resolution value for member '" + name + "' has an unsupported type.\";"
         );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "updated = builder.Build();");
-        body.AppendLineAt(5, "return true;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var child" + member.Id + " = builder." + esc + ";");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("var child" + member.Id + " = builder." + esc + ";");
+        body.AppendLine(
             "if (!child" + member.Id + ".IsPresent || child" + member.Id + ".Value is null)"
         );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"Member '" + name + "' is absent and cannot resolve deeper paths.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine(
             "if (!"
                 + childChangeSet
                 + ".__SparseTryApplyResolution(child"
@@ -417,16 +375,15 @@ internal static class SparseResolutionApplyEmitter
                 + member.Id
                 + ", out error)) return false;"
         );
-        body.AppendLineAt(4, "if (updatedChild" + member.Id + " is null)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "error = \"The nested resolution produced no fragment.\";");
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("if (updatedChild" + member.Id + " is null)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The nested resolution produced no fragment.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine(
             "builder." + esc + " = " + childOptional + ".Present(updatedChild" + member.Id + ");"
         );
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 }

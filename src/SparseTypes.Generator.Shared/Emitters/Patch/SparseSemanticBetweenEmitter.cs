@@ -34,12 +34,10 @@ internal static class SparseSemanticBetweenEmitter
         code.CancellationToken.ThrowIfCancellationRequested();
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public static Patch "
                     + dialect.MethodPrefix
                     + "Between("
@@ -66,12 +64,10 @@ internal static class SparseSemanticBetweenEmitter
         bool isStatic
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Derives a patch between two sparse contribution states, preserving presence exactly.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             (isStatic ? "internal static Patch " : "public static Patch ")
                 + dialect.MethodPrefix
                 + "Between("
@@ -80,12 +76,11 @@ internal static class SparseSemanticBetweenEmitter
                 + dialect.OptionalFragmentType
                 + " after)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var patch = new Patch();");
-        code.AppendLineAt(3, "if (before.IsPresent != after.IsPresent)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("var patch = new Patch();");
+        code.AppendLine("if (before.IsPresent != after.IsPresent)");
+        code.OpenBlock();
+        code.AppendLine(
             "patch."
                 + dialect.WholeFieldName
                 + " = after.IsPresent ? "
@@ -94,27 +89,25 @@ internal static class SparseSemanticBetweenEmitter
                 + dialect.WholeOperationType
                 + ".Remove;"
         );
-        code.AppendLineAt(4, "return patch;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "if (!before.IsPresent) return patch;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("return patch;");
+        code.CloseBlock();
+        code.AppendLine("if (!before.IsPresent) return patch;");
+        code.AppendLine(
             "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;"
         );
-        code.AppendLineAt(3, "if (before.Value is null || after.Value is null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (before.Value is null || after.Value is null)");
+        code.OpenBlock();
+        code.AppendLine(
             "patch."
                 + dialect.WholeFieldName
                 + " = "
                 + dialect.WholeOperationType
                 + ".Set(after.Value);"
         );
-        code.AppendLineAt(4, "return patch;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var beforeFragment = before.Value!;");
-        code.AppendLineAt(3, "var afterFragment = after.Value!;");
+        code.AppendLine("return patch;");
+        code.CloseBlock();
+        code.AppendLine("var beforeFragment = before.Value!;");
+        code.AppendLine("var afterFragment = after.Value!;");
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -129,9 +122,8 @@ internal static class SparseSemanticBetweenEmitter
                 var beforeValue = "beforeFragment." + name + ".Value";
                 var afterValue = "afterFragment." + name + ".Value";
                 var equality = dialect.ScalarEquality(member, beforeValue, afterValue);
-                code.AppendLineAt(3, "patch." + field + " = !afterFragment." + name + ".IsPresent");
-                code.AppendLineAt(
-                    4,
+                code.AppendLine("patch." + field + " = !afterFragment." + name + ".IsPresent");
+                code.AppendLine(
                     "? (beforeFragment."
                         + name
                         + ".IsPresent ? "
@@ -140,8 +132,7 @@ internal static class SparseSemanticBetweenEmitter
                         + operation
                         + "))"
                 );
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     ": ((beforeFragment."
                         + name
                         + ".IsPresent && "
@@ -157,8 +148,7 @@ internal static class SparseSemanticBetweenEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "patch."
                         + field
                         + " = "
@@ -172,7 +162,7 @@ internal static class SparseSemanticBetweenEmitter
             }
         }
 
-        code.AppendLineAt(3, "return patch;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return patch;");
+        code.CloseBlock();
     }
 }

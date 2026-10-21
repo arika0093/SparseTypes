@@ -47,12 +47,11 @@ internal sealed class SparseOperationTarget
             return PatchOperations;
         }
 
-        PatchOperations.AppendLineAt(
-            2,
+        PatchOperations.AppendLine(
             "/// <summary>Collection operations for one member patch.</summary>"
         );
-        PatchOperations.AppendLineAt(2, "internal static class " + className);
-        PatchOperations.AppendLineAt(2, "{");
+        PatchOperations.AppendLine("internal static class " + className);
+        PatchOperations.OpenBlock();
         return PatchOperations;
     }
 
@@ -65,7 +64,7 @@ internal sealed class SparseOperationTarget
             return;
         }
 
-        PatchOperations.AppendLineAt(2, "}");
+        PatchOperations.CloseBlock();
     }
 
     /// <summary>Qualified per-member operation container type for facade stubs.</summary>

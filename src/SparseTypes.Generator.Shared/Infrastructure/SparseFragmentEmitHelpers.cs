@@ -14,23 +14,20 @@ internal static class SparseFragmentEmitHelpers
 
     internal static void AppendCloneContext(
         SharedIndentedBuilder code,
-        int indent,
         string cloneContext,
         string referenceComparer
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "var " + cloneContext + " = " + referenceComparer + ".CreateCloneContext();"
         );
 
-    internal static void AppendNullGuard(SharedIndentedBuilder code, int indent, string variable)
+    internal static void AppendNullGuard(SharedIndentedBuilder code, string variable)
     {
-        code.AppendLineAt(indent, "if (" + variable + " is null)");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine("if (" + variable + " is null)");
+        code.OpenBlock();
+        code.AppendLine(
             "throw new global::System.ArgumentNullException(nameof(" + variable + "));"
         );
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
     }
 }

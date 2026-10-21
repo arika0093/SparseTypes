@@ -21,26 +21,23 @@ internal static class SparseChangeSetKeyedTempPairEmitter
     )
     {
         var sentinel = member.Collection.UnassignedKeyExpression ?? "default!";
-        code.AppendLineAt(5, "if (__hasTemp" + id + ")");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("if (__hasTemp" + id + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "var __firstTempAfter"
                 + id
                 + " = "
                 + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
                 + ";"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __secondTempAfter"
                 + id
                 + " = next."
                 + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
                 + ";"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (__firstTempAfter"
                 + id
                 + " is null || "
@@ -49,44 +46,41 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + id
                 + " is null) throw new global::System.InvalidOperationException(\"ChangeSet composition requires temporary orders for temporary changes.\");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __firstTempAfterSet"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__firstTempAfter"
                 + id
                 + ");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __tkeys"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tmap1"
                 + id
                 + ".Keys);"
         );
-        code.AppendLineAt(6, "__tkeys" + id + ".UnionWith(__tmap2" + id + ".Keys);");
-        code.AppendLineAt(6, "foreach (var __tk in __tkeys" + id + ")");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "var __thas1 = __tmap1" + id + ".TryGetValue(__tk, out var __ta1);");
-        code.AppendLineAt(7, "var __thas2 = __tmap2" + id + ".TryGetValue(__tk, out var __ta2);");
+        code.AppendLine("__tkeys" + id + ".UnionWith(__tmap2" + id + ".Keys);");
+        code.AppendLine("foreach (var __tk in __tkeys" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("var __thas1 = __tmap1" + id + ".TryGetValue(__tk, out var __ta1);");
+        code.AppendLine("var __thas2 = __tmap2" + id + ".TryGetValue(__tk, out var __ta2);");
         // Second-only continuity against the complete first after-temp order.
-        code.AppendLineAt(7, "if (!__thas1)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("if (!__thas1)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__ta2!.IsAdded ? __firstTempAfterSet"
                 + id
                 + ".Contains(__tk) : !__firstTempAfterSet"
                 + id
                 + ".Contains(__tk)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(7, "__tnet" + id + "[__tk] = __ta2!; continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if (!__thas2) { __tnet" + id + "[__tk] = __ta1!; continue; }");
+        code.AppendLine("__tnet" + id + "[__tk] = __ta2!; continue;");
+        code.CloseBlock();
+        code.AppendLine("if (!__thas2) { __tnet" + id + "[__tk] = __ta1!; continue; }");
         AppendTempPairCases(code, member, trans, runtime, elementCs, elementFrag, sentinel, id);
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendTempPairCases(
@@ -101,15 +95,13 @@ internal static class SparseChangeSetKeyedTempPairEmitter
     )
     {
         // Both changed: validate continuity and merge by membership kind.
-        code.AppendLineAt(7, "if (__ta1!.IsAdded && __ta2!.IsAdded)");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (__ta1!.IsAdded && __ta2!.IsAdded)");
+        code.AppendLine(
             "{ throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\"); }"
         );
-        code.AppendLineAt(7, "if (__ta1!.IsAdded && __ta2!.IsRemoved)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("if (__ta1!.IsAdded && __ta2!.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!"
                 + elementCs
                 + ".Between("
@@ -126,12 +118,11 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + elementFrag
                 + ".From(__ta2.Before.Value!))).IsEmpty) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if (__ta1!.IsRemoved && __ta2!.IsAdded)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__ta1!.IsRemoved && __ta2!.IsAdded)");
+        code.OpenBlock();
+        code.AppendLine(
             "if ("
                 + elementCs
                 + ".Between("
@@ -148,8 +139,7 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + elementFrag
                 + ".From(__ta2.After.Value!))).IsEmpty) continue;"
         );
-        code.AppendLineAt(
-            8,
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -161,8 +151,7 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + elementFrag
                 + ".From(__ta1.Before.Value!));"
         );
-        code.AppendLineAt(
-            8,
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -174,9 +163,8 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + elementFrag
                 + ".From(__ta2.After.Value!));"
         );
-        code.AppendLineAt(8, "var __tedit = " + elementCs + ".Between(__teb, __tea);");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("var __tedit = " + elementCs + ".Between(__teb, __tea);");
+        code.AppendLine(
             "__tnet"
                 + id
                 + "[__tk] = new "
@@ -185,24 +173,21 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + sentinel
                 + ", __tk, __ta1.Before, __ta2.After, -1, -1, false, false, true, false, __tedit, false);"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if (__ta1!.IsRemoved || __ta2!.IsAdded)");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__ta1!.IsRemoved || __ta2!.IsAdded)");
+        code.AppendLine(
             "{ throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\"); }"
         );
-        code.AppendLineAt(7, "if (__ta1!.IsAdded && __ta2!.IsEdited)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(8, "var __tedit2 = __ta1.Edit.Compose(__ta2.Edit);");
-        code.AppendLineAt(8, "var __taddedState = __tedit2.ToPatch().Apply(default);");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("if (__ta1!.IsAdded && __ta2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine("var __tedit2 = __ta1.Edit.Compose(__ta2.Edit);");
+        code.AppendLine("var __taddedState = __tedit2.ToPatch().Apply(default);");
+        code.AppendLine(
             "if (!__taddedState.IsPresent || __taddedState.Value is null) throw new global::System.InvalidOperationException(\"Composed addition did not produce an element value.\");"
         );
-        code.AppendLineAt(8, "var __taddedValue = __taddedState.Value!.ToModel();");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("var __taddedValue = __taddedState.Value!.ToModel();");
+        code.AppendLine(
             "__tnet"
                 + id
                 + "[__tk] = new "
@@ -215,25 +200,19 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + SparseChangeSetBasicsEmitter.ElementTypeOf(member)
                 + ">.Present(__taddedValue), -1, -1, true, false, false, false, __tedit2, false);"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if ((__ta1!.IsEdited || __ta1!.IsReordered) && __ta2!.IsRemoved)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if ((__ta1!.IsEdited || __ta1!.IsReordered) && __ta2!.IsRemoved)");
+        code.OpenBlock();
+        code.AppendLine(
             "var __tremovedEdit = __ta1.IsEdited ? __ta1.Edit.Compose(__ta2.Edit) : __ta2.Edit;"
         );
-        code.AppendLineAt(
-            8,
-            "var __tremovedState = __tremovedEdit.Invert().ToPatch().Apply(default);"
-        );
-        code.AppendLineAt(
-            8,
+        code.AppendLine("var __tremovedState = __tremovedEdit.Invert().ToPatch().Apply(default);");
+        code.AppendLine(
             "if (!__tremovedState.IsPresent || __tremovedState.Value is null) throw new global::System.InvalidOperationException(\"Composed removal did not produce an element value.\");"
         );
-        code.AppendLineAt(8, "var __tremovedValue = __tremovedState.Value!.ToModel();");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("var __tremovedValue = __tremovedState.Value!.ToModel();");
+        code.AppendLine(
             "__tnet"
                 + id
                 + "[__tk] = new "
@@ -246,14 +225,13 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + SparseChangeSetBasicsEmitter.ElementTypeOf(member)
                 + ">.Present(__tremovedValue), default, -1, -1, false, true, false, false, __tremovedEdit, false);"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if (__ta1!.IsEdited && __ta2!.IsEdited)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(8, "var __tcc = __ta1.Edit.Compose(__ta2.Edit);");
-        code.AppendLineAt(8, "if (__tcc.IsEmpty) { continue; }");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__ta1!.IsEdited && __ta2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine("var __tcc = __ta1.Edit.Compose(__ta2.Edit);");
+        code.AppendLine("if (__tcc.IsEmpty) { continue; }");
+        code.AppendLine(
             "__tnet"
                 + id
                 + "[__tk] = new "
@@ -262,12 +240,11 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + sentinel
                 + ", __tk, __ta1.Before, __ta2.After, -1, -1, false, false, true, __ta1.IsReordered || __ta2.IsReordered, __tcc, false);"
         );
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "if (__ta1!.IsEdited || __ta2!.IsEdited)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine("if (__ta1!.IsEdited || __ta2!.IsEdited)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__ta1.IsEdited && __ta2.IsReordered && !__ta2.IsEdited) { __tnet"
                 + id
                 + "[__tk] = new "
@@ -276,8 +253,7 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + sentinel
                 + ", __tk, __ta1.Before, __ta1.After, -1, -1, false, false, true, true, __ta1.Edit, false); continue; }"
         );
-        code.AppendLineAt(
-            8,
+        code.AppendLine(
             "if (__ta2.IsEdited && __ta1.IsReordered && !__ta1.IsEdited) { var __tcc2 = __ta2.Edit; __tnet"
                 + id
                 + "[__tk] = new "
@@ -286,13 +262,11 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + sentinel
                 + ", __tk, __ta2.Before, __ta2.After, -1, -1, false, false, true, true, __tcc2, false); continue; }"
         );
-        code.AppendLineAt(
-            8,
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(
-            7,
+        code.CloseBlock();
+        code.AppendLine(
             "if (__ta1!.IsReordered || __ta2!.IsReordered) { var __tb = __ta1.Before.IsPresent ? __ta1.Before : __ta2.Before; var __ta = __ta2.After.IsPresent ? __ta2.After : __ta1.After; __tnet"
                 + id
                 + "[__tk] = new "
@@ -315,8 +289,7 @@ internal static class SparseChangeSetKeyedTempPairEmitter
                 + elementFrag
                 + ".From(__ta.Value!))), false); continue; }"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
     }

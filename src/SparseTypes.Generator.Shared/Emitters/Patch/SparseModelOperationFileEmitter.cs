@@ -53,20 +53,18 @@ internal static class SparseModelOperationFileEmitter
         );
         code.AppendLine();
         code.Append("namespace ").Append(implementationNamespace).AppendLine();
-        code.AppendLine("{");
+        code.OpenBlock();
         var accessibility = model.IsPublic ? "public" : "internal";
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Per-model generated operations for '"
                 + modelType
                 + "'. Backs the model-facing Patch and ChangeSet facades.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(1, accessibility + " static partial class " + container);
-        code.AppendLineAt(1, "{");
+        code.AppendLine(accessibility + " static partial class " + container);
+        code.OpenBlock();
     }
 
     /// <summary>Opens one operation container class.</summary>
@@ -79,26 +77,25 @@ internal static class SparseModelOperationFileEmitter
         string backedFacade
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Model-specific "
                 + backedFacade
                 + " algorithms backing the thin model facade.</summary>"
         );
-        code.AppendLineAt(2, "internal static class " + simpleName);
-        code.AppendLineAt(2, "{");
+        code.AppendLine("internal static class " + simpleName);
+        code.OpenBlock();
     }
 
     /// <summary>Closes one operation container class.</summary>
     /// <param name="code">Implementation file builder.</param>
-    public static void CloseOperations(SharedIndentedBuilder code) => code.AppendLineAt(2, "}");
+    public static void CloseOperations(SharedIndentedBuilder code) => code.CloseBlock();
 
     /// <summary>Closes the per-model container and its namespace.</summary>
     /// <param name="code">Implementation file builder.</param>
     public static void CloseImplementation(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(1, "}");
-        code.AppendLine("}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static bool HasNullableKeyedMember(ImmutableArray<SparseMemberModel> members) =>

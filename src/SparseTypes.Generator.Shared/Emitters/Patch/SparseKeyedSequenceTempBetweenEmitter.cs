@@ -12,16 +12,14 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __beforeTemp"
                 + member.Id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + SparseKeyedCollectionEmitter.ElementType(member)
                 + ">();"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (before.IsPresent && (object?)before.Value is not null) foreach (var __baselineItem in before.Value!) if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(
                     member,
@@ -46,8 +44,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     )
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
                 + ") { var __at = "
@@ -74,14 +71,12 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     {
         var id = member.Id;
         // Temporary removals: before identities absent after.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __removedTemp"
                 + id
                 + " = new global::System.Collections.Generic.List<global::System.Guid>();"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "foreach (var __tk in __beforeTemp"
                 + id
                 + ".Keys) if (!__afterTemp"
@@ -90,8 +85,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                 + id
                 + ".Add(__tk);"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__removedTemp" + id + ".Count > 0) patch.__removedTemp = __removedTemp" + id + ";"
         );
         if (hasPatch)
@@ -99,23 +93,20 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
             var elementFragment = SparseKeyedCollectionEmitter.ElementFragmentType(member);
             var elementPatch = SparseKeyedCollectionEmitter.ElementPatchType(member);
             var prefix = SparseKeyedCollectionEmitter.ElementPatchPrefix(member);
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<global::System.Guid, "
                     + elementPatch
                     + ">? __editedTemp"
                     + id
                     + " = null;"
             );
-            code.AppendLineAt(4, "foreach (var __tk in __beforeTemp" + id + ".Keys)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var __tk in __beforeTemp" + id + ".Keys)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!__afterTemp" + id + ".TryGetValue(__tk, out var __afterTempItem)) continue;"
             );
-            code.AppendLineAt(5, "var __beforeTempItem = __beforeTemp" + id + "[__tk];");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("var __beforeTempItem = __beforeTemp" + id + "[__tk];");
+            code.AppendLine(
                 "var __tnested = "
                     + elementPatch
                     + "."
@@ -134,17 +125,15 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                     + elementFragment
                     + ".From(__afterTempItem)));"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!__tnested.__SparseIsEmpty()) (__editedTemp"
                     + id
                     + " ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                     + elementPatch
                     + ">())[__tk] = __tnested;"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
+            code.CloseBlock();
+            code.AppendLine(
                 "if (__editedTemp"
                     + id
                     + " is not null && __editedTemp"
@@ -156,22 +145,19 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<global::System.Guid, "
                     + elementType
                     + ">? __editedTemp"
                     + id
                     + " = null;"
             );
-            code.AppendLineAt(4, "foreach (var __tk in __beforeTemp" + id + ".Keys)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var __tk in __beforeTemp" + id + ".Keys)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!__afterTemp" + id + ".TryGetValue(__tk, out var __afterTempItem)) continue;"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!"
                     + facade
                     + ".AreEqual((object?)__beforeTemp"
@@ -182,9 +168,8 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                     + elementType
                     + ">())[__tk] = __afterTempItem;"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
+            code.CloseBlock();
+            code.AppendLine(
                 "if (__editedTemp"
                     + id
                     + " is not null && __editedTemp"
@@ -205,61 +190,54 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     )
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __baselineTemp"
                 + member.Id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + SparseKeyedCollectionEmitter.ElementType(member)
                 + ">();"
         );
-        code.AppendLineAt(4, "var __baselineTempEcho" + member.Id + " = 0;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var __baselineTempEcho" + member.Id + " = 0;");
+        code.AppendLine(
             "if (current.IsPresent && (object?)current.Value is not null) foreach (var __baselineItem in current.Value!)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "var __bk = " + keyOf + "(__baselineItem);");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine("var __bk = " + keyOf + "(__baselineItem);");
+        code.AppendLine(
             "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__bk") + ")"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "var __bt = " + tempOf + "(__baselineItem);");
-        code.AppendLineAt(
-            6,
+        code.OpenBlock();
+        code.AppendLine("var __bt = " + tempOf + "(__baselineItem);");
+        code.AppendLine(
             "if (!__bt.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (__bt.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             SparseKeyedCollectionEmitter.AddUniqueTempEntry(
                 "__baselineTemp" + member.Id,
                 "__bt.Value",
                 "__baselineItem"
             )
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "var __bte = " + tempOf + "(__baselineItem);");
-        code.AppendLineAt(6, "if (__bte.HasValue && __bte.Value != global::System.Guid.Empty)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "__baselineTempEcho" + member.Id + "++;");
-        code.AppendLineAt(
-            7,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var __bte = " + tempOf + "(__baselineItem);");
+        code.AppendLine("if (__bte.HasValue && __bte.Value != global::System.Guid.Empty)");
+        code.OpenBlock();
+        code.AppendLine("__baselineTempEcho" + member.Id + "++;");
+        code.AppendLine(
             SparseKeyedCollectionEmitter.AddUniqueTempEntry(
                 "__baselineTemp" + member.Id,
                 "__bte.Value",
                 "__baselineItem"
             )
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     /// <summary>Emits the temporary map build for patch Apply baselines.</summary>
@@ -271,14 +249,13 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     {
         // Temporary baselines were validated and registered by the preceding
         // validation pass; assigned entries join the key map here.
-        code.AppendLineAt(5, "var k = " + keyOf + "(item);");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("var k = " + keyOf + "(item);");
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
                 + ") continue;"
         );
-        code.AppendLineAt(5, SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item"));
     }
 
     /// <summary>Emits temporary removals application for patch Apply.</summary>
@@ -291,8 +268,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         // Assigned removals stay silent on missing keys; temporary removals
         // match that.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             $"if (__removedTemp is not null) foreach (var __t in __removedTemp) {{ if (__baselineTemp{id}.TryGetValue(__t, out var __removedItem)) {{ var __removedKey = {keyOf}(__removedItem); if (map.Remove(__removedKey)) __baselineTempEcho{id}--; __baselineTemp{id}.Remove(__t); }} }}"
         );
     }
@@ -304,14 +280,13 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     {
         var id = member.Id;
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(4, "if (__removed is not null) foreach (var k in __removed)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__removed is not null) foreach (var k in __removed)");
+        code.OpenBlock();
+        code.AppendLine(
             $"if (map.TryGetValue(k, out var __removedItem)) {{ var __removedTempKey = {tempOf}(__removedItem); if (__removedTempKey.HasValue && __baselineTemp{id}.Remove(__removedTempKey.Value)) __baselineTempEcho{id}--; }}"
         );
-        code.AppendLineAt(5, "map.Remove(k);");
-        code.AppendLineAt(4, "}");
+        code.AppendLine("map.Remove(k);");
+        code.CloseBlock();
     }
 
     internal static void AppendApplyAssignedEdit(
@@ -322,9 +297,8 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
     {
         var id = member.Id;
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(5, $"var __editedTempKey = {tempOf}(existing);");
-        code.AppendLineAt(
-            5,
+        code.AppendLine($"var __editedTempKey = {tempOf}(existing);");
+        code.AppendLine(
             $"if (__editedTempKey.HasValue && __baselineTemp{id}.ContainsKey(__editedTempKey.Value)) __baselineTemp{id}[__editedTempKey.Value] = {updated};"
         );
     }
@@ -340,78 +314,67 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         var id = member.Id;
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __addedTempMap = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + elementType
                 + ">();"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __legacyAdded = new global::System.Collections.Generic.List<"
                 + elementType
                 + ">();"
         );
-        code.AppendLineAt(5, "foreach (var __pendingAdd in __unassignedAdded)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "var __pak = " + keyOf + "(__pendingAdd);");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("foreach (var __pendingAdd in __unassignedAdded)");
+        code.OpenBlock();
+        code.AppendLine("var __pak = " + keyOf + "(__pendingAdd);");
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__pak")
                 + ") { var __pat = "
                 + tempOf
                 + "(__pendingAdd); if (__pat.HasValue && __pat.Value != global::System.Guid.Empty) { if (__addedTempMap.ContainsKey(__pat.Value)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); __addedTempMap.Add(__pat.Value, __pendingAdd); continue; } }"
         );
-        code.AppendLineAt(6, "__legacyAdded.Add(__pendingAdd);");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "var __legacyIndex = 0;");
-        code.AppendLineAt(5, "for (var __oi = 0; __oi < __order.Count; __oi++)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "var __ok = __order[__oi];");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("__legacyAdded.Add(__pendingAdd);");
+        code.CloseBlock();
+        code.AppendLine("var __legacyIndex = 0;");
+        code.AppendLine("for (var __oi = 0; __oi < __order.Count; __oi++)");
+        code.OpenBlock();
+        code.AppendLine("var __ok = __order[__oi];");
+        code.AppendLine(
             "global::System.Guid? __ot = (__orderTemp is not null && __oi < __orderTemp.Count) ? __orderTemp[__oi] : null;"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__ok") + ")"
         );
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(6, "if (__ot.HasValue)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.OpenBlock();
+        code.AppendLine("if (__ot.HasValue)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__addedTempMap.Remove(__ot.Value, out var __addElem)) result.Add(__addElem);"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "else if (__baselineTemp"
                 + id
                 + ".TryGetValue(__ot.Value, out var __survivor)) result.Add(__survivor);"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "else throw new global::System.InvalidOperationException(\"Order lists an unknown key.\");"
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__legacyIndex >= __legacyAdded.Count) throw new global::System.InvalidOperationException(\"Order contains too many unassigned-key entries.\"); result.Add(__legacyAdded[__legacyIndex++]);"
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "continue;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine("continue;");
+        code.CloseBlock();
+        code.AppendLine(
             "if (!map.TryGetValue(__ok, out var __oitem)) throw new global::System.InvalidOperationException(\"Order lists an unknown key.\");"
         );
-        code.AppendLineAt(6, "result.Add(__oitem);");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("result.Add(__oitem);");
+        code.CloseBlock();
+        code.AppendLine(
             "if (__orderTemp is not null && __addedTempMap.Count > 0) throw new global::System.InvalidOperationException(\"Order must list exactly the final keys.\");"
         );
     }
@@ -427,10 +390,9 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         var id = member.Id;
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
-        code.AppendLineAt(4, "if (__editedTemp is not null) foreach (var __tkv in __editedTemp)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__editedTemp is not null) foreach (var __tkv in __editedTemp)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!__baselineTemp"
                 + id
                 + ".TryGetValue(__tkv.Key, out var __texisting)) throw new global::System.InvalidOperationException(\"Cannot edit a missing element.\");"
@@ -439,8 +401,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         {
             var elementFragment = SparseKeyedCollectionEmitter.ElementFragmentType(member);
             var keyType = SparseKeyedCollectionEmitter.KeyType(member);
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __tapplied = __tkv.Value.Apply("
                     + runtime
                     + "Optional<"
@@ -449,15 +410,13 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                     + elementFragment
                     + ".From(__texisting)));"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!__tapplied.IsPresent || __tapplied.Value is null) throw new global::System.InvalidOperationException(\"Element edit removed the element. Use Remove instead.\");"
             );
-            code.AppendLineAt(5, "var __tupdated = __tapplied.Value!.ToModel();");
+            code.AppendLine("var __tupdated = __tapplied.Value!.ToModel();");
             // Ordinary flows keep the sentinel key while reconcile replays keep
             // the persisted assignment.
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!global::System.Collections.Generic.EqualityComparer<"
                     + keyType
                     + ">.Default.Equals("
@@ -468,10 +427,9 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                     + tempOf
                     + "(__tupdated) != __tkv.Key) throw new global::System.InvalidOperationException(\"Changing an element's identity through an edit is not allowed. Use remove-old + add-new instead.\");"
             );
-            code.AppendLineAt(5, "__baselineTemp" + id + "[__tkv.Key] = __tupdated;");
-            code.AppendLineAt(5, $"var __assignedKey = {keyOf}(__texisting);");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("__baselineTemp" + id + "[__tkv.Key] = __tupdated;");
+            code.AppendLine($"var __assignedKey = {keyOf}(__texisting);");
+            code.AppendLine(
                 "if (!"
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__assignedKey")
                     + ") map[__assignedKey] = __tupdated;"
@@ -479,8 +437,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!"
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(
                         member,
@@ -490,8 +447,8 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                     + tempOf
                     + "(__tkv.Value) != __tkv.Key) throw new global::System.InvalidOperationException(\"Changing an element's identity through an update is not allowed. Use remove-old + add-new instead.\");"
             );
-            code.AppendLineAt(5, "__baselineTemp" + id + "[__tkv.Key] = __tkv.Value;");
+            code.AppendLine("__baselineTemp" + id + "[__tkv.Key] = __tkv.Value;");
         }
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
     }
 }

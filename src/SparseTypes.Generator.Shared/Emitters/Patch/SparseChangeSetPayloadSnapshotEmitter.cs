@@ -36,7 +36,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                 var childCall = redactFlagged
                     ? childRoot + ".FromFragment(member" + member.Id + ".Value!, " + redact + ")"
                     : childRoot + ".FromFragment(member" + member.Id + ".Value!)";
-                code.AppendLineAt(3, "var member" + member.Id + " = value." + property + ";");
+                code.AppendLine("var member" + member.Id + " = value." + property + ";");
                 var valueExpression = redactFlagged
                     ? "("
                         + redact
@@ -59,8 +59,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                         "member" + member.Id,
                         childCall
                     );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (member"
                         + member.Id
                         + ".IsPresent) result.Members.Add(new "
@@ -92,8 +91,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                         + property
                         + ")"
                     : endpoint + "<" + valueType + ">.FromOptional(value." + property + ")";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (value."
                         + property
                         + ".IsPresent) result.Members.Add(new "

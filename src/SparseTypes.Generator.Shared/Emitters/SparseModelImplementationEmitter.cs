@@ -188,16 +188,16 @@ internal static class SparseModelImplementationEmitter
         if (!model.IsGlobalNamespace)
         {
             code.Append("namespace ").Append(model.Namespace).AppendLine();
-            code.AppendLine("{");
+            code.OpenBlock();
         }
 
         code.Append(keyword).Append(SparseNaming.EscapeIdentifier(model.Name)).AppendLine();
-        code.AppendLine("{");
+        code.OpenBlock();
         code.Append(inner);
-        code.AppendLine("}");
+        code.CloseBlock();
         if (!model.IsGlobalNamespace)
         {
-            code.AppendLine("}");
+            code.CloseBlock();
         }
 
         return code.ToString();

@@ -54,22 +54,21 @@ internal static class SparseDescriptorFactoryEmitter
         );
         var accessibility = model.IsPublic ? "public" : "internal";
         code.Append("namespace ").Append(root).AppendLine();
-        code.AppendLine("{");
+        code.OpenBlock();
         // EditorBrowsable(Never) stays on the operation-container partial;
         // see SparseModelImplementationEmitter for the duplicate-attribute note.
-        code.AppendLineAt(1, "/// <summary>Live descriptor bindings for one model.</summary>");
-        code.AppendLineAt(1, accessibility + " partial class " + container);
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Live descriptor bindings for one model.</summary>");
+        code.AppendLine(accessibility + " partial class " + container);
+        code.OpenBlock();
+        code.AppendLine(
             "/// <summary>Descriptor factory bound to the owning observable.</summary>"
         );
-        code.AppendLineAt(2, "internal static class DescriptorFactory");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("internal static class DescriptorFactory");
+        code.OpenBlock();
         code.Append(body);
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(1, "}");
-        code.AppendLine("}");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
         var source = code.ToString();
         return new SparseGeneratedSource(
             SparseGeneratedPlacement.DescriptorFactoryHintName(model, cancellationToken),

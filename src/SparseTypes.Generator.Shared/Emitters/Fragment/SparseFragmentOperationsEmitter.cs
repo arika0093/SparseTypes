@@ -31,12 +31,11 @@ internal static class SparseFragmentOperationsEmitter
             model,
             code.CancellationToken
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Per-model Fragment conversion, merge, diff, and clone operations.</summary>"
         );
-        code.AppendLineAt(1, operationsAccessibility + " static class " + operationsName);
-        code.AppendLineAt(1, "{");
+        code.AppendLine(operationsAccessibility + " static class " + operationsName);
+        code.OpenBlock();
         // Public-first order: public operations precede internal bridges,
         // with private Diff helpers last.
         var requiresFromContext = members.Any(static member =>
@@ -108,6 +107,6 @@ internal static class SparseFragmentOperationsEmitter
             isStatic: true,
             receiver: "self."
         );
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 }

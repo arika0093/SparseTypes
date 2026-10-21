@@ -27,49 +27,40 @@ internal static class SparseChangeSetPayloadValidateEmitter
         var error = runtime + "ChangePayloadValidationError";
         var kind = runtime + "ChangePayloadValidationKind";
         var errors = "global::System.Collections.Generic.List<" + error + ">";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Validates the structural wire contract without converting or applying.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Blind and redacted envelopes are valid; a valid payload can still be unconvertible to a complete <c>ChangeSet</c>, and rebase conflicts are reported by <c>TryApplyMixedTo</c>, not here. Messages carry paths and reasons only, never secret values.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns>The validation outcome in deterministic payload order.</returns>"
         );
-        code.AppendLineAt(2, "public " + result + " Validate()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var __validateErrors = new " + errors + "();");
-        code.AppendLineAt(3, "__SparseValidateInto(__validateErrors, string.Empty);");
-        code.AppendLineAt(3, "return new " + result + "(__validateErrors);");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("public " + result + " Validate()");
+        code.OpenBlock();
+        code.AppendLine("var __validateErrors = new " + errors + "();");
+        code.AppendLine("__SparseValidateInto(__validateErrors, string.Empty);");
+        code.AppendLine("return new " + result + "(__validateErrors);");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Collects structural errors with the given path prefix.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Accepts the same envelopes as <c>__SparseMixedPartition</c>; nested cores and item edits recurse with extended prefixes.</remarks>"
         );
-        code.AppendLineAt(2, "/// <param name=\"errors\">The collected errors.</param>");
-        code.AppendLineAt(2, "/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"errors\">The collected errors.</param>");
+        code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
+        code.AppendLine(
             "internal void __SparseValidateInto(" + errors + " errors, string pathPrefix)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (Changes is null) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -79,27 +70,26 @@ internal static class SparseChangeSetPayloadValidateEmitter
         AppendWholeValidate(code, members, dialect, modelType, runtime, error, kind);
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
-            code.AppendLineAt(3, "bool __validateSeen" + member.Id + " = false;");
+            code.AppendLine("bool __validateSeen" + member.Id + " = false;");
         }
-        code.AppendLineAt(3, "foreach (var change in Changes)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "switch (change)");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("foreach (var change in Changes)");
+        code.OpenBlock();
+        code.AppendLine("switch (change)");
+        code.OpenBlock();
         foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
         {
             AppendMemberValidate(code, member, dialect, modelType, runtime, error, kind);
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "default: errors.Add(new "
                 + error
                 + " { Kind = "
                 + kind
                 + ".Changes, Path = pathPrefix, Message = \"Payload contains a null or unknown change variant.\" }); break;"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     internal static void AppendEnvelopeValidate(
@@ -113,22 +103,18 @@ internal static class SparseChangeSetPayloadValidateEmitter
         var error = runtime + "ChangePayloadValidationError";
         var kind = runtime + "ChangePayloadValidationKind";
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Validates the envelope wire contract without converting or applying.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns>The validation outcome in deterministic payload order.</returns>"
         );
-        code.AppendLineAt(2, "public new " + result + " Validate()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public new " + result + " Validate()");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!global::System.String.Equals(Version, "
                 + versionLiteral
                 + ", global::System.StringComparison.Ordinal)) return new "
@@ -141,8 +127,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + kind
                 + ".Version, Path = string.Empty, Message = \"Unsupported ChangePayload version.\" } });"
         );
-        code.AppendLineAt(3, "return base.Validate();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return base.Validate();");
+        code.CloseBlock();
     }
 
     private static void AppendWholeValidate(
@@ -160,10 +146,9 @@ internal static class SparseChangeSetPayloadValidateEmitter
         _ = runtime;
         var rootChange = SparseChangeSetPayloadEmitter.PayloadName(modelType, "RootChange");
         var rootPath = "pathPrefix + \"$root\"";
-        code.AppendLineAt(3, "if (Changes.Count == 1 && Changes[0] is " + rootChange + " whole)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (Changes.Count == 1 && Changes[0] is " + rootChange + " whole)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (whole.Before is null || whole.After is null) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -176,7 +161,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
         // check so validation and conversion cannot disagree.
         AppendEndpointValidate(
             code,
-            4,
             "whole.Before",
             rootPath,
             error,
@@ -186,7 +170,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
         );
         AppendEndpointValidate(
             code,
-            4,
             "whole.After",
             rootPath,
             error,
@@ -194,9 +177,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
             "errors",
             "__validateWholeAfterBad"
         );
-        code.AppendLineAt(4, "if (__validateWholeBeforeBad || __validateWholeAfterBad) return;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (__validateWholeBeforeBad || __validateWholeAfterBad) return;");
+        code.AppendLine(
             "if (whole.After.IsRedacted) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -207,13 +189,12 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + rootPath
                 + " + \"'. After-states must stay concrete (value, null, or missing).\" }); return; }"
         );
-        code.AppendLineAt(4, "if (whole.Before.IsRedacted)");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("if (whole.Before.IsRedacted)");
+        code.OpenBlock();
         // A blind whole-root set is valid; only its conversion shape is
         // checked, reusing the endpoint conversion.
-        code.AppendLineAt(4, "try { whole.After.ToOptional(); }");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("try { whole.After.ToOptional(); }");
+        code.AppendLine(
             "catch (global::System.InvalidOperationException __validateWholeBlindEx) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -222,25 +203,22 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + rootPath
                 + ", Message = __validateWholeBlindEx.Message }); }"
         );
-        code.AppendLineAt(4, "return;");
-        code.AppendLineAt(4, "}");
+        code.AppendLine("return;");
+        code.CloseBlock();
         // An ordinary whole-root snapshot converts through the same fragment
         // reader as the partition, reusing its member checks.
-        code.AppendLineAt(4, "try");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "var __validateWholeBefore = whole.Before.ToOptional();");
-        code.AppendLineAt(5, "var __validateWholeAfter = whole.After.ToOptional();");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("try");
+        code.OpenBlock();
+        code.AppendLine("var __validateWholeBefore = whole.Before.ToOptional();");
+        code.AppendLine("var __validateWholeAfter = whole.After.ToOptional();");
+        code.AppendLine(
             "if (__validateWholeBefore.IsPresent) __validateWholeBefore.Value?.ToFragment();"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (__validateWholeAfter.IsPresent) __validateWholeAfter.Value?.ToFragment();"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "catch (global::System.ArgumentException __validateWholeEx) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -249,8 +227,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + rootPath
                 + ", Message = __validateWholeEx.Message }); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "catch (global::System.InvalidOperationException __validateWholeEx) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -259,8 +236,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + rootPath
                 + ", Message = __validateWholeEx.Message }); }"
         );
-        code.AppendLineAt(4, "return;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("return;");
+        code.CloseBlock();
     }
 
     private static void AppendMemberValidate(
@@ -282,9 +259,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
             "Change",
             id
         );
-        code.AppendLineAt(5, "case " + variant + " item:");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("case " + variant + " item:");
+        code.AppendLine(
             "if (__validateSeen"
                 + id
                 + ") { errors.Add(new "
@@ -295,11 +271,10 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + path
                 + ", Message = \"A payload cannot contain duplicate member changes.\" }); break; }"
         );
-        code.AppendLineAt(6, "__validateSeen" + id + " = true;");
+        code.AppendLine("__validateSeen" + id + " = true;");
         if (SparseChangeSetBasicsEmitter.IsNested(member))
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (item.Nested is null) { errors.Add(new "
                     + error
                     + " { Kind = "
@@ -308,8 +283,8 @@ internal static class SparseChangeSetPayloadValidateEmitter
                     + path
                     + ", Message = \"Nested payload is required.\" }); break; }"
             );
-            code.AppendLineAt(6, "item.Nested.__SparseValidateInto(errors, " + path + " + \".\");");
-            code.AppendLineAt(6, "break;");
+            code.AppendLine("item.Nested.__SparseValidateInto(errors, " + path + " + \".\");");
+            code.AppendLine("break;");
             return;
         }
         if (
@@ -336,8 +311,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
         {
             // Transport policy mirrors the restore seam: an undisclosed
             // before-state can never rebuild a complete ChangeSet.
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (item.Before is not null) { errors.Add(new "
                     + error
                     + " { Kind = "
@@ -346,8 +320,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                     + path
                     + ", Message = \"A redacted member must omit its before-state.\" }); break; }"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (item.After is null) { errors.Add(new "
                     + error
                     + " { Kind = "
@@ -356,8 +329,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                     + path
                     + ", Message = \"A redacted member requires an after-state.\" }); break; }"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "errors.Add(new "
                     + error
                     + " { Kind = "
@@ -368,7 +340,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                     + member.Property.Name
                     + "' is redacted and cannot be converted to a complete ChangeSet. Use ToPatch() for the baseline-free projection.\" });"
             );
-            code.AppendLineAt(6, "break;");
+            code.AppendLine("break;");
             return;
         }
         AppendScalarValidate(code, member, path, error, kind);
@@ -383,8 +355,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
     )
     {
         var id = member.Id;
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (item.Before is null || item.After is null) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -395,7 +366,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
         );
         AppendEndpointValidate(
             code,
-            6,
             "item.Before",
             path,
             error,
@@ -405,7 +375,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
         );
         AppendEndpointValidate(
             code,
-            6,
             "item.After",
             path,
             error,
@@ -413,12 +382,10 @@ internal static class SparseChangeSetPayloadValidateEmitter
             "errors",
             "__validateAfterBad" + id
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (__validateBeforeBad" + id + " || __validateAfterBad" + id + ") break;"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (item.After.IsRedacted) { errors.Add(new "
                 + error
                 + " { Kind = "
@@ -429,12 +396,11 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + path
                 + " + \"'. After-states must stay concrete (value, null, or missing).\" }); break; }"
         );
-        code.AppendLineAt(6, "if (item.Before.IsRedacted)");
-        code.AppendLineAt(6, "{");
+        code.AppendLine("if (item.Before.IsRedacted)");
+        code.OpenBlock();
         // A blind scalar set is valid; only its conversion shape is checked.
-        code.AppendLineAt(6, "try { item.After.ToOptional(); }");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("try { item.After.ToOptional(); }");
+        code.AppendLine(
             "catch (global::System.InvalidOperationException __validateBlindEx"
                 + id
                 + ") { errors.Add(new "
@@ -447,11 +413,10 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + id
                 + ".Message }); }"
         );
-        code.AppendLineAt(6, "break;");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "try { item.Before.ToOptional(); item.After.ToOptional(); }");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("break;");
+        code.CloseBlock();
+        code.AppendLine("try { item.Before.ToOptional(); item.After.ToOptional(); }");
+        code.AppendLine(
             "catch (global::System.InvalidOperationException __validateOrdinaryEx"
                 + id
                 + ") { errors.Add(new "
@@ -464,12 +429,11 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + id
                 + ".Message }); }"
         );
-        code.AppendLineAt(6, "break;");
+        code.AppendLine("break;");
     }
 
     internal static void AppendEndpointValidate(
         SharedIndentedBuilder code,
-        int indent,
         string target,
         string path,
         string error,
@@ -478,12 +442,11 @@ internal static class SparseChangeSetPayloadValidateEmitter
         string badFlag
     )
     {
-        code.AppendLineAt(indent, "bool " + badFlag + " = false;");
+        code.AppendLine("bool " + badFlag + " = false;");
         // The non-throwing endpoint invariant matches the throwing Validate
         // without constructing an exception per malformed value-free endpoint.
-        code.AppendLineAt(indent, "var " + badFlag + "Msg = " + target + ".GetInvariantError();");
-        code.AppendLineAt(
-            indent,
+        code.AppendLine("var " + badFlag + "Msg = " + target + ".GetInvariantError();");
+        code.AppendLine(
             "if ("
                 + badFlag
                 + "Msg is not null) { "

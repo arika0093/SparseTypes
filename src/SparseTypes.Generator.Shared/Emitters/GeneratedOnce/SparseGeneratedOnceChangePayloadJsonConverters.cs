@@ -28,7 +28,7 @@ internal static class SparseGeneratedOnceChangePayloadJsonConverters
             SparseChangePayloadJsonBridgeEmitter.AppendBridgeConverters(code, dialect);
         }
 
-        code.AppendLine("}");
+        code.CloseBlock();
         return code.ToString();
     }
 }

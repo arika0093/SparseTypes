@@ -22,26 +22,23 @@ internal static class SparseChangeSetDictProjectionEmitter
         // Sparse projection from canonical storage.
         if (target is null)
         {
-            code.AppendLineAt(2, "private " + trans + " __SparseProject_" + member.Id + "()");
+            code.AppendLine("private " + trans + " __SparseProject_" + member.Id + "()");
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Projects the typed dictionary transition from canonical sparse storage.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "internal static " + trans + " __SparseProject_" + member.Id + "(ChangeSet self)"
             );
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (target is not null)
         {
             AppendMemberStateAliases(code, member);
         }
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (__sparse_hasWhole) return __SparseBuild_"
                 + member.Id
                 + "(__SparseBefore_"
@@ -50,10 +47,10 @@ internal static class SparseChangeSetDictProjectionEmitter
                 + member.Id
                 + (target is null ? "());" : "(self));")
         );
-        code.AppendLineAt(3, "if (!" + HasField(member) + ")");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (!" + HasField(member) + ")");
+        code.OpenBlock();
         AppendEmptyReturn(code, member, trans, comparer);
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         var wholeBefore = KeyedWholeBefore(member);
         var wholeAfter = KeyedWholeAfter(member);
         if (SparseChangeSetTransitionEmitter.NeedsSnapshot(member))
@@ -61,8 +58,7 @@ internal static class SparseChangeSetDictProjectionEmitter
             wholeBefore = "__SparseSnapshot_" + member.Id + "(" + wholeBefore + ")";
             wholeAfter = "__SparseSnapshot_" + member.Id + "(" + wholeAfter + ")";
         }
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if ("
                 + KeyedWholeFlag(member)
                 + ") return __SparseBuild_"
@@ -76,33 +72,28 @@ internal static class SparseChangeSetDictProjectionEmitter
         // Granular: derive Added/Removed/Edited maps from stored items (no full
         // snapshots).
         AppendGranularReturn(code, member, trans, comparer);
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         var projectCall = target is null
             ? "__SparseProject_" + member.Id + "()"
             : target.ChangeSetOperationsType + ".__SparseProject_" + member.Id + "(this)";
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <summary>Gets the typed dictionary transition for member '"
                 + member.Property.Name
                 + "'.</summary>"
         );
-        SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(shell, 2, dialect.EmitJson);
-        shell.AppendLineAt(2, "public " + trans + " " + prop);
-        shell.AppendLineAt(2, "{");
-        shell.AppendLineAt(3, "get");
-        shell.AppendLineAt(3, "{");
+        SparseChangePayloadJsonBridgeEmitter.AppendBareJsonIgnore(shell, dialect.EmitJson);
+        shell.AppendLine("public " + trans + " " + prop);
+        shell.OpenBlock();
+        shell.AppendLine("get");
+        shell.OpenBlock();
         // Whole endpoints expose mutable container snapshots and must stay
         // independent.
-        shell.AppendLineAt(
-            4,
+        shell.AppendLine(
             "if (__sparse_hasWhole || " + KeyedWholeFlag(member) + ") return " + projectCall + ";"
         );
-        shell.AppendLineAt(
-            4,
-            "return " + cacheName + " ?? (" + cacheName + " = " + projectCall + ");"
-        );
-        shell.AppendLineAt(3, "}");
-        shell.AppendLineAt(2, "}");
+        shell.AppendLine("return " + cacheName + " ?? (" + cacheName + " = " + projectCall + ");");
+        shell.CloseBlock();
+        shell.CloseBlock();
     }
 
     private static void AppendGranularReturn(
@@ -116,21 +107,18 @@ internal static class SparseChangeSetDictProjectionEmitter
         var valueType = ValueTypeOf(member);
         var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
         var editedType = hasPatch ? ValueChangeSetOf(member) : valueType;
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __stored = "
                 + KeyedItems(member)
                 + " ?? new global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>();"
         );
-        code.AppendLineAt(3, "int __addedCount = 0, __removedCount = 0, __editedCount = 0;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("int __addedCount = 0, __removedCount = 0, __editedCount = 0;");
+        code.AppendLine(
             "foreach (var __it in __stored) { if (__it.IsAdded) __addedCount++; else if (__it.IsRemoved) __removedCount++; else if (__it.IsEdited) __editedCount++; }"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __added = new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -153,21 +141,18 @@ internal static class SparseChangeSetDictProjectionEmitter
         );
         if (hasPatch)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "foreach (var __it in __stored) { if (__it.IsAdded) __added[__it.Key] = __it.After.Value!; else if (__it.IsRemoved) __removed[__it.Key] = __it.Before.Value!; else if (__it.IsEdited) __edited[__it.Key] = __it.Edit; }"
             );
         }
         else
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "foreach (var __it in __stored) { if (__it.IsAdded) __added[__it.Key] = __it.After.Value!; else if (__it.IsRemoved) __removed[__it.Key] = __it.Before.Value!; else if (__it.IsEdited) __edited[__it.Key] = __it.After.Value!; }"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return new "
                 + trans
                 + "(default, default, __added, __removed, __edited, __stored, false);"
@@ -185,8 +170,7 @@ internal static class SparseChangeSetDictProjectionEmitter
             (member.Collection.ValueType?.IsFragmentModel == true)
                 ? ValueChangeSetOf(member)
                 : ValueTypeOf(member);
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "return new "
                 + trans
                 + "(default, default, new global::System.Collections.Generic.Dictionary<"

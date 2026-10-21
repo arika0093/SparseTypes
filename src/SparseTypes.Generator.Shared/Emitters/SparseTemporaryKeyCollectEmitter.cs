@@ -11,42 +11,33 @@ internal static class SparseTemporaryKeyCollectEmitter
     )
     {
         _ = members;
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <remarks>Returns the opaque correlation and a null error on success, or a null map with the first mismatch. Never mutates either model.</remarks>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "internal static (global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>? Map, string? Error) __SparseBuildTempMap("
                 + modelType
                 + " submitted, "
                 + modelType
                 + " persisted)"
         );
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine(
             "if ((object?)submitted is null) throw new global::System.ArgumentNullException(nameof(submitted));"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "if ((object?)persisted is null) throw new global::System.ArgumentNullException(nameof(persisted));"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "var __map = new global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>();"
         );
-        code.AppendLineAt(
-            2,
-            "var __error = __SparseCollectTempMap(submitted, persisted, __map, \"\");"
-        );
-        code.AppendLineAt(2, "if (__error is not null) return (null, __error);");
-        code.AppendLineAt(2, "return (__map, null);");
-        code.AppendLineAt(1, "}");
+        code.AppendLine("var __error = __SparseCollectTempMap(submitted, persisted, __map, \"\");");
+        code.AppendLine("if (__error is not null) return (null, __error);");
+        code.AppendLine("return (__map, null);");
+        code.CloseBlock();
     }
 
     internal static void AppendCollectTempMap(
@@ -55,23 +46,20 @@ internal static class SparseTemporaryKeyCollectEmitter
         System.Collections.Immutable.ImmutableArray<SparseMemberModel> members
     )
     {
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Collects temporary correlations for this model into a shared map.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <remarks>Recurses through keyed and nested members; server-side drops absorb while omitted, duplicated, or unassigned temporary identities fail.</remarks>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "internal static string? __SparseCollectTempMap("
                 + modelType
                 + " submitted, "
                 + modelType
                 + " persisted, global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?> map, string __scope)"
         );
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
             if (
@@ -90,8 +78,8 @@ internal static class SparseTemporaryKeyCollectEmitter
                 AppendNestedCollect(code, member);
             }
         }
-        code.AppendLineAt(2, "return null;");
-        code.AppendLineAt(1, "}");
+        code.AppendLine("return null;");
+        code.CloseBlock();
     }
 
     private static void AppendKeyedCollect(SharedIndentedBuilder code, SparseMemberModel member)
@@ -123,15 +111,13 @@ internal static class SparseTemporaryKeyCollectEmitter
                 + ">.Default.Equals(__sk, "
                 + unassigned
                 + ")";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "if (submitted." + prop + " is not null && persisted." + prop + " is not null)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         // Sibling collections may reuse a Guid while duplicates within one
         // collection still fail.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __collectionScope"
                 + member.Id
                 + " = string.IsNullOrEmpty(__scope) ? \""
@@ -142,9 +128,8 @@ internal static class SparseTemporaryKeyCollectEmitter
         );
         if (keyProp is not null)
         {
-            code.AppendLineAt(3, "var __persistedIndexesBuilt" + member.Id + " = false;");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("var __persistedIndexesBuilt" + member.Id + " = false;");
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -155,16 +140,14 @@ internal static class SparseTemporaryKeyCollectEmitter
             );
             if (keyCanBeNull)
             {
-                code.AppendLineAt(3, "var __hasNullPersistedKey" + member.Id + " = false;");
-                code.AppendLineAt(
-                    3,
+                code.AppendLine("var __hasNullPersistedKey" + member.Id + " = false;");
+                code.AppendLine(
                     elementType + "? __firstNullPersistedKey" + member.Id + " = default;"
                 );
             }
             if (tempProp is not null)
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "global::System.Collections.Generic.Dictionary<global::System.Guid, ("
                         + elementType
                         + "? Element, bool Duplicate)> __persistedByTemp"
@@ -182,22 +165,19 @@ internal static class SparseTemporaryKeyCollectEmitter
                 "submitted." + prop,
                 "__s",
                 elementRef,
-                elementNullableStruct,
-                3
+                elementNullableStruct
             );
-            code.AppendLineAt(4, "var __sk = __s." + keyProp + ";");
-            code.AppendLineAt(4, "if (!(" + isUnassigned + ")) continue;");
-            code.AppendLineAt(4, "var __st = __s." + tempProp + ";");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("var __sk = __s." + keyProp + ";");
+            code.AppendLine("if (!(" + isUnassigned + ")) continue;");
+            code.AppendLine("var __st = __s." + tempProp + ";");
+            code.AppendLine(
                 "if (!__st.HasValue) return \"The submitted element is missing its temporary identity.\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__st.Value == global::System.Guid.Empty) return \"The submitted element has a reserved temporary identity.\";"
             );
-            code.AppendLineAt(4, "if (!__persistedIndexesBuilt" + member.Id + ")");
-            code.AppendLineAt(4, "{");
+            code.AppendLine("if (!__persistedIndexesBuilt" + member.Id + ")");
+            code.OpenBlock();
             AppendBuildPersistedIndexes(
                 code,
                 member,
@@ -209,35 +189,28 @@ internal static class SparseTemporaryKeyCollectEmitter
                 true,
                 keyCanBeNull,
                 elementRef,
-                elementNullableStruct,
-                5
+                elementNullableStruct
             );
-            code.AppendLineAt(5, "__persistedIndexesBuilt" + member.Id + " = true;");
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("__persistedIndexesBuilt" + member.Id + " = true;");
+            code.CloseBlock();
+            code.AppendLine(
                 "if (!__persistedByTemp"
                     + member.Id
                     + ".TryGetValue(__st.Value, out var __tempMatch"
                     + member.Id
                     + ")) return \"The server response omits a temporary identity.\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__tempMatch"
                     + member.Id
                     + ".Duplicate) return \"The server response duplicates a temporary identity.\";"
             );
-            code.AppendLineAt(
-                4,
-                "var __found" + member.Id + " = __tempMatch" + member.Id + ".Element;"
-            );
+            code.AppendLine("var __found" + member.Id + " = __tempMatch" + member.Id + ".Element;");
             var foundUse = elementRef
                 ? "__found" + member.Id + "!"
                 : "__found" + member.Id + ".Value";
-            code.AppendLineAt(4, "var __pk" + member.Id + " = " + foundUse + "." + keyProp + ";");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("var __pk" + member.Id + " = " + foundUse + "." + keyProp + ";");
+            code.AppendLine(
                 "if ("
                     + (
                         unassigned is null
@@ -252,26 +225,22 @@ internal static class SparseTemporaryKeyCollectEmitter
                     )
                     + ") return \"The server response leaves a temporary identity unassigned.\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (map.ContainsKey((__collectionScope"
                     + member.Id
                     + ", __st.Value))) return \"Duplicate temporary key in keyed collection.\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "map[(__collectionScope" + member.Id + ", __st.Value)] = (object?)" + foundUse + ";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __elemScope"
                     + member.Id
                     + " = __collectionScope"
                     + member.Id
                     + " + \"[\" + __st.Value.ToString(\"D\") + \"]\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __childError = "
                     + elementType
                     + ".__SparseCollectTempMap(__s, "
@@ -280,8 +249,8 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(4, "if (__childError is not null) return __childError;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("if (__childError is not null) return __childError;");
+            code.CloseBlock();
         }
         if (keyProp is not null)
         {
@@ -292,16 +261,15 @@ internal static class SparseTemporaryKeyCollectEmitter
                 "submitted." + prop,
                 "__s",
                 elementRef,
-                elementNullableStruct,
-                3
+                elementNullableStruct
             );
-            code.AppendLineAt(4, "var __sk = __s." + keyProp + ";");
+            code.AppendLine("var __sk = __s." + keyProp + ";");
             if (unassigned is not null)
             {
-                code.AppendLineAt(4, "if (" + isUnassigned + ") continue;");
+                code.AppendLine("if (" + isUnassigned + ") continue;");
             }
-            code.AppendLineAt(4, "if (!__persistedIndexesBuilt" + member.Id + ")");
-            code.AppendLineAt(4, "{");
+            code.AppendLine("if (!__persistedIndexesBuilt" + member.Id + ")");
+            code.OpenBlock();
             AppendBuildPersistedIndexes(
                 code,
                 member,
@@ -313,18 +281,16 @@ internal static class SparseTemporaryKeyCollectEmitter
                 false,
                 keyCanBeNull,
                 elementRef,
-                elementNullableStruct,
-                5
+                elementNullableStruct
             );
-            code.AppendLineAt(5, "__persistedIndexesBuilt" + member.Id + " = true;");
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, elementType + "? __match" + member.Id + " = default;");
+            code.AppendLine("__persistedIndexesBuilt" + member.Id + " = true;");
+            code.CloseBlock();
+            code.AppendLine(elementType + "? __match" + member.Id + " = default;");
             if (keyCanBeNull)
             {
-                code.AppendLineAt(4, "if (__sk is null)");
-                code.AppendLineAt(4, "{");
-                code.AppendLineAt(
-                    5,
+                code.AppendLine("if (__sk is null)");
+                code.OpenBlock();
+                code.AppendLine(
                     "if (__hasNullPersistedKey"
                         + member.Id
                         + ") __match"
@@ -333,23 +299,21 @@ internal static class SparseTemporaryKeyCollectEmitter
                         + member.Id
                         + ";"
                 );
-                code.AppendLineAt(4, "}");
-                code.AppendLineAt(4, "else");
-                code.AppendLineAt(4, "{");
-                code.AppendLineAt(
-                    5,
+                code.CloseBlock();
+                code.AppendLine("else");
+                code.OpenBlock();
+                code.AppendLine(
                     "__persistedByKey"
                         + member.Id
                         + ".TryGetValue(__sk, out __match"
                         + member.Id
                         + ");"
                 );
-                code.AppendLineAt(4, "}");
+                code.CloseBlock();
             }
             else
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "__persistedByKey"
                         + member.Id
                         + ".TryGetValue(__sk, out __match"
@@ -361,15 +325,13 @@ internal static class SparseTemporaryKeyCollectEmitter
             var matchMissing = elementRef
                 ? "if (__match" + member.Id + " is null)"
                 : "if (!__match" + member.Id + ".HasValue)";
-            code.AppendLineAt(4, matchMissing + " continue;");
-            code.AppendLineAt(
-                4,
+            code.AppendLine(matchMissing + " continue;");
+            code.AppendLine(
                 "var __parentKey"
                     + member.Id
                     + " = global::System.Convert.ToString((object?)__sk, global::System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __assignedScope"
                     + member.Id
                     + " = __collectionScope"
@@ -378,8 +340,7 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + member.Id
                     + ".Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"]\", \"\\\\]\") + \"]\";"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __nestedError = "
                     + elementType
                     + ".__SparseCollectTempMap(__s, "
@@ -388,10 +349,10 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(4, "if (__nestedError is not null) return __nestedError;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("if (__nestedError is not null) return __nestedError;");
+            code.CloseBlock();
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static void AppendBuildPersistedIndexes(
@@ -405,12 +366,10 @@ internal static class SparseTemporaryKeyCollectEmitter
         bool includeTemporaryIndex,
         bool keyCanBeNull,
         bool elementRef,
-        bool elementNullableStruct,
-        int indent
+        bool elementNullableStruct
     )
     {
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "__persistedByKey"
                 + member.Id
                 + " = new global::System.Collections.Generic.Dictionary<"
@@ -421,8 +380,7 @@ internal static class SparseTemporaryKeyCollectEmitter
         );
         if (tempProp is not null && includeTemporaryIndex)
         {
-            code.AppendLineAt(
-                indent,
+            code.AppendLine(
                 "__persistedByTemp"
                     + member.Id
                     + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, ("
@@ -430,70 +388,53 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + "? Element, bool Duplicate)>();"
             );
         }
-        AppendElementLoopHead(
-            code,
-            "persisted." + prop,
-            "__p",
-            elementRef,
-            elementNullableStruct,
-            indent
-        );
-        code.AppendLineAt(indent + 1, "var __persistedKey = __p." + keyProp + ";");
+        AppendElementLoopHead(code, "persisted." + prop, "__p", elementRef, elementNullableStruct);
+        code.AppendLine("var __persistedKey = __p." + keyProp + ";");
         if (keyCanBeNull)
         {
-            code.AppendLineAt(indent + 1, "if (__persistedKey is null)");
-            code.AppendLineAt(indent + 1, "{");
-            code.AppendLineAt(indent + 2, "if (!__hasNullPersistedKey" + member.Id + ")");
-            code.AppendLineAt(indent + 2, "{");
-            code.AppendLineAt(indent + 3, "__hasNullPersistedKey" + member.Id + " = true;");
-            code.AppendLineAt(indent + 3, "__firstNullPersistedKey" + member.Id + " = __p;");
-            code.AppendLineAt(indent + 2, "}");
-            code.AppendLineAt(indent + 1, "}");
-            code.AppendLineAt(
-                indent + 1,
+            code.AppendLine("if (__persistedKey is null)");
+            code.OpenBlock();
+            code.AppendLine("if (!__hasNullPersistedKey" + member.Id + ")");
+            code.OpenBlock();
+            code.AppendLine("__hasNullPersistedKey" + member.Id + " = true;");
+            code.AppendLine("__firstNullPersistedKey" + member.Id + " = __p;");
+            code.CloseBlock();
+            code.CloseBlock();
+            code.AppendLine(
                 "else if (!__persistedByKey" + member.Id + ".ContainsKey(__persistedKey))"
             );
         }
         else
         {
-            code.AppendLineAt(
-                indent + 1,
-                "if (!__persistedByKey" + member.Id + ".ContainsKey(__persistedKey))"
-            );
+            code.AppendLine("if (!__persistedByKey" + member.Id + ".ContainsKey(__persistedKey))");
         }
-        code.AppendLineAt(
-            indent + 2,
-            "__persistedByKey" + member.Id + ".Add(__persistedKey, __p);"
-        );
+        code.AppendLine("__persistedByKey" + member.Id + ".Add(__persistedKey, __p);");
         if (tempProp is not null && includeTemporaryIndex)
         {
-            code.AppendLineAt(indent + 1, "var __persistedTemp = __p." + tempProp + ";");
-            code.AppendLineAt(indent + 1, "if (__persistedTemp.HasValue)");
-            code.AppendLineAt(indent + 1, "{");
-            code.AppendLineAt(
-                indent + 2,
+            code.AppendLine("var __persistedTemp = __p." + tempProp + ";");
+            code.AppendLine("if (__persistedTemp.HasValue)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (__persistedByTemp"
                     + member.Id
                     + ".TryGetValue(__persistedTemp.Value, out var __existingTemp))"
             );
-            code.AppendLineAt(indent + 2, "{");
-            code.AppendLineAt(
-                indent + 3,
+            code.OpenBlock();
+            code.AppendLine(
                 "__persistedByTemp"
                     + member.Id
                     + "[__persistedTemp.Value] = (__existingTemp.Element, true);"
             );
-            code.AppendLineAt(indent + 2, "}");
-            code.AppendLineAt(indent + 2, "else");
-            code.AppendLineAt(indent + 2, "{");
-            code.AppendLineAt(
-                indent + 3,
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "__persistedByTemp" + member.Id + ".Add(__persistedTemp.Value, (__p, false));"
             );
-            code.AppendLineAt(indent + 2, "}");
-            code.AppendLineAt(indent + 1, "}");
+            code.CloseBlock();
+            code.CloseBlock();
         }
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits a null-safe element loop head with a normalized non-null variable.</summary>
@@ -503,28 +444,27 @@ internal static class SparseTemporaryKeyCollectEmitter
         string list,
         string normalized,
         bool elementRef,
-        bool elementNullableStruct,
-        int indent
+        bool elementNullableStruct
     )
     {
         if (elementRef)
         {
-            code.AppendLineAt(indent, "foreach (var " + normalized + " in " + list + ")");
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(indent + 1, "if (" + normalized + " is null) continue;");
+            code.AppendLine("foreach (var " + normalized + " in " + list + ")");
+            code.OpenBlock();
+            code.AppendLine("if (" + normalized + " is null) continue;");
         }
         else if (elementNullableStruct)
         {
             var raw = normalized + "Raw";
-            code.AppendLineAt(indent, "foreach (var " + raw + " in " + list + ")");
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(indent + 1, "if (!" + raw + ".HasValue) continue;");
-            code.AppendLineAt(indent + 1, "var " + normalized + " = " + raw + ".Value;");
+            code.AppendLine("foreach (var " + raw + " in " + list + ")");
+            code.OpenBlock();
+            code.AppendLine("if (!" + raw + ".HasValue) continue;");
+            code.AppendLine("var " + normalized + " = " + raw + ".Value;");
         }
         else
         {
-            code.AppendLineAt(indent, "foreach (var " + normalized + " in " + list + ")");
-            code.AppendLineAt(indent, "{");
+            code.AppendLine("foreach (var " + normalized + " in " + list + ")");
+            code.OpenBlock();
         }
     }
 
@@ -538,13 +478,12 @@ internal static class SparseTemporaryKeyCollectEmitter
         if (member.ChildModel.Value.IsReferenceType)
         {
             // Locals promote nullability; property chains do not.
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(2, "var __sub = submitted." + prop + ";");
-            code.AppendLineAt(2, "var __per = persisted." + prop + ";");
-            code.AppendLineAt(2, "if (__sub is not null && __per is not null)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine("var __sub = submitted." + prop + ";");
+            code.AppendLine("var __per = persisted." + prop + ";");
+            code.AppendLine("if (__sub is not null && __per is not null)");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __nestedScope"
                     + member.Id
                     + " = string.IsNullOrEmpty(__scope) ? \""
@@ -553,27 +492,25 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + prop
                     + "\";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __nestedError = "
                     + childType
                     + ".__SparseCollectTempMap(__sub, __per, map, __nestedScope"
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(3, "if (__nestedError is not null) return __nestedError;");
-            code.AppendLineAt(2, "}");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("if (__nestedError is not null) return __nestedError;");
+            code.CloseBlock();
+            code.CloseBlock();
         }
         else if (nullableValue)
         {
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(2, "var __sub = submitted." + prop + ";");
-            code.AppendLineAt(2, "var __per = persisted." + prop + ";");
-            code.AppendLineAt(2, "if (__sub.HasValue && __per.HasValue)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine("var __sub = submitted." + prop + ";");
+            code.AppendLine("var __per = persisted." + prop + ";");
+            code.AppendLine("if (__sub.HasValue && __per.HasValue)");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __nestedScope"
                     + member.Id
                     + " = string.IsNullOrEmpty(__scope) ? \""
@@ -582,23 +519,21 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + prop
                     + "\";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __nestedError = "
                     + childType
                     + ".__SparseCollectTempMap(__sub.Value, __per.Value, map, __nestedScope"
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(3, "if (__nestedError is not null) return __nestedError;");
-            code.AppendLineAt(2, "}");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("if (__nestedError is not null) return __nestedError;");
+            code.CloseBlock();
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine(
                 "var __nestedScope"
                     + member.Id
                     + " = string.IsNullOrEmpty(__scope) ? \""
@@ -607,8 +542,7 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + prop
                     + "\";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __nestedError = "
                     + childType
                     + ".__SparseCollectTempMap(submitted."
@@ -619,8 +553,8 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(3, "if (__nestedError is not null) return __nestedError;");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("if (__nestedError is not null) return __nestedError;");
+            code.CloseBlock();
         }
     }
 }

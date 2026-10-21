@@ -22,22 +22,18 @@ internal static class SparseRebaseOptionEmitter
     )
     {
         var options = OptionsType(dialect);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static bool __SparseIsRedacted("
                 + options
                 + "? options, string path) => options is not null && options.IsRedactedBefore(path);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Whether strict rebase rejects redacted-before members.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static bool __SparseRejectsRedacted("
                 + options
                 + "? options) => options is not null && options.RejectChangesWithRedactedBeforeValuesDuringRebase;"
@@ -46,7 +42,6 @@ internal static class SparseRebaseOptionEmitter
 
     internal static void AppendRedactedConflict(
         SharedIndentedBuilder code,
-        int indent,
         string runtime,
         string conflict,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
@@ -55,8 +50,7 @@ internal static class SparseRebaseOptionEmitter
     )
     {
         var missing = runtime + "Optional<object?>.Missing";
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             conflictsVariable
                 + ".Add(new "
                 + conflict

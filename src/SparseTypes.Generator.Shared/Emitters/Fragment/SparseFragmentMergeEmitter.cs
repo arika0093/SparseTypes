@@ -47,17 +47,14 @@ internal sealed class SparseFragmentMergeEmitter
         // facade.
         if (operationsType is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Merges a higher-priority fragment over this fragment.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"higherPriority\">The higher-priority contribution.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The merged fragment.</returns>");
+            code.AppendLine(
                 "public Fragment Merge(Fragment higherPriority) => "
                     + operationsType
                     + ".Merge(this, higherPriority);"
@@ -88,88 +85,77 @@ internal sealed class SparseFragmentMergeEmitter
         var isOperationsBody = !string.Equals(receiver, "this.", StringComparison.Ordinal);
         if (Origins is null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Merges a higher-priority fragment over this fragment.</summary>"
             );
             if (isOperationsBody)
             {
-                code.AppendLineAt(
-                    2,
-                    "/// <param name=\"self\">The lower-priority fragment.</param>"
-                );
+                code.AppendLine("/// <param name=\"self\">The lower-priority fragment.</param>");
             }
 
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"higherPriority\">The higher-priority contribution.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
+            code.AppendLine("/// <returns>The merged fragment.</returns>");
             if (isOperationsBody)
             {
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "public static Fragment Merge(Fragment self, Fragment higherPriority)"
                 );
             }
             else
             {
-                code.AppendLineAt(2, "public Fragment Merge(Fragment higherPriority)");
+                code.AppendLine("public Fragment Merge(Fragment higherPriority)");
             }
 
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             if (isOperationsBody)
             {
-                SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+                SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
             }
 
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "higherPriority");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "higherPriority");
             AppendMergeFastPaths(code, members, receiver, hasCustomMergeStrategy, replaceOnly);
-            code.AppendLineAt(3, "return new Fragment");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("return new Fragment");
+            code.OpenBlock();
             for (var index = 0; index < members.Length; index++)
             {
                 var name = SparseNaming.EscapeIdentifier(members[index].Property.Name);
-                code.AppendIndent(4)
+                code.AppendIndent()
                     .Append(name)
                     .Append(" = ")
                     .Append(BuildMergeValueExpression(members[index], receiver, index))
                     .AppendLine(",");
             }
 
-            code.AppendLineAt(3, "};");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("};");
+            code.CloseBlock();
             code.AppendLine();
             return;
         }
 
         if (isOperationsBody)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Merges a higher-priority fragment over this fragment.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The lower-priority fragment.</param>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"self\">The lower-priority fragment.</param>");
+            code.AppendLine(
                 "/// <param name=\"higherPriority\">The higher-priority contribution.</param>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"selfFallback\">The fallback origin for the lower contribution.</param>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"higherFallback\">The fallback origin for the higher contribution.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The merged fragment.</returns>");
+            code.AppendLine(
                 "public static Fragment Merge(Fragment self, Fragment higherPriority, string? selfFallback = null, string? higherFallback = null)"
             );
-            code.AppendLineAt(2, "{");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "higherPriority");
+            code.OpenBlock();
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "higherPriority");
             AppendMergeFastPaths(code, members, receiver, hasCustomMergeStrategy, replaceOnly);
             SparseFragmentMergeOriginEmitter.AppendMergeWithOrigins(
                 code,
@@ -178,47 +164,39 @@ internal sealed class SparseFragmentMergeEmitter
                 BuildMergeValueExpression,
                 Origins
             );
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             code.AppendLine();
             return;
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Merges a higher-priority fragment over this fragment.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"higherPriority\">The higher-priority contribution.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The merged fragment.</returns>");
+        code.AppendLine(
             "public Fragment Merge(Fragment higherPriority) => __SparseMergeWithFallback(higherPriority, null, null);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Merges with explicit fallback origins for nested attribution.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"higherPriority\">The higher-priority contribution.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"selfFallback\">The fallback origin for this contribution.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"higherFallback\">The fallback origin for the higher contribution.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The merged fragment.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The merged fragment.</returns>");
+        code.AppendLine(
             "internal Fragment __SparseMergeWithFallback(Fragment higherPriority, string? selfFallback, string? higherFallback)"
         );
-        code.AppendLineAt(2, "{");
-        SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "higherPriority");
+        code.OpenBlock();
+        SparseFragmentEmitHelpers.AppendNullGuard(code, "higherPriority");
         AppendMergeFastPaths(code, members, receiver, hasCustomMergeStrategy, replaceOnly);
         SparseFragmentMergeOriginEmitter.AppendMergeWithOrigins(
             code,
@@ -227,7 +205,7 @@ internal sealed class SparseFragmentMergeEmitter
             BuildMergeValueExpression,
             Origins
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -241,19 +219,19 @@ internal sealed class SparseFragmentMergeEmitter
     {
         if (!hasCustomMergeStrategy)
         {
-            code.AppendLineAt(3, "if (higherPriority.IsEmpty)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "return " + receiver.TrimEnd('.') + ";");
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "if (" + receiver + "IsEmpty)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "return higherPriority;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("if (higherPriority.IsEmpty)");
+            code.OpenBlock();
+            code.AppendLine("return " + receiver.TrimEnd('.') + ";");
+            code.CloseBlock();
+            code.AppendLine("if (" + receiver + "IsEmpty)");
+            code.OpenBlock();
+            code.AppendLine("return higherPriority;");
+            code.CloseBlock();
         }
 
         if (replaceOnly)
         {
-            code.AppendIndent(3).Append("if (");
+            code.AppendIndent().Append("if (");
             for (var index = 0; index < members.Length; index++)
             {
                 if (index > 0)
@@ -267,9 +245,9 @@ internal sealed class SparseFragmentMergeEmitter
             }
 
             code.AppendLine(")");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "return higherPriority;");
-            code.AppendLineAt(3, "}");
+            code.OpenBlock();
+            code.AppendLine("return higherPriority;");
+            code.CloseBlock();
         }
     }
 
@@ -320,14 +298,12 @@ internal sealed class SparseFragmentMergeEmitter
     {
         if (operationsType is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies a sparse semantic diff to this contribution.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
-            code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"changes\">The diff to apply.</param>");
+            code.AppendLine("/// <returns>The fragment with the diff applied.</returns>");
+            code.AppendLine(
                 "public Fragment ApplyChanges(Fragment changes) => "
                     + operationsType
                     + ".ApplyChanges(this, changes);"
@@ -339,126 +315,114 @@ internal sealed class SparseFragmentMergeEmitter
         var isOperationsBody = !string.Equals(receiver, "this.", StringComparison.Ordinal);
         if (Origins is null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies a sparse semantic diff to this contribution.</summary>"
             );
             if (isOperationsBody)
             {
-                code.AppendLineAt(2, "/// <param name=\"self\">The fragment to update.</param>");
+                code.AppendLine("/// <param name=\"self\">The fragment to update.</param>");
             }
 
-            code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
-            code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
+            code.AppendLine("/// <param name=\"changes\">The diff to apply.</param>");
+            code.AppendLine("/// <returns>The fragment with the diff applied.</returns>");
             if (isOperationsBody)
             {
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "public static Fragment ApplyChanges(Fragment self, Fragment changes)"
                 );
             }
             else
             {
-                code.AppendLineAt(2, "public Fragment ApplyChanges(Fragment changes)");
+                code.AppendLine("public Fragment ApplyChanges(Fragment changes)");
             }
 
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             if (isOperationsBody)
             {
-                SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+                SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
             }
 
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "changes");
-            code.AppendLineAt(3, "return new Fragment");
-            code.AppendLineAt(3, "{");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "changes");
+            code.AppendLine("return new Fragment");
+            code.OpenBlock();
             for (var index = 0; index < members.Length; index++)
             {
                 var name = SparseNaming.EscapeIdentifier(members[index].Property.Name);
-                code.AppendIndent(4)
+                code.AppendIndent()
                     .Append(name)
                     .Append(" = ")
                     .Append(BuildApplyValueExpression(members[index], receiver, index))
                     .AppendLine(",");
             }
 
-            code.AppendLineAt(3, "};");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("};");
+            code.CloseBlock();
             code.AppendLine();
             return;
         }
 
         if (isOperationsBody)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies a sparse semantic diff to this contribution.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The fragment to update.</param>");
-            code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"self\">The fragment to update.</param>");
+            code.AppendLine("/// <param name=\"changes\">The diff to apply.</param>");
+            code.AppendLine(
                 "/// <param name=\"selfFallback\">The fallback origin for the updated fragment.</param>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"changesFallback\">The fallback origin for the diff.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The fragment with the diff applied.</returns>");
+            code.AppendLine(
                 "public static Fragment ApplyChanges(Fragment self, Fragment changes, string? selfFallback = null, string? changesFallback = null)"
             );
-            code.AppendLineAt(2, "{");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "changes");
+            code.OpenBlock();
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "changes");
             SparseFragmentMergeOriginEmitter.AppendApplyChangesWithOrigins(
                 code,
                 members,
                 receiver,
                 BuildApplyValueExpression
             );
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             code.AppendLine();
             return;
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies a sparse semantic diff to this contribution.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
-        code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"changes\">The diff to apply.</param>");
+        code.AppendLine("/// <returns>The fragment with the diff applied.</returns>");
+        code.AppendLine(
             "public Fragment ApplyChanges(Fragment changes) => __SparseApplyChangesWithFallback(changes, null, null);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies a diff with explicit fallback origins for nested attribution.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The diff to apply.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"changes\">The diff to apply.</param>");
+        code.AppendLine(
             "/// <param name=\"selfFallback\">The fallback origin for the updated fragment.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"changesFallback\">The fallback origin for the diff.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The fragment with the diff applied.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The fragment with the diff applied.</returns>");
+        code.AppendLine(
             "internal Fragment __SparseApplyChangesWithFallback(Fragment changes, string? selfFallback, string? changesFallback)"
         );
-        code.AppendLineAt(2, "{");
-        SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "changes");
+        code.OpenBlock();
+        SparseFragmentEmitHelpers.AppendNullGuard(code, "changes");
         SparseFragmentMergeOriginEmitter.AppendApplyChangesWithOrigins(
             code,
             members,
             receiver,
             BuildApplyValueExpression
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -473,14 +437,12 @@ internal sealed class SparseFragmentMergeEmitter
             return;
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal Fragment __SparseMergeWithFallback(Fragment higherPriority, string? selfFallback, string? higherFallback) => "
                 + operationsType
                 + ".Merge(this, higherPriority, selfFallback, higherFallback);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal Fragment __SparseApplyChangesWithFallback(Fragment changes, string? selfFallback, string? changesFallback) => "
                 + operationsType
                 + ".ApplyChanges(this, changes, selfFallback, changesFallback);"
@@ -522,17 +484,13 @@ internal sealed class SparseFragmentMergeEmitter
         // per-member helpers move with no surface counterpart.
         if (operationsType is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Creates a sparse semantic diff between two ordinary model values.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"before\">The baseline value.</param>");
-            code.AppendLineAt(2, "/// <param name=\"after\">The updated value.</param>");
-            code.AppendLineAt(
-                2,
-                "/// <returns>The sparse diff from baseline to updated.</returns>"
-            );
-            code.AppendIndent(2)
+            code.AppendLine("/// <param name=\"before\">The baseline value.</param>");
+            code.AppendLine("/// <param name=\"after\">The updated value.</param>");
+            code.AppendLine("/// <returns>The sparse diff from baseline to updated.</returns>");
+            code.AppendIndent()
                 .Append("public static Fragment Diff(")
                 .Append(modelType)
                 .Append(" before, ")
@@ -560,7 +518,7 @@ internal sealed class SparseFragmentMergeEmitter
         {
             var type = member.ChildModel!.Value.NonNullableName;
             var fragment = member.ChildFragmentType!;
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("private static ")
                 .Append(Optional)
                 .Append("<")
@@ -578,12 +536,12 @@ internal sealed class SparseFragmentMergeEmitter
                         .Append(" __sparse_diff_context, string __sparse_diff_path");
                 }
                 code.AppendLine(")");
-                code.AppendLineAt(2, "{");
-                code.AppendIndent(3)
+                code.OpenBlock();
+                code.AppendIndent()
                     .Append("if (global::System.Collections.Generic.EqualityComparer<")
                     .Append(type)
                     .AppendLine(">.Default.Equals(before!, after!)) { return default; }");
-                code.AppendIndent(3)
+                code.AppendIndent()
                     .Append("return ")
                     .Append(Optional)
                     .Append("<")
@@ -595,7 +553,7 @@ internal sealed class SparseFragmentMergeEmitter
                             ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
                             : ".Diff(before, after));"
                     );
-                code.AppendLineAt(2, "}");
+                code.CloseBlock();
                 continue;
             }
 
@@ -607,12 +565,11 @@ internal sealed class SparseFragmentMergeEmitter
                     .Append(" __sparse_diff_context, string __sparse_diff_path");
             }
             code.AppendLine(")");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return default; }"
             );
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("if (before is null || after is null) { return ")
                 .Append(Optional)
                 .Append("<")
@@ -620,7 +577,7 @@ internal sealed class SparseFragmentMergeEmitter
                 .Append(">.Present(after is null ? null : ")
                 .Append(fragment)
                 .AppendLine(".From(after)); }");
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("var difference = ")
                 .Append(fragment)
                 .AppendLine(
@@ -628,62 +585,56 @@ internal sealed class SparseFragmentMergeEmitter
                         ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path);"
                         : ".Diff(before, after);"
                 );
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("return difference.IsEmpty ? default : ")
                 .Append(Optional)
                 .Append("<")
                 .Append(SparseFragmentEmitHelpers.FragmentValueType(member))
                 .AppendLine(">.Present(difference);");
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
         }
 
         code = surface;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates a sparse semantic diff between two ordinary model values.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"before\">The baseline value.</param>");
-        code.AppendLineAt(2, "/// <param name=\"after\">The updated value.</param>");
-        code.AppendLineAt(2, "/// <returns>The sparse diff from baseline to updated.</returns>");
-        code.AppendIndent(2)
+        code.AppendLine("/// <param name=\"before\">The baseline value.</param>");
+        code.AppendLine("/// <param name=\"after\">The updated value.</param>");
+        code.AppendLine("/// <returns>The sparse diff from baseline to updated.</returns>");
+        code.AppendIndent()
             .Append("public static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")
             .Append(modelType)
             .AppendLine(" after)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "before");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "after");
-            code.AppendLineAt(
-                3,
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "before");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "after");
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }"
             );
         }
 
         if (requiresDiffContext)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_diff_context = " + ReferenceComparer + ".CreateDiffCycleContext();"
             );
-            code.AppendLineAt(
-                3,
-                "return __SparseDiffCore(before, after, __sparse_diff_context, \"\");"
-            );
+            code.AppendLine("return __SparseDiffCore(before, after, __sparse_diff_context, \"\");");
         }
         else
         {
-            AppendDiffBody(code, members, 3);
+            AppendDiffBody(code, members);
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
         if (!requiresDiffContext)
         {
             return;
         }
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("internal static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")
@@ -693,26 +644,24 @@ internal sealed class SparseFragmentMergeEmitter
             .Append(diffContextType)
             .Append(" __sparse_diff_context, string __sparse_diff_path");
         code.AppendLine(")");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "before");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "after");
-            code.AppendLineAt(
-                3,
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "before");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "after");
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return __SparseDiffCore(before, after, __sparse_diff_context, __sparse_diff_path);"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
         code.Append(memberHelpers.ToString());
         code.AppendLine();
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("private static Fragment __SparseDiffCore(")
             .Append(modelType)
             .Append(" before, ")
@@ -720,34 +669,32 @@ internal sealed class SparseFragmentMergeEmitter
             .Append(" after, ")
             .Append(diffContextType)
             .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_diff_pair = new global::System.Collections.Generic.KeyValuePair<object, object>((object)before, (object)after);"
             );
-            code.AppendLineAt(3, "if (!__sparse_diff_context.Add(__sparse_diff_pair))");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (!__sparse_diff_context.Add(__sparse_diff_pair))");
+            code.OpenBlock();
+            code.AppendLine(
                 "throw new global::System.NotSupportedException(\"Cyclic reference detected during Diff at '\" + __sparse_diff_path + \"'. Fragment.Diff does not support cyclic object graphs; DeepClone preserves cycles.\");"
             );
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "try");
-            code.AppendLineAt(3, "{");
-            AppendDiffBody(code, members, 4);
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "finally");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "__sparse_diff_context.Remove(__sparse_diff_pair);");
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
+            code.AppendLine("try");
+            code.OpenBlock();
+            AppendDiffBody(code, members);
+            code.CloseBlock();
+            code.AppendLine("finally");
+            code.OpenBlock();
+            code.AppendLine("__sparse_diff_context.Remove(__sparse_diff_pair);");
+            code.CloseBlock();
         }
         else
         {
-            AppendDiffBody(code, members, 3);
+            AppendDiffBody(code, members);
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -763,26 +710,24 @@ internal sealed class SparseFragmentMergeEmitter
         bool modelIsReferenceType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates a sparse semantic diff between two ordinary model values.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"before\">The baseline value.</param>");
-        code.AppendLineAt(2, "/// <param name=\"after\">The updated value.</param>");
-        code.AppendLineAt(2, "/// <returns>The sparse diff from baseline to updated.</returns>");
-        code.AppendIndent(2)
+        code.AppendLine("/// <param name=\"before\">The baseline value.</param>");
+        code.AppendLine("/// <param name=\"after\">The updated value.</param>");
+        code.AppendLine("/// <returns>The sparse diff from baseline to updated.</returns>");
+        code.AppendIndent()
             .Append("public static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")
             .Append(modelType)
             .AppendLine(" after)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "before");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "after");
-            code.AppendLineAt(
-                3,
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "before");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "after");
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }"
             );
         }
@@ -792,20 +737,16 @@ internal sealed class SparseFragmentMergeEmitter
         );
         if (requiresDiffContext)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_diff_context = " + ReferenceComparer + ".CreateDiffCycleContext();"
             );
-            code.AppendLineAt(
-                3,
-                "return __SparseDiffCore(before, after, __sparse_diff_context, \"\");"
-            );
+            code.AppendLine("return __SparseDiffCore(before, after, __sparse_diff_context, \"\");");
         }
         else
         {
-            AppendDiffBody(code, members, 3);
+            AppendDiffBody(code, members);
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -826,7 +767,7 @@ internal sealed class SparseFragmentMergeEmitter
         }
         const string diffContextType =
             "global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>>";
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("internal static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")
@@ -836,22 +777,20 @@ internal sealed class SparseFragmentMergeEmitter
             .Append(diffContextType)
             .Append(" __sparse_diff_context, string __sparse_diff_path");
         code.AppendLine(")");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "before");
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "after");
-            code.AppendLineAt(
-                3,
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "before");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "after");
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return __SparseDiffCore(before, after, __sparse_diff_context, __sparse_diff_path);"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -881,7 +820,7 @@ internal sealed class SparseFragmentMergeEmitter
         {
             var type = member.ChildModel!.Value.NonNullableName;
             var fragment = member.ChildFragmentType!;
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("private static ")
                 .Append(Optional)
                 .Append("<")
@@ -899,12 +838,12 @@ internal sealed class SparseFragmentMergeEmitter
                         .Append(" __sparse_diff_context, string __sparse_diff_path");
                 }
                 code.AppendLine(")");
-                code.AppendLineAt(2, "{");
-                code.AppendIndent(3)
+                code.OpenBlock();
+                code.AppendIndent()
                     .Append("if (global::System.Collections.Generic.EqualityComparer<")
                     .Append(type)
                     .AppendLine(">.Default.Equals(before!, after!)) { return default; }");
-                code.AppendIndent(3)
+                code.AppendIndent()
                     .Append("return ")
                     .Append(Optional)
                     .Append("<")
@@ -916,7 +855,7 @@ internal sealed class SparseFragmentMergeEmitter
                             ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path));"
                             : ".Diff(before, after));"
                     );
-                code.AppendLineAt(2, "}");
+                code.CloseBlock();
                 continue;
             }
 
@@ -928,12 +867,11 @@ internal sealed class SparseFragmentMergeEmitter
                     .Append(" __sparse_diff_context, string __sparse_diff_path");
             }
             code.AppendLine(")");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, after)) { return default; }"
             );
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("if (before is null || after is null) { return ")
                 .Append(Optional)
                 .Append("<")
@@ -941,7 +879,7 @@ internal sealed class SparseFragmentMergeEmitter
                 .Append(">.Present(after is null ? null : ")
                 .Append(fragment)
                 .AppendLine(".From(after)); }");
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("var difference = ")
                 .Append(fragment)
                 .AppendLine(
@@ -949,17 +887,17 @@ internal sealed class SparseFragmentMergeEmitter
                         ? ".Diff(before, after, __sparse_diff_context, __sparse_diff_path);"
                         : ".Diff(before, after);"
                 );
-            code.AppendIndent(3)
+            code.AppendIndent()
                 .Append("return difference.IsEmpty ? default : ")
                 .Append(Optional)
                 .Append("<")
                 .Append(SparseFragmentEmitHelpers.FragmentValueType(member))
                 .AppendLine(">.Present(difference);");
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
         }
 
         code.AppendLine();
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("private static Fragment __SparseDiffCore(")
             .Append(modelType)
             .Append(" before, ")
@@ -967,45 +905,42 @@ internal sealed class SparseFragmentMergeEmitter
             .Append(" after, ")
             .Append(diffContextType)
             .AppendLine(" __sparse_diff_context, string __sparse_diff_path)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_diff_pair = new global::System.Collections.Generic.KeyValuePair<object, object>((object)before, (object)after);"
             );
-            code.AppendLineAt(3, "if (!__sparse_diff_context.Add(__sparse_diff_pair))");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (!__sparse_diff_context.Add(__sparse_diff_pair))");
+            code.OpenBlock();
+            code.AppendLine(
                 "throw new global::System.NotSupportedException(\"Cyclic reference detected during Diff at '\" + __sparse_diff_path + \"'. Fragment.Diff does not support cyclic object graphs; DeepClone preserves cycles.\");"
             );
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "try");
-            code.AppendLineAt(3, "{");
-            AppendDiffBody(code, members, 4);
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "finally");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "__sparse_diff_context.Remove(__sparse_diff_pair);");
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
+            code.AppendLine("try");
+            code.OpenBlock();
+            AppendDiffBody(code, members);
+            code.CloseBlock();
+            code.AppendLine("finally");
+            code.OpenBlock();
+            code.AppendLine("__sparse_diff_context.Remove(__sparse_diff_pair);");
+            code.CloseBlock();
         }
         else
         {
-            AppendDiffBody(code, members, 3);
+            AppendDiffBody(code, members);
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
     private void AppendDiffBody(
         SharedIndentedBuilder code,
-        ImmutableArray<SparseMemberModel> members,
-        int indent
+        ImmutableArray<SparseMemberModel> members
     )
     {
-        code.AppendLineAt(indent, "return new Fragment");
-        code.AppendLineAt(indent, "{");
+        code.AppendLine("return new Fragment");
+        code.OpenBlock();
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -1030,14 +965,10 @@ internal sealed class SparseFragmentMergeEmitter
                     : $"__Diff_{member.Id}({before}, {after})";
             }
 
-            code.AppendIndent(indent + 1)
-                .Append(name)
-                .Append(" = ")
-                .Append(condition)
-                .AppendLine(",");
+            code.AppendIndent().Append(name).Append(" = ").Append(condition).AppendLine(",");
         }
 
-        code.AppendLineAt(indent, "};");
+        code.AppendLine("};");
     }
 
     private static string DiffMemberPath(SparseMemberModel member)
@@ -1065,7 +996,7 @@ internal sealed class SparseFragmentMergeEmitter
         {
             return;
         }
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("internal static Fragment Diff(")
             .Append(modelType)
             .Append(" before, ")

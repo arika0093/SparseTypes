@@ -96,15 +96,13 @@ internal static class SparseEditSessionPathsEmitter
         }
 
         var pathsType = GetPathsType(model, config, code.CancellationToken);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets the typed path navigation rooted at this session's model.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Path-only access: returns the cached builder without reading the mutable model, invalidating the change cache, or subscribing to edit notifications. For example <c>Paths.Customer.Name</c>.</remarks>"
         );
-        code.AppendLineAt(2, "public " + pathsType + " Paths => __paths;");
+        code.AppendLine("public " + pathsType + " Paths => __paths;");
     }
 
     /// <summary>Appends the cached Paths backing field for one root session.</summary>
@@ -128,8 +126,7 @@ internal static class SparseEditSessionPathsEmitter
 
         var pathsType = GetPathsType(model, config, code.CancellationToken);
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private readonly "
                 + pathsType
                 + " __paths = new "

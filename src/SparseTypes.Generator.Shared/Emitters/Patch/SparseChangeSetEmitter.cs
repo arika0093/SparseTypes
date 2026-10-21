@@ -45,23 +45,21 @@ internal static class SparseChangeSetEmitter
             members.Select(static member => member.Property.Name)
         );
         var rebase = "Patch." + prefix + "Rebase";
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Baseline-aware transition between two states. Validates before-states and supports compose and rebase.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             accessibility
                 + " sealed partial class ChangeSet"
                 + SparseChangeSetContractEmitter.ChangeSetBases(dialect, modelType)
         );
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         // State-bound bodies live in the private nested __Core with direct
         // private-state access.
         SharedIndentedBuilder? changeSetCore = null;
         if (target is not null)
         {
-            changeSetCore = new SharedIndentedBuilder(code.CancellationToken) { IndentOffset = 1 };
+            changeSetCore = new SharedIndentedBuilder(code.CancellationToken) { IndentLevel = 1 };
             target = new SparseOperationTarget(
                 target.PatchOperations,
                 changeSetCore,
@@ -275,17 +273,16 @@ internal static class SparseChangeSetEmitter
         storage.AppendPrivateFields(code);
         if (changeSetCore is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>State-bound ChangeSet algorithms with direct private-state access.</summary>"
             );
-            code.AppendLineAt(2, "private static class __Core");
-            code.AppendLineAt(2, "{");
+            code.AppendLine("private static class __Core");
+            code.OpenBlock();
             SparseOperationOrdering.AppendInternalFirst(code, changeSetCore.ToString());
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             changeSetCore.Dispose();
         }
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         code.AppendLine();
         if (plan.EmitChangePayload)
         {

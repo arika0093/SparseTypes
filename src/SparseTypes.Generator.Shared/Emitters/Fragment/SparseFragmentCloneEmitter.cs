@@ -50,13 +50,12 @@ internal sealed class SparseFragmentCloneEmitter
         var isOperationsBody = !string.Equals(receiver, "this.", StringComparison.Ordinal);
         if (isOperationsBody)
         {
-            code.AppendLineAt(
-                1,
+            code.AppendLine(
                 "/// <summary>Creates a deep copy of the specified model value.</summary>"
             );
-            code.AppendLineAt(1, "/// <param name=\"value\">The model value to copy.</param>");
-            code.AppendLineAt(1, "/// <returns>The deep copy.</returns>");
-            code.AppendIndent(1)
+            code.AppendLine("/// <param name=\"value\">The model value to copy.</param>");
+            code.AppendLine("/// <returns>The deep copy.</returns>");
+            code.AppendIndent()
                 .Append("public static ")
                 .Append(modelType)
                 .Append(" DeepClone(")
@@ -65,16 +64,15 @@ internal sealed class SparseFragmentCloneEmitter
         }
         else
         {
-            code.AppendLineAt(1, "/// <summary>Creates a deep copy of this model value.</summary>");
-            code.AppendLineAt(1, "/// <returns>The deep copy.</returns>");
-            code.AppendIndent(1).Append("public ").Append(modelType).AppendLine(" DeepClone()");
+            code.AppendLine("/// <summary>Creates a deep copy of this model value.</summary>");
+            code.AppendLine("/// <returns>The deep copy.</returns>");
+            code.AppendIndent().Append("public ").Append(modelType).AppendLine(" DeepClone()");
         }
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         if (RequiresCloneContext(members))
         {
-            Expressions.AppendCloneContext(code, 2, ReferenceComparer);
-            code.AppendLineAt(
-                2,
+            Expressions.AppendCloneContext(code, ReferenceComparer);
+            code.AppendLine(
                 isOperationsBody
                     ? "return DeepClone(value, " + CloneContext + ");"
                     : "return DeepClone(" + CloneContext + ");"
@@ -92,14 +90,13 @@ internal sealed class SparseFragmentCloneEmitter
                 receiver: receiver
             );
         }
-        code.AppendLineAt(1, "}");
-        code.AppendLineAt(
-            1,
+        code.CloseBlock();
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
         if (isOperationsBody)
         {
-            code.AppendIndent(1)
+            code.AppendIndent()
                 .Append("internal static ")
                 .Append(modelType)
                 .Append(" DeepClone(")
@@ -110,18 +107,17 @@ internal sealed class SparseFragmentCloneEmitter
         }
         else
         {
-            code.AppendIndent(1)
+            code.AppendIndent()
                 .Append("internal ")
                 .Append(modelType)
                 .Append(" DeepClone(global::System.Collections.Generic.Dictionary<object, object> ")
                 .Append(CloneContext)
                 .AppendLine(")");
         }
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "if ("
                     + CloneContext
                     + ".TryGetValue("
@@ -141,7 +137,7 @@ internal sealed class SparseFragmentCloneEmitter
             registerClone: modelIsReferenceType,
             receiver: receiver
         );
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 
     private void AppendModelCloneBody(
@@ -163,16 +159,15 @@ internal sealed class SparseFragmentCloneEmitter
             && ModelConstructionPlan.ForMembers(members).CanOverlayAfterConstruction
         )
         {
-            code.AppendLineAt(2, "var clone = new " + modelType + "();");
+            code.AppendLine("var clone = new " + modelType + "();");
             if (registerClone)
             {
-                code.AppendLineAt(2, CloneContext + ".Add(" + self + ", clone);");
+                code.AppendLine(CloneContext + ".Add(" + self + ", clone);");
             }
             foreach (var member in members.Where(static member => !member.Property.IsReadOnly))
             {
                 var name = SparseNaming.EscapeIdentifier(member.Property.Name);
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "clone."
                         + name
                         + " = "
@@ -180,7 +175,7 @@ internal sealed class SparseFragmentCloneEmitter
                         + ";"
                 );
             }
-            code.AppendLineAt(2, "return clone;");
+            code.AppendLine("return clone;");
             return;
         }
 
@@ -201,8 +196,7 @@ internal sealed class SparseFragmentCloneEmitter
                 var member = members.Single(candidate => candidate.Property.Name == propertyName);
                 var local = "__constructor_clone_" + boundClones.Count;
                 boundClones.Add(propertyName, local);
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "var "
                         + local
                         + " = "
@@ -235,7 +229,7 @@ internal sealed class SparseFragmentCloneEmitter
                 && !member.Property.IsRequired
             )
             .ToArray();
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("var clone = new ")
             .Append(modelType)
             .Append("(")
@@ -243,10 +237,10 @@ internal sealed class SparseFragmentCloneEmitter
             .AppendLine(")");
         if (initializerMembers.Length > 0)
         {
-            code.AppendLineAt(1, "{");
+            code.OpenBlock();
             foreach (var member in initializerMembers)
             {
-                code.AppendIndent(2)
+                code.AppendIndent()
                     .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                     .Append(" = ")
                     .Append(
@@ -260,19 +254,19 @@ internal sealed class SparseFragmentCloneEmitter
                     .AppendLine(",");
             }
 
-            code.AppendLineAt(1, "};");
+            code.AppendLine("};");
         }
         else
         {
-            code.AppendLineAt(2, ";");
+            code.AppendLine(";");
         }
         if (registerClone)
         {
-            code.AppendLineAt(2, CloneContext + ".Add(" + self + ", clone);");
+            code.AppendLine(CloneContext + ".Add(" + self + ", clone);");
         }
         foreach (var member in deferredMembers)
         {
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("clone.")
                 .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                 .Append(" = ")
@@ -286,7 +280,7 @@ internal sealed class SparseFragmentCloneEmitter
                 )
                 .AppendLine(";");
         }
-        code.AppendLineAt(2, "return clone;");
+        code.AppendLine("return clone;");
     }
 
     private static bool RequiresCloneContext(ImmutableArray<SparseMemberModel> members) =>
@@ -306,9 +300,9 @@ internal sealed class SparseFragmentCloneEmitter
         string operationsType
     )
     {
-        code.AppendLineAt(1, "/// <summary>Creates a deep copy of this model value.</summary>");
-        code.AppendLineAt(1, "/// <returns>The deep copy.</returns>");
-        code.AppendIndent(1)
+        code.AppendLine("/// <summary>Creates a deep copy of this model value.</summary>");
+        code.AppendLine("/// <returns>The deep copy.</returns>");
+        code.AppendIndent()
             .Append("public ")
             .Append(modelType)
             .AppendLine(" DeepClone() => " + operationsType + ".DeepClone(this);");
@@ -324,11 +318,10 @@ internal sealed class SparseFragmentCloneEmitter
         string operationsType
     )
     {
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendIndent(1)
+        code.AppendIndent()
             .Append("internal ")
             .Append(modelType)
             .AppendLine(
@@ -352,23 +345,20 @@ internal sealed class SparseFragmentCloneEmitter
         bool modelIsReferenceType = true
     )
     {
-        code.AppendLineAt(
-            1,
-            "/// <summary>Creates a deep copy of the specified model value.</summary>"
-        );
-        code.AppendLineAt(1, "/// <param name=\"value\">The model value to copy.</param>");
-        code.AppendLineAt(1, "/// <returns>The deep copy.</returns>");
-        code.AppendIndent(1)
+        code.AppendLine("/// <summary>Creates a deep copy of the specified model value.</summary>");
+        code.AppendLine("/// <param name=\"value\">The model value to copy.</param>");
+        code.AppendLine("/// <returns>The deep copy.</returns>");
+        code.AppendIndent()
             .Append("public static ")
             .Append(modelType)
             .Append(" DeepClone(")
             .Append(modelType)
             .AppendLine(" value)");
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         if (RequiresCloneContext(members))
         {
-            Expressions.AppendCloneContext(code, 2, ReferenceComparer);
-            code.AppendLineAt(2, "return DeepClone(value, " + CloneContext + ");");
+            Expressions.AppendCloneContext(code, ReferenceComparer);
+            code.AppendLine("return DeepClone(value, " + CloneContext + ");");
         }
         else
         {
@@ -382,7 +372,7 @@ internal sealed class SparseFragmentCloneEmitter
                 receiver: "value."
             );
         }
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the internal operations DeepClone trailing public operations.</summary>
@@ -399,11 +389,10 @@ internal sealed class SparseFragmentCloneEmitter
         bool modelIsReferenceType = true
     )
     {
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendIndent(1)
+        code.AppendIndent()
             .Append("internal static ")
             .Append(modelType)
             .Append(" DeepClone(")
@@ -411,11 +400,10 @@ internal sealed class SparseFragmentCloneEmitter
             .Append(" value, global::System.Collections.Generic.Dictionary<object, object> ")
             .Append(CloneContext)
             .AppendLine(")");
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         if (modelIsReferenceType)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "if ("
                     + CloneContext
                     + ".TryGetValue(value, out var existing)) return ("
@@ -433,7 +421,7 @@ internal sealed class SparseFragmentCloneEmitter
             registerClone: modelIsReferenceType,
             receiver: "value."
         );
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 
     public void AppendPocoCloneHelper(
@@ -454,7 +442,7 @@ internal sealed class SparseFragmentCloneEmitter
         }
 
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendIndent(1)
+        code.AppendIndent()
             .Append(helperAccessibility + " static ")
             .Append(typeName)
             .Append(' ')
@@ -466,9 +454,8 @@ internal sealed class SparseFragmentCloneEmitter
                     + CloneContext
                     + ")"
             );
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine(
             "if ("
                 + CloneContext
                 + ".TryGetValue(value, out var existing)) { return ("
@@ -492,8 +479,7 @@ internal sealed class SparseFragmentCloneEmitter
                 var member = members.Single(candidate => candidate.Property.Name == propertyName);
                 var local = "__constructor_clone_" + boundClones.Count;
                 boundClones.Add(propertyName, local);
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "var "
                         + local
                         + " = "
@@ -511,13 +497,13 @@ internal sealed class SparseFragmentCloneEmitter
                 ", ",
                 constructor.Parameters.Select(parameter => boundClones[parameter.PropertyName])
             );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append("var clone = new ")
             .Append(typeName)
             .Append("(")
             .Append(arguments)
             .AppendLine(");");
-        code.AppendLineAt(2, CloneContext + ".Add(value, clone);");
+        code.AppendLine(CloneContext + ".Add(value, clone);");
         foreach (
             var member in members.Where(static member =>
                 !member.Property.IsReadOnly && !member.Property.IsInitOnly
@@ -525,7 +511,7 @@ internal sealed class SparseFragmentCloneEmitter
         )
         {
             var memberName = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("clone.")
                 .Append(memberName)
                 .Append(" = ")
@@ -537,8 +523,8 @@ internal sealed class SparseFragmentCloneEmitter
                 .AppendLine(";");
         }
 
-        code.AppendLineAt(2, "return clone;");
-        code.AppendLineAt(1, "}");
+        code.AppendLine("return clone;");
+        code.CloseBlock();
     }
 
     public void AppendFragmentClone(
@@ -562,40 +548,38 @@ internal sealed class SparseFragmentCloneEmitter
     )
     {
         _ = usesPocoCloning;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Copies the fragment and its generated nested values.</summary>"
         );
-        code.AppendLineAt(2, "/// <returns>The copied fragment.</returns>");
-        code.AppendLineAt(2, "public Fragment DeepClone()");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("/// <returns>The copied fragment.</returns>");
+        code.AppendLine("public Fragment DeepClone()");
+        code.OpenBlock();
         if (RequiresCloneContext(members))
         {
-            Expressions.AppendCloneContext(code, 3, ReferenceComparer);
-            code.AppendLineAt(3, "return DeepClone(" + CloneContext + ");");
+            Expressions.AppendCloneContext(code, ReferenceComparer);
+            code.AppendLine("return DeepClone(" + CloneContext + ");");
         }
         else
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 Origins is null ? "return new Fragment" : "return new Fragment(this.Origin)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             foreach (var member in members)
             {
                 var name = SparseNaming.EscapeIdentifier(member.Property.Name);
-                code.AppendLineAt(4, name + " = this." + name + ",");
+                code.AppendLine(name + " = this." + name + ",");
             }
 
             if (Origins is not null)
             {
-                code.AppendLineAt(4, "__SparseMemberOrigins = this.__SparseMemberOrigins,");
-                code.AppendLineAt(4, "__SparseElementOrigins = this.__SparseElementOrigins,");
+                code.AppendLine("__SparseMemberOrigins = this.__SparseMemberOrigins,");
+                code.AppendLine("__SparseElementOrigins = this.__SparseElementOrigins,");
             }
 
-            code.AppendLineAt(3, "};");
+            code.AppendLine("};");
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -615,25 +599,23 @@ internal sealed class SparseFragmentCloneEmitter
     /// <param name="code">Target builder.</param>
     public void AppendFragmentCloneInternalMethod(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 "internal Fragment DeepClone(global::System.Collections.Generic.Dictionary<object, object> "
             )
             .Append(CloneContext)
             .AppendLine(")");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if ("
                 + CloneContext
                 + ".TryGetValue(this, out var existing)) return (Fragment)existing;"
         );
-        code.AppendLineAt(3, "return new Fragment(this, " + CloneContext + ");");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new Fragment(this, " + CloneContext + ");");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -645,19 +627,19 @@ internal sealed class SparseFragmentCloneEmitter
         ImmutableArray<SparseMemberModel> members
     )
     {
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 "private Fragment(Fragment source, global::System.Collections.Generic.Dictionary<object, object> "
             )
             .Append(CloneContext)
             .AppendLine(")");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, CloneContext + ".Add(source, this);");
+        code.OpenBlock();
+        code.AppendLine(CloneContext + ".Add(source, this);");
         if (Origins is not null)
         {
-            code.AppendLineAt(3, "this.Origin = source.Origin;");
-            code.AppendLineAt(3, "this.__SparseMemberOrigins = source.__SparseMemberOrigins;");
-            code.AppendLineAt(3, "this.__SparseElementOrigins = source.__SparseElementOrigins;");
+            code.AppendLine("this.Origin = source.Origin;");
+            code.AppendLine("this.__SparseMemberOrigins = source.__SparseMemberOrigins;");
+            code.AppendLine("this.__SparseElementOrigins = source.__SparseElementOrigins;");
         }
 
         foreach (var member in members)
@@ -668,7 +650,7 @@ internal sealed class SparseFragmentCloneEmitter
                 member,
                 "source." + name + ".Value"
             );
-            code.AppendIndent(4)
+            code.AppendIndent()
                 .Append("this.")
                 .Append(name)
                 .Append(" = source.")
@@ -682,7 +664,7 @@ internal sealed class SparseFragmentCloneEmitter
                 .AppendLine(") : default;");
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 }

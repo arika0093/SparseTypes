@@ -34,21 +34,19 @@ internal static class SparseTemporaryKeyElementEmitter
         _ = optionalFragment;
         _ = elementNullableStruct;
 
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var __subKeys = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __subTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
-        code.AppendLineAt(3, "if (__subList is not null)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (__subList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitCollectIdentities(
             code,
             "__subList",
@@ -59,24 +57,21 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            4
+            elementRef
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine(
             "var __liveKeys = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __liveTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
-        code.AppendLineAt(3, "if (__liveList is not null)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (__liveList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitCollectIdentities(
             code,
             "__liveList",
@@ -87,18 +82,16 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            4
+            elementRef
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         // Live surviving order mapped to final assigned keys versus
         // submitted surviving order decides who wins ordering.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __liveSurviving = new global::System.Collections.Generic.List<" + keyType + ">();"
         );
-        code.AppendLineAt(3, "if (__liveList is not null)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (__liveList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitSurvivingOrder(
             code,
             "__liveList",
@@ -110,16 +103,14 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            4
+            elementRef
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine(
             "var __subSurviving = new global::System.Collections.Generic.List<" + keyType + ">();"
         );
-        code.AppendLineAt(3, "if (__subList is not null)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (__subList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitSubmittedSurvivingOrder(
             code,
             "__subList",
@@ -131,26 +122,23 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            4
+            elementRef
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var __hasLocalReorder = false;");
-        code.AppendLineAt(3, "if (__liveSurviving.Count == __subSurviving.Count)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine("var __hasLocalReorder = false;");
+        code.AppendLine("if (__liveSurviving.Count == __subSurviving.Count)");
+        code.OpenBlock();
+        code.AppendLine(
             "for (var __oi = 0; __oi < __liveSurviving.Count; __oi++) if (!"
                 + comparer
                 + ".Equals(__liveSurviving[__oi], __subSurviving[__oi])) { __hasLocalReorder = true; break; }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else { __hasLocalReorder = true; }");
-        code.AppendLineAt(3, "if (!__hasLocalReorder)");
-        code.AppendLineAt(3, "{");
+        code.CloseBlock();
+        code.AppendLine("else { __hasLocalReorder = true; }");
+        code.AppendLine("if (!__hasLocalReorder)");
+        code.OpenBlock();
         // Clean path: persisted order plus post-submit insertions.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __ordered = new global::System.Collections.Generic.List<"
                 + member.Collection.ElementType.Name
                 + ">();"
@@ -166,11 +154,10 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             member.Collection.KeyIsReferenceType,
             elementRef,
-            elementNullableStruct,
-            4
+            elementNullableStruct
         );
-        code.AppendLineAt(4, "if (__perList is not null)");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("if (__perList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitPersistedOrderFill(
             code,
             "__perList",
@@ -185,16 +172,14 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             member.Collection.KeyIsReferenceType,
-            elementRef,
-            5
+            elementRef
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "if (__liveList is not null)");
-        code.AppendLineAt(4, "{");
+        code.CloseBlock();
+        code.AppendLine("if (__liveList is not null)");
+        code.OpenBlock();
         // Predecessor lookup needs indexing even when the model exposes only
         // IEnumerable.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __liveOrder = __liveList as global::System.Collections.Generic.IReadOnlyList<"
                 + member.Collection.ElementType.Name
                 + "> ?? new global::System.Collections.Generic.List<"
@@ -213,16 +198,13 @@ internal static class SparseTemporaryKeyElementEmitter
             tempProp,
             unassigned,
             member.Collection.KeyIsReferenceType,
-            elementRef,
-            5
+            elementRef
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             "if (__ordered!.Count != __working!.Count) { __working.Clear(); __working.AddRange(__ordered); __dirty = true; }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else { for (var __oi = 0; __oi < __ordered.Count; __oi++) { var __a = __ordered[__oi]; var __b = __working[__oi]; bool __same = object.ReferenceEquals(__a, __b); if (!__same && __a is not null && __b is not null) { __same = "
                 + elementType
                 + ".Fragment.__SparseAreEqual("
@@ -239,13 +221,13 @@ internal static class SparseTemporaryKeyElementEmitter
                 + elementType
                 + ")__b!))); } if (!__same) { __working.Clear(); __working.AddRange(__ordered); __dirty = true; break; } } }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         // Local reorder wins: live order already holds merged surviving
         // plus post-adds; only server-added rows append in persisted order.
-        code.AppendLineAt(4, "if (__perList is not null)");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("if (__perList is not null)");
+        code.OpenBlock();
         SparseTemporaryKeyOrderEmitter.EmitServerAddedAppend(
             code,
             "__perList",
@@ -257,22 +239,19 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            5
+            elementRef
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
         // Final duplicate guard before commit.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __seenKeys = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __seenTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
         SparseTemporaryKeyOrderEmitter.EmitDuplicateGuard(
@@ -285,10 +264,9 @@ internal static class SparseTemporaryKeyElementEmitter
             keyProp,
             tempProp,
             unassigned,
-            elementRef,
-            3
+            elementRef
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     internal static void AppendKeyedAssignedElement(
@@ -312,8 +290,8 @@ internal static class SparseTemporaryKeyElementEmitter
     )
     {
         // Submitted-missing elements are post-submit additions and stay.
-        code.AppendLineAt(5, elementType + " __subFound = default" + (elementRef ? "!" : "") + ";");
-        code.AppendLineAt(5, "bool __hasSub = false;");
+        code.AppendLine(elementType + " __subFound = default" + (elementRef ? "!" : "") + ";");
+        code.AppendLine("bool __hasSub = false;");
         EmitIndexedFind(
             code,
             subLookup,
@@ -325,14 +303,13 @@ internal static class SparseTemporaryKeyElementEmitter
             keyType,
             keyIsReferenceType
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if (!__hasSub) { __working[__write++] = __working[__i]"
                 + (elementRef ? "!" : "")
                 + "; continue; }"
         );
-        code.AppendLineAt(5, elementType + " __perFound = default" + (elementRef ? "!" : "") + ";");
-        code.AppendLineAt(5, "bool __hasPer = false;");
+        code.AppendLine(elementType + " __perFound = default" + (elementRef ? "!" : "") + ";");
+        code.AppendLine("bool __hasPer = false;");
         EmitIndexedFind(
             code,
             perLookup,
@@ -344,17 +321,16 @@ internal static class SparseTemporaryKeyElementEmitter
             keyType,
             keyIsReferenceType
         );
-        code.AppendLineAt(5, "if (!__hasPer)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "__dirty = true; continue;");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "var __edit = __transition?.GetChange(__k!)?.Edit;");
-        code.AppendLineAt(5, "if (__edit is null || __edit.IsEmpty)");
-        code.AppendLineAt(5, "{");
+        code.AppendLine("if (!__hasPer)");
+        code.OpenBlock();
+        code.AppendLine("__dirty = true; continue;");
+        code.CloseBlock();
+        code.AppendLine("var __edit = __transition?.GetChange(__k!)?.Edit;");
+        code.AppendLine("if (__edit is null || __edit.IsEmpty)");
+        code.OpenBlock();
         // An assigned row without its own post-submit edit adopts the persisted
         // element even when a sibling row keeps the member dirty.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (!"
                 + elementType
                 + ".Fragment.__SparseAreEqual("
@@ -371,21 +347,19 @@ internal static class SparseTemporaryKeyElementEmitter
                 + elementType
                 + ".Fragment.From(__perFound).ToModel(); __dirty = true; }"
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         // The edit sits on the submitted state while adoption targets the
         // persisted state.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __applied = __edit.ToPatch().Apply(" + elementType + ".Fragment.From(__perFound));"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (!__applied.IsPresent || __applied.Value is null) return __Fail(\"Reconciling produced an invalid element.\");"
         );
-        code.AppendLineAt(6, "__working[__i] = __applied.Value.ToModel(); __dirty = true;");
-        code.AppendLineAt(5, "}");
+        code.AppendLine("__working[__i] = __applied.Value.ToModel(); __dirty = true;");
+        code.CloseBlock();
         _ = runtimeNamespace;
         _ = member;
         _ = elementNullableStruct;
@@ -406,10 +380,9 @@ internal static class SparseTemporaryKeyElementEmitter
         var lookupResult = foundVar + "Lookup";
         if (keyType.EndsWith("?", System.StringComparison.Ordinal))
         {
-            code.AppendLineAt(5, "if (!" + keyExpr + ".HasValue)");
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (!" + keyExpr + ".HasValue)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if ("
                     + hasNullKey
                     + ") { "
@@ -420,9 +393,8 @@ internal static class SparseTemporaryKeyElementEmitter
                     + flagVar
                     + " = true; }"
             );
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(
-                5,
+            code.CloseBlock();
+            code.AppendLine(
                 "else if ("
                     + lookup
                     + ".TryGetValue("
@@ -440,10 +412,9 @@ internal static class SparseTemporaryKeyElementEmitter
         }
         else if (keyIsReferenceType)
         {
-            code.AppendLineAt(5, "if (" + keyExpr + " is null)");
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (" + keyExpr + " is null)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if ("
                     + hasNullKey
                     + ") { "
@@ -454,9 +425,8 @@ internal static class SparseTemporaryKeyElementEmitter
                     + flagVar
                     + " = true; }"
             );
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(
-                5,
+            code.CloseBlock();
+            code.AppendLine(
                 "else if ("
                     + lookup
                     + ".TryGetValue("
@@ -474,8 +444,7 @@ internal static class SparseTemporaryKeyElementEmitter
         }
         else
         {
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if ("
                     + lookup
                     + ".TryGetValue("

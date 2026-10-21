@@ -26,19 +26,17 @@ internal static class SparseChangeSetDictBetweenEmitter
             out var transNames
         );
         var trans = transNames[member.Id];
-        code.AppendLineAt(3, "bool __h" + id + " = false;");
-        code.AppendLineAt(3, "bool __whole" + id + " = false;");
-        code.AppendLineAt(3, opt + " __wb" + id + " = default;");
-        code.AppendLineAt(3, opt + " __wa" + id + " = default;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("bool __h" + id + " = false;");
+        code.AppendLine("bool __whole" + id + " = false;");
+        code.AppendLine(opt + " __wb" + id + " = default;");
+        code.AppendLine(opt + " __wa" + id + " = default;");
+        code.AppendLine(
             "global::System.Collections.Generic.List<" + trans + ".Item>? __items" + id + " = null;"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var __before" + id + " = bf." + escName + ";");
-        code.AppendLineAt(4, "var __after" + id + " = af." + escName + ";");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("var __before" + id + " = bf." + escName + ";");
+        code.AppendLine("var __after" + id + " = af." + escName + ";");
+        code.AppendLine(
             "bool __beforeHas"
                 + id
                 + " = __before"
@@ -47,8 +45,7 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + ".Value is not null;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "bool __afterHas"
                 + id
                 + " = __after"
@@ -57,8 +54,7 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + ".Value is not null;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__before"
                 + id
                 + ".IsPresent != __after"
@@ -69,13 +65,12 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + ")"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "if (!Fragment.__SparseEqual_" + id + "(__before" + id + ", __after" + id + "))"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "__h" + id + " = true; __whole" + id + " = true;");
+        code.OpenBlock();
+        code.AppendLine("__h" + id + " = true; __whole" + id + " = true;");
         var dictBefore = "__before" + id;
         var dictAfter = "__after" + id;
         if (NeedsSnapshot(member))
@@ -83,14 +78,11 @@ internal static class SparseChangeSetDictBetweenEmitter
             dictBefore = "__SparseSnapshot_" + id + "(" + dictBefore + ")";
             dictAfter = "__SparseSnapshot_" + id + "(" + dictAfter + ")";
         }
-        code.AppendLineAt(
-            6,
-            "__wb" + id + " = " + dictBefore + "; __wa" + id + " = " + dictAfter + ";"
-        );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
+        code.AppendLine("__wb" + id + " = " + dictBefore + "; __wa" + id + " = " + dictAfter + ";");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         AppendNormalizedInput(
             code,
             "__beforeDict" + id,
@@ -106,8 +98,8 @@ internal static class SparseChangeSetDictBetweenEmitter
             valueType
         );
         AppendItemAssembly(code, member, trans, dialect);
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendItemAssembly(
@@ -120,8 +112,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         var id = member.Id;
         var itemList = "global::System.Collections.Generic.List<" + trans + ".Item>";
         var optValue = dialect.RuntimeNamespace + "Optional<" + ValueTypeOf(member) + ">";
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             itemList
                 + "? __added"
                 + id
@@ -131,26 +122,24 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + " = null;"
         );
-        code.AppendLineAt(5, "foreach (var __kv in __beforeDict" + id + ")");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "if (__afterDict" + id + ".ContainsKey(__kv.Key)) continue;");
-        AppendPresenceItem(code, member, trans, dialect, isAdded: false, indent: 6);
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "foreach (var __kv in __afterDict" + id + ")");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "if (!__beforeDict" + id + ".TryGetValue(__kv.Key, out var __b))");
-        code.AppendLineAt(6, "{");
-        AppendPresenceItem(code, member, trans, dialect, isAdded: true, indent: 7);
-        code.AppendLineAt(7, "continue;");
-        code.AppendLineAt(6, "}");
+        code.AppendLine("foreach (var __kv in __beforeDict" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("if (__afterDict" + id + ".ContainsKey(__kv.Key)) continue;");
+        AppendPresenceItem(code, member, trans, dialect, isAdded: false);
+        code.CloseBlock();
+        code.AppendLine("foreach (var __kv in __afterDict" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("if (!__beforeDict" + id + ".TryGetValue(__kv.Key, out var __b))");
+        code.OpenBlock();
+        AppendPresenceItem(code, member, trans, dialect, isAdded: true);
+        code.AppendLine("continue;");
+        code.CloseBlock();
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "var __nested = " + ValueChangeSetOf(member) + ".Between(__b!, __kv.Value);"
             );
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (!__nested.IsEmpty) (__edited"
                     + id
                     + " ??= new "
@@ -162,8 +151,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (!"
                     + dialect.RuntimeFacade
                     + ".AreEqual(__b, __kv.Value)) (__edited"
@@ -179,9 +167,8 @@ internal static class SparseChangeSetDictBetweenEmitter
                     + ".Present(__kv.Value), false, false, true, false));"
             );
         }
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.CloseBlock();
+        code.AppendLine(
             "if (__added"
                 + id
                 + " is not null || __removed"
@@ -190,16 +177,14 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + " is not null)"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "__h" + id + " = true;");
+        code.OpenBlock();
+        code.AppendLine("__h" + id + " = true;");
         // Reuse the first group while preserving the established
         // added/removed/edited order.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __list = __added" + id + " ?? __removed" + id + " ?? __edited" + id + "!;"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "int __count = (__added"
                 + id
                 + "?.Count ?? 0) + (__removed"
@@ -208,9 +193,8 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + "?.Count ?? 0);"
         );
-        code.AppendLineAt(6, "if (__list.Capacity < __count) __list.Capacity = __count;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("if (__list.Capacity < __count) __list.Capacity = __count;");
+        code.AppendLine(
             "if (__removed"
                 + id
                 + " is not null && !global::System.Object.ReferenceEquals(__list, __removed"
@@ -219,8 +203,7 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + ");"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if (__edited"
                 + id
                 + " is not null && !global::System.Object.ReferenceEquals(__list, __edited"
@@ -229,8 +212,8 @@ internal static class SparseChangeSetDictBetweenEmitter
                 + id
                 + ");"
         );
-        code.AppendLineAt(6, "__items" + id + " = __list;");
-        code.AppendLineAt(5, "}");
+        code.AppendLine("__items" + id + " = __list;");
+        code.CloseBlock();
     }
 
     private static void AppendPresenceItem(
@@ -238,21 +221,19 @@ internal static class SparseChangeSetDictBetweenEmitter
         SparseMemberModel member,
         string trans,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        bool isAdded,
-        int indent
+        bool isAdded
     )
     {
         var runtime = dialect.RuntimeNamespace;
         var optValue = runtime + "Optional<" + ValueTypeOf(member) + ">";
         var group = (isAdded ? "__added" : "__removed") + member.Id;
         var itemList = "global::System.Collections.Generic.List<" + trans + ".Item>";
-        code.AppendLineAt(indent, "var __value = " + optValue + ".Present(__kv.Value);");
+        code.AppendLine("var __value = " + optValue + ".Present(__kv.Value);");
         var editArgument = string.Empty;
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
             var valueFrag = ValueFragmentOf(member);
-            code.AppendLineAt(
-                indent,
+            code.AppendLine(
                 "var __fragment = "
                     + runtime
                     + "Optional<"
@@ -262,8 +243,7 @@ internal static class SparseChangeSetDictBetweenEmitter
                     + ".From(__kv.Value!));"
             );
             var endpoints = isAdded ? "default, __fragment" : "__fragment, default";
-            code.AppendLineAt(
-                indent,
+            code.AppendLine(
                 "var __edit = " + ValueChangeSetOf(member) + ".Between(" + endpoints + ");"
             );
             editArgument = ", __edit";
@@ -271,8 +251,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         var valuesAndFlags = isAdded
             ? "default, __value, true, false, false"
             : "__value, default, false, true, false";
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "("
                 + group
                 + " ??= new "
@@ -301,8 +280,7 @@ internal static class SparseChangeSetDictBetweenEmitter
         var native = target + "Native";
         // Between only reads these maps. Other comparers still need default-key
         // normalization.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var "
                 + target
                 + " = "

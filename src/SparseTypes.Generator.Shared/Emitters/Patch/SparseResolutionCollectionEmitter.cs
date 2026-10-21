@@ -39,12 +39,10 @@ internal static class SparseResolutionCollectionEmitter
                     "throw new global::System.InvalidOperationException(\"Keyed collection has no usable key property.\");";
             }
 
-            body.AppendLineAt(
-                2,
+            body.AppendLine(
                 "/// <summary>Extracts the stable key of one element (resolution infrastructure).</summary>"
             );
-            body.AppendLineAt(
-                2,
+            body.AppendLine(
                 "private static "
                     + keyType
                     + " __SparseResolutionKeyOf_"
@@ -53,13 +51,12 @@ internal static class SparseResolutionCollectionEmitter
                     + elementType
                     + " element)"
             );
-            body.AppendLineAt(2, "{");
-            body.AppendLineAt(
-                3,
+            body.OpenBlock();
+            body.AppendLine(
                 "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no stable key.\");"
             );
-            body.AppendLineAt(3, "return " + extraction);
-            body.AppendLineAt(2, "}");
+            body.AppendLine("return " + extraction);
+            body.CloseBlock();
         }
     }
 
@@ -93,17 +90,16 @@ internal static class SparseResolutionCollectionEmitter
 
         // Member-level paths address either the whole collection or, for keyed
         // sequences, the order transition.
-        body.AppendLineAt(4, "if (offset + 1 == path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("if (offset + 1 == path.Depth)");
+        body.OpenBlock();
+        body.AppendLine(
             "if (desired.IsPresent && desired.Value is "
                 + orderListType
                 + " orderDesired"
                 + id
                 + ")"
         );
-        body.AppendLineAt(4, "{");
+        body.OpenBlock();
         AppendKeyedOrder(
             body,
             esc,
@@ -121,7 +117,7 @@ internal static class SparseResolutionCollectionEmitter
             id,
             useDesiredVariable: true
         );
-        body.AppendLineAt(4, "}");
+        body.CloseBlock();
         SparseResolutionApplyEmitter.AppendCheckedSlot(
             body,
             "builder." + esc,
@@ -131,21 +127,17 @@ internal static class SparseResolutionCollectionEmitter
             id,
             rejectNull: false
         );
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "if (offset + 2 > path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "error = \"The resolution path is too short for member '" + name + "'.\";"
-        );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var keySegment" + id + " = path.Segments[offset + 1];");
-        body.AppendLineAt(4, "var rawKey" + id + " = keySegment" + id + ".Key;");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (offset + 2 > path.Depth)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The resolution path is too short for member '" + name + "'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var keySegment" + id + " = path.Segments[offset + 1];");
+        body.AppendLine("var rawKey" + id + " = keySegment" + id + ".Key;");
+        body.AppendLine(
             "if (keySegment"
                 + id
                 + ".Kind != "
@@ -158,36 +150,29 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + "))"
         );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The key segment for member '" + name + "' has an unexpected type.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var key" + id + " = (" + keyType + ")rawKey" + id + ";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var key" + id + " = (" + keyType + ")rawKey" + id + ";");
         if (!member.Collection.ElementType.IsFragmentModel)
         {
-            body.AppendLineAt(4, "if (offset + 2 != path.Depth)");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(
-                5,
-                "error = \"Member '" + name + "' has no resolvable element leaves.\";"
-            );
-            body.AppendLineAt(5, "return false;");
-            body.AppendLineAt(4, "}");
+            body.AppendLine("if (offset + 2 != path.Depth)");
+            body.OpenBlock();
+            body.AppendLine("error = \"Member '" + name + "' has no resolvable element leaves.\";");
+            body.AppendLine("return false;");
+            body.CloseBlock();
         }
 
-        body.AppendLineAt(
-            4,
-            "if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)"
-        );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (!desired.IsPresent)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "updated = builder.Build();");
-        body.AppendLineAt(6, "return true;");
-        body.AppendLineAt(5, "}");
+        body.AppendLine("if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)");
+        body.OpenBlock();
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
         AppendKeyedAbsentAdd(
             body,
             esc,
@@ -199,32 +184,25 @@ internal static class SparseResolutionCollectionEmitter
             slotIsArray,
             member.Collection.ElementType.IsFragmentModel
         );
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(
-            4,
+        body.CloseBlock();
+        body.AppendLine(
             "if (builder." + esc + ".Value is not " + readOnlyListType + " source" + id + ")"
         );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "error = \"Member '" + name + "' has an unsupported collection shape.\";"
-        );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.OpenBlock();
+        body.AppendLine("error = \"Member '" + name + "' has an unsupported collection shape.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         if (workspace is not null)
         {
             // Detached staging: copy once per build, then reuse while the slot
             // still holds the published working buffer.
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "global::System.Collections.Generic.List<" + elementType + "> list" + id + ";"
             );
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "var stageKey" + id + " = " + workspace + ".StagingKey(path, offset + 1);"
             );
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "if (workspace.TryGetStaged(stageKey"
                     + id
                     + ", out var staged"
@@ -235,38 +213,36 @@ internal static class SparseResolutionCollectionEmitter
                     + id
                     + "))"
             );
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(5, "list" + id + " = (" + listType + ")staged" + id + "!;");
-            body.AppendLineAt(4, "}");
-            body.AppendLineAt(4, "else");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(5, "list" + id + " = new " + listType + "(source" + id + ");");
-            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", list" + id + ");");
-            body.AppendLineAt(4, "}");
+            body.OpenBlock();
+            body.AppendLine("list" + id + " = (" + listType + ")staged" + id + "!;");
+            body.CloseBlock();
+            body.AppendLine("else");
+            body.OpenBlock();
+            body.AppendLine("list" + id + " = new " + listType + "(source" + id + ");");
+            body.AppendLine("workspace.StoreStaged(stageKey" + id + ", list" + id + ");");
+            body.CloseBlock();
         }
         else
         {
-            body.AppendLineAt(4, "var list" + id + " = new " + listType + "(source" + id + ");");
+            body.AppendLine("var list" + id + " = new " + listType + "(source" + id + ");");
         }
 
-        body.AppendLineAt(4, "var index" + id + " = -1;");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("var index" + id + " = -1;");
+        body.AppendLine(
             "for (var scan" + id + " = 0; scan" + id + " < list" + id + ".Count; scan" + id + "++)"
         );
-        body.AppendLineAt(4, "{");
+        body.OpenBlock();
         if (elementIsRef)
         {
-            body.AppendLineAt(5, "var candidate" + id + " = list" + id + "[scan" + id + "];");
-            body.AppendLineAt(5, "if (candidate" + id + " is null) continue;");
+            body.AppendLine("var candidate" + id + " = list" + id + "[scan" + id + "];");
+            body.AppendLine("if (candidate" + id + " is null) continue;");
         }
         else
         {
-            body.AppendLineAt(5, "var candidate" + id + " = list" + id + "[scan" + id + "];");
+            body.AppendLine("var candidate" + id + " = list" + id + "[scan" + id + "];");
         }
 
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "if ("
                 + comparer
                 + ".Equals("
@@ -281,11 +257,11 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + "; break; }"
         );
-        body.AppendLineAt(4, "}");
+        body.CloseBlock();
         if (member.Collection.ElementType.IsFragmentModel)
         {
-            body.AppendLineAt(4, "if (offset + 2 == path.Depth)");
-            body.AppendLineAt(4, "{");
+            body.AppendLine("if (offset + 2 == path.Depth)");
+            body.OpenBlock();
             AppendKeyedElementWholesale(
                 body,
                 esc,
@@ -297,29 +273,24 @@ internal static class SparseResolutionCollectionEmitter
                 slotValue,
                 elementIsModel: true
             );
-            body.AppendLineAt(4, "}");
-            body.AppendLineAt(4, "if (index" + id + " < 0)");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(
-                5,
+            body.CloseBlock();
+            body.AppendLine("if (index" + id + " < 0)");
+            body.OpenBlock();
+            body.AppendLine(
                 "error = \"No element with the key was found in member '" + name + "'.\";"
             );
-            body.AppendLineAt(5, "return false;");
-            body.AppendLineAt(4, "}");
+            body.AppendLine("return false;");
+            body.CloseBlock();
             if (elementIsRef)
             {
-                body.AppendLineAt(4, "if (list" + id + "[index" + id + "] is null)");
-                body.AppendLineAt(4, "{");
-                body.AppendLineAt(
-                    5,
-                    "error = \"The element for member '" + name + "' is missing.\";"
-                );
-                body.AppendLineAt(5, "return false;");
-                body.AppendLineAt(4, "}");
+                body.AppendLine("if (list" + id + "[index" + id + "] is null)");
+                body.OpenBlock();
+                body.AppendLine("error = \"The element for member '" + name + "' is missing.\";");
+                body.AppendLine("return false;");
+                body.CloseBlock();
             }
 
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "var elementFragment"
                     + id
                     + " = "
@@ -330,8 +301,7 @@ internal static class SparseResolutionCollectionEmitter
                     + id
                     + "]!);"
             );
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "if (!"
                     + elementChangeSet
                     + ".__SparseTryApplyResolution(elementFragment"
@@ -342,25 +312,21 @@ internal static class SparseResolutionCollectionEmitter
                     + id
                     + ", out error)) return false;"
             );
-            body.AppendLineAt(4, "if (updatedElement" + id + " is null)");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(5, "error = \"The element resolution produced no fragment.\";");
-            body.AppendLineAt(5, "return false;");
-            body.AppendLineAt(4, "}");
-            body.AppendLineAt(
-                4,
+            body.AppendLine("if (updatedElement" + id + " is null)");
+            body.OpenBlock();
+            body.AppendLine("error = \"The element resolution produced no fragment.\";");
+            body.AppendLine("return false;");
+            body.CloseBlock();
+            body.AppendLine(
                 "list" + id + "[index" + id + "] = updatedElement" + id + ".ToModel();"
             );
-            body.AppendLineAt(
-                4,
-                "builder." + esc + " = " + optional + ".Present(" + slotValue + ");"
-            );
-            body.AppendLineAt(4, "updated = builder.Build();");
-            body.AppendLineAt(4, "return true;");
+            body.AppendLine("builder." + esc + " = " + optional + ".Present(" + slotValue + ");");
+            body.AppendLine("updated = builder.Build();");
+            body.AppendLine("return true;");
         }
         else
         {
-            body.AppendLineAt(4, "{");
+            body.OpenBlock();
             AppendKeyedElementWholesale(
                 body,
                 esc,
@@ -372,7 +338,7 @@ internal static class SparseResolutionCollectionEmitter
                 slotValue,
                 elementIsModel: false
             );
-            body.AppendLineAt(4, "}");
+            body.CloseBlock();
         }
     }
 
@@ -390,10 +356,9 @@ internal static class SparseResolutionCollectionEmitter
     {
         var checkElement = SparseResolutionApplyEmitter.NonNullable(elementType);
         var seedSuffix = slotIsArray ? ".ToArray()" : string.Empty;
-        body.AppendLineAt(5, "if (desired.Value is " + checkElement + " fresh" + id + ")");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("if (desired.Value is " + checkElement + " fresh" + id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "builder."
                 + esc
                 + " = "
@@ -406,18 +371,16 @@ internal static class SparseResolutionCollectionEmitter
                 + seedSuffix
                 + ");"
         );
-        body.AppendLineAt(6, "updated = builder.Build();");
-        body.AppendLineAt(6, "return true;");
-        body.AppendLineAt(5, "}");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
         if (elementIsModel)
         {
-            body.AppendLineAt(
-                5,
+            body.AppendLine(
                 "if (desired.Value is " + elementFragment + " freshFragment" + id + ")"
             );
-            body.AppendLineAt(5, "{");
-            body.AppendLineAt(
-                6,
+            body.OpenBlock();
+            body.AppendLine(
                 "builder."
                     + esc
                     + " = "
@@ -430,15 +393,14 @@ internal static class SparseResolutionCollectionEmitter
                     + seedSuffix
                     + ");"
             );
-            body.AppendLineAt(6, "updated = builder.Build();");
-            body.AppendLineAt(6, "return true;");
-            body.AppendLineAt(5, "}");
+            body.AppendLine("updated = builder.Build();");
+            body.AppendLine("return true;");
+            body.CloseBlock();
         }
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "error = \"Member '" + name + "' is absent and the resolution value cannot seed it.\";"
         );
-        body.AppendLineAt(5, "return false;");
+        body.AppendLine("return false;");
     }
 
     private static void AppendKeyedElementWholesale(
@@ -454,35 +416,29 @@ internal static class SparseResolutionCollectionEmitter
     )
     {
         var checkElement = SparseResolutionApplyEmitter.NonNullable(elementType);
-        body.AppendLineAt(5, "if (!desired.IsPresent)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "if (index" + id + " >= 0) list" + id + ".RemoveAt(index" + id + ");");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else if (desired.Value is null)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
-            "error = \"Null elements are not supported for member '" + name + "'.\";"
-        );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else if (desired.Value is " + checkElement + " element" + id + ")");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("if (index" + id + " >= 0) list" + id + ".RemoveAt(index" + id + ");");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is null)");
+        body.OpenBlock();
+        body.AppendLine("error = \"Null elements are not supported for member '" + name + "'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + checkElement + " element" + id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "if (index" + id + " >= 0) list" + id + "[index" + id + "] = element" + id + ";"
         );
-        body.AppendLineAt(6, "else list" + id + ".Add(element" + id + ");");
-        body.AppendLineAt(5, "}");
+        body.AppendLine("else list" + id + ".Add(element" + id + ");");
+        body.CloseBlock();
         if (elementIsModel)
         {
-            body.AppendLineAt(
-                5,
+            body.AppendLine(
                 "else if (desired.Value is " + elementFragment + " wholeFragment" + id + ")"
             );
-            body.AppendLineAt(5, "{");
-            body.AppendLineAt(
-                6,
+            body.OpenBlock();
+            body.AppendLine(
                 "var wholeModel"
                     + id
                     + " = wholeFragment"
@@ -501,19 +457,18 @@ internal static class SparseResolutionCollectionEmitter
                     + id
                     + ");"
             );
-            body.AppendLineAt(5, "}");
+            body.CloseBlock();
         }
-        body.AppendLineAt(5, "else");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The resolution value for member '" + name + "' has an unsupported type.\";"
         );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "builder." + esc + " = " + optional + ".Present(" + slotValue + ");");
-        body.AppendLineAt(5, "updated = builder.Build();");
-        body.AppendLineAt(5, "return true;");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("builder." + esc + " = " + optional + ".Present(" + slotValue + ");");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 
     private static void AppendKeyedOrder(
@@ -541,56 +496,45 @@ internal static class SparseResolutionCollectionEmitter
         var orderValue = useDesiredVariable ? "orderDesired" + id : "order" + id;
         if (!useDesiredVariable)
         {
-            body.AppendLineAt(
-                5,
+            body.AppendLine(
                 "if (desired.Value is not global::System.Collections.Generic.List<"
                     + keyType
                     + "> order"
                     + id
                     + ")"
             );
-            body.AppendLineAt(5, "{");
-            body.AppendLineAt(6, "error = \"The order resolution value must be a key list.\";");
-            body.AppendLineAt(6, "return false;");
-            body.AppendLineAt(5, "}");
+            body.OpenBlock();
+            body.AppendLine("error = \"The order resolution value must be a key list.\";");
+            body.AppendLine("return false;");
+            body.CloseBlock();
         }
 
-        body.AppendLineAt(
-            5,
-            "if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "error = \"Member '" + name + "' is absent and has no order.\";");
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
+        body.AppendLine("if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)");
+        body.OpenBlock();
+        body.AppendLine("error = \"Member '" + name + "' is absent and has no order.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine(
             "if (builder." + esc + ".Value is not " + readOnlyListType + " orderSource" + id + ")"
         );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
-            "error = \"Member '" + name + "' has an unsupported collection shape.\";"
-        );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
+        body.OpenBlock();
+        body.AppendLine("error = \"Member '" + name + "' has an unsupported collection shape.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         // One source-side key index replaces the quadratic per-key scans.
         // Duplicates and unknown keys stay lazily reported per requested key
         // so unmentioned duplicate rows keep their historical pass.
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "var orderComparer"
                 + id
                 + " = global::System.Collections.Generic.EqualityComparer<"
                 + keyType
                 + ">.Default;"
         );
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "var reordered" + id + " = new " + listType + "(orderSource" + id + ".Count);"
         );
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "var orderIndex"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<"
@@ -601,29 +545,24 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + ".Count);"
         );
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "global::System.Collections.Generic.List<"
                 + elementType
                 + ">? orderNull"
                 + id
                 + " = null;"
         );
-        body.AppendLineAt(5, "foreach (var orderElement" + id + " in orderSource" + id + ")");
-        body.AppendLineAt(5, "{");
+        body.AppendLine("foreach (var orderElement" + id + " in orderSource" + id + ")");
+        body.OpenBlock();
         if (elementIsRef)
         {
-            body.AppendLineAt(6, "if (orderElement" + id + " is null) continue;");
+            body.AppendLine("if (orderElement" + id + " is null) continue;");
         }
 
-        body.AppendLineAt(
-            6,
-            "var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");"
-        );
-        body.AppendLineAt(6, "if ((object?)orderElementKey" + id + " is null)");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(
-            7,
+        body.AppendLine("var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");");
+        body.AppendLine("if ((object?)orderElementKey" + id + " is null)");
+        body.OpenBlock();
+        body.AppendLine(
             "(orderNull"
                 + id
                 + " ??= new global::System.Collections.Generic.List<"
@@ -632,10 +571,9 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + ");"
         );
-        body.AppendLineAt(7, "continue;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("continue;");
+        body.CloseBlock();
+        body.AppendLine(
             "if (orderIndex"
                 + id
                 + ".TryGetValue(orderElementKey"
@@ -644,9 +582,8 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + "))"
         );
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(
-            7,
+        body.OpenBlock();
+        body.AppendLine(
             "orderIndex"
                 + id
                 + "[orderElementKey"
@@ -657,17 +594,15 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + ".matches + 1);"
         );
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "else");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(
-            7,
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "orderIndex" + id + ".Add(orderElementKey" + id + ", (orderElement" + id + ", 1));"
         );
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
+        body.CloseBlock();
+        body.CloseBlock();
+        body.AppendLine(
             "var orderMentioned"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<"
@@ -676,21 +611,19 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + ");"
         );
-        body.AppendLineAt(5, "var orderNullMentioned" + id + " = false;");
-        body.AppendLineAt(5, "foreach (var orderKey" + id + " in " + orderValue + ")");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "var orderMatch" + id + " = default(" + elementType + ");");
-        body.AppendLineAt(6, "int orderMatches" + id + ";");
-        body.AppendLineAt(6, "if ((object?)orderKey" + id + " is null)");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "orderMatches" + id + " = orderNull" + id + "?.Count ?? 0;");
-        body.AppendLineAt(
-            7,
+        body.AppendLine("var orderNullMentioned" + id + " = false;");
+        body.AppendLine("foreach (var orderKey" + id + " in " + orderValue + ")");
+        body.OpenBlock();
+        body.AppendLine("var orderMatch" + id + " = default(" + elementType + ");");
+        body.AppendLine("int orderMatches" + id + ";");
+        body.AppendLine("if ((object?)orderKey" + id + " is null)");
+        body.OpenBlock();
+        body.AppendLine("orderMatches" + id + " = orderNull" + id + "?.Count ?? 0;");
+        body.AppendLine(
             "if (orderMatches" + id + " == 1) orderMatch" + id + " = orderNull" + id + "![0];"
         );
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine(
             "else if (orderIndex"
                 + id
                 + ".TryGetValue(orderKey"
@@ -699,47 +632,43 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + "))"
         );
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "orderMatches" + id + " = orderEntry" + id + ".matches;");
-        body.AppendLineAt(7, "orderMatch" + id + " = orderEntry" + id + ".element;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "else");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "orderMatches" + id + " = 0;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "if (orderMatches" + id + " == 0)");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "error = \"The order references an unknown key.\";");
-        body.AppendLineAt(7, "return false;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "if (orderMatches" + id + " > 1)");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "error = \"The collection holds duplicate keys.\";");
-        body.AppendLineAt(7, "return false;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "if ((object?)orderKey" + id + " is null)");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "orderNullMentioned" + id + " = true;");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "else");
-        body.AppendLineAt(6, "{");
-        body.AppendLineAt(7, "orderMentioned" + id + ".Add(orderKey" + id + ");");
-        body.AppendLineAt(6, "}");
-        body.AppendLineAt(6, "reordered" + id + ".Add(orderMatch" + id + "!);");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "foreach (var orderElement" + id + " in orderSource" + id + ")");
-        body.AppendLineAt(5, "{");
+        body.OpenBlock();
+        body.AppendLine("orderMatches" + id + " = orderEntry" + id + ".matches;");
+        body.AppendLine("orderMatch" + id + " = orderEntry" + id + ".element;");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine("orderMatches" + id + " = 0;");
+        body.CloseBlock();
+        body.AppendLine("if (orderMatches" + id + " == 0)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The order references an unknown key.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("if (orderMatches" + id + " > 1)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The collection holds duplicate keys.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("if ((object?)orderKey" + id + " is null)");
+        body.OpenBlock();
+        body.AppendLine("orderNullMentioned" + id + " = true;");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine("orderMentioned" + id + ".Add(orderKey" + id + ");");
+        body.CloseBlock();
+        body.AppendLine("reordered" + id + ".Add(orderMatch" + id + "!);");
+        body.CloseBlock();
+        body.AppendLine("foreach (var orderElement" + id + " in orderSource" + id + ")");
+        body.OpenBlock();
         if (elementIsRef)
         {
-            body.AppendLineAt(6, "if (orderElement" + id + " is null) continue;");
+            body.AppendLine("if (orderElement" + id + " is null) continue;");
         }
 
-        body.AppendLineAt(
-            6,
-            "var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");"
-        );
-        body.AppendLineAt(
-            6,
+        body.AppendLine("var orderElementKey" + id + " = " + keyOf + "(orderElement" + id + ");");
+        body.AppendLine(
             "var orderKnown"
                 + id
                 + " = (object?)orderElementKey"
@@ -752,13 +681,11 @@ internal static class SparseResolutionCollectionEmitter
                 + id
                 + ");"
         );
-        body.AppendLineAt(
-            6,
+        body.AppendLine(
             "if (!orderKnown" + id + ") reordered" + id + ".Add(orderElement" + id + ");"
         );
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
+        body.CloseBlock();
+        body.AppendLine(
             "builder."
                 + esc
                 + " = "
@@ -767,7 +694,7 @@ internal static class SparseResolutionCollectionEmitter
                 + slotValue.Replace("list" + id, "reordered" + id)
                 + ");"
         );
-        body.AppendLineAt(5, "updated = builder.Build();");
-        body.AppendLineAt(5, "return true;");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 }

@@ -37,8 +37,8 @@ internal static class SparseResolutionDictEmitter
             + valueValueType
             + ">";
 
-        body.AppendLineAt(4, "if (offset + 1 == path.Depth)");
-        body.AppendLineAt(4, "{");
+        body.AppendLine("if (offset + 1 == path.Depth)");
+        body.OpenBlock();
         SparseResolutionApplyEmitter.AppendCheckedSlot(
             body,
             "builder." + esc,
@@ -48,21 +48,17 @@ internal static class SparseResolutionDictEmitter
             id,
             rejectNull: false
         );
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "if (offset + 2 > path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "error = \"The resolution path is too short for member '" + name + "'.\";"
-        );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var dictSegment" + id + " = path.Segments[offset + 1];");
-        body.AppendLineAt(4, "var rawDictKey" + id + " = dictSegment" + id + ".Key;");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (offset + 2 > path.Depth)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The resolution path is too short for member '" + name + "'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var dictSegment" + id + " = path.Segments[offset + 1];");
+        body.AppendLine("var rawDictKey" + id + " = dictSegment" + id + ".Key;");
+        body.AppendLine(
             "if (dictSegment"
                 + id
                 + ".Kind != "
@@ -75,36 +71,29 @@ internal static class SparseResolutionDictEmitter
                 + id
                 + "))"
         );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The key segment for member '" + name + "' has an unexpected type.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "var dictKey" + id + " = (" + keyType + ")rawDictKey" + id + ";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var dictKey" + id + " = (" + keyType + ")rawDictKey" + id + ";");
         if (!valueIsModel)
         {
-            body.AppendLineAt(4, "if (offset + 2 != path.Depth)");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(
-                5,
-                "error = \"Member '" + name + "' has no resolvable entry leaves.\";"
-            );
-            body.AppendLineAt(5, "return false;");
-            body.AppendLineAt(4, "}");
+            body.AppendLine("if (offset + 2 != path.Depth)");
+            body.OpenBlock();
+            body.AppendLine("error = \"Member '" + name + "' has no resolvable entry leaves.\";");
+            body.AppendLine("return false;");
+            body.CloseBlock();
         }
 
-        body.AppendLineAt(
-            4,
-            "if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)"
-        );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (!desired.IsPresent)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "updated = builder.Build();");
-        body.AppendLineAt(6, "return true;");
-        body.AppendLineAt(5, "}");
+        body.AppendLine("if (!builder." + esc + ".IsPresent || builder." + esc + ".Value is null)");
+        body.OpenBlock();
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
         AppendDictAbsentAdd(
             body,
             esc,
@@ -118,18 +107,16 @@ internal static class SparseResolutionDictEmitter
             name,
             runtime
         );
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, dictType + "? editable" + id + " = null;");
+        body.CloseBlock();
+        body.AppendLine(dictType + "? editable" + id + " = null;");
         if (workspace is not null)
         {
             // Detached staging: the built dictionary is reused while the slot
             // still references the published buffer; membership changes re-stage.
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "var stageKey" + id + " = " + workspace + ".StagingKey(path, offset + 1);"
             );
-            body.AppendLineAt(
-                4,
+            body.AppendLine(
                 "if (workspace.TryGetStaged(stageKey"
                     + id
                     + ", out var staged"
@@ -140,20 +127,16 @@ internal static class SparseResolutionDictEmitter
                     + id
                     + "))"
             );
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(5, "editable" + id + " = (" + dictType + ")staged" + id + "!;");
-            body.AppendLineAt(4, "}");
-            body.AppendLineAt(4, "if (editable" + id + " is null)");
-            body.AppendLineAt(4, "{");
+            body.OpenBlock();
+            body.AppendLine("editable" + id + " = (" + dictType + ")staged" + id + "!;");
+            body.CloseBlock();
+            body.AppendLine("if (editable" + id + " is null)");
+            body.OpenBlock();
         }
 
-        body.AppendLineAt(
-            4,
-            "if (builder." + esc + ".Value is " + dictType + " concrete" + id + ")"
-        );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.AppendLine("if (builder." + esc + ".Value is " + dictType + " concrete" + id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "editable"
                 + id
                 + " = new "
@@ -166,17 +149,15 @@ internal static class SparseResolutionDictEmitter
         );
         if (workspace is not null)
         {
-            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
+            body.AppendLine("workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
         }
 
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(
-            4,
+        body.CloseBlock();
+        body.AppendLine(
             "else if (builder." + esc + ".Value is " + genericDictType + " generic" + id + ")"
         );
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.OpenBlock();
+        body.AppendLine(
             "editable"
                 + id
                 + " = new "
@@ -189,26 +170,22 @@ internal static class SparseResolutionDictEmitter
         );
         if (workspace is not null)
         {
-            body.AppendLineAt(5, "workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
+            body.AppendLine("workspace.StoreStaged(stageKey" + id + ", editable" + id + ");");
         }
 
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "error = \"Member '" + name + "' has an unsupported dictionary shape.\";"
-        );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine("error = \"Member '" + name + "' has an unsupported dictionary shape.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         if (workspace is not null)
         {
-            body.AppendLineAt(4, "}");
+            body.CloseBlock();
         }
         // Typed lookup honors the dictionary comparer; no display-text
         // fallback.
-        body.AppendLineAt(
-            4,
+        body.AppendLine(
             "var found" + id + " = editable" + id + ".TryGetValue(dictKey" + id + ", out _);"
         );
         if (valueIsModel)
@@ -255,10 +232,9 @@ internal static class SparseResolutionDictEmitter
     )
     {
         var checkValue = SparseResolutionApplyEmitter.NonNullable(valueValueType);
-        body.AppendLineAt(5, "if (desired.Value is " + checkValue + " absentValue" + id + ")");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.AppendLine("if (desired.Value is " + checkValue + " absentValue" + id + ")");
+        body.OpenBlock();
+        body.AppendLine(
             "builder."
                 + esc
                 + " = "
@@ -271,18 +247,14 @@ internal static class SparseResolutionDictEmitter
                 + id
                 + " });"
         );
-        body.AppendLineAt(6, "updated = builder.Build();");
-        body.AppendLineAt(6, "return true;");
-        body.AppendLineAt(5, "}");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
         if (valueIsModel)
         {
-            body.AppendLineAt(
-                5,
-                "if (desired.Value is " + valueFragment + " absentFragment" + id + ")"
-            );
-            body.AppendLineAt(5, "{");
-            body.AppendLineAt(
-                6,
+            body.AppendLine("if (desired.Value is " + valueFragment + " absentFragment" + id + ")");
+            body.OpenBlock();
+            body.AppendLine(
                 "builder."
                     + esc
                     + " = "
@@ -295,16 +267,15 @@ internal static class SparseResolutionDictEmitter
                     + id
                     + ".ToModel() });"
             );
-            body.AppendLineAt(6, "updated = builder.Build();");
-            body.AppendLineAt(6, "return true;");
-            body.AppendLineAt(5, "}");
+            body.AppendLine("updated = builder.Build();");
+            body.AppendLine("return true;");
+            body.CloseBlock();
             var valueModel = valueFragment.EndsWith(".Fragment", System.StringComparison.Ordinal)
                 ? valueFragment.Substring(0, valueFragment.Length - ".Fragment".Length)
                 : valueValueType;
-            body.AppendLineAt(5, "if (desired.Value is " + valueModel + " absentModel" + id + ")");
-            body.AppendLineAt(5, "{");
-            body.AppendLineAt(
-                6,
+            body.AppendLine("if (desired.Value is " + valueModel + " absentModel" + id + ")");
+            body.OpenBlock();
+            body.AppendLine(
                 "builder."
                     + esc
                     + " = "
@@ -317,16 +288,15 @@ internal static class SparseResolutionDictEmitter
                     + id
                     + " });"
             );
-            body.AppendLineAt(6, "updated = builder.Build();");
-            body.AppendLineAt(6, "return true;");
-            body.AppendLineAt(5, "}");
+            body.AppendLine("updated = builder.Build();");
+            body.AppendLine("return true;");
+            body.CloseBlock();
         }
 
-        body.AppendLineAt(
-            5,
+        body.AppendLine(
             "error = \"Member '" + name + "' is absent and the resolution value cannot seed it.\";"
         );
-        body.AppendLineAt(5, "return false;");
+        body.AppendLine("return false;");
         _ = runtime;
         _ = keyType;
     }
@@ -342,40 +312,38 @@ internal static class SparseResolutionDictEmitter
     )
     {
         var checkValue = SparseResolutionApplyEmitter.NonNullable(valueValueType);
-        body.AppendLineAt(4, "if (!desired.IsPresent)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (found" + id + ") editable" + id + ".Remove(dictKey" + id + ");");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else if (desired.Value is null)");
-        body.AppendLineAt(4, "{");
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("if (found" + id + ") editable" + id + ".Remove(dictKey" + id + ");");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is null)");
+        body.OpenBlock();
         if (rejectNull)
         {
-            body.AppendLineAt(5, "error = \"Member '" + name + "' does not accept null values.\";");
-            body.AppendLineAt(5, "return false;");
+            body.AppendLine("error = \"Member '" + name + "' does not accept null values.\";");
+            body.AppendLine("return false;");
         }
         else
         {
-            body.AppendLineAt(
-                5,
+            body.AppendLine(
                 "editable" + id + "[dictKey" + id + "] = default(" + valueValueType + ")!;"
             );
         }
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else if (desired.Value is " + checkValue + " entry" + id + ")");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "editable" + id + "[dictKey" + id + "] = entry" + id + ";");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "else");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + checkValue + " entry" + id + ")");
+        body.OpenBlock();
+        body.AppendLine("editable" + id + "[dictKey" + id + "] = entry" + id + ";");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The resolution value for member '" + name + "' has an unsupported type.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "builder." + esc + " = " + optional + ".Present(editable" + id + ");");
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("builder." + esc + " = " + optional + ".Present(editable" + id + ");");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 
     private static void AppendDictStructuralEntry(
@@ -398,71 +366,58 @@ internal static class SparseResolutionDictEmitter
         var valueModel = valueFragment.EndsWith(".Fragment", System.StringComparison.Ordinal)
             ? valueFragment.Substring(0, valueFragment.Length - ".Fragment".Length)
             : valueValueType;
-        body.AppendLineAt(4, "if (offset + 2 == path.Depth)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (!desired.IsPresent)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "if (found" + id + ") editable" + id + ".Remove(dictKey" + id + ");");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else if (desired.Value is null)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
-            "error = \"Null entries are not supported for member '" + name + "'.\";"
-        );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
-            "else if (desired.Value is " + valueValueType + " structEntry" + id + ")"
-        );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "editable" + id + "[dictKey" + id + "] = structEntry" + id + ";");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(
-            5,
+        body.AppendLine("if (offset + 2 == path.Depth)");
+        body.OpenBlock();
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("if (found" + id + ") editable" + id + ".Remove(dictKey" + id + ");");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is null)");
+        body.OpenBlock();
+        body.AppendLine("error = \"Null entries are not supported for member '" + name + "'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + valueValueType + " structEntry" + id + ")");
+        body.OpenBlock();
+        body.AppendLine("editable" + id + "[dictKey" + id + "] = structEntry" + id + ";");
+        body.CloseBlock();
+        body.AppendLine(
             "else if (desired.Value is " + valueFragment + " structFragment" + id + ")"
         );
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.OpenBlock();
+        body.AppendLine(
             "editable" + id + "[dictKey" + id + "] = structFragment" + id + ".ToModel();"
         );
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else if (desired.Value is " + valueModel + " structModel" + id + ")");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(6, "editable" + id + "[dictKey" + id + "] = structModel" + id + ";");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "else");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine("else if (desired.Value is " + valueModel + " structModel" + id + ")");
+        body.OpenBlock();
+        body.AppendLine("editable" + id + "[dictKey" + id + "] = structModel" + id + ";");
+        body.CloseBlock();
+        body.AppendLine("else");
+        body.OpenBlock();
+        body.AppendLine(
             "error = \"The resolution value for member '" + name + "' has an unsupported type.\";"
         );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(5, "builder." + esc + " = " + optional + ".Present(editable" + id + ");");
-        body.AppendLineAt(5, "updated = builder.Build();");
-        body.AppendLineAt(5, "return true;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "if (!found" + id + ")");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
-            "error = \"No entry with the key was found in member '" + name + "'.\";"
-        );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("builder." + esc + " = " + optional + ".Present(editable" + id + ");");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (!found" + id + ")");
+        body.OpenBlock();
+        body.AppendLine("error = \"No entry with the key was found in member '" + name + "'.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
         if (valueMayBeNull)
         {
-            body.AppendLineAt(4, "if (editable" + id + "[dictKey" + id + "] is null)");
-            body.AppendLineAt(4, "{");
-            body.AppendLineAt(5, "error = \"The entry for member '" + name + "' is missing.\";");
-            body.AppendLineAt(5, "return false;");
-            body.AppendLineAt(4, "}");
+            body.AppendLine("if (editable" + id + "[dictKey" + id + "] is null)");
+            body.OpenBlock();
+            body.AppendLine("error = \"The entry for member '" + name + "' is missing.\";");
+            body.AppendLine("return false;");
+            body.CloseBlock();
         }
-        body.AppendLineAt(
-            4,
+        body.AppendLine(
             "var valueFragment"
                 + id
                 + " = "
@@ -473,8 +428,7 @@ internal static class SparseResolutionDictEmitter
                 + id
                 + "]);"
         );
-        body.AppendLineAt(
-            4,
+        body.AppendLine(
             "if (!"
                 + valueChangeSet
                 + ".__SparseTryApplyResolution(valueFragment"
@@ -485,17 +439,16 @@ internal static class SparseResolutionDictEmitter
                 + id
                 + ", out error)) return false;"
         );
-        body.AppendLineAt(4, "if (updatedValue" + id + " is null)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "error = \"The entry resolution produced no fragment.\";");
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("if (updatedValue" + id + " is null)");
+        body.OpenBlock();
+        body.AppendLine("error = \"The entry resolution produced no fragment.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine(
             "editable" + id + "[dictKey" + id + "] = updatedValue" + id + ".ToModel();"
         );
-        body.AppendLineAt(4, "builder." + esc + " = " + optional + ".Present(editable" + id + ");");
-        body.AppendLineAt(4, "updated = builder.Build();");
-        body.AppendLineAt(4, "return true;");
+        body.AppendLine("builder." + esc + " = " + optional + ".Present(editable" + id + ");");
+        body.AppendLine("updated = builder.Build();");
+        body.AppendLine("return true;");
     }
 }

@@ -34,15 +34,13 @@ internal static class SparseChangeSetPatchSyncEmitter
         var shell = code;
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Attaches a known baseline to an arbitrary patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The known baseline.</param>");
-            code.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-            code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
+            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
                 "public static ChangeSet FromPatch("
                     + optionalFragment
                     + " baseline, Patch patch) => "
@@ -50,15 +48,13 @@ internal static class SparseChangeSetPatchSyncEmitter
                     + ".FromPatch(baseline, patch);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Attaches a known baseline to an arbitrary patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The known baseline.</param>");
-            code.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-            code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
+            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
                 "internal static ChangeSet FromPatch("
                     + optionalFragment
                     + " baseline, Patch patch)"
@@ -66,76 +62,66 @@ internal static class SparseChangeSetPatchSyncEmitter
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Attaches a known baseline to an arbitrary patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The known baseline.</param>");
-            code.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-            code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
+            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
                 "public static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch)"
             );
         }
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
         );
-        code.AppendLineAt(3, "var after = patch.Apply(baseline);");
-        code.AppendLineAt(3, "return Between(baseline, after);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("var after = patch.Apply(baseline);");
+        code.AppendLine("return Between(baseline, after);");
+        code.CloseBlock();
         if (modelType is not null)
         {
             if (target is not null)
             {
                 // NOTE: code already streams into the operation container here.
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "/// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>"
                 );
-                code.AppendLineAt(2, "/// <param name=\"baseline\">The model baseline.</param>");
-                code.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-                code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-                code.AppendLineAt(
-                    2,
+                code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
+                code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+                code.AppendLine(
                     "internal static ChangeSet FromPatch(" + modelType + " baseline, Patch patch)"
                 );
             }
             else
             {
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "/// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>"
                 );
-                code.AppendLineAt(2, "/// <param name=\"baseline\">The model baseline.</param>");
-                code.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-                code.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-                code.AppendLineAt(
-                    2,
+                code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
+                code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+                code.AppendLine(
                     "public static ChangeSet FromPatch(" + modelType + " baseline, Patch patch)"
                 );
             }
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine(
                 "return FromPatch("
                     + optionalFragment
                     + ".Present(Fragment.From(baseline)), patch);"
             );
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             if (target is not null)
             {
-                shell.AppendLineAt(
-                    2,
+                shell.AppendLine(
                     "/// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>"
                 );
-                shell.AppendLineAt(2, "/// <param name=\"baseline\">The model baseline.</param>");
-                shell.AppendLineAt(2, "/// <param name=\"patch\">The patch to attach.</param>");
-                shell.AppendLineAt(2, "/// <returns>The baseline-aware change set.</returns>");
-                shell.AppendLineAt(
-                    2,
+                shell.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
+                shell.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                shell.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+                shell.AppendLine(
                     "public static ChangeSet FromPatch("
                         + modelType
                         + " baseline, Patch patch) => "
@@ -158,54 +144,49 @@ internal static class SparseChangeSetPatchSyncEmitter
         var between = "Patch." + prefix + "Between";
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <returns>The baseline-free patch.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The baseline-free patch.</returns>");
+            code.AppendLine(
                 "public Patch ToPatch() => " + target.ChangeSetOperationsType + ".ToPatch(this);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to project.</param>");
-            code.AppendLineAt(2, "/// <returns>The baseline-free patch.</returns>");
-            code.AppendLineAt(2, "internal static Patch ToPatch(ChangeSet self)");
+            code.AppendLine("/// <param name=\"self\">The change set to project.</param>");
+            code.AppendLine("/// <returns>The baseline-free patch.</returns>");
+            code.AppendLine("internal static Patch ToPatch(ChangeSet self)");
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>"
             );
-            code.AppendLineAt(2, "/// <returns>The baseline-free patch.</returns>");
-            code.AppendLineAt(2, "public Patch ToPatch()");
+            code.AppendLine("/// <returns>The baseline-free patch.</returns>");
+            code.AppendLine("public Patch ToPatch()");
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (target is not null)
         {
             AppendSelfAliases(code, members);
         }
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (__sparse_hasWhole) return "
                 + between
                 + "(__sparse_wholeBefore, __sparse_wholeAfter);"
         );
-        code.AppendLineAt(3, "var patch = new Patch();");
+        code.AppendLine("var patch = new Patch();");
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
             if (IsNested(member))
             {
-                code.AppendLineAt(3, "if (" + NestedField(member) + " is not null)");
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(4, "patch." + name + " = " + NestedField(member) + ".ToPatch();");
-                code.AppendLineAt(3, "}");
+                code.AppendLine("if (" + NestedField(member) + " is not null)");
+                code.OpenBlock();
+                code.AppendLine("patch." + name + " = " + NestedField(member) + ".ToPatch();");
+                code.CloseBlock();
             }
             else if (IsKeyed(member) || IsDict(member))
             {
@@ -221,10 +202,9 @@ internal static class SparseChangeSetPatchSyncEmitter
             {
                 var vt = SparseFragmentPatchEmitter.GetMemberValueType(dialect, member);
                 var op = runtime + "FragmentOperation<" + vt + ">";
-                code.AppendLineAt(3, "if (" + HasField(member) + ")");
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(
-                    4,
+                code.AppendLine("if (" + HasField(member) + ")");
+                code.OpenBlock();
+                code.AppendLine(
                     "patch."
                         + name
                         + " = "
@@ -237,19 +217,18 @@ internal static class SparseChangeSetPatchSyncEmitter
                         + op
                         + ".Remove;"
                 );
-                code.AppendLineAt(3, "}");
+                code.CloseBlock();
             }
         }
-        code.AppendLineAt(3, "return patch;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return patch;");
+        code.CloseBlock();
         foreach (var member in members)
         {
             if (!IsDict(member))
             {
                 continue;
             }
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 (
                     target is null
                         ? "private int __SparseRemovalCount"
@@ -258,21 +237,21 @@ internal static class SparseChangeSetPatchSyncEmitter
                     + member.Id
                     + (target is null ? "()" : "(ChangeSet self)")
             );
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             if (target is not null)
             {
                 AppendSelfAliases(code, members);
             }
-            code.AppendLineAt(3, "int count = 0;");
-            code.AppendLineAt(3, "if (" + KeyedItems(member) + " is not null)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "foreach (var item in " + KeyedItems(member) + ")");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(5, "if (item.IsRemoved) count++;");
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "return count;");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("int count = 0;");
+            code.AppendLine("if (" + KeyedItems(member) + " is not null)");
+            code.OpenBlock();
+            code.AppendLine("foreach (var item in " + KeyedItems(member) + ")");
+            code.OpenBlock();
+            code.AppendLine("if (item.IsRemoved) count++;");
+            code.CloseBlock();
+            code.CloseBlock();
+            code.AppendLine("return count;");
+            code.CloseBlock();
         }
     }
 
@@ -300,59 +279,53 @@ internal static class SparseChangeSetPatchSyncEmitter
         }
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Swaps the transition direction without requiring a separate baseline.</summary>"
             );
-            code.AppendLineAt(2, "/// <returns>The inverted change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The inverted change set.</returns>");
+            code.AppendLine(
                 "public ChangeSet Invert() => " + target.ChangeSetOperationsType + ".Invert(this);"
             );
             code = into;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Swaps the transition direction without requiring a separate baseline.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to invert.</param>");
-            code.AppendLineAt(2, "/// <returns>The inverted change set.</returns>");
-            code.AppendLineAt(2, "internal static ChangeSet Invert(ChangeSet self)");
+            code.AppendLine("/// <param name=\"self\">The change set to invert.</param>");
+            code.AppendLine("/// <returns>The inverted change set.</returns>");
+            code.AppendLine("internal static ChangeSet Invert(ChangeSet self)");
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Swaps the transition direction without requiring a separate baseline.</summary>"
             );
-            code.AppendLineAt(2, "/// <returns>The inverted change set.</returns>");
-            code.AppendLineAt(2, "public ChangeSet Invert()");
+            code.AppendLine("/// <returns>The inverted change set.</returns>");
+            code.AppendLine("public ChangeSet Invert()");
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (target is not null)
         {
             AppendSelfAliases(code, members);
         }
         var emptyTail = MemberEmptyTail(members);
-        code.AppendLineAt(3, "if (__sparse_hasWhole)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (__sparse_hasWhole)");
+        code.OpenBlock();
         if (string.IsNullOrEmpty(emptyTail))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore);"
             );
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, "
                     + emptyTail
                     + ");"
             );
         }
 
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
@@ -400,8 +373,8 @@ internal static class SparseChangeSetPatchSyncEmitter
                 args.AddRange(new[] { AfterField(member), BeforeField(member), HasField(member) });
             }
         }
-        code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
+        code.CloseBlock();
     }
 
     internal static void AppendApplyToBaseline(
@@ -413,22 +386,18 @@ internal static class SparseChangeSetPatchSyncEmitter
         // Baseline advancement for synchronous edit sessions.
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Validates this transition against the supplied baseline and returns the advanced baseline.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Only changed paths are compared; members this change set does not encode are never validated.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.InvalidOperationException\">Thrown when the transition is stale or incompatible with the baseline, or when advancing would not produce a valid model state.</exception>"
             );
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The baseline to advance.</param>");
-            code.AppendLineAt(2, "/// <returns>The advanced baseline.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"baseline\">The baseline to advance.</param>");
+            code.AppendLine("/// <returns>The advanced baseline.</returns>");
+            code.AppendLine(
                 "public "
                     + optionalFragment
                     + " ApplyToBaseline("
@@ -438,23 +407,19 @@ internal static class SparseChangeSetPatchSyncEmitter
                     + ".ApplyToBaseline(this, baseline);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Validates a transition against the supplied baseline and returns the advanced baseline.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Only changed paths are compared; members the change set does not encode are never validated.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.InvalidOperationException\">Thrown when the transition is stale or incompatible with the baseline, or when advancing would not produce a valid model state.</exception>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to apply.</param>");
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The baseline to advance.</param>");
-            code.AppendLineAt(2, "/// <returns>The advanced baseline.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
+            code.AppendLine("/// <param name=\"baseline\">The baseline to advance.</param>");
+            code.AppendLine("/// <returns>The advanced baseline.</returns>");
+            code.AppendLine(
                 "internal static "
                     + optionalFragment
                     + " ApplyToBaseline(ChangeSet self, "
@@ -464,44 +429,37 @@ internal static class SparseChangeSetPatchSyncEmitter
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Validates this transition against the supplied baseline and returns the advanced baseline.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Only changed paths are compared; members this change set does not encode are never validated.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.InvalidOperationException\">Thrown when the transition is stale or incompatible with the baseline, or when advancing would not produce a valid model state.</exception>"
             );
-            code.AppendLineAt(2, "/// <param name=\"baseline\">The baseline to advance.</param>");
-            code.AppendLineAt(2, "/// <returns>The advanced baseline.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"baseline\">The baseline to advance.</param>");
+            code.AppendLine("/// <returns>The advanced baseline.</returns>");
+            code.AppendLine(
                 "public " + optionalFragment + " ApplyToBaseline(" + optionalFragment + " baseline)"
             );
         }
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             target is null
                 ? "if (!__SparseBeforeMatches(baseline)) throw new global::System.InvalidOperationException(\"The change set is stale or incompatible with the supplied baseline.\");"
                 : "if (!self.__SparseBeforeMatches(baseline)) throw new global::System.InvalidOperationException(\"The change set is stale or incompatible with the supplied baseline.\");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             target is null
                 ? "var __advanced = ToPatch().Apply(baseline);"
                 : "var __advanced = ToPatch(self).Apply(baseline);"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (!__advanced.IsPresent || __advanced.Value is null) throw new global::System.InvalidOperationException(\"Advancing the baseline did not produce a valid model state.\");"
         );
-        code.AppendLineAt(3, "return __advanced;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return __advanced;");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the per-key item inverter for a sparse keyed/dict member.</summary>
@@ -515,8 +473,7 @@ internal static class SparseChangeSetPatchSyncEmitter
         _ = runtime;
         var trans = TransNameFor(members, member);
         var id = member.Id;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>? __SparseInvertItems_"
@@ -525,20 +482,18 @@ internal static class SparseChangeSetPatchSyncEmitter
                 + trans
                 + ".Item>? items)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (items is null) return null;");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (items is null) return null;");
+        code.AppendLine(
             "var __out = new global::System.Collections.Generic.List<"
                 + trans
                 + ".Item>(items.Count);"
         );
-        code.AppendLineAt(3, "foreach (var __it in items)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("foreach (var __it in items)");
+        code.OpenBlock();
         if (IsKeyed(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "__out.Add(new "
                     + trans
                     + ".Item(__it.Key, __it.TemporaryKey, __it.After, __it.Before, __it.AfterIndex, __it.BeforeIndex, __it.IsRemoved, __it.IsAdded, __it.IsEdited, __it.IsReordered, __it.Edit.Invert(), false));"
@@ -549,8 +504,7 @@ internal static class SparseChangeSetPatchSyncEmitter
             var hasPatch = member.Collection.ValueType?.IsFragmentModel == true;
             if (hasPatch)
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "__out.Add(new "
                         + trans
                         + ".Item(__it.Key, __it.After, __it.Before, __it.IsRemoved, __it.IsAdded, __it.IsEdited, __it.Edit.Invert(), false));"
@@ -558,17 +512,16 @@ internal static class SparseChangeSetPatchSyncEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "__out.Add(new "
                         + trans
                         + ".Item(__it.Key, __it.After, __it.Before, __it.IsRemoved, __it.IsAdded, __it.IsEdited, false));"
                 );
             }
         }
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return __out;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return __out;");
+        code.CloseBlock();
     }
 
     /// <summary>Emits ToPatch projection for a sparse keyed/dict member.</summary>
@@ -588,14 +541,13 @@ internal static class SparseChangeSetPatchSyncEmitter
         var hasValuePatch = isKeyed
             ? member.Collection.ElementType.IsFragmentModel
             : member.Collection.ValueType?.IsFragmentModel == true;
-        code.AppendLineAt(3, "if (" + HasField(member) + ")");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (" + HasField(member) + ")");
+        code.OpenBlock();
         // Whole presence/null transitions project via canonical collection
         // Between.
-        code.AppendLineAt(4, "if (" + KeyedWholeFlag(member) + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "patch."
                 + escName
                 + " = "
@@ -606,42 +558,39 @@ internal static class SparseChangeSetPatchSyncEmitter
                 + KeyedWholeAfter(member)
                 + ");"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "var __coll" + id + " = new " + coll + "();");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var __coll" + id + " = new " + coll + "();");
         if (!isKeyed)
         {
-            code.AppendLineAt(5, "bool __reservedRemovals" + id + " = false;");
+            code.AppendLine("bool __reservedRemovals" + id + " = false;");
         }
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "if ("
                 + KeyedItems(member)
                 + " is not null) foreach (var __it in "
                 + KeyedItems(member)
                 + ")"
         );
-        code.AppendLineAt(5, "{");
+        code.OpenBlock();
         if (isKeyed)
         {
-            code.AppendLineAt(6, "if (__it.IsAdded) __coll" + id + ".Add(__it.After.Value!);");
+            code.AppendLine("if (__it.IsAdded) __coll" + id + ".Add(__it.After.Value!);");
         }
         else
         {
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "if (__it.IsAdded) __coll" + id + ".SetEntry(__it.Key!, __it.After.Value!);"
             );
         }
 
-        code.AppendLineAt(6, "else if (__it.IsRemoved)");
+        code.AppendLine("else if (__it.IsRemoved)");
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             // Temporary removals address by Guid; assigned removals keep key
             // addressing.
-            code.AppendLineAt(
-                6,
+            code.AppendLine(
                 "{ if (__it.TemporaryKey.HasValue) __coll"
                     + id
                     + ".RemoveByTemporaryKey(__it.TemporaryKey.Value); else __coll"
@@ -651,15 +600,14 @@ internal static class SparseChangeSetPatchSyncEmitter
         }
         else if (isKeyed)
         {
-            code.AppendLineAt(6, "{ __coll" + id + ".Remove(__it.Key); }");
+            code.AppendLine("{ __coll" + id + ".Remove(__it.Key); }");
         }
         else
         {
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(7, "if (!__reservedRemovals" + id + ")");
-            code.AppendLineAt(7, "{");
-            code.AppendLineAt(
-                8,
+            code.OpenBlock();
+            code.AppendLine("if (!__reservedRemovals" + id + ")");
+            code.OpenBlock();
+            code.AppendLine(
                 "__coll"
                     + id
                     + ".__SparseReserveRemovals("
@@ -669,25 +617,24 @@ internal static class SparseChangeSetPatchSyncEmitter
                     )
                     + ");"
             );
-            code.AppendLineAt(8, "__reservedRemovals" + id + " = true;");
-            code.AppendLineAt(7, "}");
-            code.AppendLineAt(7, "__coll" + id + ".RemoveEntry(__it.Key!);");
-            code.AppendLineAt(6, "}");
+            code.AppendLine("__reservedRemovals" + id + " = true;");
+            code.CloseBlock();
+            code.AppendLine("__coll" + id + ".RemoveEntry(__it.Key!);");
+            code.CloseBlock();
         }
-        code.AppendLineAt(6, "else if (__it.IsEdited)");
-        code.AppendLineAt(6, "{");
+        code.AppendLine("else if (__it.IsEdited)");
+        code.OpenBlock();
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             // Temporary edits address by Guid; assigned edits keep key
             // addressing.
-            code.AppendLineAt(7, "var __isTempEdit = __it.TemporaryKey.HasValue;");
+            code.AppendLine("var __isTempEdit = __it.TemporaryKey.HasValue;");
         }
         if (hasValuePatch)
         {
             if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "if (__isTempEdit) __coll"
                         + id
                         + ".__SparseSetEditedByTemporaryKey(__it.TemporaryKey!.Value, __it.Edit.ToPatch()); else __coll"
@@ -697,8 +644,7 @@ internal static class SparseChangeSetPatchSyncEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "__coll" + id + ".__SparseSetEdited(__it.Key, __it.Edit.ToPatch());"
                 );
             }
@@ -707,8 +653,7 @@ internal static class SparseChangeSetPatchSyncEmitter
         {
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "if (__isTempEdit) __coll"
                         + id
                         + ".UpdateByTemporaryKey(__it.After.Value!); else __coll"
@@ -718,17 +663,17 @@ internal static class SparseChangeSetPatchSyncEmitter
             }
             else
             {
-                code.AppendLineAt(7, "__coll" + id + ".Update(__it.After.Value!);");
+                code.AppendLine("__coll" + id + ".Update(__it.After.Value!);");
             }
         }
         else
         {
-            code.AppendLineAt(7, "__coll" + id + ".UpdateEntry(__it.Key!, __it.After.Value!);");
+            code.AppendLine("__coll" + id + ".UpdateEntry(__it.Key!, __it.After.Value!);");
         }
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         // Reorder-only items contribute no add/remove/edit; order is applied
         // below.
-        code.AppendLineAt(5, "}");
+        code.CloseBlock();
         if (isKeyed)
         {
             var beforeOrder = KeyedBeforeOrder(member);
@@ -738,35 +683,31 @@ internal static class SparseChangeSetPatchSyncEmitter
             var orderChanged = KeyedOrderChangedExpression(member, __facade);
             // Equal sentinel-key sequences can still carry a temporary-identity
             // reorder.
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 $"if ({beforeOrder} is not null && {afterOrder} is not null && ({orderChanged}))"
             );
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(6, $"__coll{id}.SetOrder({afterOrder});");
+            code.OpenBlock();
+            code.AppendLine($"__coll{id}.SetOrder({afterOrder});");
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
-                code.AppendLineAt(
-                    6,
+                code.AppendLine(
                     $"if ({tempBeforeOrder} is not null && {tempAfterOrder} is not null)"
                 );
-                code.AppendLineAt(6, "{");
-                code.AppendLineAt(
-                    7,
+                code.OpenBlock();
+                code.AppendLine(
                     $"__coll{id}.__orderTemp = new global::System.Collections.Generic.List<global::System.Guid?>();"
                 );
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     $"{{ var __ti = 0; foreach (var __ok in {afterOrder}) {{ if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__ok")
                         + $") __coll{id}.__orderTemp.Add(__ti < {tempAfterOrder}.Count ? (global::System.Guid?){tempAfterOrder}[__ti++] : null); else __coll{id}.__orderTemp.Add(null); }} }}"
                 );
-                code.AppendLineAt(6, "}");
+                code.CloseBlock();
             }
-            code.AppendLineAt(5, "}");
+            code.CloseBlock();
         }
-        code.AppendLineAt(5, "patch." + escName + " = __coll" + id + ";");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("patch." + escName + " = __coll" + id + ";");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

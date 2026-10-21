@@ -32,14 +32,13 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             ? null
             : SparseDictionaryRemovalIndexEmitter.SharedPrefix(keyType, implementationNamespace!);
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Keyed collection patch for member '"
                 + member.Property.Name
                 + "'.</summary>"
         );
-        code.AppendLineAt(2, "public sealed class " + patchName);
-        code.AppendLineAt(2, "{");
+        code.AppendLine("public sealed class " + patchName);
+        code.OpenBlock();
         // Public-first order for relocated patches: internal backing fields
         // and helpers trail public mutators and algebra stubs.
         using var surfaceDeferred = target is null
@@ -48,17 +47,14 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         var internalCode = surfaceDeferred ?? code;
         // Relocated operation bodies reach state through these fields, so they
         // are internal rather than private.
-        internalCode.AppendLineAt(3, "internal " + operation + " __whole;");
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine("internal " + operation + " __whole;");
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.List<" + elementType + ">? __added;"
         );
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.List<" + keyType + ">? __removed;"
         );
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -69,8 +65,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         {
             SparseKeyedSequenceTempSurfaceEmitter.AppendTempFields(internalCode, editedValueType);
         }
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.List<" + keyType + ">? __order;"
         );
         SparseMemberOperationSplit? split = null;
@@ -91,21 +86,19 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             split = new SparseMemberOperationSplit(code, operations, operationsType, "self.");
             // Private key helper trails the internal operation bodies so the
             // member operation class stays public/internal-first ordered.
-            deferredKeyOf!.IndentOffset = operations.IndentOffset;
-            SparseKeyedCollectionEmitter.EmitKeyOf(deferredKeyOf, member, elementType, 3);
+            deferredKeyOf!.IndentLevel = operations.IndentLevel;
+            SparseKeyedCollectionEmitter.EmitKeyOf(deferredKeyOf, member, elementType);
         }
         else
         {
-            SparseKeyedCollectionEmitter.EmitKeyOf(code, member, elementType, 3);
+            SparseKeyedCollectionEmitter.EmitKeyOf(code, member, elementType);
         }
-        code.AppendLineAt(3, "/// <summary>Whether this keyed patch carries no changes.</summary>");
-        code.AppendLineAt(3, "public bool IsEmpty => __whole.Kind == " + kind + ".Keep");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("/// <summary>Whether this keyed patch carries no changes.</summary>");
+        code.AppendLine("public bool IsEmpty => __whole.Kind == " + kind + ".Keep");
+        code.AppendLine(
             "&& (__added is null || __added.Count == 0) && (__removed is null || __removed.Count == 0)"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "&& (__edited is null || __edited.Count == 0) && (__order is null || __order.Count == 0)"
                 + (
                     SparseKeyedCollectionEmitter.HasTemporaryKey(member)
@@ -114,28 +107,27 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 )
                 + ";"
         );
-        internalCode.AppendLineAt(3, "internal bool __SparseIsEmpty() => IsEmpty;");
+        internalCode.AppendLine("internal bool __SparseIsEmpty() => IsEmpty;");
         // Whole operations (public group).
-        code.AppendLineAt(3, "/// <summary>Replaces the whole collection.</summary>");
-        code.AppendLineAt(3, "/// <param name=\"value\">Replacement values.</param>");
-        code.AppendLineAt(3, "public void Set(" + listType + " value)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__whole = " + operation + ".Set(value);");
-        code.AppendLineAt(4, "__added = null; __removed = null; __edited = null; __order = null;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "/// <summary>Removes the whole collection.</summary>");
-        code.AppendLineAt(3, "public void Remove()");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__whole = " + operation + ".Remove;");
-        code.AppendLineAt(4, "__added = null; __removed = null; __edited = null; __order = null;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("/// <summary>Replaces the whole collection.</summary>");
+        code.AppendLine("/// <param name=\"value\">Replacement values.</param>");
+        code.AppendLine("public void Set(" + listType + " value)");
+        code.OpenBlock();
+        code.AppendLine("__whole = " + operation + ".Set(value);");
+        code.AppendLine("__added = null; __removed = null; __edited = null; __order = null;");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Removes the whole collection.</summary>");
+        code.AppendLine("public void Remove()");
+        code.OpenBlock();
+        code.AppendLine("__whole = " + operation + ".Remove;");
+        code.AppendLine("__added = null; __removed = null; __edited = null; __order = null;");
+        code.CloseBlock();
         if (!SparseKeyedCollectionEmitter.IsInterfaceMember(member))
         {
-            code.AppendLineAt(3, "/// <summary>Creates a keyed patch from values.</summary>");
-            code.AppendLineAt(3, "/// <param name=\"value\">Replacement values.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch carrying the values.</returns>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Creates a keyed patch from values.</summary>");
+            code.AppendLine("/// <param name=\"value\">Replacement values.</param>");
+            code.AppendLine("/// <returns>A patch carrying the values.</returns>");
+            code.AppendLine(
                 "public static implicit operator "
                     + patchName
                     + "("
@@ -162,15 +154,14 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         // Relocated mutator bodies reuse this guard through the facade
         // instance.
-        internalCode.AppendLineAt(3, "internal void EnsureGranular(string operation)");
-        internalCode.AppendLineAt(3, "{");
-        internalCode.AppendLineAt(
-            4,
+        internalCode.AppendLine("internal void EnsureGranular(string operation)");
+        internalCode.OpenBlock();
+        internalCode.AppendLine(
             "if (__whole.Kind != "
                 + kind
                 + ".Keep) throw new global::System.InvalidOperationException(\"Cannot apply '\" + operation + \"' when the whole collection is set. Clear the whole operation first.\");"
         );
-        internalCode.AppendLineAt(3, "}");
+        internalCode.CloseBlock();
         EmitKeyedMutators(
             operations,
             member,
@@ -198,22 +189,19 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         if (hasPatch)
         {
-            internalCode.AppendLineAt(
-                3,
+            internalCode.AppendLine(
                 "internal void __SparseSetEdited("
                     + keyType
                     + " key, "
                     + SparseKeyedCollectionEmitter.ElementPatchType(member)
                     + " patch)"
             );
-            internalCode.AppendLineAt(3, "{");
-            internalCode.AppendLineAt(4, "EnsureGranular(\"SetEdited\");");
-            internalCode.AppendLineAt(
-                4,
+            internalCode.OpenBlock();
+            internalCode.AppendLine("EnsureGranular(\"SetEdited\");");
+            internalCode.AppendLine(
                 "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
             );
-            internalCode.AppendLineAt(
-                4,
+            internalCode.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -222,34 +210,30 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + comparer
                     + ");"
             );
-            internalCode.AppendLineAt(4, "__edited[key] = patch;");
-            internalCode.AppendLineAt(3, "}");
+            internalCode.AppendLine("__edited[key] = patch;");
+            internalCode.CloseBlock();
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
-                internalCode.AppendLineAt(
-                    3,
+                internalCode.AppendLine(
                     "internal void __SparseSetEditedByTemporaryKey(global::System.Guid temporaryKey, "
                         + SparseKeyedCollectionEmitter.ElementPatchType(member)
                         + " patch)"
                 );
-                internalCode.AppendLineAt(3, "{");
-                internalCode.AppendLineAt(4, "EnsureGranular(\"SetEditedByTemporaryKey\");");
-                internalCode.AppendLineAt(
-                    4,
+                internalCode.OpenBlock();
+                internalCode.AppendLine("EnsureGranular(\"SetEditedByTemporaryKey\");");
+                internalCode.AppendLine(
                     "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
                 );
-                internalCode.AppendLineAt(
-                    4,
+                internalCode.AppendLine(
                     "if (temporaryKey == global::System.Guid.Empty) throw new global::System.ArgumentException(\"Temporary identity must not be empty.\", nameof(temporaryKey));"
                 );
-                internalCode.AppendLineAt(
-                    4,
+                internalCode.AppendLine(
                     "__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                         + SparseKeyedCollectionEmitter.ElementPatchType(member)
                         + ">();"
                 );
-                internalCode.AppendLineAt(4, "__editedTemp[temporaryKey] = patch;");
-                internalCode.AppendLineAt(3, "}");
+                internalCode.AppendLine("__editedTemp[temporaryKey] = patch;");
+                internalCode.CloseBlock();
             }
         }
         SparseKeyedSequenceApplyEmitter.EmitKeyedApply(
@@ -290,14 +274,12 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         );
         if (split is not null)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Inverts this collection patch relative to the baseline it was applied to.</summary>"
             );
-            code.AppendLineAt(3, "/// <param name=\"baseline\">Baseline applied to.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch undoing this patch.</returns>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <param name=\"baseline\">Baseline applied to.</param>");
+            code.AppendLine("/// <returns>A patch undoing this patch.</returns>");
+            code.AppendLine(
                 "public "
                     + patchName
                     + " Invert("
@@ -306,12 +288,10 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + split.OperationsType
                     + ".Invert(this, baseline);"
             );
-            operations.AppendLineAt(
-                3,
+            operations.AppendLine(
                 "/// <summary>Inverts a collection patch relative to the baseline it was applied to.</summary>"
             );
-            operations.AppendLineAt(
-                3,
+            operations.AppendLine(
                 "internal static "
                     + patchName
                     + " Invert("
@@ -323,14 +303,10 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         else
         {
-            code.AppendLineAt(
-                3,
-                "/// <summary>Inverts this patch relative to its baseline.</summary>"
-            );
-            code.AppendLineAt(3, "/// <param name=\"baseline\">Baseline applied to.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch undoing this patch.</returns>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Inverts this patch relative to its baseline.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">Baseline applied to.</param>");
+            code.AppendLine("/// <returns>A patch undoing this patch.</returns>");
+            code.AppendLine(
                 "public "
                     + patchName
                     + " Invert("
@@ -378,7 +354,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 SparseNaming.EscapeIdentifier(member.Property.Name) + "PatchOperations"
             );
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the keyed mutators (Add/Remove/Edit/Update/SetOrder).</summary>
@@ -403,45 +379,37 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         // Add.
         if (relocated)
         {
-            split!.Shell.AppendLineAt(
-                3,
-                "/// <summary>Adds an element to this keyed patch.</summary>"
-            );
-            split.Shell.AppendLineAt(
-                3,
+            split!.Shell.AppendLine("/// <summary>Adds an element to this keyed patch.</summary>");
+            split.Shell.AppendLine(
                 "public void Add("
                     + elementType
                     + " element) => "
                     + split.OperationsType
                     + ".Add(this, element);"
             );
-            code.AppendLineAt(3, "/// <summary>Adds an element to a keyed patch.</summary>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Adds an element to a keyed patch.</summary>");
+            code.AppendLine(
                 "internal static void Add(" + patchName + " self, " + elementType + " element)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendFieldAliases(code, member);
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Adds an element to this keyed patch.</summary>");
-            code.AppendLineAt(3, "public void Add(" + elementType + " element)");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("/// <summary>Adds an element to this keyed patch.</summary>");
+            code.AppendLine("public void Add(" + elementType + " element)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));"
         );
-        code.AppendLineAt(4, guard + "EnsureGranular(\"Add\");");
-        code.AppendLineAt(
-            4,
+        code.AppendLine(guard + "EnsureGranular(\"Add\");");
+        code.AppendLine(
             "var key = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(element);"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (!"
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                     + " && __added is not null) foreach (var existing in __added) if ("
@@ -453,8 +421,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__added is not null) foreach (var existing in __added) if ("
                     + comparer
                     + ".Equals("
@@ -462,8 +429,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + "(existing), key)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection patch.\");"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__edited is not null"
                 + (
                     SparseKeyedCollectionEmitter.HasUnassignedKey(member)
@@ -477,8 +443,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         {
             // Temporary adds stay separately addressable: duplicate
             // identities fail at record time instead of colliding at apply.
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                     + ") { var __addTemp = "
@@ -490,8 +455,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (!"
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
@@ -505,8 +469,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (__removed is not null) __SparseCancelRemoval(key);"
                     : "if (__removed is not null) "
@@ -514,66 +477,56 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                         + ".CancelRemoval(__removed!, ref __removedLookup, key);"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "__added ??= new global::System.Collections.Generic.List<" + elementType + ">();"
         );
-        code.AppendLineAt(4, "__added.Add(element);");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("__added.Add(element);");
+        code.CloseBlock();
         // Remove.
         if (relocated)
         {
-            split!.Shell.AppendLineAt(
-                3,
+            split!.Shell.AppendLine(
                 "/// <summary>Removes an element from this keyed patch by key.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public void Remove("
                     + keyType
                     + " key) => "
                     + split.OperationsType
                     + ".Remove(this, key);"
             );
-            code.AppendLineAt(
-                3,
-                "/// <summary>Removes an element from a keyed patch by key.</summary>"
-            );
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Removes an element from a keyed patch by key.</summary>");
+            code.AppendLine(
                 "internal static void Remove(" + patchName + " self, " + keyType + " key)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendFieldAliases(code, member);
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Removes an element by key.</summary>");
-            code.AppendLineAt(3, "public void Remove(" + keyType + " key)");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("/// <summary>Removes an element by key.</summary>");
+            code.AppendLine("public void Remove(" + keyType + " key)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(4, guard + "EnsureGranular(\"Remove\");");
+        code.AppendLine(guard + "EnsureGranular(\"Remove\");");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                     + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be removed by key.\");"
             );
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__added is not null) { for (var i = __added.Count - 1; i >= 0; i--) if ("
                 + comparer
                 + ".Equals("
                 + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                 + "(__added[i]), key)) { __added.RemoveAt(i); return; } }"
         );
-        code.AppendLineAt(4, "if (__edited is not null) __edited.Remove(key);");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (__edited is not null) __edited.Remove(key);");
+        code.AppendLine(
             "__removed ??= new global::System.Collections.Generic.List<" + keyType + ">();"
         );
         SparseDictionaryRemovalIndexEmitter.EmitAdd(
@@ -583,19 +536,17 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             keyType,
             implementationNamespace
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         // Edit / Update.
         if (hasPatch)
         {
             var elementPatch = SparseKeyedCollectionEmitter.ElementPatchType(member);
             if (relocated)
             {
-                split!.Shell.AppendLineAt(
-                    3,
+                split!.Shell.AppendLine(
                     "/// <summary>Gets the edit patch for an element of this keyed patch.</summary>"
                 );
-                split.Shell.AppendLineAt(
-                    3,
+                split.Shell.AppendLine(
                     "public "
                         + elementPatch
                         + " Edit("
@@ -604,12 +555,10 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                         + split.OperationsType
                         + ".Edit(this, key);"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "/// <summary>Gets the edit patch for an element of a keyed patch.</summary>"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "internal static "
                         + elementPatch
                         + " Edit("
@@ -618,46 +567,42 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                         + keyType
                         + " key)"
                 );
-                code.AppendLineAt(3, "{");
+                code.OpenBlock();
                 AppendFieldAliases(code, member);
             }
             else
             {
-                code.AppendLineAt(3, "/// <summary>Gets the edit patch for an element.</summary>");
-                code.AppendLineAt(3, "/// <param name=\"key\">Key to edit.</param>");
-                code.AppendLineAt(3, "/// <returns>The edit patch.</returns>");
-                code.AppendLineAt(3, "public " + elementPatch + " Edit(" + keyType + " key)");
-                code.AppendLineAt(3, "{");
+                code.AppendLine("/// <summary>Gets the edit patch for an element.</summary>");
+                code.AppendLine("/// <param name=\"key\">Key to edit.</param>");
+                code.AppendLine("/// <returns>The edit patch.</returns>");
+                code.AppendLine("public " + elementPatch + " Edit(" + keyType + " key)");
+                code.OpenBlock();
             }
-            code.AppendLineAt(4, guard + "EnsureGranular(\"Edit\");");
+            code.AppendLine(guard + "EnsureGranular(\"Edit\");");
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                         + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be edited by key.\");"
                 );
             }
 
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (__removed is not null && __SparseContainsRemoved(key)) throw new global::System.InvalidOperationException(\"Cannot edit a removed element. Add it again instead.\");"
                     : "if (__removed is not null && "
                         + sharedRemoval
                         + ".ContainsRemoved(__removed!, __removedLookup, key)) throw new global::System.InvalidOperationException(\"Cannot edit a removed element. Add it again instead.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__added is not null) foreach (var a in __added) if ("
                     + comparer
                     + ".Equals("
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(a), key)) throw new global::System.InvalidOperationException(\"Cannot edit an element added in the same patch. Update the added value directly.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -666,59 +611,52 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (!__edited.TryGetValue(key, out var patch)) { patch = new "
                     + elementPatch
                     + "(); __edited[key] = patch; }"
             );
-            code.AppendLineAt(4, "return patch;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("return patch;");
+            code.CloseBlock();
         }
         else
         {
             if (relocated)
             {
-                split!.Shell.AppendLineAt(
-                    3,
+                split!.Shell.AppendLine(
                     "/// <summary>Updates an element of this keyed patch in place.</summary>"
                 );
-                split.Shell.AppendLineAt(
-                    3,
+                split.Shell.AppendLine(
                     "public void Update("
                         + elementType
                         + " element) => "
                         + split.OperationsType
                         + ".Update(this, element);"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "/// <summary>Updates an element of a keyed patch in place.</summary>"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "internal static void Update("
                         + patchName
                         + " self, "
                         + elementType
                         + " element)"
                 );
-                code.AppendLineAt(3, "{");
+                code.OpenBlock();
                 AppendFieldAliases(code, member);
             }
             else
             {
-                code.AppendLineAt(3, "/// <summary>Updates an element in place.</summary>");
-                code.AppendLineAt(3, "public void Update(" + elementType + " element)");
-                code.AppendLineAt(3, "{");
+                code.AppendLine("/// <summary>Updates an element in place.</summary>");
+                code.AppendLine("public void Update(" + elementType + " element)");
+                code.OpenBlock();
             }
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));"
             );
-            code.AppendLineAt(4, guard + "EnsureGranular(\"Update\");");
-            code.AppendLineAt(
-                4,
+            code.AppendLine(guard + "EnsureGranular(\"Update\");");
+            code.AppendLine(
                 "var key = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(element);"
             );
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
@@ -728,8 +666,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 var updateByTemp = split is not null
                     ? split.OperationsType + ".UpdateByTemporaryKey(self, element)"
                     : "UpdateByTemporaryKey(element)";
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                         + " && "
@@ -741,32 +678,28 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             }
             if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
             {
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "if ("
                         + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
                         + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be updated by key; add it as a new item instead.\");"
                 );
             }
 
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (__removed is not null && __SparseContainsRemoved(key)) throw new global::System.InvalidOperationException(\"Cannot update a removed element. Add it again instead.\");"
                     : "if (__removed is not null && "
                         + sharedRemoval
                         + ".ContainsRemoved(__removed!, __removedLookup, key)) throw new global::System.InvalidOperationException(\"Cannot update a removed element. Add it again instead.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__added is not null) for (var i = 0; i < __added.Count; i++) if ("
                     + comparer
                     + ".Equals("
                     + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                     + "(__added[i]), key)) { __added[i] = element; return; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -775,61 +708,54 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(4, "__edited[key] = element;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("__edited[key] = element;");
+            code.CloseBlock();
         }
 
         if (relocated)
         {
-            split!.Shell.AppendLineAt(
-                3,
+            split!.Shell.AppendLine(
                 "/// <summary>Replaces the key order of this keyed patch.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public void SetOrder(global::System.Collections.Generic.IEnumerable<"
                     + keyType
                     + "> keys) => "
                     + split.OperationsType
                     + ".SetOrder(this, keys);"
             );
-            code.AppendLineAt(3, "/// <summary>Replaces the key order of a keyed patch.</summary>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Replaces the key order of a keyed patch.</summary>");
+            code.AppendLine(
                 "internal static void SetOrder("
                     + patchName
                     + " self, global::System.Collections.Generic.IEnumerable<"
                     + keyType
                     + "> keys)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendFieldAliases(code, member);
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Replaces the key order.</summary>");
-            code.AppendLineAt(3, "/// <param name=\"keys\">Replacement order.</param>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Replaces the key order.</summary>");
+            code.AppendLine("/// <param name=\"keys\">Replacement order.</param>");
+            code.AppendLine(
                 "public void SetOrder(global::System.Collections.Generic.IEnumerable<"
                     + keyType
                     + "> keys)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (keys is null) throw new global::System.ArgumentNullException(nameof(keys));"
         );
-        code.AppendLineAt(4, guard + "EnsureGranular(\"SetOrder\");");
-        code.AppendLineAt(
-            4,
+        code.AppendLine(guard + "EnsureGranular(\"SetOrder\");");
+        code.AppendLine(
             "var list = new global::System.Collections.Generic.List<" + keyType + ">(keys);"
         );
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __seenOrder = new global::System.Collections.Generic.HashSet<"
                     + keyType
                     + ">("
@@ -841,17 +767,17 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         }
         else
         {
-            code.AppendLineAt(4, facade + ".EnsureUniqueKeys<" + keyType + ">(list);");
+            code.AppendLine(facade + ".EnsureUniqueKeys<" + keyType + ">(list);");
         }
 
-        code.AppendLineAt(4, "__order = list;");
+        code.AppendLine("__order = list;");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             // Explicit key orders carry no temporary fidelity; later applies
             // fall back to positional legacy flow for bare sentinel slots.
-            code.AppendLineAt(4, "__orderTemp = null;");
+            code.AppendLine("__orderTemp = null;");
         }
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Aliases nested keyed-patch fields by reference for relocated bodies.</summary>
@@ -861,12 +787,12 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         SparseMemberModel? member = null
     )
     {
-        code.AppendLineAt(4, "ref var __whole = ref self.__whole;");
-        code.AppendLineAt(4, "ref var __added = ref self.__added;");
-        code.AppendLineAt(4, "ref var __removed = ref self.__removed;");
-        code.AppendLineAt(4, "ref var __removedLookup = ref self.__removedLookup;");
-        code.AppendLineAt(4, "ref var __edited = ref self.__edited;");
-        code.AppendLineAt(4, "ref var __order = ref self.__order;");
+        code.AppendLine("ref var __whole = ref self.__whole;");
+        code.AppendLine("ref var __added = ref self.__added;");
+        code.AppendLine("ref var __removed = ref self.__removed;");
+        code.AppendLine("ref var __removedLookup = ref self.__removedLookup;");
+        code.AppendLine("ref var __edited = ref self.__edited;");
+        code.AppendLine("ref var __order = ref self.__order;");
         if (member.HasValue && SparseKeyedCollectionEmitter.HasTemporaryKey(member.Value))
         {
             SparseKeyedSequenceTempSurfaceEmitter.AppendTempFieldAliases(code);

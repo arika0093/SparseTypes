@@ -121,28 +121,22 @@ internal static class SparseRebaseResolutionEmitter
         SparseOperationTarget? target
     )
     {
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <summary>Begins path-based resolution of a rebase result against the authoritative current state.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <remarks>Pass the same current snapshot used for RebaseOnto. TryBuild fails when the state moved instead of resolving against stale values.</remarks>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <param name=\"rebase\">The original rebase result to resolve.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <param name=\"current\">The authoritative current-state snapshot.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <returns>Mutable resolution state owning the result and the current snapshot.</returns>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             target is null
                 ? "public static Resolution BeginResolution("
                     + rebaseResult
@@ -157,24 +151,17 @@ internal static class SparseRebaseResolutionEmitter
                     + target.ChangeSetOperationsType
                     + ".BeginResolution(rebase, current);"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <summary>Begins path-based resolution of a rebase result against an ordinary model.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <param name=\"rebase\">The original rebase result to resolve.</param>"
         );
-        shell.AppendLineAt(
-            2,
-            "/// <param name=\"current\">The authoritative current model.</param>"
-        );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("/// <param name=\"current\">The authoritative current model.</param>");
+        shell.AppendLine(
             "/// <returns>Mutable resolution state owning the result and the current snapshot.</returns>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "public static Resolution BeginResolution("
                 + rebaseResult
                 + " rebase, "
@@ -195,84 +182,67 @@ internal static class SparseRebaseResolutionEmitter
         SparseOperationTarget? target
     )
     {
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <summary>Mutable path-based resolution state for '"
                 + modelType
                 + "' rebase conflicts.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "/// <remarks>Framework-neutral inspection and resolution without UI state. Decisions are keyed by canonical paths; typed SparsePath overloads are inherited from the base.</remarks>"
         );
-        shell.AppendLineAt(2, "public sealed class Resolution : " + ResolutionBaseFor(runtime));
-        shell.AppendLineAt(2, "{");
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("public sealed class Resolution : " + ResolutionBaseFor(runtime));
+        shell.OpenBlock();
+        shell.AppendLine(
             "    /// <summary>Creates resolution state for a rebase result and its current snapshot.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <param name=\"rebase\">The original rebase result to resolve.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <param name=\"current\">The authoritative current-state snapshot.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    public Resolution(" + rebaseResult + " rebase, " + optionalFragment + " current)"
         );
-        shell.AppendLineAt(2, "        : base(rebase)");
-        shell.AppendLineAt(2, "    {");
-        shell.AppendLineAt(2, "        _current = current;");
-        shell.AppendLineAt(2, "    }");
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("        : base(rebase)");
+        shell.AppendLine("    {");
+        shell.AppendLine("        _current = current;");
+        shell.AppendLine("    }");
+        shell.AppendLine(
             "    /// <summary>Creates resolution state for a rebase result and an ordinary model.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <param name=\"rebase\">The original rebase result to resolve.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <param name=\"current\">The authoritative current model.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    public Resolution(" + rebaseResult + " rebase, " + modelType + " current)"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "        : this(rebase, " + optionalFragment + ".Present(Fragment.From(current)))"
         );
-        shell.AppendLineAt(2, "    {");
-        shell.AppendLineAt(2, "    }");
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("    {");
+        shell.AppendLine("    }");
+        shell.AppendLine(
             "    /// <summary>Gets the authoritative current-state snapshot this resolution builds against.</summary>"
         );
-        shell.AppendLineAt(2, "    public " + optionalFragment + " Current => _current;");
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("    public " + optionalFragment + " Current => _current;");
+        shell.AppendLine(
             "    /// <summary>Builds the resolved change set from per-conflict desired values.</summary>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <param name=\"choices\">Every conflict with the presence-aware value to write.</param>"
         );
-        shell.AppendLineAt(2, "    /// <param name=\"resolved\">The resolved change set.</param>");
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine("    /// <param name=\"resolved\">The resolved change set.</param>");
+        shell.AppendLine(
             "    /// <param name=\"failureReason\">A value-free reason when the build fails.</param>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <returns><see langword=\"true\"/> when the change set built.</returns>"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    protected override bool TryCreateResolved("
                 + choices
                 + " choices, out ChangeSet? resolved, out string? failureReason) => "
@@ -283,12 +253,11 @@ internal static class SparseRebaseResolutionEmitter
                 )
                 + "(Rebase, _current, choices, out resolved, out failureReason);"
         );
-        shell.AppendLineAt(
-            2,
+        shell.AppendLine(
             "    /// <summary>The authoritative current-state snapshot this resolution builds against (resolution infrastructure).</summary>"
         );
-        shell.AppendLineAt(2, "    private readonly " + optionalFragment + " _current;");
-        shell.AppendLineAt(2, "}");
+        shell.AppendLine("    private readonly " + optionalFragment + " _current;");
+        shell.CloseBlock();
     }
 
     private static string ResolutionBaseFor(string runtime) =>
@@ -306,12 +275,10 @@ internal static class SparseRebaseResolutionEmitter
             return;
         }
 
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "/// <summary>Begins path-based resolution of a rebase result against the authoritative current state.</summary>"
         );
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "internal static ChangeSet.Resolution BeginResolution("
                 + rebaseResult
                 + " rebase, "
@@ -338,16 +305,13 @@ internal static class SparseRebaseResolutionEmitter
         _ = runtime;
         _ = optionalObject;
         _ = conflict;
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "/// <summary>Builds a baseline-aware resolved change set from per-conflict desired values.</summary>"
         );
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             "/// <remarks>Applies the clean rebased patch onto the stored current snapshot, writes each chosen value through the fragment applier, and diffs back against the same snapshot. Never mutates inputs.</remarks>"
         );
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             (
                 target is null
                     ? "private static bool __SparseBuildResolved("
@@ -360,90 +324,82 @@ internal static class SparseRebaseResolutionEmitter
                 + choices
                 + " choices, out ChangeSet? resolved, out string? failureReason)"
         );
-        body.AppendLineAt(2, "{");
-        body.AppendLineAt(3, "resolved = null;");
-        body.AppendLineAt(3, "failureReason = null;");
-        body.AppendLineAt(3, optionalFragment + " workingRoot = current;");
-        body.AppendLineAt(3, "foreach (var choice in choices)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "if (!choice.Conflict.Path.IsRoot) continue;");
-        body.AppendLineAt(
-            4,
+        body.OpenBlock();
+        body.AppendLine("resolved = null;");
+        body.AppendLine("failureReason = null;");
+        body.AppendLine(optionalFragment + " workingRoot = current;");
+        body.AppendLine("foreach (var choice in choices)");
+        body.OpenBlock();
+        body.AppendLine("if (!choice.Conflict.Path.IsRoot) continue;");
+        body.AppendLine(
             "if (!__SparseApplyRoot(ref workingRoot, choice.Desired, out failureReason)) return false;"
         );
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "if (!workingRoot.IsPresent || workingRoot.Value is null)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "foreach (var choice in choices)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "if (!choice.Conflict.Path.IsRoot)");
-        body.AppendLineAt(5, "{");
-        body.AppendLineAt(
-            6,
+        body.CloseBlock();
+        body.AppendLine("if (!workingRoot.IsPresent || workingRoot.Value is null)");
+        body.OpenBlock();
+        body.AppendLine("foreach (var choice in choices)");
+        body.OpenBlock();
+        body.AppendLine("if (!choice.Conflict.Path.IsRoot)");
+        body.OpenBlock();
+        body.AppendLine(
             "failureReason = \"Only root presence can be resolved while the current state is missing.\";"
         );
-        body.AppendLineAt(6, "return false;");
-        body.AppendLineAt(5, "}");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "resolved = ChangeSet.Between(current, workingRoot);");
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "if (!rebase.Rebased.__SparseBeforeMatches(current))");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.CloseBlock();
+        body.AppendLine("resolved = ChangeSet.Between(current, workingRoot);");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (!rebase.Rebased.__SparseBeforeMatches(current))");
+        body.OpenBlock();
+        body.AppendLine(
             "failureReason = \"The current state changed since the rebase; rebase onto the latest state before resolving.\";"
         );
-        body.AppendLineAt(4, "return false;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "var working = current.Value!;");
-        body.AppendLineAt(3, "if (!rebase.Rebased.IsEmpty)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "var applied = rebase.Rebased.ToPatch().Apply(current);");
-        body.AppendLineAt(4, "if (!applied.IsPresent || applied.Value is null)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(
-            5,
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("var working = current.Value!;");
+        body.AppendLine("if (!rebase.Rebased.IsEmpty)");
+        body.OpenBlock();
+        body.AppendLine("var applied = rebase.Rebased.ToPatch().Apply(current);");
+        body.AppendLine("if (!applied.IsPresent || applied.Value is null)");
+        body.OpenBlock();
+        body.AppendLine(
             "failureReason = \"The rebased change no longer applies to the current state.\";"
         );
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "working = applied.Value;");
-        body.AppendLineAt(3, "}");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("working = applied.Value;");
+        body.CloseBlock();
         if (dialect.ResolutionWorkspaceType is not null)
         {
-            body.AppendLineAt(3, "var workspace = new " + dialect.ResolutionWorkspaceType + "();");
+            body.AppendLine("var workspace = new " + dialect.ResolutionWorkspaceType + "();");
         }
 
-        body.AppendLineAt(3, "foreach (var choice in choices)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "if (choice.Conflict.Path.IsRoot) continue;");
-        body.AppendLineAt(
-            4,
+        body.AppendLine("foreach (var choice in choices)");
+        body.OpenBlock();
+        body.AppendLine("if (choice.Conflict.Path.IsRoot) continue;");
+        body.AppendLine(
             "if (!__SparseTryApplyResolution(working, choice.Conflict.Path, 0, choice.Desired"
                 + SparseResolutionApplyEmitter.WorkspaceArgument(dialect.ResolutionWorkspaceType)
                 + ", out var updated, out failureReason)) return false;"
         );
-        body.AppendLineAt(4, "if (updated is null)");
-        body.AppendLineAt(4, "{");
-        body.AppendLineAt(5, "failureReason = \"The resolution produced no fragment.\";");
-        body.AppendLineAt(5, "return false;");
-        body.AppendLineAt(4, "}");
-        body.AppendLineAt(4, "working = updated;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(
-            3,
+        body.AppendLine("if (updated is null)");
+        body.OpenBlock();
+        body.AppendLine("failureReason = \"The resolution produced no fragment.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
+        body.AppendLine("working = updated;");
+        body.CloseBlock();
+        body.AppendLine(
             "resolved = ChangeSet.Between(current, " + optionalFragment + ".Present(working));"
         );
-        body.AppendLineAt(3, "failureReason = null;");
-        body.AppendLineAt(3, "return true;");
-        body.AppendLineAt(2, "}");
-        body.AppendLineAt(
-            2,
+        body.AppendLine("failureReason = null;");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine(
             "/// <summary>Applies a root presence resolution (resolution infrastructure).</summary>"
         );
-        body.AppendLineAt(
-            2,
+        body.AppendLine(
             (
                 target is null
                     ? "private static bool __SparseApplyRoot(ref "
@@ -454,36 +410,30 @@ internal static class SparseRebaseResolutionEmitter
                 + optionalObject
                 + " desired, out string? error)"
         );
-        body.AppendLineAt(2, "{");
-        body.AppendLineAt(3, "error = null;");
-        body.AppendLineAt(3, "if (!desired.IsPresent)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "workingRoot = " + optionalFragment + ".Missing;");
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "if (desired.Value is null)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(4, "workingRoot = " + optionalFragment + ".Present((Fragment?)null);");
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "if (desired.Value is Fragment fragment)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(
-            4,
-            "workingRoot = " + optionalFragment + ".Present(fragment.DeepClone());"
-        );
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "if (desired.Value is " + modelType + " model)");
-        body.AppendLineAt(3, "{");
-        body.AppendLineAt(
-            4,
-            "workingRoot = " + optionalFragment + ".Present(Fragment.From(model));"
-        );
-        body.AppendLineAt(4, "return true;");
-        body.AppendLineAt(3, "}");
-        body.AppendLineAt(3, "error = \"The root resolution value must be a fragment or model.\";");
-        body.AppendLineAt(3, "return false;");
-        body.AppendLineAt(2, "}");
+        body.OpenBlock();
+        body.AppendLine("error = null;");
+        body.AppendLine("if (!desired.IsPresent)");
+        body.OpenBlock();
+        body.AppendLine("workingRoot = " + optionalFragment + ".Missing;");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (desired.Value is null)");
+        body.OpenBlock();
+        body.AppendLine("workingRoot = " + optionalFragment + ".Present((Fragment?)null);");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (desired.Value is Fragment fragment)");
+        body.OpenBlock();
+        body.AppendLine("workingRoot = " + optionalFragment + ".Present(fragment.DeepClone());");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("if (desired.Value is " + modelType + " model)");
+        body.OpenBlock();
+        body.AppendLine("workingRoot = " + optionalFragment + ".Present(Fragment.From(model));");
+        body.AppendLine("return true;");
+        body.CloseBlock();
+        body.AppendLine("error = \"The root resolution value must be a fragment or model.\";");
+        body.AppendLine("return false;");
+        body.CloseBlock();
     }
 }

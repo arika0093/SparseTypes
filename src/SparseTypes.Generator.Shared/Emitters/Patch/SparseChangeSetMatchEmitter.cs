@@ -42,14 +42,12 @@ internal static class SparseChangeSetMatchEmitter
             {
                 // Instance bridges stay on the facade: nested and element
                 // change-set values keep calling the probe in value form.
-                shell.AppendLineAt(
-                    2,
+                shell.AppendLine(
                     "/// <summary>Whether the supplied state matches this transition's "
                         + (side == "Before" ? "before" : "after")
                         + " on every changed path.</summary>"
                 );
-                shell.AppendLineAt(
-                    2,
+                shell.AppendLine(
                     "internal bool __Sparse"
                         + side
                         + "Matches("
@@ -61,14 +59,12 @@ internal static class SparseChangeSetMatchEmitter
                         + "Matches(this, state);"
                 );
                 code = target.ChangeSetOperations;
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "/// <summary>Whether the supplied state matches a transition's "
                         + (side == "Before" ? "before" : "after")
                         + " on every changed path.</summary>"
                 );
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "internal static bool __Sparse"
                         + side
                         + "Matches(ChangeSet self, "
@@ -78,36 +74,32 @@ internal static class SparseChangeSetMatchEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "/// <summary>Whether the supplied state matches this transition's "
                         + (side == "Before" ? "before" : "after")
                         + " on every changed path.</summary>"
                 );
-                code.AppendLineAt(
-                    2,
+                code.AppendLine(
                     "internal bool __Sparse" + side + "Matches(" + optionalFragment + " state)"
                 );
             }
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             if (target is not null)
             {
                 AppendSelfAliases(code, members);
             }
             var __hasSparseMatch = members.Any(static m => IsKeyed(m) || IsDict(m));
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 target is null ? "if (IsEmpty) return true;" : "if (self.IsEmpty) return true;"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (__sparse_hasWhole) return Fragment.__SparseAreEqual(" + field + ", state);"
             );
-            code.AppendLineAt(3, "if (!state.IsPresent || state.Value is null) return false;");
-            code.AppendLineAt(3, "var __st = state.Value!;");
+            code.AppendLine("if (!state.IsPresent || state.Value is null) return false;");
+            code.AppendLine("var __st = state.Value!;");
             if (__hasSparseMatch)
             {
-                AppendPragmaDisableNullKey(code, 3);
+                AppendPragmaDisableNullKey(code);
             }
 
             foreach (var member in members)
@@ -115,8 +107,7 @@ internal static class SparseChangeSetMatchEmitter
                 var esc = SparseNaming.EscapeIdentifier(member.Property.Name);
                 if (IsNested(member))
                 {
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "if ("
                             + NestedField(member)
                             + " is not null && !"
@@ -135,10 +126,9 @@ internal static class SparseChangeSetMatchEmitter
                 else
                 {
                     var own = side == "Before" ? BeforeField(member) : AfterField(member);
-                    code.AppendLineAt(3, "if (" + HasField(member) + ")");
-                    code.AppendLineAt(3, "{");
-                    code.AppendLineAt(
-                        4,
+                    code.AppendLine("if (" + HasField(member) + ")");
+                    code.OpenBlock();
+                    code.AppendLine(
                         "if (!Fragment.__SparseEqual_"
                             + member.Id
                             + "(__st."
@@ -147,16 +137,16 @@ internal static class SparseChangeSetMatchEmitter
                             + own
                             + ")) return false;"
                     );
-                    code.AppendLineAt(3, "}");
+                    code.CloseBlock();
                 }
             }
             if (__hasSparseMatch)
             {
-                AppendPragmaRestoreNullKey(code, 3);
+                AppendPragmaRestoreNullKey(code);
             }
 
-            code.AppendLineAt(3, "return true;");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("return true;");
+            code.CloseBlock();
         }
     }
 
@@ -178,13 +168,12 @@ internal static class SparseChangeSetMatchEmitter
         var facade = dialect.RuntimeFacade;
         var ownWhole = side == "Before" ? KeyedWholeBefore(member) : KeyedWholeAfter(member);
         var ownOrder = side == "Before" ? KeyedBeforeOrder(member) : KeyedAfterOrder(member);
-        code.AppendLineAt(3, "if (" + HasField(member) + ")");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (" + HasField(member) + ")");
+        code.OpenBlock();
         // Whole presence/null transitions compare full endpoints.
-        code.AppendLineAt(4, "if (" + KeyedWholeFlag(member) + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!Fragment.__SparseEqual_"
                 + id
                 + "(__st."
@@ -193,12 +182,11 @@ internal static class SparseChangeSetMatchEmitter
                 + ownWhole
                 + ")) return false;"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "else");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(4, "var __cur" + id + " = __st." + esc + ";");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var __cur" + id + " = __st." + esc + ";");
+        code.AppendLine(
             "if (!__cur"
                 + id
                 + ".IsPresent || (object?)__cur"
@@ -209,18 +197,16 @@ internal static class SparseChangeSetMatchEmitter
         {
             // Order interacts only where stored (orderChanged); otherwise
             // membership only.
-            code.AppendLineAt(4, "if (" + ownOrder + " is not null)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (" + ownOrder + " is not null)");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __curOrder"
                     + id
                     + " = new global::System.Collections.Generic.List<"
                     + keyType
                     + ">();"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "foreach (var __e in __cur"
                     + id
                     + ".Value!) __curOrder"
@@ -229,8 +215,7 @@ internal static class SparseChangeSetMatchEmitter
                     + id
                     + "(__e));"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!"
                     + facade
                     + ".KeyOrderEquals<"
@@ -241,19 +226,18 @@ internal static class SparseChangeSetMatchEmitter
                     + ownOrder
                     + ")) return false;"
             );
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
         }
         // Per-key endpoint checks from stored items (no full snapshot
         // retention).
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if ("
                 + KeyedItems(member)
                 + " is not null) foreach (var __it in "
                 + KeyedItems(member)
                 + ")"
         );
-        code.AppendLineAt(4, "{");
+        code.OpenBlock();
         if (isKeyed)
         {
             var elementFrag = ElementFragmentOf(member);
@@ -283,9 +267,8 @@ internal static class SparseChangeSetMatchEmitter
             {
                 // Added keys must be absent before; all other changed keys must
                 // be present with Before equal (fragment-aware).
-                code.AppendLineAt(5, "if (__it.IsAdded) continue;");
-                code.AppendLineAt(
-                    5,
+                code.AppendLine("if (__it.IsAdded) continue;");
+                code.AppendLine(
                     "bool __found = false; foreach (var __e in __cur"
                         + id
                         + ".Value!) if ("
@@ -296,15 +279,14 @@ internal static class SparseChangeSetMatchEmitter
                         + mismatchBefore
                         + ") return false; break; }"
                 );
-                code.AppendLineAt(5, "if (!__found) return false;");
+                code.AppendLine("if (!__found) return false;");
             }
             else
             {
                 // Removed keys must be absent after; all other changed keys
                 // must be present with After equal.
-                code.AppendLineAt(5, "if (__it.IsRemoved) continue;");
-                code.AppendLineAt(
-                    5,
+                code.AppendLine("if (__it.IsRemoved) continue;");
+                code.AppendLine(
                     "bool __found = false; foreach (var __e in __cur"
                         + id
                         + ".Value!) if ("
@@ -315,7 +297,7 @@ internal static class SparseChangeSetMatchEmitter
                         + mismatchAfter
                         + ") return false; break; }"
                 );
-                code.AppendLineAt(5, "if (!__found) return false;");
+                code.AppendLine("if (!__found) return false;");
             }
         }
         else
@@ -324,11 +306,11 @@ internal static class SparseChangeSetMatchEmitter
             // Check endpoints here; nested fragment deltas validate themselves.
             EmitDictMatchProbes(code, member, id, side, runtime, facade);
         }
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
         // Added keys must be absent on the Before side and present on the After
         // side is covered above per-item.
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     internal static void EmitDictMatchProbes(
@@ -346,11 +328,10 @@ internal static class SparseChangeSetMatchEmitter
         // null-forgiving operator satisfies interface-dictionary nullable
         if (side == "Before")
         {
-            code.AppendLineAt(5, "if (__it.IsAdded) continue;");
+            code.AppendLine("if (__it.IsAdded) continue;");
             if (hasPatch)
             {
-                code.AppendLineAt(
-                    5,
+                code.AppendLine(
                     "if (!__cur"
                         + id
                         + ".Value!.TryGetValue(__it.Key!, out var __cv) || !__it.Edit.__SparseBeforeMatches("
@@ -364,8 +345,7 @@ internal static class SparseChangeSetMatchEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    5,
+                code.AppendLine(
                     "if (!__cur"
                         + id
                         + ".Value!.TryGetValue(__it.Key!, out var __cv) || !"
@@ -376,11 +356,10 @@ internal static class SparseChangeSetMatchEmitter
         }
         else
         {
-            code.AppendLineAt(5, "if (__it.IsRemoved) continue;");
+            code.AppendLine("if (__it.IsRemoved) continue;");
             if (hasPatch)
             {
-                code.AppendLineAt(
-                    5,
+                code.AppendLine(
                     "if (!__cur"
                         + id
                         + ".Value!.TryGetValue(__it.Key!, out var __cv2) || !__it.Edit.__SparseAfterMatches("
@@ -394,8 +373,7 @@ internal static class SparseChangeSetMatchEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    5,
+                code.AppendLine(
                     "if (!__cur"
                         + id
                         + ".Value!.TryGetValue(__it.Key!, out var __cv2) || !"

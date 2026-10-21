@@ -129,7 +129,6 @@ public sealed class RuntimeOwnershipTests
         var code = new SharedIndentedBuilder(CancellationToken.None);
         SparseFragmentEmitHelpers.AppendCloneContext(
             code,
-            1,
             "__sparse_clone_context",
             "global::Downstream.ReferenceComparer"
         );

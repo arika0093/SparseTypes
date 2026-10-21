@@ -47,22 +47,16 @@ internal static class SparseChangeSetRebaseEmitter
             dialect.OptionalBoxType ?? dialect.TransitionContracts?.OptionalBoxType;
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Rebases this change onto a newer state without requiring the original baseline.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>"
             );
-            code.AppendLineAt(
-                2,
-                "/// <param name=\"current\">The newer state to rebase onto.</param>"
-            );
-            code.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-            code.AppendLineAt(2, "/// <returns>The rebased change and conflicts.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"current\">The newer state to rebase onto.</param>");
+            code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+            code.AppendLine("/// <returns>The rebased change and conflicts.</returns>");
+            code.AppendLine(
                 "public "
                     + rebaseResult
                     + " RebaseOnto("
@@ -77,8 +71,7 @@ internal static class SparseChangeSetRebaseEmitter
         }
         if (optionalBoxType is null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private static "
                     + runtime
                     + "Optional<object?> __SparseState("
@@ -91,24 +84,21 @@ internal static class SparseChangeSetRebaseEmitter
             );
         }
         SparseRebaseOptionEmitter.AppendHelpers(code, dialect);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Rebases this change onto a newer state without requiring the original baseline.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>"
         );
         if (target is not null)
         {
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to rebase.</param>");
+            code.AppendLine("/// <param name=\"self\">The change set to rebase.</param>");
         }
 
-        code.AppendLineAt(2, "/// <param name=\"current\">The newer state to rebase onto.</param>");
-        code.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-        code.AppendLineAt(2, "/// <returns>The rebased change and conflicts.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"current\">The newer state to rebase onto.</param>");
+        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+        code.AppendLine("/// <returns>The rebased change and conflicts.</returns>");
+        code.AppendLine(
             (target is null ? "public " : "internal static ")
                 + rebaseResult
                 + " RebaseOnto("
@@ -118,21 +108,20 @@ internal static class SparseChangeSetRebaseEmitter
                 + optionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (target is not null)
         {
             AppendSelfAliases(code, members);
         }
         var __hasSparseRb = members.Any(static m => IsKeyed(m) || IsDict(m));
-        code.AppendLineAt(3, "if (__sparse_hasWhole)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (__SparseIsRedacted(options, \"\"))");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(4, "    if (__SparseRejectsRedacted(options))");
-        code.AppendLineAt(4, "    {");
-        code.AppendLineAt(4, "        var __rconf = new " + conflictList + "();");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine("if (__SparseIsRedacted(options, \"\"))");
+        code.OpenBlock();
+        code.AppendLine("    if (__SparseRejectsRedacted(options))");
+        code.AppendLine("    {");
+        code.AppendLine("        var __rconf = new " + conflictList + "();");
+        code.AppendLine(
             "        __rconf.Add(new "
                 + conflict
                 + "(__SparseRootPath, "
@@ -147,45 +136,36 @@ internal static class SparseChangeSetRebaseEmitter
                 + SparseRebaseOptionEmitter.RedactedReason
                 + "\"));"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "        return new " + rebaseResult + "(Between(current, current), __rconf);"
         );
-        code.AppendLineAt(4, "    }");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("    }");
+        code.AppendLine(
             "    return " + rebaseResult + ".Success(Between(current, __sparse_wholeAfter));"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine(
             target is null ? "var __local = ToPatch();" : "var __local = ToPatch(self);"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var __rb = " + rebase + "(__sparse_wholeBefore, __local, current, options);"
         );
-        code.AppendLineAt(4, "if (__rb.Conflicts.Count == 0 && __rb.Rebased.__SparseIsEmpty())");
-        code.AppendLineAt(5, "return " + rebaseResult + ".Success(Between(current, current));");
-        code.AppendLineAt(4, "var __ra = __rb.Rebased.Apply(current);");
-        code.AppendLineAt(
-            4,
-            "return new " + rebaseResult + "(Between(current, __ra), __rb.Conflicts);"
-        );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("if (__rb.Conflicts.Count == 0 && __rb.Rebased.__SparseIsEmpty())");
+        code.AppendLine("return " + rebaseResult + ".Success(Between(current, current));");
+        code.AppendLine("var __ra = __rb.Rebased.Apply(current);");
+        code.AppendLine("return new " + rebaseResult + "(Between(current, __ra), __rb.Conflicts);");
+        code.CloseBlock();
+        code.AppendLine(
             target is null
                 ? "if (IsEmpty) return " + rebaseResult + ".Success(Between(current, current));"
                 : "if (self.IsEmpty) return "
                     + rebaseResult
                     + ".Success(Between(current, current));"
         );
-        code.AppendLineAt(3, "if (!current.IsPresent || current.Value is null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var __conf = new " + conflictList + "();");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (!current.IsPresent || current.Value is null)");
+        code.OpenBlock();
+        code.AppendLine("var __conf = new " + conflictList + "();");
+        code.AppendLine(
             "__conf.Add(new "
                 + conflict
                 + "(__SparseRootPath, "
@@ -203,31 +183,27 @@ internal static class SparseChangeSetRebaseEmitter
                 )
                 + ", \"The contribution conflicts with a concurrent change.\"));"
         );
-        code.AppendLineAt(4, "return new " + rebaseResult + "(Between(current, current), __conf);");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var __cur = current.Value!;");
-        code.AppendLineAt(3, "var __conflicts = new " + conflictList + "();");
+        code.AppendLine("return new " + rebaseResult + "(Between(current, current), __conf);");
+        code.CloseBlock();
+        code.AppendLine("var __cur = current.Value!;");
+        code.AppendLine("var __conflicts = new " + conflictList + "();");
         ComputePublicNames(members, out _, out var __transNames);
         foreach (var member in members)
         {
             if (IsNested(member))
             {
-                code.AppendLineAt(
-                    3,
-                    ChildChangeSet(member, dialect) + "? __r" + member.Id + " = null;"
-                );
+                code.AppendLine(ChildChangeSet(member, dialect) + "? __r" + member.Id + " = null;");
             }
             else if (IsKeyed(member) || IsDict(member))
             {
                 var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
                 var trans = __transNames[member.Id];
                 var keyType = KeyTypeOf(member);
-                code.AppendLineAt(3, "bool __rh" + member.Id + " = false;");
-                code.AppendLineAt(3, "bool __rwhole" + member.Id + " = false;");
-                code.AppendLineAt(3, opt + " __rwb" + member.Id + " = default;");
-                code.AppendLineAt(3, opt + " __rwa" + member.Id + " = default;");
-                code.AppendLineAt(
-                    3,
+                code.AppendLine("bool __rh" + member.Id + " = false;");
+                code.AppendLine("bool __rwhole" + member.Id + " = false;");
+                code.AppendLine(opt + " __rwb" + member.Id + " = default;");
+                code.AppendLine(opt + " __rwa" + member.Id + " = default;");
+                code.AppendLine(
                     "global::System.Collections.Generic.List<"
                         + trans
                         + ".Item>? __ritems"
@@ -236,16 +212,14 @@ internal static class SparseChangeSetRebaseEmitter
                 );
                 if (IsKeyed(member))
                 {
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "global::System.Collections.Generic.List<"
                             + keyType
                             + ">? __rbO"
                             + member.Id
                             + " = null;"
                     );
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "global::System.Collections.Generic.List<"
                             + keyType
                             + ">? __raO"
@@ -254,14 +228,12 @@ internal static class SparseChangeSetRebaseEmitter
                     );
                     if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                     {
-                        code.AppendLineAt(
-                            3,
+                        code.AppendLine(
                             "global::System.Collections.Generic.List<global::System.Guid>? __rtbO"
                                 + member.Id
                                 + " = null;"
                         );
-                        code.AppendLineAt(
-                            3,
+                        code.AppendLine(
                             "global::System.Collections.Generic.List<global::System.Guid>? __rtaO"
                                 + member.Id
                                 + " = null;"
@@ -272,20 +244,19 @@ internal static class SparseChangeSetRebaseEmitter
             else
             {
                 var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
-                code.AppendLineAt(3, opt + " __rb" + member.Id + " = default;");
-                code.AppendLineAt(3, opt + " __ra" + member.Id + " = default;");
-                code.AppendLineAt(3, "bool __rh" + member.Id + " = false;");
+                code.AppendLine(opt + " __rb" + member.Id + " = default;");
+                code.AppendLine(opt + " __ra" + member.Id + " = default;");
+                code.AppendLine("bool __rh" + member.Id + " = false;");
             }
         }
         if (__hasSparseRb)
         {
-            AppendPragmaDisableNullKey(code, 3);
+            AppendPragmaDisableNullKey(code);
         }
 
         if (SparseChangeSetMemberRebaseEmitter.UsesDefaultMode(members))
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __mode = options is null ? "
                     + modeType
                     + ".Default : options.DefaultRebaseMode;"
@@ -297,34 +268,29 @@ internal static class SparseChangeSetRebaseEmitter
             var prop = member.Property.Name;
             var lit = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(prop, true);
             var esc = SparseNaming.EscapeIdentifier(prop);
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             if (IsNested(member))
             {
-                code.AppendLineAt(4, "if (" + NestedField(member) + " is not null)");
-                code.AppendLineAt(4, "{");
-                code.AppendLineAt(4, "    if (__SparseIsRedacted(options, " + lit + "))");
-                code.AppendLineAt(4, "    {");
-                code.AppendLineAt(4, "        if (__SparseRejectsRedacted(options))");
-                code.AppendLineAt(4, "        {");
+                code.AppendLine("if (" + NestedField(member) + " is not null)");
+                code.OpenBlock();
+                code.AppendLine("    if (__SparseIsRedacted(options, " + lit + "))");
+                code.AppendLine("    {");
+                code.AppendLine("        if (__SparseRejectsRedacted(options))");
+                code.AppendLine("        {");
                 SparseRebaseOptionEmitter.AppendRedactedConflict(
                     code,
-                    4,
                     runtime,
                     conflict,
                     dialect,
                     "__SparseRootPath.Member(" + lit + ")",
                     "__conflicts"
                 );
-                code.AppendLineAt(4, "        }");
-                code.AppendLineAt(
-                    4,
-                    "        else __r" + member.Id + " = " + NestedField(member) + ";"
-                );
-                code.AppendLineAt(4, "    }");
-                code.AppendLineAt(4, "    else");
-                code.AppendLineAt(4, "    {");
-                code.AppendLineAt(
-                    5,
+                code.AppendLine("        }");
+                code.AppendLine("        else __r" + member.Id + " = " + NestedField(member) + ";");
+                code.AppendLine("    }");
+                code.AppendLine("    else");
+                code.AppendLine("    {");
+                code.AppendLine(
                     "var __nr"
                         + member.Id
                         + " = "
@@ -335,15 +301,13 @@ internal static class SparseChangeSetRebaseEmitter
                         + lit
                         + "));"
                 );
-                code.AppendLineAt(5, "foreach (var __c in __nr" + member.Id + ".Conflicts)");
-                code.AppendLineAt(5, "{");
-                code.AppendLineAt(
-                    6,
+                code.AppendLine("foreach (var __c in __nr" + member.Id + ".Conflicts)");
+                code.OpenBlock();
+                code.AppendLine(
                     "__conflicts.Add(__c.WithPathPrefix(__SparseRootPath.Member(" + lit + ")));"
                 );
-                code.AppendLineAt(5, "}");
-                code.AppendLineAt(
-                    5,
+                code.CloseBlock();
+                code.AppendLine(
                     "__r"
                         + member.Id
                         + " = __nr"
@@ -352,8 +316,8 @@ internal static class SparseChangeSetRebaseEmitter
                         + member.Id
                         + ".Rebased;"
                 );
-                code.AppendLineAt(4, "    }");
-                code.AppendLineAt(4, "}");
+                code.AppendLine("    }");
+                code.CloseBlock();
             }
             else if (IsKeyed(member))
             {
@@ -400,17 +364,11 @@ internal static class SparseChangeSetRebaseEmitter
                     HasField(member),
                     SparseChangeSetMemberRebaseEmitter.ScalarPassthrough(member, esc)
                 );
-                code.AppendLineAt(4, "if (" + HasField(member) + " && !__red" + member.Id + ")");
-                code.AppendLineAt(4, "{");
-                code.AppendLineAt(
-                    4,
-                    "    var __base" + member.Id + " = " + BeforeField(member) + ";"
-                );
-                code.AppendLineAt(
-                    4,
-                    "    var __des" + member.Id + " = " + AfterField(member) + ";"
-                );
-                code.AppendLineAt(4, "    var __curM" + member.Id + " = __cur." + esc + ";");
+                code.AppendLine("if (" + HasField(member) + " && !__red" + member.Id + ")");
+                code.OpenBlock();
+                code.AppendLine("    var __base" + member.Id + " = " + BeforeField(member) + ";");
+                code.AppendLine("    var __des" + member.Id + " = " + AfterField(member) + ";");
+                code.AppendLine("    var __curM" + member.Id + " = __cur." + esc + ";");
                 SparseChangeSetMemberRebaseEmitter.AppendReconcilerAttempt(
                     code,
                     member,
@@ -422,7 +380,7 @@ internal static class SparseChangeSetRebaseEmitter
                     conflictKind,
                     dialect.OptionalBoxType ?? dialect.TransitionContracts?.OptionalBoxType
                 );
-                code.AppendLineAt(4, "}");
+                code.CloseBlock();
             }
             else if (member.MergeMode is SparseMergeModes.Append or SparseMergeModes.SetUnion)
             {
@@ -447,17 +405,11 @@ internal static class SparseChangeSetRebaseEmitter
                     HasField(member),
                     SparseChangeSetMemberRebaseEmitter.ScalarPassthrough(member, esc)
                 );
-                code.AppendLineAt(4, "if (" + HasField(member) + " && !__red" + member.Id + ")");
-                code.AppendLineAt(4, "{");
-                code.AppendLineAt(
-                    4,
-                    "    var __base" + member.Id + " = " + BeforeField(member) + ";"
-                );
-                code.AppendLineAt(
-                    4,
-                    "    var __des" + member.Id + " = " + AfterField(member) + ";"
-                );
-                code.AppendLineAt(4, "    var __curM" + member.Id + " = __cur." + esc + ";");
+                code.AppendLine("if (" + HasField(member) + " && !__red" + member.Id + ")");
+                code.OpenBlock();
+                code.AppendLine("    var __base" + member.Id + " = " + BeforeField(member) + ";");
+                code.AppendLine("    var __des" + member.Id + " = " + AfterField(member) + ";");
+                code.AppendLine("    var __curM" + member.Id + " = __cur." + esc + ";");
                 if (member.RebasePolicyType is not null)
                 {
                     var policy =
@@ -493,9 +445,9 @@ internal static class SparseChangeSetRebaseEmitter
                         dialect.OptionalBoxType ?? dialect.TransitionContracts?.OptionalBoxType
                     );
                 }
-                code.AppendLineAt(4, "}");
+                code.CloseBlock();
             }
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
         }
         var rargs = new List<string> { "false", "default", "default" };
         foreach (var member in members)
@@ -544,14 +496,14 @@ internal static class SparseChangeSetRebaseEmitter
                 );
             }
         }
-        code.AppendLineAt(3, "var __rebased = new ChangeSet(" + string.Join(", ", rargs) + ");");
+        code.AppendLine("var __rebased = new ChangeSet(" + string.Join(", ", rargs) + ");");
         if (__hasSparseRb)
         {
-            AppendPragmaRestoreNullKey(code, 3);
+            AppendPragmaRestoreNullKey(code);
         }
 
-        code.AppendLineAt(3, "return new " + rebaseResult + "(__rebased, __conflicts);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new " + rebaseResult + "(__rebased, __conflicts);");
+        code.CloseBlock();
         if (modelType is not null)
         {
             SparseChangeSetModelRebaseEmitter.AppendModelRebase(
@@ -600,12 +552,10 @@ internal static class SparseChangeSetRebaseEmitter
     {
         if (target is not null)
         {
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <summary>Applies this change to an ordinary model if it can be rebased without conflicts.</summary>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "public bool TryApplyTo("
                     + modelType
                     + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
@@ -616,12 +566,10 @@ internal static class SparseChangeSetRebaseEmitter
                     + target.ChangeSetOperationsType
                     + ".TryApplyTo(this, current, out updated, options);"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <summary>Applies this change to an ordinary model and returns structured conflicts when rebasing fails.</summary>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "public bool TryApplyTo("
                     + modelType
                     + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
@@ -634,12 +582,10 @@ internal static class SparseChangeSetRebaseEmitter
                     + target.ChangeSetOperationsType
                     + ".TryApplyTo(this, current, out updated, out conflicts, options);"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies a change to an ordinary model if it can be rebased without conflicts.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "internal static bool TryApplyTo("
                     + "ChangeSet self, "
                     + modelType
@@ -649,15 +595,13 @@ internal static class SparseChangeSetRebaseEmitter
                     + optionsType
                     + "? options = null)"
             );
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "return TryApplyTo(self, current, out updated, out _, options);");
-            code.AppendLineAt(2, "}");
-            code.AppendLineAt(
-                2,
+            code.OpenBlock();
+            code.AppendLine("return TryApplyTo(self, current, out updated, out _, options);");
+            code.CloseBlock();
+            code.AppendLine(
                 "/// <summary>Applies a change to an ordinary model and returns structured conflicts when rebasing fails.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "internal static bool TryApplyTo("
                     + "ChangeSet self, "
                     + modelType
@@ -678,12 +622,10 @@ internal static class SparseChangeSetRebaseEmitter
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies this change to an ordinary model if it can be rebased without conflicts.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public bool TryApplyTo("
                     + modelType
                     + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
@@ -692,15 +634,13 @@ internal static class SparseChangeSetRebaseEmitter
                     + optionsType
                     + "? options = null)"
             );
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "return TryApplyTo(current, out updated, out _, options);");
-            code.AppendLineAt(2, "}");
-            code.AppendLineAt(
-                2,
+            code.OpenBlock();
+            code.AppendLine("return TryApplyTo(current, out updated, out _, options);");
+            code.CloseBlock();
+            code.AppendLine(
                 "/// <summary>Applies this change to an ordinary model and returns structured conflicts when rebasing fails.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public bool TryApplyTo("
                     + modelType
                     + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out "
@@ -750,38 +690,33 @@ internal static class SparseChangeSetRebaseEmitter
     )
     {
         var self = selfName is null ? string.Empty : selfName + ".";
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
-            "var __state = " + optionalFragment + ".Present(Fragment.From(current));"
-        );
-        code.AppendLineAt(3, "ChangeSet __toApply;");
-        code.AppendLineAt(3, "if (options is null && " + self + "__SparseBeforeMatches(__state))");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "__toApply = " + (selfName ?? "this") + ";");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("var __state = " + optionalFragment + ".Present(Fragment.From(current));");
+        code.AppendLine("ChangeSet __toApply;");
+        code.AppendLine("if (options is null && " + self + "__SparseBeforeMatches(__state))");
+        code.OpenBlock();
+        code.AppendLine("__toApply = " + (selfName ?? "this") + ";");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             selfName is null
                 ? "var __rebase = RebaseOnto(__state, options);"
                 : "var __rebase = RebaseOnto(" + selfName + ", __state, options);"
         );
-        code.AppendLineAt(4, "if (__rebase.HasConflicts)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "updated = null;");
-        code.AppendLineAt(5, "conflicts = __rebase.Conflicts;");
-        code.AppendLineAt(5, "return false;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "__toApply = __rebase.Rebased;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var __applied = __toApply.ToPatch().Apply(__state);");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("if (__rebase.HasConflicts)");
+        code.OpenBlock();
+        code.AppendLine("updated = null;");
+        code.AppendLine("conflicts = __rebase.Conflicts;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("__toApply = __rebase.Rebased;");
+        code.CloseBlock();
+        code.AppendLine("var __applied = __toApply.ToPatch().Apply(__state);");
+        code.AppendLine(
             "if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException(\"The rebased change does not produce a non-null model root. Use the presence-aware Fragment/Optional API for root presence transitions.\");"
         );
-        code.AppendLineAt(3, "var __updatedModel = __applied.Value.ToModel();");
+        code.AppendLine("var __updatedModel = __applied.Value.ToModel();");
         foreach (
             var ignoredName in ignoredSettablePropertyNames.IsDefault
                 ? ImmutableArray<string>.Empty
@@ -789,11 +724,11 @@ internal static class SparseChangeSetRebaseEmitter
         )
         {
             var name = SparseNaming.EscapeIdentifier(ignoredName);
-            code.AppendLineAt(3, "__updatedModel." + name + " = current." + name + ";");
+            code.AppendLine("__updatedModel." + name + " = current." + name + ";");
         }
-        code.AppendLineAt(3, "updated = __updatedModel;");
-        code.AppendLineAt(3, "conflicts = null;");
-        code.AppendLineAt(3, "return true;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("updated = __updatedModel;");
+        code.AppendLine("conflicts = null;");
+        code.AppendLine("return true;");
+        code.CloseBlock();
     }
 }

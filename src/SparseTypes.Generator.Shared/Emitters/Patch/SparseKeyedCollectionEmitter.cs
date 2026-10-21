@@ -49,8 +49,7 @@ internal static class SparseKeyedCollectionEmitter
         var elementType = ElementType(member);
         var keyType = KeyType(member);
         var capacity = stem + "Capacity" + id;
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var "
                 + capacity
                 + " = "
@@ -84,8 +83,7 @@ internal static class SparseKeyedCollectionEmitter
         // Partitioned identity maps can be empty even when the source is large.
         var partitioned = side == "before" ? HasTemporaryKey(member) : HasUnassignedKey(member);
         var mapCapacity = partitioned ? "0" : capacity;
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var "
                 + stem
                 + "Map"
@@ -100,8 +98,7 @@ internal static class SparseKeyedCollectionEmitter
                 + keyType
                 + ">.Default);"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var "
                 + stem
                 + "Order"
@@ -121,13 +118,11 @@ internal static class SparseKeyedCollectionEmitter
         string desiredMap = "desiredMap"
     )
     {
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "for (var __mapIndex = 0; __mapIndex < 3 && __pendingKeys.Count > 0; __mapIndex++)"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine(
             "var __keyMap = __mapIndex == 0 ? "
                 + baseMap
                 + " : (__mapIndex == 1 ? "
@@ -136,18 +131,18 @@ internal static class SparseKeyedCollectionEmitter
                 + desiredMap
                 + ");"
         );
-        code.IndentOffset++;
-        code.AppendLineAt(4, "foreach (var k in __keyMap.Keys)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "if (__pendingKeys.Count == 0) { break; }");
-        code.AppendLineAt(5, "if (!__pendingKeys.Remove(k)) { continue; }");
+        code.Indent();
+        code.AppendLine("foreach (var k in __keyMap.Keys)");
+        code.OpenBlock();
+        code.AppendLine("if (__pendingKeys.Count == 0) { break; }");
+        code.AppendLine("if (!__pendingKeys.Remove(k)) { continue; }");
     }
 
     internal static void AppendPendingKeyLoopEnd(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(4, "}");
-        code.IndentOffset--;
-        code.AppendLineAt(4, "}");
+        code.CloseBlock();
+        code.Unindent();
+        code.CloseBlock();
     }
 
     internal static string ElementPatchType(SparseMemberModel member) =>
@@ -290,13 +285,11 @@ internal static class SparseKeyedCollectionEmitter
     internal static void EmitKeyOf(
         SharedIndentedBuilder code,
         SparseMemberModel member,
-        string elementType,
-        int indent
+        string elementType
     )
     {
         var keys = member.Collection.KeyPropertyNames;
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "private static "
                 + KeyType(member)
                 + " "
@@ -305,17 +298,15 @@ internal static class SparseKeyedCollectionEmitter
                 + elementType
                 + " element)"
         );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.OpenBlock();
+        code.AppendLine(
             "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no stable key.\");"
         );
         // The key type is the declared property type, which may itself be a
         // tuple or value object for composite identity.
         if (keys.Length == 1)
         {
-            code.AppendLineAt(
-                indent + 1,
+            code.AppendLine(
                 "return element."
                     + SparseNaming.EscapeIdentifier(keys[0])
                     + (HasUnassignedKey(member) ? "!" : "")
@@ -324,17 +315,15 @@ internal static class SparseKeyedCollectionEmitter
         }
         else
         {
-            code.AppendLineAt(
-                indent + 1,
+            code.AppendLine(
                 "throw new global::System.InvalidOperationException(\"Keyed collection has no usable key property.\");"
             );
         }
 
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
         if (HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                indent,
+            code.AppendLine(
                 "private static bool "
                     + IsUnassignedMethod(member)
                     + "("
@@ -346,7 +335,7 @@ internal static class SparseKeyedCollectionEmitter
         }
         if (HasTemporaryKey(member))
         {
-            EmitTemporaryKeyOf(code, member, elementType, indent, TemporaryKeyOfMethod(member));
+            EmitTemporaryKeyOf(code, member, elementType, TemporaryKeyOfMethod(member));
         }
     }
 
@@ -355,21 +344,18 @@ internal static class SparseKeyedCollectionEmitter
         SharedIndentedBuilder code,
         SparseMemberModel member,
         string elementType,
-        int indent,
         string methodName
     )
     {
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "private static global::System.Guid? " + methodName + "(" + elementType + " element)"
         );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.OpenBlock();
+        code.AppendLine(
             "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no temporary identity.\");"
         );
-        code.AppendLineAt(indent + 1, "return element." + TemporaryKeyProperty(member) + ";");
-        code.AppendLineAt(indent, "}");
+        code.AppendLine("return element." + TemporaryKeyProperty(member) + ";");
+        code.CloseBlock();
     }
 
     internal static string MaterializeSequence(

@@ -14,30 +14,26 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
         var elementType = SparseChangeSetBasicsEmitter.ElementTypeOf(member);
         // Temporary-identity side maps: complete per-state correlation for
         // unassigned elements.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __bT"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + elementType
                 + ">();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __bTO"
                 + id
                 + " = new global::System.Collections.Generic.List<global::System.Guid>();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __aT"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + elementType
                 + ">();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __aTO"
                 + id
                 + " = new global::System.Collections.Generic.List<global::System.Guid>();"
@@ -55,8 +51,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         // Temporary-keyed baselines are valid when every unassigned element
         // carries a usable, unique temporary identity.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__beforeHas"
                 + id
                 + ") { var __seenTemp = new global::System.Collections.Generic.HashSet<global::System.Guid>(); foreach (var __baselineItem in __before"
@@ -79,8 +74,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     )
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __bt = "
@@ -107,8 +101,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     )
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __at = "
@@ -136,30 +129,24 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     {
         var elementCs = SparseChangeSetBasicsEmitter.ElementChangeSetOf(member);
         // Temporary-identity edits: correlated by Guid, never by sentinel.
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "var __editedT"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, "
                 + elementCs
                 + ">();"
         );
-        code.AppendLineAt(5, "foreach (var __tk in __bT" + id + ".Keys)");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("foreach (var __tk in __bT" + id + ".Keys)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!__aT" + id + ".TryGetValue(__tk, out var __afterTempItem)) continue;"
         );
-        code.AppendLineAt(6, "var __beforeTempItem = __bT" + id + "[__tk];");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("var __beforeTempItem = __bT" + id + "[__tk];");
+        code.AppendLine(
             "var __nestedTemp = " + elementCs + ".Between(__beforeTempItem, __afterTempItem);"
         );
-        code.AppendLineAt(
-            6,
-            "if (!__nestedTemp.IsEmpty) __editedT" + id + "[__tk] = __nestedTemp;"
-        );
-        code.AppendLineAt(5, "}");
+        code.AppendLine("if (!__nestedTemp.IsEmpty) __editedT" + id + "[__tk] = __nestedTemp;");
+        code.CloseBlock();
     }
 
     /// <summary>Emits added/removed probes covering temporary identities.</summary>
@@ -169,8 +156,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
         int id
     )
     {
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "bool __hasTempAdded"
                 + id
                 + " = false; foreach (var __tk in __aT"
@@ -181,8 +167,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + " = true; break; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "bool __hasAdded"
                 + id
                 + " = __hasTempAdded"
@@ -199,8 +184,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + " = true; break; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "bool __hasTempRemoved"
                 + id
                 + " = false; foreach (var __tk in __bT"
@@ -211,8 +195,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + " = true; break; }"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "bool __hasRemoved"
                 + id
                 + " = __hasTempRemoved"
@@ -234,17 +217,15 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     {
         // Surviving-rank reorder set for temporary identities, mirroring
         // the assigned computation so temp-only reorders are observed.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "global::System.Collections.Generic.HashSet<global::System.Guid>? __reorderedTemp"
                 + id
                 + " = null;"
         );
-        code.AppendLineAt(6, "if (__orderChanged" + id + ")");
-        code.AppendLineAt(6, "{");
-        code.IndentOffset++;
-        code.AppendLineAt(
-            6,
+        code.AppendLine("if (__orderChanged" + id + ")");
+        code.OpenBlock();
+        code.Indent();
+        code.AppendLine(
             "var __afterTempRank"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>(__hasTempRemoved"
@@ -253,8 +234,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + ".Count);"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ var __r = 0; foreach (var __tk in __aTO"
                 + id
                 + ") if (__bT"
@@ -263,14 +243,12 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + "[__tk] = __r++; }"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "__reorderedTemp"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ var __r = 0; foreach (var __tk in __bTO"
                 + id
                 + ") if (__afterTempRank"
@@ -279,8 +257,8 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + id
                 + ".Add(__tk); __r++; } }"
         );
-        code.IndentOffset--;
-        code.AppendLineAt(6, "}");
+        code.Unindent();
+        code.CloseBlock();
     }
 
     /// <summary>Emits absolute before indexes for temporary identities.</summary>
@@ -292,16 +270,14 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     {
         // Absolute indexes for temporary identities: sentinel slots in the
         // key orders zip with the parallel Guid orders one-to-one.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "var __beforeTempIndex"
                 + id
                 + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, int>(__bT"
                 + id
                 + ".Count);"
         );
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "{ var __ti = 0; for (var __i = 0; __i < __beforeOrder"
                 + id
                 + ".Count; __i++) if ("
@@ -331,8 +307,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
         var elementType = SparseChangeSetBasicsEmitter.ElementTypeOf(member);
         // The slot sequence and the temporary order stay one-to-one by
         // construction, so identity never degrades to position.
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __tt = __aTO"
@@ -404,12 +379,11 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
         var elementFrag = SparseChangeSetBasicsEmitter.ElementFragmentOf(member);
         var elementType = SparseChangeSetBasicsEmitter.ElementTypeOf(member);
         var keyOf = "__SparseKeyOf_ChangeSet_" + id;
-        code.AppendLineAt(6, "foreach (var __tk in __bTO" + id + ")");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "if (__aT" + id + ".ContainsKey(__tk)) continue;");
-        code.AppendLineAt(7, "var __trb = __bT" + id + "[__tk];");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("foreach (var __tk in __bTO" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("if (__aT" + id + ".ContainsKey(__tk)) continue;");
+        code.AppendLine("var __trb = __bT" + id + "[__tk];");
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -421,15 +395,13 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + elementFrag
                 + ".From(__trb));"
         );
-        code.AppendLineAt(7, "var __trfullEdit = " + elementCs + ".Between(__treb, default);");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __trfullEdit = " + elementCs + ".Between(__treb, default);");
+        code.AppendLine(
             "int __trbi = __beforeTempIndex"
                 + id
                 + ".TryGetValue(__tk, out var __trbv) ? __trbv : -1;"
         );
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "__list"
                 + id
                 + ".Add(new "
@@ -442,6 +414,6 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + elementType
                 + ">.Present(__trb), default, __trbi, -1, false, true, false, false, __trfullEdit, false));"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
     }
 }

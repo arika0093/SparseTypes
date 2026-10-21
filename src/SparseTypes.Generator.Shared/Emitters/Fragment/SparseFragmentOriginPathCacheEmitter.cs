@@ -11,8 +11,7 @@ internal static class SparseFragmentOriginPathCacheEmitter
         string pathType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static readonly "
                 + pathType
                 + " __SparseOriginRootPath = "
@@ -23,8 +22,7 @@ internal static class SparseFragmentOriginPathCacheEmitter
         );
         foreach (var member in members)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private static readonly "
                     + pathType
                     + " __SparseOriginMemberPath"

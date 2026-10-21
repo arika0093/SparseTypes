@@ -9,57 +9,41 @@ internal static class SparsePayloadJsonResolverEmitter
         PayloadJsonEmissionContext context
     )
     {
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Trim-safe resolver for this model's change payload.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public sealed class "
                 + context.ResolverName
                 + " : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver"
         );
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(2, "/// <summary>Gets the shared resolver instance.</summary>");
-        code.AppendLineAt(
-            2,
-            "public static " + context.ResolverName + " Default { get; } = new();"
-        );
-        code.AppendLineAt(
-            2,
-            "/// <summary>Gets metadata for the model's change payload.</summary>"
-        );
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("/// <summary>Gets the shared resolver instance.</summary>");
+        code.AppendLine("public static " + context.ResolverName + " Default { get; } = new();");
+        code.AppendLine("/// <summary>Gets metadata for the model's change payload.</summary>");
+        code.AppendLine(
             "public global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<ChangePayload> ChangePayload => _payloadInfo ??= global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<ChangePayload>(new global::System.Text.Json.JsonSerializerOptions { TypeInfoResolver = Default }, Converter);"
         );
-        code.AppendLineAt(2, "/// <inheritdoc />");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
             "public global::System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(global::System.Type type, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (type == typeof(ChangePayload))");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("if (type == typeof(ChangePayload))");
+        code.AppendLine(
             "return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<ChangePayload>(options, Converter);"
         );
         SparsePayloadJsonPocoEmitter.AppendResolverBranches(code, context);
-        code.AppendLineAt(3, "return null;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
-            "private static readonly " + context.ConverterName + " Converter = new();"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return null;");
+        code.CloseBlock();
+        code.AppendLine("private static readonly " + context.ConverterName + " Converter = new();");
+        code.AppendLine(
             "private global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<ChangePayload>? _payloadInfo;"
         );
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 }

@@ -125,12 +125,10 @@ internal static class SparseDictionaryPatchEmitter
         );
         if (split is not null)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Inverts this dictionary patch relative to the baseline it was applied to.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "public "
                     + patchName
                     + " Invert("
@@ -139,12 +137,10 @@ internal static class SparseDictionaryPatchEmitter
                     + split.OperationsType
                     + ".Invert(this, baseline);"
             );
-            operations.AppendLineAt(
-                3,
+            operations.AppendLine(
                 "/// <summary>Inverts a dictionary patch relative to the baseline it was applied to.</summary>"
             );
-            operations.AppendLineAt(
-                3,
+            operations.AppendLine(
                 "internal static "
                     + patchName
                     + " Invert("
@@ -156,11 +152,10 @@ internal static class SparseDictionaryPatchEmitter
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Inverts this dictionary patch.</summary>");
-            code.AppendLineAt(3, "/// <param name=\"baseline\">Baseline applied to.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch undoing this patch.</returns>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Inverts this dictionary patch.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">Baseline applied to.</param>");
+            code.AppendLine("/// <returns>A patch undoing this patch.</returns>");
+            code.AppendLine(
                 "public "
                     + patchName
                     + " Invert("
@@ -206,7 +201,7 @@ internal static class SparseDictionaryPatchEmitter
                 SparseNaming.EscapeIdentifier(member.Property.Name) + "PatchOperations"
             );
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     internal static void EmitDictionarySurface(
@@ -234,29 +229,25 @@ internal static class SparseDictionaryPatchEmitter
         // Public-first order: internal backing fields and helpers move to the
         // deferred builder trailing public mutators and algebra stubs.
         var internalCode = surfaceDeferred ?? code;
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Dictionary patch for member '" + member.Property.Name + "'.</summary>"
         );
-        code.AppendLineAt(2, "public sealed class " + patchName);
-        code.AppendLineAt(2, "{");
+        code.AppendLine("public sealed class " + patchName);
+        code.OpenBlock();
         // Relocated operation bodies reach state through these fields.
-        internalCode.AppendLineAt(3, "internal " + operation + " __whole;");
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine("internal " + operation + " __whole;");
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
                 + valueType
                 + ">? __set;"
         );
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine(
             "internal global::System.Collections.Generic.List<" + keyType + ">? __removed;"
         );
-        internalCode.AppendLineAt(3, "internal int[]? __removedLookup;");
-        internalCode.AppendLineAt(
-            3,
+        internalCode.AppendLine("internal int[]? __removedLookup;");
+        internalCode.AppendLine(
             hasPatch
                 ? "internal global::System.Collections.Generic.Dictionary<"
                     + keyType
@@ -269,44 +260,37 @@ internal static class SparseDictionaryPatchEmitter
                     + valueType
                     + ">? __edited;"
         );
-        code.AppendLineAt(
-            3,
-            "/// <summary>Whether this dictionary patch carries no changes.</summary>"
-        );
-        code.AppendLineAt(3, "public bool IsEmpty => __whole.Kind == " + kind + ".Keep");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("/// <summary>Whether this dictionary patch carries no changes.</summary>");
+        code.AppendLine("public bool IsEmpty => __whole.Kind == " + kind + ".Keep");
+        code.AppendLine(
             "&& (__set is null || __set.Count == 0) && (__removed is null || __removed.Count == 0) && (__edited is null || __edited.Count == 0);"
         );
-        internalCode.AppendLineAt(3, "internal bool __SparseIsEmpty() => IsEmpty;");
-        code.AppendLineAt(3, "/// <summary>Replaces the whole dictionary.</summary>");
-        code.AppendLineAt(3, "/// <param name=\"value\">Replacement values.</param>");
-        code.AppendLineAt(3, "public void Set(" + dictType + " value)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        internalCode.AppendLine("internal bool __SparseIsEmpty() => IsEmpty;");
+        code.AppendLine("/// <summary>Replaces the whole dictionary.</summary>");
+        code.AppendLine("/// <param name=\"value\">Replacement values.</param>");
+        code.AppendLine("public void Set(" + dictType + " value)");
+        code.OpenBlock();
+        code.AppendLine(
             "__whole = "
                 + operation
                 + ".Set(value); __set = null; __removed = null; __removedLookup = null; __edited = null;"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "/// <summary>Removes the whole dictionary.</summary>");
-        code.AppendLineAt(3, "public void Remove()");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Removes the whole dictionary.</summary>");
+        code.AppendLine("public void Remove()");
+        code.OpenBlock();
+        code.AppendLine(
             "__whole = "
                 + operation
                 + ".Remove; __set = null; __removed = null; __removedLookup = null; __edited = null;"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         if (!SparseKeyedCollectionEmitter.IsInterfaceMember(member))
         {
-            code.AppendLineAt(3, "/// <summary>Creates a dictionary patch from values.</summary>");
-            code.AppendLineAt(3, "/// <param name=\"value\">Replacement values.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch carrying the values.</returns>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Creates a dictionary patch from values.</summary>");
+            code.AppendLine("/// <param name=\"value\">Replacement values.</param>");
+            code.AppendLine("/// <returns>A patch carrying the values.</returns>");
+            code.AppendLine(
                 "public static implicit operator "
                     + patchName
                     + "("
@@ -318,15 +302,14 @@ internal static class SparseDictionaryPatchEmitter
                     + ".Set(value) };"
             );
         }
-        internalCode.AppendLineAt(3, "internal void EnsureGranular(string operation)");
-        internalCode.AppendLineAt(3, "{");
-        internalCode.AppendLineAt(
-            4,
+        internalCode.AppendLine("internal void EnsureGranular(string operation)");
+        internalCode.OpenBlock();
+        internalCode.AppendLine(
             "if (__whole.Kind != "
                 + kind
                 + ".Keep) throw new global::System.InvalidOperationException(\"Cannot apply '\" + operation + \"' when the whole dictionary is set.\");"
         );
-        internalCode.AppendLineAt(3, "}");
+        internalCode.CloseBlock();
         EmitDictionaryMutators(
             split?.Operations ?? code,
             member,
@@ -343,22 +326,19 @@ internal static class SparseDictionaryPatchEmitter
         // already-built value patch.
         if (hasPatch)
         {
-            internalCode.AppendLineAt(
-                3,
+            internalCode.AppendLine(
                 "internal void __SparseSetEdited("
                     + keyType
                     + " key, "
                     + SparseKeyedCollectionEmitter.ValuePatchType(member)
                     + " patch)"
             );
-            internalCode.AppendLineAt(3, "{");
-            internalCode.AppendLineAt(4, "EnsureGranular(\"SetEdited\");");
-            internalCode.AppendLineAt(
-                4,
+            internalCode.OpenBlock();
+            internalCode.AppendLine("EnsureGranular(\"SetEdited\");");
+            internalCode.AppendLine(
                 "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
             );
-            internalCode.AppendLineAt(
-                4,
+            internalCode.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -367,8 +347,8 @@ internal static class SparseDictionaryPatchEmitter
                     + comparer
                     + ");"
             );
-            internalCode.AppendLineAt(4, "__edited[key] = patch;");
-            internalCode.AppendLineAt(3, "}");
+            internalCode.AppendLine("__edited[key] = patch;");
+            internalCode.CloseBlock();
         }
     }
 
@@ -420,12 +400,10 @@ internal static class SparseDictionaryPatchEmitter
         var patchName = SparseKeyedCollectionEmitter.CollectionPatchName(member);
         if (split is not null)
         {
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "/// <summary>Applies this dictionary patch to a member value.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public "
                     + optionalDict
                     + " Apply("
@@ -434,12 +412,8 @@ internal static class SparseDictionaryPatchEmitter
                     + split.OperationsType
                     + ".Apply(this, current);"
             );
-            code.AppendLineAt(
-                3,
-                "/// <summary>Applies a dictionary patch to a member value.</summary>"
-            );
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Applies a dictionary patch to a member value.</summary>");
+            code.AppendLine(
                 "internal static "
                     + optionalDict
                     + " Apply("
@@ -448,32 +422,26 @@ internal static class SparseDictionaryPatchEmitter
                     + optionalDict
                     + " current)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendDictionaryFieldAliases(code);
         }
         else
         {
             // Apply.
-            code.AppendLineAt(3, "/// <summary>Applies this dictionary patch.</summary>");
-            code.AppendLineAt(3, "/// <param name=\"current\">Value to apply to.</param>");
-            code.AppendLineAt(3, "/// <returns>The value with the patch applied.</returns>");
-            code.AppendLineAt(3, "public " + optionalDict + " Apply(" + optionalDict + " current)");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("/// <summary>Applies this dictionary patch.</summary>");
+            code.AppendLine("/// <param name=\"current\">Value to apply to.</param>");
+            code.AppendLine("/// <returns>The value with the patch applied.</returns>");
+            code.AppendLine("public " + optionalDict + " Apply(" + optionalDict + " current)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(
-            4,
-            "if (__whole.Kind != " + kind + ".Keep) return __whole.Apply(current);"
-        );
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (__whole.Kind != " + kind + ".Keep) return __whole.Apply(current);");
+        code.AppendLine(
             "if (" + (split is null ? string.Empty : "self.") + "IsEmpty) return current;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (!current.IsPresent || (object?)current.Value is null) throw new global::System.InvalidOperationException(\"Cannot apply granular dictionary operations to a missing dictionary.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var result = new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -488,21 +456,18 @@ internal static class SparseDictionaryPatchEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__removed is not null) foreach (var k in __removed) result.Remove(k);"
         );
         if (hasPatch)
         {
             var valueFragment = SparseKeyedCollectionEmitter.ValueFragmentType(member);
-            code.AppendLineAt(4, "if (__edited is not null) foreach (var kv in __edited)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (__edited is not null) foreach (var kv in __edited)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!result.TryGetValue(kv.Key, out var existing)) throw new global::System.InvalidOperationException(\"Cannot edit a missing entry.\");"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var applied = kv.Value.Apply("
                     + runtime
                     + "Optional<"
@@ -511,27 +476,23 @@ internal static class SparseDictionaryPatchEmitter
                     + valueFragment
                     + ".From(existing)));"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!applied.IsPresent || applied.Value is null) throw new global::System.InvalidOperationException(\"Entry edit removed the entry. Use RemoveEntry instead.\");"
             );
-            code.AppendLineAt(5, "result[kv.Key] = applied.Value!.ToModel();");
-            code.AppendLineAt(4, "}");
+            code.AppendLine("result[kv.Key] = applied.Value!.ToModel();");
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__edited is not null) foreach (var kv in __edited) { if (!result.ContainsKey(kv.Key)) throw new global::System.InvalidOperationException(\"Cannot update a missing entry.\"); result[kv.Key] = kv.Value; }"
             );
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__set is not null) foreach (var kv in __set) result[kv.Key] = kv.Value;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "return "
                 + runtime
                 + "Optional<"
@@ -540,7 +501,7 @@ internal static class SparseDictionaryPatchEmitter
                 + SparseKeyedCollectionEmitter.ConvertDictionaryToMember(member, "result")
                 + ");"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     internal static void EmitDictionaryBetween(
@@ -560,12 +521,10 @@ internal static class SparseDictionaryPatchEmitter
     {
         if (split is not null)
         {
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "/// <summary>Derives a dictionary patch between two member values.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public static "
                     + patchName
                     + " Between("
@@ -576,24 +535,19 @@ internal static class SparseDictionaryPatchEmitter
                     + split.OperationsType
                     + ".Between(before, after);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Derives a dictionary patch between two member values.</summary>"
             );
         }
         else
         {
-            code.AppendLineAt(
-                3,
-                "/// <summary>Derives a dictionary patch between values.</summary>"
-            );
-            code.AppendLineAt(3, "/// <param name=\"before\">Value before.</param>");
-            code.AppendLineAt(3, "/// <param name=\"after\">Value after.</param>");
-            code.AppendLineAt(3, "/// <returns>A patch turning before into after.</returns>");
+            code.AppendLine("/// <summary>Derives a dictionary patch between values.</summary>");
+            code.AppendLine("/// <param name=\"before\">Value before.</param>");
+            code.AppendLine("/// <param name=\"after\">Value after.</param>");
+            code.AppendLine("/// <returns>A patch turning before into after.</returns>");
         }
         // Between.
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             (split is null ? "public static " : "internal static ")
                 + patchName
                 + " Between("
@@ -602,29 +556,26 @@ internal static class SparseDictionaryPatchEmitter
                 + optionalDict
                 + " after)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var patch = new " + patchName + "();");
-        code.AppendLineAt(4, "if (before.IsPresent != after.IsPresent)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.OpenBlock();
+        code.AppendLine("var patch = new " + patchName + "();");
+        code.AppendLine("if (before.IsPresent != after.IsPresent)");
+        code.OpenBlock();
+        code.AppendLine(
             "patch.__whole = after.IsPresent ? "
                 + operation
                 + ".Set(after.Value) : "
                 + operation
                 + ".Remove;"
         );
-        code.AppendLineAt(5, "return patch;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "if (!before.IsPresent) return patch;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("return patch;");
+        code.CloseBlock();
+        code.AppendLine("if (!before.IsPresent) return patch;");
+        code.AppendLine(
             "if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return patch;"
         );
-        code.AppendLineAt(4, "if ((object?)before.Value is null || (object?)after.Value is null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if ((object?)before.Value is null || (object?)after.Value is null)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!"
                 + facade
                 + ".AreDictionaryEqual<"
@@ -635,10 +586,9 @@ internal static class SparseDictionaryPatchEmitter
                 + operation
                 + ".Set(after.Value);"
         );
-        code.AppendLineAt(5, "return patch;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("return patch;");
+        code.CloseBlock();
+        code.AppendLine(
             "if ("
                 + facade
                 + ".AreDictionaryEqual<"
@@ -647,8 +597,7 @@ internal static class SparseDictionaryPatchEmitter
                 + valueType
                 + ">(before.Value, after.Value)) return patch;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var beforeDict = before.Value is global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -669,8 +618,7 @@ internal static class SparseDictionaryPatchEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var afterDict = after.Value is global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -691,8 +639,7 @@ internal static class SparseDictionaryPatchEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "foreach (var k in beforeDict.Keys) if (!afterDict.ContainsKey(k)) (patch.__removed ??= new global::System.Collections.Generic.List<"
                 + keyType
                 + ">()).Add(k);"
@@ -702,10 +649,9 @@ internal static class SparseDictionaryPatchEmitter
             var valueFragment = SparseKeyedCollectionEmitter.ValueFragmentType(member);
             var valuePatch = SparseKeyedCollectionEmitter.ValuePatchType(member);
             var prefix = SparseKeyedCollectionEmitter.ValuePatchPrefix(member);
-            code.AppendLineAt(4, "foreach (var kv in afterDict)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var kv in afterDict)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!beforeDict.TryGetValue(kv.Key, out var b)) { (patch.__set ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -714,8 +660,7 @@ internal static class SparseDictionaryPatchEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value; continue; }"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var nested = "
                     + valuePatch
                     + "."
@@ -734,8 +679,7 @@ internal static class SparseDictionaryPatchEmitter
                     + valueFragment
                     + ".From(kv.Value)));"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!nested.__SparseIsEmpty()) (patch.__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -744,14 +688,13 @@ internal static class SparseDictionaryPatchEmitter
                     + comparer
                     + "))[kv.Key] = nested;"
             );
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(4, "foreach (var kv in afterDict)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("foreach (var kv in afterDict)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!beforeDict.TryGetValue(kv.Key, out var b)) { (patch.__set ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -760,8 +703,7 @@ internal static class SparseDictionaryPatchEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value; continue; }"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (!"
                     + facade
                     + ".AreEqual<"
@@ -774,10 +716,10 @@ internal static class SparseDictionaryPatchEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value;"
             );
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
         }
 
-        code.AppendLineAt(4, "return patch;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("return patch;");
+        code.CloseBlock();
     }
 }

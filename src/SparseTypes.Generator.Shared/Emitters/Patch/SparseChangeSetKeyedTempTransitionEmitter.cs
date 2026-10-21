@@ -10,16 +10,13 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         SparseMemberModel member
     )
     {
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "/// <summary>Gets the temporary identity for unassigned entries.</summary>"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "/// <remarks>Non-null only when the entry key is unassigned and the element type opts into temporary identity; assigned keys always take precedence.</remarks>"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             SparseKeyedCollectionEmitter.HasTemporaryKey(member)
                 ? "public global::System.Guid? TemporaryKey { get; }"
                 : "public global::System.Guid? TemporaryKey => null;"
@@ -32,57 +29,49 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         SparseMemberModel member
     )
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <remarks>Only entries with an unassigned permanent key participate: a valid assigned key always wins, so assigned entries are never returned here even when they retain a temporary value. Unknown, empty, or temporary-less entries return <see cref=\"Item.Empty\"/>. Non-empty results are the same instances produced by enumeration.</remarks>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <param name=\"temporaryKey\">The temporary identity to look up.</param>"
         );
-        code.AppendLineAt(3, "/// <returns>The typed change for the identity.</returns>");
-        code.AppendLineAt(3, "public Item GetTemporaryChange(global::System.Guid temporaryKey)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (temporaryKey == global::System.Guid.Empty) return Item.Empty;");
-        code.AppendLineAt(4, "var __lookup = _temporaryLookup;");
-        code.AppendLineAt(4, "if (__lookup is null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "int __lookupCount = 0;");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("/// <returns>The typed change for the identity.</returns>");
+        code.AppendLine("public Item GetTemporaryChange(global::System.Guid temporaryKey)");
+        code.OpenBlock();
+        code.AppendLine("if (temporaryKey == global::System.Guid.Empty) return Item.Empty;");
+        code.AppendLine("var __lookup = _temporaryLookup;");
+        code.AppendLine("if (__lookup is null)");
+        code.OpenBlock();
+        code.AppendLine("int __lookupCount = 0;");
+        code.AppendLine(
             "for (int __index = 0; __index < _items.Count; __index++) if (_items[__index].TemporaryKey.HasValue && "
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "_items[__index].Key")
                 + ") __lookupCount++;"
         );
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "__lookup = new global::System.Collections.Generic.Dictionary<global::System.Guid, Item>(__lookupCount);"
         );
-        code.AppendLineAt(5, "foreach (var __item in _items)");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("foreach (var __item in _items)");
+        code.AppendLine(
             "if (__item.TemporaryKey.HasValue && "
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__item.Key")
                 + ") __lookup[__item.TemporaryKey.Value] = __item;"
         );
-        code.AppendLineAt(5, "_temporaryLookup = __lookup;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("_temporaryLookup = __lookup;");
+        code.CloseBlock();
+        code.AppendLine(
             "return __lookup.TryGetValue(temporaryKey, out var __found) ? __found : Item.Empty;"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the temporary-lookup backing field of a keyed transition.</summary>
     internal static void AppendTemporaryLookupField(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "private global::System.Collections.Generic.Dictionary<global::System.Guid, Item>? _temporaryLookup;"
         );
     }
@@ -97,54 +86,45 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     {
         if (documented)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Extracts the temporary identity for a keyed transition element.</summary>"
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static global::System.Guid? __SparseTemporaryKeyOf_ChangeSet_"
                 + member.Id
                 + "("
                 + elementType
                 + " element)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if ((object?)element is null) throw new global::System.InvalidOperationException(\"Null elements have no temporary identity.\");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return element." + SparseKeyedCollectionEmitter.TemporaryKeyProperty(member) + ";"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits whole-path temporary capture declarations.</summary>
     internal static void AppendBuildTempDeclarations(SharedIndentedBuilder code, string elementType)
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __seenBuildTemp = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __unassignedBefore = new global::System.Collections.Generic.List<"
                 + elementType
                 + ">();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __unassignedTempBefore = new global::System.Collections.Generic.List<global::System.Guid>();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __unassignedTempBeforeIndex = new global::System.Collections.Generic.List<int>();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __unassignedTempAfter = new global::System.Collections.Generic.List<global::System.Guid>();"
         );
     }
@@ -156,8 +136,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     )
     {
         // Whole-transition snapshots may carry temporary identities as data.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __bt = __SparseTemporaryKeyOf_ChangeSet_"
@@ -172,8 +151,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         SparseMemberModel member
     )
     {
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __at = __SparseTemporaryKeyOf_ChangeSet_"
@@ -195,16 +173,12 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     {
         // Whole-path temporary removals in before order; at most one side
         // is populated, so positional temp capture above stays exact.
-        code.AppendLineAt(3, "for (var __tbi = 0; __tbi < __unassignedBefore.Count; __tbi++)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
-            "if (__afterTempSet.Contains(__unassignedTempBefore[__tbi])) continue;"
-        );
-        code.AppendLineAt(4, "var __trb = __unassignedBefore[__tbi];");
-        code.AppendLineAt(4, "var __trt = __unassignedTempBefore[__tbi];");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("for (var __tbi = 0; __tbi < __unassignedBefore.Count; __tbi++)");
+        code.OpenBlock();
+        code.AppendLine("if (__afterTempSet.Contains(__unassignedTempBefore[__tbi])) continue;");
+        code.AppendLine("var __trb = __unassignedBefore[__tbi];");
+        code.AppendLine("var __trt = __unassignedTempBefore[__tbi];");
+        code.AppendLine(
             runtime
                 + "Optional<"
                 + elementFrag
@@ -216,9 +190,8 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
                 + elementFrag
                 + ".From(__trb));"
         );
-        code.AppendLineAt(4, "var __trfullEdit = " + elementCs + ".Between(__treb, default);");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var __trfullEdit = " + elementCs + ".Between(__treb, default);");
+        code.AppendLine(
             "__items.Add(new "
                 + trans
                 + ".Item(__SparseKeyOf_ChangeSet_"
@@ -229,7 +202,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
                 + elementType
                 + ">.Present(__trb), default, __unassignedTempBeforeIndex[__tbi], -1, false, true, false, false, __trfullEdit, false));"
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Emits the whole-path unassigned-add branch with temp stamps.</summary>
@@ -243,8 +216,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         string elementType
     )
     {
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if ("
                 + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__k")
                 + ") { var __upos = __unassignedPosition++; var __ua = __unassignedAfter[__upos]; var __ut = __unassignedTempAfter[__upos]; var __uaEdit = "

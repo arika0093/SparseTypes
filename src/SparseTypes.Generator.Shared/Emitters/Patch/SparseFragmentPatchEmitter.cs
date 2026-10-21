@@ -37,41 +37,37 @@ internal static class SparseFragmentPatchEmitter
         var plan = features ?? SparseEmissionFeatures.Standalone;
         if (plan.EmitPatch)
         {
-            code.AppendLineAt(2, "/// <summary>Creates a patch from this fragment.</summary>");
-            code.AppendLineAt(2, "/// <returns>A patch carrying the present members.</returns>");
-            code.AppendLineAt(2, "public Patch ToPatch() => new(this);");
-            code.AppendLineAt(2, "/// <summary>Applies a patch to this fragment.</summary>");
-            code.AppendLineAt(2, "/// <param name=\"patch\">Patch to apply.</param>");
-            code.AppendLineAt(2, "/// <returns>The fragment with the patch applied.</returns>");
-            code.AppendLineAt(2, "public Fragment Apply(Patch patch)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Creates a patch from this fragment.</summary>");
+            code.AppendLine("/// <returns>A patch carrying the present members.</returns>");
+            code.AppendLine("public Patch ToPatch() => new(this);");
+            code.AppendLine("/// <summary>Applies a patch to this fragment.</summary>");
+            code.AppendLine("/// <param name=\"patch\">Patch to apply.</param>");
+            code.AppendLine("/// <returns>The fragment with the patch applied.</returns>");
+            code.AppendLine("public Fragment Apply(Patch patch)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var result = patch.Apply("
                     + runtimeNamespace
                     + "Optional<Fragment?>.Present(this));"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!result.IsPresent || result.Value is null) throw new global::System.InvalidOperationException(\"Apply a whole-contribution null or remove operation through Patch.Apply to preserve its optional state.\");"
             );
-            code.AppendLineAt(3, "return result.Value;");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("return result.Value;");
+            code.CloseBlock();
         }
         if (canWriteInPlace)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Writes this fragment into an existing model instance.</summary>"
             );
-            code.AppendLineAt(2, "public void WriteTo(" + modelType + " model)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "__SparseWriteWritableTo(model);");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("public void WriteTo(" + modelType + " model)");
+            code.OpenBlock();
+            code.AppendLine("__SparseWriteWritableTo(model);");
+            code.CloseBlock();
         }
         AppendWriteToContract(code, modelType, members, writeContract);
     }
@@ -95,17 +91,15 @@ internal static class SparseFragmentPatchEmitter
             return;
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Writes this fragment into an existing write-command instance.</summary>"
         );
-        code.AppendLineAt(2, "public void WriteTo(" + writeContract.WriteModelType + " model)");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public void WriteTo(" + writeContract.WriteModelType + " model)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (model is null) throw new global::System.ArgumentNullException(nameof(model));"
         );
-        code.AppendLineAt(3, "var __sparse_updated = ToModel();");
+        code.AppendLine("var __sparse_updated = ToModel();");
         foreach (var member in members)
         {
             var readProperty = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -121,8 +115,7 @@ internal static class SparseFragmentPatchEmitter
                     "global::System.Collections.Generic.List<"
                     + member.Collection.ElementType.Name
                     + ">";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (model."
                         + writeProperty
                         + " is "
@@ -133,19 +126,17 @@ internal static class SparseFragmentPatchEmitter
                         + readProperty
                         + " is not null)"
                 );
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(4, "__sparse_write_list" + member.Id + ".Clear();");
-                code.AppendLineAt(
-                    4,
+                code.OpenBlock();
+                code.AppendLine("__sparse_write_list" + member.Id + ".Clear();");
+                code.AppendLine(
                     "__sparse_write_list"
                         + member.Id
                         + ".AddRange(__sparse_updated."
                         + readProperty
                         + ");"
                 );
-                code.AppendLineAt(3, "}");
-                code.AppendLineAt(
-                    3,
+                code.CloseBlock();
+                code.AppendLine(
                     "else model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
                 );
             }
@@ -157,8 +148,7 @@ internal static class SparseFragmentPatchEmitter
                     + ", "
                     + member.Collection.ValueType!.Value.Name
                     + ">";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (model."
                         + writeProperty
                         + " is "
@@ -169,10 +159,9 @@ internal static class SparseFragmentPatchEmitter
                         + readProperty
                         + " is not null)"
                 );
-                code.AppendLineAt(3, "{");
-                code.AppendLineAt(4, "__sparse_write_dict" + member.Id + ".Clear();");
-                code.AppendLineAt(
-                    4,
+                code.OpenBlock();
+                code.AppendLine("__sparse_write_dict" + member.Id + ".Clear();");
+                code.AppendLine(
                     "foreach (var __sparse_write_pair"
                         + member.Id
                         + " in __sparse_updated."
@@ -185,21 +174,19 @@ internal static class SparseFragmentPatchEmitter
                         + member.Id
                         + ".Value);"
                 );
-                code.AppendLineAt(3, "}");
-                code.AppendLineAt(
-                    3,
+                code.CloseBlock();
+                code.AppendLine(
                     "else model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
                 );
             }
             else
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "model." + writeProperty + " = __sparse_updated." + readProperty + "!;"
                 );
             }
         }
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Small dialect for shared patch-core emission (whole, empty, ctor, apply).</summary>
@@ -430,19 +417,18 @@ internal static class SparseFragmentPatchEmitter
         }
 
         var optional = dialect.RuntimeNamespace + "Optional<Fragment?>";
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Desired-operation patch without baseline history. Applies directly to fragments and models.</summary>"
         );
-        code.AppendLineAt(1, accessibility + " sealed partial class Patch");
-        code.AppendLineAt(1, "{");
+        code.AppendLine(accessibility + " sealed partial class Patch");
+        code.OpenBlock();
         // State-bound bodies live in the private nested __Core, which reads
         // private facade state directly.
         SparseOperationTarget? patchTarget = target;
         SharedIndentedBuilder? patchCore = null;
         if (target is not null)
         {
-            patchCore = new SharedIndentedBuilder(code.CancellationToken) { IndentOffset = 1 };
+            patchCore = new SharedIndentedBuilder(code.CancellationToken) { IndentLevel = 1 };
             patchTarget = new SparseOperationTarget(
                 patchCore,
                 target.ChangeSetOperations,
@@ -514,19 +500,18 @@ internal static class SparseFragmentPatchEmitter
         SparseFragmentPatchCoreEmitter.AppendPatchMemberFields(code, members, dialect);
         if (patchCore is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>State-bound Patch algorithms with direct private-state access.</summary>"
             );
-            code.AppendLineAt(2, "private static class __Core");
-            code.AppendLineAt(2, "{");
+            code.AppendLine("private static class __Core");
+            code.OpenBlock();
             // Many emitters interleave internal entry points and private
             // helpers.
             SparseOperationOrdering.AppendInternalFirst(code, patchCore.ToString());
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             patchCore.Dispose();
         }
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
         if (plan.EmitChangeSet)
         {
             // Single-file emission keeps the historical in-place derivation.
@@ -559,38 +544,32 @@ internal static class SparseFragmentPatchEmitter
 
     private static void AppendApplyInPlaceResult(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Result of applying a patch to an existing model instance.</summary>"
         );
-        code.AppendLineAt(2, "public sealed class ApplyInPlaceResult");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "/// <summary>Whether the patch was applied to the model.</summary>");
-        code.AppendLineAt(3, "public bool Succeeded => UnsupportedMembers.Count == 0;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public sealed class ApplyInPlaceResult");
+        code.OpenBlock();
+        code.AppendLine("/// <summary>Whether the patch was applied to the model.</summary>");
+        code.AppendLine("public bool Succeeded => UnsupportedMembers.Count == 0;");
+        code.AppendLine(
             "/// <summary>Names of immutable members that prevented the patch from being applied.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "public global::System.Collections.Generic.IReadOnlyList<string> UnsupportedMembers { get; }"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "internal static ApplyInPlaceResult Success { get; } = new(global::System.Array.Empty<string>());"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "internal static ApplyInPlaceResult Failure(global::System.Collections.Generic.List<string> unsupportedMembers) => new(unsupportedMembers.ToArray());"
         );
-        code.AppendLineAt(3, "private ApplyInPlaceResult(string[] unsupportedMembers)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("private ApplyInPlaceResult(string[] unsupportedMembers)");
+        code.OpenBlock();
+        code.AppendLine(
             "UnsupportedMembers = global::System.Array.AsReadOnly(unsupportedMembers);"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendApplyInPlace(
@@ -603,14 +582,12 @@ internal static class SparseFragmentPatchEmitter
     {
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies this patch to writable members of an existing model.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"current\">Model instance to update.</param>");
-            code.AppendLineAt(2, "/// <returns>The in-place result.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"current\">Model instance to update.</param>");
+            code.AppendLine("/// <returns>The in-place result.</returns>");
+            code.AppendLine(
                 "public ApplyInPlaceResult ApplyInPlace("
                     + modelType
                     + " current) => "
@@ -618,12 +595,10 @@ internal static class SparseFragmentPatchEmitter
                     + ".ApplyInPlace(this, current);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "/// <summary>Applies a patch to writable members of an existing model.</summary>"
             );
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "internal static ApplyInPlaceResult ApplyInPlace(Patch self, "
                     + modelType
                     + " current)"
@@ -645,20 +620,15 @@ internal static class SparseFragmentPatchEmitter
     {
         if (receiver.Length == 0)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies this patch to writable members of an existing model.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"current\">Model instance to update.</param>");
-            code.AppendLineAt(2, "/// <returns>The in-place result.</returns>");
-            code.AppendLineAt(
-                2,
-                "public ApplyInPlaceResult ApplyInPlace(" + modelType + " current)"
-            );
+            code.AppendLine("/// <param name=\"current\">Model instance to update.</param>");
+            code.AppendLine("/// <returns>The in-place result.</returns>");
+            code.AppendLine("public ApplyInPlaceResult ApplyInPlace(" + modelType + " current)");
         }
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (current is null) throw new global::System.ArgumentNullException(nameof(current));"
         );
         var immutableMembers = members
@@ -666,8 +636,7 @@ internal static class SparseFragmentPatchEmitter
             .ToArray();
         if (immutableMembers.Length > 0)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_unsupportedMembers = new global::System.Collections.Generic.List<string>();"
             );
             foreach (var member in immutableMembers)
@@ -678,8 +647,7 @@ internal static class SparseFragmentPatchEmitter
                     + "."
                     + SparseNaming.EscapeIdentifier(member.Property.Name)
                     + ")";
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if ("
                         + receiver
                         + dialect.WholeFieldName
@@ -689,8 +657,7 @@ internal static class SparseFragmentPatchEmitter
                         + propertyName
                         + ");"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (!("
                         + MemberEmptyExpression(member, dialect, receiver)
                         + ") && !__sparse_unsupportedMembers.Contains("
@@ -700,27 +667,20 @@ internal static class SparseFragmentPatchEmitter
                         + ");"
                 );
             }
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (__sparse_unsupportedMembers.Count > 0) return ApplyInPlaceResult.Failure(__sparse_unsupportedMembers);"
             );
         }
         if (receiver.Length == 0)
         {
-            code.AppendLineAt(
-                3,
-                "Fragment.From(current).Apply(this).__SparseWriteWritableTo(current);"
-            );
+            code.AppendLine("Fragment.From(current).Apply(this).__SparseWriteWritableTo(current);");
         }
         else
         {
-            code.AppendLineAt(
-                3,
-                "Fragment.From(current).Apply(self).__SparseWriteWritableTo(current);"
-            );
+            code.AppendLine("Fragment.From(current).Apply(self).__SparseWriteWritableTo(current);");
         }
-        code.AppendLineAt(3, "return ApplyInPlaceResult.Success;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return ApplyInPlaceResult.Success;");
+        code.CloseBlock();
     }
 
     private static void AppendApplyTo(
@@ -732,14 +692,12 @@ internal static class SparseFragmentPatchEmitter
     {
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"current\">Model value to apply to.</param>");
-            code.AppendLineAt(2, "/// <returns>A new model with the patch applied.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <param name=\"current\">Model value to apply to.</param>");
+            code.AppendLine("/// <returns>A new model with the patch applied.</returns>");
+            code.AppendLine(
                 "public "
                     + modelType
                     + " ApplyTo("
@@ -749,12 +707,10 @@ internal static class SparseFragmentPatchEmitter
                     + ".ApplyTo(this, current);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "/// <summary>Applies a patch to an ordinary model and returns a new model.</summary>"
             );
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "internal static " + modelType + " ApplyTo(Patch self, " + modelType + " current)"
             );
             AppendApplyToBody(ops, modelType, ignoredSettablePropertyNames, "self.");
@@ -773,17 +729,15 @@ internal static class SparseFragmentPatchEmitter
     {
         if (receiver.Length == 0)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Applies this patch to an ordinary model and returns a new model.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"current\">Model value to apply to.</param>");
-            code.AppendLineAt(2, "/// <returns>A new model with the patch applied.</returns>");
-            code.AppendLineAt(2, "public " + modelType + " ApplyTo(" + modelType + " current)");
+            code.AppendLine("/// <param name=\"current\">Model value to apply to.</param>");
+            code.AppendLine("/// <returns>A new model with the patch applied.</returns>");
+            code.AppendLine("public " + modelType + " ApplyTo(" + modelType + " current)");
         }
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var updated = Fragment.From(current).Apply("
                 + (receiver.Length == 0 ? "this" : "self")
                 + ").ToModel();"
@@ -795,9 +749,9 @@ internal static class SparseFragmentPatchEmitter
         )
         {
             var name = SparseNaming.EscapeIdentifier(ignoredName);
-            code.AppendLineAt(3, "updated." + name + " = current." + name + ";");
+            code.AppendLine("updated." + name + " = current." + name + ";");
         }
-        code.AppendLineAt(3, "return updated;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return updated;");
+        code.CloseBlock();
     }
 }

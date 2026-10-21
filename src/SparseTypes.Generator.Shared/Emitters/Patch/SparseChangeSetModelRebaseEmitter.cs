@@ -17,12 +17,8 @@ internal static class SparseChangeSetModelRebaseEmitter
     {
         if (target is not null)
         {
-            shell.AppendLineAt(
-                2,
-                "/// <summary>Rebases this change onto an ordinary model.</summary>"
-            );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine("/// <summary>Rebases this change onto an ordinary model.</summary>");
+            shell.AppendLine(
                 "public "
                     + rebaseResult
                     + " RebaseOnto("
@@ -33,9 +29,8 @@ internal static class SparseChangeSetModelRebaseEmitter
                     + target.ChangeSetOperationsType
                     + ".RebaseOnto(this, current, options);"
             );
-            code.AppendLineAt(2, "/// <summary>Rebases a change onto an ordinary model.</summary>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Rebases a change onto an ordinary model.</summary>");
+            code.AppendLine(
                 "internal static "
                     + rebaseResult
                     + " RebaseOnto(ChangeSet self, "
@@ -44,27 +39,22 @@ internal static class SparseChangeSetModelRebaseEmitter
                     + optionsType
                     + "? options = null)"
             );
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "if (self.IsEmpty)");
-            code.AppendLineAt(3, "{");
-            AppendNullGuard(code, modelIsReferenceType, 4);
-            code.AppendLineAt(
-                4,
-                "return RebaseOnto(self, default(" + optionalFragment + "), options);"
-            );
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine("if (self.IsEmpty)");
+            code.OpenBlock();
+            AppendNullGuard(code, modelIsReferenceType);
+            code.AppendLine("return RebaseOnto(self, default(" + optionalFragment + "), options);");
+            code.CloseBlock();
+            code.AppendLine(
                 "return RebaseOnto(self, "
                     + optionalFragment
                     + ".Present(Fragment.From(current)), options);"
             );
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
             return;
         }
-        code.AppendLineAt(2, "/// <summary>Rebases this change onto an ordinary model.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Rebases this change onto an ordinary model.</summary>");
+        code.AppendLine(
             "public "
                 + rebaseResult
                 + " RebaseOnto("
@@ -73,32 +63,26 @@ internal static class SparseChangeSetModelRebaseEmitter
                 + optionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (this.IsEmpty)");
-        code.AppendLineAt(3, "{");
-        AppendNullGuard(code, modelIsReferenceType, 4);
-        code.AppendLineAt(4, "return RebaseOnto(default(" + optionalFragment + "), options);");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (this.IsEmpty)");
+        code.OpenBlock();
+        AppendNullGuard(code, modelIsReferenceType);
+        code.AppendLine("return RebaseOnto(default(" + optionalFragment + "), options);");
+        code.CloseBlock();
+        code.AppendLine(
             "return RebaseOnto(" + optionalFragment + ".Present(Fragment.From(current)), options);"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
-    private static void AppendNullGuard(
-        SharedIndentedBuilder code,
-        bool modelIsReferenceType,
-        int indent
-    )
+    private static void AppendNullGuard(SharedIndentedBuilder code, bool modelIsReferenceType)
     {
         if (!modelIsReferenceType)
         {
             return;
         }
 
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "if (global::System.Object.ReferenceEquals(current, null)) throw new global::System.ArgumentNullException(\"value\");"
         );
     }

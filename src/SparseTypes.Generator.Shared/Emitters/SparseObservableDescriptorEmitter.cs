@@ -18,20 +18,19 @@ internal static class SparseObservableDescriptorEmitter
     )
     {
         var pathType = dialect.EffectivePathType(runtimeNamespace);
-        code.AppendLineAt(2, context.MethodDeclaration(modelType, dialect, pathType));
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine(context.MethodDeclaration(modelType, dialect, pathType));
+        code.OpenBlock();
+        code.AppendLine(
             "return new " + dialect.DescriptorSetType + "(new " + dialect.DescriptorInterface + "[]"
         );
-        code.AppendLineAt(3, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
             AppendMember(code, member, members, runtimeNamespace, dialect, context);
         }
 
-        code.AppendLineAt(3, "});");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("});");
+        code.CloseBlock();
     }
 
     private static void AppendMember(
@@ -64,8 +63,7 @@ internal static class SparseObservableDescriptorEmitter
                 + "; }"
             : "() => " + receiver;
         var getModelValue = "() => (object?)" + context.Member("__model") + "." + property;
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "new "
                 + dialect.DescriptorType
                 + "("

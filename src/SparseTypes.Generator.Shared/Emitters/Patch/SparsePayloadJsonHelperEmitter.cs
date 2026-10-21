@@ -45,37 +45,32 @@ internal static class SparsePayloadJsonHelperEmitter
         var accessibility = model.IsPublic ? "public" : "internal";
         var payloadType = context.ModelType + ".ChangePayload";
         var resolver = context.ModelType + "." + context.ResolverName + ".Default";
-        code.AppendLineAt(
-            0,
+        code.AppendLine(
             "/// <summary>JSON metadata for '" + context.ModelType + "' change payloads.</summary>"
         );
-        code.AppendLineAt(0, accessibility + " static class " + helper);
-        code.AppendLineAt(0, "{");
-        code.AppendLineAt(
-            1,
+        code.AppendLine(accessibility + " static class " + helper);
+        code.OpenBlock();
+        code.AppendLine(
             "/// <summary>Gets the shared payload metadata for '"
                 + context.ModelType
                 + "' change payloads.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<"
                 + payloadType
                 + "> Default => "
                 + resolver
                 + ".ChangePayload;"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public static global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver Resolver => "
                 + resolver
                 + ";"
         );
-        code.AppendLineAt(0, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 }

@@ -34,117 +34,99 @@ internal static class SparseChangeSetComposeEmitter
         _ = optionalFragment;
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"next\">The change set to apply after this change set.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The composed change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <returns>The composed change set.</returns>");
+            code.AppendLine(
                 "public ChangeSet Compose(ChangeSet next) => "
                     + target.ChangeSetOperationsType
                     + ".Compose(this, next);"
             );
-            code.AppendLineAt(2, "/// <summary>Composes two sequential change sets.</summary>");
-            code.AppendLineAt(2, "/// <param name=\"first\">The first change set.</param>");
-            code.AppendLineAt(2, "/// <param name=\"second\">The second change set.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed change set.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Composes two sequential change sets.</summary>");
+            code.AppendLine("/// <param name=\"first\">The first change set.</param>");
+            code.AppendLine("/// <param name=\"second\">The second change set.</param>");
+            code.AppendLine("/// <returns>The composed change set.</returns>");
+            code.AppendLine(
                 "public static ChangeSet Compose(ChangeSet first, ChangeSet second) => "
                     + target.ChangeSetOperationsType
                     + ".Compose(first, second);"
             );
             code = target.ChangeSetOperations;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
             );
-            code.AppendLineAt(2, "/// <param name=\"self\">The first change set.</param>");
-            code.AppendLineAt(2, "/// <param name=\"next\">The second change set.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed change set.</returns>");
-            code.AppendLineAt(
-                2,
-                "internal static ChangeSet Compose(ChangeSet self, ChangeSet next)"
-            );
+            code.AppendLine("/// <param name=\"self\">The first change set.</param>");
+            code.AppendLine("/// <param name=\"next\">The second change set.</param>");
+            code.AppendLine("/// <returns>The composed change set.</returns>");
+            code.AppendLine("internal static ChangeSet Compose(ChangeSet self, ChangeSet next)");
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <param name=\"next\">The change set to apply after this change set.</param>"
             );
-            code.AppendLineAt(2, "/// <returns>The composed change set.</returns>");
-            code.AppendLineAt(2, "public ChangeSet Compose(ChangeSet next)");
+            code.AppendLine("/// <returns>The composed change set.</returns>");
+            code.AppendLine("public ChangeSet Compose(ChangeSet next)");
         }
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (target is not null)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (self is null) throw new global::System.ArgumentNullException(nameof(self));"
             );
             AppendSelfAliases(code, members);
         }
         var __hasSparse = members.Any(static m => IsKeyed(m) || IsDict(m));
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             target is null ? "if (IsEmpty) return next;" : "if (self.IsEmpty) return next;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             target is null ? "if (next.IsEmpty) return this;" : "if (next.IsEmpty) return self;"
         );
-        code.AppendLineAt(3, "if (__sparse_hasWhole || next.__sparse_hasWhole)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (__sparse_hasWhole && next.__sparse_hasWhole)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__sparse_hasWhole || next.__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine("if (__sparse_hasWhole && next.__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!Fragment.__SparseAreEqual(__sparse_wholeAfter, next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(5, "return Between(__sparse_wholeBefore, next.__sparse_wholeAfter);");
-        code.AppendLineAt(4, "}");
+        code.AppendLine("return Between(__sparse_wholeBefore, next.__sparse_wholeAfter);");
+        code.CloseBlock();
         // Compose whole-root and memberwise changes when their shared paths are
         // contiguous.
-        code.AppendLineAt(4, "if (__sparse_hasWhole)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (!next.__SparseBeforeMatches(__sparse_wholeAfter)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(5, "var __mergedAfter = next.ToPatch().Apply(__sparse_wholeAfter);");
-        code.AppendLineAt(5, "return Between(__sparse_wholeBefore, __mergedAfter);");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var __mergedAfter = next.ToPatch().Apply(__sparse_wholeAfter);");
+        code.AppendLine("return Between(__sparse_wholeBefore, __mergedAfter);");
+        code.CloseBlock();
+        code.AppendLine(
             target is null
                 ? "if (!__SparseAfterMatches(next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
                 : "if (!self.__SparseAfterMatches(next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             target is null
                 ? "var __mergedBefore = Invert().ToPatch().Apply(next.__sparse_wholeBefore);"
                 : "var __mergedBefore = Invert(self).ToPatch().Apply(next.__sparse_wholeBefore);"
         );
-        code.AppendLineAt(4, "return Between(__mergedBefore, next.__sparse_wholeAfter);");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("return Between(__mergedBefore, next.__sparse_wholeAfter);");
+        code.CloseBlock();
         if (__hasSparse)
         {
-            AppendPragmaDisableNullKey(code, 3);
+            AppendPragmaDisableNullKey(code);
         }
 
         foreach (var member in members)
@@ -155,9 +137,8 @@ internal static class SparseChangeSetComposeEmitter
             }
 
             var child = ChildChangeSet(member, dialect);
-            code.AppendLineAt(3, child + "? __c" + member.Id + ";");
-            code.AppendLineAt(
-                3,
+            code.AppendLine(child + "? __c" + member.Id + ";");
+            code.AppendLine(
                 "if ("
                     + NestedField(member)
                     + " is null) __c"
@@ -166,8 +147,7 @@ internal static class SparseChangeSetComposeEmitter
                     + NestedField(member)
                     + ";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "else if (next."
                     + NestedField(member)
                     + " is null) __c"
@@ -176,8 +156,7 @@ internal static class SparseChangeSetComposeEmitter
                     + NestedField(member)
                     + ";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "else { var __cc"
                     + member.Id
                     + " = "
@@ -212,25 +191,24 @@ internal static class SparseChangeSetComposeEmitter
                 continue;
             }
             var opt = runtime + "Optional<" + FragmentValueType(member) + ">";
-            code.AppendLineAt(3, opt + " __cb" + member.Id + "_b = default;");
-            code.AppendLineAt(3, opt + " __cb" + member.Id + "_a = default;");
-            code.AppendLineAt(3, "bool __cb" + member.Id + "_has;");
-            code.AppendLineAt(3, "if (!" + HasField(member) + ")");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "__cb" + member.Id + "_has = next." + HasField(member) + ";");
-            code.AppendLineAt(4, "__cb" + member.Id + "_b = next." + BeforeField(member) + ";");
-            code.AppendLineAt(4, "__cb" + member.Id + "_a = next." + AfterField(member) + ";");
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "else if (!next." + HasField(member) + ")");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "__cb" + member.Id + "_has = true;");
-            code.AppendLineAt(4, "__cb" + member.Id + "_b = " + BeforeField(member) + ";");
-            code.AppendLineAt(4, "__cb" + member.Id + "_a = " + AfterField(member) + ";");
-            code.AppendLineAt(3, "}");
-            code.AppendLineAt(3, "else");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(
-                4,
+            code.AppendLine(opt + " __cb" + member.Id + "_b = default;");
+            code.AppendLine(opt + " __cb" + member.Id + "_a = default;");
+            code.AppendLine("bool __cb" + member.Id + "_has;");
+            code.AppendLine("if (!" + HasField(member) + ")");
+            code.OpenBlock();
+            code.AppendLine("__cb" + member.Id + "_has = next." + HasField(member) + ";");
+            code.AppendLine("__cb" + member.Id + "_b = next." + BeforeField(member) + ";");
+            code.AppendLine("__cb" + member.Id + "_a = next." + AfterField(member) + ";");
+            code.CloseBlock();
+            code.AppendLine("else if (!next." + HasField(member) + ")");
+            code.OpenBlock();
+            code.AppendLine("__cb" + member.Id + "_has = true;");
+            code.AppendLine("__cb" + member.Id + "_b = " + BeforeField(member) + ";");
+            code.AppendLine("__cb" + member.Id + "_a = " + AfterField(member) + ";");
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!Fragment.__SparseEqual_"
                     + member.Id
                     + "("
@@ -239,8 +217,7 @@ internal static class SparseChangeSetComposeEmitter
                     + BeforeField(member)
                     + ")) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (Fragment.__SparseEqual_"
                     + member.Id
                     + "("
@@ -251,8 +228,7 @@ internal static class SparseChangeSetComposeEmitter
                     + member.Id
                     + "_has = false; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else { __cb"
                     + member.Id
                     + "_has = true; __cb"
@@ -265,7 +241,7 @@ internal static class SparseChangeSetComposeEmitter
                     + AfterField(member)
                     + "; }"
             );
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
         }
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
@@ -321,44 +297,39 @@ internal static class SparseChangeSetComposeEmitter
         }
         if (__hasSparse)
         {
-            AppendPragmaRestoreNullKey(code, 3);
+            AppendPragmaRestoreNullKey(code);
         }
 
-        code.AppendLineAt(3, "return new ChangeSet(" + string.Join(", ", args) + ");");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
+        code.CloseBlock();
         if (target is null)
         {
-            code.AppendLineAt(2, "/// <summary>Composes two sequential change sets.</summary>");
-            code.AppendLineAt(2, "/// <param name=\"first\">The first change set.</param>");
-            code.AppendLineAt(2, "/// <param name=\"second\">The second change set.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed change set.</returns>");
-            code.AppendLineAt(
-                2,
-                "public static ChangeSet Compose(ChangeSet first, ChangeSet second)"
-            );
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Composes two sequential change sets.</summary>");
+            code.AppendLine("/// <param name=\"first\">The first change set.</param>");
+            code.AppendLine("/// <param name=\"second\">The second change set.</param>");
+            code.AppendLine("/// <returns>The composed change set.</returns>");
+            code.AppendLine("public static ChangeSet Compose(ChangeSet first, ChangeSet second)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (first is null) throw new global::System.ArgumentNullException(nameof(first));"
             );
-            code.AppendLineAt(3, "return first." + "Compose(second);");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("return first." + "Compose(second);");
+            code.CloseBlock();
         }
     }
 
     /// <summary>Emits per-key sparse compose for a keyed member.</summary>
     /// <remarks>Stores sparse compose state in generated locals.</remarks>
-    internal static void AppendPragmaDisableNullKey(SharedIndentedBuilder code, int indent)
+    internal static void AppendPragmaDisableNullKey(SharedIndentedBuilder code)
     {
         // Use comparer-aware key maps for all key shapes.
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "#pragma warning disable CS8604 // Sparse stable keys are non-null by construction."
         );
     }
 
-    internal static void AppendPragmaRestoreNullKey(SharedIndentedBuilder code, int indent)
+    internal static void AppendPragmaRestoreNullKey(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(indent, "#pragma warning restore CS8604");
+        code.AppendLine("#pragma warning restore CS8604");
     }
 }

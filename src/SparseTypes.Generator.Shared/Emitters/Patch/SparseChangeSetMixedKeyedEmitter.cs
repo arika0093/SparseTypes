@@ -17,31 +17,25 @@ internal static class SparseChangeSetMixedKeyedEmitter
         var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
         var collectionPatch =
             "Patch." + SparseFragmentPatchEmitter.GetCollectionPatchName(dialect, member);
-        code.AppendLineAt(6, "__payloadHas" + id + " = true;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("__payloadHas" + id + " = true;");
+        code.AppendLine(
             "if (item.Items is null) throw new global::System.ArgumentException(\"Payload item changes must not be null.\", nameof(payload));"
         );
         // Per-item redacted endpoints cannot form item transitions; fail before
         // the shared item helper converts endpoints without naming the path.
-        code.AppendLineAt(6, "foreach (var __raw" + id + " in item.Items)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("foreach (var __raw" + id + " in item.Items)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__raw"
                 + id
                 + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
         );
         // Value-free endpoints must not smuggle values past the redacted
         // branch below.
-        code.AppendLineAt(
-            7,
-            "__raw" + id + ".Before?.Validate(); __raw" + id + ".After?.Validate();"
-        );
+        code.AppendLine("__raw" + id + ".Before?.Validate(); __raw" + id + ".After?.Validate();");
         if (!member.RedactBefore)
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "if (__raw"
                     + id
                     + ".Before is not null && __raw"
@@ -55,8 +49,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                     + ".Key) + \"]\" + \"'. Per-item redacted endpoints are not supported; send a whole-member blind set.\", nameof(payload));"
             );
         }
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "if (__raw"
                 + id
                 + ".After is not null && __raw"
@@ -69,48 +62,44 @@ internal static class SparseChangeSetMixedKeyedEmitter
                 + id
                 + ".Key) + \"]\" + \"'. After-states must stay concrete (value, null, or missing).\", nameof(payload));"
         );
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(
-            6,
+        code.CloseBlock();
+        code.AppendLine(
             "if (item.After is not null && item.After.IsRedacted) throw new global::System.ArgumentException(\"The payload contains a redacted after-state for '\" + "
                 + path
                 + " + \"'. After-states must stay concrete (value, null, or missing).\", nameof(payload));"
         );
-        code.AppendLineAt(6, "if (item.Before is not null || item.After is not null)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("if (item.Before is not null || item.After is not null)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (item.Before is null || item.After is null || item.Items.Count != 0) throw new global::System.ArgumentException(\"A whole collection payload must contain both endpoints and no item changes.\", nameof(payload));"
         );
-        code.AppendLineAt(7, "item.Before.Validate(); item.After.Validate();");
-        code.AppendLineAt(7, "if (item.Before.IsRedacted)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(7, "var __wholeAfter" + id + " = item.After.ToOptional();");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("item.Before.Validate(); item.After.Validate();");
+        code.AppendLine("if (item.Before.IsRedacted)");
+        code.OpenBlock();
+        code.AppendLine("var __wholeAfter" + id + " = item.After.ToOptional();");
+        code.AppendLine(
             "if (!__wholeAfter"
                 + id
                 + ".IsPresent) throw new global::System.ArgumentException(\"The payload redacts the before-state of whole collection member '\" + "
                 + path
                 + " + \"' with a missing after-state. Blind whole-collection removal has no patch projection; express the removal with an explicit patch.\", nameof(payload));"
         );
-        code.AppendLineAt(8, "var __wholeBlind" + id + " = new " + collectionPatch + "();");
-        code.AppendLineAt(8, "__wholeBlind" + id + ".Set(__wholeAfter" + id + ".Value!);");
-        code.AppendLineAt(8, "blindSets." + esc + " = __wholeBlind" + id + ";");
-        code.AppendLineAt(8, "blindPaths.Add(" + path + ");");
-        code.AppendLineAt(8, "__payloadHas" + id + " = false;");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(7, "else");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(8, "__payloadWhole" + id + " = true;");
-        code.AppendLineAt(8, "__payloadBefore" + id + " = item.Before.ToOptional();");
-        code.AppendLineAt(8, "__payloadAfter" + id + " = item.After.ToOptional();");
-        code.AppendLineAt(7, "}");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "else");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("var __wholeBlind" + id + " = new " + collectionPatch + "();");
+        code.AppendLine("__wholeBlind" + id + ".Set(__wholeAfter" + id + ".Value!);");
+        code.AppendLine("blindSets." + esc + " = __wholeBlind" + id + ";");
+        code.AppendLine("blindPaths.Add(" + path + ");");
+        code.AppendLine("__payloadHas" + id + " = false;");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("__payloadWhole" + id + " = true;");
+        code.AppendLine("__payloadBefore" + id + " = item.Before.ToOptional();");
+        code.AppendLine("__payloadAfter" + id + " = item.After.ToOptional();");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "var __payloadSeenKeys"
                 + id
                 + " = new global::System.Collections.Generic.HashSet<"
@@ -119,8 +108,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         );
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "var __payloadSeenTemps"
                     + id
                     + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
@@ -132,8 +120,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
             ? member.Collection.ElementType.IsFragmentModel
             : member.Collection.ValueType?.IsFragmentModel == true;
         var canContainBlindItems = isModelValue || member.RedactBefore;
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "__payloadItems"
                 + id
                 + " = new("
@@ -142,20 +129,18 @@ internal static class SparseChangeSetMixedKeyedEmitter
         );
         if (canContainBlindItems)
         {
-            code.AppendLineAt(7, "var __blindColl" + id + " = new " + collectionPatch + "();");
-            code.AppendLineAt(7, "bool __hasBlindColl" + id + " = false;");
+            code.AppendLine("var __blindColl" + id + " = new " + collectionPatch + "();");
+            code.AppendLine("bool __hasBlindColl" + id + " = false;");
         }
-        code.AppendLineAt(7, "foreach (var changeItem in item.Items)");
-        code.AppendLineAt(7, "{");
-        code.AppendLineAt(
-            8,
+        code.AppendLine("foreach (var changeItem in item.Items)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (changeItem is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
         );
-        code.AppendLineAt(8, "changeItem.Before?.Validate(); changeItem.After?.Validate();");
+        code.AppendLine("changeItem.Before?.Validate(); changeItem.After?.Validate();");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                8,
+            code.AppendLine(
                 "if (!"
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "changeItem.Key")
                     + " && !__payloadSeenKeys"
@@ -165,8 +150,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         }
         else
         {
-            code.AppendLineAt(
-                8,
+            code.AppendLine(
                 "if (!__payloadSeenKeys"
                     + id
                     + ".Add(changeItem.Key!)) throw new global::System.ArgumentException(\"A payload cannot contain duplicate keyed changes.\", nameof(payload));"
@@ -175,8 +159,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             // Temporary identities must be unique per collection, like keys.
-            code.AppendLineAt(
-                8,
+            code.AppendLine(
                 "if (changeItem.TemporaryKey.HasValue && !__payloadSeenTemps"
                     + id
                     + ".Add(changeItem.TemporaryKey.Value)) throw new global::System.ArgumentException(\"A payload cannot contain duplicate temporary keyed changes.\", nameof(payload));"
@@ -184,8 +167,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
         }
         if (canContainBlindItems)
         {
-            code.AppendLineAt(
-                8,
+            code.AppendLine(
                 "var __itemPath"
                     + id
                     + " = "
@@ -199,11 +181,10 @@ internal static class SparseChangeSetMixedKeyedEmitter
             var valueChangeSet = isKeyed
                 ? SparseChangeSetBasicsEmitter.ElementChangeSetOf(member)
                 : SparseChangeSetBasicsEmitter.ValueChangeSetOf(member);
-            code.AppendLineAt(8, valueChangeSet + "? __restoredEdit" + id + " = null;");
-            code.AppendLineAt(8, "if (changeItem.Edit is not null)");
-            code.AppendLineAt(8, "{");
-            code.AppendLineAt(
-                9,
+            code.AppendLine(valueChangeSet + "? __restoredEdit" + id + " = null;");
+            code.AppendLine("if (changeItem.Edit is not null)");
+            code.OpenBlock();
+            code.AppendLine(
                 "__restoredEdit"
                     + id
                     + " = "
@@ -216,15 +197,14 @@ internal static class SparseChangeSetMixedKeyedEmitter
                     + id
                     + ");"
             );
-            code.AppendLineAt(9, "if (!__editBlind" + id + ".__SparseIsEmpty())");
-            code.AppendLineAt(9, "{");
+            code.AppendLine("if (!__editBlind" + id + ".__SparseIsEmpty())");
+            code.OpenBlock();
             // Only the blind portion passes through unchecked; the reversible
             // portion keeps its baseline checks and joins the payload items
             // below instead of collapsing into the blind patch.
             if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
-                code.AppendLineAt(
-                    10,
+                code.AppendLine(
                     "if (changeItem.TemporaryKey.HasValue) __blindColl"
                         + id
                         + ".__SparseSetEditedByTemporaryKey(changeItem.TemporaryKey.Value, __editBlind"
@@ -238,8 +218,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    10,
+                code.AppendLine(
                     "__blindColl"
                         + id
                         + ".__SparseSetEdited(changeItem.Key!, __editBlind"
@@ -247,18 +226,17 @@ internal static class SparseChangeSetMixedKeyedEmitter
                         + ");"
                 );
             }
-            code.AppendLineAt(10, "blindPaths.AddRange(__editPaths" + id + ");");
-            code.AppendLineAt(10, "__hasBlindColl" + id + " = true;");
-            code.AppendLineAt(
-                10,
+            code.AppendLine("blindPaths.AddRange(__editPaths" + id + ");");
+            code.AppendLine("__hasBlindColl" + id + " = true;");
+            code.AppendLine(
                 "if (__restoredEdit"
                     + id
                     + " is null || __restoredEdit"
                     + id
                     + ".IsEmpty) continue;"
             );
-            code.AppendLineAt(9, "}");
-            code.AppendLineAt(8, "}");
+            code.CloseBlock();
+            code.CloseBlock();
         }
         if (member.RedactBefore)
         {
@@ -267,35 +245,32 @@ internal static class SparseChangeSetMixedKeyedEmitter
             {
                 // Removals may omit undisclosed before-values; edits must omit
                 // endpoints and carry a payload. Avoid scalar-only Update APIs.
-                code.AppendLineAt(
-                    8,
+                code.AppendLine(
                     "if (changeItem.Before is not null && changeItem.Before.IsRedacted)"
                 );
-                code.AppendLineAt(8, "{");
-                code.AppendLineAt(
-                    9,
+                code.OpenBlock();
+                code.AppendLine(
                     "if (changeItem.Kind == " + itemKind + ".Remove && changeItem.Edit is null)"
                 );
-                code.AppendLineAt(9, "{");
+                code.OpenBlock();
                 if (isKeyed)
                 {
-                    code.AppendLineAt(10, "__blindColl" + id + ".Remove(changeItem.Key!);");
+                    code.AppendLine("__blindColl" + id + ".Remove(changeItem.Key!);");
                 }
                 else
                 {
-                    code.AppendLineAt(10, "__blindColl" + id + ".RemoveEntry(changeItem.Key!);");
+                    code.AppendLine("__blindColl" + id + ".RemoveEntry(changeItem.Key!);");
                 }
-                code.AppendLineAt(10, "blindPaths.Add(" + path + ");");
-                code.AppendLineAt(10, "__hasBlindColl" + id + " = true;");
-                code.AppendLineAt(10, "continue;");
-                code.AppendLineAt(9, "}");
-                code.AppendLineAt(
-                    9,
+                code.AppendLine("blindPaths.Add(" + path + ");");
+                code.AppendLine("__hasBlindColl" + id + " = true;");
+                code.AppendLine("continue;");
+                code.CloseBlock();
+                code.AppendLine(
                     "throw new global::System.ArgumentException(\"A '\" + __itemPath"
                         + id
                         + " + \"' edited model payload item must omit 'before' and 'after'.\", nameof(payload));"
                 );
-                code.AppendLineAt(8, "}");
+                code.CloseBlock();
             }
             else
             {
@@ -303,13 +278,11 @@ internal static class SparseChangeSetMixedKeyedEmitter
                     ? SparseChangeSetBasicsEmitter.ElementTypeOf(member)
                     : SparseChangeSetBasicsEmitter.ValueTypeOf(member);
                 var itemOptional = dialect.RuntimeNamespace + "Optional<" + itemValueType + ">";
-                code.AppendLineAt(
-                    8,
+                code.AppendLine(
                     "if (changeItem.Before is not null && changeItem.Before.IsRedacted)"
                 );
-                code.AppendLineAt(8, "{");
-                code.AppendLineAt(
-                    9,
+                code.OpenBlock();
+                code.AppendLine(
                     "if (changeItem.Kind != "
                         + itemKind
                         + ".Edit && changeItem.Kind != "
@@ -318,24 +291,21 @@ internal static class SparseChangeSetMixedKeyedEmitter
                         + id
                         + " + \"' payload item with a redacted before-state must be an edit or a removal.\", nameof(payload));"
                 );
-                code.AppendLineAt(
-                    9,
+                code.AppendLine(
                     "if (changeItem.Kind == "
                         + itemKind
                         + ".Edit && (changeItem.After is null || changeItem.After.IsRedacted)) throw new global::System.ArgumentException(\"A '\" + __itemPath"
                         + id
                         + " + \"' blind edit must contain an observable after-state.\", nameof(payload));"
                 );
-                code.AppendLineAt(
-                    9,
+                code.AppendLine(
                     "var __blindAfter"
                         + id
                         + " = changeItem.After is null ? "
                         + itemOptional
                         + ".Missing : changeItem.After.ToOptional();"
                 );
-                code.AppendLineAt(
-                    9,
+                code.AppendLine(
                     "if (changeItem.Kind == "
                         + itemKind
                         + ".Edit && !__blindAfter"
@@ -348,8 +318,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                 {
                     if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                     {
-                        code.AppendLineAt(
-                            9,
+                        code.AppendLine(
                             "if (changeItem.Kind == "
                                 + itemKind
                                 + ".Edit) __blindColl"
@@ -365,8 +334,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                     }
                     else
                     {
-                        code.AppendLineAt(
-                            9,
+                        code.AppendLine(
                             "if (changeItem.Kind == "
                                 + itemKind
                                 + ".Edit) __blindColl"
@@ -381,8 +349,7 @@ internal static class SparseChangeSetMixedKeyedEmitter
                 }
                 else
                 {
-                    code.AppendLineAt(
-                        9,
+                    code.AppendLine(
                         "if (changeItem.Kind == "
                             + itemKind
                             + ".Edit) __blindColl"
@@ -394,14 +361,13 @@ internal static class SparseChangeSetMixedKeyedEmitter
                             + ".RemoveEntry(changeItem.Key!);"
                     );
                 }
-                code.AppendLineAt(9, "blindPaths.Add(" + path + ");");
-                code.AppendLineAt(9, "__hasBlindColl" + id + " = true;");
-                code.AppendLineAt(9, "continue;");
-                code.AppendLineAt(8, "}");
+                code.AppendLine("blindPaths.Add(" + path + ");");
+                code.AppendLine("__hasBlindColl" + id + " = true;");
+                code.AppendLine("continue;");
+                code.CloseBlock();
             }
         }
-        code.AppendLineAt(
-            8,
+        code.AppendLine(
             "__payloadItems"
                 + id
                 + ".Add(__SparsePayloadItem"
@@ -410,57 +376,51 @@ internal static class SparseChangeSetMixedKeyedEmitter
                 + (isModelValue ? ", __restoredEdit" + id : string.Empty)
                 + "));"
         );
-        code.AppendLineAt(7, "}");
+        code.CloseBlock();
         if (canContainBlindItems)
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "if (__hasBlindColl" + id + ") blindSets." + esc + " = __blindColl" + id + ";"
             );
         }
         if (isKeyed)
         {
-            code.AppendLineAt(7, "__payloadBeforeOrder" + id + " = item.BeforeOrder;");
-            code.AppendLineAt(7, "__payloadAfterOrder" + id + " = item.AfterOrder;");
+            code.AppendLine("__payloadBeforeOrder" + id + " = item.BeforeOrder;");
+            code.AppendLine("__payloadAfterOrder" + id + " = item.AfterOrder;");
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
                 // Temporary orders restore parallel to the key orders; items
                 // without them are malformed, never position-guessed.
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "var __hasTempItems"
                         + id
                         + " = false; foreach (var __ci in item.Items) if (__ci.TemporaryKey.HasValue) { __hasTempItems"
                         + id
                         + " = true; break; }"
                 );
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "if (item.TempBeforeOrder is null && __hasTempItems"
                         + id
                         + ") throw new global::System.ArgumentException(\"A temporary-keyed payload must contain temporary orders.\", nameof(payload));"
                 );
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "__payloadTempBeforeOrder"
                         + id
                         + " = item.TempBeforeOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
                 );
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "if (item.TempAfterOrder is null && __hasTempItems"
                         + id
                         + ") throw new global::System.ArgumentException(\"A temporary-keyed payload must contain temporary orders.\", nameof(payload));"
                 );
-                code.AppendLineAt(
-                    7,
+                code.AppendLine(
                     "__payloadTempAfterOrder"
                         + id
                         + " = item.TempAfterOrder ?? new global::System.Collections.Generic.List<global::System.Guid>();"
                 );
             }
         }
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "break;");
+        code.CloseBlock();
+        code.AppendLine("break;");
     }
 }

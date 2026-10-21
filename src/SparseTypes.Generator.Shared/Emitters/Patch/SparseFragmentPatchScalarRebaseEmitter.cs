@@ -15,7 +15,6 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
         string currentMember,
         string conflict,
         string conflictKind,
-        int indent,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     )
     {
@@ -37,8 +36,7 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
             reconcilerFallback = "The custom rebase policy could not rebase the member.";
         }
         var reconcilerPathLit = SymbolDisplay.FormatLiteral(member.Property.Name, true);
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "if (local."
                 + field
                 + ".Kind != "
@@ -47,27 +45,25 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + reconcilerPathLit
                 + "))"
         );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "if (__SparseRejectsRedacted(options))");
-        code.AppendLineAt(indent + 1, "{");
+        code.OpenBlock();
+        code.AppendLine("if (__SparseRejectsRedacted(options))");
+        code.OpenBlock();
         SparseRebaseOptionEmitter.AppendRedactedConflict(
             code,
-            indent + 2,
             dialect.RuntimeNamespace,
             conflict,
             dialect,
             "__SparseRootPath.Member(" + reconcilerPathLit + ")",
             "conflicts"
         );
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent + 1, "else");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(indent + 2, "result." + field + " = local." + field + ";");
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("result." + field + " = local." + field + ";");
+        code.CloseBlock();
+        code.CloseBlock();
         // Custom strategies observe every member edit (Set and Remove).
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "if (local."
                 + field
                 + ".Kind != "
@@ -76,17 +72,15 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + reconcilerPathLit
                 + "))"
         );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "var " + baseMember + " = baseFragment." + name + ";");
-        code.AppendLineAt(indent + 1, "var " + currentMember + " = currentFragment." + name + ";");
-        code.AppendLineAt(
-            indent + 1,
+        code.OpenBlock();
+        code.AppendLine("var " + baseMember + " = baseFragment." + name + ";");
+        code.AppendLine("var " + currentMember + " = currentFragment." + name + ";");
+        code.AppendLine(
             "var " + desiredMember + " = local." + field + ".Apply(" + baseMember + ");"
         );
         var strategyField = reconcilerField;
         var strategyFallback = reconcilerFallback;
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine(
             "if ("
                 + strategyField
                 + ".TryRebase("
@@ -97,9 +91,8 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + currentMember
                 + ", out var rebasedValue, out var reason))"
         );
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(
-            indent + 2,
+        code.OpenBlock();
+        code.AppendLine(
             "if (!((!rebasedValue.IsPresent && !"
                 + currentMember
                 + ".IsPresent) || (rebasedValue.IsPresent && "
@@ -110,24 +103,20 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + currentMember
                 + ".Value, rebasedValue.Value))))"
         );
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(indent + 3, "if (rebasedValue.IsPresent)");
-        code.AppendLineAt(indent + 3, "{");
-        code.AppendLineAt(
-            indent + 4,
-            "result." + field + " = " + operationType + ".Set(rebasedValue.Value);"
-        );
-        code.AppendLineAt(indent + 3, "}");
-        code.AppendLineAt(indent + 3, "else");
-        code.AppendLineAt(indent + 3, "{");
-        code.AppendLineAt(indent + 4, "result." + field + " = " + operationType + ".Remove;");
-        code.AppendLineAt(indent + 3, "}");
-        code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent + 1, "else");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(
-            indent + 2,
+        code.OpenBlock();
+        code.AppendLine("if (rebasedValue.IsPresent)");
+        code.OpenBlock();
+        code.AppendLine("result." + field + " = " + operationType + ".Set(rebasedValue.Value);");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("result." + field + " = " + operationType + ".Remove;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -144,8 +133,8 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + strategyFallback
                 + "\"));"
         );
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     internal static void EmitScalarRebase(
@@ -157,19 +146,14 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
         string currentMember,
         string equality,
         string conflictKind,
-        string conflict,
-        int indent
+        string conflict
     )
     {
-        code.AppendLineAt(
-            indent,
-            "if (" + equality + "(" + baseMember + ", " + currentMember + "))"
-        );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "result." + field + " = local." + field + ";");
-        code.AppendLineAt(indent, "}");
-        code.AppendLineAt(
-            indent,
+        code.AppendLine("if (" + equality + "(" + baseMember + ", " + currentMember + "))");
+        code.OpenBlock();
+        code.AppendLine("result." + field + " = local." + field + ";");
+        code.CloseBlock();
+        code.AppendLine(
             "else if (!"
                 + equality
                 + "("
@@ -184,9 +168,8 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + baseMember
                 + "))"
         );
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(
-            indent + 1,
+        code.OpenBlock();
+        code.AppendLine(
             "conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
@@ -201,6 +184,6 @@ internal static class SparseFragmentPatchScalarRebaseEmitter
                 + currentMember
                 + "), \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
     }
 }

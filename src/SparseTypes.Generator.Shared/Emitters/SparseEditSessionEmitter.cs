@@ -231,9 +231,9 @@ internal static class SparseEditSessionEmitter
             members.Select(static member => member.Property.Name)
         );
 
-        code.AppendLineAt(0, accessibility + " " + declaration + modelName);
-        code.AppendLineAt(0, "{");
-        code.AppendLineAt(1, "/// <summary>A typed edit session for this model.</summary>");
+        code.AppendLine(accessibility + " " + declaration + modelName);
+        code.OpenBlock();
+        code.AppendLine("/// <summary>A typed edit session for this model.</summary>");
         var sessionBases = sessionInterface + "<" + modelType + ", " + modelType + ".ChangeSet>";
         if (modelAccessorInterfaceMetadataName is not null)
         {
@@ -321,35 +321,28 @@ internal static class SparseEditSessionEmitter
         );
         // Sessions already raise PropertyChanged with the standard signature.
         sessionBases += ", global::System.ComponentModel.INotifyPropertyChanged";
-        code.AppendLineAt(1, "public sealed class " + sessionSimple + " : " + sessionBases);
-        code.AppendLineAt(1, "{");
+        code.AppendLine("public sealed class " + sessionSimple + " : " + sessionBases);
+        code.OpenBlock();
         // Public surface first; internal constructors and private state follow.
-        code.AppendLineAt(2, "/// <summary>Gets the bindable proxy over the live model.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the bindable proxy over the live model.</summary>");
+        code.AppendLine(
             "public " + modelType + "." + observable + " Observable => _session.Observable;"
         );
         if (config.EditSessionWithBaselineRevisionInterfaceMetadataName is { Length: > 0 })
         {
-            code.AppendLineAt(
-                2,
-                "/// <summary>Gets the revision of the retained baseline.</summary>"
-            );
-            code.AppendLineAt(2, "public long BaselineRevision => _session.BaselineRevision;");
+            code.AppendLine("/// <summary>Gets the revision of the retained baseline.</summary>");
+            code.AppendLine("public long BaselineRevision => _session.BaselineRevision;");
         }
-        code.AppendLineAt(2, "/// <summary>Gets the read-only view over the live model.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the read-only view over the live model.</summary>");
+        code.AppendLine(
             "public " + modelType + "." + readOnlyView + " Current => _session.Current;"
         );
         if (modelAccessorInterfaceMetadataName is not null)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Gets the live model for trusted framework use without affecting the change cache.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public "
                     + modelType
                     + " GetModelForFrameworkAccess() => _session.GetModelForFrameworkAccess();"
@@ -360,12 +353,10 @@ internal static class SparseEditSessionEmitter
             && config.EffectiveEmissionFeatures.EmitObservable
         )
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Gets descriptors bound to this session's observable model.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public "
                     + descriptorDialect.DescriptorSetInterface
                     + " Descriptors => __descriptors ?? (__descriptors = Observable."
@@ -379,8 +370,7 @@ internal static class SparseEditSessionEmitter
                     + "))));"
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets whether "
                 + (
                     HasChildSessionSurface(config, patchDialect, hasChildModelMembers)
@@ -389,8 +379,7 @@ internal static class SparseEditSessionEmitter
                 )
                 + " has pending changes.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool HasChanges => _session.HasChanges"
                 + (
                     HasChildSessionSurface(config, patchDialect, hasChildModelMembers)
@@ -401,20 +390,17 @@ internal static class SparseEditSessionEmitter
         );
         if (hasChildSessionSurface)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Gets whether this session has changes apart from its registered child sessions.</summary>"
             );
-            code.AppendLineAt(2, "public bool HasOwnChanges => _session.HasChanges;");
+            code.AppendLine("public bool HasOwnChanges => _session.HasChanges;");
             var childPathType = config.DescriptorDialect!.EffectivePathType(
                 config.RuntimeDialect?.Namespace ?? patchDialect.RuntimeNamespace
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Resolves the model currently addressed by a child-session path.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public object? ResolveChildModel("
                     + childPathType
                     + " path) => Descriptors.ResolveModel(path);"
@@ -427,20 +413,16 @@ internal static class SparseEditSessionEmitter
             config,
             patchDialect
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Occurs when the session state or current view changes.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public event global::System.ComponentModel.PropertyChangedEventHandler? PropertyChanged { add => _session.PropertyChanged += value; remove => _session.PropertyChanged -= value; }"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Occurs when the session observes a committed transition.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public event global::System.Action<"
                 + modelType
                 + ".ChangeSet>? TransitionObserved { add => _session.TransitionObserved += value; remove => _session.TransitionObserved -= value; }"
@@ -452,19 +434,14 @@ internal static class SparseEditSessionEmitter
             patchDialect,
             hasChildModelMembers
         );
-        code.AppendLineAt(
-            2,
-            "/// <summary>Creates a patch describing the pending changes.</summary>"
-        );
-        code.AppendLineAt(2, "/// <returns>The pending patch.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Creates a patch describing the pending changes.</summary>");
+        code.AppendLine("/// <returns>The pending patch.</returns>");
+        code.AppendLine(
             "public " + modelType + ".Patch CreatePatch() => CreateChangeSet().ToPatch();"
         );
-        code.AppendLineAt(2, "/// <summary>Enumerates the changed member paths.</summary>");
-        code.AppendLineAt(2, "/// <returns>The changed paths in generated member order.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Enumerates the changed member paths.</summary>");
+        code.AppendLine("/// <returns>The changed paths in generated member order.</returns>");
+        code.AppendLine(
             "public global::System.Collections.Generic.IReadOnlyList<"
                 + SparseFragmentPatchEmitter.GetPathType(patchDialect)
                 + "> EnumerateChangedPaths() => CreateChangeSet().EnumerateChangedPaths();"
@@ -472,34 +449,28 @@ internal static class SparseEditSessionEmitter
         // Path-first semantic state inspection: live field and root-collection
         // queries over the retained baseline.
         SparseEditSessionStateEmitter.AppendStateMembers(code, modelType, members, patchDialect);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies a change set to the current model in place when possible.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The change set to apply.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"changes\">The change set to apply.</param>");
+        code.AppendLine(
             "/// <param name=\"conflicts\">Structured conflicts when the change set cannot be applied in place.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the model was updated; otherwise <see langword=\"false\"/>.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryApplyInPlace("
                 + modelType
                 + ".ChangeSet changes, out global::System.Collections.Generic.IReadOnlyList<"
                 + conflictType
                 + ">? conflicts) => _session.TryApplyInPlace(changes, out conflicts);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies a change set to the current model in place.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The change set to apply.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"changes\">The change set to apply.</param>");
+        code.AppendLine(
             "public void ApplyInPlace("
                 + modelType
                 + ".ChangeSet changes) => _session.ApplyInPlace(changes);"
@@ -514,8 +485,7 @@ internal static class SparseEditSessionEmitter
             HasChildSessionSurface(config, patchDialect, hasChildModelMembers)
         );
         // Raw model access bypasses the change cache.
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             modelType + " " + sessionInterface + "<" + modelType + ">.Model => _session.Model;"
         );
         if (hasChildSessionSurface)
@@ -559,16 +529,14 @@ internal static class SparseEditSessionEmitter
             );
         }
         SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal "
                 + sessionSimple
                 + "("
                 + modelType
                 + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "internal "
                 + sessionSimple
                 + "("
@@ -597,8 +565,7 @@ internal static class SparseEditSessionEmitter
                 patchDialect
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static readonly "
                 + configuration
                 + " __configuration = new "
@@ -621,7 +588,7 @@ internal static class SparseEditSessionEmitter
                 + writeModel
                 + ", Invert = static changes => changes.Invert(), Rebase = static (changes, server) => changes.RebaseOnto(server), EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(), RefreshObservable = static observable => observable.__SparseRefresh(), BaselineToModel = static fragment => fragment.ToModel() };"
         );
-        code.AppendLineAt(2, "private readonly " + core + " _session;");
+        code.AppendLine("private readonly " + core + " _session;");
         SparseEditSessionPathsEmitter.AppendPathsField(
             code,
             model,
@@ -643,13 +610,12 @@ internal static class SparseEditSessionEmitter
         )
         {
             // Descriptors are live views.
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private " + descriptorsDialect.DescriptorSetInterface + "? __descriptors;"
             );
         }
-        code.AppendLineAt(1, "}");
-        code.AppendLineAt(0, "}");
+        code.CloseBlock();
+        code.CloseBlock();
         code.AppendLine();
     }
 

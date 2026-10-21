@@ -97,121 +97,92 @@ internal static class SparseEditSessionHistoryEmitter
             return;
         }
 
-        code.AppendLineAt(
-            2,
-            "/// <summary>Reverts pending changes to the retained baseline.</summary>"
-        );
-        code.AppendLineAt(2, "/// <remarks>Clears registered edit histories on success.</remarks>");
-        code.AppendLineAt(2, "public void RevertChanges()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "_session.RevertChanges();");
-        code.AppendLineAt(3, "__SparseClearHistories();");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Reverts pending changes to the retained baseline.</summary>");
+        code.AppendLine("/// <remarks>Clears registered edit histories on success.</remarks>");
+        code.AppendLine("public void RevertChanges()");
+        code.OpenBlock();
+        code.AppendLine("_session.RevertChanges();");
+        code.AppendLine("__SparseClearHistories();");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Reverts the current model to its retained baseline when possible in place.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"conflicts\">Structured conflicts when the pending changes cannot be reverted in place.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the model was reverted; otherwise <see langword=\"false\"/>.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Clears registered edit histories only when the revert succeeds.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryRevertChanges(out global::System.Collections.Generic.IReadOnlyList<"
                 + conflictType
                 + ">? conflicts)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var applied = _session.TryRevertChanges(out conflicts);");
-        code.AppendLineAt(3, "if (applied) __SparseClearHistories();");
-        code.AppendLineAt(3, "return applied;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.OpenBlock();
+        code.AppendLine("var applied = _session.TryRevertChanges(out conflicts);");
+        code.AppendLine("if (applied) __SparseClearHistories();");
+        code.AppendLine("return applied;");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Reloads the session around the given server state, preserving local edits.</summary>"
         );
-        code.AppendLineAt(
-            2,
-            "/// <param name=\"serverState\">The authoritative server state.</param>"
-        );
-        code.AppendLineAt(
-            2,
-            "/// <returns>The rebase outcome with the rebased change set.</returns>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"serverState\">The authoritative server state.</param>");
+        code.AppendLine("/// <returns>The rebase outcome with the rebased change set.</returns>");
+        code.AppendLine(
             "/// <remarks>Clears registered edit histories only when the reload applies without conflicts.</remarks>"
         );
-        code.AppendLineAt(
-            2,
-            "public " + rebaseResultType + " Reload(" + modelType + " serverState)"
-        );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var outcome = _session.Reload(serverState);");
-        code.AppendLineAt(3, "if (!outcome.HasConflicts) __SparseClearHistories();");
-        code.AppendLineAt(3, "return outcome;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("public " + rebaseResultType + " Reload(" + modelType + " serverState)");
+        code.OpenBlock();
+        code.AppendLine("var outcome = _session.Reload(serverState);");
+        code.AppendLine("if (!outcome.HasConflicts) __SparseClearHistories();");
+        code.AppendLine("return outcome;");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Accepts the pending changes and advances the baseline.</summary>"
         );
-        code.AppendLineAt(2, "/// <remarks>Clears registered edit histories on success.</remarks>");
-        code.AppendLineAt(2, "public void AcceptChanges()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "_session.AcceptChanges();");
-        code.AppendLineAt(3, "__SparseClearHistories();");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <remarks>Clears registered edit histories on success.</remarks>");
+        code.AppendLine("public void AcceptChanges()");
+        code.OpenBlock();
+        code.AppendLine("_session.AcceptChanges();");
+        code.AppendLine("__SparseClearHistories();");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Accepts the given change set and advances the baseline.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The change set to accept.</param>");
+        code.AppendLine("/// <param name=\"changes\">The change set to accept.</param>");
         if (acceptChildrenFirst)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Merges pending child sessions before advancing the baseline by exactly <paramref name=\"changes\"/>; edits made after the change set was captured stay pending. Clears registered edit histories on success.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.InvalidOperationException\">Pending child sessions conflict or their target is missing.</exception>"
             );
-            code.AppendLineAt(2, "public void AcceptChanges(" + modelType + ".ChangeSet changes)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("public void AcceptChanges(" + modelType + ".ChangeSet changes)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!TryAcceptChildSessions(out var conflicts)) throw new global::System.InvalidOperationException(conflicts is null ? \"A child edit session target is no longer available.\" : \"A child edit session conflicts with changes in its parent session.\");"
             );
-            code.AppendLineAt(3, "_session.AcceptChanges(changes);");
-            code.AppendLineAt(3, "__SparseClearHistories();");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("_session.AcceptChanges(changes);");
+            code.AppendLine("__SparseClearHistories();");
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(
-                2,
-                "/// <remarks>Clears registered edit histories on success.</remarks>"
-            );
-            code.AppendLineAt(2, "public void AcceptChanges(" + modelType + ".ChangeSet changes)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(3, "_session.AcceptChanges(changes);");
-            code.AppendLineAt(3, "__SparseClearHistories();");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("/// <remarks>Clears registered edit histories on success.</remarks>");
+            code.AppendLine("public void AcceptChanges(" + modelType + ".ChangeSet changes)");
+            code.OpenBlock();
+            code.AppendLine("_session.AcceptChanges(changes);");
+            code.AppendLine("__SparseClearHistories();");
+            code.CloseBlock();
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reconciles a submitted change set with the authoritative persisted model.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Submitted unassigned elements correlate with assigned persisted elements through their shared temporary identities; the persisted model becomes the new baseline with post-submit local edits preserved. Mismatches fail without mutating the session. Clears registered edit histories only when reconciliation succeeds."
                 + (
                     acceptChildrenFirst
@@ -220,50 +191,41 @@ internal static class SparseEditSessionHistoryEmitter
                 )
                 + "</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"submitted\">The submitted transition to acknowledge.</param>"
         );
-        code.AppendLineAt(
-            2,
-            "/// <param name=\"persisted\">The authoritative persisted model.</param>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"persisted\">The authoritative persisted model.</param>");
+        code.AppendLine(
             "/// <param name=\"error\">The failure reason, or null on success.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> on success; otherwise <see langword=\"false\"/>.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryReconcile("
                 + modelType
                 + ".ChangeSet submitted, "
                 + modelType
                 + " persisted, out string? error)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (acceptChildrenFirst)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!TryAcceptChildSessions(out var conflicts)) { error = conflicts is null ? \"A child edit session target is no longer available.\" : \"A child edit session conflicts with changes in its parent session.\"; return false; }"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var reconciled = _session.TryReconcile(submitted, persisted, static (s, p) => "
                 + modelType
                 + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
                 + modelType
                 + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), out error);"
         );
-        code.AppendLineAt(3, "if (reconciled) __SparseClearHistories();");
-        code.AppendLineAt(3, "return reconciled;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("if (reconciled) __SparseClearHistories();");
+        code.AppendLine("return reconciled;");
+        code.CloseBlock();
         AppendTryReconcileAndApply(
             code,
             modelType,
@@ -289,60 +251,51 @@ internal static class SparseEditSessionHistoryEmitter
     )
     {
         var historyType = history.HistoryType + "<" + modelType + ".ChangeSet>";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates an independent opt-in bounded edit history with undo and redo.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Advanced use only; prefer <see cref=\"EnableHistory\"/> for the single session-owned history. Subscribes to effective transition notifications and stores one typed change set per user action. Undo applies the inverted change set instead of storing two copies. A new ordinary edit clears redo. Replayed operations are never re-recorded. <c>BatchEdit</c> publishes one transition and stores one entry. Without this call the session retains no history. The underlying snapshot and diff work runs whether or not a history exists. The caller owns the returned history and must dispose it.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"options\">Retention options, or null for defaults.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>A disposable history bound to this session.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>A disposable history bound to this session.</returns>");
+        code.AppendLine(
             "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public "
                 + historyType
                 + " CreateHistory("
                 + history.HistoryOptionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "var hooks = " + HistoryHooksExpression(modelType, conflictType, history) + ";"
         );
-        code.AppendLineAt(3, "var history = new " + historyType + "(options, hooks);");
+        code.AppendLine("var history = new " + historyType + "(options, hooks);");
         if (history.HistoryCollectionType is { Length: > 0 } collectionType)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "__histories ??= new " + collectionType + "<" + modelType + ".ChangeSet>();"
             );
-            code.AppendLineAt(3, "__histories.Add(history);");
+            code.AppendLine("__histories.Add(history);");
         }
         else
         {
-            code.AppendLineAt(3, "if (__histories is null)");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (__histories is null)");
+            code.AppendLine(
                 "__histories = new global::System.Collections.Generic.List<" + historyType + ">();"
             );
-            code.AppendLineAt(3, "__histories.Add(history);");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("__histories.Add(history);");
+            code.AppendLine(
                 "history.Disposed += () => { if (__histories is not null) __histories.Remove(history); };"
             );
         }
-        code.AppendLineAt(3, "return history;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return history;");
+        code.CloseBlock();
     }
 
     /// <summary>Appends the single-owned history surface for one model session.</summary>
@@ -358,108 +311,93 @@ internal static class SparseEditSessionHistoryEmitter
         var ownedViewType = history.OwnedHistoryViewType is { Length: > 0 } ownedType
             ? ownedType + "<" + modelType + ".ChangeSet>"
             : "__OwnedHistoryView";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Gets the session-owned edit history, or null when history is not enabled.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>No history subscription or retained entries exist until <see cref=\"EnableHistory\"/> runs. Forked and new sessions start without history.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public " + history.HistoryContractType + "? History => __ownedHistoryView;"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Occurs when session-owned history availability changes.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Raised after <see cref=\"EnableHistory\"/> creates the history and after <see cref=\"DisableHistory\"/> releases it. Undo/redo stack changes raise <c>StateChanged</c> on the history itself.</remarks>"
         );
-        code.AppendLineAt(2, "public event global::System.Action? HistoryChanged;");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("public event global::System.Action? HistoryChanged;");
+        code.AppendLine(
             "/// <summary>Enables the single session-owned edit history with undo and redo.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Subscribes to effective transition notifications and stores one typed change set per user action. Repeating the call with the same options returns the existing history without resetting retained edits. Repeating with different options throws; call <see cref=\"DisableHistory\"/> first to reconfigure. The returned control is owned by the session and cannot be disposed by consumers. Without this call the session retains no history.</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"options\">Retention options, or null for defaults.</param>"
         );
-        code.AppendLineAt(2, "/// <returns>The session-owned history control.</returns>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <returns>The session-owned history control.</returns>");
+        code.AppendLine(
             "public "
                 + history.HistoryContractType
                 + " EnableHistory("
                 + history.HistoryOptionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (__ownedHistoryView is not null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("if (__ownedHistoryView is not null)");
+        code.OpenBlock();
+        code.AppendLine(
             "var requestedMaxEntries = (options ?? new "
                 + history.HistoryOptionsType
                 + "()).MaxEntries;"
         );
-        code.AppendLineAt(4, "if (__ownedHistoryView.MaxEntries != requestedMaxEntries)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__ownedHistoryView.MaxEntries != requestedMaxEntries)");
+        code.OpenBlock();
+        code.AppendLine(
             "throw new global::System.InvalidOperationException(\"The session already has an enabled history with different options. Call DisableHistory() first to reconfigure instead of silently resetting retained edits.\");"
         );
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "return __ownedHistoryView;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine("return __ownedHistoryView;");
+        code.CloseBlock();
+        code.AppendLine(
             "var hooks = " + HistoryHooksExpression(modelType, conflictType, history) + ";"
         );
-        code.AppendLineAt(3, "var history = new " + historyType + "(options, hooks);");
-        code.AppendLineAt(3, "var view = new " + ownedViewType + "(history);");
-        code.AppendLineAt(3, "__ownedHistoryView = view;");
-        code.AppendLineAt(3, "var historyChanged = HistoryChanged;");
-        code.AppendLineAt(3, "if (historyChanged is not null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "historyChanged();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return view;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("var history = new " + historyType + "(options, hooks);");
+        code.AppendLine("var view = new " + ownedViewType + "(history);");
+        code.AppendLine("__ownedHistoryView = view;");
+        code.AppendLine("var historyChanged = HistoryChanged;");
+        code.AppendLine("if (historyChanged is not null)");
+        code.OpenBlock();
+        code.AppendLine("historyChanged();");
+        code.CloseBlock();
+        code.AppendLine("return view;");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Disables the session-owned edit history and releases retention.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Unsubscribes from transitions and drops retained entries. Histories created by the legacy factory are unaffected. No-op when history is not enabled.</remarks>"
         );
-        code.AppendLineAt(2, "public void DisableHistory()");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var view = __ownedHistoryView;");
-        code.AppendLineAt(3, "if (view is null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "__ownedHistoryView = null;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("public void DisableHistory()");
+        code.OpenBlock();
+        code.AppendLine("var view = __ownedHistoryView;");
+        code.AppendLine("if (view is null)");
+        code.OpenBlock();
+        code.AppendLine("return;");
+        code.CloseBlock();
+        code.AppendLine("__ownedHistoryView = null;");
+        code.AppendLine(
             history.OwnedHistoryViewType is { Length: > 0 }
                 ? "view.DisposeOwned();"
                 : "view.__SparseDispose();"
         );
-        code.AppendLineAt(3, "var historyChanged = HistoryChanged;");
-        code.AppendLineAt(3, "if (historyChanged is not null)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "historyChanged();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("var historyChanged = HistoryChanged;");
+        code.AppendLine("if (historyChanged is not null)");
+        code.OpenBlock();
+        code.AppendLine("historyChanged();");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     /// <summary>Builds the typed hooks expression wiring one change set.</summary>
@@ -494,15 +432,13 @@ internal static class SparseEditSessionHistoryEmitter
         var historyType = history.HistoryType + "<" + modelType + ".ChangeSet>";
         if (history.HistoryCollectionType is { Length: > 0 } collectionType)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private " + collectionType + "<" + modelType + ".ChangeSet>? __histories;"
             );
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "private global::System.Collections.Generic.List<" + historyType + ">? __histories;"
             );
         }
@@ -511,34 +447,34 @@ internal static class SparseEditSessionHistoryEmitter
             var ownedViewType = history.OwnedHistoryViewType is { Length: > 0 } ownedType
                 ? ownedType + "<" + modelType + ".ChangeSet>"
                 : "__OwnedHistoryView";
-            code.AppendLineAt(2, "private " + ownedViewType + "? __ownedHistoryView;");
+            code.AppendLine("private " + ownedViewType + "? __ownedHistoryView;");
             if (history.OwnedHistoryViewType is null or { Length: 0 })
             {
                 AppendOwnedHistoryView(code, modelType, conflictType, history);
             }
         }
 
-        code.AppendLineAt(2, "private void __SparseClearHistories()");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("private void __SparseClearHistories()");
+        code.OpenBlock();
         if (history.HistoryCollectionType is { Length: > 0 })
         {
-            code.AppendLineAt(3, "__histories?.Clear();");
+            code.AppendLine("__histories?.Clear();");
         }
         else
         {
-            code.AppendLineAt(3, "var histories = __histories;");
-            code.AppendLineAt(3, "if (histories is not null)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "for (var index = 0; index < histories.Count; index++)");
-            code.AppendLineAt(5, "histories[index].Clear();");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("var histories = __histories;");
+            code.AppendLine("if (histories is not null)");
+            code.OpenBlock();
+            code.AppendLine("for (var index = 0; index < histories.Count; index++)");
+            code.AppendLine("histories[index].Clear();");
+            code.CloseBlock();
         }
         if (history.HasOwnedHistory)
         {
-            code.AppendLineAt(3, "__ownedHistoryView?.Clear();");
+            code.AppendLine("__ownedHistoryView?.Clear();");
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     /// <summary>Appends the non-disposable session-owned history view.</summary>
@@ -553,71 +489,52 @@ internal static class SparseEditSessionHistoryEmitter
         var historyType = history.HistoryType + "<" + modelType + ".ChangeSet>";
         var conflicts =
             "out global::System.Collections.Generic.IReadOnlyList<" + conflictType + ">? conflicts";
-        code.AppendLineAt(
-            2,
-            "/// <summary>Session-owned non-disposable history control.</summary>"
-        );
-        code.AppendLineAt(
-            2,
-            "private sealed class __OwnedHistoryView : " + history.HistoryContractType
-        );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "public __OwnedHistoryView(" + historyType + " history)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "_inner = history;");
-        code.AppendLineAt(4, "_inner.StateChanged += OnStateChanged;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "public event global::System.Action? StateChanged;");
-        code.AppendLineAt(3, "public bool CanUndo => Inner.CanUndo;");
-        code.AppendLineAt(3, "public bool CanRedo => Inner.CanRedo;");
-        code.AppendLineAt(3, "public int UndoCount => Inner.UndoCount;");
-        code.AppendLineAt(3, "public int RedoCount => Inner.RedoCount;");
-        code.AppendLineAt(3, "public int MaxEntries => Inner.MaxEntries;");
-        code.AppendLineAt(3, "public void Undo() => Inner.Undo();");
-        code.AppendLineAt(
-            3,
-            "public bool TryUndo(" + conflicts + ") => Inner.TryUndo(out conflicts);"
-        );
-        code.AppendLineAt(3, "public void Redo() => Inner.Redo();");
-        code.AppendLineAt(
-            3,
-            "public bool TryRedo(" + conflicts + ") => Inner.TryRedo(out conflicts);"
-        );
-        code.AppendLineAt(
-            3,
-            "public global::System.IDisposable BeginGroup() => Inner.BeginGroup();"
-        );
-        code.AppendLineAt(
-            3,
-            "public void Group(global::System.Action action) => Inner.Group(action);"
-        );
-        code.AppendLineAt(3, "public void Clear() => Inner.Clear();");
-        code.AppendLineAt(3, "internal void __SparseDispose()");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var history = _inner;");
-        code.AppendLineAt(4, "_inner = null;");
-        code.AppendLineAt(4, "if (history is not null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "history.StateChanged -= OnStateChanged;");
-        code.AppendLineAt(5, "history.Dispose();");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Session-owned non-disposable history control.</summary>");
+        code.AppendLine("private sealed class __OwnedHistoryView : " + history.HistoryContractType);
+        code.OpenBlock();
+        code.AppendLine("public __OwnedHistoryView(" + historyType + " history)");
+        code.OpenBlock();
+        code.AppendLine("_inner = history;");
+        code.AppendLine("_inner.StateChanged += OnStateChanged;");
+        code.CloseBlock();
+        code.AppendLine("public event global::System.Action? StateChanged;");
+        code.AppendLine("public bool CanUndo => Inner.CanUndo;");
+        code.AppendLine("public bool CanRedo => Inner.CanRedo;");
+        code.AppendLine("public int UndoCount => Inner.UndoCount;");
+        code.AppendLine("public int RedoCount => Inner.RedoCount;");
+        code.AppendLine("public int MaxEntries => Inner.MaxEntries;");
+        code.AppendLine("public void Undo() => Inner.Undo();");
+        code.AppendLine("public bool TryUndo(" + conflicts + ") => Inner.TryUndo(out conflicts);");
+        code.AppendLine("public void Redo() => Inner.Redo();");
+        code.AppendLine("public bool TryRedo(" + conflicts + ") => Inner.TryRedo(out conflicts);");
+        code.AppendLine("public global::System.IDisposable BeginGroup() => Inner.BeginGroup();");
+        code.AppendLine("public void Group(global::System.Action action) => Inner.Group(action);");
+        code.AppendLine("public void Clear() => Inner.Clear();");
+        code.AppendLine("internal void __SparseDispose()");
+        code.OpenBlock();
+        code.AppendLine("var history = _inner;");
+        code.AppendLine("_inner = null;");
+        code.AppendLine("if (history is not null)");
+        code.OpenBlock();
+        code.AppendLine("history.StateChanged -= OnStateChanged;");
+        code.AppendLine("history.Dispose();");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine(
             "private "
                 + historyType
                 + " Inner => _inner ?? throw new global::System.ObjectDisposedException(GetType().FullName);"
         );
-        code.AppendLineAt(3, "private void OnStateChanged()");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var raised = StateChanged;");
-        code.AppendLineAt(4, "if (raised is not null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "raised();");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "private " + historyType + "? _inner;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("private void OnStateChanged()");
+        code.OpenBlock();
+        code.AppendLine("var raised = StateChanged;");
+        code.AppendLine("if (raised is not null)");
+        code.OpenBlock();
+        code.AppendLine("raised();");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("private " + historyType + "? _inner;");
+        code.CloseBlock();
     }
 
     private static void AppendLegacyLifecycleMembers(
@@ -629,93 +546,70 @@ internal static class SparseEditSessionHistoryEmitter
         bool acceptChildrenFirst
     )
     {
-        code.AppendLineAt(
-            2,
-            "/// <summary>Reverts pending changes to the retained baseline.</summary>"
-        );
-        code.AppendLineAt(2, "public void RevertChanges() => _session.RevertChanges();");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Reverts pending changes to the retained baseline.</summary>");
+        code.AppendLine("public void RevertChanges() => _session.RevertChanges();");
+        code.AppendLine(
             "/// <summary>Reverts the current model to its retained baseline when possible in place.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"conflicts\">Structured conflicts when the pending changes cannot be reverted in place.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the model was reverted; otherwise <see langword=\"false\"/>.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryRevertChanges(out global::System.Collections.Generic.IReadOnlyList<"
                 + conflictType
                 + ">? conflicts) => _session.TryRevertChanges(out conflicts);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reloads the session around the given server state, preserving local edits.</summary>"
         );
-        code.AppendLineAt(
-            2,
-            "/// <param name=\"serverState\">The authoritative server state.</param>"
-        );
-        code.AppendLineAt(
-            2,
-            "/// <returns>The rebase outcome with the rebased change set.</returns>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"serverState\">The authoritative server state.</param>");
+        code.AppendLine("/// <returns>The rebase outcome with the rebased change set.</returns>");
+        code.AppendLine(
             "public "
                 + rebaseResultType
                 + " Reload("
                 + modelType
                 + " serverState) => _session.Reload(serverState);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Accepts the pending changes and advances the baseline.</summary>"
         );
-        code.AppendLineAt(2, "public void AcceptChanges() => _session.AcceptChanges();");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("public void AcceptChanges() => _session.AcceptChanges();");
+        code.AppendLine(
             "/// <summary>Accepts the given change set and advances the baseline.</summary>"
         );
-        code.AppendLineAt(2, "/// <param name=\"changes\">The change set to accept.</param>");
+        code.AppendLine("/// <param name=\"changes\">The change set to accept.</param>");
         if (acceptChildrenFirst)
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <remarks>Merges pending child sessions before advancing the baseline by exactly <paramref name=\"changes\"/>; edits made after the change set was captured stay pending.</remarks>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <exception cref=\"global::System.InvalidOperationException\">Pending child sessions conflict or their target is missing.</exception>"
             );
-            code.AppendLineAt(2, "public void AcceptChanges(" + modelType + ".ChangeSet changes)");
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("public void AcceptChanges(" + modelType + ".ChangeSet changes)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!TryAcceptChildSessions(out var conflicts)) throw new global::System.InvalidOperationException(conflicts is null ? \"A child edit session target is no longer available.\" : \"A child edit session conflicts with changes in its parent session.\");"
             );
-            code.AppendLineAt(3, "_session.AcceptChanges(changes);");
-            code.AppendLineAt(2, "}");
+            code.AppendLine("_session.AcceptChanges(changes);");
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public void AcceptChanges("
                     + modelType
                     + ".ChangeSet changes) => _session.AcceptChanges(changes);"
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reconciles a submitted change set with the authoritative persisted model.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Submitted unassigned elements correlate with assigned persisted elements through their shared temporary identities; the persisted model becomes the new baseline with post-submit local edits preserved. Mismatches fail without mutating the session."
                 + (
                     acceptChildrenFirst
@@ -724,24 +618,17 @@ internal static class SparseEditSessionHistoryEmitter
                 )
                 + "</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"submitted\">The submitted transition to acknowledge.</param>"
         );
-        code.AppendLineAt(
-            2,
-            "/// <param name=\"persisted\">The authoritative persisted model.</param>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"persisted\">The authoritative persisted model.</param>");
+        code.AppendLine(
             "/// <param name=\"error\">The failure reason, or null on success.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> on success; otherwise <see langword=\"false\"/>.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryReconcile("
                 + modelType
                 + ".ChangeSet submitted, "
@@ -750,25 +637,22 @@ internal static class SparseEditSessionHistoryEmitter
         );
         if (acceptChildrenFirst)
         {
-            code.AppendLineAt(2, "{");
-            code.AppendLineAt(
-                3,
+            code.OpenBlock();
+            code.AppendLine(
                 "if (!TryAcceptChildSessions(out var conflicts)) { error = conflicts is null ? \"A child edit session target is no longer available.\" : \"A child edit session conflicts with changes in its parent session.\"; return false; }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "return _session.TryReconcile(submitted, persisted, static (s, p) => "
                     + modelType
                     + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
                     + modelType
                     + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), out error);"
             );
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
         }
         else
         {
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "=> _session.TryReconcile(submitted, persisted, static (s, p) => "
                     + modelType
                     + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
@@ -801,12 +685,10 @@ internal static class SparseEditSessionHistoryEmitter
             return;
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reconciles an acknowledged submission with persisted values and applies them to the live model.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Temporary identities correlate persisted keys. Persisted values are adopted unless changed locally after submission. Post-submit edits remain pending against the persisted baseline; overlapping remote and local edits return typed-path conflicts. Planning conflicts leave the live model and retained baseline unchanged."
                 + (
                     acceptChildrenFirst
@@ -815,24 +697,17 @@ internal static class SparseEditSessionHistoryEmitter
                 )
                 + "</remarks>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"submitted\">The change set sent to persistence.</param>"
         );
-        code.AppendLineAt(
-            2,
-            "/// <param name=\"persisted\">The authoritative persisted model.</param>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"persisted\">The authoritative persisted model.</param>");
+        code.AppendLine(
             "/// <param name=\"conflicts\">The typed-path reconciliation conflict on failure.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <returns>True when persisted values were adopted; otherwise false.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryReconcileAndApply("
                 + modelType
                 + ".ChangeSet submitted, "
@@ -841,17 +716,15 @@ internal static class SparseEditSessionHistoryEmitter
                 + conflictType
                 + ">? conflicts)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (acceptChildrenFirst)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!TryAcceptChildSessions(out var acceptConflicts)) { conflicts = acceptConflicts; return false; }"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var reconciled = _session.TryReconcileAndApply(submitted, persisted, static (s, p) => "
                 + modelType
                 + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
@@ -860,16 +733,16 @@ internal static class SparseEditSessionHistoryEmitter
                 + reconcileConflictExpression
                 + ", out conflicts);"
         );
-        code.AppendLineAt(3, "if (reconciled)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (reconciled)");
+        code.OpenBlock();
         if (clearHistories)
         {
-            code.AppendLineAt(4, "__SparseClearHistories();");
+            code.AppendLine("__SparseClearHistories();");
         }
 
-        code.AppendLineAt(4, "return true;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return true;");
+        code.CloseBlock();
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 }

@@ -22,12 +22,10 @@ internal static class SparseDictionaryMutatorsEmitter
         var guard = relocated ? "self." : string.Empty;
         if (relocated)
         {
-            split!.Shell.AppendLineAt(
-                3,
+            split!.Shell.AppendLine(
                 "/// <summary>Sets an entry of this dictionary patch.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public void SetEntry("
                     + keyType
                     + " key, "
@@ -36,9 +34,8 @@ internal static class SparseDictionaryMutatorsEmitter
                     + split.OperationsType
                     + ".SetEntry(this, key, value);"
             );
-            code.AppendLineAt(3, "/// <summary>Sets an entry of a dictionary patch.</summary>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Sets an entry of a dictionary patch.</summary>");
+            code.AppendLine(
                 "internal static void SetEntry("
                     + patchName
                     + " self, "
@@ -47,30 +44,25 @@ internal static class SparseDictionaryMutatorsEmitter
                     + valueType
                     + " value)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendDictionaryFieldAliases(code);
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Sets an entry of this dictionary patch.</summary>");
-            code.AppendLineAt(
-                3,
-                "public void SetEntry(" + keyType + " key, " + valueType + " value)"
-            );
-            code.AppendLineAt(3, "{");
+            code.AppendLine("/// <summary>Sets an entry of this dictionary patch.</summary>");
+            code.AppendLine("public void SetEntry(" + keyType + " key, " + valueType + " value)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(4, guard + "EnsureGranular(\"SetEntry\");");
-        code.AppendLineAt(
-            4,
+        code.AppendLine(guard + "EnsureGranular(\"SetEntry\");");
+        code.AppendLine(
             sharedRemoval is null
                 ? "if (__removed is not null) __SparseCancelRemoval(key);"
                 : "if (__removed is not null) "
                     + sharedRemoval
                     + ".CancelRemoval(__removed!, ref __removedLookup, key);"
         );
-        code.AppendLineAt(4, "if (__edited is not null) __edited.Remove(key);");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (__edited is not null) __edited.Remove(key);");
+        code.AppendLine(
             "__set ??= new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -79,44 +71,39 @@ internal static class SparseDictionaryMutatorsEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(4, "__set[key] = value;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("__set[key] = value;");
+        code.CloseBlock();
         if (relocated)
         {
-            split!.Shell.AppendLineAt(
-                3,
+            split!.Shell.AppendLine(
                 "/// <summary>Removes an entry of this dictionary patch by key.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public void RemoveEntry("
                     + keyType
                     + " key) => "
                     + split.OperationsType
                     + ".RemoveEntry(this, key);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Removes an entry of a dictionary patch by key.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "internal static void RemoveEntry(" + patchName + " self, " + keyType + " key)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             AppendDictionaryFieldAliases(code);
         }
         else
         {
-            code.AppendLineAt(3, "/// <summary>Removes an entry by key.</summary>");
-            code.AppendLineAt(3, "public void RemoveEntry(" + keyType + " key)");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("/// <summary>Removes an entry by key.</summary>");
+            code.AppendLine("public void RemoveEntry(" + keyType + " key)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(4, guard + "EnsureGranular(\"RemoveEntry\");");
-        code.AppendLineAt(4, "if (__set is not null) { if (__set.Remove(key)) return; }");
-        code.AppendLineAt(4, "if (__edited is not null) __edited.Remove(key);");
-        code.AppendLineAt(
-            4,
+        code.AppendLine(guard + "EnsureGranular(\"RemoveEntry\");");
+        code.AppendLine("if (__set is not null) { if (__set.Remove(key)) return; }");
+        code.AppendLine("if (__edited is not null) __edited.Remove(key);");
+        code.AppendLine(
             "__removed ??= new global::System.Collections.Generic.List<" + keyType + ">();"
         );
         SparseDictionaryRemovalIndexEmitter.EmitAdd(
@@ -126,18 +113,16 @@ internal static class SparseDictionaryMutatorsEmitter
             keyType,
             implementationNamespace
         );
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         if (hasPatch)
         {
             var valuePatch = SparseKeyedCollectionEmitter.ValuePatchType(member);
             if (relocated)
             {
-                split!.Shell.AppendLineAt(
-                    3,
+                split!.Shell.AppendLine(
                     "/// <summary>Gets the edit patch for an entry of this dictionary patch.</summary>"
                 );
-                split.Shell.AppendLineAt(
-                    3,
+                split.Shell.AppendLine(
                     "public "
                         + valuePatch
                         + " Edit("
@@ -146,12 +131,10 @@ internal static class SparseDictionaryMutatorsEmitter
                         + split.OperationsType
                         + ".Edit(this, key);"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "/// <summary>Gets the edit patch for an entry of a dictionary patch.</summary>"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "internal static "
                         + valuePatch
                         + " Edit("
@@ -160,30 +143,27 @@ internal static class SparseDictionaryMutatorsEmitter
                         + keyType
                         + " key)"
                 );
-                code.AppendLineAt(3, "{");
+                code.OpenBlock();
                 AppendDictionaryFieldAliases(code);
             }
             else
             {
-                code.AppendLineAt(3, "/// <summary>Gets the edit patch for an entry.</summary>");
-                code.AppendLineAt(3, "public " + valuePatch + " Edit(" + keyType + " key)");
-                code.AppendLineAt(3, "{");
+                code.AppendLine("/// <summary>Gets the edit patch for an entry.</summary>");
+                code.AppendLine("public " + valuePatch + " Edit(" + keyType + " key)");
+                code.OpenBlock();
             }
-            code.AppendLineAt(4, guard + "EnsureGranular(\"Edit\");");
-            code.AppendLineAt(
-                4,
+            code.AppendLine(guard + "EnsureGranular(\"Edit\");");
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (__removed is not null && __SparseContainsRemoved(key)) throw new global::System.InvalidOperationException(\"Cannot edit a removed entry.\");"
                     : "if (__removed is not null && "
                         + sharedRemoval
                         + ".ContainsRemoved(__removed!, __removedLookup, key)) throw new global::System.InvalidOperationException(\"Cannot edit a removed entry.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__set is not null && __set.ContainsKey(key)) throw new global::System.InvalidOperationException(\"Cannot edit an entry set in the same patch. Update the set value directly.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -192,25 +172,22 @@ internal static class SparseDictionaryMutatorsEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (!__edited.TryGetValue(key, out var patch)) { patch = new "
                     + valuePatch
                     + "(); __edited[key] = patch; }"
             );
-            code.AppendLineAt(4, "return patch;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("return patch;");
+            code.CloseBlock();
         }
         else
         {
             if (relocated)
             {
-                split!.Shell.AppendLineAt(
-                    3,
+                split!.Shell.AppendLine(
                     "/// <summary>Updates an entry of this dictionary patch.</summary>"
                 );
-                split.Shell.AppendLineAt(
-                    3,
+                split.Shell.AppendLine(
                     "public void UpdateEntry("
                         + keyType
                         + " key, "
@@ -219,12 +196,8 @@ internal static class SparseDictionaryMutatorsEmitter
                         + split.OperationsType
                         + ".UpdateEntry(this, key, value);"
                 );
-                code.AppendLineAt(
-                    3,
-                    "/// <summary>Updates an entry of a dictionary patch.</summary>"
-                );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine("/// <summary>Updates an entry of a dictionary patch.</summary>");
+                code.AppendLine(
                     "internal static void UpdateEntry("
                         + patchName
                         + " self, "
@@ -233,36 +206,31 @@ internal static class SparseDictionaryMutatorsEmitter
                         + valueType
                         + " value)"
                 );
-                code.AppendLineAt(3, "{");
+                code.OpenBlock();
                 AppendDictionaryFieldAliases(code);
             }
             else
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "/// <summary>Updates an entry of this dictionary patch.</summary>"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "public void UpdateEntry(" + keyType + " key, " + valueType + " value)"
                 );
-                code.AppendLineAt(3, "{");
+                code.OpenBlock();
             }
-            code.AppendLineAt(4, guard + "EnsureGranular(\"UpdateEntry\");");
-            code.AppendLineAt(
-                4,
+            code.AppendLine(guard + "EnsureGranular(\"UpdateEntry\");");
+            code.AppendLine(
                 sharedRemoval is null
                     ? "if (__removed is not null && __SparseContainsRemoved(key)) throw new global::System.InvalidOperationException(\"Cannot update a removed entry. Set it again instead.\");"
                     : "if (__removed is not null && "
                         + sharedRemoval
                         + ".ContainsRemoved(__removed!, __removedLookup, key)) throw new global::System.InvalidOperationException(\"Cannot update a removed entry. Set it again instead.\");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__set is not null && __set.ContainsKey(key)) { __set[key] = value; return; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "__edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -271,18 +239,18 @@ internal static class SparseDictionaryMutatorsEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(4, "__edited[key] = value;");
-            code.AppendLineAt(3, "}");
+            code.AppendLine("__edited[key] = value;");
+            code.CloseBlock();
         }
     }
 
     /// <summary>Aliases nested dictionary-patch fields by reference for relocated bodies.</summary>
     internal static void AppendDictionaryFieldAliases(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(4, "ref var __whole = ref self.__whole;");
-        code.AppendLineAt(4, "ref var __set = ref self.__set;");
-        code.AppendLineAt(4, "ref var __removed = ref self.__removed;");
-        code.AppendLineAt(4, "ref var __removedLookup = ref self.__removedLookup;");
-        code.AppendLineAt(4, "ref var __edited = ref self.__edited;");
+        code.AppendLine("ref var __whole = ref self.__whole;");
+        code.AppendLine("ref var __set = ref self.__set;");
+        code.AppendLine("ref var __removed = ref self.__removed;");
+        code.AppendLine("ref var __removedLookup = ref self.__removedLookup;");
+        code.AppendLine("ref var __edited = ref self.__edited;");
     }
 }

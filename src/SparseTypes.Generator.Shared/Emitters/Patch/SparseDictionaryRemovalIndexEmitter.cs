@@ -19,8 +19,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
                 + "<"
                 + keyType
                 + ">";
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "internal void __SparseReserveRemovals(int count) => "
                     + prefix
                     + ".ReserveRemovals(ref __removed, ref __removedLookup, count);"
@@ -48,8 +47,7 @@ internal static class SparseDictionaryRemovalIndexEmitter
                 + "<"
                 + keyType
                 + ">";
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 prefix
                     + ".AddRemoval(__removed!, ref __removedLookup, key, "
                     + (keepReservedIndex ? "true" : "false")
@@ -69,75 +67,72 @@ internal static class SparseDictionaryRemovalIndexEmitter
 
     private static void EmitLegacy(SharedIndentedBuilder code, string keyType, string comparer)
     {
-        code.AppendLineAt(3, "private void __SparseCancelRemoval(" + keyType + " key)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("private void __SparseCancelRemoval(" + keyType + " key)");
+        code.OpenBlock();
         // Fast path: a valid index already proves absence without scanning
         // the ordered list. Keep the full scan on an indexed hit (order and
         // duplicate cleanup) and when no index exists.
-        code.AppendLineAt(4, "var slots = __removedLookup;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var slots = __removedLookup;");
+        code.AppendLine(
             "if (slots is not null && slots[__SparseRemovedSlot(key, slots)] == 0) return;"
         );
-        code.AppendLineAt(4, "for (int index = __removed!.Count - 1; index >= 0; index--)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "if (!" + comparer + ".Equals(__removed[index], key)) continue;");
-        code.AppendLineAt(5, "__removed.RemoveAt(index);");
-        code.AppendLineAt(5, "__removedLookup = null;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "private int __SparseRemovedSlot(" + keyType + " key, int[] slots)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "int mask = slots.Length - 1;");
-        code.AppendLineAt(4, "int slot = " + comparer + ".GetHashCode(key!) & mask;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("for (int index = __removed!.Count - 1; index >= 0; index--)");
+        code.OpenBlock();
+        code.AppendLine("if (!" + comparer + ".Equals(__removed[index], key)) continue;");
+        code.AppendLine("__removed.RemoveAt(index);");
+        code.AppendLine("__removedLookup = null;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("private int __SparseRemovedSlot(" + keyType + " key, int[] slots)");
+        code.OpenBlock();
+        code.AppendLine("int mask = slots.Length - 1;");
+        code.AppendLine("int slot = " + comparer + ".GetHashCode(key!) & mask;");
+        code.AppendLine(
             "while (slots[slot] != 0 && !" + comparer + ".Equals(__removed![slots[slot] - 1], key))"
         );
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "slot = (slot + 1) & mask;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "return slot;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "private bool __SparseContainsRemoved(" + keyType + " key)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var slots = __removedLookup;");
-        code.AppendLineAt(4, "if (slots is not null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "return slots[__SparseRemovedSlot(key, slots)] != 0;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "foreach (var existing in __removed!)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "if (" + comparer + ".Equals(existing, key)) return true;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "return false;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "private void __SparseRebuildRemovedIndex(int capacity)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var slots = new int[capacity];");
-        code.AppendLineAt(4, "for (int index = 0; index < __removed!.Count; index++)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "slots[__SparseRemovedSlot(__removed[index], slots)] = index + 1;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "__removedLookup = slots;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "internal void __SparseReserveRemovals(int count)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "if (count <= 0) return;");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("slot = (slot + 1) & mask;");
+        code.CloseBlock();
+        code.AppendLine("return slot;");
+        code.CloseBlock();
+        code.AppendLine("private bool __SparseContainsRemoved(" + keyType + " key)");
+        code.OpenBlock();
+        code.AppendLine("var slots = __removedLookup;");
+        code.AppendLine("if (slots is not null)");
+        code.OpenBlock();
+        code.AppendLine("return slots[__SparseRemovedSlot(key, slots)] != 0;");
+        code.CloseBlock();
+        code.AppendLine("foreach (var existing in __removed!)");
+        code.OpenBlock();
+        code.AppendLine("if (" + comparer + ".Equals(existing, key)) return true;");
+        code.CloseBlock();
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("private void __SparseRebuildRemovedIndex(int capacity)");
+        code.OpenBlock();
+        code.AppendLine("var slots = new int[capacity];");
+        code.AppendLine("for (int index = 0; index < __removed!.Count; index++)");
+        code.OpenBlock();
+        code.AppendLine("slots[__SparseRemovedSlot(__removed[index], slots)] = index + 1;");
+        code.CloseBlock();
+        code.AppendLine("__removedLookup = slots;");
+        code.CloseBlock();
+        code.AppendLine("internal void __SparseReserveRemovals(int count)");
+        code.OpenBlock();
+        code.AppendLine("if (count <= 0) return;");
+        code.AppendLine(
             "__removed = new global::System.Collections.Generic.List<" + keyType + ">(count);"
         );
-        code.AppendLineAt(4, "if (count >= 32)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "int capacity = 64;");
-        code.AppendLineAt(5, "while (capacity < checked(count * 2))");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "capacity = checked(capacity * 2);");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "__SparseRebuildRemovedIndex(capacity);");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("if (count >= 32)");
+        code.OpenBlock();
+        code.AppendLine("int capacity = 64;");
+        code.AppendLine("while (capacity < checked(count * 2))");
+        code.OpenBlock();
+        code.AppendLine("capacity = checked(capacity * 2);");
+        code.CloseBlock();
+        code.AppendLine("__SparseRebuildRemovedIndex(capacity);");
+        code.CloseBlock();
+        code.CloseBlock();
         EmitIndexedAdd(code, keyType);
     }
 
@@ -150,49 +145,48 @@ internal static class SparseDictionaryRemovalIndexEmitter
         var condition = keepReservedIndex
             ? "__removedLookup is not null || __removed!.Count >= 32"
             : "__removed!.Count >= 32";
-        code.AppendLineAt(4, "if (" + condition + ")");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "__SparseAddIndexedRemoval(key);");
-        code.AppendLineAt(5, "return;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("if (" + condition + ")");
+        code.OpenBlock();
+        code.AppendLine("__SparseAddIndexedRemoval(key);");
+        code.AppendLine("return;");
+        code.CloseBlock();
+        code.AppendLine(
             "foreach (var existing in __removed!) if ("
                 + comparer
                 + ".Equals(existing, key)) return;"
         );
-        code.AppendLineAt(4, "__removed.Add(key);");
+        code.AppendLine("__removed.Add(key);");
         if (!keepReservedIndex)
         {
-            code.AppendLineAt(4, "__removedLookup = null;");
+            code.AppendLine("__removedLookup = null;");
         }
     }
 
     private static void EmitIndexedAdd(SharedIndentedBuilder code, string keyType)
     {
-        code.AppendLineAt(3, "private void __SparseAddIndexedRemoval(" + keyType + " key)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "var slots = __removedLookup;");
-        code.AppendLineAt(4, "if (slots is null)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "int capacity = 64;");
-        code.AppendLineAt(5, "while (capacity <= checked(__removed!.Count * 2))");
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "capacity = checked(capacity * 2);");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "__SparseRebuildRemovedIndex(capacity);");
-        code.AppendLineAt(5, "slots = __removedLookup!;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "int __slot = __SparseRemovedSlot(key, slots);");
-        code.AppendLineAt(4, "if (slots[__slot] != 0) return;");
-        code.AppendLineAt(4, "if (__removed!.Count >= slots.Length / 2)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "__SparseRebuildRemovedIndex(checked(slots.Length * 2));");
-        code.AppendLineAt(5, "slots = __removedLookup!;");
-        code.AppendLineAt(5, "__slot = __SparseRemovedSlot(key, slots);");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "__removed!.Add(key);");
-        code.AppendLineAt(4, "slots[__slot] = __removed.Count;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("private void __SparseAddIndexedRemoval(" + keyType + " key)");
+        code.OpenBlock();
+        code.AppendLine("var slots = __removedLookup;");
+        code.AppendLine("if (slots is null)");
+        code.OpenBlock();
+        code.AppendLine("int capacity = 64;");
+        code.AppendLine("while (capacity <= checked(__removed!.Count * 2))");
+        code.OpenBlock();
+        code.AppendLine("capacity = checked(capacity * 2);");
+        code.CloseBlock();
+        code.AppendLine("__SparseRebuildRemovedIndex(capacity);");
+        code.AppendLine("slots = __removedLookup!;");
+        code.CloseBlock();
+        code.AppendLine("int __slot = __SparseRemovedSlot(key, slots);");
+        code.AppendLine("if (slots[__slot] != 0) return;");
+        code.AppendLine("if (__removed!.Count >= slots.Length / 2)");
+        code.OpenBlock();
+        code.AppendLine("__SparseRebuildRemovedIndex(checked(slots.Length * 2));");
+        code.AppendLine("slots = __removedLookup!;");
+        code.AppendLine("__slot = __SparseRemovedSlot(key, slots);");
+        code.CloseBlock();
+        code.AppendLine("__removed!.Add(key);");
+        code.AppendLine("slots[__slot] = __removed.Count;");
+        code.CloseBlock();
     }
 }

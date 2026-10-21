@@ -111,14 +111,10 @@ internal static class SparseFragmentPatchAlgebraEmitter
     {
         if (target is not null)
         {
-            code.AppendLineAt(
-                2,
-                "/// <summary>Composes this patch with a following patch.</summary>"
-            );
-            code.AppendLineAt(2, "/// <param name=\"next\">Patch applied after.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed patch.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Composes this patch with a following patch.</summary>");
+            code.AppendLine("/// <param name=\"next\">Patch applied after.</param>");
+            code.AppendLine("/// <returns>The composed patch.</returns>");
+            code.AppendLine(
                 "public Patch "
                     + prefix
                     + "Compose(Patch next) => "
@@ -127,12 +123,11 @@ internal static class SparseFragmentPatchAlgebraEmitter
                     + prefix
                     + "Compose(this, next);"
             );
-            code.AppendLineAt(2, "/// <summary>Composes two patches.</summary>");
-            code.AppendLineAt(2, "/// <param name=\"first\">Patch applied first.</param>");
-            code.AppendLineAt(2, "/// <param name=\"second\">Patch applied after.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed patch.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Composes two patches.</summary>");
+            code.AppendLine("/// <param name=\"first\">Patch applied first.</param>");
+            code.AppendLine("/// <param name=\"second\">Patch applied after.</param>");
+            code.AppendLine("/// <returns>The composed patch.</returns>");
+            code.AppendLine(
                 "public static Patch "
                     + prefix
                     + "Compose(Patch first, Patch second) => "
@@ -146,21 +141,17 @@ internal static class SparseFragmentPatchAlgebraEmitter
         }
 
         AppendComposeBody(code, members, dialect, prefix, kind, string.Empty);
-        code.AppendLineAt(2, "/// <summary>Composes two patches.</summary>");
-        code.AppendLineAt(2, "/// <param name=\"first\">Patch applied first.</param>");
-        code.AppendLineAt(2, "/// <param name=\"second\">Patch applied after.</param>");
-        code.AppendLineAt(2, "/// <returns>The composed patch.</returns>");
-        code.AppendLineAt(
-            2,
-            "public static Patch " + prefix + "Compose(Patch first, Patch second)"
-        );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Composes two patches.</summary>");
+        code.AppendLine("/// <param name=\"first\">Patch applied first.</param>");
+        code.AppendLine("/// <param name=\"second\">Patch applied after.</param>");
+        code.AppendLine("/// <returns>The composed patch.</returns>");
+        code.AppendLine("public static Patch " + prefix + "Compose(Patch first, Patch second)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (first is null) throw new global::System.ArgumentNullException(nameof(first));"
         );
-        code.AppendLineAt(3, "return first." + prefix + "Compose(second);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return first." + prefix + "Compose(second);");
+        code.CloseBlock();
     }
 
     private static void AppendComposeBody(
@@ -177,37 +168,33 @@ internal static class SparseFragmentPatchAlgebraEmitter
             receiver.Length == 0
                 ? "public Patch " + prefix + "Compose(Patch next)"
                 : "internal static Patch " + prefix + "Compose(Patch self, Patch next)";
-        code.AppendLineAt(2, "/// <summary>Composes this patch with a following patch.</summary>");
+        code.AppendLine("/// <summary>Composes this patch with a following patch.</summary>");
         if (receiver.Length == 0)
         {
-            code.AppendLineAt(2, "/// <param name=\"next\">Patch applied after.</param>");
-            code.AppendLineAt(2, "/// <returns>The composed patch.</returns>");
+            code.AppendLine("/// <param name=\"next\">Patch applied after.</param>");
+            code.AppendLine("/// <returns>The composed patch.</returns>");
         }
-        code.AppendLineAt(2, declaration);
-        code.AppendLineAt(2, "{");
+        code.AppendLine(declaration);
+        code.OpenBlock();
         if (receiver.Length != 0)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (self is null) throw new global::System.ArgumentNullException(nameof(self));"
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
         );
-        code.AppendLineAt(3, "var result = new Patch();");
-        code.AppendLineAt(3, "if (next." + dialect.WholeFieldName + ".Kind != " + kind + ".Keep)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var result = new Patch();");
+        code.AppendLine("if (next." + dialect.WholeFieldName + ".Kind != " + kind + ".Keep)");
+        code.OpenBlock();
+        code.AppendLine(
             "result." + dialect.WholeFieldName + " = next." + dialect.WholeFieldName + ";"
         );
         foreach (var member in members)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "result."
                     + dialect.MemberField(member)
                     + " = next."
@@ -216,10 +203,9 @@ internal static class SparseFragmentPatchAlgebraEmitter
             );
         }
 
-        code.AppendLineAt(4, "return result;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("return result;");
+        code.CloseBlock();
+        code.AppendLine(
             "result." + dialect.WholeFieldName + " = " + owner + "." + dialect.WholeFieldName + ";"
         );
         foreach (var member in members)
@@ -227,8 +213,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
             var field = dialect.MemberField(member);
             if (member.ChildModel is null && !SparseFragmentPatchEmitter.IsCollectionPatch(member))
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "result."
                         + field
                         + " = next."
@@ -246,8 +231,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
             }
             else if (SparseFragmentPatchEmitter.IsCollectionPatch(member))
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "result."
                         + field
                         + " = next."
@@ -273,8 +257,7 @@ internal static class SparseFragmentPatchAlgebraEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "result."
                         + field
                         + " = next."
@@ -302,8 +285,8 @@ internal static class SparseFragmentPatchAlgebraEmitter
             }
         }
 
-        code.AppendLineAt(3, "return result;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return result;");
+        code.CloseBlock();
     }
 
     private static void AppendInvert(
@@ -315,11 +298,10 @@ internal static class SparseFragmentPatchAlgebraEmitter
     {
         if (target is not null)
         {
-            code.AppendLineAt(2, "/// <summary>Inverts this patch.</summary>");
-            code.AppendLineAt(2, "/// <param name=\"baseline\">State applied to.</param>");
-            code.AppendLineAt(2, "/// <returns>A patch undoing this patch.</returns>");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Inverts this patch.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">State applied to.</param>");
+            code.AppendLine("/// <returns>A patch undoing this patch.</returns>");
+            code.AppendLine(
                 "public Patch "
                     + prefix
                     + "Invert("
@@ -331,35 +313,30 @@ internal static class SparseFragmentPatchAlgebraEmitter
                     + "Invert(this, baseline);"
             );
             var ops = target.PatchOperations;
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "/// <summary>Inverts a patch relative to the sparse state it was applied to.</summary>"
             );
-            ops.AppendLineAt(
-                2,
+            ops.AppendLine(
                 "internal static Patch "
                     + prefix
                     + "Invert(Patch self, "
                     + optionalFragment
                     + " baseline)"
             );
-            ops.AppendLineAt(2, "{");
-            ops.AppendLineAt(3, "var applied = Apply(self, baseline);");
-            ops.AppendLineAt(3, "return " + prefix + "Between(applied, baseline);");
-            ops.AppendLineAt(2, "}");
+            ops.OpenBlock();
+            ops.AppendLine("var applied = Apply(self, baseline);");
+            ops.AppendLine("return " + prefix + "Between(applied, baseline);");
+            ops.CloseBlock();
             return;
         }
 
-        code.AppendLineAt(2, "/// <summary>Inverts this patch.</summary>");
-        code.AppendLineAt(2, "/// <param name=\"baseline\">State applied to.</param>");
-        code.AppendLineAt(2, "/// <returns>A patch undoing this patch.</returns>");
-        code.AppendLineAt(
-            2,
-            "public Patch " + prefix + "Invert(" + optionalFragment + " baseline)"
-        );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "var applied = this.Apply(baseline);");
-        code.AppendLineAt(3, "return " + prefix + "Between(applied, baseline);");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("/// <summary>Inverts this patch.</summary>");
+        code.AppendLine("/// <param name=\"baseline\">State applied to.</param>");
+        code.AppendLine("/// <returns>A patch undoing this patch.</returns>");
+        code.AppendLine("public Patch " + prefix + "Invert(" + optionalFragment + " baseline)");
+        code.OpenBlock();
+        code.AppendLine("var applied = this.Apply(baseline);");
+        code.AppendLine("return " + prefix + "Between(applied, baseline);");
+        code.CloseBlock();
     }
 }

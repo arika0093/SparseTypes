@@ -19,29 +19,23 @@ internal static class SparseChangeSetInPlaceEmitter
     {
         if (target is not null)
         {
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <summary>Applies this change to an existing model after checking its before-state.</summary>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <param name=\"current\">The existing model instance to update.</param>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <param name=\"conflicts\">Structured conflicts when rebasing fails or an immutable member cannot be written.</param>"
             );
-            shell.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+            shell.AppendLine(
                 "/// <returns><see langword=\"true\"/> when the update was applied.</returns>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "public bool TryApplyInPlace("
                     + modelType
                     + " current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out global::System.Collections.Generic.IReadOnlyList<"
@@ -52,17 +46,14 @@ internal static class SparseChangeSetInPlaceEmitter
                     + target.ChangeSetOperationsType
                     + ".TryApplyInPlace(this, current, out conflicts, options);"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <summary>Applies this change to an existing model or throws when its before-state conflicts or it includes an immutable member.</summary>"
             );
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine(
                 "/// <param name=\"current\">The existing model instance to update.</param>"
             );
-            shell.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-            shell.AppendLineAt(
-                2,
+            shell.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+            shell.AppendLine(
                 "public void ApplyInPlace("
                     + modelType
                     + " current, "
@@ -72,34 +63,28 @@ internal static class SparseChangeSetInPlaceEmitter
                     + ".ApplyInPlace(this, current, options);"
             );
         }
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Applies this change to an existing model after checking its before-state.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>"
         );
         if (target is not null)
         {
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to apply.</param>");
+            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"current\">The existing model instance to update.</param>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"conflicts\">Structured conflicts when rebasing fails or an immutable member cannot be written.</param>"
         );
-        code.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+        code.AppendLine(
             "/// <returns><see langword=\"true\"/> when the update was applied.</returns>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             (
                 target is null
                     ? "public bool TryApplyInPlace("
@@ -112,52 +97,46 @@ internal static class SparseChangeSetInPlaceEmitter
                 + optionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (current is null) throw new global::System.ArgumentNullException(nameof(current));"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __state = " + runtime + "Optional<Fragment?>.Present(Fragment.From(current));"
         );
-        code.AppendLineAt(3, "ChangeSet __toApply;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("ChangeSet __toApply;");
+        code.AppendLine(
             target is null
                 ? "if (options is null && __SparseBeforeMatches(__state))"
                 : "if (options is null && self.__SparseBeforeMatches(__state))"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, target is null ? "__toApply = this;" : "__toApply = self;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "else");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(target is null ? "__toApply = this;" : "__toApply = self;");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             target is null
                 ? "var __rebase = RebaseOnto(__state, options);"
                 : "var __rebase = RebaseOnto(self, __state, options);"
         );
-        code.AppendLineAt(4, "if (__rebase.HasConflicts)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(5, "conflicts = __rebase.Conflicts;");
-        code.AppendLineAt(5, "return false;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(4, "__toApply = __rebase.Rebased;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "var __patch = __toApply.ToPatch();");
-        code.AppendLineAt(3, "var __applied = __patch.Apply(__state);");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("if (__rebase.HasConflicts)");
+        code.OpenBlock();
+        code.AppendLine("conflicts = __rebase.Conflicts;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("__toApply = __rebase.Rebased;");
+        code.CloseBlock();
+        code.AppendLine("var __patch = __toApply.ToPatch();");
+        code.AppendLine("var __applied = __patch.Apply(__state);");
+        code.AppendLine(
             "if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException(\"The rebased change does not produce a non-null model root. Use the presence-aware Fragment/Optional API for root presence transitions.\");"
         );
-        code.AppendLineAt(3, "var __updatedModel = __applied.Value.ToModel();");
-        code.AppendLineAt(3, "var __sparse_inPlaceResult = __patch.ApplyInPlace(current);");
-        code.AppendLineAt(3, "if (!__sparse_inPlaceResult.Succeeded)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var __updatedModel = __applied.Value.ToModel();");
+        code.AppendLine("var __sparse_inPlaceResult = __patch.ApplyInPlace(current);");
+        code.AppendLine("if (!__sparse_inPlaceResult.Succeeded)");
+        code.OpenBlock();
+        code.AppendLine(
             "var __sparse_inPlaceConflicts = new global::System.Collections.Generic.List<"
                 + conflictType
                 + ">();"
@@ -170,15 +149,13 @@ internal static class SparseChangeSetInPlaceEmitter
         {
             var propertyName = SparseNaming.EscapeIdentifier(member.Property.Name);
             var property = "nameof(" + modelType + "." + propertyName + ")";
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (global::System.Linq.Enumerable.Contains(__sparse_inPlaceResult.UnsupportedMembers, "
                     + property
                     + "))"
             );
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.OpenBlock();
+            code.AppendLine(
                 "__sparse_inPlaceConflicts.Add(new "
                     + conflictType
                     + "(__SparseRootPath.Member("
@@ -201,33 +178,29 @@ internal static class SparseChangeSetInPlaceEmitter
                     + propertyName
                     + "), \"The member cannot be changed in place because it is immutable.\"));"
             );
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "conflicts = global::System.Array.AsReadOnly(__sparse_inPlaceConflicts.ToArray());"
         );
-        code.AppendLineAt(4, "return false;");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "conflicts = null;");
-        code.AppendLineAt(3, "return true;");
-        code.AppendLineAt(2, "}");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("conflicts = null;");
+        code.AppendLine("return true;");
+        code.CloseBlock();
+        code.AppendLine(
             "/// <summary>Applies this change to an existing model or throws when its before-state conflicts or it includes an immutable member.</summary>"
         );
         if (target is not null)
         {
-            code.AppendLineAt(2, "/// <param name=\"self\">The change set to apply.</param>");
+            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
         }
 
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <param name=\"current\">The existing model instance to update.</param>"
         );
-        code.AppendLineAt(2, "/// <param name=\"options\">Optional rebase behavior.</param>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+        code.AppendLine(
             (
                 target is null
                     ? "public void ApplyInPlace("
@@ -238,13 +211,12 @@ internal static class SparseChangeSetInPlaceEmitter
                 + optionsType
                 + "? options = null)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             target is null
                 ? "if (!TryApplyInPlace(current, out var conflicts, options)) throw new global::System.InvalidOperationException(\"The change set cannot be applied in place because it conflicts or includes immutable members.\");"
                 : "if (!TryApplyInPlace(self, current, out var conflicts, options)) throw new global::System.InvalidOperationException(\"The change set cannot be applied in place because it conflicts or includes immutable members.\");"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 }

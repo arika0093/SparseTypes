@@ -7,7 +7,7 @@ public sealed class SharedIndentedBuilderRangeTests
     [Test]
     public void RangeAddsIndentationAndKeepsTheFollowingAppendOnItsCurrentLine()
     {
-        var code = new SharedIndentedBuilder(CancellationToken.None) { IndentOffset = 1 };
+        var code = new SharedIndentedBuilder(CancellationToken.None) { IndentLevel = 1 };
         code.Append("xxa\nbYY", 2, 3).AppendLine("c");
         code.ToString().ShouldBe("    a\n    bc\n");
     }
@@ -42,5 +42,31 @@ public sealed class SharedIndentedBuilderRangeTests
         var code = new SharedIndentedBuilder(cancellation.Token);
         cancellation.Cancel();
         Should.Throw<OperationCanceledException>(() => code.Append("abc", 1, 1));
+    }
+
+    [Test]
+    public void BlocksManageIndentationForNestedLines()
+    {
+        var code = new SharedIndentedBuilder(CancellationToken.None);
+
+        code.AppendLine("class C")
+            .OpenBlock()
+            .AppendLine("void Run()")
+            .OpenBlock()
+            .AppendLine("Work();")
+            .CloseBlock()
+            .CloseBlock();
+
+        code.ToString().ShouldBe("class C\n{\n    void Run()\n    {\n        Work();\n    }\n}\n");
+    }
+
+    [Test]
+    public void UnindentAtZeroIsRejected()
+    {
+        var code = new SharedIndentedBuilder(CancellationToken.None);
+
+        Should.Throw<InvalidOperationException>(() => code.Unindent());
+
+        code.IndentLevel.ShouldBe(0);
     }
 }

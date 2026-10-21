@@ -26,8 +26,7 @@ internal static class SparseFragmentMergeOriginEmitter
         for (var position = 0; position < members.Length; position++)
         {
             var member = members[position];
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_value_"
                     + member.Id
                     + " = "
@@ -36,8 +35,7 @@ internal static class SparseFragmentMergeOriginEmitter
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if ("
                 + receiver
                 + "Origin is null && higherPriority.Origin is null && selfFallback is null && higherFallback is null && "
@@ -46,25 +44,24 @@ internal static class SparseFragmentMergeOriginEmitter
                 + receiver
                 + "__SparseElementOrigins is null && higherPriority.__SparseElementOrigins is null)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return new Fragment");
-        code.AppendLineAt(4, "{");
+        code.OpenBlock();
+        code.AppendLine("return new Fragment");
+        code.OpenBlock();
         foreach (var member in members)
         {
-            code.AppendIndent(5)
+            code.AppendIndent()
                 .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                 .Append(" = __sparse_value_")
                 .Append(member.Id)
                 .AppendLine(",");
         }
 
-        code.AppendLineAt(4, "};");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("};");
+        code.CloseBlock();
         var elementPositions = new System.Collections.Generic.List<int>();
         for (var position = 0; position < members.Length; position++)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "string? __sparse_origin_"
                     + members[position].Id
                     + " = "
@@ -87,8 +84,7 @@ internal static class SparseFragmentMergeOriginEmitter
         foreach (var position in elementPositions)
         {
             var member = members[position];
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "string?[]? __sparse_elements_"
                     + member.Id
                     + " = "
@@ -105,23 +101,22 @@ internal static class SparseFragmentMergeOriginEmitter
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return new Fragment(higherPriority.Origin ?? higherFallback ?? "
                 + receiver
                 + "Origin ?? selfFallback)"
         );
-        code.AppendLineAt(3, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
-            code.AppendIndent(4)
+            code.AppendIndent()
                 .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                 .Append(" = __sparse_value_")
                 .Append(member.Id)
                 .AppendLine(",");
         }
 
-        code.AppendIndent(4).Append("__SparseMemberOrigins = new string?[] { ");
+        code.AppendIndent().Append("__SparseMemberOrigins = new string?[] { ");
         for (var position = 0; position < members.Length; position++)
         {
             if (position > 0)
@@ -135,11 +130,11 @@ internal static class SparseFragmentMergeOriginEmitter
         code.AppendLine(" },");
         if (elementPositions.Count == 0)
         {
-            code.AppendLineAt(3, "};");
+            code.AppendLine("};");
             return;
         }
 
-        code.AppendIndent(4).Append("__SparseElementOrigins = (");
+        code.AppendIndent().Append("__SparseElementOrigins = (");
         for (var index = 0; index < elementPositions.Count; index++)
         {
             if (index > 0)
@@ -168,7 +163,7 @@ internal static class SparseFragmentMergeOriginEmitter
         }
 
         code.AppendLine(" } : null,");
-        code.AppendLineAt(3, "};");
+        code.AppendLine("};");
     }
 
     /// <summary>Appends the origin-propagating apply tail after the applied values are computed.</summary>
@@ -186,8 +181,7 @@ internal static class SparseFragmentMergeOriginEmitter
         for (var position = 0; position < members.Length; position++)
         {
             var member = members[position];
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "var __sparse_value_"
                     + member.Id
                     + " = "
@@ -196,8 +190,7 @@ internal static class SparseFragmentMergeOriginEmitter
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if ("
                 + receiver
                 + "Origin is null && changes.Origin is null && selfFallback is null && changesFallback is null && "
@@ -206,25 +199,24 @@ internal static class SparseFragmentMergeOriginEmitter
                 + receiver
                 + "__SparseElementOrigins is null && changes.__SparseElementOrigins is null)"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "return new Fragment");
-        code.AppendLineAt(4, "{");
+        code.OpenBlock();
+        code.AppendLine("return new Fragment");
+        code.OpenBlock();
         foreach (var member in members)
         {
-            code.AppendIndent(5)
+            code.AppendIndent()
                 .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                 .Append(" = __sparse_value_")
                 .Append(member.Id)
                 .AppendLine(",");
         }
 
-        code.AppendLineAt(4, "};");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("};");
+        code.CloseBlock();
         var elementPositions = new System.Collections.Generic.List<int>();
         for (var position = 0; position < members.Length; position++)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "string? __sparse_origin_"
                     + members[position].Id
                     + " = "
@@ -241,8 +233,7 @@ internal static class SparseFragmentMergeOriginEmitter
             if (members[position].ChildModel is null)
             {
                 elementPositions.Add(position);
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "string?[]? __sparse_elements_"
                         + members[position].Id
                         + " = "
@@ -257,23 +248,22 @@ internal static class SparseFragmentMergeOriginEmitter
             }
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return new Fragment(changes.Origin ?? changesFallback ?? "
                 + receiver
                 + "Origin ?? selfFallback)"
         );
-        code.AppendLineAt(3, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
-            code.AppendIndent(4)
+            code.AppendIndent()
                 .Append(SparseNaming.EscapeIdentifier(member.Property.Name))
                 .Append(" = __sparse_value_")
                 .Append(member.Id)
                 .AppendLine(",");
         }
 
-        code.AppendIndent(4).Append("__SparseMemberOrigins = new string?[] { ");
+        code.AppendIndent().Append("__SparseMemberOrigins = new string?[] { ");
         for (var position = 0; position < members.Length; position++)
         {
             if (position > 0)
@@ -287,12 +277,12 @@ internal static class SparseFragmentMergeOriginEmitter
         code.AppendLine(" },");
         if (elementPositions.Count == 0)
         {
-            code.AppendLineAt(4, "__SparseElementOrigins = null,");
-            code.AppendLineAt(3, "};");
+            code.AppendLine("__SparseElementOrigins = null,");
+            code.AppendLine("};");
             return;
         }
 
-        code.AppendIndent(4).Append("__SparseElementOrigins = (");
+        code.AppendIndent().Append("__SparseElementOrigins = (");
         for (var index = 0; index < elementPositions.Count; index++)
         {
             if (index > 0)
@@ -321,6 +311,6 @@ internal static class SparseFragmentMergeOriginEmitter
         }
 
         code.AppendLine(" } : null,");
-        code.AppendLineAt(3, "};");
+        code.AppendLine("};");
     }
 }

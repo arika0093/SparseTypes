@@ -135,14 +135,14 @@ public sealed class SharedSourceBufferPoolTests
         var first = new SharedIndentedBuilder(CancellationToken.None);
         first.Append("first");
         first.Dispose();
-        using var second = new SharedIndentedBuilder(CancellationToken.None) { IndentOffset = 1 };
+        using var second = new SharedIndentedBuilder(CancellationToken.None) { IndentLevel = 1 };
         second.Append("second");
         first.Dispose();
         using var nested = new SharedIndentedBuilder(CancellationToken.None);
         nested.Append("nested");
         Should.Throw<ObjectDisposedException>(() => first.Append("stale"));
         Should.Throw<ObjectDisposedException>(() => first.Append('x'));
-        Should.Throw<ObjectDisposedException>(() => first.AppendIndent(0));
+        Should.Throw<ObjectDisposedException>(() => first.AppendIndent());
         Should.Throw<ObjectDisposedException>(() => first.ToString());
         second.ToString().ShouldBe("    second");
         nested.ToString().ShouldBe("nested");
@@ -174,7 +174,7 @@ public sealed class SharedSourceBufferPoolTests
     public void CancellationReturnsTheBufferAndDoesNotLeakLineState()
     {
         using var cancellation = new CancellationTokenSource();
-        using (var first = new SharedIndentedBuilder(cancellation.Token) { IndentOffset = 2 })
+        using (var first = new SharedIndentedBuilder(cancellation.Token) { IndentLevel = 2 })
         {
             first.Append("partial");
             cancellation.Cancel();

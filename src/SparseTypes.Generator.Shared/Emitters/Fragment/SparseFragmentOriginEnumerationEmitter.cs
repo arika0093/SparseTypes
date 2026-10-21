@@ -13,18 +13,17 @@ internal static class SparseFragmentOriginEnumerationEmitter
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
         var prefix = "__SparseOriginMemberPath" + member.Id;
         var attribution = SparseFragmentOriginEmitter.MemberAttribution(self + ".", position, null);
-        code.AppendLineAt(3, "if (" + self + "." + name + ".IsPresent)");
-        code.AppendLineAt(3, "{");
+        code.AppendLine("if (" + self + "." + name + ".IsPresent)");
+        code.OpenBlock();
         if (SparseFragmentOriginEmitter.IsFragmentDeep(member))
         {
-            code.AppendLineAt(4, "if ((object?)" + self + "." + name + ".Value is null)");
-            code.AppendLineAt(4, "{");
-            AppendYield(code, 5, originEntryType, prefix, attribution);
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if ((object?)" + self + "." + name + ".Value is null)");
+            code.OpenBlock();
+            AppendYield(code, originEntryType, prefix, attribution);
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "foreach (var __sparse_child_"
                     + member.Id
                     + " in "
@@ -33,9 +32,8 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + name
                     + ".Value!.EnumerateOrigins())"
             );
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(
-                6,
+            code.OpenBlock();
+            code.AppendLine(
                 "yield return new "
                     + originEntryType
                     + " { Path = "
@@ -46,19 +44,18 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + member.Id
                     + ".Origin };"
             );
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
+            code.CloseBlock();
         }
         else if (SparseFragmentOriginEmitter.HasElementOrigins(member))
         {
-            code.AppendLineAt(4, "if ((object?)" + self + "." + name + ".Value is null)");
-            code.AppendLineAt(4, "{");
-            AppendYield(code, 5, originEntryType, prefix, attribution);
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if ((object?)" + self + "." + name + ".Value is null)");
+            code.OpenBlock();
+            AppendYield(code, originEntryType, prefix, attribution);
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __sparse_values_"
                     + member.Id
                     + " = global::System.Linq.Enumerable.ToArray("
@@ -67,8 +64,7 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + name
                     + ".Value!);"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "var __sparse_elements_"
                     + member.Id
                     + " = "
@@ -79,15 +75,14 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + position
                     + "];"
             );
-            code.AppendLineAt(5, "if (__sparse_elements_" + member.Id + " is null)");
-            code.AppendLineAt(5, "{");
-            AppendYield(code, 6, originEntryType, prefix, attribution);
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(5, "else");
-            code.AppendLineAt(5, "{");
-            code.AppendLineAt(6, "var __sparse_element_prefix_" + member.Id + " = " + prefix + ";");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (__sparse_elements_" + member.Id + " is null)");
+            code.OpenBlock();
+            AppendYield(code, originEntryType, prefix, attribution);
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine("var __sparse_element_prefix_" + member.Id + " = " + prefix + ";");
+            code.AppendLine(
                 "for (var __sparse_position_"
                     + member.Id
                     + " = 0; __sparse_position_"
@@ -98,9 +93,8 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + member.Id
                     + "++)"
             );
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(
-                7,
+            code.OpenBlock();
+            code.AppendLine(
                 "var __sparse_element_origin_"
                     + member.Id
                     + " = (__sparse_position_"
@@ -117,8 +111,7 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + attribution
                     + ");"
             );
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "yield return new "
                     + originEntryType
                     + " { Path = __sparse_element_prefix_"
@@ -129,27 +122,25 @@ internal static class SparseFragmentOriginEnumerationEmitter
                     + member.Id
                     + " };"
             );
-            code.AppendLineAt(6, "}");
-            code.AppendLineAt(5, "}");
-            code.AppendLineAt(4, "}");
+            code.CloseBlock();
+            code.CloseBlock();
+            code.CloseBlock();
         }
         else
         {
-            AppendYield(code, 4, originEntryType, prefix, attribution);
+            AppendYield(code, originEntryType, prefix, attribution);
         }
 
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
     }
 
     private static void AppendYield(
         SharedIndentedBuilder code,
-        int indent,
         string originEntryType,
         string path,
         string attribution
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "yield return new "
                 + originEntryType
                 + " { Path = "

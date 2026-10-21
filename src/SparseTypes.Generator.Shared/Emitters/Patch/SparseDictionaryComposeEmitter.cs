@@ -19,12 +19,10 @@ internal static class SparseDictionaryComposeEmitter
     {
         if (split is not null)
         {
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "/// <summary>Composes this dictionary patch with a following patch.</summary>"
             );
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine(
                 "public "
                     + patchName
                     + " Compose("
@@ -33,9 +31,8 @@ internal static class SparseDictionaryComposeEmitter
                     + split.OperationsType
                     + ".Compose(this, next);"
             );
-            split.Shell.AppendLineAt(3, "/// <summary>Composes two dictionary patches.</summary>");
-            split.Shell.AppendLineAt(
-                3,
+            split.Shell.AppendLine("/// <summary>Composes two dictionary patches.</summary>");
+            split.Shell.AppendLine(
                 "public static "
                     + patchName
                     + " Compose("
@@ -46,12 +43,10 @@ internal static class SparseDictionaryComposeEmitter
                     + split.OperationsType
                     + ".Compose(first, second);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Composes a dictionary patch with a following patch.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "internal static "
                     + patchName
                     + " Compose("
@@ -60,47 +55,42 @@ internal static class SparseDictionaryComposeEmitter
                     + patchName
                     + " next)"
             );
-            code.AppendLineAt(3, "{");
+            code.OpenBlock();
             SparseDictionaryPatchEmitter.AppendDictionaryFieldAliases(code);
         }
         else
         {
             // Compose.
-            code.AppendLineAt(3, "public " + patchName + " Compose(" + patchName + " next)");
-            code.AppendLineAt(3, "{");
+            code.AppendLine("public " + patchName + " Compose(" + patchName + " next)");
+            code.OpenBlock();
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (next is null) throw new global::System.ArgumentNullException(nameof(next));"
         );
-        code.AppendLineAt(4, "var result = new " + patchName + "();");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var result = new " + patchName + "();");
+        code.AppendLine(
             "if (next.__whole.Kind != "
                 + kind
                 + ".Keep) { result.__whole = next.__whole; return result; }"
         );
-        code.AppendLineAt(4, "if (__whole.Kind != " + kind + ".Keep)");
-        code.AppendLineAt(4, "{");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (__whole.Kind != " + kind + ".Keep)");
+        code.OpenBlock();
+        code.AppendLine(
             "if (__whole.Kind == "
                 + kind
                 + ".Remove) throw new global::System.InvalidOperationException(\"Cannot compose granular operations after a whole Remove.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "var applied = next.Apply("
                 + runtime
                 + "Optional<"
                 + dictType
                 + ">.Present(__whole.Value));"
         );
-        code.AppendLineAt(4, "result.__whole = " + operation + ".Set(applied.Value!);");
-        code.AppendLineAt(4, "return result;");
-        code.AppendLineAt(4, "}");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("result.__whole = " + operation + ".Set(applied.Value!);");
+        code.AppendLine("return result;");
+        code.CloseBlock();
+        code.AppendLine(
             "if (" + (split is null ? "this" : "self") + ".IsEmpty && next.IsEmpty) return result;"
         );
         SparseDictionaryComposeFastPathEmitter.AppendSetThenRemoveFastPath(code, keyType, comparer);
@@ -110,36 +100,31 @@ internal static class SparseDictionaryComposeEmitter
             valueType,
             comparer
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "global::System.Collections.Generic.HashSet<" + keyType + ">? removed = null;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__removed is not null && __removed.Count > 0) removed = new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">(__removed, "
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (next.__removed is not null && next.__removed.Count > 0) { removed ??= new global::System.Collections.Generic.HashSet<"
                 + keyType
                 + ">("
                 + comparer
                 + "); foreach (var k in next.__removed) removed.Add(k); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
                 + valueType
                 + ">? set = null;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (__set is not null && __set.Count > 0) set = new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -148,8 +133,7 @@ internal static class SparseDictionaryComposeEmitter
                 + comparer
                 + ");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (next.__set is not null && next.__set.Count > 0) { set ??= new global::System.Collections.Generic.Dictionary<"
                 + keyType
                 + ", "
@@ -159,8 +143,7 @@ internal static class SparseDictionaryComposeEmitter
                 + "); foreach (var kv in next.__set) { set[kv.Key] = kv.Value; removed?.Remove(kv.Key); } }"
         );
         // Drop keys added by this patch when the next patch removes them.
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (next.__removed is not null && set is not null) foreach (var k in next.__removed) set.Remove(k);"
         );
         if (hasPatch)
@@ -170,8 +153,7 @@ internal static class SparseDictionaryComposeEmitter
             // filtering: a nullable local with a guarded Contains check keeps
             // comparer-correct O(1) lookups without allocating for scalar-only
             // callers or when either side is empty.
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.HashSet<"
                     + keyType
                     + ">? __nextRemoved = (__edited is not null && __edited.Count > 0 && next.__removed is not null && next.__removed.Count > 0) ? new global::System.Collections.Generic.HashSet<"
@@ -180,16 +162,14 @@ internal static class SparseDictionaryComposeEmitter
                     + comparer
                     + ") : null;"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
                     + valuePatch
                     + ">? edited = null;"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__edited is not null) foreach (var kv in __edited) { if (kv.Value.__SparseIsEmpty()) continue; if (__nextRemoved is not null && __nextRemoved.Contains(kv.Key)) continue; edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -198,8 +178,7 @@ internal static class SparseDictionaryComposeEmitter
                     + comparer
                     + "); edited[kv.Key] = kv.Value; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (next.__edited is not null) foreach (var kv in next.__edited) { if (kv.Value.__SparseIsEmpty()) continue; if (set is not null && set.TryGetValue(kv.Key, out var setBase)) { var __folded = kv.Value.Apply("
                     + runtime
                     + "Optional<"
@@ -214,23 +193,20 @@ internal static class SparseDictionaryComposeEmitter
                     + comparer
                     + "))[kv.Key] = kv.Value; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (edited is not null && edited.Count > 0) result.__edited = edited;"
             );
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
                     + valueType
                     + ">? edited = null;"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (__edited is not null && __edited.Count > 0) edited = new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -239,8 +215,7 @@ internal static class SparseDictionaryComposeEmitter
                     + comparer
                     + ");"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (next.__edited is not null && next.__edited.Count > 0) { edited ??= new global::System.Collections.Generic.Dictionary<"
                     + keyType
                     + ", "
@@ -249,33 +224,28 @@ internal static class SparseDictionaryComposeEmitter
                     + comparer
                     + "); foreach (var kv in next.__edited) edited[kv.Key] = kv.Value; }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (removed is not null) foreach (var k in removed) { edited?.Remove(k); set?.Remove(k); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (set is not null && edited is not null) foreach (var k in set.Keys) edited.Remove(k);"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (edited is not null && edited.Count > 0) result.__edited = edited;"
             );
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (removed is not null && removed.Count > 0) result.__removed = new global::System.Collections.Generic.List<"
                 + keyType
                 + ">(removed);"
         );
-        code.AppendLineAt(4, "if (set is not null && set.Count > 0) result.__set = set;");
-        code.AppendLineAt(4, "return result;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine("if (set is not null && set.Count > 0) result.__set = set;");
+        code.AppendLine("return result;");
+        code.CloseBlock();
         if (split is null)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "public static "
                     + patchName
                     + " Compose("

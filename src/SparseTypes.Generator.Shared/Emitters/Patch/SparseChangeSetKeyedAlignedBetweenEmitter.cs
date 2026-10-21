@@ -19,8 +19,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         var indexed = "global::System.Collections.Generic.IReadOnlyList<" + element + ">";
         var keyOf = "__SparseKeyOf_ChangeSet_" + member.Id;
         var name = "__tryAligned" + member.Id;
-        code.AppendLineAt(
-            5,
+        code.AppendLine(
             "static bool "
                 + name
                 + "("
@@ -33,49 +32,45 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                 + order
                 + "? order)"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "items = null; order = null;");
-        code.AppendLineAt(
-            6,
+        code.OpenBlock();
+        code.AppendLine("items = null; order = null;");
+        code.AppendLine(
             "if (sourceBefore is not "
                 + indexed
                 + " b || sourceAfter is not "
                 + indexed
                 + " a) return false;"
         );
-        code.AppendLineAt(6, "var count = b.Count;");
-        code.AppendLineAt(6, "if (count != a.Count) return false;");
-        code.AppendLineAt(6, "if (count == 0) return true;");
-        code.AppendLineAt(
-            6,
+        code.AppendLine("var count = b.Count;");
+        code.AppendLine("if (count != a.Count) return false;");
+        code.AppendLine("if (count == 0) return true;");
+        code.AppendLine(
             "var comparer = global::System.Collections.Generic.EqualityComparer<"
                 + key
                 + ">.Default;"
         );
         // Reject nonaligned inputs before allocating or comparing element
         // values.
-        code.AppendLineAt(6, "for (var i = 0; i < count; i++)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "if ((object?)b[i] is null || (object?)a[i] is null) return false;");
-        code.AppendLineAt(7, "var k = " + keyOf + "(b[i]);");
+        code.AppendLine("for (var i = 0; i < count; i++)");
+        code.OpenBlock();
+        code.AppendLine("if ((object?)b[i] is null || (object?)a[i] is null) return false;");
+        code.AppendLine("var k = " + keyOf + "(b[i]);");
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
-            code.AppendLineAt(
-                7,
+            code.AppendLine(
                 "if ("
                     + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k")
                     + ") return false;"
             );
         }
 
-        code.AppendLineAt(7, "if (!comparer.Equals(k, " + keyOf + "(a[i]))) return false;");
-        code.AppendLineAt(6, "}");
+        code.AppendLine("if (!comparer.Equals(k, " + keyOf + "(a[i]))) return false;");
+        code.CloseBlock();
         if (dialect.KeyValidationScopeFactory is not null)
         {
-            code.AppendLineAt(6, "static void ValidateKeys(" + indexed + " b, int count)");
-            code.AppendLineAt(6, "{");
-            code.AppendLineAt(
-                7,
+            code.AppendLine("static void ValidateKeys(" + indexed + " b, int count)");
+            code.OpenBlock();
+            code.AppendLine(
                 "using (var keyScope = "
                     + dialect.KeyValidationScopeFactory
                     + "<"
@@ -88,45 +83,43 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                     + key
                     + ">.Default)))"
             );
-            code.AppendLineAt(7, "{");
-            code.AppendLineAt(8, "var seen = keyScope.Keys;");
-            AppendValidation(code, keyOf, true, 8);
-            code.AppendLineAt(7, "}");
-            code.AppendLineAt(6, "}");
-            code.AppendLineAt(6, "ValidateKeys(b, count);");
+            code.OpenBlock();
+            code.AppendLine("var seen = keyScope.Keys;");
+            AppendValidation(code, keyOf, true);
+            code.CloseBlock();
+            code.CloseBlock();
+            code.AppendLine("ValidateKeys(b, count);");
         }
         else
         {
             var seenType = dialect.HashSetSupportsCapacity
                 ? "global::System.Collections.Generic.HashSet<" + key + ">"
                 : "global::System.Collections.Generic.Dictionary<" + key + ", byte>";
-            code.AppendLineAt(6, "var seen = new " + seenType + "(count, comparer);");
-            AppendValidation(code, keyOf, dialect.HashSetSupportsCapacity, 6);
+            code.AppendLine("var seen = new " + seenType + "(count, comparer);");
+            AppendValidation(code, keyOf, dialect.HashSetSupportsCapacity);
         }
-        code.AppendLineAt(6, "for (var i = 0; i < count; i++)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "var edit = " + ElementChangeSetOf(member) + ".Between(b[i], a[i]);");
-        code.AppendLineAt(7, "if (edit.IsEmpty) continue;");
-        code.AppendLineAt(7, "items ??= new " + items + "();");
-        code.AppendLineAt(
-            7,
+        code.AppendLine("for (var i = 0; i < count; i++)");
+        code.OpenBlock();
+        code.AppendLine("var edit = " + ElementChangeSetOf(member) + ".Between(b[i], a[i]);");
+        code.AppendLine("if (edit.IsEmpty) continue;");
+        code.AppendLine("items ??= new " + items + "();");
+        code.AppendLine(
             "items.Add(new "
                 + transition
                 + ".Item("
                 + keyOf
                 + "(b[i]), null, default, default, i, i, false, false, true, false, edit, false));"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         // Unchanged collections need validation, but no retained order storage.
-        code.AppendLineAt(6, "if (items is not null)");
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "order = new " + order + "(count);");
-        code.AppendLineAt(7, "for (var i = 0; i < count; i++) order.Add(" + keyOf + "(b[i]));");
-        code.AppendLineAt(6, "}");
-        code.AppendLineAt(6, "return true;");
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(
-            5,
+        code.AppendLine("if (items is not null)");
+        code.OpenBlock();
+        code.AppendLine("order = new " + order + "(count);");
+        code.AppendLine("for (var i = 0; i < count; i++) order.Add(" + keyOf + "(b[i]));");
+        code.CloseBlock();
+        code.AppendLine("return true;");
+        code.CloseBlock();
+        code.AppendLine(
             "if ("
                 + name
                 + "(__before"
@@ -139,10 +132,9 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                 + member.Id
                 + "))"
         );
-        code.AppendLineAt(5, "{");
-        code.AppendLineAt(6, "__h" + member.Id + " = __items" + member.Id + " is not null;");
-        code.AppendLineAt(
-            6,
+        code.OpenBlock();
+        code.AppendLine("__h" + member.Id + " = __items" + member.Id + " is not null;");
+        code.AppendLine(
             "__bO"
                 + member.Id
                 + " = __alignedOrder"
@@ -153,36 +145,29 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                 + member.Id
                 + ";"
         );
-        code.AppendLineAt(5, "}");
-        code.AppendLineAt(5, "else");
-        code.AppendLineAt(5, "{");
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
     }
 
-    private static void AppendValidation(
-        SharedIndentedBuilder code,
-        string keyOf,
-        bool useSet,
-        int indent
-    )
+    private static void AppendValidation(SharedIndentedBuilder code, string keyOf, bool useSet)
     {
-        code.AppendLineAt(indent, "for (var i = 0; i < count; i++)");
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "var k = " + keyOf + "(b[i]);");
+        code.AppendLine("for (var i = 0; i < count; i++)");
+        code.OpenBlock();
+        code.AppendLine("var k = " + keyOf + "(b[i]);");
         if (useSet)
         {
-            code.AppendLineAt(
-                indent + 1,
+            code.AppendLine(
                 "if ((object?)k is null) throw new global::System.ArgumentNullException(\"key\");"
             );
         }
 
-        code.AppendLineAt(
-            indent + 1,
+        code.AppendLine(
             useSet
                 ? "if (!seen.Add(k)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\");"
                 : SparseKeyedCollectionEmitter.AddUniqueEntry("seen", "k", "0")
         );
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
     }
 
     internal static void AppendGeneralStart(
@@ -224,8 +209,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         }
         // Give the general path its own JIT profile instead of leaving it cold
         // behind alignment.
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "static (bool Has, "
                 + items
                 + "? Items, "
@@ -238,29 +222,27 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                 + parameters
                 + ")"
         );
-        code.AppendLineAt(6, "{");
-        code.AppendLineAt(7, "bool __h" + id + " = false;");
-        code.AppendLineAt(7, items + "? __items" + id + " = null;");
-        code.AppendLineAt(7, order + "? __bO" + id + " = null;");
-        code.AppendLineAt(7, order + "? __aO" + id + " = null;");
+        code.OpenBlock();
+        code.AppendLine("bool __h" + id + " = false;");
+        code.AppendLine(items + "? __items" + id + " = null;");
+        code.AppendLine(order + "? __bO" + id + " = null;");
+        code.AppendLine(order + "? __aO" + id + " = null;");
     }
 
     internal static void AppendGeneralEnd(SharedIndentedBuilder code, SparseMemberModel member)
     {
         var id = member.Id;
-        code.AppendLineAt(
-            7,
+        code.AppendLine(
             "return (__h" + id + ", __items" + id + ", __bO" + id + ", __aO" + id + ");"
         );
-        code.AppendLineAt(6, "}");
+        code.CloseBlock();
         var arguments = "__before" + id + ", __after" + id;
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
             arguments += ", __bT" + id + ", __bTO" + id + ", __aT" + id + ", __aTO" + id;
         }
 
-        code.AppendLineAt(
-            6,
+        code.AppendLine(
             "(__h"
                 + id
                 + ", __items"

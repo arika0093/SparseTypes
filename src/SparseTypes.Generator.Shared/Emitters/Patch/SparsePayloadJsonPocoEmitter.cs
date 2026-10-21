@@ -61,9 +61,8 @@ internal static class SparsePayloadJsonPocoEmitter
         {
             var poco = context.Pocos[pocoIndex];
             code.CancellationToken.ThrowIfCancellationRequested();
-            code.AppendLineAt(3, "if (type == typeof(" + poco.RuntimeName + "))");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (type == typeof(" + poco.RuntimeName + "))");
+            code.AppendLine(
                 "return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<"
                     + poco.RuntimeName
                     + ">(options, "
@@ -83,9 +82,8 @@ internal static class SparsePayloadJsonPocoEmitter
             }
 
             code.CancellationToken.ThrowIfCancellationRequested();
-            code.AppendLineAt(3, "if (type == typeof(" + poco.RuntimeName + "?))");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (type == typeof(" + poco.RuntimeName + "?))");
+            code.AppendLine(
                 "return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<"
                     + poco.RuntimeName
                     + "?>(options, "
@@ -110,21 +108,18 @@ internal static class SparsePayloadJsonPocoEmitter
     )
     {
         var suffix = CodecSuffix(poco, code);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + poco.RuntimeName
                 + " ReadPayloadPoco_"
                 + suffix
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A leaf value must be an object.\");"
         );
         var members = poco.Members.Where(static member => !member.Property.IsJsonIgnored).ToArray();
@@ -133,29 +128,26 @@ internal static class SparsePayloadJsonPocoEmitter
             var member = members[index];
             var local = LocalName(suffix, index);
             var init = InitializerFor(poco, member);
-            code.AppendLineAt(3, member.Property.Type.Name + " " + local + " = " + init + ";");
+            code.AppendLine(member.Property.Type.Name + " " + local + " = " + init + ";");
             if (member.Property.IsRequired)
             {
-                code.AppendLineAt(3, "var " + HasName(suffix, index) + " = false;");
+                code.AppendLine("var " + HasName(suffix, index) + " = false;");
             }
         }
 
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\");"
         );
         for (var index = 0; index < members.Length; index++)
         {
             var member = members[index];
             var keyword = index == 0 ? "if" : "else if";
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 keyword
                     + " (MatchesPocoProperty(ref reader, options, "
                     + Format(member.Property.JsonPropertyName ?? member.Property.Name)
@@ -179,20 +171,18 @@ internal static class SparsePayloadJsonPocoEmitter
 
         if (members.Length > 0)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else { if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) throw new global::System.Text.Json.JsonException(\"Unknown leaf property.\"); if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\"); reader.Skip(); }"
             );
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (options.UnmappedMemberHandling == global::System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow) throw new global::System.Text.Json.JsonException(\"Unknown leaf property.\"); if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed leaf value.\"); reader.Skip();"
             );
         }
 
-        code.AppendLineAt(3, "}");
+        code.CloseBlock();
         foreach (
             var required in members
                 .Select((member, index) => (member, index))
@@ -200,8 +190,7 @@ internal static class SparsePayloadJsonPocoEmitter
         )
         {
             code.CancellationToken.ThrowIfCancellationRequested();
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!"
                     + HasName(suffix, required.index)
                     + ") throw new global::System.Text.Json.JsonException("
@@ -216,8 +205,8 @@ internal static class SparsePayloadJsonPocoEmitter
                     + ");"
             );
         }
-        code.AppendLineAt(3, "return " + ConstructionFor(poco, members, suffix) + ";");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return " + ConstructionFor(poco, members, suffix) + ";");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -229,19 +218,17 @@ internal static class SparsePayloadJsonPocoEmitter
     )
     {
         var suffix = CodecSuffix(poco, code);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WritePayloadPoco_"
                 + suffix
                 + "(global::System.Text.Json.Utf8JsonWriter writer, "
                 + poco.RuntimeName
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         var target = "sparse_poco_target_" + suffix;
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             poco.RuntimeName
                 + " "
                 + target
@@ -250,8 +237,7 @@ internal static class SparsePayloadJsonPocoEmitter
         );
         if (poco.HasPublicInstanceFields)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (options.IncludeFields) throw new global::System.Text.Json.JsonException("
                     + Format(
                         "Leaf type '"
@@ -264,14 +250,13 @@ internal static class SparsePayloadJsonPocoEmitter
             );
         }
 
-        code.AppendLineAt(3, "writer.WriteStartObject();");
+        code.AppendLine("writer.WriteStartObject();");
         var members = poco.Members.Where(static member => !member.Property.IsJsonIgnored).ToArray();
         for (var index = 0; index < members.Length; index++)
         {
             var member = members[index];
             var access = target + "." + SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (!ShouldOmitPocoValue<"
                     + member.Property.Type.Name
                     + ">("
@@ -296,11 +281,10 @@ internal static class SparsePayloadJsonPocoEmitter
 
             var local = "sparse_poco_ro_" + suffix + "_" + index;
             var access = target + "." + SparseNaming.EscapeIdentifier(property.Name);
-            code.AppendLineAt(3, "if (!options.IgnoreReadOnlyProperties)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, property.Type.Name + " " + local + " = " + access + ";");
-            code.AppendLineAt(
-                4,
+            code.AppendLine("if (!options.IgnoreReadOnlyProperties)");
+            code.OpenBlock();
+            code.AppendLine(property.Type.Name + " " + local + " = " + access + ";");
+            code.AppendLine(
                 "if (!ShouldOmitPocoValue<"
                     + property.Type.Name
                     + ">("
@@ -313,11 +297,11 @@ internal static class SparsePayloadJsonPocoEmitter
                     + ScalarWrite(property.Type.NonNullableName, local)
                     + "; }"
             );
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
         }
 
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -402,43 +386,34 @@ internal static class SparsePayloadJsonPocoEmitter
         var element = member.Collection.ElementType;
         var elementName = element.NonNullableName;
         var elementNullable = SparseJsonPrimitiveNames.IsNullableValue(element, element.Name);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + declared
                 + " "
                 + readName
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return default!;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"A leaf collection must be an array.\");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var list = new global::System.Collections.Generic.List<" + elementName + ">();"
         );
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
         );
-        code.AppendLineAt(
-            4,
-            "list.Add(" + ScalarRead(element, elementName, elementNullable) + ");"
-        );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return list.ToArray();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("list.Add(" + ScalarRead(element, elementName, elementNullable) + ");");
+        code.CloseBlock();
+        code.AppendLine("return list.ToArray();");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void "
                 + writeName
                 + "(global::System.Text.Json.Utf8JsonWriter writer, "
@@ -446,15 +421,15 @@ internal static class SparsePayloadJsonPocoEmitter
                 + (declared.EndsWith("?", System.StringComparison.Ordinal) ? "" : "?")
                 + " value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartArray();");
-        code.AppendLineAt(3, "foreach (var element in value)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, ScalarWrite(elementName, "element") + ";");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "writer.WriteEndArray();");
-        code.AppendLineAt(2, "}");
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartArray();");
+        code.AppendLine("foreach (var element in value)");
+        code.OpenBlock();
+        code.AppendLine(ScalarWrite(elementName, "element") + ";");
+        code.CloseBlock();
+        code.AppendLine("writer.WriteEndArray();");
+        code.CloseBlock();
         code.AppendLine();
     }
 

@@ -32,15 +32,14 @@ internal sealed class SparseFragmentDeclarationEmitter(
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>A sparse, presence-aware representation of this model.</summary>"
         );
         appendAttributes?.Invoke(code);
-        code.AppendLineAt(1, accessibility + " sealed class Fragment");
-        code.AppendLineAt(1, "{");
-        code.AppendLineAt(2, "/// <summary>Initializes a new empty fragment.</summary>");
-        code.AppendLineAt(2, "public Fragment() { }");
+        code.AppendLine(accessibility + " sealed class Fragment");
+        code.OpenBlock();
+        code.AppendLine("/// <summary>Initializes a new empty fragment.</summary>");
+        code.AppendLine("public Fragment() { }");
         code.AppendLine();
     }
 
@@ -59,11 +58,10 @@ internal sealed class SparseFragmentDeclarationEmitter(
         {
             code.CancellationToken.ThrowIfCancellationRequested();
             appendMemberAttributes?.Invoke(code);
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Gets the sparse value for '" + member.Property.Name + "'.</summary>"
             );
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("public ")
                 .Append(Optional)
                 .Append("<")
@@ -73,11 +71,8 @@ internal sealed class SparseFragmentDeclarationEmitter(
                 .AppendLine(" { get; init; }");
         }
         code.AppendLine();
-        code.AppendLineAt(
-            2,
-            "/// <summary>Whether this fragment has no present members.</summary>"
-        );
-        code.AppendIndent(2)
+        code.AppendLine("/// <summary>Whether this fragment has no present members.</summary>");
+        code.AppendIndent()
             .Append("public bool IsEmpty => ")
             .Append(
                 members.Length == 0
@@ -112,7 +107,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
     {
         foreach (var member in members.Where(static member => member.MergeStrategyType is not null))
         {
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("internal static readonly ")
                 .Append(mergeStrategy)
                 .Append("<")
@@ -127,7 +122,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
             var member in members.Where(static member => member.ComparisonComparerType is not null)
         )
         {
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("internal static readonly ")
                 .Append(member.ComparisonComparerType!.Value.Name)
                 .Append(" ")
@@ -145,7 +140,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
                 );
             }
 
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("internal static readonly ")
                 .Append(rebasePolicyBase)
                 .Append("<")
@@ -169,22 +164,21 @@ internal sealed class SparseFragmentDeclarationEmitter(
     )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(1, "/// <summary>A mutable builder for a generated fragment.</summary>");
-        code.AppendLineAt(1, accessibility + " sealed class FragmentBuilder");
-        code.AppendLineAt(1, "{");
+        code.AppendLine("/// <summary>A mutable builder for a generated fragment.</summary>");
+        code.AppendLine(accessibility + " sealed class FragmentBuilder");
+        code.OpenBlock();
         // Public surface first: staged references, construction, then Build.
         // The seeding constructor and backing fields trail as internals.
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
             var field = "__sparse_builder_member_" + member.Id;
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "/// <summary>Gets a mutable reference to the staged value for '"
                     + member.Property.Name
                     + "'.</summary>"
             );
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("public ref ")
                 .Append(Optional)
                 .Append("<")
@@ -197,39 +191,39 @@ internal sealed class SparseFragmentDeclarationEmitter(
         }
 
         code.AppendLine();
-        code.AppendLineAt(2, "/// <summary>Initializes a new empty builder.</summary>");
-        code.AppendLineAt(2, "public FragmentBuilder() { }");
-        code.AppendLineAt(2, "/// <summary>Builds the staged fragment.</summary>");
-        code.AppendLineAt(2, "/// <returns>The built fragment.</returns>");
+        code.AppendLine("/// <summary>Initializes a new empty builder.</summary>");
+        code.AppendLine("public FragmentBuilder() { }");
+        code.AppendLine("/// <summary>Builds the staged fragment.</summary>");
+        code.AppendLine("/// <returns>The built fragment.</returns>");
         if (OriginEmitter is null)
         {
-            code.AppendLineAt(2, "public Fragment Build() => new()");
+            code.AppendLine("public Fragment Build() => new()");
         }
         else
         {
-            code.AppendLineAt(2, "public Fragment Build() => new(__sparse_origin)");
+            code.AppendLine("public Fragment Build() => new(__sparse_origin)");
         }
 
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendIndent(3).Append(name).Append(" = ").Append(name).AppendLine(",");
+            code.AppendIndent().Append(name).Append(" = ").Append(name).AppendLine(",");
         }
 
         if (OriginEmitter is not null)
         {
-            code.AppendLineAt(3, "__SparseMemberOrigins = __sparse_member_origins,");
-            code.AppendLineAt(3, "__SparseElementOrigins = __sparse_element_origins,");
+            code.AppendLine("__SparseMemberOrigins = __sparse_member_origins,");
+            code.AppendLine("__SparseElementOrigins = __sparse_element_origins,");
         }
 
-        code.AppendLineAt(2, "};");
-        code.AppendLineAt(2, "internal FragmentBuilder(Fragment fragment)");
-        code.AppendLineAt(2, "{");
+        code.AppendLine("};");
+        code.AppendLine("internal FragmentBuilder(Fragment fragment)");
+        code.OpenBlock();
         foreach (var member in members)
         {
             var name = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendIndent(3).Append(name).Append(" = fragment.").Append(name).AppendLine(";");
+            code.AppendIndent().Append(name).Append(" = fragment.").Append(name).AppendLine(";");
         }
 
         if (OriginEmitter is not null)
@@ -237,11 +231,11 @@ internal sealed class SparseFragmentDeclarationEmitter(
             SparseFragmentOriginEmitter.AppendBuilderCapture(code);
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         foreach (var member in members)
         {
             var field = "__sparse_builder_member_" + member.Id;
-            code.AppendIndent(2)
+            code.AppendIndent()
                 .Append("private ")
                 .Append(Optional)
                 .Append("<")
@@ -255,6 +249,6 @@ internal sealed class SparseFragmentDeclarationEmitter(
         {
             SparseFragmentOriginEmitter.AppendBuilderFields(code);
         }
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 }

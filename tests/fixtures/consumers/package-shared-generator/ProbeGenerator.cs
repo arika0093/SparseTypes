@@ -204,7 +204,7 @@ internal static class ProbeSurface
 
         // Emitter/helpers (Emitters/, Infrastructure/).
         var code = new SharedIndentedBuilder(cancellationToken);
-        SparseFragmentEmitHelpers.AppendNullGuard(code, 1, "value");
+        SparseFragmentEmitHelpers.AppendNullGuard(code, "value");
         var expressions = new SparseFragmentExpressions(
             "__cloneContext",
             "global::PackageShared.Runtime",
@@ -223,8 +223,7 @@ internal static class ProbeSurface
             typeof(RoslynSymbolCompat),
         };
 
-        code.AppendLineAt(
-            0,
+        code.AppendLine(
             "// PackageShared probe: "
                 + escaped
                 + " prefix="
@@ -234,19 +233,14 @@ internal static class ProbeSurface
                 + " json="
                 + jsonIgnoreNever
         );
-        code.AppendLineAt(
-            0,
-            "// member=" + member.Id + " key=" + key.KeyTypeName + " clone=" + clone
-        );
-        code.AppendLineAt(
-            0,
+        code.AppendLine("// member=" + member.Id + " key=" + key.KeyTypeName + " clone=" + clone);
+        code.AppendLine(
             "// policy="
                 + policyMember.RebasePolicyType!.Value.Name
                 + " prefix="
                 + rebaseFieldPrefix
         );
-        code.AppendLineAt(
-            0,
+        code.AppendLine(
             "// analysis="
                 + analysisTypes.Length
                 + " rebase="
@@ -254,9 +248,8 @@ internal static class ProbeSurface
                 + " incremental="
                 + incrementalTypes.Length
         );
-        code.AppendLineAt(0, "// observable=" + observable + " collection=" + collection.Kind);
-        code.AppendLineAt(
-            0,
+        code.AppendLine("// observable=" + observable + " collection=" + collection.Kind);
+        code.AppendLine(
             "// session-capability="
                 + capability
                 + " roles="
@@ -280,8 +273,7 @@ internal static class ProbeSurface
                         : "configured"
                 )
         );
-        code.AppendLineAt(
-            0,
+        code.AppendLine(
             "// policy="
                 + memberPolicy.MemberName
                 + ":"

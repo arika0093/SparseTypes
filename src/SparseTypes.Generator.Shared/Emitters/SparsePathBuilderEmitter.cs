@@ -34,16 +34,11 @@ internal static class SparsePathBuilderEmitter
     {
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
         var rootBuilder = (pathsTypePrefix ?? "") + "SparsePaths<" + modelType + ">";
-        code.AppendLineAt(
-            1,
-            "/// <summary>Typed path navigation for '" + modelType + "'.</summary>"
-        );
-        code.AppendLineAt(
-            1,
+        code.AppendLine("/// <summary>Typed path navigation for '" + modelType + "'.</summary>");
+        code.AppendLine(
             "/// <remarks>For example <c>Order.SparsePath.Items.Key(id).Price</c>. Converts implicitly to the model-agnostic path for storage and lookup.</remarks>"
         );
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "public static "
                 + rootBuilder
                 + " SparsePath => new "
@@ -109,9 +104,8 @@ internal static class SparsePathBuilderEmitter
                 + childSessionType
                 + ">";
         }
-        code.AppendLineAt(1, "/// <summary>Root path builder for typed navigation.</summary>");
-        code.AppendLineAt(
-            1,
+        code.AppendLine("/// <summary>Root path builder for typed navigation.</summary>");
+        code.AppendLine(
             "/// <typeparam name=\"TRoot\">The root model the path navigates from.</typeparam>"
         );
         var pathInterface = string.Empty;
@@ -123,57 +117,46 @@ internal static class SparsePathBuilderEmitter
         {
             pathInterface = " : " + typedPathInterface + "<TRoot, " + modelType + ">";
         }
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             (dialect.PathIsValueType ? "public readonly struct " : "public sealed class ")
                 + "SparsePaths<TRoot>"
                 + pathInterface
         );
-        code.AppendLineAt(1, "{");
+        code.OpenBlock();
         // Public-first order: conversion and member navigation precede the
         // internal constructor, and the private backing field trails both.
-        code.AppendLineAt(
-            2,
-            "/// <summary>Converts this builder to its model-agnostic path.</summary>"
-        );
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Converts this builder to its model-agnostic path.</summary>");
+        code.AppendLine(
             "public static implicit operator "
                 + pathType
                 + "(SparsePaths<TRoot> paths) => paths._path;"
         );
         if (dialect.TypedPathInterfaceType is { Length: > 0 })
         {
-            code.AppendLineAt(2, "/// <summary>Gets the model-agnostic path.</summary>");
-            code.AppendLineAt(2, "public " + pathType + " UntypedPath => _path;");
+            code.AppendLine("/// <summary>Gets the model-agnostic path.</summary>");
+            code.AppendLine("public " + pathType + " UntypedPath => _path;");
             var typedPath = SparseFragmentPatchEmitter.GetTypedPathType(
                 dialect,
                 "TRoot",
                 modelType
             );
-            code.AppendLineAt(2, "/// <summary>Gets the compile-time typed path.</summary>");
-            code.AppendLineAt(
-                2,
-                "public " + typedPath + " TypedPath => new " + typedPath + "(_path);"
-            );
-            code.AppendLineAt(
-                2,
+            code.AppendLine("/// <summary>Gets the compile-time typed path.</summary>");
+            code.AppendLine("public " + typedPath + " TypedPath => new " + typedPath + "(_path);");
+            code.AppendLine(
                 "/// <summary>Gets whether this path addresses a generated model that can be updated in place.</summary>"
             );
-            code.AppendLineAt(2, "public bool CanWriteModelValueInPlace => true;");
-            code.AppendLineAt(
-                2,
+            code.AppendLine("public bool CanWriteModelValueInPlace => true;");
+            code.AppendLine(
                 "/// <summary>Writes an updated model value into an existing addressed instance.</summary>"
             );
-            code.AppendLineAt(
-                2,
+            code.AppendLine(
                 "public void WriteModelValueInPlace("
                     + modelType
                     + " current, "
                     + modelType
                     + " updated)"
             );
-            code.AppendLineAt(2, "{");
+            code.OpenBlock();
             foreach (
                 var member in members.Where(member =>
                     !member.Property.IsReadOnly && !member.Property.IsInitOnly
@@ -181,14 +164,14 @@ internal static class SparsePathBuilderEmitter
             )
             {
                 var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-                code.AppendLineAt(3, "current." + property + " = updated." + property + ";");
+                code.AppendLine("current." + property + " = updated." + property + ";");
             }
 
-            code.AppendLineAt(2, "}");
+            code.CloseBlock();
         }
         using var navigations = new SharedIndentedBuilder(code.CancellationToken)
         {
-            IndentOffset = code.IndentOffset,
+            IndentLevel = code.IndentLevel,
         };
         foreach (var member in members)
         {
@@ -213,9 +196,9 @@ internal static class SparsePathBuilderEmitter
             );
         }
 
-        code.AppendLineAt(2, "internal SparsePaths(" + pathType + " path) => _storedPath = path;");
-        AppendPathStorage(code, pathType, "", dialect.PathIsValueType, 2);
-        code.AppendLineAt(1, "}");
+        code.AppendLine("internal SparsePaths(" + pathType + " path) => _storedPath = path;");
+        AppendPathStorage(code, pathType, "", dialect.PathIsValueType);
+        code.CloseBlock();
     }
 
     private static void AppendChildEditSessionFactory(
@@ -227,8 +210,7 @@ internal static class SparsePathBuilderEmitter
         string pathType
     )
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             childPathsType
                 + " "
                 + childPathInterface
@@ -240,8 +222,7 @@ internal static class SparsePathBuilderEmitter
                 + modelType
                 + ")));"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             modelType
                 + " "
                 + childPathInterface
@@ -251,8 +232,7 @@ internal static class SparsePathBuilderEmitter
                 + modelType
                 + ".Fragment.From(model).ToModel();"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             childSessionType
                 + " "
                 + childPathInterface
@@ -288,12 +268,8 @@ internal static class SparsePathBuilderEmitter
                 var builder =
                     (qualifyChildPaths?.Invoke(child.NonNullableName) ?? child.NonNullableName)
                     + ".SparsePaths<TRoot>";
-                code.AppendLineAt(
-                    2,
-                    "/// <summary>Gets the path builder for '" + name + "'.</summary>"
-                );
-                code.AppendLineAt(
-                    2,
+                code.AppendLine("/// <summary>Gets the path builder for '" + name + "'.</summary>");
+                code.AppendLine(
                     "public " + builder + " " + name + " => new " + builder + "(" + access + ");"
                 );
                 return;
@@ -325,11 +301,8 @@ internal static class SparsePathBuilderEmitter
     )
     {
         var typed = SparseFragmentPatchEmitter.GetTypedPathType(dialect, "TRoot", valueType);
-        code.AppendLineAt(2, "/// <summary>Gets the path to '" + name + "'.</summary>");
-        code.AppendLineAt(
-            2,
-            "public " + typed + " " + name + " => new " + typed + "(" + access + ");"
-        );
+        code.AppendLine("/// <summary>Gets the path to '" + name + "'.</summary>");
+        code.AppendLine("public " + typed + " " + name + " => new " + typed + "(" + access + ");");
     }
 
     private static void AppendCollectionNavigation(
@@ -346,9 +319,8 @@ internal static class SparsePathBuilderEmitter
             true
         );
         var builderName = "Sparse" + name + "Paths";
-        code.AppendLineAt(2, "/// <summary>Gets the path builder for '" + name + "'.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Gets the path builder for '" + name + "'.</summary>");
+        code.AppendLine(
             "public "
                 + builderName
                 + " "
@@ -364,21 +336,16 @@ internal static class SparsePathBuilderEmitter
             is { Length: > 0 } typedCollectionInterface
             ? " : " + typedCollectionInterface + "<TRoot, " + collectionType + ">"
             : string.Empty;
-        code.AppendLineAt(2, "/// <summary>Collection path builder for '" + name + "'.</summary>");
-        code.AppendLineAt(
-            2,
+        code.AppendLine("/// <summary>Collection path builder for '" + name + "'.</summary>");
+        code.AppendLine(
             (dialect.PathIsValueType ? "public readonly struct " : "public sealed class ")
                 + builderName
                 + collectionInterface
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         // Public-first order, matching the root builder above.
-        code.AppendLineAt(
-            3,
-            "/// <summary>Converts this builder to its model-agnostic path.</summary>"
-        );
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Converts this builder to its model-agnostic path.</summary>");
+        code.AppendLine(
             "public static implicit operator "
                 + pathType
                 + "("
@@ -392,28 +359,24 @@ internal static class SparsePathBuilderEmitter
                 "TRoot",
                 collectionType
             );
-            code.AppendLineAt(3, "/// <summary>Gets the model-agnostic path.</summary>");
-            code.AppendLineAt(3, "public " + pathType + " UntypedPath => _path;");
-            code.AppendLineAt(3, "/// <summary>Gets the compile-time typed path.</summary>");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("/// <summary>Gets the model-agnostic path.</summary>");
+            code.AppendLine("public " + pathType + " UntypedPath => _path;");
+            code.AppendLine("/// <summary>Gets the compile-time typed path.</summary>");
+            code.AppendLine(
                 "public "
                     + collectionTypedPath
                     + " TypedPath => new "
                     + collectionTypedPath
                     + "(_path);"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Gets whether the addressed collection can be updated without replacing its instance.</summary>"
             );
-            code.AppendLineAt(3, "public bool CanWriteModelValueInPlace => false;");
-            code.AppendLineAt(
-                3,
+            code.AppendLine("public bool CanWriteModelValueInPlace => false;");
+            code.AppendLine(
                 "/// <summary>Writes an updated collection value into an existing addressed instance.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "public void WriteModelValueInPlace("
                     + collectionType
                     + " current, "
@@ -423,15 +386,14 @@ internal static class SparsePathBuilderEmitter
         }
         using var entries = new SharedIndentedBuilder(code.CancellationToken)
         {
-            IndentOffset = code.IndentOffset,
+            IndentLevel = code.IndentLevel,
         };
         if (SparseChangeSetBasicsEmitter.IsSet(member))
         {
             var element = member.Collection.ElementType.Name;
             var typed = SparseFragmentPatchEmitter.GetTypedPathType(dialect, "TRoot", element);
-            entries.AppendLineAt(3, "/// <summary>Gets the path to a set element.</summary>");
-            entries.AppendLineAt(
-                3,
+            entries.AppendLine("/// <summary>Gets the path to a set element.</summary>");
+            entries.AppendLine(
                 "public "
                     + typed
                     + " Element("
@@ -467,12 +429,11 @@ internal static class SparsePathBuilderEmitter
         }
 
         code.Append(entries.ToString());
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "internal " + builderName + "(" + pathType + " path) => _storedPath = path;"
         );
-        AppendPathStorage(code, pathType, ".Member(" + literal + ")", dialect.PathIsValueType, 3);
-        code.AppendLineAt(2, "}");
+        AppendPathStorage(code, pathType, ".Member(" + literal + ")", dialect.PathIsValueType);
+        code.CloseBlock();
     }
 
     private static void AppendKeyMethod(
@@ -481,12 +442,8 @@ internal static class SparsePathBuilderEmitter
         string navigation
     )
     {
-        code.AppendLineAt(
-            3,
-            "/// <summary>Gets the path to the entry with the given key.</summary>"
-        );
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Gets the path to the entry with the given key.</summary>");
+        code.AppendLine(
             "public "
                 + navigation
                 + " Key("
@@ -499,16 +456,13 @@ internal static class SparsePathBuilderEmitter
 
     private static void AppendTemporaryKeyMethod(SharedIndentedBuilder code, string navigation)
     {
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Gets the path to the unassigned entry with the given temporary identity.</summary>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <remarks>Temporary segments never equal key segments, even when the permanent key type is <c>Guid</c>.</remarks>"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "public "
                 + navigation
                 + " TemporaryKey(global::System.Guid temporaryKey) => new "
@@ -519,12 +473,8 @@ internal static class SparsePathBuilderEmitter
 
     private static void AppendAtMethod(SharedIndentedBuilder code, string navigation)
     {
-        code.AppendLineAt(
-            3,
-            "/// <summary>Gets the path to the entry at the given position.</summary>"
-        );
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Gets the path to the entry at the given position.</summary>");
+        code.AppendLine(
             "public " + navigation + " At(int index) => new " + navigation + "(_path.At(index));"
         );
     }
@@ -548,14 +498,12 @@ internal static class SparsePathBuilderEmitter
         SharedIndentedBuilder code,
         string pathType,
         string suffix,
-        bool valueType,
-        int indent
+        bool valueType
     )
     {
-        code.AppendLineAt(indent, "private readonly " + pathType + " _storedPath;");
+        code.AppendLine("private readonly " + pathType + " _storedPath;");
         var collectionGuard = suffix.Length == 0 ? "" : " && !_storedPath.IsRoot";
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "private "
                 + pathType
                 + " _path => "

@@ -55,31 +55,28 @@ internal static class SparseReadOnlyViewEmitter
         // One retention collector per emitted view keeps per-member cached
         // adapter fields out of the public-first member ordering.
         var retention = new SparseReadOnlyViewRetention(allMemberNames);
-        code.AppendLineAt(
-            1,
+        code.AppendLine(
             "/// <summary>Recursive read-only view over a live model instance.</summary>"
         );
-        code.AppendLineAt(1, "public sealed class " + typeName);
-        code.AppendLineAt(1, "{");
+        code.AppendLine("public sealed class " + typeName);
+        code.OpenBlock();
         // Public-first ordering: the constructor and public properties precede
         // the private backing field and nested adapter helpers.
-        code.AppendLineAt(2, "/// <summary>Creates a read-only view over a live model.</summary>");
-        code.AppendLineAt(2, "/// <param name=\"model\">The model to expose.</param>");
-        code.AppendLineAt(2, "public " + typeName + "(" + modelType + " model)");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("/// <summary>Creates a read-only view over a live model.</summary>");
+        code.AppendLine("/// <param name=\"model\">The model to expose.</param>");
+        code.AppendLine("public " + typeName + "(" + modelType + " model)");
+        code.OpenBlock();
+        code.AppendLine(
             "if ((object?)model is null) throw new global::System.ArgumentNullException(nameof(model));"
         );
-        code.AppendLineAt(3, modelFieldName + " = model;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine(modelFieldName + " = model;");
+        code.CloseBlock();
 
         foreach (var member in members)
         {
             AppendMember(
                 code,
                 member,
-                2,
                 modelFieldName,
                 collectionName,
                 dictionaryName,
@@ -107,8 +104,8 @@ internal static class SparseReadOnlyViewEmitter
 
         // Shared adapters are emitted once per compilation; only the legacy
         // single-file path redefines the generic adapters per model.
-        code.AppendLineAt(2, "private readonly " + modelType + " " + modelFieldName + ";");
-        retention.Flush(code, 2);
+        code.AppendLine("private readonly " + modelType + " " + modelFieldName + ";");
+        retention.Flush(code);
         if (!useShared)
         {
             SparseReadOnlyAdapterEmitter.AppendCollectionAdapter(code, collectionName);
@@ -123,13 +120,12 @@ internal static class SparseReadOnlyViewEmitter
             );
         }
 
-        code.AppendLineAt(1, "}");
+        code.CloseBlock();
     }
 
     private static void AppendMember(
         SharedIndentedBuilder code,
         SparseMemberModel member,
-        int indent,
         string modelFieldName,
         string collectionName,
         string dictionaryName,
@@ -146,16 +142,15 @@ internal static class SparseReadOnlyViewEmitter
                 + "."
                 + (child.ReadOnlyViewTypeName ?? "ReadOnlyView")
                 + (member.Property.IsNullable ? "?" : "");
-            AppendPropertySummary(code, member, indent);
-            code.AppendLineAt(indent, "public " + viewType + " " + property);
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(indent + 1, "get");
-            code.AppendLineAt(indent + 1, "{");
-            code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
+            AppendPropertySummary(code, member);
+            code.AppendLine("public " + viewType + " " + property);
+            code.OpenBlock();
+            code.AppendLine("get");
+            code.OpenBlock();
+            code.AppendLine("var current = " + modelFieldName + "." + property + ";");
             if (!child.IsReferenceType && member.Property.IsNullable)
             {
-                code.AppendLineAt(
-                    indent + 2,
+                code.AppendLine(
                     "return current.HasValue ? new "
                         + child.NonNullableName
                         + "."
@@ -165,8 +160,7 @@ internal static class SparseReadOnlyViewEmitter
             }
             else
             {
-                code.AppendLineAt(
-                    indent + 2,
+                code.AppendLine(
                     "return (object?)current is null ? null"
                         + (member.Property.IsNullable ? "" : "!")
                         + " : new "
@@ -176,8 +170,8 @@ internal static class SparseReadOnlyViewEmitter
                         + "(current);"
                 );
             }
-            code.AppendLineAt(indent + 1, "}");
-            code.AppendLineAt(indent, "}");
+            code.CloseBlock();
+            code.CloseBlock();
             return;
         }
 
@@ -187,7 +181,6 @@ internal static class SparseReadOnlyViewEmitter
                 code,
                 member,
                 property,
-                indent,
                 modelFieldName,
                 dictionaryName,
                 dictionaryEntriesName,
@@ -210,7 +203,6 @@ internal static class SparseReadOnlyViewEmitter
                 code,
                 member,
                 property,
-                indent,
                 modelFieldName,
                 collectionName,
                 pocoViewNames,
@@ -231,7 +223,6 @@ internal static class SparseReadOnlyViewEmitter
                 code,
                 member,
                 property,
-                indent,
                 modelFieldName,
                 pocoViewName,
                 member.Property.Type.PocoReadOnlyViewKey
@@ -240,9 +231,8 @@ internal static class SparseReadOnlyViewEmitter
             return;
         }
 
-        AppendPropertySummary(code, member, indent);
-        code.AppendLineAt(
-            indent,
+        AppendPropertySummary(code, member);
+        code.AppendLine(
             "public "
                 + member.Property.Type.Name
                 + " "
@@ -266,7 +256,6 @@ internal static class SparseReadOnlyViewEmitter
         SharedIndentedBuilder code,
         SparseMemberModel member,
         string property,
-        int indent,
         string modelFieldName,
         string collectionName,
         System.Collections.Generic.Dictionary<string, string> pocoViewNames,
@@ -289,55 +278,48 @@ internal static class SparseReadOnlyViewEmitter
             + ">)current, "
             + ReadOnlyMapper(member.Collection.ElementType, pocoViewNames)
             + ")";
-        AppendPropertySummary(code, member, indent);
+        AppendPropertySummary(code, member);
         if (retention is null || !member.Property.Type.IsReferenceType)
         {
-            code.AppendLineAt(
-                indent,
+            code.AppendLine(
                 "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources.</remarks>"
             );
-            code.AppendLineAt(indent, "public " + viewCollection + nullable + " " + property);
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(indent + 1, "get");
-            code.AppendLineAt(indent + 1, "{");
-            code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-            code.AppendLineAt(
-                indent + 2,
+            code.AppendLine("public " + viewCollection + nullable + " " + property);
+            code.OpenBlock();
+            code.AppendLine("get");
+            code.OpenBlock();
+            code.AppendLine("var current = " + modelFieldName + "." + property + ";");
+            code.AppendLine(
                 "if ((object?)current is null) return null"
                     + (member.Property.IsNullable ? ";" : "!;")
             );
-            code.AppendLineAt(indent + 2, "return " + construction + ";");
-            code.AppendLineAt(indent + 1, "}");
-            code.AppendLineAt(indent, "}");
+            code.AppendLine("return " + construction + ";");
+            code.CloseBlock();
+            code.CloseBlock();
             return;
         }
 
         var retentionNames = retention.Enter(member.Property.Name, adapterType);
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "/// <remarks>Streaming view: <c>Count</c> and the indexer are O(1) for collection- or list-backed sources and enumerate otherwise; prefer <c>foreach</c> over indexed loops for streaming sources. The wrapper is retained while the backing source reference is unchanged; a captured wrapper keeps viewing the source it was created for.</remarks>"
         );
-        code.AppendLineAt(indent, "public " + viewCollection + nullable + " " + property);
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "get");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(
-            indent + 2,
+        code.AppendLine("public " + viewCollection + nullable + " " + property);
+        code.OpenBlock();
+        code.AppendLine("get");
+        code.OpenBlock();
+        code.AppendLine("var current = " + modelFieldName + "." + property + ";");
+        code.AppendLine(
             "if ((object?)current is null) { "
                 + retentionNames.Cache
                 + " = null; return null"
                 + (member.Property.IsNullable ? ";" : "!;")
         );
-        code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Cache + ";");
-        code.AppendLineAt(
-            indent + 2,
-            "if (cached is null || !ReferenceEquals(cached.Source, current))"
-        );
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(
-            indent + 3,
+        code.Indent();
+        code.CloseBlock();
+        code.AppendLine("var cached = " + retentionNames.Cache + ";");
+        code.AppendLine("if (cached is null || !ReferenceEquals(cached.Source, current))");
+        code.OpenBlock();
+        code.AppendLine(
             "cached = new "
                 + retentionNames.Holder
                 + "(current, "
@@ -346,17 +328,16 @@ internal static class SparseReadOnlyViewEmitter
                 + retentionNames.Cache
                 + " = cached;"
         );
-        code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "return cached.Adapter;");
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.AppendLine("return cached.Adapter;");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendDictionaryMember(
         SharedIndentedBuilder code,
         SparseMemberModel member,
         string property,
-        int indent,
         string modelFieldName,
         string dictionaryName,
         string dictionaryEntriesName,
@@ -369,7 +350,7 @@ internal static class SparseReadOnlyViewEmitter
         var viewKey = ReadOnlyValueType(member.Collection.ElementType, pocoViewNames);
         var viewValue = ReadOnlyValueType(member.Collection.ValueType.Value, pocoViewNames);
         var nullable = member.Property.IsNullable ? "?" : "";
-        AppendPropertySummary(code, member, indent);
+        AppendPropertySummary(code, member);
         var dictionaryViewType =
             keyType == viewKey
                 ? "global::System.Collections.Generic.IReadOnlyDictionary<"
@@ -413,44 +394,39 @@ internal static class SparseReadOnlyViewEmitter
             + ")";
         if (retention is null || !member.Property.Type.IsReferenceType)
         {
-            code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
-            code.AppendLineAt(indent, "{");
-            code.AppendLineAt(indent + 1, "get");
-            code.AppendLineAt(indent + 1, "{");
-            code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-            code.AppendLineAt(
-                indent + 2,
+            code.AppendLine("public " + dictionaryViewType + nullable + " " + property);
+            code.OpenBlock();
+            code.AppendLine("get");
+            code.OpenBlock();
+            code.AppendLine("var current = " + modelFieldName + "." + property + ";");
+            code.AppendLine(
                 "if ((object?)current is null) return null"
                     + (member.Property.IsNullable ? ";" : "!;")
             );
-            code.AppendLineAt(indent + 2, "return " + construction + ";");
-            code.AppendLineAt(indent + 1, "}");
-            code.AppendLineAt(indent, "}");
+            code.AppendLine("return " + construction + ";");
+            code.CloseBlock();
+            code.CloseBlock();
             return;
         }
 
         var retentionNames = retention.Enter(member.Property.Name, adapterType);
-        code.AppendLineAt(indent, "public " + dictionaryViewType + nullable + " " + property);
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "get");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(
-            indent + 2,
+        code.AppendLine("public " + dictionaryViewType + nullable + " " + property);
+        code.OpenBlock();
+        code.AppendLine("get");
+        code.OpenBlock();
+        code.AppendLine("var current = " + modelFieldName + "." + property + ";");
+        code.AppendLine(
             "if ((object?)current is null) { "
                 + retentionNames.Cache
                 + " = null; return null"
                 + (member.Property.IsNullable ? ";" : "!;")
         );
-        code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "var cached = " + retentionNames.Cache + ";");
-        code.AppendLineAt(
-            indent + 2,
-            "if (cached is null || !ReferenceEquals(cached.Source, current))"
-        );
-        code.AppendLineAt(indent + 2, "{");
-        code.AppendLineAt(
-            indent + 3,
+        code.Indent();
+        code.CloseBlock();
+        code.AppendLine("var cached = " + retentionNames.Cache + ";");
+        code.AppendLine("if (cached is null || !ReferenceEquals(cached.Source, current))");
+        code.OpenBlock();
+        code.AppendLine(
             "cached = new "
                 + retentionNames.Holder
                 + "(current, "
@@ -459,17 +435,16 @@ internal static class SparseReadOnlyViewEmitter
                 + retentionNames.Cache
                 + " = cached;"
         );
-        code.AppendLineAt(indent + 2, "}");
-        code.AppendLineAt(indent + 2, "return cached.Adapter;");
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.AppendLine("return cached.Adapter;");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendPocoMember(
         SharedIndentedBuilder code,
         SparseMemberModel member,
         string property,
-        int indent,
         string modelFieldName,
         string pocoViewName,
         bool isOpaque
@@ -477,14 +452,13 @@ internal static class SparseReadOnlyViewEmitter
     {
         var nullable = member.Property.IsNullable ? "?" : "";
         var currentArgument = isOpaque ? "(object?)current" : "current";
-        AppendPropertySummary(code, member, indent);
-        code.AppendLineAt(indent, "public " + pocoViewName + nullable + " " + property);
-        code.AppendLineAt(indent, "{");
-        code.AppendLineAt(indent + 1, "get");
-        code.AppendLineAt(indent + 1, "{");
-        code.AppendLineAt(indent + 2, "var current = " + modelFieldName + "." + property + ";");
-        code.AppendLineAt(
-            indent + 2,
+        AppendPropertySummary(code, member);
+        code.AppendLine("public " + pocoViewName + nullable + " " + property);
+        code.OpenBlock();
+        code.AppendLine("get");
+        code.OpenBlock();
+        code.AppendLine("var current = " + modelFieldName + "." + property + ";");
+        code.AppendLine(
             member.Property.IsNullable
                 ? "return (object?)current is null ? null : new "
                     + pocoViewName
@@ -493,8 +467,8 @@ internal static class SparseReadOnlyViewEmitter
                     + ");"
                 : "return new " + pocoViewName + "(" + currentArgument + ");"
         );
-        code.AppendLineAt(indent + 1, "}");
-        code.AppendLineAt(indent, "}");
+        code.CloseBlock();
+        code.CloseBlock();
     }
 
     private static void AppendValueReadOnlyView(
@@ -511,22 +485,19 @@ internal static class SparseReadOnlyViewEmitter
         // Value-type views keep the allocating read: a readonly-struct copy
         // could not publish a cache entry, and boxing would defeat the
         // reference comparison, so no retention fields are emitted here.
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Read-only view over a live " + viewModel.Name + " instance.</summary>"
         );
-        code.AppendLineAt(2, "public readonly struct " + viewTypeName);
-        code.AppendLineAt(2, "{");
+        code.AppendLine("public readonly struct " + viewTypeName);
+        code.OpenBlock();
         // Public-first ordering: public properties precede the internal
         // constructor, which precedes the private backing field.
         if (viewModel.IsOpaque)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "/// <summary>Indicates whether this opaque value contains a reference.</summary>"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 viewModel.StoresValue
                     ? "public bool HasValue => (object?)" + modelFieldName + " is not null;"
                     : "public bool HasValue => true;"
@@ -538,7 +509,6 @@ internal static class SparseReadOnlyViewEmitter
             AppendMember(
                 code,
                 member,
-                3,
                 modelFieldName,
                 collectionName,
                 dictionaryName,
@@ -548,37 +518,31 @@ internal static class SparseReadOnlyViewEmitter
             );
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "/// <summary>Creates a read-only view over a live "
                 + viewModel.Name
                 + " value.</summary>"
         );
-        code.AppendLineAt(3, "/// <param name=\"model\">The value to expose.</param>");
-        code.AppendLineAt(
-            3,
-            "internal " + viewTypeName + "(" + viewModel.SourceTypeName + " model)"
-        );
-        code.AppendLineAt(3, "{");
+        code.AppendLine("/// <param name=\"model\">The value to expose.</param>");
+        code.AppendLine("internal " + viewTypeName + "(" + viewModel.SourceTypeName + " model)");
+        code.OpenBlock();
         if (!viewModel.IsOpaque)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if ((object?)model is null) throw new global::System.ArgumentNullException(nameof(model));"
             );
         }
-        code.AppendLineAt(4, viewModel.StoresValue ? modelFieldName + " = model;" : "_ = model;");
-        code.AppendLineAt(3, "}");
+        code.AppendLine(viewModel.StoresValue ? modelFieldName + " = model;" : "_ = model;");
+        code.CloseBlock();
 
         if (viewModel.StoresValue)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "private readonly " + viewModel.SourceTypeName + " " + modelFieldName + ";"
             );
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
     }
 
     private static string ReadOnlyValueType(
@@ -608,11 +572,9 @@ internal static class SparseReadOnlyViewEmitter
 
     private static void AppendPropertySummary(
         SharedIndentedBuilder code,
-        SparseMemberModel member,
-        int indent
+        SparseMemberModel member
     ) =>
-        code.AppendLineAt(
-            indent,
+        code.AppendLine(
             "/// <summary>Gets the read-only value of member '"
                 + member.Property.Name
                 + "'.</summary>"

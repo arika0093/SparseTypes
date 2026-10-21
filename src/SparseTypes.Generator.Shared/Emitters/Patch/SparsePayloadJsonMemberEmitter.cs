@@ -31,37 +31,31 @@ internal static class SparsePayloadJsonMemberEmitter
             ? ", ReadCollection" + member.Id + ", WriteCollection" + member.Id
             : ", null, null";
         var writeCodec = isValueCollection ? ", WriteCollection" + member.Id : ", null";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + changeType
                 + " ReadMember"
                 + member.Id
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A change must be an object.\");"
         );
-        code.AppendLineAt(3, "var change = new " + memberChange + "();");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var change = new " + memberChange + "();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
-        code.AppendLineAt(4, "var name = reader.GetString() ?? string.Empty;");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var name = reader.GetString() ?? string.Empty;");
+        code.AppendLine(
             "if (name == \"member\") { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\"); reader.Skip(); continue; }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed change.\");"
         );
         if (isNested)
@@ -74,48 +68,42 @@ internal static class SparsePayloadJsonMemberEmitter
             }
 
             var childType = child.NonNullableName;
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadChildEndpoint"
                     + member.Id
                     + "(ref reader, options); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"nested\") { if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) change.Nested = null; else change.Nested = "
                     + childType
                     + ".PayloadJsonConverter.ReadCore(ref reader, options); }"
             );
-            code.AppendLineAt(4, "else reader.Skip();");
+            code.AppendLine("else reader.Skip();");
         }
         else if (isKeyed || isDict)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"after\") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"items\") change.Items = ReadItems"
                     + member.Id
                     + "(ref reader, options);"
@@ -123,75 +111,67 @@ internal static class SparsePayloadJsonMemberEmitter
             if (isKeyed)
             {
                 var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "else if (name == \"beforeOrder\") change.BeforeOrder = ReadKeyList<"
                         + keyType
                         + ">(ref reader, options);"
                 );
-                code.AppendLineAt(
-                    4,
+                code.AppendLine(
                     "else if (name == \"afterOrder\") change.AfterOrder = ReadKeyList<"
                         + keyType
                         + ">(ref reader, options);"
                 );
                 if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                 {
-                    code.AppendLineAt(
-                        4,
+                    code.AppendLine(
                         "else if (name == \"tempBeforeOrder\") change.TempBeforeOrder = ReadGuidList(ref reader);"
                     );
-                    code.AppendLineAt(
-                        4,
+                    code.AppendLine(
                         "else if (name == \"tempAfterOrder\") change.TempAfterOrder = ReadGuidList(ref reader);"
                     );
                 }
             }
 
-            code.AppendLineAt(4, "else reader.Skip();");
+            code.AppendLine("else reader.Skip();");
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (name == \"value\") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (name == \"after\") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<"
                     + valueType
                     + ">(ref reader, options"
                     + readCodec
                     + "); }"
             );
-            code.AppendLineAt(4, "else reader.Skip();");
+            code.AppendLine("else reader.Skip();");
         }
 
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return change;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return change;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WriteMember"
                 + member.Id
                 + "Body(global::System.Text.Json.Utf8JsonWriter writer, "
                 + memberChange
                 + " change, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isNested)
         {
             if (member.ChildModel is not { } writeChild)
@@ -202,14 +182,12 @@ internal static class SparsePayloadJsonMemberEmitter
             }
 
             var writeChildModel = writeChild.NonNullableName;
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteChildEndpoint"
                     + member.Id
                     + "(writer, change.Value, options); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Nested is not null) { writer.WritePropertyName(\"nested\"); "
                     + writeChildModel
                     + ".PayloadJsonConverter.WriteCore(writer, change.Nested, options); }"
@@ -217,26 +195,22 @@ internal static class SparsePayloadJsonMemberEmitter
         }
         else if (isKeyed || isDict)
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options"
                     + writeCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options"
                     + writeCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options"
                     + writeCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "writer.WritePropertyName(\"items\"); WriteItems"
                     + member.Id
                     + "(writer, change.Items, options);"
@@ -244,26 +218,22 @@ internal static class SparsePayloadJsonMemberEmitter
             if (isKeyed)
             {
                 var writeKeyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (change.BeforeOrder is not null) { writer.WritePropertyName(\"beforeOrder\"); WriteKeyList<"
                         + writeKeyType
                         + ">(writer, change.BeforeOrder, options); }"
                 );
-                code.AppendLineAt(
-                    3,
+                code.AppendLine(
                     "if (change.AfterOrder is not null) { writer.WritePropertyName(\"afterOrder\"); WriteKeyList<"
                         + writeKeyType
                         + ">(writer, change.AfterOrder, options); }"
                 );
                 if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
                 {
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "if (change.TempBeforeOrder is not null) { writer.WritePropertyName(\"tempBeforeOrder\"); WriteGuidList(writer, change.TempBeforeOrder); }"
                     );
-                    code.AppendLineAt(
-                        3,
+                    code.AppendLine(
                         "if (change.TempAfterOrder is not null) { writer.WritePropertyName(\"tempAfterOrder\"); WriteGuidList(writer, change.TempAfterOrder); }"
                     );
                 }
@@ -271,27 +241,24 @@ internal static class SparsePayloadJsonMemberEmitter
         }
         else
         {
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Value is not null) { writer.WritePropertyName(\"value\"); WriteEndpoint(writer, change.Value, options"
                     + writeCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options"
                     + writeCodec
                     + "); }"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if (change.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options"
                     + writeCodec
                     + "); }"
             );
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
         if (isNested)
         {
@@ -333,91 +300,78 @@ internal static class SparsePayloadJsonMemberEmitter
         var childRoot = context.ChildDto(childType, "Root");
         var endpoint = context.Runtime + "ChangePayloadEndpoint<" + childRoot + "?";
         var endpointFull = endpoint + ">";
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + endpointFull
                 + "? ReadChildEndpoint"
                 + member.Id
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"An endpoint must be an object.\");"
         );
-        code.AppendLineAt(3, "var state = default(" + context.Runtime + "ChangePayloadState);");
-        code.AppendLineAt(3, "var hasState = false;");
-        code.AppendLineAt(3, childRoot + "? value = default;");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var state = default(" + context.Runtime + "ChangePayloadState);");
+        code.AppendLine("var hasState = false;");
+        code.AppendLine(childRoot + "? value = default;");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.ValueTextEquals(\"state\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (reader.ValueTextEquals(\"value\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) value = "
                 + childType
                 + ".PayloadJsonConverter.ReadRoot(ref reader, options); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine(
             "if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return new "
                 + context.Runtime
                 + "ChangePayloadEndpoint<"
                 + childRoot
                 + "?> { State = state, Value = value };"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WriteChildEndpoint"
                 + member.Id
                 + "(global::System.Text.Json.Utf8JsonWriter writer, "
                 + endpointFull
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLineAt(3, "writer.WriteStartObject();");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine(
             "writer.WriteString(\"state\", "
                 + context.Runtime
                 + "ChangePayloadWire.ToToken(value.State));"
         );
-        code.AppendLineAt(3, "writer.WritePropertyName(\"value\");");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("writer.WritePropertyName(\"value\");");
+        code.AppendLine(
             "if (value.Value is null) writer.WriteNullValue(); else "
                 + childType
                 + ".PayloadJsonConverter.WriteRoot(writer, value.Value, options);"
         );
-        code.AppendLineAt(3, "writer.WriteEndObject();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -437,96 +391,80 @@ internal static class SparsePayloadJsonMemberEmitter
             ? member.Collection.ElementType.IsFragmentModel
             : member.Collection.ValueType?.IsFragmentModel == true;
         var hasTempKey = isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member);
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static global::System.Collections.Generic.List<"
                 + itemType
                 + "> ReadItems"
                 + member.Id
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return new();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException(\"Payload items must be an array.\");"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var list = new global::System.Collections.Generic.List<" + itemType + ">();"
         );
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;"
         );
-        code.AppendLineAt(4, "list.Add(ReadItem" + member.Id + "(ref reader, options));");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return list;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("list.Add(ReadItem" + member.Id + "(ref reader, options));");
+        code.CloseBlock();
+        code.AppendLine("return list;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static "
                 + itemType
                 + " ReadItem"
                 + member.Id
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(
-            3,
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A payload item must be an object.\");"
         );
-        code.AppendLineAt(3, "var item = new " + itemType + "();");
-        code.AppendLineAt(3, "while (reader.Read())");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("var item = new " + itemType + "();");
+        code.AppendLine("while (reader.Read())");
+        code.OpenBlock();
+        code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\");"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (reader.ValueTextEquals(\"key\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Key = ReadKey<"
                 + keyType
                 + ">(ref reader, options); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (reader.ValueTextEquals(\"kind\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Kind = ParseKind(reader.GetString()); }"
         );
         if (isKeyed)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"beforeIndex\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.BeforeIndex = reader.GetInt32(); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"afterIndex\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.AfterIndex = reader.GetInt32(); }"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"isReordered\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.IsReordered = reader.TokenType != global::System.Text.Json.JsonTokenType.Null && reader.GetBoolean(); }"
             );
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (reader.ValueTextEquals(\"before\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.Before = ReadEndpoint<"
                 + itemValueType
                 + ">(ref reader, options, null, null); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else if (reader.ValueTextEquals(\"after\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (!TryReadNull(ref reader)) item.After = ReadEndpoint<"
                 + itemValueType
                 + ">(ref reader, options, null, null); }"
@@ -545,8 +483,7 @@ internal static class SparsePayloadJsonMemberEmitter
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
             var editCore = context.ChildDto(editChild, "Core");
             _ = editCore;
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"edit\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) item.Edit = null; else item.Edit = "
                     + editChild
                     + ".PayloadJsonConverter.ReadCore(ref reader, options); }"
@@ -554,66 +491,53 @@ internal static class SparsePayloadJsonMemberEmitter
         }
         else
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"edit\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }"
             );
         }
 
         if (hasTempKey)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "else if (reader.ValueTextEquals(\"temporaryKey\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.TemporaryKey = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : (global::System.Guid?)reader.GetGuid(); }"
             );
         }
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); reader.Skip(); }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return item;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return item;");
+        code.CloseBlock();
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "private static void WriteItems"
                 + member.Id
                 + "(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.List<"
                 + itemType
                 + "> items, global::System.Text.Json.JsonSerializerOptions options)"
         );
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "writer.WriteStartArray();");
-        code.AppendLineAt(3, "foreach (var item in items)");
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(4, "writer.WriteStartObject();");
-        code.AppendLineAt(
-            4,
-            "writer.WritePropertyName(\"key\"); WriteKey(writer, item.Key, options);"
-        );
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine("writer.WriteStartArray();");
+        code.AppendLine("foreach (var item in items)");
+        code.OpenBlock();
+        code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("writer.WritePropertyName(\"key\"); WriteKey(writer, item.Key, options);");
+        code.AppendLine(
             "writer.WriteString(\"kind\", "
                 + context.Runtime
                 + "ChangePayloadWire.ToToken(item.Kind));"
         );
         if (isKeyed)
         {
-            code.AppendLineAt(4, "writer.WriteNumber(\"beforeIndex\", item.BeforeIndex);");
-            code.AppendLineAt(4, "writer.WriteNumber(\"afterIndex\", item.AfterIndex);");
-            code.AppendLineAt(
-                4,
-                "if (item.IsReordered) writer.WriteBoolean(\"isReordered\", true);"
-            );
+            code.AppendLine("writer.WriteNumber(\"beforeIndex\", item.BeforeIndex);");
+            code.AppendLine("writer.WriteNumber(\"afterIndex\", item.AfterIndex);");
+            code.AppendLine("if (item.IsReordered) writer.WriteBoolean(\"isReordered\", true);");
         }
 
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (item.Before is not null) { writer.WritePropertyName(\"before\"); WriteEndpoint(writer, item.Before, options, null); }"
         );
-        code.AppendLineAt(
-            4,
+        code.AppendLine(
             "if (item.After is not null) { writer.WritePropertyName(\"after\"); WriteEndpoint(writer, item.After, options, null); }"
         );
         if (isModelValue)
@@ -628,8 +552,7 @@ internal static class SparsePayloadJsonMemberEmitter
             var writeEditChild = isKeyed
                 ? member.Collection.ElementType.NonNullableName
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (item.Edit is not null) { writer.WritePropertyName(\"edit\"); "
                     + writeEditChild
                     + ".PayloadJsonConverter.WriteCore(writer, item.Edit, options); }"
@@ -638,15 +561,14 @@ internal static class SparsePayloadJsonMemberEmitter
 
         if (hasTempKey)
         {
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "if (item.TemporaryKey is not null) { writer.WritePropertyName(\"temporaryKey\"); writer.WriteStringValue(item.TemporaryKey.Value.ToString()); }"
             );
         }
-        code.AppendLineAt(4, "writer.WriteEndObject();");
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "writer.WriteEndArray();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
+        code.AppendLine("writer.WriteEndArray();");
+        code.CloseBlock();
         code.AppendLine();
     }
 }

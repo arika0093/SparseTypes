@@ -73,20 +73,18 @@ internal sealed class SparseFragmentOriginEmitter(
     public static void AppendOriginState(SharedIndentedBuilder code)
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>The fragment-wide default attribution. Null means Unknown.</summary>"
         );
-        code.AppendLineAt(2, "public string? Origin { get; }");
+        code.AppendLine("public string? Origin { get; }");
         code.AppendLine();
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Creates a fragment attributing its values to an origin. Null means Unknown.</summary>"
         );
-        code.AppendLineAt(2, "public Fragment(string? origin)");
-        code.AppendLineAt(2, "{");
-        code.AppendLineAt(3, "Origin = origin;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("public Fragment(string? origin)");
+        code.OpenBlock();
+        code.AppendLine("Origin = origin;");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -95,8 +93,8 @@ internal sealed class SparseFragmentOriginEmitter(
     public static void AppendOriginStorage(SharedIndentedBuilder code)
     {
         code.CancellationToken.ThrowIfCancellationRequested();
-        code.AppendLineAt(2, "internal string?[]? __SparseMemberOrigins { get; init; }");
-        code.AppendLineAt(2, "internal string?[]?[]? __SparseElementOrigins { get; init; }");
+        code.AppendLine("internal string?[]? __SparseMemberOrigins { get; init; }");
+        code.AppendLine("internal string?[]?[]? __SparseElementOrigins { get; init; }");
         code.AppendLine();
     }
 
@@ -354,17 +352,17 @@ internal sealed class SparseFragmentOriginEmitter(
     /// <summary>Emits the fragment-builder origin capture fields.</summary>
     public static void AppendBuilderFields(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(2, "private readonly string? __sparse_origin;");
-        code.AppendLineAt(2, "private string?[]? __sparse_member_origins;");
-        code.AppendLineAt(2, "private string?[]?[]? __sparse_element_origins;");
+        code.AppendLine("private readonly string? __sparse_origin;");
+        code.AppendLine("private string?[]? __sparse_member_origins;");
+        code.AppendLine("private string?[]?[]? __sparse_element_origins;");
     }
 
     /// <summary>Emits the fragment-builder origin capture from its source fragment.</summary>
     public static void AppendBuilderCapture(SharedIndentedBuilder code)
     {
-        code.AppendLineAt(3, "__sparse_origin = fragment.Origin;");
-        code.AppendLineAt(3, "__sparse_member_origins = fragment.__SparseMemberOrigins;");
-        code.AppendLineAt(3, "__sparse_element_origins = fragment.__SparseElementOrigins;");
+        code.AppendLine("__sparse_origin = fragment.Origin;");
+        code.AppendLine("__sparse_member_origins = fragment.__SparseMemberOrigins;");
+        code.AppendLine("__sparse_element_origins = fragment.__SparseElementOrigins;");
     }
 
     internal static string MemberAttribution(string side, int position, string? fallback)
@@ -389,58 +387,48 @@ internal sealed class SparseFragmentOriginEmitter(
 
     private void AppendQueryFacades(SharedIndentedBuilder code, string operationsType)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reads the origin attributed to the effective value at a path. Null means Unknown or absent.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public string? GetOrigin("
                 + SparsePathType
                 + " path) => "
                 + operationsType
                 + ".GetOrigin(this, path);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Tries to read the origin attributed to the effective value at a path.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public bool TryGetOrigin("
                 + SparsePathType
                 + " path, out string? origin) => "
                 + operationsType
                 + ".TryGetOrigin(this, path, out origin);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Enumerates the effective values attributed to their origins for inspection.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public global::System.Collections.Generic.IEnumerable<"
                 + OriginEntryType
                 + "> EnumerateOrigins() => "
                 + operationsType
                 + ".EnumerateOrigins(this);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Projects the effective values attributed to one origin. Grouping is lossy and read-only.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public Fragment GetByOrigin(string? origin) => "
                 + operationsType
                 + ".GetByOrigin(this, origin);"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Groups the effective values by origin in first-seen order. Grouping is lossy and read-only.</summary>"
         );
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "public global::System.Collections.Generic.IReadOnlyList<"
                 + OriginGroupType
                 + "> SplitByOrigin() => "
@@ -480,11 +468,10 @@ internal sealed class SparseFragmentOriginEmitter(
 
     private void AppendGetOrigin(SharedIndentedBuilder code, bool isStatic)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Reads the origin attributed to the effective value at a path. Null means Unknown or absent.</summary>"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "public static string? GetOrigin(Fragment self, "
@@ -492,29 +479,27 @@ internal sealed class SparseFragmentOriginEmitter(
             )
             .Append(SparsePathType)
             .AppendLine(" path)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isStatic)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "return "
                 + (isStatic ? "TryGetOrigin(self, path" : "TryGetOrigin(path")
                 + ", out var __sparse_origin) ? __sparse_origin : null;"
         );
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
     private void AppendTryGetOrigin(SharedIndentedBuilder code, bool isStatic)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Tries to read the origin attributed to the effective value at a path.</summary>"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "public static bool TryGetOrigin(Fragment self, "
@@ -522,37 +507,34 @@ internal sealed class SparseFragmentOriginEmitter(
             )
             .Append(SparsePathType)
             .AppendLine(" path, out string? origin)");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isStatic)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
         }
 
-        code.AppendLineAt(3, "origin = null;");
-        code.AppendLineAt(
-            3,
+        code.AppendLine("origin = null;");
+        code.AppendLine(
             "foreach (var __sparse_entry in "
                 + (isStatic ? "__SparseEnumerateOrigins(self)" : "__SparseEnumerateOrigins()")
                 + ")"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "if (__sparse_entry.Path == path) { origin = __sparse_entry.Origin; return true; }"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(3, "return false;");
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
+        code.AppendLine("return false;");
+        code.CloseBlock();
         code.AppendLine();
     }
 
     private void AppendEnumerateOrigins(SharedIndentedBuilder code, bool isStatic)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Enumerates the effective values attributed to their origins for inspection.</summary>"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "public static global::System.Collections.Generic.IEnumerable<"
@@ -561,26 +543,24 @@ internal sealed class SparseFragmentOriginEmitter(
             .Append(OriginEntryType)
             .Append(isStatic ? "> EnumerateOrigins(Fragment self)" : "> EnumerateOrigins()")
             .AppendLine("");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isStatic)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __sparse_entries = new global::System.Collections.Generic.List<"
                 + OriginEntryType
                 + ">();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "foreach (var __sparse_entry in "
                 + (isStatic ? "__SparseEnumerateOrigins(self)" : "__SparseEnumerateOrigins()")
                 + ") __sparse_entries.Add(__sparse_entry);"
         );
-        code.AppendLineAt(3, "return __sparse_entries;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return __sparse_entries;");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -592,7 +572,7 @@ internal sealed class SparseFragmentOriginEmitter(
     )
     {
         var self = receiver.TrimEnd('.');
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "private static global::System.Collections.Generic.IEnumerable<"
@@ -605,7 +585,7 @@ internal sealed class SparseFragmentOriginEmitter(
                     : "> __SparseEnumerateOrigins()"
             )
             .AppendLine("");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         for (var position = 0; position < members.Length; position++)
         {
             SparseFragmentOriginEnumerationEmitter.AppendMember(
@@ -617,7 +597,7 @@ internal sealed class SparseFragmentOriginEmitter(
             );
         }
 
-        code.AppendLineAt(2, "}");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -629,31 +609,30 @@ internal sealed class SparseFragmentOriginEmitter(
     )
     {
         var self = receiver.TrimEnd('.');
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Projects the effective values attributed to one origin. Grouping is lossy and read-only.</summary>"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "public static Fragment GetByOrigin(Fragment self, string? origin)"
                     : "public Fragment GetByOrigin(string? origin)"
             )
             .AppendLine("");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isStatic)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
         }
 
-        code.AppendLineAt(3, "var __sparse_builder = new Fragment(origin).ToBuilder();");
+        code.AppendLine("var __sparse_builder = new Fragment(origin).ToBuilder();");
         for (var position = 0; position < members.Length; position++)
         {
             AppendGetByOriginMember(code, members[position], position, self);
         }
 
-        code.AppendLineAt(3, "return __sparse_builder.Build();");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return __sparse_builder.Build();");
+        code.CloseBlock();
         code.AppendLine();
     }
 
@@ -671,19 +650,17 @@ internal sealed class SparseFragmentOriginEmitter(
             + ", origin, global::System.StringComparison.Ordinal)";
         if (IsFragmentDeep(member))
         {
-            code.AppendLineAt(3, "if (" + self + "." + name + ".IsPresent)");
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(4, "if ((object?)" + self + "." + name + ".Value is null)");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.AppendLine("if (" + self + "." + name + ".IsPresent)");
+            code.OpenBlock();
+            code.AppendLine("if ((object?)" + self + "." + name + ".Value is null)");
+            code.OpenBlock();
+            code.AppendLine(
                 "if (" + match + ") __sparse_builder." + name + " = " + self + "." + name + ";"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "else");
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
                 "var __sparse_grouped_"
                     + member.Id
                     + " = "
@@ -692,9 +669,8 @@ internal sealed class SparseFragmentOriginEmitter(
                     + name
                     + ".Value!.GetByOrigin(origin);"
             );
-            code.AppendLineAt(5, "if (!__sparse_grouped_" + member.Id + ".IsEmpty)");
-            code.AppendLineAt(
-                6,
+            code.AppendLine("if (!__sparse_grouped_" + member.Id + ".IsEmpty)");
+            code.AppendLine(
                 "__sparse_builder."
                     + name
                     + " = "
@@ -705,16 +681,15 @@ internal sealed class SparseFragmentOriginEmitter(
                     + member.Id
                     + ");"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
+            code.CloseBlock();
             return;
         }
 
         if (HasElementOrigins(member))
         {
             var element = member.Collection.ElementType.Name;
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if ("
                     + self
                     + "."
@@ -733,8 +708,7 @@ internal sealed class SparseFragmentOriginEmitter(
                     + name
                     + ";"
             );
-            code.AppendLineAt(
-                3,
+            code.AppendLine(
                 "if ("
                     + self
                     + "."
@@ -745,9 +719,8 @@ internal sealed class SparseFragmentOriginEmitter(
                     + name
                     + ".Value is not null)"
             );
-            code.AppendLineAt(3, "{");
-            code.AppendLineAt(
-                4,
+            code.OpenBlock();
+            code.AppendLine(
                 "var __sparse_values_"
                     + member.Id
                     + " = global::System.Linq.Enumerable.ToArray("
@@ -756,8 +729,7 @@ internal sealed class SparseFragmentOriginEmitter(
                     + name
                     + ".Value!);"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __sparse_elements_"
                     + member.Id
                     + " = "
@@ -768,16 +740,14 @@ internal sealed class SparseFragmentOriginEmitter(
                     + position
                     + "];"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "var __sparse_match_"
                     + member.Id
                     + " = new global::System.Collections.Generic.List<"
                     + element
                     + ">();"
             );
-            code.AppendLineAt(
-                4,
+            code.AppendLine(
                 "for (var __sparse_position_"
                     + member.Id
                     + " = 0; __sparse_position_"
@@ -788,9 +758,8 @@ internal sealed class SparseFragmentOriginEmitter(
                     + member.Id
                     + "++)"
             );
-            code.AppendLineAt(4, "{");
-            code.AppendLineAt(
-                5,
+            code.OpenBlock();
+            code.AppendLine(
                 "var __sparse_element_origin_"
                     + member.Id
                     + " = (__sparse_elements_"
@@ -809,8 +778,7 @@ internal sealed class SparseFragmentOriginEmitter(
                     + MemberAttribution(self + ".", position, null)
                     + ");"
             );
-            code.AppendLineAt(
-                5,
+            code.AppendLine(
                 "if (global::System.String.Equals(__sparse_element_origin_"
                     + member.Id
                     + ", origin, global::System.StringComparison.Ordinal)) __sparse_match_"
@@ -821,10 +789,9 @@ internal sealed class SparseFragmentOriginEmitter(
                     + member.Id
                     + "]);"
             );
-            code.AppendLineAt(4, "}");
-            code.AppendLineAt(4, "if (__sparse_match_" + member.Id + ".Count > 0)");
-            code.AppendLineAt(
-                5,
+            code.CloseBlock();
+            code.AppendLine("if (__sparse_match_" + member.Id + ".Count > 0)");
+            code.AppendLine(
                 "__sparse_builder."
                     + name
                     + " = "
@@ -838,12 +805,11 @@ internal sealed class SparseFragmentOriginEmitter(
                     )
                     + ");"
             );
-            code.AppendLineAt(3, "}");
+            code.CloseBlock();
             return;
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "if ("
                 + self
                 + "."
@@ -862,11 +828,10 @@ internal sealed class SparseFragmentOriginEmitter(
 
     private void AppendSplitByOrigin(SharedIndentedBuilder code, bool isStatic)
     {
-        code.AppendLineAt(
-            2,
+        code.AppendLine(
             "/// <summary>Groups the effective values by origin in first-seen order. Grouping is lossy and read-only.</summary>"
         );
-        code.AppendIndent(2)
+        code.AppendIndent()
             .Append(
                 isStatic
                     ? "public static global::System.Collections.Generic.IReadOnlyList<"
@@ -875,49 +840,43 @@ internal sealed class SparseFragmentOriginEmitter(
             .Append(OriginGroupType)
             .Append(isStatic ? "> SplitByOrigin(Fragment self)" : "> SplitByOrigin()")
             .AppendLine("");
-        code.AppendLineAt(2, "{");
+        code.OpenBlock();
         if (isStatic)
         {
-            SparseFragmentEmitHelpers.AppendNullGuard(code, 3, "self");
+            SparseFragmentEmitHelpers.AppendNullGuard(code, "self");
         }
 
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __sparse_order = new global::System.Collections.Generic.List<string?>();"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "var __sparse_seen = new global::System.Collections.Generic.HashSet<string?>(global::System.StringComparer.Ordinal);"
         );
-        code.AppendLineAt(
-            3,
+        code.AppendLine(
             "foreach (var __sparse_entry in "
                 + (isStatic ? "EnumerateOrigins(self)" : "EnumerateOrigins()")
                 + ")"
         );
-        code.AppendLineAt(3, "{");
-        code.AppendLineAt(
-            4,
+        code.OpenBlock();
+        code.AppendLine(
             "if (__sparse_seen.Add(__sparse_entry.Origin)) __sparse_order.Add(__sparse_entry.Origin);"
         );
-        code.AppendLineAt(3, "}");
-        code.AppendLineAt(
-            3,
+        code.CloseBlock();
+        code.AppendLine(
             "var __sparse_groups = new global::System.Collections.Generic.List<"
                 + OriginGroupType
                 + ">(__sparse_order.Count);"
         );
-        code.AppendLineAt(3, "foreach (var __sparse_origin in __sparse_order)");
-        code.AppendLineAt(
-            4,
+        code.AppendLine("foreach (var __sparse_origin in __sparse_order)");
+        code.AppendLine(
             "__sparse_groups.Add(new "
                 + OriginGroupType
                 + "(__sparse_origin, GetByOrigin("
                 + (isStatic ? "self, " : string.Empty)
                 + "__sparse_origin)));"
         );
-        code.AppendLineAt(3, "return __sparse_groups;");
-        code.AppendLineAt(2, "}");
+        code.AppendLine("return __sparse_groups;");
+        code.CloseBlock();
         code.AppendLine();
     }
 }

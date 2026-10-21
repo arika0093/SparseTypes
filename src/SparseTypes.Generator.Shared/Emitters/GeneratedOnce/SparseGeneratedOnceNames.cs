@@ -111,6 +111,6 @@ internal static class SparseGeneratedOnceNames
         // Block-scoped namespace: file-scoped namespaces need C# 10, while the
         // generated surface targets C# 9 as its minimum language version.
         code.Append("namespace ").Append(implementationNamespace).AppendLine();
-        code.AppendLine("{");
+        code.OpenBlock();
     }
 }
