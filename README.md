@@ -6,16 +6,20 @@
 
 *A unified change model for .NET.*
 
-SparseTypes generates change-tracking, diffing, patching, and merging companion types from your C# models at compile time.
+SparseTypes generates change-tracking, diffing, patching, and merging companion types from your C# models **automatically**.
 
-## Overview
+## Motivation
 
-When you assign `settings.Theme = "dark"` on an ordinary C# object, the object holds only the latest value.
-You cannot tell which properties were modified, what the previous value was,
-whether a `null` value was set intentionally or left out of a request,
-or how to merge that edit when another user updates `settings.DisplayName` at the same time.
+Consider a case where you directly edit `settings.Theme = "dark"`.  
+In that situation, information about the previous value and exactly where it changed is lost.  
+This makes it inconvenient to track edit history, update the UI based on the changed parts, or create diffs to send to a server.  
+Furthermore, when multiple people edit the same data concurrently, unrelated changes should be merged automatically, and conflicts should be detected and reported clearly.
 
-Adding `[SparseModel]` to a `partial` class generates companion types that record and apply those changes without reflection or manual DTO copies:
+Traditionally, implementing these features and synchronizing them between the client and server required a lot of redundant code.
+
+`SparseTypes` solves this by generating companion types for your C# models at compile time to track changes, create diffs, apply patches, and merge updates.
+
+It's simple to use: just add the `[SparseModel]` attribute to your model, and change-tracking types are generated automatically.
 
 <!-- illustrative: model shape excerpt; attribute and partial declarations only, not a runnable program -->
 ```csharp
@@ -34,36 +38,15 @@ public partial class DatabaseSettings
 }
 ```
 
-You can track edits on a live object, inspect the before-and-after values of each modified property, and revert to the initial baseline:
+That's it!  
+Behind the scenes, [many classes are generated](./docs/reference/generated-api.md), but users don't need to be aware of it.
 
-<!-- illustrative: edit session usage -->
-```csharp
-var settings = new Settings { Theme = "light" };
-var session = settings.CreateEditSession();
-
-session.Observable.Theme = "dark";
-Console.WriteLine(settings.Theme);             // dark (writes through to the model)
-Console.WriteLine(session.HasChanges);         // True
-
-var changes = session.CreateChangeSet();
-Console.WriteLine(changes.Theme.Before.Value); // light
-Console.WriteLine(changes.Theme.After.Value);  // dark
-```
-
-## Install
-
-Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/SparseTypes/):
-
-```shell
-dotnet add package SparseTypes
-```
-
-We also provide several other libraries. For details, see [here](docs/explanation/libraries.md).
+Let's take a look at how it can be used.
 
 ## Quick Start
 ### Simple example
 
-With the .NET 10 SDK or later, you can run a complete single-file program.
+With the .NET 10 SDK or later, you can run a complete single-file program.  
 Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`. 
 
 <!-- sample: readme-quickstart -->
@@ -99,13 +82,13 @@ session.RevertChanges();
 Console.WriteLine(session.HasChanges); // False
 Console.WriteLine(settings.Label); // default
 
+// ---------
 [SparseModel]
 public partial class Settings
 {
     public string? Label { get; set; }
     public DatabaseSettings? Database { get; set; }
 }
-
 public partial class DatabaseSettings
 {
     public string Host { get; set; } = "localhost";
@@ -154,6 +137,16 @@ var rebased = incoming.RebaseOnto(updated);
 
 `RebaseOnto` works like `git rebase`: it reports conflicts where they occur and merges everything else automatically.
 With [`ChangePayload`](docs/reference/change-payload.md) and [`Rebase`](docs/explanation/rebase.md), partial changes fit naturally even in environments where the client and server are separated.
+
+## Install
+
+Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/SparseTypes/):
+
+```shell
+dotnet add package SparseTypes
+```
+
+We also provide several other libraries. For details, see [here](docs/explanation/libraries.md).
 
 ## Learn more
 
