@@ -407,10 +407,10 @@ internal static class SparseFragmentEmitter
             );
         var splitPatchOperations = implementationNamespace is not null && features.EmitPatch;
         using var patchOperations = splitPatchOperations
-            ? new SharedIndentedBuilder(cancellationToken) { IndentLevel = 1 }
+            ? new SharedIndentedBuilder(cancellationToken)
             : null;
         using var changeSetOperations = splitPatchOperations
-            ? new SharedIndentedBuilder(cancellationToken) { IndentLevel = 1 }
+            ? new SharedIndentedBuilder(cancellationToken)
             : null;
         SparseOperationTarget? operationTarget = null;
         string? operationContainer = null;
@@ -764,9 +764,7 @@ internal static class SparseFragmentEmitter
             implementationBuilder.OpenBlock();
             // FragmentBuilder is public model-facing API co-hosted first in the
             // container; internal operation classes follow it.
-            using (
-                var builderBody = new SharedIndentedBuilder(cancellationToken) { IndentLevel = 1 }
-            )
+            using (var builderBody = new SharedIndentedBuilder(cancellationToken))
             {
                 core.AppendBuilder(builderBody, members, generatedAccessibility);
                 implementationBuilder.Append(builderBody.ToString());
@@ -775,9 +773,7 @@ internal static class SparseFragmentEmitter
             // entry point forwarding to this class.
             if (features.EmitChangeSet)
             {
-                using (
-                    var pathsBody = new SharedIndentedBuilder(cancellationToken) { IndentLevel = 1 }
-                )
+                using (var pathsBody = new SharedIndentedBuilder(cancellationToken))
                 {
                     SparsePathBuilderEmitter.AppendPathsClass(
                         pathsBody,

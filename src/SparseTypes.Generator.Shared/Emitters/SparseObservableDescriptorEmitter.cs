@@ -29,7 +29,7 @@ internal static class SparseObservableDescriptorEmitter
             AppendMember(code, member, members, runtimeNamespace, dialect, context);
         }
 
-        code.AppendLine("});");
+        code.Unindent().AppendLine("});");
         code.CloseBlock();
     }
 

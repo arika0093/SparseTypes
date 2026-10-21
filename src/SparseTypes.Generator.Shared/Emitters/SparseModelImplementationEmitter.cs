@@ -48,7 +48,7 @@ internal static class SparseModelImplementationEmitter
                 cancellationToken
             );
             var bridge =
-                "        internal "
+                "    internal "
                 + configured.DescriptorSetInterface
                 + " "
                 + accessor
@@ -57,7 +57,7 @@ internal static class SparseModelImplementationEmitter
                 + " pathPrefix) => "
                 + factoryRef
                 + ".Create(this, pathPrefix);\n";
-            var privateMarker = "\n        private ";
+            var privateMarker = "\n    private ";
             var privateIndex = inner.IndexOf(privateMarker, System.StringComparison.Ordinal);
             if (privateIndex >= 0)
             {
@@ -68,7 +68,7 @@ internal static class SparseModelImplementationEmitter
             }
             else
             {
-                var closing = "\n    }\n";
+                var closing = "\n}\n";
                 var index = inner.LastIndexOf(closing, System.StringComparison.Ordinal);
                 if (index >= 0)
                 {

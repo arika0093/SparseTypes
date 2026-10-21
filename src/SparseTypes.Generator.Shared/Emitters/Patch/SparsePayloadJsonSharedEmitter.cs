@@ -33,7 +33,7 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine(
             "_ => throw new global::System.Text.Json.JsonException(\"Unknown endpoint state.\"),"
         );
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.AppendLine();
         code.AppendLine(
             "private static "
@@ -48,7 +48,7 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine(
             "_ => throw new global::System.Text.Json.JsonException(\"Unknown item kind.\"),"
         );
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.AppendLine();
         code.AppendLine(
             "private delegate T RootReader<T>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options);"

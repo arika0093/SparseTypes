@@ -39,7 +39,7 @@ public sealed class OperationOrderingTests
     [Test]
     public void StreamingPreservesTheDestinationLineStateAndIndentation()
     {
-        var code = new SharedIndentedBuilder(CancellationToken.None) { IndentLevel = 1 };
+        var code = new SharedIndentedBuilder(CancellationToken.None).Indent();
         code.Append("prefix");
         SparseOperationOrdering.AppendInternalFirst(code, "  private int C;\n  internal int B;");
         code.Append("suffix");

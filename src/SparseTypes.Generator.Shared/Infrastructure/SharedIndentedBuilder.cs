@@ -16,7 +16,7 @@ internal sealed class SharedIndentedBuilder : IDisposable
 
     public CancellationToken CancellationToken => _cancellationToken;
 
-    public int IndentLevel { get; set; }
+    public int IndentLevel { get; private set; }
 
     private StringBuilder Buffer =>
         _builder ?? throw new ObjectDisposedException(nameof(SharedIndentedBuilder));

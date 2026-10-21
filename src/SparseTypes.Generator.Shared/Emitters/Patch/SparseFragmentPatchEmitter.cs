@@ -428,7 +428,7 @@ internal static class SparseFragmentPatchEmitter
         SharedIndentedBuilder? patchCore = null;
         if (target is not null)
         {
-            patchCore = new SharedIndentedBuilder(code.CancellationToken) { IndentLevel = 1 };
+            patchCore = new SharedIndentedBuilder(code.CancellationToken);
             patchTarget = new SparseOperationTarget(
                 patchCore,
                 target.ChangeSetOperations,

@@ -203,7 +203,11 @@ internal static class SparseTemporaryKeyOrderEmitter
                 + keyType
                 + ">.Default.Equals(__vk, "
                 + unassigned
-                + ")) { var __vt = "
+                + "))"
+        );
+        code.OpenBlock();
+        code.AppendLine(
+            "var __vt = "
                 + loopVar
                 + "."
                 + tempProp
@@ -257,7 +261,11 @@ internal static class SparseTemporaryKeyOrderEmitter
                 + keyType
                 + ">.Default.Equals(__sk2, "
                 + unassigned
-                + ")) { var __st2 = "
+                + "))"
+        );
+        code.OpenBlock();
+        code.AppendLine(
+            "var __st2 = "
                 + loopVar
                 + "."
                 + tempProp

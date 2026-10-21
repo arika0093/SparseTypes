@@ -118,11 +118,11 @@ internal static class SparseChangeSetRebaseEmitter
         code.OpenBlock();
         code.AppendLine("if (__SparseIsRedacted(options, \"\"))");
         code.OpenBlock();
-        code.AppendLine("    if (__SparseRejectsRedacted(options))");
-        code.AppendLine("    {");
-        code.AppendLine("        var __rconf = new " + conflictList + "();");
+        code.AppendLine("if (__SparseRejectsRedacted(options))");
+        code.OpenBlock();
+        code.AppendLine("var __rconf = new " + conflictList + "();");
         code.AppendLine(
-            "        __rconf.Add(new "
+            "__rconf.Add(new "
                 + conflict
                 + "(__SparseRootPath, "
                 + conflictKind
@@ -136,12 +136,10 @@ internal static class SparseChangeSetRebaseEmitter
                 + SparseRebaseOptionEmitter.RedactedReason
                 + "\"));"
         );
+        code.AppendLine("return new " + rebaseResult + "(Between(current, current), __rconf);");
+        code.CloseBlock();
         code.AppendLine(
-            "        return new " + rebaseResult + "(Between(current, current), __rconf);"
-        );
-        code.AppendLine("    }");
-        code.AppendLine(
-            "    return " + rebaseResult + ".Success(Between(current, __sparse_wholeAfter));"
+            "return " + rebaseResult + ".Success(Between(current, __sparse_wholeAfter));"
         );
         code.CloseBlock();
         code.AppendLine(
@@ -151,7 +149,9 @@ internal static class SparseChangeSetRebaseEmitter
             "var __rb = " + rebase + "(__sparse_wholeBefore, __local, current, options);"
         );
         code.AppendLine("if (__rb.Conflicts.Count == 0 && __rb.Rebased.__SparseIsEmpty())");
+        code.OpenBlock();
         code.AppendLine("return " + rebaseResult + ".Success(Between(current, current));");
+        code.CloseBlock();
         code.AppendLine("var __ra = __rb.Rebased.Apply(current);");
         code.AppendLine("return new " + rebaseResult + "(Between(current, __ra), __rb.Conflicts);");
         code.CloseBlock();
@@ -273,10 +273,10 @@ internal static class SparseChangeSetRebaseEmitter
             {
                 code.AppendLine("if (" + NestedField(member) + " is not null)");
                 code.OpenBlock();
-                code.AppendLine("    if (__SparseIsRedacted(options, " + lit + "))");
-                code.AppendLine("    {");
-                code.AppendLine("        if (__SparseRejectsRedacted(options))");
-                code.AppendLine("        {");
+                code.AppendLine("if (__SparseIsRedacted(options, " + lit + "))");
+                code.OpenBlock();
+                code.AppendLine("if (__SparseRejectsRedacted(options))");
+                code.OpenBlock();
                 SparseRebaseOptionEmitter.AppendRedactedConflict(
                     code,
                     runtime,
@@ -285,11 +285,14 @@ internal static class SparseChangeSetRebaseEmitter
                     "__SparseRootPath.Member(" + lit + ")",
                     "__conflicts"
                 );
-                code.AppendLine("        }");
-                code.AppendLine("        else __r" + member.Id + " = " + NestedField(member) + ";");
-                code.AppendLine("    }");
-                code.AppendLine("    else");
-                code.AppendLine("    {");
+                code.CloseBlock();
+                code.AppendLine("else");
+                code.OpenBlock();
+                code.AppendLine("__r" + member.Id + " = " + NestedField(member) + ";");
+                code.CloseBlock();
+                code.CloseBlock();
+                code.AppendLine("else");
+                code.OpenBlock();
                 code.AppendLine(
                     "var __nr"
                         + member.Id
@@ -316,7 +319,7 @@ internal static class SparseChangeSetRebaseEmitter
                         + member.Id
                         + ".Rebased;"
                 );
-                code.AppendLine("    }");
+                code.CloseBlock();
                 code.CloseBlock();
             }
             else if (IsKeyed(member))
@@ -366,9 +369,9 @@ internal static class SparseChangeSetRebaseEmitter
                 );
                 code.AppendLine("if (" + HasField(member) + " && !__red" + member.Id + ")");
                 code.OpenBlock();
-                code.AppendLine("    var __base" + member.Id + " = " + BeforeField(member) + ";");
-                code.AppendLine("    var __des" + member.Id + " = " + AfterField(member) + ";");
-                code.AppendLine("    var __curM" + member.Id + " = __cur." + esc + ";");
+                code.AppendLine("var __base" + member.Id + " = " + BeforeField(member) + ";");
+                code.AppendLine("var __des" + member.Id + " = " + AfterField(member) + ";");
+                code.AppendLine("var __curM" + member.Id + " = __cur." + esc + ";");
                 SparseChangeSetMemberRebaseEmitter.AppendReconcilerAttempt(
                     code,
                     member,
@@ -407,9 +410,9 @@ internal static class SparseChangeSetRebaseEmitter
                 );
                 code.AppendLine("if (" + HasField(member) + " && !__red" + member.Id + ")");
                 code.OpenBlock();
-                code.AppendLine("    var __base" + member.Id + " = " + BeforeField(member) + ";");
-                code.AppendLine("    var __des" + member.Id + " = " + AfterField(member) + ";");
-                code.AppendLine("    var __curM" + member.Id + " = __cur." + esc + ";");
+                code.AppendLine("var __base" + member.Id + " = " + BeforeField(member) + ";");
+                code.AppendLine("var __des" + member.Id + " = " + AfterField(member) + ";");
+                code.AppendLine("var __curM" + member.Id + " = __cur." + esc + ";");
                 if (member.RebasePolicyType is not null)
                 {
                     var policy =

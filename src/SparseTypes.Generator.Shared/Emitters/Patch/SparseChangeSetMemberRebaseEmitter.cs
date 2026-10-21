@@ -91,7 +91,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 : optionalBoxType + ".ToObject(" + expression + ")";
 
         code.AppendLine(
-            "    if ("
+            "if ("
                 + reconciler
                 + ".TryRebase(__base"
                 + member.Id
@@ -105,9 +105,9 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + member.Id
                 + "))"
         );
-        code.AppendLine("    {");
+        code.OpenBlock();
         code.AppendLine(
-            "        if (!((!__reb"
+            "if (!((!__reb"
                 + member.Id
                 + ".IsPresent && !__curM"
                 + member.Id
@@ -119,16 +119,16 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + areEqual
                 + ")))"
         );
-        code.AppendLine("        {");
-        code.AppendLine("            __rh" + member.Id + " = true;");
-        code.AppendLine("            __rb" + member.Id + " = __curM" + member.Id + ";");
-        code.AppendLine("            __ra" + member.Id + " = __reb" + member.Id + ";");
-        code.AppendLine("        }");
-        code.AppendLine("    }");
-        code.AppendLine("    else");
-        code.AppendLine("    {");
+        code.OpenBlock();
+        code.AppendLine("__rh" + member.Id + " = true;");
+        code.AppendLine("__rb" + member.Id + " = __curM" + member.Id + ";");
+        code.AppendLine("__ra" + member.Id + " = __reb" + member.Id + ";");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         code.AppendLine(
-            "        __conflicts.Add(new "
+            "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
                 + lit
@@ -146,7 +146,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + reasonFallback
                 + "\"));"
         );
-        code.AppendLine("    }");
+        code.CloseBlock();
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
         if (scalarRebaseType is { Length: > 0 })
         {
             code.AppendLine(
-                "    if ("
+                "if ("
                     + scalarRebaseType
                     + ".TryResolve(__base"
                     + id
@@ -193,15 +193,15 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     + id
                     + "))"
             );
-            code.AppendLine("    {");
-            code.AppendLine("        __rh" + id + " = true;");
-            code.AppendLine("        __rb" + id + " = __curM" + id + ";");
-            code.AppendLine("        __ra" + id + " = __after" + id + ";");
-            code.AppendLine("    }");
-            code.AppendLine("    else if (__scalarConflict" + id + ")");
-            code.AppendLine("    {");
+            code.OpenBlock();
+            code.AppendLine("__rh" + id + " = true;");
+            code.AppendLine("__rb" + id + " = __curM" + id + ";");
+            code.AppendLine("__ra" + id + " = __after" + id + ";");
+            code.CloseBlock();
+            code.AppendLine("else if (__scalarConflict" + id + ")");
+            code.OpenBlock();
             code.AppendLine(
-                "        __conflicts.Add(new "
+                "__conflicts.Add(new "
                     + conflict
                     + "(__SparseRootPath.Member("
                     + lit
@@ -215,12 +215,12 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     + Box("__curM" + id)
                     + ", \"The member conflicts with a concurrent change.\"));"
             );
-            code.AppendLine("    }");
+            code.CloseBlock();
             return;
         }
 
         code.AppendLine(
-            "    if (__mode"
+            "if (__mode"
                 + " == "
                 + modeType
                 + ".PreferIncoming && !Fragment.__SparseEqual_"
@@ -231,13 +231,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + id
                 + "))"
         );
-        code.AppendLine("    {");
-        code.AppendLine("        __rh" + id + " = true;");
-        code.AppendLine("        __rb" + id + " = __curM" + id + ";");
-        code.AppendLine("        __ra" + id + " = __des" + id + ";");
-        code.AppendLine("    }");
+        code.OpenBlock();
+        code.AppendLine("__rh" + id + " = true;");
+        code.AppendLine("__rb" + id + " = __curM" + id + ";");
+        code.AppendLine("__ra" + id + " = __des" + id + ";");
+        code.CloseBlock();
         code.AppendLine(
-            "    else if (__mode"
+            "else if (__mode"
                 + " != "
                 + modeType
                 + ".PreferCurrent && Fragment.__SparseEqual_"
@@ -248,13 +248,13 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + id
                 + "))"
         );
-        code.AppendLine("    {");
-        code.AppendLine("        __rh" + id + " = true;");
-        code.AppendLine("        __rb" + id + " = __curM" + id + ";");
-        code.AppendLine("        __ra" + id + " = __des" + id + ";");
-        code.AppendLine("    }");
+        code.OpenBlock();
+        code.AppendLine("__rh" + id + " = true;");
+        code.AppendLine("__rb" + id + " = __curM" + id + ";");
+        code.AppendLine("__ra" + id + " = __des" + id + ";");
+        code.CloseBlock();
         code.AppendLine(
-            "    else if (__mode"
+            "else if (__mode"
                 + " != "
                 + modeType
                 + ".PreferCurrent && !Fragment.__SparseEqual_"
@@ -265,9 +265,9 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + id
                 + "))"
         );
-        code.AppendLine("    {");
+        code.OpenBlock();
         code.AppendLine(
-            "        __conflicts.Add(new "
+            "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
                 + lit
@@ -281,7 +281,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + Box("__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLine("    }");
+        code.CloseBlock();
     }
 
     /// <summary>
@@ -329,19 +329,19 @@ internal static class SparseChangeSetMemberRebaseEmitter
         );
         code.AppendLine("if (" + HasField(member) + " && !__red" + id + ")");
         code.OpenBlock();
-        code.AppendLine("    var __base" + id + " = " + BeforeField(member) + ";");
-        code.AppendLine("    var __des" + id + " = " + AfterField(member) + ";");
-        code.AppendLine("    var __curM" + id + " = __cur." + esc + ";");
+        code.AppendLine("var __base" + id + " = " + BeforeField(member) + ";");
+        code.AppendLine("var __des" + id + " = " + AfterField(member) + ";");
+        code.AppendLine("var __curM" + id + " = __cur." + esc + ";");
         code.AppendLine(
-            "    if (Fragment.__SparseEqual_" + id + "(__base" + id + ", __curM" + id + "))"
+            "if (Fragment.__SparseEqual_" + id + "(__base" + id + ", __curM" + id + "))"
         );
-        code.AppendLine("    {");
-        code.AppendLine("        __rh" + id + " = true;");
-        code.AppendLine("        __rb" + id + " = __curM" + id + ";");
-        code.AppendLine("        __ra" + id + " = __des" + id + ";");
-        code.AppendLine("    }");
+        code.OpenBlock();
+        code.AppendLine("__rh" + id + " = true;");
+        code.AppendLine("__rb" + id + " = __curM" + id + ";");
+        code.AppendLine("__ra" + id + " = __des" + id + ";");
+        code.CloseBlock();
         code.AppendLine(
-            "    else if (__base"
+            "else if (__base"
                 + id
                 + ".IsPresent && __des"
                 + id
@@ -355,14 +355,14 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + id
                 + ".Value is not null)"
         );
-        code.AppendLine("    {");
-        code.AppendLine("        " + valueType + " __rebuilt" + id + " = default!;");
-        code.AppendLine("        string? __reason" + id + ";");
-        code.AppendLine("        bool __ok" + id + ";");
+        code.OpenBlock();
+        code.AppendLine(valueType + " __rebuilt" + id + " = default!;");
+        code.AppendLine("string? __reason" + id + ";");
+        code.AppendLine("bool __ok" + id + ";");
         if (isSet)
         {
             code.AppendLine(
-                "        __ok"
+                "__ok"
                     + id
                     + " = "
                     + facade
@@ -380,7 +380,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     + id
                     + ");"
             );
-            code.AppendLine("        if (__ok" + id + ") __rebuilt" + id + " = __rv" + id + ";");
+            code.AppendLine("if (__ok" + id + ") __rebuilt" + id + " = __rv" + id + ";");
         }
         else if (isTypedSequence)
         {
@@ -416,7 +416,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + list
                 + "))";
             code.AppendLine(
-                "        if ("
+                "if ("
                     + NativeInput("__base" + id, "__bv" + id)
                     + " && "
                     + NativeInput("__des" + id, "__dv" + id)
@@ -424,9 +424,9 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     + NativeInput("__curM" + id, "__cv" + id)
                     + ")"
             );
-            code.AppendLine("        {");
+            code.OpenBlock();
             code.AppendLine(
-                "            __ok"
+                "__ok"
                     + id
                     + " = "
                     + facade
@@ -446,35 +446,33 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     + id
                     + ");"
             );
+            code.AppendLine("if (__ok" + id + ") __rebuilt" + id + " = __tv" + id + ";");
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
             code.AppendLine(
-                "            if (__ok" + id + ") __rebuilt" + id + " = __tv" + id + ";"
-            );
-            code.AppendLine("        }");
-            code.AppendLine("        else");
-            code.AppendLine("        {");
-            code.AppendLine(
-                "            var __bb"
+                "var __bb"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__base"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "            var __cb"
+                "var __cb"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__curM"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "            var __db"
+                "var __db"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__des"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "            __ok"
+                "__ok"
                     + id
                     + " = "
                     + facade
@@ -498,10 +496,8 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 member,
                 "global::System.Linq.Enumerable.Cast<" + elementType + ">(__bx" + id + ")"
             );
-            code.AppendLine(
-                "            if (__ok" + id + ") __rebuilt" + id + " = " + boxedResult + ";"
-            );
-            code.AppendLine("        }");
+            code.AppendLine("if (__ok" + id + ") __rebuilt" + id + " = " + boxedResult + ";");
+            code.CloseBlock();
         }
         else
         {
@@ -510,28 +506,28 @@ internal static class SparseChangeSetMemberRebaseEmitter
                     ? "TryRebaseAppend"
                     : "TryRebaseSetUnion";
             code.AppendLine(
-                "        var __bb"
+                "var __bb"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__base"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "        var __cb"
+                "var __cb"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__curM"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "        var __db"
+                "var __db"
                     + id
                     + " = global::System.Linq.Enumerable.ToList(global::System.Linq.Enumerable.Cast<object?>((global::System.Collections.IEnumerable)__des"
                     + id
                     + ".Value));"
             );
             code.AppendLine(
-                "        __ok"
+                "__ok"
                     + id
                     + " = "
                     + facade
@@ -555,34 +551,24 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 member,
                 "global::System.Linq.Enumerable.Cast<" + elementType + ">(__bx" + id + ")"
             );
-            code.AppendLine(
-                "        if (__ok" + id + ") __rebuilt" + id + " = " + boxedResult + ";"
-            );
+            code.AppendLine("if (__ok" + id + ") __rebuilt" + id + " = " + boxedResult + ";");
         }
-        code.AppendLine("        if (__ok" + id + ")");
-        code.AppendLine("        {");
+        code.AppendLine("if (__ok" + id + ")");
+        code.OpenBlock();
+        code.AppendLine(opt + " __rebOpt" + id + " = " + opt + ".Present(__rebuilt" + id + ");");
         code.AppendLine(
-            "            " + opt + " __rebOpt" + id + " = " + opt + ".Present(__rebuilt" + id + ");"
+            "if (!Fragment.__SparseEqual_" + id + "(__curM" + id + ", __rebOpt" + id + "))"
         );
+        code.OpenBlock();
+        code.AppendLine("__rh" + id + " = true;");
+        code.AppendLine("__rb" + id + " = __curM" + id + ";");
+        code.AppendLine("__ra" + id + " = __rebOpt" + id + ";");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
         code.AppendLine(
-            "            if (!Fragment.__SparseEqual_"
-                + id
-                + "(__curM"
-                + id
-                + ", __rebOpt"
-                + id
-                + "))"
-        );
-        code.AppendLine("            {");
-        code.AppendLine("                __rh" + id + " = true;");
-        code.AppendLine("                __rb" + id + " = __curM" + id + ";");
-        code.AppendLine("                __ra" + id + " = __rebOpt" + id + ";");
-        code.AppendLine("            }");
-        code.AppendLine("        }");
-        code.AppendLine("        else");
-        code.AppendLine("        {");
-        code.AppendLine(
-            "            __conflicts.Add(new "
+            "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
                 + lit
@@ -598,14 +584,14 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + id
                 + " ?? \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLine("        }");
-        code.AppendLine("    }");
+        code.CloseBlock();
+        code.CloseBlock();
         code.AppendLine(
-            "    else if (!Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))"
+            "else if (!Fragment.__SparseEqual_" + id + "(__des" + id + ", __curM" + id + "))"
         );
-        code.AppendLine("    {");
+        code.OpenBlock();
         code.AppendLine(
-            "        __conflicts.Add(new "
+            "__conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath.Member("
                 + lit
@@ -619,7 +605,7 @@ internal static class SparseChangeSetMemberRebaseEmitter
                 + BoxExpression(dialect, "__curM" + id)
                 + ", \"The member conflicts with a concurrent change.\"));"
         );
-        code.AppendLine("    }");
+        code.CloseBlock();
         code.CloseBlock();
     }
 }

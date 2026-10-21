@@ -128,7 +128,7 @@ internal sealed class SparseFragmentMergeEmitter
                     .AppendLine(",");
             }
 
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
             code.CloseBlock();
             code.AppendLine();
             return;
@@ -355,7 +355,7 @@ internal sealed class SparseFragmentMergeEmitter
                     .AppendLine(",");
             }
 
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
             code.CloseBlock();
             code.AppendLine();
             return;
@@ -968,7 +968,7 @@ internal sealed class SparseFragmentMergeEmitter
             code.AppendIndent().Append(name).Append(" = ").Append(condition).AppendLine(",");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 
     private static string DiffMemberPath(SparseMemberModel member)

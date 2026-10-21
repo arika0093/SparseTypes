@@ -193,57 +193,55 @@ internal static class SparseRebaseResolutionEmitter
         shell.AppendLine("public sealed class Resolution : " + ResolutionBaseFor(runtime));
         shell.OpenBlock();
         shell.AppendLine(
-            "    /// <summary>Creates resolution state for a rebase result and its current snapshot.</summary>"
+            "/// <summary>Creates resolution state for a rebase result and its current snapshot.</summary>"
         );
         shell.AppendLine(
-            "    /// <param name=\"rebase\">The original rebase result to resolve.</param>"
+            "/// <param name=\"rebase\">The original rebase result to resolve.</param>"
         );
         shell.AppendLine(
-            "    /// <param name=\"current\">The authoritative current-state snapshot.</param>"
+            "/// <param name=\"current\">The authoritative current-state snapshot.</param>"
         );
         shell.AppendLine(
-            "    public Resolution(" + rebaseResult + " rebase, " + optionalFragment + " current)"
+            "public Resolution(" + rebaseResult + " rebase, " + optionalFragment + " current)"
         );
-        shell.AppendLine("        : base(rebase)");
-        shell.AppendLine("    {");
-        shell.AppendLine("        _current = current;");
-        shell.AppendLine("    }");
+        shell.Indent().AppendLine(": base(rebase)").Unindent();
+        shell.OpenBlock();
+        shell.AppendLine("_current = current;");
+        shell.CloseBlock();
         shell.AppendLine(
-            "    /// <summary>Creates resolution state for a rebase result and an ordinary model.</summary>"
-        );
-        shell.AppendLine(
-            "    /// <param name=\"rebase\">The original rebase result to resolve.</param>"
+            "/// <summary>Creates resolution state for a rebase result and an ordinary model.</summary>"
         );
         shell.AppendLine(
-            "    /// <param name=\"current\">The authoritative current model.</param>"
+            "/// <param name=\"rebase\">The original rebase result to resolve.</param>"
+        );
+        shell.AppendLine("/// <param name=\"current\">The authoritative current model.</param>");
+        shell.AppendLine(
+            "public Resolution(" + rebaseResult + " rebase, " + modelType + " current)"
+        );
+        shell.Indent()
+            .AppendLine(": this(rebase, " + optionalFragment + ".Present(Fragment.From(current)))")
+            .Unindent();
+        shell.OpenBlock();
+        shell.CloseBlock();
+        shell.AppendLine(
+            "/// <summary>Gets the authoritative current-state snapshot this resolution builds against.</summary>"
+        );
+        shell.AppendLine("public " + optionalFragment + " Current => _current;");
+        shell.AppendLine(
+            "/// <summary>Builds the resolved change set from per-conflict desired values.</summary>"
         );
         shell.AppendLine(
-            "    public Resolution(" + rebaseResult + " rebase, " + modelType + " current)"
+            "/// <param name=\"choices\">Every conflict with the presence-aware value to write.</param>"
+        );
+        shell.AppendLine("/// <param name=\"resolved\">The resolved change set.</param>");
+        shell.AppendLine(
+            "/// <param name=\"failureReason\">A value-free reason when the build fails.</param>"
         );
         shell.AppendLine(
-            "        : this(rebase, " + optionalFragment + ".Present(Fragment.From(current)))"
-        );
-        shell.AppendLine("    {");
-        shell.AppendLine("    }");
-        shell.AppendLine(
-            "    /// <summary>Gets the authoritative current-state snapshot this resolution builds against.</summary>"
-        );
-        shell.AppendLine("    public " + optionalFragment + " Current => _current;");
-        shell.AppendLine(
-            "    /// <summary>Builds the resolved change set from per-conflict desired values.</summary>"
+            "/// <returns><see langword=\"true\"/> when the change set built.</returns>"
         );
         shell.AppendLine(
-            "    /// <param name=\"choices\">Every conflict with the presence-aware value to write.</param>"
-        );
-        shell.AppendLine("    /// <param name=\"resolved\">The resolved change set.</param>");
-        shell.AppendLine(
-            "    /// <param name=\"failureReason\">A value-free reason when the build fails.</param>"
-        );
-        shell.AppendLine(
-            "    /// <returns><see langword=\"true\"/> when the change set built.</returns>"
-        );
-        shell.AppendLine(
-            "    protected override bool TryCreateResolved("
+            "protected override bool TryCreateResolved("
                 + choices
                 + " choices, out ChangeSet? resolved, out string? failureReason) => "
                 + (
@@ -254,9 +252,9 @@ internal static class SparseRebaseResolutionEmitter
                 + "(Rebase, _current, choices, out resolved, out failureReason);"
         );
         shell.AppendLine(
-            "    /// <summary>The authoritative current-state snapshot this resolution builds against (resolution infrastructure).</summary>"
+            "/// <summary>The authoritative current-state snapshot this resolution builds against (resolution infrastructure).</summary>"
         );
-        shell.AppendLine("    private readonly " + optionalFragment + " _current;");
+        shell.AppendLine("private readonly " + optionalFragment + " _current;");
         shell.CloseBlock();
     }
 

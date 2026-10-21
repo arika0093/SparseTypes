@@ -59,7 +59,7 @@ internal static class SparseChangeSetEmitter
         SharedIndentedBuilder? changeSetCore = null;
         if (target is not null)
         {
-            changeSetCore = new SharedIndentedBuilder(code.CancellationToken) { IndentLevel = 1 };
+            changeSetCore = new SharedIndentedBuilder(code.CancellationToken);
             target = new SparseOperationTarget(
                 target.PatchOperations,
                 changeSetCore,

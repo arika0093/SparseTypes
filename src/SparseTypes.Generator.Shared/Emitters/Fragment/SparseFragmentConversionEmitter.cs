@@ -241,7 +241,7 @@ internal sealed class SparseFragmentConversionEmitter
                 .AppendLine("),");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 
     private static string FromMemberPath(SparseMemberModel member)
@@ -601,6 +601,6 @@ internal sealed class SparseFragmentConversionEmitter
                 .AppendLine(",");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 }

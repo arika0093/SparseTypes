@@ -169,10 +169,7 @@ internal static class SparsePathBuilderEmitter
 
             code.CloseBlock();
         }
-        using var navigations = new SharedIndentedBuilder(code.CancellationToken)
-        {
-            IndentLevel = code.IndentLevel,
-        };
+        using var navigations = new SharedIndentedBuilder(code.CancellationToken);
         foreach (var member in members)
         {
             AppendMemberNavigation(navigations, member, pathType, dialect, qualifyChildPaths);
@@ -384,10 +381,7 @@ internal static class SparsePathBuilderEmitter
                     + " updated) => throw new global::System.NotSupportedException(\"Collection member paths do not address a generated model value.\");"
             );
         }
-        using var entries = new SharedIndentedBuilder(code.CancellationToken)
-        {
-            IndentLevel = code.IndentLevel,
-        };
+        using var entries = new SharedIndentedBuilder(code.CancellationToken);
         if (SparseChangeSetBasicsEmitter.IsSet(member))
         {
             var element = member.Collection.ElementType.Name;

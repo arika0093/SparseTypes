@@ -402,7 +402,7 @@ internal static class SparseFragmentPatchCoreEmitter
             }
             code.AppendLine(name + " = " + expression + ",");
         }
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 
     /// <summary>Aliases patch facade state as locals for relocated bodies.</summary>

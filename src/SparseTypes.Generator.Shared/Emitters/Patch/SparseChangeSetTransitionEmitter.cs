@@ -259,7 +259,6 @@ internal static class SparseChangeSetTransitionEmitter
                 }
                 projectionFields ??= new System.Text.StringBuilder();
                 projectionFields
-                    .Append(' ', (2 + code.IndentLevel) * 4)
                     .Append("private ")
                     .Append(transNames[member.Id])
                     .Append("? ")

@@ -7,7 +7,7 @@ public sealed class SharedIndentedBuilderRangeTests
     [Test]
     public void RangeAddsIndentationAndKeepsTheFollowingAppendOnItsCurrentLine()
     {
-        var code = new SharedIndentedBuilder(CancellationToken.None) { IndentLevel = 1 };
+        var code = new SharedIndentedBuilder(CancellationToken.None).Indent();
         code.Append("xxa\nbYY", 2, 3).AppendLine("c");
         code.ToString().ShouldBe("    a\n    bc\n");
     }

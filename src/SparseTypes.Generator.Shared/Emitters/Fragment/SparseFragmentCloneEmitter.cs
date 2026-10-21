@@ -254,7 +254,7 @@ internal sealed class SparseFragmentCloneEmitter
                     .AppendLine(",");
             }
 
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
         }
         else
         {
@@ -577,7 +577,7 @@ internal sealed class SparseFragmentCloneEmitter
                 code.AppendLine("__SparseElementOrigins = this.__SparseElementOrigins,");
             }
 
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
         }
         code.CloseBlock();
         code.AppendLine();

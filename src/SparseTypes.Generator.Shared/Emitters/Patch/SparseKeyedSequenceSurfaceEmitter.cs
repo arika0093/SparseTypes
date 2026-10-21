@@ -86,8 +86,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             split = new SparseMemberOperationSplit(code, operations, operationsType, "self.");
             // Private key helper trails the internal operation bodies so the
             // member operation class stays public/internal-first ordered.
-            deferredKeyOf!.IndentLevel = operations.IndentLevel;
-            SparseKeyedCollectionEmitter.EmitKeyOf(deferredKeyOf, member, elementType);
+            SparseKeyedCollectionEmitter.EmitKeyOf(deferredKeyOf!, member, elementType);
         }
         else
         {

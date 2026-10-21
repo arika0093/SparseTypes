@@ -308,7 +308,7 @@ internal static class SparseChangeSetPayloadEmitter
                 );
             }
 
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
         }
         code.AppendLine("/// <summary>Gets or sets the provisional wire version token.</summary>");
         AppendJsonProperty(code, "Version", 0, dialect.EmitJson);
@@ -677,7 +677,7 @@ internal static class SparseChangeSetPayloadEmitter
             );
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.CloseBlock();
         code.AppendLine(
             "internal static " + payloadRoot + " FromFragment(Fragment value, bool redactBefores)"

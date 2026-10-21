@@ -194,7 +194,7 @@ internal static class SparseObservableEmitter
         code.AppendLine(
             "_ => new global::System.ComponentModel.PropertyChangedEventArgs(propertyName),"
         );
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.AppendLine("PropertyChanged?.Invoke(this, args);");
         code.CloseBlock();
         foreach (var member in members)

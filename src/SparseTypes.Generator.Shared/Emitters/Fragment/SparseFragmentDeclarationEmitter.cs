@@ -217,7 +217,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
             code.AppendLine("__SparseElementOrigins = __sparse_element_origins,");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.AppendLine("internal FragmentBuilder(Fragment fragment)");
         code.OpenBlock();
         foreach (var member in members)

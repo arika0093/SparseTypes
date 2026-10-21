@@ -208,7 +208,7 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
-        code.AppendLine("    result = local." + prefix + "Compose(new Patch());");
+        code.AppendLine("result = local." + prefix + "Compose(new Patch());");
         code.CloseBlock();
         code.AppendLine("return new " + rebaseResult + "(result, conflicts);");
         code.CloseBlock();
@@ -217,12 +217,12 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.OpenBlock();
         code.AppendLine("if (Fragment.__SparseAreEqual(baseState, currentState))");
         code.OpenBlock();
-        code.AppendLine("    result = local." + prefix + "Compose(new Patch());");
+        code.AppendLine("result = local." + prefix + "Compose(new Patch());");
         code.CloseBlock();
         code.AppendLine("else if (!Fragment.__SparseAreEqual(desiredState, currentState))");
         code.OpenBlock();
         code.AppendLine(
-            "    conflicts.Add(new "
+            "conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath, "
                 + conflictKind
@@ -237,12 +237,12 @@ internal static class SparseFragmentPatchRebaseEmitter
         code.OpenBlock();
         code.AppendLine("if (Fragment.__SparseAreEqual(baseState, currentState))");
         code.OpenBlock();
-        code.AppendLine("    result = local." + prefix + "Compose(new Patch());");
+        code.AppendLine("result = local." + prefix + "Compose(new Patch());");
         code.CloseBlock();
         code.AppendLine("else if (!Fragment.__SparseAreEqual(desiredState, currentState))");
         code.OpenBlock();
         code.AppendLine(
-            "    conflicts.Add(new "
+            "conflicts.Add(new "
                 + conflict
                 + "(__SparseRootPath, "
                 + conflictKind

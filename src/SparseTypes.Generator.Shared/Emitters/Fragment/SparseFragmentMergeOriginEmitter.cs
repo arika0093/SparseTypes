@@ -56,7 +56,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 .AppendLine(",");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.CloseBlock();
         var elementPositions = new System.Collections.Generic.List<int>();
         for (var position = 0; position < members.Length; position++)
@@ -130,7 +130,7 @@ internal static class SparseFragmentMergeOriginEmitter
         code.AppendLine(" },");
         if (elementPositions.Count == 0)
         {
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
             return;
         }
 
@@ -163,7 +163,7 @@ internal static class SparseFragmentMergeOriginEmitter
         }
 
         code.AppendLine(" } : null,");
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 
     /// <summary>Appends the origin-propagating apply tail after the applied values are computed.</summary>
@@ -211,7 +211,7 @@ internal static class SparseFragmentMergeOriginEmitter
                 .AppendLine(",");
         }
 
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
         code.CloseBlock();
         var elementPositions = new System.Collections.Generic.List<int>();
         for (var position = 0; position < members.Length; position++)
@@ -278,7 +278,7 @@ internal static class SparseFragmentMergeOriginEmitter
         if (elementPositions.Count == 0)
         {
             code.AppendLine("__SparseElementOrigins = null,");
-            code.AppendLine("};");
+            code.Unindent().AppendLine("};");
             return;
         }
 
@@ -311,6 +311,6 @@ internal static class SparseFragmentMergeOriginEmitter
         }
 
         code.AppendLine(" } : null,");
-        code.AppendLine("};");
+        code.Unindent().AppendLine("};");
     }
 }
