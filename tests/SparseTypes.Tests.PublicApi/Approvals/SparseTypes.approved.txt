@@ -210,6 +210,11 @@ namespace SparseTypes
         bool TryGetNestedChange(string memberName, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.ISparseChangeSet? child);
         bool TryGetValueChange<T>(string memberName, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.ISparseValueChange<T>? change);
     }
+    public interface ISparseChangeSetPipeline<TModel, TChangeSet>
+        where TChangeSet :  class
+    {
+        SparseTypes.RebaseResult<TChangeSet> RebaseForPipeline(TModel current);
+    }
     public interface ISparseChangeSet<TModel> : SparseTypes.ISparseChangeSet { }
     public interface ISparseChildEditPath<TParent, TChild, TChildPaths, TChildSession> : SparseTypes.ISparseTypedPath<TParent, TChild>
         where TChild :  class
@@ -291,6 +296,12 @@ namespace SparseTypes
         where out TModel :  class
     {
         TModel GetModelForFrameworkAccess();
+    }
+    public interface ISparseEditSessionPipeline<TModel, TChangeSet>
+        where TModel :  class
+        where TChangeSet :  class
+    {
+        bool TryReconcileForPipeline(TChangeSet submitted, TModel persisted, out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts);
     }
     public interface ISparseEditSessionWithBaselineRevision
     {

@@ -153,6 +153,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             )
             {
                 TypedChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSet",
+                PipelineChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSetPipeline",
                 ScalarTransitionType = "global::SparseTypes.SparseValueTransition",
                 ScalarRebaseType = "global::SparseTypes.SparseOptionalRebase",
                 OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
@@ -195,6 +196,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         ComparisonAttributeMetadataName: "SparseTypes.SparseCompareAttribute",
 #if !SPARSE_FRAGMENTS
             EditSessionInterfaceMetadataName: "SparseTypes.ISparseEditSession",
+            EditSessionPipelineInterfaceMetadataName: "SparseTypes.ISparseEditSessionPipeline",
 #endif
         GeneratedImplementationNamespace: "SparseTypes.Generated",
         EmissionFeatures: CreateEmissionFeatures(),

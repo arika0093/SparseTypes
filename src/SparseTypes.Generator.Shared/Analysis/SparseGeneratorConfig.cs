@@ -48,7 +48,8 @@ internal sealed record SparseGeneratorConfig
         string? EditSessionWithBaselineRevisionInterfaceMetadataName = null,
         string? EditSessionWithPendingStateInterfaceMetadataName = null,
         string? EditChildDraftHostInterfaceMetadataName = null,
-        string? EditChildDraftImplementationType = null
+        string? EditChildDraftImplementationType = null,
+        string? EditSessionPipelineInterfaceMetadataName = null
     )
     {
         this.ModelAttributeMetadataName = ModelAttributeMetadataName;
@@ -94,6 +95,7 @@ internal sealed record SparseGeneratorConfig
         this.EditSessionWithBaselineRevisionInterfaceMetadataName = EditSessionWithBaselineRevisionInterfaceMetadataName;
         this.EditChildDraftHostInterfaceMetadataName = EditChildDraftHostInterfaceMetadataName;
         this.EditChildDraftImplementationType = EditChildDraftImplementationType;
+        this.EditSessionPipelineInterfaceMetadataName = EditSessionPipelineInterfaceMetadataName;
         this.SessionCapabilityContracts = SessionCapabilityContracts;
     }
 
@@ -189,6 +191,9 @@ internal sealed record SparseGeneratorConfig
 
     /// <summary>Runtime child-draft coordinator type, or null when child drafts are disabled.</summary>
     public string? EditChildDraftImplementationType { get; init; }
+
+    /// <summary>Optional model-specific session reconciliation bridge.</summary>
+    public string? EditSessionPipelineInterfaceMetadataName { get; init; }
 
     /// <summary>Product-owned session capability contracts implemented by generated sessions, or null when disabled.</summary>
     /// <remarks>Null keeps output byte-identical for downstream products without these contracts.</remarks>

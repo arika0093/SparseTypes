@@ -56,9 +56,7 @@ public sealed partial class DiAndPlanCacheTests
         var secondContext = secondScope.ServiceProvider.GetRequiredService<MappingTestContext>();
         ReferenceEquals(firstContext.Model, secondContext.Model).ShouldBeTrue();
 
-        var mapper = firstScope.ServiceProvider.GetRequiredService<
-            ISparseEntityMapper<WidgetEntity, WidgetDto>
-        >();
+        var mapper = firstScope.ServiceProvider.GetRequiredService<ISparseEntityMapper<WidgetEntity, WidgetDto>>();
         var firstEntity = new WidgetEntity("before", "active") { Id = 17 };
         mapper.Apply(firstContext, firstEntity, ChangesTo("after"));
         firstEntity.Name.ShouldBe("after");
@@ -67,20 +65,32 @@ public sealed partial class DiAndPlanCacheTests
         firstDto.Id.ShouldBe(17);
 
         var secondEntity = new WidgetEntity("second", "active");
-        var result = mapper.ApplyWithResult(
-            secondContext,
-            secondEntity,
-            ChangesTo("updated second")
-        );
+        var result = mapper.ApplyWithResult(secondContext, secondEntity, ChangesTo("updated second"));
         result.HasCreatedEntities.ShouldBeFalse();
         var authoritative = mapper.ToDto(secondContext, secondEntity);
-        mapper.AssignTemporaryKeys(
-            secondContext,
-            result,
-            new WidgetDto { Name = "second" },
-            authoritative
-        );
+        mapper.AssignTemporaryKeys(secondContext, result, new WidgetDto { Name = "second" }, authoritative);
         authoritative.Name.ShouldBe("updated second");
+        probe.ConfigurationCount.ShouldBe(1);
+    }
+
+    [Test]
+    public async Task DiMapperExecutesTheTypedPersistencePipeline()
+    {
+        using var connection = TestDatabases.OpenMemory();
+        var probe = new PlanBuildProbe();
+        using var provider = CreateProvider(connection, probe);
+        using var scope = provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<MappingTestContext>();
+        await context.Database.EnsureCreatedAsync();
+        var entity = context.Widgets.Add(new WidgetEntity("before", "active"));
+        await context.SaveChangesAsync();
+        var mapper = scope.ServiceProvider.GetRequiredService<ISparseEntityMapper<WidgetEntity, WidgetDto>>();
+
+        var result = await mapper.PipelineExecuteAsync(context, ChangesTo("after"), widget => widget.Id == entity.Entity.Id);
+
+        result.Stage.ShouldBe(SparseEntityPipelineStage.Saved);
+        result.ReadBack!.Name.ShouldBe("after");
+        (await context.Widgets.AsNoTracking().SingleAsync(widget => widget.Id == entity.Entity.Id)).Name.ShouldBe("after");
         probe.ConfigurationCount.ShouldBe(1);
     }
 
@@ -100,9 +110,7 @@ public sealed partial class DiAndPlanCacheTests
         var variantContext = scope.ServiceProvider.GetRequiredService<MappingVariantContext>();
         ReferenceEquals(mappingContext.Model, variantContext.Model).ShouldBeFalse();
 
-        var mapper = scope.ServiceProvider.GetRequiredService<
-            ISparseEntityMapper<WidgetEntity, WidgetDto>
-        >();
+        var mapper = scope.ServiceProvider.GetRequiredService<ISparseEntityMapper<WidgetEntity, WidgetDto>>();
         mapper.Apply(mappingContext, new WidgetEntity("first", "active"), EmptyChanges());
         mapper.Apply(variantContext, new WidgetEntity("second", "active"), EmptyChanges());
 
@@ -120,11 +128,7 @@ public sealed partial class DiAndPlanCacheTests
         mapping.Probe.ShouldBeSameAs(probe);
         var mapper = provider.GetRequiredService<ISparseEntityMapper<WidgetEntity, WidgetDto>>();
         using var scope = provider.CreateScope();
-        mapper.Apply(
-            scope.ServiceProvider.GetRequiredService<MappingTestContext>(),
-            new WidgetEntity("before", "active"),
-            EmptyChanges()
-        );
+        mapper.Apply(scope.ServiceProvider.GetRequiredService<MappingTestContext>(), new WidgetEntity("before", "active"), EmptyChanges());
 
         probe.ConfigurationCount.ShouldBe(1);
     }
@@ -138,9 +142,7 @@ public sealed partial class DiAndPlanCacheTests
         services.AddSparseEntityMappers(typeof(MappingPolicyTests.ValidationErrorsMapper));
         using var provider = services.BuildServiceProvider();
 
-        var error = Should.Throw<SparseEntityMappingException>(() =>
-            provider.ValidateSparseEntityMappers<MappingTestContext>()
-        );
+        var error = Should.Throw<SparseEntityMappingException>(() => provider.ValidateSparseEntityMappers<MappingTestContext>());
 
         error.Errors.Count.ShouldBeGreaterThan(0);
     }
@@ -167,9 +169,7 @@ public sealed partial class DiAndPlanCacheTests
         return services.BuildServiceProvider();
     }
 
-    private static WidgetDto.ChangeSet ChangesTo(string name) =>
-        new WidgetDto { Name = "before" }.CreateChangeSet(new WidgetDto { Name = name });
+    private static WidgetDto.ChangeSet ChangesTo(string name) => new WidgetDto { Name = "before" }.CreateChangeSet(new WidgetDto { Name = name });
 
-    private static WidgetDto.ChangeSet EmptyChanges() =>
-        new WidgetDto().CreateChangeSet(new WidgetDto());
+    private static WidgetDto.ChangeSet EmptyChanges() => new WidgetDto().CreateChangeSet(new WidgetDto());
 }

@@ -408,7 +408,8 @@ internal static class SparseChangeSetRebaseEmitter
                 rebaseResult,
                 optionsType,
                 target,
-                modelIsReferenceType
+                modelIsReferenceType,
+                dialect.TransitionContracts?.PipelineChangeSetInterfaceType
             );
             AppendModelTryApply(
                 shell,

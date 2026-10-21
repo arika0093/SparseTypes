@@ -24,6 +24,9 @@ internal sealed record SparseTransitionContracts(
     /// <summary>Optional model-typed root/nested change-set contract.</summary>
     public string? TypedChangeSetInterfaceType { get; init; }
 
+    /// <summary>Optional typed model-rebase bridge used by persistence integrations.</summary>
+    public string? PipelineChangeSetInterfaceType { get; init; }
+
     /// <summary>Read-only keyed-sequence transition contract (open generic, arity 3).</summary>
     public string KeyedChangeInterfaceType { get; init; } = KeyedChangeInterfaceType;
 

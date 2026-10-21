@@ -285,6 +285,18 @@ set for another model fails to compile. Leave this property unset to retain the
 non-generic `ChangeSetInterfaceType`; leave `TransitionContracts` null to
 disable transition contracts.
 
+`SparseTransitionContracts.PipelineChangeSetInterfaceType` optionally names a
+product-owned capability implemented by generated root and nested change sets.
+The capability bridges a concrete change-set type to its generated typed
+rebase operation. Leave it null when the consuming product does not expose
+this persistence integration.
+
+`SparseGeneratorConfig.EditSessionPipelineInterfaceMetadataName` optionally
+names a product-owned edit-session capability. When configured, generated
+regular and relocated edit sessions implement the bridge to their existing
+reconcile-and-apply operation. Leave it unset when the consuming runtime does
+not provide session reconciliation for mapper-managed persistence.
+
 Paths use the caller-owned path type from `SparsePatchDialect.PathType`
 (defaulting to the dialect runtime namespace plus `SparsePath`). `ChangeInfo`
 exposes the path in that type plus a wire-compatible text rendering; the

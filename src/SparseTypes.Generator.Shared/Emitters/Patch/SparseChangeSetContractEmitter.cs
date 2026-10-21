@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using static SparseTypes.Generator.Shared.SparseChangeSetBasicsEmitter;
 using static SparseTypes.Generator.Shared.SparseChangeSetEmitter;
@@ -21,12 +22,23 @@ internal static class SparseChangeSetContractEmitter
         }
 
         var contracts = dialect.TransitionContracts!;
-        if (modelType is not null && contracts.TypedChangeSetInterfaceType is string typedInterfaceType)
+        if (modelType is null)
         {
-            return " : " + typedInterfaceType + "<" + modelType + ">";
+            return " : " + contracts.ChangeSetInterfaceType;
         }
 
-        return " : " + contracts.ChangeSetInterfaceType;
+        var interfaces = new List<string>();
+        if (contracts.TypedChangeSetInterfaceType is string typedInterfaceType)
+        {
+            interfaces.Add(typedInterfaceType + "<" + modelType + ">");
+        }
+
+        if (contracts.PipelineChangeSetInterfaceType is string pipelineInterfaceType)
+        {
+            interfaces.Add(pipelineInterfaceType + "<" + modelType + ", ChangeSet>");
+        }
+
+        return interfaces.Count == 0 ? " : " + contracts.ChangeSetInterfaceType : " : " + string.Join(", ", interfaces);
     }
 
     internal static string ScalarBases(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string valueType) =>

@@ -12,7 +12,8 @@ internal static class SparseChangeSetModelRebaseEmitter
         string rebaseResult,
         string optionsType,
         SparseOperationTarget? target,
-        bool modelIsReferenceType
+        bool modelIsReferenceType,
+        string? pipelineInterfaceType = null
     )
     {
         if (target is not null)
@@ -29,6 +30,7 @@ internal static class SparseChangeSetModelRebaseEmitter
                     + target.ChangeSetOperationsType
                     + ".RebaseOnto(this, current, options);"
             );
+            AppendPipelineBridge(shell, modelType, rebaseResult, pipelineInterfaceType);
             code.AppendLine("/// <summary>Rebases a change onto an ordinary model.</summary>");
             code.AppendLine(
                 "internal static " + rebaseResult + " RebaseOnto(ChangeSet self, " + modelType + " current, " + optionsType + "? options = null)"
@@ -53,6 +55,26 @@ internal static class SparseChangeSetModelRebaseEmitter
         code.CloseBlock();
         code.AppendLine("return RebaseOnto(" + optionalFragment + ".Present(Fragment.From(current)), options);");
         code.CloseBlock();
+        AppendPipelineBridge(code, modelType, rebaseResult, pipelineInterfaceType);
+    }
+
+    private static void AppendPipelineBridge(SharedIndentedBuilder code, string modelType, string rebaseResult, string? pipelineInterfaceType)
+    {
+        if (pipelineInterfaceType is null)
+        {
+            return;
+        }
+
+        code.AppendLine(
+            rebaseResult
+                + " "
+                + pipelineInterfaceType
+                + "<"
+                + modelType
+                + ", ChangeSet>.RebaseForPipeline("
+                + modelType
+                + " current) => RebaseOnto(current);"
+        );
     }
 
     private static void AppendNullGuard(SharedIndentedBuilder code, bool modelIsReferenceType)

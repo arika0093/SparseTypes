@@ -14,6 +14,9 @@ namespace SparseTypes.EntityFrameworkCore
         void Apply(Microsoft.EntityFrameworkCore.DbContext context, TEntity entity, SparseTypes.ISparseChangeSet<TDto> changes);
         SparseTypes.EntityFrameworkCore.SparseEntityApplyResult ApplyWithResult(Microsoft.EntityFrameworkCore.DbContext context, TEntity entity, SparseTypes.ISparseChangeSet<TDto> changes);
         void AssignTemporaryKeys(Microsoft.EntityFrameworkCore.DbContext context, SparseTypes.EntityFrameworkCore.SparseEntityApplyResult result, TDto baseline, TDto authoritative);
+        System.Threading.Tasks.Task<SparseTypes.EntityFrameworkCore.SparseEntityPipelineResult<TDto, TChangeSet>> PipelineExecuteAsync<TContext, TChangeSet>(TContext context, TChangeSet changes, System.Linq.Expressions.Expression<System.Func<TEntity, bool>> filter, SparseTypes.ISparseEditSessionPipeline<TDto, TChangeSet>? session = null, System.Func<SparseTypes.EntityFrameworkCore.SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? beforeSave = null, System.Func<SparseTypes.RebaseResult<TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? onConflict = null, System.Func<SparseTypes.EntityFrameworkCore.SparseEntityReconcileFailure<TDto, TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? onReconcileFailed = null, System.Threading.CancellationToken cancellationToken = default)
+            where TContext : Microsoft.EntityFrameworkCore.DbContext
+            where TChangeSet :  class, SparseTypes.ISparseChangeSet<TDto>, SparseTypes.ISparseChangeSetPipeline<TDto, TChangeSet>;
         TDto ToDto(Microsoft.EntityFrameworkCore.DbContext context, TEntity entity);
     }
     public sealed class SparseEntityAppliedPath : System.IEquatable<SparseTypes.EntityFrameworkCore.SparseEntityAppliedPath>
@@ -52,6 +55,19 @@ namespace SparseTypes.EntityFrameworkCore
             where TEntityChild :  class { }
         public bool TryGetCreated<TEntityChild>(string collectionPath, System.Guid temporaryKey, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TEntityChild? entity)
             where TEntityChild :  class { }
+    }
+    public sealed class SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>
+        where TContext : Microsoft.EntityFrameworkCore.DbContext
+        where TEntity :  class
+        where TDto :  class
+        where TChangeSet :  class
+    {
+        public SparseTypes.EntityFrameworkCore.SparseEntityApplyResult ApplyResult { get; }
+        public TDto Current { get; }
+        public TContext Db { get; }
+        public TEntity Entity { get; }
+        public TChangeSet Rebased { get; }
+        public TChangeSet Submitted { get; }
     }
     public sealed class SparseEntityCollectionBuilder<TEntityChild, TDtoChild>
         where TEntityChild :  class
@@ -129,6 +145,9 @@ namespace SparseTypes.EntityFrameworkCore
         public void Apply(Microsoft.EntityFrameworkCore.DbContext context, TEntity entity, SparseTypes.ISparseChangeSet<TDto> changes) { }
         public SparseTypes.EntityFrameworkCore.SparseEntityApplyResult ApplyWithResult(Microsoft.EntityFrameworkCore.DbContext context, TEntity entity, SparseTypes.ISparseChangeSet<TDto> changes) { }
         public void AssignTemporaryKeys(Microsoft.EntityFrameworkCore.DbContext context, SparseTypes.EntityFrameworkCore.SparseEntityApplyResult result, TDto baseline, TDto authoritative) { }
+        public System.Threading.Tasks.Task<SparseTypes.EntityFrameworkCore.SparseEntityPipelineResult<TDto, TChangeSet>> PipelineExecuteAsync<TContext, TChangeSet>(TContext context, TChangeSet changes, System.Linq.Expressions.Expression<System.Func<TEntity, bool>> filter, SparseTypes.ISparseEditSessionPipeline<TDto, TChangeSet>? session = null, System.Func<SparseTypes.EntityFrameworkCore.SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? beforeSave = null, System.Func<SparseTypes.RebaseResult<TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? onConflict = null, System.Func<SparseTypes.EntityFrameworkCore.SparseEntityReconcileFailure<TDto, TChangeSet>, System.Threading.CancellationToken, System.Threading.Tasks.Task>? onReconcileFailed = null, System.Threading.CancellationToken cancellationToken = default)
+            where TContext : Microsoft.EntityFrameworkCore.DbContext
+            where TChangeSet :  class, SparseTypes.ISparseChangeSet<TDto>, SparseTypes.ISparseChangeSetPipeline<TDto, TChangeSet> { }
         public TDto ToDto(TEntity entity) { }
         public static SparseTypes.EntityFrameworkCore.SparseEntityMapper<TEntity, TDto> Create<TMapping>(TMapping mapping, Microsoft.EntityFrameworkCore.Metadata.IModel model)
             where TMapping : SparseTypes.EntityFrameworkCore.IEntityModelMapping<TEntity, TDto> { }
@@ -174,32 +193,38 @@ namespace SparseTypes.EntityFrameworkCore
         SetDefault = 2,
         SetNull = 3,
     }
+    public sealed class SparseEntityPipelineResult<TDto, TChangeSet>
+        where TDto :  class
+        where TChangeSet :  class
+    {
+        public SparseTypes.EntityFrameworkCore.SparseEntityApplyResult? ApplyResult { get; }
+        public TDto Current { get; }
+        public TDto ReadBack { get; }
+        public SparseTypes.RebaseResult<TChangeSet> Rebase { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? ReconcileConflicts { get; }
+        public SparseTypes.EntityFrameworkCore.SparseEntityPipelineStage Stage { get; }
+        public TChangeSet Submitted { get; }
+    }
+    public enum SparseEntityPipelineStage
+    {
+        Saved = 0,
+        RebaseConflict = 1,
+        ReconcileFailed = 2,
+    }
+    public sealed class SparseEntityReconcileFailure<TDto, TChangeSet>
+        where TDto :  class
+        where TChangeSet :  class
+    {
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? Conflicts { get; }
+        public TDto Persisted { get; }
+        public TChangeSet Submitted { get; }
+    }
     public enum SparseEntityRemoveKind
     {
         Delete = 0,
         Detach = 1,
         SoftDelete = 2,
         Custom = 3,
-    }
-    public static class SparseEntitySavePipeline
-    {
-        public static System.Threading.Tasks.Task<SparseTypes.EntityFrameworkCore.SparseEntitySaveResult<TPreparation, TReadBack>> ExecuteAsync<TPreparation, TReadBack>(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.Task<TPreparation>> prepare, System.Func<TPreparation, System.Threading.CancellationToken, System.Threading.Tasks.Task> save, System.Func<TPreparation, System.Threading.CancellationToken, System.Threading.Tasks.Task<TReadBack>> readBack, System.Func<TPreparation, TReadBack, System.Threading.CancellationToken, System.Threading.Tasks.Task> synchronize, System.Threading.CancellationToken cancellationToken = default) { }
-    }
-    public sealed class SparseEntitySaveResult<TPreparation, TReadBack>
-    {
-        public System.Exception? Error { get; }
-        public TPreparation Preparation { get; }
-        public TReadBack ReadBack { get; }
-        public SparseTypes.EntityFrameworkCore.SparseEntitySaveStage Stage { get; }
-    }
-    public enum SparseEntitySaveStage
-    {
-        Saved = 0,
-        PreparationFailed = 1,
-        ConcurrencyConflict = 2,
-        SaveOutcomeUnknown = 3,
-        ReadBackFailed = 4,
-        ClientSynchronizationFailed = 5,
     }
     [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple=false, Inherited=false)]
     public sealed class SparseFragmentMapperAttribute<TEntity, TDto> : System.Attribute

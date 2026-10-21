@@ -207,6 +207,10 @@ internal static class SparseEditSessionEmitter
         {
             sessionBases += ", global::" + changeSetInterface + "<" + modelType + ", " + modelType + ".ChangeSet>";
         }
+        if (config.EditSessionPipelineInterfaceMetadataName is { Length: > 0 } pipelineInterface)
+        {
+            sessionBases += ", global::" + pipelineInterface + "<" + modelType + ", " + modelType + ".ChangeSet>";
+        }
         if (config.EditSessionWithBaselineRevisionInterfaceMetadataName is { Length: > 0 } baselineRevisionInterface)
         {
             sessionBases += ", global::" + baselineRevisionInterface;
@@ -319,6 +323,24 @@ internal static class SparseEditSessionEmitter
             patchDialect.ReconcileConflictExpression?.Invoke(modelType, "error"),
             HasChildSessionSurface(config, patchDialect, hasChildModelMembers)
         );
+        if (config.EditSessionPipelineInterfaceMetadataName is { Length: > 0 } sessionPipelineInterface)
+        {
+            code.AppendLine(
+                "bool global::"
+                    + sessionPipelineInterface
+                    + "<"
+                    + modelType
+                    + ", "
+                    + modelType
+                    + ".ChangeSet>.TryReconcileForPipeline("
+                    + modelType
+                    + ".ChangeSet submitted, "
+                    + modelType
+                    + " persisted, out global::System.Collections.Generic.IReadOnlyList<"
+                    + conflictType
+                    + ">? conflicts) => TryReconcileAndApply(submitted, persisted, out conflicts);"
+            );
+        }
         // Raw model access bypasses the change cache.
         code.AppendLine(modelType + " " + sessionInterface + "<" + modelType + ">.Model => _session.Model;");
         if (hasChildSessionSurface)

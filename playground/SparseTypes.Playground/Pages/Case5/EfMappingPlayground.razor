@@ -931,61 +931,66 @@
         _saveError = null;
         var expectedRevision = snapshot.BaseRevision;
         var orderId = _tracked?.Id ?? 0;
-        SparseEntityApplyResult? applyResult = null;
-        var outcome = await SparseEntitySavePipeline.ExecuteAsync(
-            prepare: _ =>
+        if (_db is null || _tracked is null || _mapper is null)
+        {
+            throw new InvalidOperationException("The EF Core demo store is not initialized.");
+        }
+
+        if (simulateConflict)
+        {
+            PlaygroundConcurrency.SimulateConcurrentEdit(SharedOptions, orderId);
+        }
+
+        _entityJsonBeforeApply = EntityJson;
+        var localCustomerBeforeSync = _liveDraft.Customer;
+        var localNotesBeforeSync = _liveDraft.Notes;
+        try
+        {
+            var outcome = await _mapper.PipelineExecuteAsync(
+                _db,
+                snapshot.Submitted,
+                order => order.Id == orderId,
+                _session,
+                beforeSave: (save, _) =>
+                {
+                    PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
+                    _tracked = save.Entity;
+                    _tracked.Revision++;
+                    _preview.InvalidateEntity();
+                    _applyResult = save.ApplyResult;
+                    _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
+                    _entityJsonAfterApply = EntityJson;
+                    return Task.CompletedTask;
+                }
+            );
+
+            if (outcome.Stage == SparseEntityPipelineStage.RebaseConflict)
             {
-                if (_db is null || _tracked is null || _mapper is null)
-                {
-                    throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                }
-
-                if (simulateConflict)
-                {
-                    PlaygroundConcurrency.SimulateConcurrentEdit(SharedOptions, orderId);
-                }
-
-                // Check before SaveChanges because the in-memory provider cannot
-                // roll back a partial write.
-                PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
-                _entityJsonBeforeApply = EntityJson;
-                applyResult = _mapper.ApplyWithResult(_db, _tracked, snapshot.Submitted);
-                _preview.InvalidateEntity();
-                _applyResult = applyResult;
-                _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
-                return Task.FromResult(applyResult);
-            },
-            save: async (_, _) =>
-            {
-                if (_db is null || _tracked is null)
-                {
-                    throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                }
-
-                _tracked.Revision++;
-                await _db.SaveChangesAsync();
-                _preview.InvalidateEntity();
-                _entityJsonAfterApply = EntityJson;
-            },
-            readBack: (_, _) =>
-                ReadPersistedOrderAsync(
-                    orderId,
-                    snapshot.SubmittedDraft,
-                    applyResult
-                        ?? throw new InvalidOperationException(
-                            "The EF Core mapper result is not available."
-                        )
-                ),
-            synchronize: (_, persisted, _) =>
-                SynchronizeLiveDraft(
+                await RecoverFromConflict(
                     snapshot.Submitted,
                     snapshot.SubmittedDraft,
                     submittedDraftAfterSubmit,
-                    persisted
-                )
-        );
+                    expectedRevision,
+                    conflictHandlingMode);
+                return;
+            }
 
-        if (outcome.Stage == SparseEntitySaveStage.ConcurrencyConflict)
+            if (outcome.Stage == SparseEntityPipelineStage.ReconcileFailed)
+            {
+                ApplySaveOutcome(outcome);
+                return;
+            }
+
+            await CompleteLiveDraftSync(
+                snapshot.SubmittedDraft,
+                submittedDraftAfterSubmit,
+                outcome.ReadBack ?? throw new InvalidOperationException("The persisted DTO is not available."),
+                localCustomerBeforeSync,
+                localNotesBeforeSync
+            );
+            ApplySaveOutcome(outcome);
+        }
+        catch (DbUpdateConcurrencyException)
         {
             try
             {
@@ -998,63 +1003,27 @@
             }
             catch (Exception ex)
             {
-                SetSaveFailure(
-                    SparseEntitySaveStage.PreparationFailed,
-                    $"Conflict recovery failed before the retry: {ex.GetType().Name}: {ex.Message}."
-                );
+                SetSaveFailure(true, $"Conflict recovery failed: {FormatException(ex)}");
             }
-            return;
         }
-
-        ApplySaveOutcome(outcome);
-    }
-
-    private async Task<PlaygroundOrderDto> ReadPersistedOrderAsync(
-        int orderId,
-        PlaygroundOrderDto submittedDraft,
-        SparseEntityApplyResult applyResult
-    )
-    {
-        if (_db is null || _mapper is null)
+        catch (Exception ex)
         {
-            throw new InvalidOperationException("The EF Core mapper is not initialized.");
+            SetSaveFailure(true, $"Save failed; inspect persisted state before retrying. {FormatException(ex)}");
         }
-
-        _db.ChangeTracker.Clear();
-        _tracked = await _db.Orders
-            .Include(static order => order.Note)
-            .Include(static order => order.Lines)
-            .SingleAsync(order => order.Id == orderId);
-        _preview.InvalidateEntity();
-        var persisted = await ReadAuthoritativeDtoAsync(orderId);
-        _mapper.AssignTemporaryKeys(_db, applyResult, submittedDraft, persisted);
-        return persisted;
     }
 
-    private async Task SynchronizeLiveDraft(
-        PlaygroundOrderDto.ChangeSet submitted,
+    private async Task CompleteLiveDraftSync(
         PlaygroundOrderDto submittedDraft,
         PlaygroundOrderDto submittedDraftAfterSubmit,
-        PlaygroundOrderDto persisted
+        PlaygroundOrderDto persisted,
+        string localCustomerBeforeSync,
+        string localNotesBeforeSync
     )
     {
-        var localCustomerBeforeSync = _liveDraft.Customer;
-        var localNotesBeforeSync = _liveDraft.Notes;
         _conflictRows = CollectPostSubmitConflicts(
             submittedDraft,
             persisted,
             submittedDraftAfterSubmit);
-
-        if (!_session.TryReconcileAndApply(submitted, persisted, out var conflicts))
-        {
-            var paths = conflicts is null
-                ? "unknown paths"
-                : string.Join(", ", conflicts.Select(static conflict => conflict.PathText));
-            throw new InvalidOperationException(
-                $"The persisted values could not be reconciled with the live draft at {paths}."
-            );
-        }
-
         var customerUpdatedFromServer =
             !string.Equals(localCustomerBeforeSync, persisted.Customer, StringComparison.Ordinal)
             && string.Equals(_liveDraft.Customer, persisted.Customer, StringComparison.Ordinal);
@@ -1073,69 +1042,43 @@
         await ShowServerSyncNoticeAsync(customerUpdatedFromServer, notesUpdatedFromServer);
     }
 
-    private void ApplySaveOutcome(
-        SparseEntitySaveResult<SparseEntityApplyResult, PlaygroundOrderDto> outcome
-    )
+    private void ApplySaveOutcome(SparseEntityPipelineResult<PlaygroundOrderDto, PlaygroundOrderDto.ChangeSet> outcome)
     {
-        _applied = outcome.Stage == SparseEntitySaveStage.Saved;
-        if (!_applied)
-        {
-            _applyResult = null;
-            _modifiedRows = [];
-        }
-
+        _applied = outcome.Stage == SparseEntityPipelineStage.Saved;
         RefreshChanges();
         switch (outcome.Stage)
         {
-            case SparseEntitySaveStage.Saved:
+            case SparseEntityPipelineStage.Saved:
                 _conflictSummary = _conflictRows.Count > 0
                     ? "The submitted changes were saved. Later local edits that conflict with persisted values remain in the draft."
                     : string.Empty;
                 return;
-            case SparseEntitySaveStage.PreparationFailed:
-                _saveError = outcome.Error is OperationCanceledException
-                    ? $"The save was canceled before SaveChanges: {FormatException(outcome.Error)} Nothing was persisted, so the pending draft can be saved again."
-                    : $"Save failed before SaveChanges: {FormatException(outcome.Error)}";
-                return;
-            case SparseEntitySaveStage.ConcurrencyConflict:
-                _saveError = $"The save conflicted with a newer persisted revision: {FormatException(outcome.Error)}";
-                return;
-            case SparseEntitySaveStage.SaveOutcomeUnknown:
+            case SparseEntityPipelineStage.ReconcileFailed:
+                _applied = false;
+                _applyResult = null;
+                _modifiedRows = [];
                 _saveBlocked = true;
-                _saveError = outcome.Error is OperationCanceledException
-                    ? $"SaveChanges was canceled without confirming whether the write completed. Do not resubmit this draft; reseed and review the persisted order. {FormatException(outcome.Error)}"
-                    : $"SaveChanges did not confirm whether the write completed. Do not resubmit this draft; reseed and review the persisted order. {FormatException(outcome.Error)}";
+                _saveError = "The changes were persisted, but the live draft could not be synchronized. Reseed and review the persisted order before continuing.";
                 return;
-            case SparseEntitySaveStage.ReadBackFailed:
-                _saveBlocked = true;
-                _saveError = outcome.Error is OperationCanceledException
-                    ? $"The changes were persisted, but the authoritative readback was canceled. Do not resubmit; reseed and review the persisted order. {FormatException(outcome.Error)}"
-                    : $"The changes were persisted, but the authoritative readback failed. Do not resubmit; reseed and review the persisted order. {FormatException(outcome.Error)}";
-                return;
-            case SparseEntitySaveStage.ClientSynchronizationFailed:
-                _saveBlocked = true;
-                _saveError = outcome.Error is OperationCanceledException
-                    ? $"The changes were persisted, but client synchronization was canceled. Do not resubmit; reseed and review the persisted order. {FormatException(outcome.Error)}"
-                    : $"The changes were persisted, but the draft could not be synchronized. Do not resubmit; reseed and review the persisted order. {FormatException(outcome.Error)}";
+            case SparseEntityPipelineStage.RebaseConflict:
+                _applied = false;
+                _applyResult = null;
+                _modifiedRows = [];
+                _saveError = "The submitted changes conflict with the current order.";
                 return;
             default:
                 throw new ArgumentOutOfRangeException(nameof(outcome));
         }
     }
 
-    private void SetSaveFailure(SparseEntitySaveStage stage, string message)
+    private void SetSaveFailure(bool persistenceMayHaveCompleted, string message)
     {
         _applied = false;
         _applyResult = null;
         _modifiedRows = [];
         RefreshChanges();
         _saveError = message;
-        if (
-            stage
-                is SparseEntitySaveStage.SaveOutcomeUnknown
-                    or SparseEntitySaveStage.ReadBackFailed
-                    or SparseEntitySaveStage.ClientSynchronizationFailed
-        )
+        if (persistenceMayHaveCompleted)
         {
             _saveBlocked = true;
         }
@@ -1266,59 +1209,40 @@
 
         // Retry only the rebased submission; post-submit edits stay out of the
         // write and are merged back by the shared reconciliation path.
-        SparseEntityApplyResult? retry = null;
         var retryRevision = _tracked.Revision;
-        var outcome = await SparseEntitySavePipeline.ExecuteAsync(
-            prepare: _ =>
+        var localCustomerBeforeSync = _liveDraft.Customer;
+        var localNotesBeforeSync = _liveDraft.Notes;
+        _entityJsonBeforeApply = EntityJson;
+        var outcome = await _mapper.PipelineExecuteAsync(
+            _db,
+            submittedRebase.Rebased,
+            order => order.Id == orderId,
+            _session,
+            beforeSave: (save, _) =>
             {
-                if (_db is null || _tracked is null || _mapper is null)
-                {
-                    throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                }
-
                 PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, retryRevision);
-                _entityJsonBeforeApply = EntityJson;
-                retry = _mapper.ApplyWithResult(_db, _tracked, submittedRebase.Rebased);
-                _preview.InvalidateEntity();
-                _applyResult = retry;
-                _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
-                return Task.FromResult(retry);
-            },
-            save: async (_, _) =>
-            {
-                if (_db is null || _tracked is null)
-                {
-                    throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                }
-
+                _tracked = save.Entity;
                 if (_db.ChangeTracker.HasChanges())
                 {
                     _tracked.Revision++;
-                    await _db.SaveChangesAsync();
                 }
                 _preview.InvalidateEntity();
+                _applyResult = save.ApplyResult;
+                _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
                 _entityJsonAfterApply = EntityJson;
-            },
-            readBack: (_, _) =>
-                ReadPersistedOrderAsync(
-                    orderId,
-                    submittedDraft,
-                    retry
-                        ?? throw new InvalidOperationException(
-                            "The retry mapper result is not available."
-                        )
-                ),
-            synchronize: (_, persisted, _) =>
-                SynchronizeLiveDraft(
-                    submitted,
-                    submittedDraft,
-                    submittedDraftAfterSubmit,
-                    persisted
-                )
+                return Task.CompletedTask;
+            }
         );
 
-        if (outcome.Stage == SparseEntitySaveStage.Saved)
+        if (outcome.Stage == SparseEntityPipelineStage.Saved)
         {
+            await CompleteLiveDraftSync(
+                submittedDraft,
+                submittedDraftAfterSubmit,
+                outcome.ReadBack ?? throw new InvalidOperationException("The persisted DTO is not available."),
+                localCustomerBeforeSync,
+                localNotesBeforeSync
+            );
             ClearConflictResolution();
             _conflictSubmittedHeader = "Later local draft";
             _conflictSummary = _conflictRows.Count > 0
@@ -1331,9 +1255,9 @@
         }
 
         ApplySaveOutcome(outcome);
-        if (outcome.Stage == SparseEntitySaveStage.ConcurrencyConflict)
+        if (outcome.Stage == SparseEntityPipelineStage.RebaseConflict)
         {
-            _saveError = "The rebased save encountered another revision change. No further retry was attempted; review the current order before saving again.";
+            _saveError = "The rebased save encountered another change. No further retry was attempted; review the current order before saving again.";
         }
     }
 
@@ -1404,70 +1328,58 @@
         var submittedDraftAfterSubmit = _liveDraft.DeepClone();
         var orderId = _resolutionOrderId;
         var expectedRevision = _resolutionExpectedRevision;
-        SparseEntityApplyResult? applyResult = null;
         _resolutionApplying = true;
         _saveError = null;
         await _storeGate.WaitAsync();
         try
         {
-            var outcome = await SparseEntitySavePipeline.ExecuteAsync(
-                prepare: _ =>
-                {
-                    if (_db is null || _tracked is null || _mapper is null)
-                    {
-                        throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                    }
+            if (_db is null || _tracked is null || _mapper is null)
+            {
+                throw new InvalidOperationException("The EF Core demo store is not initialized.");
+            }
 
+            PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
+            if (_tracked.Id != orderId || _tracked.Revision != expectedRevision)
+            {
+                throw new DbUpdateConcurrencyException(
+                    $"Order {orderId} is no longer at revision {expectedRevision}."
+                );
+            }
+
+            var localCustomerBeforeSync = _liveDraft.Customer;
+            var localNotesBeforeSync = _liveDraft.Notes;
+            _entityJsonBeforeApply = EntityJson;
+            var outcome = await _mapper.PipelineExecuteAsync(
+                _db,
+                resolved,
+                order => order.Id == orderId,
+                _session,
+                beforeSave: (save, _) =>
+                {
                     PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
-                    if (_tracked.Id != orderId || _tracked.Revision != expectedRevision)
-                    {
-                        throw new DbUpdateConcurrencyException(
-                            $"Order {orderId} is no longer at revision {expectedRevision}."
-                        );
-                    }
-
-                    _entityJsonBeforeApply = EntityJson;
-                    applyResult = _mapper.ApplyWithResult(_db, _tracked, resolved);
-                    _preview.InvalidateEntity();
-                    _applyResult = applyResult;
-                    _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
-                    return Task.FromResult(applyResult);
-                },
-                save: async (_, _) =>
-                {
-                    if (_db is null || _tracked is null)
-                    {
-                        throw new InvalidOperationException("The EF Core demo store is not initialized.");
-                    }
-
+                    _tracked = save.Entity;
                     if (_db.ChangeTracker.HasChanges())
                     {
                         _tracked.Revision++;
-                        await _db.SaveChangesAsync();
                     }
                     _preview.InvalidateEntity();
+                    _applyResult = save.ApplyResult;
+                    _modifiedRows = PlaygroundEfPresentation.CollectModifiedRows(_db);
                     _entityJsonAfterApply = EntityJson;
-                },
-                readBack: (_, _) =>
-                    ReadPersistedOrderAsync(
-                        orderId,
-                        submittedDraft,
-                        applyResult
-                            ?? throw new InvalidOperationException(
-                                "The resolution mapper result is not available."
-                            )
-                    ),
-                synchronize: (_, persisted, _) =>
-                    SynchronizeLiveDraft(
-                        submitted,
-                        submittedDraft,
-                        submittedDraftAfterSubmit,
-                        persisted
-                    )
+                    return Task.CompletedTask;
+                }
             );
 
-            if (outcome.Stage == SparseEntitySaveStage.Saved)
+            if (outcome.Stage == SparseEntityPipelineStage.Saved)
             {
+                await CompleteLiveDraftSync(
+                    submittedDraft,
+                    submittedDraftAfterSubmit,
+                    outcome.ReadBack
+                        ?? throw new InvalidOperationException("The persisted DTO is not available."),
+                    localCustomerBeforeSync,
+                    localNotesBeforeSync
+                );
                 _conflictSubmittedHeader = "Later local draft";
                 _conflictSummary = _conflictRows.Count > 0
                     ? "The selected values were applied. Later local edits that conflict with the persisted order remain in the draft and were not overwritten."
@@ -1479,7 +1391,7 @@
                 return;
             }
 
-            if (outcome.Stage == SparseEntitySaveStage.ConcurrencyConflict)
+            if (outcome.Stage == SparseEntityPipelineStage.RebaseConflict)
             {
                 _applied = false;
                 _applyResult = null;
@@ -1492,24 +1404,38 @@
                     ConflictHandlingMode.Standard);
                 return;
             }
+
             ApplySaveOutcome(outcome);
-            if (
-                outcome.Stage
-                    is SparseEntitySaveStage.ReadBackFailed
-                        or SparseEntitySaveStage.ClientSynchronizationFailed
-            )
+            if (outcome.Stage == SparseEntityPipelineStage.ReconcileFailed)
             {
                 _resolutionStale = true;
                 _conflictVisible = true;
                 _conflictSummary = "The chosen values were persisted, but the live draft could not be synchronized. Reseed and review the persisted order; do not retry this submission.";
             }
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            _applied = false;
+            _applyResult = null;
+            _modifiedRows = [];
+            try
+            {
+                await RecoverFromConflict(
+                    submitted,
+                    submittedDraft,
+                    submittedDraftAfterSubmit,
+                    expectedRevision,
+                    ConflictHandlingMode.Standard);
+            }
+            catch (Exception ex)
+            {
+                SetSaveFailure(true, $"Conflict recovery failed: {FormatException(ex)}");
+                _conflictVisible = true;
+            }
+        }
         catch (Exception ex)
         {
-            SetSaveFailure(
-                SparseEntitySaveStage.PreparationFailed,
-                $"Conflict resolution failed before persistence: {FormatException(ex)}"
-            );
+            SetSaveFailure(true, $"Conflict resolution failed; inspect persisted state before retrying. {FormatException(ex)}");
             _conflictVisible = true;
         }
         finally

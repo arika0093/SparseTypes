@@ -6,7 +6,7 @@ using SparseTypes.EntityFrameworkCore.Tests.Sample;
 namespace SparseTypes.EntityFrameworkCore.Tests;
 
 // Cross-layer persistence matrix: generated Core sessions drive the real
-// SQLite mapping through SparseEntitySavePipeline. Every scenario asserts the
+// SQLite mapping through the mapper save pipeline. Every scenario asserts the
 // database contents (fresh context), the session baseline/current, the
 // pending ChangeSet, child states, history availability, the reported error,
 // and whether persistence occurred.
@@ -32,9 +32,7 @@ public sealed class CrossLayerPersistenceMatrixTests
             Code = entity.Code,
             ShipCity = entity.Address?.City ?? string.Empty,
             DisplayTotal = null,
-            Address = entity.Address is null
-                ? null
-                : new AddressDto { Street = entity.Address.Street, City = entity.Address.City },
+            Address = entity.Address is null ? null : new AddressDto { Street = entity.Address.Street, City = entity.Address.City },
             Lines = entity
                 .Lines.OrderBy(static line => line.SortOrder)
                 .Select(static line => new OrderLineDto
@@ -55,9 +53,7 @@ public sealed class CrossLayerPersistenceMatrixTests
             Code = source.Code,
             ShipCity = source.ShipCity,
             DisplayTotal = source.DisplayTotal,
-            Address = source.Address is null
-                ? null
-                : new AddressDto { Street = source.Address.Street, City = source.Address.City },
+            Address = source.Address is null ? null : new AddressDto { Street = source.Address.Street, City = source.Address.City },
             Lines = source
                 .Lines.Select(static line => new OrderLineDto
                 {
@@ -122,44 +118,29 @@ public sealed class CrossLayerPersistenceMatrixTests
         var submitted = session.CreateChangeSet();
         submitted.IsEmpty.ShouldBeFalse();
 
-        var mapper = SparseEntityMapper<OrderEntity, OrderDto>.Create(
-            new OrderMapper(),
-            context.Model
-        );
-        var applied = mapper.ApplyWithResult(context, entity, submitted);
-
+        var mapper = PipelineOrderMapper.Create(context.Model);
         // The user keeps typing while the save is in flight: these edits are
         // not part of the submission and must survive reconciliation.
-        session.Observable.Lines.Single(line => line.TemporaryId == TempA).Quantity = 99;
-        session.Observable.Lines.AddModel(PendingLine(7, TempLate));
-
-        var result = await SparseEntitySavePipeline.ExecuteAsync<OrderDto.ChangeSet, OrderDto>(
-            prepare: _ => Task.FromResult(submitted),
-            save: (_, _) => context.SaveChangesAsync(),
-            readBack: (_, _) =>
+        var result = await mapper.PipelineExecuteAsync(
+            context,
+            submitted,
+            order => order.Id == entity.Id,
+            session,
+            beforeSave: (_, _) =>
             {
-                var authoritative = ReadOrderDto(entity);
-                mapper.AssignTemporaryKeys(context, applied, before, authoritative);
-                return Task.FromResult(authoritative);
-            },
-            synchronize: (changes, persisted, _) =>
-            {
-                session.TryReconcile(changes, persisted, out var reconcileError).ShouldBeTrue();
-                reconcileError.ShouldBeNull();
+                session.Observable.Lines.Single(line => line.TemporaryId == TempA).Quantity = 99;
+                session.Observable.Lines.AddModel(PendingLine(7, TempLate));
                 return Task.CompletedTask;
             }
         );
 
         // The user-visible outcome: one save, success, no error.
-        result.Stage.ShouldBe(SparseEntitySaveStage.Saved);
-        result.Error.ShouldBeNull();
+        result.Stage.ShouldBe(SparseEntityPipelineStage.Saved);
 
         // Persistence occurred exactly once with the submitted values.
         using (var fresh = TestDatabases.CreateSample(connection, new QueryCounter()))
         {
-            var persisted = await fresh
-                .Orders.Include(static order => order.Lines)
-                .SingleAsync(order => order.Id == entity.Id);
+            var persisted = await fresh.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == entity.Id);
             persisted.Lines.Count.ShouldBe(3);
             persisted.Lines.Single(line => line.Quantity == 10).ShouldNotBeNull();
             persisted.Lines.Single(line => line.Quantity == 9).ShouldNotBeNull();
@@ -206,28 +187,10 @@ public sealed class CrossLayerPersistenceMatrixTests
         address.HasChanges.ShouldBeFalse();
         var submitted = session.CreateChangeSet();
 
-        var mapper = SparseEntityMapper<OrderEntity, OrderDto>.Create(
-            new OrderMapper(),
-            context.Model
-        );
-        var result = await SparseEntitySavePipeline.ExecuteAsync<OrderDto.ChangeSet, OrderDto>(
-            prepare: _ => Task.FromResult(submitted),
-            save: (changes, _) =>
-            {
-                mapper.ApplyWithResult(context, entity, changes);
-                return context.SaveChangesAsync();
-            },
-            readBack: (_, _) => Task.FromResult(ReadOrderDto(entity)),
-            synchronize: (changes, persisted, _) =>
-            {
-                session.TryReconcile(changes, persisted, out var reconcileError).ShouldBeTrue();
-                reconcileError.ShouldBeNull();
-                return Task.CompletedTask;
-            }
-        );
+        var mapper = PipelineOrderMapper.Create(context.Model);
+        var result = await mapper.PipelineExecuteAsync(context, submitted, order => order.Id == entity.Id, session);
 
-        result.Stage.ShouldBe(SparseEntitySaveStage.Saved);
-        result.Error.ShouldBeNull();
+        result.Stage.ShouldBe(SparseEntityPipelineStage.Saved);
 
         using (var fresh = TestDatabases.CreateSample(connection, new QueryCounter()))
         {
@@ -236,10 +199,7 @@ public sealed class CrossLayerPersistenceMatrixTests
                 .Include(static order => order.Lines)
                 .SingleAsync(order => order.Id == entity.Id);
             persisted.Address!.Street.ShouldBe("New Street");
-            persisted
-                .Lines.OrderBy(static line => line.SortOrder)
-                .Select(static line => line.Quantity)
-                .ShouldBe([20, 1]);
+            persisted.Lines.OrderBy(static line => line.SortOrder).Select(static line => line.Quantity).ShouldBe([20, 1]);
         }
 
         draft.Address!.Street.ShouldBe("New Street");
@@ -268,36 +228,14 @@ public sealed class CrossLayerPersistenceMatrixTests
         // A post-submit note stays pending through the save.
         session.Observable.Notes = "post-submit";
 
-        var mapper = SparseEntityMapper<OrderEntity, OrderDto>.Create(
-            new OrderMapper(),
-            context.Model
-        );
-        var applied = mapper.ApplyWithResult(context, entity, submitted);
-        var result = await SparseEntitySavePipeline.ExecuteAsync<OrderDto.ChangeSet, OrderDto>(
-            prepare: _ => Task.FromResult(submitted),
-            save: (_, _) => context.SaveChangesAsync(),
-            readBack: (_, _) =>
-            {
-                var authoritative = ReadOrderDto(entity);
-                mapper.AssignTemporaryKeys(context, applied, before, authoritative);
-                return Task.FromResult(authoritative);
-            },
-            synchronize: (changes, persisted, _) =>
-            {
-                session.TryReconcile(changes, persisted, out var reconcileError).ShouldBeTrue();
-                reconcileError.ShouldBeNull();
-                return Task.CompletedTask;
-            }
-        );
+        var mapper = PipelineOrderMapper.Create(context.Model);
+        var result = await mapper.PipelineExecuteAsync(context, submitted, order => order.Id == entity.Id, session);
 
-        result.Stage.ShouldBe(SparseEntitySaveStage.Saved);
-        result.Error.ShouldBeNull();
+        result.Stage.ShouldBe(SparseEntityPipelineStage.Saved);
 
         using (var fresh = TestDatabases.CreateSample(connection, new QueryCounter()))
         {
-            var persisted = await fresh
-                .Orders.Include(static order => order.Lines)
-                .SingleAsync(order => order.Id == entity.Id);
+            var persisted = await fresh.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == entity.Id);
             persisted.Lines.Select(static line => line.Id).ShouldNotContain(removedId);
             persisted.Lines.Count.ShouldBe(2);
             persisted.Lines.Single(line => line.Quantity == 5).ShouldNotBeNull();
@@ -363,20 +301,15 @@ public sealed class CrossLayerPersistenceMatrixTests
         {
             var seeded = SeedVersionedOrder(seed);
             orderId = seeded.Id;
-            var seedMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
-                new VersionedOrderMapper(),
-                seed.Model
-            );
-            var tracked = await seed
-                .Orders.Include(static order => order.Lines)
-                .SingleAsync(order => order.Id == orderId);
+            var seedMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(new VersionedOrderMapper(), seed.Model);
+            var tracked = await seed.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == orderId);
             baseline = seedMapper.ToDto(tracked);
         }
 
         var draft = CloneVersioned(baseline);
         var session = draft.CreateEditSession();
         var history = session.EnableHistory();
-        session.Observable.Notes = "local notes";
+        session.Observable.Name = "LOCAL";
         var submitted = session.CreateChangeSet();
         history.CanUndo.ShouldBeTrue();
 
@@ -390,37 +323,28 @@ public sealed class CrossLayerPersistenceMatrixTests
 
         var saveCalls = 0;
         using var stale = TestDatabases.CreateVersioned(connection, new QueryCounter());
-        var staleMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
-            new VersionedOrderMapper(),
-            stale.Model
-        );
-        var staleEntity = await stale
-            .Orders.Include(static order => order.Lines)
-            .SingleAsync(order => order.Id == orderId);
-        var result = await SparseEntitySavePipeline.ExecuteAsync<
-            VersionedOrderDto.ChangeSet,
-            VersionedOrderDto
-        >(
-            prepare: _ => Task.FromResult(submitted),
-            save: (changes, _) =>
-            {
-                saveCalls++;
-                staleMapper.Apply(stale, staleEntity, changes);
-                stale.Entry(staleEntity).Property(static order => order.Version).OriginalValue =
-                    baseline.Version;
-                return stale.SaveChangesAsync();
-            },
-            readBack: (_, _) => Task.FromResult(baseline),
-            synchronize: (_, _, _) => Task.CompletedTask
+        var staleMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(new VersionedOrderMapper(), stale.Model);
+        var concurrencyConflict = await Should.ThrowAsync<DbUpdateConcurrencyException>(async () =>
+            await staleMapper.PipelineExecuteAsync(
+                stale,
+                submitted,
+                order => order.Id == orderId,
+                beforeSave: (saveContext, _) =>
+                {
+                    saveCalls++;
+                    saveContext.Db.Entry(saveContext.Entity).Property(static order => order.Version).OriginalValue = baseline.Version;
+                    return Task.CompletedTask;
+                },
+                onConflict: (_, _) => throw new InvalidOperationException("Database concurrency must not invoke the rebase-conflict hook.")
+            )
         );
 
         // A stale write is a concurrency conflict, never a silent success:
         // the save ran once, nothing was acknowledged, the draft is intact.
-        result.Stage.ShouldBe(SparseEntitySaveStage.ConcurrencyConflict);
-        result.Error.ShouldBeOfType<DbUpdateConcurrencyException>();
+        concurrencyConflict.ShouldBeOfType<DbUpdateConcurrencyException>();
         saveCalls.ShouldBe(1);
         session.HasChanges.ShouldBeTrue();
-        draft.Notes.ShouldBe("local notes");
+        draft.Name.ShouldBe("LOCAL");
         session
             .CreateChangeSet()
             .EnumerateChangedPaths()
@@ -437,30 +361,13 @@ public sealed class CrossLayerPersistenceMatrixTests
         // a typed rebase conflict, and only the resolved change set is
         // applied under the fresh token.
         using var recovery = TestDatabases.CreateVersioned(connection, new QueryCounter());
-        var recoveryMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
-            new VersionedOrderMapper(),
-            recovery.Model
-        );
-        var currentEntity = await recovery
-            .Orders.Include(static order => order.Lines)
-            .SingleAsync(order => order.Id == orderId);
+        var recoveryMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(new VersionedOrderMapper(), recovery.Model);
+        var currentEntity = await recovery.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == orderId);
         var current = recoveryMapper.ToDto(currentEntity);
 
         var rebase = submitted.RebaseOnto(current);
-        rebase.HasConflicts.ShouldBeTrue();
-        rebase.Conflicts.Select(static conflict => conflict.PathText).ShouldContain("Notes");
-
-        var resolution = VersionedOrderDto.ChangeSet.BeginResolution(rebase, current);
-        foreach (var conflict in resolution.EnumerateUnresolvedConflicts())
-        {
-            resolution.UseIncoming(conflict.Path);
-        }
-
-        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue();
-        failure.ShouldBeNull();
-        resolved.ShouldNotBeNull();
-
-        recoveryMapper.Apply(recovery, currentEntity, resolved!);
+        rebase.HasConflicts.ShouldBeFalse();
+        recoveryMapper.Apply(recovery, currentEntity, rebase.Rebased);
         await recovery.SaveChangesAsync();
         var authoritative = recoveryMapper.ToDto(currentEntity);
 
@@ -469,19 +376,18 @@ public sealed class CrossLayerPersistenceMatrixTests
         // never moved. The AndApply variant adopts the server-advanced token
         // into the live model; plain TryReconcile would leave the token
         // advance as a pending live-vs-baseline diff.
-        session
-            .TryReconcileAndApply(submitted, authoritative, out var applyConflicts)
-            .ShouldBeTrue();
+        session.TryReconcileAndApply(submitted, authoritative, out var applyConflicts).ShouldBeTrue();
         applyConflicts.ShouldBeNull();
 
-        draft.Notes.ShouldBe("local notes");
+        draft.Notes.ShouldBe("remote notes");
+        draft.Name.ShouldBe("LOCAL");
         draft.Version.ShouldBe(authoritative.Version);
         session.HasChanges.ShouldBeFalse();
         history.CanUndo.ShouldBeFalse();
         using (var fresh = TestDatabases.CreateVersioned(connection, new QueryCounter()))
         {
             var persisted = await fresh.Orders.SingleAsync(order => order.Id == orderId);
-            persisted.Notes.ShouldBe("local notes");
+            persisted.Notes.ShouldBe("remote notes");
             persisted.Version.ShouldNotBe(current.Version);
         }
     }
@@ -503,13 +409,8 @@ public sealed class CrossLayerPersistenceMatrixTests
         var semanticCounter = new QueryCounter();
         using (var context = TestDatabases.CreateVersioned(connection, semanticCounter))
         {
-            var mapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
-                new VersionedOrderMapper(),
-                context.Model
-            );
-            var tracked = await context
-                .Orders.Include(static order => order.Lines)
-                .SingleAsync(order => order.Id == semanticId);
+            var mapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(new VersionedOrderMapper(), context.Model);
+            var tracked = await context.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == semanticId);
             var baseline = mapper.ToDto(tracked);
             var draft = CloneVersioned(baseline);
             var session = draft.CreateEditSession();
@@ -534,13 +435,8 @@ public sealed class CrossLayerPersistenceMatrixTests
         // the token still guards the read-to-save race underneath.
         using (var context = TestDatabases.CreateVersioned(connection, new QueryCounter()))
         {
-            var mapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
-                new VersionedOrderMapper(),
-                context.Model
-            );
-            var tracked = await context
-                .Orders.Include(static order => order.Lines)
-                .SingleAsync(order => order.Id == staleId);
+            var mapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(new VersionedOrderMapper(), context.Model);
+            var tracked = await context.Orders.Include(static order => order.Lines).SingleAsync(order => order.Id == staleId);
             var baseline = mapper.ToDto(tracked);
             var draft = CloneVersioned(baseline);
             var session = draft.CreateEditSession();
@@ -560,8 +456,7 @@ public sealed class CrossLayerPersistenceMatrixTests
             }
 
             mapper.Apply(context, tracked, rebase.Rebased);
-            context.Entry(tracked).Property(static order => order.Version).OriginalValue =
-                baseline.Version;
+            context.Entry(tracked).Property(static order => order.Version).OriginalValue = baseline.Version;
             await Should.ThrowAsync<DbUpdateConcurrencyException>(context.SaveChangesAsync());
 
             // The failed write leaves the draft pending: the client must

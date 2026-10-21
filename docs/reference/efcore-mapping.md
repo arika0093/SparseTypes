@@ -111,8 +111,9 @@ The builder has a parameterless constructor and fluent methods return the same b
 | `Apply(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes)` | Preflights and writes accepted transitions to tracked entities. Does not save or rebase. |
 | `ApplyWithResult(context, entity, changes)` | Same application with applied-path and created-entity correlation results. |
 | `AssignTemporaryKeys(context, result, baseline, authoritative)` | Copies generated key assignments into corresponding DTOs after persistence. |
+| `PipelineExecuteAsync<TContext,TChangeSet>(context, changes, filter, session = null, beforeSave = null, onConflict = null, onReconcileFailed = null, cancellationToken = default)` | Rebases, applies, saves, reads back, assigns temporary keys, and optionally reconciles an edit session. Type arguments are inferred. |
 
-`ISparseEntityMapper<TEntity,TDto>` is the service contract for Apply, ApplyWithResult, AssignTemporaryKeys, and `ToDto(DbContext context, TEntity entity)`. Its ToDto signature differs from the concrete mapper's instance method.
+`ISparseEntityMapper<TEntity,TDto>` is the service contract for Apply, ApplyWithResult, AssignTemporaryKeys, `PipelineExecuteAsync`, and `ToDto(DbContext context, TEntity entity)`. Its ToDto signature differs from the concrete mapper's instance method.
 
 `query.IncludeFor(mapper, changes)` has ISparseChangeSet and typed ISparseChangeSet<TDto> overloads and returns IQueryable<TEntity>.
 
@@ -128,20 +129,33 @@ Each `SparseEntityAppliedPath` records DtoPath, Operation, EntityType, EntityMem
 
 SparseEntityMappingFailure values are Unknown, Duplicate, Unmapped, Ambiguous, Protected, CollectionNotSupported, MissingNotHandled, NullNotAllowed, MetadataMismatch, NestedNotCreatable, CollectionNotLoaded, CollectionKeyNotFound, and CollectionKeyConflict.
 
-## Save pipeline
+## Mapper-managed persistence
 
-`SparseEntitySavePipeline.ExecuteAsync<TPreparation,TReadBack>(prepare, save, readBack, synchronize, cancellationToken = default)` runs application-supplied callbacks once, in that order. Callback signatures are:
+`SparseEntityMapper<TEntity,TDto>.PipelineExecuteAsync` and the matching `ISparseEntityMapper<TEntity,TDto>` service method perform the standard persistence sequence:
 
-| Callback | Signature |
-| --- | --- |
-| prepare | `Func<CancellationToken,Task<TPreparation>>` |
-| save | `Func<TPreparation,CancellationToken,Task>` |
-| readBack | `Func<TPreparation,CancellationToken,Task<TReadBack>>` |
-| synchronize | `Func<TPreparation,TReadBack,CancellationToken,Task>` |
+1. Project the current DTO using the supplied entity filter and rebase the submitted generated change set.
+2. If rebase has semantic conflicts, invoke `onConflict` once when provided and return `RebaseConflict` without loading a tracked entity or saving.
+3. Load the tracked entity with the navigations selected by `IncludeFor`, apply the rebased change set, and invoke `beforeSave` once when provided.
+4. Call `DbContext.SaveChangesAsync(cancellationToken)` once, project the authoritative DTO, assign temporary keys, and reconcile the optional session.
+5. If session reconciliation returns false, invoke `onReconcileFailed` once when provided and return `ReconcileFailed` with persisted DTO and conflicts.
 
-The returned SparseEntitySaveResult exposes Stage, Preparation, ReadBack, and Error. Stage is Saved, PreparationFailed, ConcurrencyConflict, SaveOutcomeUnknown, ReadBackFailed, or ClientSynchronizationFailed.
+The `filter` is an `Expression<Func<TEntity,bool>>`; `SingleAsync` enforces that it selects one entity. The filter is used for both current and authoritative projections, so it must remain stable across the save. Query, apply, persistence, readback, and callback exceptions propagate. `DbUpdateConcurrencyException` is not a rebase conflict and does not invoke `onConflict`. Callbacks are notifications and do not resume or resolve a failed operation.
 
-The pipeline neither retries nor rolls back. Callback cancellation is returned as an Error at the reached stage, not rethrown. A save-stage cancellation or unclassified exception means persistence outcome is unknown: query authoritative state before retrying. ReadBackFailed and ClientSynchronizationFailed mean persistence already completed.
+`SparseEntityPipelineResult<TDto,TChangeSet>` exposes:
+
+| Member | Meaning |
+|---|---|
+| `Stage` | `Saved`, `RebaseConflict`, or `ReconcileFailed`. |
+| `Current` | DTO projected before rebasing. |
+| `Submitted` | Original submitted change set. |
+| `Rebase` | Typed rebase result; its `Rebased` set is the one applied on success. |
+| `ApplyResult` | Apply and temporary-key correlation details after apply; null on rebase conflict. |
+| `ReadBack` | Authoritative DTO after persistence; null on rebase conflict. |
+| `ReconcileConflicts` | Conflicts returned by failed session reconciliation, when available. |
+
+`SparseEntityBeforeSaveContext<TContext,TEntity,TDto,TChangeSet>` supplies the concrete context type, tracked entity, current DTO, original submitted set, rebased set, and apply result. Use this callback to validate or set original concurrency-token values.
+
+The method saves the entire DbContext. Use a short-lived context without unrelated pending changes. It does not begin a transaction, retry, or roll back tracked state. Cancellation and all exceptions propagate; after a save-stage or later failure, inspect persisted state before retrying. If the application owns an outer transaction, a successful result occurs before that transaction is committed, so session reconciliation does not prove the outer commit succeeded.
 
 ## Execution lifecycle
 
@@ -179,5 +193,6 @@ Mappings run against EF property entries:
 | Primitive collections (whole value replacement) | Supported |
 | Unkeyed collections, skip navigations (many-to-many) | Unsupported (fail explicitly) |
 | Filtered includes for collections with additions/removals | Unsupported (unfiltered required) |
-| Rebase, authorization, `SaveChanges` | Application-owned |
+| Mapper-managed rebase, `SaveChanges`, temporary-key assignment, optional session reconciliation | Supported by `PipelineExecuteAsync` |
+| Custom transaction, authorization, concurrency-token policy, retry | Application-owned |
 | Optimistic concurrency tokens | Application-owned (`IsConcurrencyToken` plus a per-write advance covering child writes) |

@@ -2,167 +2,134 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SparseTypes.EntityFrameworkCore;
 
-/// <summary>Identifies the stage reached by a sparse entity save operation.</summary>
-public enum SparseEntitySaveStage
+/// <summary>Identifies the outcome of one mapper-managed save operation.</summary>
+public enum SparseEntityPipelineStage
 {
-    /// <summary>The save and client synchronization completed.</summary>
+    /// <summary>Persistence and any requested session reconciliation completed.</summary>
     Saved,
 
-    /// <summary>Preparation failed before the save callback was invoked.</summary>
-    PreparationFailed,
+    /// <summary>Rebasing detected semantic conflicts and persistence was not attempted.</summary>
+    RebaseConflict,
 
-    /// <summary>A concurrency conflict prevented persistence.</summary>
-    ConcurrencyConflict,
-
-    /// <summary>The save callback failed without confirming whether persistence completed.</summary>
-    SaveOutcomeUnknown,
-
-    /// <summary>Persistence completed, but reading back the authoritative state failed.</summary>
-    ReadBackFailed,
-
-    /// <summary>Persistence and readback completed, but client synchronization failed.</summary>
-    ClientSynchronizationFailed,
+    /// <summary>Persistence completed, but the edit session could not adopt the authoritative state.</summary>
+    ReconcileFailed,
 }
 
-/// <summary>The result of one sparse entity save pipeline execution.</summary>
-/// <typeparam name="TPreparation">The prepared submission state.</typeparam>
-/// <typeparam name="TReadBack">The authoritative state read after persistence.</typeparam>
-public sealed class SparseEntitySaveResult<TPreparation, TReadBack>
+/// <summary>The result of one mapper-managed save operation.</summary>
+/// <typeparam name="TDto">The mapped model type.</typeparam>
+/// <typeparam name="TChangeSet">The submitted generated change-set type.</typeparam>
+public sealed class SparseEntityPipelineResult<TDto, TChangeSet>
+    where TDto : class
+    where TChangeSet : class
 {
-    internal SparseEntitySaveResult(SparseEntitySaveStage stage, TPreparation? preparation, TReadBack? readBack, Exception? error)
-    {
-        Stage = stage;
-        Preparation = preparation;
-        ReadBack = readBack;
-        Error = error;
-    }
-
-    /// <summary>Gets the stage reached by the operation.</summary>
-    public SparseEntitySaveStage Stage { get; }
-
-    /// <summary>Gets the prepared submission state when preparation succeeded.</summary>
-    public TPreparation? Preparation { get; }
-
-    /// <summary>Gets the authoritative readback when it completed.</summary>
-    public TReadBack? ReadBack { get; }
-
-    /// <summary>Gets the exception from the failed stage, or null on success.</summary>
-    public Exception? Error { get; }
-}
-
-/// <summary>Runs consumer-supplied preparation, persistence, readback, and synchronization steps.</summary>
-/// <remarks>
-/// The pipeline does not query, persist, retry, or roll back on its own. Consumers provide every step;
-/// a save-stage exception is classified as an unknown outcome unless it is a concurrency conflict.
-/// Cancellation is reported rather than thrown: an <see cref="OperationCanceledException"/>
-/// from one callback is returned as that stage's result, with the exception in
-/// <see cref="SparseEntitySaveResult{TPreparation, TReadBack}.Error"/>, so the caller keeps what
-/// the pipeline knows about persistence. Preparation cancellation means the save callback never
-/// ran, so the submission can be retried with a fresh token. Save cancellation leaves the outcome
-/// unknown, so the caller must query persisted state instead of resubmitting. Readback and
-/// synchronization cancellation mean persistence completed, so the caller recovers by re-reading
-/// authoritative state or by completing client synchronization without resubmitting. The pipeline
-/// performs no cancellation check between stages: a callback that ignores the token runs to
-/// completion, and a check after save would discard the knowledge that persistence completed.
-/// </remarks>
-public static class SparseEntitySavePipeline
-{
-    /// <summary>Executes one save attempt without retrying any stage.</summary>
-    /// <typeparam name="TPreparation">The prepared submission state.</typeparam>
-    /// <typeparam name="TReadBack">The authoritative state read after persistence.</typeparam>
-    /// <param name="prepare">Reads and rebases current state, then applies the accepted submission.</param>
-    /// <param name="save">Persists the prepared submission exactly once.</param>
-    /// <param name="readBack">Reads persisted state and performs any key correlation required by the consumer.</param>
-    /// <param name="synchronize">Reconciles the live client state with the readback.</param>
-    /// <param name="cancellationToken">Cancels the current callback when supported by the consumer.</param>
-    /// <returns>
-    /// The stage reached and any prepared or authoritative values. Cancellation is never thrown:
-    /// when <see cref="SparseEntitySaveResult{TPreparation, TReadBack}.Error"/> is an
-    /// <see cref="OperationCanceledException"/>, the stage tells whether persistence was not
-    /// attempted (<see cref="SparseEntitySaveStage.PreparationFailed"/>), is unknown
-    /// (<see cref="SparseEntitySaveStage.SaveOutcomeUnknown"/>), or completed
-    /// (<see cref="SparseEntitySaveStage.ReadBackFailed"/> and
-    /// <see cref="SparseEntitySaveStage.ClientSynchronizationFailed"/>).
-    /// </returns>
-    public static async Task<SparseEntitySaveResult<TPreparation, TReadBack>> ExecuteAsync<TPreparation, TReadBack>(
-        Func<CancellationToken, Task<TPreparation>> prepare,
-        Func<TPreparation, CancellationToken, Task> save,
-        Func<TPreparation, CancellationToken, Task<TReadBack>> readBack,
-        Func<TPreparation, TReadBack, CancellationToken, Task> synchronize,
-        CancellationToken cancellationToken = default
+    internal SparseEntityPipelineResult(
+        SparseEntityPipelineStage stage,
+        TDto current,
+        TChangeSet submitted,
+        RebaseResult<TChangeSet> rebase,
+        SparseEntityApplyResult? applyResult,
+        TDto? readBack,
+        IReadOnlyList<SparseConflict>? reconcileConflicts
     )
     {
-        ArgumentNullException.ThrowIfNull(prepare);
-        ArgumentNullException.ThrowIfNull(save);
-        ArgumentNullException.ThrowIfNull(readBack);
-        ArgumentNullException.ThrowIfNull(synchronize);
-
-        TPreparation prepared;
-        try
-        {
-            prepared = await prepare(cancellationToken).ConfigureAwait(false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            return new(SparseEntitySaveStage.ConcurrencyConflict, default, default, exception);
-        }
-        catch (OperationCanceledException exception)
-        {
-            // The save callback never ran, so nothing was persisted.
-            return new(SparseEntitySaveStage.PreparationFailed, default, default, exception);
-        }
-        catch (Exception exception)
-        {
-            return new(SparseEntitySaveStage.PreparationFailed, default, default, exception);
-        }
-
-        try
-        {
-            await save(prepared, cancellationToken).ConfigureAwait(false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            return new(SparseEntitySaveStage.ConcurrencyConflict, prepared, default, exception);
-        }
-        catch (OperationCanceledException exception)
-        {
-            // The write may have committed before cancellation surfaced; never retry it.
-            return new(SparseEntitySaveStage.SaveOutcomeUnknown, prepared, default, exception);
-        }
-        catch (Exception exception)
-        {
-            return new(SparseEntitySaveStage.SaveOutcomeUnknown, prepared, default, exception);
-        }
-
-        TReadBack persisted;
-        try
-        {
-            persisted = await readBack(prepared, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException exception)
-        {
-            // Persistence completed; only the authoritative read is missing.
-            return new(SparseEntitySaveStage.ReadBackFailed, prepared, default, exception);
-        }
-        catch (Exception exception)
-        {
-            return new(SparseEntitySaveStage.ReadBackFailed, prepared, default, exception);
-        }
-
-        try
-        {
-            await synchronize(prepared, persisted, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException exception)
-        {
-            // Persistence and readback completed; only client state is unsynchronized.
-            return new(SparseEntitySaveStage.ClientSynchronizationFailed, prepared, persisted, exception);
-        }
-        catch (Exception exception)
-        {
-            return new(SparseEntitySaveStage.ClientSynchronizationFailed, prepared, persisted, exception);
-        }
-
-        return new(SparseEntitySaveStage.Saved, prepared, persisted, null);
+        Stage = stage;
+        Current = current;
+        Submitted = submitted;
+        Rebase = rebase;
+        ApplyResult = applyResult;
+        ReadBack = readBack;
+        ReconcileConflicts = reconcileConflicts;
     }
+
+    /// <summary>Gets the operation outcome.</summary>
+    public SparseEntityPipelineStage Stage { get; }
+
+    /// <summary>Gets the current model read before rebasing.</summary>
+    public TDto Current { get; }
+
+    /// <summary>Gets the original submitted change set.</summary>
+    public TChangeSet Submitted { get; }
+
+    /// <summary>Gets the rebase result used by the operation.</summary>
+    public RebaseResult<TChangeSet> Rebase { get; }
+
+    /// <summary>Gets apply details when persistence was attempted.</summary>
+    public SparseEntityApplyResult? ApplyResult { get; }
+
+    /// <summary>Gets the authoritative model read after persistence.</summary>
+    public TDto? ReadBack { get; }
+
+    /// <summary>Gets typed conflicts when session reconciliation failed.</summary>
+    public IReadOnlyList<SparseConflict>? ReconcileConflicts { get; }
+}
+
+/// <summary>Provides typed state to a callback that runs immediately before persistence.</summary>
+/// <typeparam name="TContext">The concrete DbContext type.</typeparam>
+/// <typeparam name="TEntity">The EF entity type.</typeparam>
+/// <typeparam name="TDto">The mapped model type.</typeparam>
+/// <typeparam name="TChangeSet">The submitted change-set type.</typeparam>
+public sealed class SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>
+    where TContext : DbContext
+    where TEntity : class
+    where TDto : class
+    where TChangeSet : class
+{
+    internal SparseEntityBeforeSaveContext(
+        TContext db,
+        TEntity entity,
+        TDto current,
+        TChangeSet submitted,
+        TChangeSet rebased,
+        SparseEntityApplyResult applyResult
+    )
+    {
+        Db = db;
+        Entity = entity;
+        Current = current;
+        Submitted = submitted;
+        Rebased = rebased;
+        ApplyResult = applyResult;
+    }
+
+    /// <summary>Gets the DbContext used for this save operation.</summary>
+    public TContext Db { get; }
+
+    /// <summary>Gets the tracked entity receiving the accepted changes.</summary>
+    public TEntity Entity { get; }
+
+    /// <summary>Gets the current model read before rebasing.</summary>
+    public TDto Current { get; }
+
+    /// <summary>Gets the original submitted change set.</summary>
+    public TChangeSet Submitted { get; }
+
+    /// <summary>Gets the rebased change set applied to the entity.</summary>
+    public TChangeSet Rebased { get; }
+
+    /// <summary>Gets the result describing the writes performed.</summary>
+    public SparseEntityApplyResult ApplyResult { get; }
+}
+
+/// <summary>Describes a failed attempt to reconcile a session after persistence.</summary>
+/// <typeparam name="TDto">The mapped model type.</typeparam>
+/// <typeparam name="TChangeSet">The submitted change-set type.</typeparam>
+public sealed class SparseEntityReconcileFailure<TDto, TChangeSet>
+    where TDto : class
+    where TChangeSet : class
+{
+    internal SparseEntityReconcileFailure(TChangeSet submitted, TDto persisted, IReadOnlyList<SparseConflict>? conflicts)
+    {
+        Submitted = submitted;
+        Persisted = persisted;
+        Conflicts = conflicts;
+    }
+
+    /// <summary>Gets the original submitted change set.</summary>
+    public TChangeSet Submitted { get; }
+
+    /// <summary>Gets the authoritative model already persisted to the database.</summary>
+    public TDto Persisted { get; }
+
+    /// <summary>Gets the typed conflicts returned by session reconciliation.</summary>
+    public IReadOnlyList<SparseConflict>? Conflicts { get; }
 }

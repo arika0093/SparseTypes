@@ -49,8 +49,7 @@ public sealed class SparseTypesApiAudienceTests
         "SparseTypes.CompilerServices.SparseKeyValidationScope`1",
         "SparseTypes.CompilerServices.SparseFragmentRuntime",
     ];
-    private static readonly System.Reflection.Assembly FullRuntimeAssembly =
-        typeof(SparseTypes.CompilerServices.SparseFragmentRuntime).Assembly;
+    private static readonly System.Reflection.Assembly FullRuntimeAssembly = typeof(SparseTypes.CompilerServices.SparseFragmentRuntime).Assembly;
     private static readonly System.Reflection.Assembly[] RuntimeAssemblies =
     [
         FullRuntimeAssembly,
@@ -69,11 +68,7 @@ public sealed class SparseTypesApiAudienceTests
             .ToArray();
         exported.ShouldNotBeEmpty();
 
-        var offenders = exported
-            .Where(static name =>
-                !FirstClass.Contains(name) && !IsAdvanced(name) && !Plumbing.Contains(name)
-            )
-            .ToArray();
+        var offenders = exported.Where(static name => !FirstClass.Contains(name) && !IsAdvanced(name) && !Plumbing.Contains(name)).ToArray();
         offenders.ShouldBeEmpty();
     }
 
@@ -93,9 +88,7 @@ public sealed class SparseTypesApiAudienceTests
     {
         var offenders = RuntimeAssemblies
             .SelectMany(GetPublicTypes)
-            .Where(static type =>
-                !FirstClass.Contains(type.FullName) && !Plumbing.Contains(type.FullName)
-            )
+            .Where(static type => !FirstClass.Contains(type.FullName) && !Plumbing.Contains(type.FullName))
             .Where(static type => !HasAdvancedHiding(type))
             .Select(static type => type.FullName ?? type.Name)
             .OrderBy(static name => name)
@@ -135,6 +128,8 @@ public sealed class SparseTypesApiAudienceTests
             "SparseTypes.ISparseEditSessionWithChangeSet`2",
             "SparseTypes.ISparseEditSessionWithBaselineRevision",
             "SparseTypes.ISparseEditSessionWithChildStatus`2",
+            "SparseTypes.ISparseChangeSetPipeline`2",
+            "SparseTypes.ISparseEditSessionPipeline`2",
             "SparseTypes.SparseChildSessionStatus",
         };
         var offenders = capabilityTypes.Where(static name => !IsAdvanced(name)).ToArray();
@@ -144,23 +139,18 @@ public sealed class SparseTypesApiAudienceTests
     private static bool IsAdvanced(string fullName) => HasAdvancedHiding(Resolve(fullName));
 
     private static Type Resolve(string fullName) =>
-        RuntimeAssemblies
-            .Select(assembly => assembly.GetType(fullName))
-            .FirstOrDefault(static type => type is not null)
+        RuntimeAssemblies.Select(assembly => assembly.GetType(fullName)).FirstOrDefault(static type => type is not null)
         ?? throw new InvalidOperationException($"Unknown SparseTypes type '{fullName}'.");
 
     private static IEnumerable<Type> GetPublicTypes(System.Reflection.Assembly assembly) =>
         assembly.GetExportedTypes().DistinctBy(static type => type.FullName);
 
     private static bool HasBrowsableHiding(MemberInfo member) =>
-        member.GetCustomAttribute<EditorBrowsableAttribute>()
-            is { State: not EditorBrowsableState.Always };
+        member.GetCustomAttribute<EditorBrowsableAttribute>() is { State: not EditorBrowsableState.Always };
 
     private static bool HasAdvancedHiding(MemberInfo member) =>
-        member.GetCustomAttribute<EditorBrowsableAttribute>()
-            is { State: EditorBrowsableState.Advanced };
+        member.GetCustomAttribute<EditorBrowsableAttribute>() is { State: EditorBrowsableState.Advanced };
 
     private static bool HasNeverHiding(MemberInfo member) =>
-        member.GetCustomAttribute<EditorBrowsableAttribute>()
-            is { State: EditorBrowsableState.Never };
+        member.GetCustomAttribute<EditorBrowsableAttribute>() is { State: EditorBrowsableState.Never };
 }

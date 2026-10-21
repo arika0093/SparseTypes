@@ -95,11 +95,7 @@ public sealed class SampleDbContext(DbContextOptions<SampleDbContext> options) :
             entity.HasKey(order => order.Id);
             entity.Property(order => order.RowVersion).IsConcurrencyToken();
             entity.OwnsOne(order => order.Address);
-            entity
-                .HasMany(order => order.Lines)
-                .WithOne(line => line.Order)
-                .HasForeignKey(line => line.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(order => order.Lines).WithOne(line => line.Order).HasForeignKey(line => line.OrderId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<OrderLineEntity>(entity => entity.HasKey(line => line.Id));
     }
@@ -111,18 +107,10 @@ public sealed partial class OrderMapper
     private void Configure()
     {
         Map.Member(dto => dto.Name, entity => entity.CustomerName);
-        Map.Member(
-            dto => dto.Code,
-            entity => entity.Code,
-            code => code == null ? null : code.ToUpperInvariant()
-        );
+        Map.Member(dto => dto.Code, entity => entity.Code, code => code == null ? null : code.ToUpperInvariant());
         Map.Member(dto => dto.ShipCity, entity => entity.Address!.City);
         Map.Ignore(dto => dto.DisplayTotal);
-        Map.Object(
-            dto => dto.Address,
-            entity => entity.Address,
-            child => child.Ignore(address => address.City)
-        );
+        Map.Object(dto => dto.Address, entity => entity.Address, child => child.Ignore(address => address.City));
         Map.Collection(
             dto => dto.Lines,
             entity => entity.Lines,
@@ -134,13 +122,39 @@ public sealed partial class OrderMapper
                     child.Ignore(line => line.TemporaryId);
                     child.Ignore(line => line.Subtotal);
                 });
-                lines.Create(dto => new OrderLineEntity
-                {
-                    Quantity = dto.Quantity,
-                    UnitPrice = dto.UnitPrice,
-                });
+                lines.Create(dto => new OrderLineEntity { Quantity = dto.Quantity, UnitPrice = dto.UnitPrice });
                 lines.Delete();
                 lines.Order((entity, index) => entity.SortOrder = index);
+            }
+        );
+    }
+}
+
+[SparseFragmentMapper<OrderEntity, OrderDto>]
+public sealed partial class PipelineOrderMapper
+{
+    private void Configure()
+    {
+        Map.Member(dto => dto.Name, entity => entity.CustomerName);
+        Map.Member(dto => dto.Code, entity => entity.Code);
+        Map.Member(dto => dto.ShipCity, entity => entity.Address!.City);
+        Map.Ignore(dto => dto.DisplayTotal);
+        Map.Object(dto => dto.Address, entity => entity.Address, child => child.Ignore(address => address.City));
+        Map.Collection(
+            dto => dto.Lines,
+            entity => entity.Lines,
+            lines =>
+            {
+                lines.Element(child =>
+                {
+                    child.Read(line => line.Id, entity => entity.Id);
+                    child.Ignore(line => line.TemporaryId);
+                    child.Ignore(line => line.Subtotal);
+                    child.Read(line => line.Subtotal, entity => entity.Quantity * entity.UnitPrice);
+                });
+                lines.Create(dto => new OrderLineEntity { Quantity = dto.Quantity, UnitPrice = dto.UnitPrice });
+                lines.Delete();
+                lines.Order(entity => entity.SortOrder);
             }
         );
     }

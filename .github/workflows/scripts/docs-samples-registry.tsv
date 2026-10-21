@@ -121,6 +121,7 @@ docs/how-to/blazor-headless-components.md	blazor-headless	tests/fixtures/consume
 docs/how-to/edit-session-groups.md	edit-session-group-models	tests/fixtures/consumers/package-sparse-docs/EditSessionGroupsDocs.cs
 docs/how-to/edit-session-groups.md	edit-session-group-flow	tests/fixtures/consumers/package-sparse-docs/EditSessionGroupsDocs.cs
 docs/how-to/efcore-mapping.md	efcore-authoritative-reload	tests/SparseTypes.EntityFrameworkCore.Tests/IncludeForTests.cs
+docs/how-to/efcore-mapping.md	efcore-mapper-pipeline-save	tests/SparseTypes.EntityFrameworkCore.Tests/SparseEntityPipelineTests.cs
 docs/reference/edit-session-state.md	edit-session-field-state	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
 docs/reference/edit-session-state.md	edit-session-collection-state	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
 docs/reference/edit-session-state.md	edit-session-observe-field	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs

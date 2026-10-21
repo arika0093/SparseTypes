@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 
 namespace SparseTypes.EntityFrameworkCore;
@@ -37,4 +38,29 @@ public interface ISparseEntityMapper<TEntity, TDto>
     /// <param name="baseline">The prior DTO containing temporary identities to preserve.</param>
     /// <param name="authoritative">The current DTO to update with resolved identities.</param>
     void AssignTemporaryKeys(DbContext context, SparseEntityApplyResult result, TDto baseline, TDto authoritative);
+
+    /// <summary>Rebases, applies, persists, reloads, and optionally reconciles one change set.</summary>
+    /// <typeparam name="TContext">The concrete context type.</typeparam>
+    /// <typeparam name="TChangeSet">The generated change-set type.</typeparam>
+    /// <param name="context">The context used to query and persist the entity.</param>
+    /// <param name="changes">The original submitted change set.</param>
+    /// <param name="filter">The expression selecting the single entity to update.</param>
+    /// <param name="session">The edit session to reconcile after persistence, when present.</param>
+    /// <param name="beforeSave">An optional callback after applying changes and before saving.</param>
+    /// <param name="onConflict">An optional callback when rebasing finds semantic conflicts.</param>
+    /// <param name="onReconcileFailed">An optional callback when session reconciliation fails.</param>
+    /// <param name="cancellationToken">Cancels database operations and callbacks that honor it.</param>
+    /// <returns>The rebase, persistence, and optional reconciliation outcome.</returns>
+    Task<SparseEntityPipelineResult<TDto, TChangeSet>> PipelineExecuteAsync<TContext, TChangeSet>(
+        TContext context,
+        TChangeSet changes,
+        Expression<Func<TEntity, bool>> filter,
+        ISparseEditSessionPipeline<TDto, TChangeSet>? session = null,
+        Func<SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>, CancellationToken, Task>? beforeSave = null,
+        Func<RebaseResult<TChangeSet>, CancellationToken, Task>? onConflict = null,
+        Func<SparseEntityReconcileFailure<TDto, TChangeSet>, CancellationToken, Task>? onReconcileFailed = null,
+        CancellationToken cancellationToken = default
+    )
+        where TContext : DbContext
+        where TChangeSet : class, ISparseChangeSet<TDto>, ISparseChangeSetPipeline<TDto, TChangeSet>;
 }

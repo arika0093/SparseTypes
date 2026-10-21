@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -26,6 +27,20 @@ internal sealed class SparseEntityMapperService<TEntity, TDto>(IEntityModelMappi
 
     public void AssignTemporaryKeys(DbContext context, SparseEntityApplyResult result, TDto baseline, TDto authoritative) =>
         GetMapper(context).AssignTemporaryKeys(context, result, baseline, authoritative);
+
+    public Task<SparseEntityPipelineResult<TDto, TChangeSet>> PipelineExecuteAsync<TContext, TChangeSet>(
+        TContext context,
+        TChangeSet changes,
+        Expression<Func<TEntity, bool>> filter,
+        ISparseEditSessionPipeline<TDto, TChangeSet>? session = null,
+        Func<SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>, CancellationToken, Task>? beforeSave = null,
+        Func<RebaseResult<TChangeSet>, CancellationToken, Task>? onConflict = null,
+        Func<SparseEntityReconcileFailure<TDto, TChangeSet>, CancellationToken, Task>? onReconcileFailed = null,
+        CancellationToken cancellationToken = default
+    )
+        where TContext : DbContext
+        where TChangeSet : class, ISparseChangeSet<TDto>, ISparseChangeSetPipeline<TDto, TChangeSet> =>
+        GetMapper(context).PipelineExecuteAsync(context, changes, filter, session, beforeSave, onConflict, onReconcileFailed, cancellationToken);
 
     public void Validate(DbContext context)
     {

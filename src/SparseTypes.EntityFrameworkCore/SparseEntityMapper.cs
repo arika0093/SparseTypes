@@ -124,6 +124,91 @@ public sealed class SparseEntityMapper<TEntity, TDto>
         return ApplyCore(context, entity, changes, trackResult: true)!;
     }
 
+    /// <summary>Rebases, applies, persists, reloads, and optionally reconciles one change set.</summary>
+    /// <typeparam name="TContext">The concrete context type, inferred from <paramref name="context"/>.</typeparam>
+    /// <typeparam name="TChangeSet">The generated change-set type.</typeparam>
+    /// <param name="context">The context used to query and persist the entity.</param>
+    /// <param name="changes">The original submitted change set.</param>
+    /// <param name="filter">The expression selecting the single entity to update.</param>
+    /// <param name="session">The edit session to reconcile after persistence, when present.</param>
+    /// <param name="beforeSave">An optional callback after applying changes and before saving.</param>
+    /// <param name="onConflict">An optional callback when rebasing finds semantic conflicts.</param>
+    /// <param name="onReconcileFailed">An optional callback when session reconciliation fails.</param>
+    /// <param name="cancellationToken">Cancels database operations and callbacks that honor it.</param>
+    /// <returns>The rebase, persistence, and optional reconciliation outcome.</returns>
+    public async Task<SparseEntityPipelineResult<TDto, TChangeSet>> PipelineExecuteAsync<TContext, TChangeSet>(
+        TContext context,
+        TChangeSet changes,
+        Expression<Func<TEntity, bool>> filter,
+        ISparseEditSessionPipeline<TDto, TChangeSet>? session = null,
+        Func<SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>, CancellationToken, Task>? beforeSave = null,
+        Func<RebaseResult<TChangeSet>, CancellationToken, Task>? onConflict = null,
+        Func<SparseEntityReconcileFailure<TDto, TChangeSet>, CancellationToken, Task>? onReconcileFailed = null,
+        CancellationToken cancellationToken = default
+    )
+        where TContext : DbContext
+        where TChangeSet : class, ISparseChangeSet<TDto>, ISparseChangeSetPipeline<TDto, TChangeSet>
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(changes);
+        ArgumentNullException.ThrowIfNull(filter);
+        if (!ReferenceEquals(context.Model, Model))
+        {
+            throw new SparseEntityMappingException(
+                SparseEntityMappingFailure.MetadataMismatch,
+                null,
+                "The context model is not the model this mapper was created for. Create a mapper per EF model."
+            );
+        }
+
+        var current = await context.Set<TEntity>().AsNoTracking().Where(filter).Select(Projection).SingleAsync(cancellationToken);
+        var rebase = ((ISparseChangeSetPipeline<TDto, TChangeSet>)changes).RebaseForPipeline(current);
+        if (rebase.HasConflicts)
+        {
+            if (onConflict is not null)
+            {
+                await onConflict(rebase, cancellationToken);
+            }
+
+            return new(SparseEntityPipelineStage.RebaseConflict, current, changes, rebase, null, null, null);
+        }
+
+        var entity = await context.Set<TEntity>().AsTracking().Where(filter).IncludeFor(this, rebase.Rebased).SingleAsync(cancellationToken);
+        var applyResult = ApplyWithResult(context, entity, rebase.Rebased);
+        if (beforeSave is not null)
+        {
+            await beforeSave(
+                new SparseEntityBeforeSaveContext<TContext, TEntity, TDto, TChangeSet>(
+                    context,
+                    entity,
+                    current,
+                    changes,
+                    rebase.Rebased,
+                    applyResult
+                ),
+                cancellationToken
+            );
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        var persisted = await context.Set<TEntity>().AsNoTracking().Where(filter).Select(Projection).SingleAsync(cancellationToken);
+        AssignTemporaryKeys(context, applyResult, current, persisted);
+
+        IReadOnlyList<SparseConflict>? reconcileConflicts = null;
+        if (session is not null && !session.TryReconcileForPipeline(changes, persisted, out reconcileConflicts))
+        {
+            var failure = new SparseEntityReconcileFailure<TDto, TChangeSet>(changes, persisted, reconcileConflicts);
+            if (onReconcileFailed is not null)
+            {
+                await onReconcileFailed(failure, cancellationToken);
+            }
+
+            return new(SparseEntityPipelineStage.ReconcileFailed, current, changes, rebase, applyResult, persisted, reconcileConflicts);
+        }
+
+        return new(SparseEntityPipelineStage.Saved, current, changes, rebase, applyResult, persisted, reconcileConflicts);
+    }
+
     private SparseEntityApplyResult? ApplyCore(DbContext context, TEntity entity, ISparseChangeSet<TDto> changes, bool trackResult)
     {
         ArgumentNullException.ThrowIfNull(context);
