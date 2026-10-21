@@ -3,6 +3,7 @@
 Guidance for AI agents working in this repository. Always follow it, and consult the linked issues/docs when in doubt.
 
 ## Coding conventions
+### Common rules
 
 - Follow `.editorconfig` and the rules enforced by `SonarAnalyzer.CSharp`.
   - Avoid disabling warnings or deliberately circumventing checks unless truly necessary.
@@ -19,6 +20,16 @@ Guidance for AI agents working in this repository. Always follow it, and consult
 - **Favor low-allocation**, efficient code while keeping the implementation straightforward and maintainable.
   - If necessary, create and run benchmarks to improve performance.
 - Format C# changes with CSharpier and verify them with `dotnet csharpier check`.
+
+### Samples/Playground code
+
+Write code that serves as a model for users. In other words:
+
+* Use the library's features as much as possible.
+* Add brief comments explaining what the code is doing when helpful, but avoid long explanations and point readers to the documentation instead.
+* Choose variable and method names that make the code's intent clear.
+* Split the code appropriately so a single file does not become excessively large.
+
 
 ## SparseTypes.Generator.Shared
 ### Position
