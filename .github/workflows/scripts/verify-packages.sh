@@ -18,6 +18,8 @@ fi
 # Generator.Shared is source-only (no lib/) and is tracked separately below.
 declare -A portable_package_assets=(
     [SparseTypes]="netstandard2.0"
+    [SparseTypes.Core]="netstandard2.0"
+    [SparseTypes.Fragments]="netstandard2.0"
     [SparseTypes.Blazor]="net8.0 net10.0"
 )
 
@@ -111,14 +113,42 @@ for package_file in "${package_files[@]}"; do
             require_entry 'analyzers/dotnet/cs/SparseTypes.Generator.dll'
             require_entry 'lib/netstandard2.0/SparseTypes.dll'
             require_readme 'README.md'
+            require_dependency 'SparseTypes.Core'
+            require_no_dependency 'SparseTypes.Fragments'
             # Serializer-agnostic runtime: the base package must
             # not bring System.Text.Json transitively.
             require_no_dependency 'System.Text.Json'
             ;;
+        SparseTypes.Core)
+            require_entry 'lib/netstandard2.0/SparseTypes.Core.dll'
+            require_readme 'README.md'
+            require_dependency 'System.Memory'
+            require_no_dependency 'SparseTypes'
+            require_no_dependency 'SparseTypes.Fragments'
+            require_no_dependency 'System.Text.Json'
+            if grep -q -E '^analyzers/' <<<"${entries}"; then
+                echo "Package '${package_id}' must not ship generator analyzers." >&2
+                exit 1
+            fi
+            ;;
+        SparseTypes.Fragments)
+            require_entry 'analyzers/dotnet/cs/SparseTypes.Fragments.Generator.dll'
+            require_entry 'build/SparseTypes.Fragments.props'
+            require_entry 'lib/netstandard2.0/SparseTypes.Fragments.dll'
+            require_readme 'README.md'
+            require_dependency 'SparseTypes.Core'
+            require_no_dependency 'SparseTypes'
+            require_no_dependency 'System.Text.Json'
+            unexpected_analyzers="$(grep -E '^analyzers/' <<<"${entries}" | grep -F -x -v 'analyzers/dotnet/cs/SparseTypes.Fragments.Generator.dll' || true)"
+            if [[ -n "${unexpected_analyzers}" ]]; then
+                echo "Package '${package_id}' ships unexpected analyzer assets: ${unexpected_analyzers}." >&2
+                exit 1
+            fi
+            ;;
         SparseTypes.Blazor)
             require_entry 'lib/net8.0/SparseTypes.Blazor.dll'
             require_entry 'lib/net10.0/SparseTypes.Blazor.dll'
-            require_readme 'README.Blazor.md'
+            require_readme 'README.md'
             require_dependency 'SparseTypes'
             ;;
         SparseTypes.Generator.Shared)

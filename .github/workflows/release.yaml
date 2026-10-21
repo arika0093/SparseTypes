@@ -58,7 +58,17 @@ jobs:
         run: dotnet build SparseTypes.slnx --no-restore --configuration Release
 
       - name: Pack NuGet packages
-        run: dotnet pack SparseTypes.slnx --no-build --no-restore --configuration Release --output artifacts
+        run: >
+          dotnet pack src/SparseTypes.Core/SparseTypes.Core.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.Fragments/SparseTypes.Fragments.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes/SparseTypes.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.Blazor/SparseTypes.Blazor.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.Generator.Shared/SparseTypes.Generator.Shared.csproj
+          --no-build --no-restore --configuration Release --output artifacts
 
       - name: Verify release candidate packages
         run: bash ./.github/workflows/scripts/verify-packages.sh artifacts
@@ -109,6 +119,9 @@ jobs:
 
       - name: Verify packed package consumer
         run: bash ./.github/workflows/scripts/verify-package-sparse-consumer.sh artifacts
+
+      - name: Verify packed Fragments package consumer
+        run: bash ./.github/workflows/scripts/verify-package-fragments-consumer.sh artifacts
 
       - name: Verify C# 9.0 language-version consumer
         run: bash ./.github/workflows/scripts/verify-package-langversion-consumer.sh artifacts

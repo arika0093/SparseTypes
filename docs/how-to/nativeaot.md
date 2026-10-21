@@ -22,6 +22,13 @@ The sample uses `PayloadRootJson.Default` for the `PayloadRoot` model:
 
 <!-- sample: native-aot-json -->
 ```csharp
+var before = Optional<PayloadRoot.Fragment?>.Present(
+    PayloadRoot.Fragment.From(new PayloadRoot { Label = "before" })
+);
+var after = Optional<PayloadRoot.Fragment?>.Present(
+    PayloadRoot.Fragment.From(new PayloadRoot { Label = "after" })
+);
+var changes = PayloadRoot.ChangeSet.Between(before, after);
 var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRootJson.Default);
 var restored = JsonSerializer.Deserialize(json, PayloadRootJson.Default)!.ToChangeSet();
 ```

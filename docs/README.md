@@ -28,6 +28,7 @@ Task-oriented guides for UI binding, API endpoints, and persistence:
 * [Use Blazor headless components](how-to/blazor-headless-components.md): Bind custom or third-party inputs with `SparseEdit`, `SparseField`, and `SparseCollection`.
 * [Coordinate multi-session submissions](how-to/edit-session-groups.md): Group multiple independent edit sessions into a single validated submission with `EditSessionGroup`.
 * [Apply ChangeSets to EF Core entities](how-to/efcore-mapping.md): Map DTO `ChangeSet` transitions onto tracked EF Core entities, correlate `[SparseTemporaryKey]` rows, and guard concurrency tokens.
+* [OpenAPI integration](how-to/openapi.md): Register generated `ChangePayload` schemas with ASP.NET Core OpenAPI or Swashbuckle.
 
 ## Explanations
 
@@ -57,7 +58,6 @@ Start with the [API reference index](reference/README.md) for package types and 
 * [Session contracts, history, and groups](reference/session-contracts.md): Framework capabilities, Undo/Redo, child sessions, and submission capture.
 * [Validation stores](reference/validation.md): Path/origin errors and conflict projection.
 * [Payload runtime APIs](reference/payload-api.md): Endpoint, validation, wire token, and mixed-operation types.
-* [OpenAPI integration](reference/openapi.md): Register generated `ChangePayload` schemas with ASP.NET Core OpenAPI or Swashbuckle.
 * [Blazor API](reference/blazor-api.md): Component parameters, contexts, bindings, and EditContext extensions.
 
 ### Generated APIs

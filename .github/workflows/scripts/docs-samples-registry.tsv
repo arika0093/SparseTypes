@@ -73,6 +73,7 @@ docs/reference/change-payload.md	payload-keyed-json	tests/fixtures/consumers/pac
 docs/reference/change-payload.md	payload-reorder	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
 docs/reference/change-payload.md	payload-dict	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
 docs/reference/change-payload.md	payload-root	tests/fixtures/consumers/package-sparse-docs/ChangePayloadDocs.cs	json-specimen
+docs/how-to/nativeaot.md	native-aot-json	tests/fixtures/consumers/package-sparse-docs/NativeAotDocsSample.cs
 docs/explanation/ui-frameworks.md	ui-session-models	tests/fixtures/consumers/package-sparse-blazor/Program.cs
 docs/explanation/ui-frameworks.md	ui-session	tests/fixtures/consumers/package-sparse-blazor/Program.cs
 docs/explanation/ui-frameworks.md	ui-history	tests/fixtures/consumers/package-sparse-blazor/Program.cs

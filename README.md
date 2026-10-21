@@ -52,11 +52,13 @@ Console.WriteLine(changes.Theme.After.Value);  // dark
 
 ## Install
 
+Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/SparseTypes/):
+
 ```shell
 dotnet add package SparseTypes
 ```
 
-The package bundles the Roslyn source generator, so building the project generates all companion types automatically.
+We also provide several other libraries. For details, see [here](docs/explanation/libraries.md).
 
 ## Quick Start
 ### Simple example

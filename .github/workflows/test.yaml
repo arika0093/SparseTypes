@@ -94,6 +94,19 @@ jobs:
           --results-directory TestResults --no-progress
           -- --timeout 10m --report-trx
 
+      - name: Restore Fragments tests
+        run: dotnet restore tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
+
+      - name: Build Fragments tests
+        run: dotnet build tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj --no-restore --configuration Release
+
+      - name: Run Fragments tests
+        run: >
+          dotnet test tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
+          --no-build --no-restore --configuration Release --framework net10.0
+          --results-directory TestResults/fragments --no-progress
+          -- --timeout 10m --report-trx
+
       - name: Collect code coverage (observation)
         if: matrix.os == 'ubuntu-latest'
         run: >
@@ -209,8 +222,12 @@ jobs:
 
       - name: Pack NuGet packages
         # Let pack restore and build; this job has not restored the projects.
-        # All three shipped packages are packed above.
+        # Pack every runtime package and the source-only Shared package once.
         run: >
+          dotnet pack src/SparseTypes.Core/SparseTypes.Core.csproj
+          --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.Fragments/SparseTypes.Fragments.csproj
+          --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes/SparseTypes.csproj
           --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes.Blazor/SparseTypes.Blazor.csproj
@@ -228,6 +245,9 @@ jobs:
 
       - name: Verify packed package consumer
         run: bash ./.github/workflows/scripts/verify-package-sparse-consumer.sh artifacts
+
+      - name: Verify packed Fragments package consumer
+        run: bash ./.github/workflows/scripts/verify-package-fragments-consumer.sh artifacts
 
       - name: Verify C# 9.0 language-version consumer
         run: bash ./.github/workflows/scripts/verify-package-langversion-consumer.sh artifacts
@@ -276,6 +296,8 @@ jobs:
 
       - name: Pack core NuGet package
         run: >
+          dotnet pack src/SparseTypes.Core/SparseTypes.Core.csproj
+          --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes/SparseTypes.csproj
           --configuration Release --output artifacts
 
@@ -346,6 +368,27 @@ jobs:
             ./TestResults/nativeaot-smoke/SparseTypes.NativeAotSmoke --report-trx --results-directory TestResults/nativeaot-results
           fi
 
+      - name: Publish Fragments NativeAOT smoke consumer
+        shell: bash
+        run: |
+          dotnet publish tests/SparseTypes.Fragments.NativeAotSmoke/SparseTypes.Fragments.NativeAotSmoke.csproj \
+            --configuration Release --framework net10.0 --use-current-runtime \
+            --output TestResults/fragments-nativeaot-smoke --verbosity normal 2>&1 \
+            | tee TestResults/fragments-nativeaot-publish.log
+
+      - name: Assert Fragments NativeAOT diagnostics are clean
+        shell: bash
+        run: bash ./.github/workflows/scripts/assert-sparse-aot-diagnostics.sh TestResults/fragments-nativeaot-publish.log
+
+      - name: Run Fragments NativeAOT smoke consumer
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ./TestResults/fragments-nativeaot-smoke/SparseTypes.Fragments.NativeAotSmoke.exe --report-trx --results-directory TestResults/fragments-nativeaot-results
+          else
+            ./TestResults/fragments-nativeaot-smoke/SparseTypes.Fragments.NativeAotSmoke --report-trx --results-directory TestResults/fragments-nativeaot-results
+          fi
+
       - name: Upload failure NativeAOT artifacts
         if: failure() || cancelled()
         uses: actions/upload-artifact@v7
@@ -355,5 +398,8 @@ jobs:
             TestResults/nativeaot-publish.log
             TestResults/nativeaot-smoke/**
             TestResults/nativeaot-results/**
+            TestResults/fragments-nativeaot-publish.log
+            TestResults/fragments-nativeaot-smoke/**
+            TestResults/fragments-nativeaot-results/**
           if-no-files-found: ignore
           retention-days: 7
