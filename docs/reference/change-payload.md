@@ -808,13 +808,7 @@ var widgetAfter = WidgetState("new", "h2");
 var changes = PayloadRoot.ChangeSet.Between(widgetBefore, widgetAfter);
 var json = JsonSerializer.Serialize(changes.ToPayload(), PayloadRoot.PayloadJson.Default);
 var restored = JsonSerializer.Deserialize(json, PayloadRoot.PayloadJson.Default)!.ToChangeSet();
-await Assert
-    .That(
-        PayloadRoot
-            .Patch.Between(restored.ToPatch().Apply(widgetBefore), widgetAfter)
-            .IsEmpty
-    )
-    .IsTrue();
+await Assert.That(PayloadRoot.Patch.Between(restored.ToPatch().Apply(widgetBefore), widgetAfter).IsEmpty).IsTrue();
 ```
 <!-- /sample -->
 

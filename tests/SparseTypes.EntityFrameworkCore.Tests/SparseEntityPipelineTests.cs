@@ -253,10 +253,15 @@ internal static class SparseEntityPipelineDocsSample
         var incomingChanges = session.CreateChangeSet();
         // sample: efcore-mapper-pipeline-save
         var result = await mapper.PipelineExecuteAsync(
+            // required: the DbContext to save changes
             db,
+            // required: the incoming change set to apply
             incomingChanges,
+            // required: filter to select the single row to update
             filter: order => order.Id == orderId,
+            // optional session to reconcile with the authoritative DTO
             session: session,
+            // optional: beforeSave, onConflict, and onReconcileFailed callbacks
             beforeSave: (save, cancellationToken) =>
             {
                 cancellationToken.ThrowIfCancellationRequested();

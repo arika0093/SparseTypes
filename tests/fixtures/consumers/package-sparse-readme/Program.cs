@@ -71,6 +71,7 @@ static void Require(bool condition, string capability)
 // auto-generate Fragment/Patch, so DatabaseSettings stays undecorated but
 // partial because the samples construct DatabaseSettings.Fragment directly.
 // sample: readme-quickstart
+// ---------
 [SparseModel]
 public partial class Settings
 {
