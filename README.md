@@ -6,20 +6,23 @@
 
 *A unified change model for .NET.*
 
-SparseTypes generates change-tracking, diffing, patching, and merging companion types from your C# models **automatically**.
+SparseTypes generates change-tracking, diffing, patching, and merging companion types from C# models.
 
 ## Motivation
 
 Consider a case where you directly edit `settings.Theme = "dark"`.  
 In that situation, information about the previous value and exactly where it changed is lost.  
-This makes it inconvenient to track edit history, update the UI based on the changed parts, or create diffs to send to a server.  
-Furthermore, when multiple people edit the same data concurrently, unrelated changes should be merged automatically, and conflicts should be detected and reported clearly.
+This makes it inconvenient to track edit history or update the UI based on the changed parts.
 
-Traditionally, implementing these features and synchronizing them between the client and server required a lot of redundant code.
+Additionally, consider a scenario where multiple people are editing the same settings.  
+Unrelated changes should be merged automatically, and conflicts should be detected and reported clearly.
+
+Implementing these features required a lot of redundant code. It's tedious, isn't it?
 
 `SparseTypes` solves this by generating companion types for your C# models at compile time to track changes, create diffs, apply patches, and merge updates.
 
-It's simple to use: just add the `[SparseModel]` attribute to your model, and change-tracking types are generated automatically.
+It's simple to use: just add the `[SparseModel]` attribute to your model.  
+That's it. All the necessary companion types are generated automatically.
 
 <!-- illustrative: model shape excerpt; attribute and partial declarations only, not a runnable program -->
 ```csharp
@@ -38,7 +41,6 @@ public partial class DatabaseSettings
 }
 ```
 
-That's it!  
 Behind the scenes, [many classes are generated](./docs/reference/generated-api.md), but users don't need to be aware of it.
 
 Let's take a look at how it can be used.
