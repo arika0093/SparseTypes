@@ -7,7 +7,7 @@
     <AssemblyName>PackageSparse.Readme.Consumer</AssemblyName>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/generated</CompilerGeneratedFilesOutputPath>
-    <ReadmeGeneratedCodeDirectory>$(MSBuildThisFileDirectory)../../../../docs/reference/generated-code</ReadmeGeneratedCodeDirectory>
+    <ReadmeGeneratedCodeDirectory>$(MSBuildThisFileDirectory)../../../../docs/generated-code</ReadmeGeneratedCodeDirectory>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Remove="TUnit;Shouldly" />
