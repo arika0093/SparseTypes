@@ -1226,7 +1226,7 @@
             _db,
             submittedRebase.Rebased,
             order => order.Id == orderId,
-            _session,
+            new SessionPipelineAdapter(_session, submitted),
             beforeSave: (save, _) =>
             {
                 PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, retryRevision);
@@ -1362,7 +1362,7 @@
                 _db,
                 resolved,
                 order => order.Id == orderId,
-                _session,
+                new SessionPipelineAdapter(_session, submitted),
                 beforeSave: (save, _) =>
                 {
                     PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
@@ -1490,4 +1490,25 @@
         ClearConflictResolution();
     }
 
+    private sealed class SessionPipelineAdapter : ISparseEditSessionPipeline<PlaygroundOrderDto, PlaygroundOrderDto.ChangeSet>
+    {
+        private readonly ISparseEditSessionPipeline<PlaygroundOrderDto, PlaygroundOrderDto.ChangeSet> _session;
+        private readonly PlaygroundOrderDto.ChangeSet _submitted;
+
+        public SessionPipelineAdapter(
+            ISparseEditSessionPipeline<PlaygroundOrderDto, PlaygroundOrderDto.ChangeSet> session,
+            PlaygroundOrderDto.ChangeSet submitted
+        )
+        {
+            _session = session;
+            _submitted = submitted;
+        }
+
+        // Rebased writes use a new baseline; reconciliation must acknowledge the original submission.
+        public bool TryReconcileForPipeline(
+            PlaygroundOrderDto.ChangeSet _,
+            PlaygroundOrderDto persisted,
+            out IReadOnlyList<SparseConflict>? conflicts
+        ) => _session.TryReconcileForPipeline(_submitted, persisted, out conflicts);
+    }
 }
