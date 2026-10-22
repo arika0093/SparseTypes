@@ -43,7 +43,12 @@ public sealed class MonacoDiffViewDisposalTests
         public async Task WaitAsync()
         {
             _entered.TrySetResult(true);
-            await _release.Task;
+            // Do not capture the Blazor renderer synchronization context:
+            // the release is signaled from the test thread while the gated
+            // interop call runs on the renderer dispatcher. Resuming there
+            // would tie test progress to dispatcher scheduling, which stalls
+            // on overloaded runners and trips the Exited timeout.
+            await _release.Task.ConfigureAwait(false);
             _exited.TrySetResult(true);
         }
     }
@@ -162,7 +167,10 @@ public sealed class MonacoDiffViewDisposalTests
 
             if (callGate is not null)
             {
-                await callGate.WaitAsync();
+                // Resume off the renderer dispatcher for the same reason as
+                // JsCallGate.WaitAsync: teardown races must not depend on
+                // dispatcher scheduling under parallel-test load.
+                await callGate.WaitAsync().ConfigureAwait(false);
             }
 
             if (identifier == "blazorMonaco.editor.createModel")
@@ -337,7 +345,11 @@ public sealed class MonacoDiffViewDisposalTests
 
     private static async Task PollAsync(Func<bool> ready)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
+        // Bound test hangs generously: overloaded CI runners stall renderer
+        // dispatch and timer callbacks, so a tight deadline turns scheduling
+        // jitter into a TimeoutException. The workflow's --timeout 10m still
+        // bounds the whole run.
+        var deadline = DateTime.UtcNow.AddSeconds(30);
         while (!ready())
         {
             if (DateTime.UtcNow > deadline)
@@ -501,13 +513,13 @@ public sealed class MonacoDiffViewDisposalTests
             rootId,
             HostParameters(true, "original v2", "modified v2")
         );
-        await setValueGate.Entered.WaitAsync(TimeSpan.FromSeconds(10));
+        await setValueGate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
         js.SetValueCount.ShouldBe(1);
 
         await host.DiffView!.DisposeAsync();
         await PollAsync(() => js.DisposeCount == 2);
         setValueGate.Release();
-        await setValueGate.Exited.WaitAsync(TimeSpan.FromSeconds(10));
+        await setValueGate.Exited.WaitAsync(TimeSpan.FromSeconds(30));
         await updateTask;
         await renderer.ShowAsync(rootId, HostParameters(false));
         await renderer.FlushAsync();
@@ -534,13 +546,13 @@ public sealed class MonacoDiffViewDisposalTests
             rootId,
             HostParameters(true, "original v2", "modified v2")
         );
-        await setValueGate.Entered.WaitAsync(TimeSpan.FromSeconds(10));
+        await setValueGate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
         js.SetValueCount.ShouldBe(2);
 
         await host.DiffView!.DisposeAsync();
         await PollAsync(() => js.DisposeCount == 2);
         setValueGate.Release();
-        await setValueGate.Exited.WaitAsync(TimeSpan.FromSeconds(10));
+        await setValueGate.Exited.WaitAsync(TimeSpan.FromSeconds(30));
         await updateTask;
         await renderer.ShowAsync(rootId, HostParameters(false));
         await renderer.FlushAsync();
@@ -561,13 +573,13 @@ public sealed class MonacoDiffViewDisposalTests
         var rootId = await renderer.RenderRootAsync(new Host());
 
         await renderer.ShowAsync(rootId, HostParameters(true));
-        await secondCreateGate.Entered.WaitAsync(TimeSpan.FromSeconds(10));
+        await secondCreateGate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
         js.CreateCount.ShouldBe(2);
 
         await renderer.ShowAsync(rootId, HostParameters(false));
         await PollAsync(() => js.DisposeCount == 1);
         secondCreateGate.Release();
-        await secondCreateGate.Exited.WaitAsync(TimeSpan.FromSeconds(10));
+        await secondCreateGate.Exited.WaitAsync(TimeSpan.FromSeconds(30));
         await PollAsync(() => js.DisposeCount == 2);
         await renderer.FlushAsync();
 
@@ -587,13 +599,13 @@ public sealed class MonacoDiffViewDisposalTests
         var rootId = await renderer.RenderRootAsync(new Host());
 
         await renderer.ShowAsync(rootId, HostParameters(true));
-        await setModelGate.Entered.WaitAsync(TimeSpan.FromSeconds(10));
+        await setModelGate.Entered.WaitAsync(TimeSpan.FromSeconds(30));
         js.CreateCount.ShouldBe(2);
 
         await renderer.ShowAsync(rootId, HostParameters(false));
         await PollAsync(() => js.DisposeCount == 2);
         setModelGate.Release();
-        await setModelGate.Exited.WaitAsync(TimeSpan.FromSeconds(10));
+        await setModelGate.Exited.WaitAsync(TimeSpan.FromSeconds(30));
         await renderer.FlushAsync();
 
         js.SetValueCount.ShouldBe(0);

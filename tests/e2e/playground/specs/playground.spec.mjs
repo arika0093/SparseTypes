@@ -270,21 +270,18 @@ test("case 5 refreshes conflict choices when the dialog revision becomes stale",
 
   await fluentButton(conflictDialog, "Use captured value").first().click();
   await fluentButton(conflictDialog, "Apply resolutions").click();
-  // Another real-time edit can land between the refresh above and the next
-  // apply, resetting the choices again. Retry until the dialog closes so the
-  // test does not race the 10-second simulation timer.
-  let applied = false;
-  for (let attempt = 0; attempt < 5 && !applied; attempt++) {
-    try {
-      await expect(conflictDialog.locator("dialog[open]")).toBeHidden({ timeout: 5_000 });
-      applied = true;
-    } catch {
-      await expect(fluentButton(conflictDialog, "Use captured value").first()).toHaveAttribute("aria-pressed", "false");
-      await fluentButton(conflictDialog, "Use captured value").first().click();
-      await fluentButton(conflictDialog, "Apply resolutions").click();
-    }
+  // Freeze the simulation so a further tick cannot stale the refreshed
+  // resolution again. The dialog is modal, so toggle through a synthetic
+  // event instead of a hit-tested click. Then let one interval elapse so an
+  // in-flight tick can land; afterwards the store is stable, so re-apply
+  // only when the dialog is still open.
+  await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).dispatchEvent("click");
+  await page.waitForTimeout(11_000);
+  if ((await conflictDialog.locator("dialog[open]").count()) > 0) {
+    await fluentButton(conflictDialog, "Use captured value").first().click();
+    await fluentButton(conflictDialog, "Apply resolutions").click();
   }
-  await expect(conflictDialog.locator("dialog[open]")).toBeHidden();
+  await expect(conflictDialog.locator("dialog[open]")).toBeHidden({ timeout: 10_000 });
   await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-local-customer")).toBeVisible();
 });
 

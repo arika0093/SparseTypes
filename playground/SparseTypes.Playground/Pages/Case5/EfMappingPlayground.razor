@@ -1187,6 +1187,15 @@
             _resolutionOrderId = orderId;
             _resolutionStale = false;
             _conflictSubmittedHeader = "Captured submitted value";
+            // Rebase the live session onto the same current snapshot the
+            // resolution builds against. Without this, the apply-time
+            // reconciliation validates the resolved transition (based on
+            // current) against the stale pre-conflict baseline and fails
+            // deterministically, leaving the dialog stuck with "do not retry".
+            _session = current.CreateEditSession(_liveDraft);
+            _baselineView = current;
+            _preview.InvalidateBaseline();
+            _draftBaseRevision = _tracked.Revision;
             _conflictRows = submittedRebase.Conflicts
                 .Select(static conflict => (
                     Path: (SparsePath?)conflict.Path,
