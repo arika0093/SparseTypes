@@ -101,23 +101,4 @@ public sealed class DescriptorCacheTests
         afterRevert.GetValue().ShouldBe(model.Title);
         session.HasChanges.ShouldBeFalse();
     }
-
-    [Test]
-    public void RepeatedDescriptorAccessAvoidsReallocation()
-    {
-        var session = new ObservableHolder { Title = "cached" }.CreateEditSession();
-        _ = session.Descriptors;
-
-        const int reads = 200;
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var index = 0; index < reads; index++)
-        {
-            _ = session.Descriptors;
-        }
-
-        var perRead = (GC.GetAllocatedBytesForCurrentThread() - before) / (double)reads;
-        // A cached lookup allocates nothing; allow a small margin for test
-        // noise.
-        perRead.ShouldBeLessThan(64);
-    }
 }

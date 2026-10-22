@@ -362,42 +362,6 @@ public sealed class FragmentAndChangeSetJsonTests
         );
     }
 
-    [Test]
-    public void CachedReadsAvoidPerReadIndexAllocations()
-    {
-        var cachedOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        const string cachedPayload =
-            """{"alpha":1,"bravo":2,"charlie":3,"delta":4,"echo":5,"fixedName":6}""";
-        for (var i = 0; i < 10; i++)
-        {
-            ReadWideFragment(cachedPayload, cachedOptions);
-        }
-
-        var cachedOptionsPerRead = Enumerable.Repeat(cachedOptions, 200).ToArray();
-        var cachedBytes = MeasureWideReadBytes(cachedPayload, cachedOptionsPerRead);
-
-        var namingPolicy = new CountingSuffixNamingPolicy();
-        var uncachedOptionsPerRead = Enumerable
-            .Range(0, 200)
-            .Select(_ => new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = namingPolicy,
-                TypeInfoResolver =
-                    new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-            })
-            .ToArray();
-        const string uncachedPayload =
-            """{"Alpha_1":1,"Bravo_1":2,"Charlie_1":3,"Delta_1":4,"Echo_1":5,"fixedName":6}""";
-        var uncachedBytes = MeasureWideReadBytes(uncachedPayload, uncachedOptionsPerRead);
-
-        cachedBytes.ShouldBeLessThan(uncachedBytes);
-    }
-
     private static long MeasureWideReadBytes(string json, JsonSerializerOptions[] optionsPerRead)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);

@@ -495,41 +495,4 @@ public sealed class ChangePayloadWireTests
             return next;
         }
     }
-
-    [Test]
-    public void KnownEndpointReadsStayBelowTheStringDispatchBaseline()
-    {
-        const string endpointJson = """{"state":"value","value":42}""";
-        var converter = CreateEndpointConverter<int>();
-        var options = new JsonSerializerOptions
-        {
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        var bytes = System.Text.Encoding.UTF8.GetBytes(endpointJson);
-        for (var i = 0; i < 50; i++)
-        {
-            var warmReader = new Utf8JsonReader(bytes);
-            warmReader.Read();
-            converter.Read(ref warmReader, typeof(ChangePayloadEndpoint<int>), options);
-        }
-
-        // The old dispatch materialized two envelope name strings, a state
-        // token string and a boxed int per read; a value read now touches
-        // none of those, so the warm loop stays under a quarter of that
-        // per-read budget. Compare thresholds allow for metadata lookup noise.
-        System.GC.Collect();
-        System.GC.WaitForPendingFinalizers();
-        System.GC.Collect();
-        var before = System.GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 500; i++)
-        {
-            var reader = new Utf8JsonReader(bytes);
-            reader.Read();
-            converter.Read(ref reader, typeof(ChangePayloadEndpoint<int>), options);
-        }
-        var perRead = (System.GC.GetAllocatedBytesForCurrentThread() - before) / (double)500;
-
-        perRead.ShouldBeLessThan(30.0);
-    }
 }

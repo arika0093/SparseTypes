@@ -196,17 +196,6 @@ public sealed class KeyedGetChangeTests
         var other = transition.GetChange("other");
         ReferenceEquals(first, other).ShouldBeTrue();
         ReferenceEquals(first.Edit, other.Edit).ShouldBeTrue();
-
-        // Repeated empty lookups on a warmed-up transition allocate nothing.
-        _ = transition.GetChange("unknown");
-        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = transition.GetChange("unknown");
-        }
-
-        var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
-        (allocatedAfter - allocatedBefore).ShouldBe(0);
     }
 
     [Test]

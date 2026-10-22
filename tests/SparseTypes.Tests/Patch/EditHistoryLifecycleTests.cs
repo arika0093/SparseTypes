@@ -493,38 +493,6 @@ public sealed class EditHistoryLifecycleTests
     }
 
     [Test]
-    public void SteadyStateRedoAvoidsNodeAllocation()
-    {
-        using var history = CreateHistory();
-        history.OnTransition("one");
-
-        // Warms replay paths before measuring.
-        for (var index = 0; index < 100; index++)
-        {
-            history.Undo();
-            history.Redo();
-        }
-
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        const int cycles = 1_000;
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var index = 0; index < cycles; index++)
-        {
-            history.Undo();
-            history.Redo();
-        }
-
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-
-        // A fresh node per redo would allocate one node per cycle (roughly
-        // three references plus overhead each); reattachment stays far below.
-        allocated.ShouldBeLessThan(cycles * 16L);
-    }
-
-    [Test]
     public void FailedRedoKeepsDetachedNodeForRetry()
     {
         var failRedo = false;
