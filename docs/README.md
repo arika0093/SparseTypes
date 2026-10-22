@@ -42,6 +42,7 @@ Architecture and design concepts:
 * [Merge strategies](explanation/merge-strategies.md): Built-in merge modes (`Replace`, `Deep`, `Append`, `SetUnion`), custom `FragmentMergeStrategy<T>`, value origins, and `[SparseCompare]`.
 * [Cloning and ownership](explanation/cloning-and-ownership.md): Reference sharing vs deep snapshots across `Fragment.From`, `ToModel`, `Apply`, and `DeepClone`.
 * [Edit-session groups](explanation/edit-session-groups.md): Capture purity, readiness vs submission validation, and baseline revision tracking across grouped sessions.
+* [Libraries](./explanation/libraries.md): List of available libraries and their usage requirements.
 
 ## Reference
 
