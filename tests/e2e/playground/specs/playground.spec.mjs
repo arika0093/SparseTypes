@@ -229,7 +229,7 @@ test("case 5 keeps the saved entity diff fixed during later real-time edits", as
 });
 
 test("case 5 refreshes conflict choices when the dialog revision becomes stale", async ({ page }) => {
-  test.setTimeout(45_000);
+  test.setTimeout(120_000);
   await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
   await page.getByText("Simulate another user editing before save", { exact: true }).click();
   await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
@@ -270,6 +270,20 @@ test("case 5 refreshes conflict choices when the dialog revision becomes stale",
 
   await fluentButton(conflictDialog, "Use captured value").first().click();
   await fluentButton(conflictDialog, "Apply resolutions").click();
+  // Another real-time edit can land between the refresh above and the next
+  // apply, resetting the choices again. Retry until the dialog closes so the
+  // test does not race the 10-second simulation timer.
+  let applied = false;
+  for (let attempt = 0; attempt < 5 && !applied; attempt++) {
+    try {
+      await expect(conflictDialog.locator("dialog[open]")).toBeHidden({ timeout: 5_000 });
+      applied = true;
+    } catch {
+      await expect(fluentButton(conflictDialog, "Use captured value").first()).toHaveAttribute("aria-pressed", "false");
+      await fluentButton(conflictDialog, "Use captured value").first().click();
+      await fluentButton(conflictDialog, "Apply resolutions").click();
+    }
+  }
   await expect(conflictDialog.locator("dialog[open]")).toBeHidden();
   await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-local-customer")).toBeVisible();
 });
