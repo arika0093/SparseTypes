@@ -11,14 +11,7 @@ namespace SparseTypes.Tests.Shared;
 public sealed class DownstreamPolicyTests
 {
     private static SparseTypeModel ScalarType(string name) =>
-        new(
-            name,
-            name,
-            name,
-            IsReferenceType: name.Contains("String", StringComparison.Ordinal),
-            IsFragmentModel: false,
-            null
-        );
+        new(name, name, name, IsReferenceType: name.Contains("String", StringComparison.Ordinal), IsFragmentModel: false, null);
 
     private static SparseMemberModel ScalarMember(int id, string name, string typeName)
     {
@@ -32,17 +25,7 @@ public sealed class DownstreamPolicyTests
             HasExplicitJsonPropertyName: false,
             JsonIgnoreCondition: 0
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static ImmutableArray<SparseMemberModel> SecretMembers() =>
@@ -176,10 +159,7 @@ public sealed class DownstreamPolicyTests
             IgnoredSettablePropertyNames: ImmutableArray<string>.Empty
         );
 
-    private static string BuildSource(
-        SparseGeneratorConfig config,
-        ImmutableArray<SparseMemberModel> members
-    ) =>
+    private static string BuildSource(SparseGeneratorConfig config, ImmutableArray<SparseMemberModel> members) =>
         SparseFragmentEmitter.BuildSource(
             ReadModel(),
             members,
@@ -193,8 +173,7 @@ public sealed class DownstreamPolicyTests
         );
 
     private static int CountOccurrences(string text, string marker) =>
-        (text.Length - text.Replace(marker, string.Empty, StringComparison.Ordinal).Length)
-        / marker.Length;
+        (text.Length - text.Replace(marker, string.Empty, StringComparison.Ordinal).Length) / marker.Length;
 
     [Test]
     public void StandaloneDefaults_EmitEveryFamily()
@@ -216,11 +195,7 @@ public sealed class DownstreamPolicyTests
     [Test]
     public void FeatureSelection_OmitsDeselectedFamilies()
     {
-        var features = new SparseEmissionFeatures(
-            EmitObservable: false,
-            EmitChangePayload: false,
-            EmitJsonConverters: false
-        );
+        var features = new SparseEmissionFeatures(EmitObservable: false, EmitChangePayload: false, EmitJsonConverters: false);
         var text = BuildSource(DownstreamConfig(DownstreamDialect(), features), SecretMembers());
 
         text.ShouldContain("partial class Patch");
@@ -237,11 +212,7 @@ public sealed class DownstreamPolicyTests
     [Test]
     public void FeatureSelection_FragmentWithoutPatch_OmitsPatchOperations()
     {
-        var features = new SparseEmissionFeatures(
-            EmitPatch: false,
-            EmitChangeSet: false,
-            EmitChangePayload: false
-        );
+        var features = new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: false, EmitChangePayload: false);
         var text = BuildSource(DownstreamConfig(DownstreamDialect(), features), SecretMembers());
 
         text.ShouldContain("public sealed class Fragment");
@@ -264,21 +235,12 @@ public sealed class DownstreamPolicyTests
     [Test]
     public void FeatureDependencies_RejectIncoherence()
     {
-        new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true)
-            .ValidateDependencies()
-            .ShouldNotBeEmpty();
-        new SparseEmissionFeatures(EmitChangeSet: false, EmitChangePayload: true)
-            .ValidateDependencies()
-            .ShouldNotBeEmpty();
-        new SparseEmissionFeatures(EmitFragment: false, EmitPatch: true)
-            .ValidateDependencies()
-            .ShouldNotBeEmpty();
+        new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true).ValidateDependencies().ShouldNotBeEmpty();
+        new SparseEmissionFeatures(EmitChangeSet: false, EmitChangePayload: true).ValidateDependencies().ShouldNotBeEmpty();
+        new SparseEmissionFeatures(EmitFragment: false, EmitPatch: true).ValidateDependencies().ShouldNotBeEmpty();
         SparseEmissionFeatures.Standalone.ValidateDependencies().ShouldBeEmpty();
 
-        var bad = DownstreamConfig(
-            DownstreamDialect(),
-            new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true)
-        );
+        var bad = DownstreamConfig(DownstreamDialect(), new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true));
         Should.Throw<ArgumentException>(() => BuildSource(bad, SecretMembers()));
     }
 
@@ -292,23 +254,17 @@ public sealed class DownstreamPolicyTests
         names.ShouldContain("ChangePayload");
         names.ShouldContain("Observable");
 
-        new SparseEmissionFeatures(EmitObservable: false)
-            .GetEmittedTypeNames()
-            .ShouldNotContain("Observable");
+        new SparseEmissionFeatures(EmitObservable: false).GetEmittedTypeNames().ShouldNotContain("Observable");
     }
 
     [Test]
     public void Redaction_OmitsBefore_RequiresExplicitProjection()
     {
-        var dialect = DownstreamDialect(
-            ImmutableArray.Create(
-                new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)
-            )
-        );
+        var dialect = DownstreamDialect(ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)));
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
 
         // The redacted member travels without its before-state.
-        CountOccurrences(text, "{ Before = ").ShouldBe(2);
+        CountOccurrences(text, "{ Before = ").ShouldBe(3);
         text.ShouldContain("{ After = ");
         // A redacted payload never rebuilds a complete ChangeSet.
         text.ShouldContain("is redacted and cannot be converted to a complete ChangeSet");
@@ -321,9 +277,7 @@ public sealed class DownstreamPolicyTests
     public void RebasePolicy_Passthrough_ProjectsAfter()
     {
         var dialect = DownstreamDialect(
-            ImmutableArray.Create(
-                new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)
-            ),
+            ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)),
             new SparseRebasePolicy(SparseRedactedBeforeBehavior.Passthrough)
         );
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
@@ -336,9 +290,7 @@ public sealed class DownstreamPolicyTests
     public void RebasePolicy_StrictFail_RefusesProjection()
     {
         var dialect = DownstreamDialect(
-            ImmutableArray.Create(
-                new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)
-            ),
+            ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)),
             new SparseRebasePolicy(SparseRedactedBeforeBehavior.StrictFail)
         );
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
@@ -350,17 +302,13 @@ public sealed class DownstreamPolicyTests
     [Test]
     public void WriteOnly_SkippedInReadProjection_KeepsTransport()
     {
-        var dialect = DownstreamDialect(
-            ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.WriteOnly))
-        );
+        var dialect = DownstreamDialect(ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.WriteOnly)));
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
 
         // The read projection omits the command-only member.
         text.ShouldNotContain("Secret = rootMember2,");
         // The transport variant still carries its after-state.
-        text.ShouldContain(
-            SparseChangeSetPayloadEmitter.PayloadMemberName("global::Ns.ReadModel", "Change", 2)
-        );
+        text.ShouldContain(SparseChangeSetPayloadEmitter.PayloadMemberName("global::Ns.ReadModel", "Change", 2));
         text.ShouldNotContain("Ns_ReadModelChangePayloadChange2");
         text.ShouldContain("internal Patch ToPatchCore()");
     }
@@ -369,10 +317,7 @@ public sealed class DownstreamPolicyTests
     public void WriteContract_EmitsDistinctWriteOverload()
     {
         var dialect = DownstreamDialect(
-            write: new SparseWriteContract(
-                "global::Ns.WriteCmd",
-                ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret"))
-            )
+            write: new SparseWriteContract("global::Ns.WriteCmd", ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret")))
         );
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
 
@@ -381,11 +326,7 @@ public sealed class DownstreamPolicyTests
         text.ShouldContain("public void WriteTo(global::Ns.ReadModel model)");
 
         var same = DownstreamDialect(write: new SparseWriteContract("global::Ns.ReadModel"));
-        CountOccurrences(
-                BuildSource(DownstreamConfig(same), SecretMembers()),
-                "public void WriteTo(global::Ns.ReadModel model)"
-            )
-            .ShouldBe(1);
+        CountOccurrences(BuildSource(DownstreamConfig(same), SecretMembers()), "public void WriteTo(global::Ns.ReadModel model)").ShouldBe(1);
     }
 
     [Test]
@@ -451,13 +392,8 @@ public sealed class DownstreamPolicyTests
                 SparseFragmentPatchEmitter.ChildPatch,
                 SparseFragmentPatchEmitter.DefaultChildChangeSet,
                 MergeStrategyField: static member => "__sparse_merge_strategy_" + member.Id,
-                MemberPolicies: ImmutableArray.Create(
-                    new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)
-                ),
-                WriteContract: new SparseWriteContract(
-                    "global::Ns.WriteCmd",
-                    ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret"))
-                ),
+                MemberPolicies: ImmutableArray.Create(new SparseMemberPolicy("Secret", SparseMemberTransport.RedactedBefore)),
+                WriteContract: new SparseWriteContract("global::Ns.WriteCmd", ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret"))),
                 PayloadImplementationContainerPrefix: "SparseTypesInternal",
                 PathIsValueType: true
             )
@@ -482,71 +418,36 @@ public sealed class DownstreamPolicyTests
                 }
             }
             """;
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trustedAssemblies
-            .Select(static assemblyPath =>
-                (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location)
-        );
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "DownstreamReadWriteProbe",
-            [
-                CSharpSyntaxTree.ParseText(generated, path: "Generated.cs"),
-                CSharpSyntaxTree.ParseText(models, path: "Models.cs"),
-            ],
+            [CSharpSyntaxTree.ParseText(generated, path: "Generated.cs"), CSharpSyntaxTree.ParseText(models, path: "Models.cs")],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]
     public void KeyedPolicy_Rejected()
     {
-        var members = ImmutableArray.Create(
-            ScalarMember(0, "Label", "global::System.String?"),
-            KeyedMember()
-        );
-        var dialect = DownstreamDialect(
-            ImmutableArray.Create(
-                new SparseMemberPolicy("Items", SparseMemberTransport.RedactedBefore)
-            )
-        );
+        var members = ImmutableArray.Create(ScalarMember(0, "Label", "global::System.String?"), KeyedMember());
+        var dialect = DownstreamDialect(ImmutableArray.Create(new SparseMemberPolicy("Items", SparseMemberTransport.RedactedBefore)));
 
-        SparseDownstreamPolicy
-            .FindNonScalarPolicyMembers(members, dialect)
-            .ShouldHaveSingleItem()
-            .ShouldBe("Items");
+        SparseDownstreamPolicy.FindNonScalarPolicyMembers(members, dialect).ShouldHaveSingleItem().ShouldBe("Items");
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        Should.Throw<ArgumentException>(() =>
-            SparseChangeSetPayloadTransferEmitter.AppendToPayload(code, members, dialect, null)
-        );
+        Should.Throw<ArgumentException>(() => SparseChangeSetPayloadTransferEmitter.AppendToPayload(code, members, dialect, null));
     }
 
     [Test]
     public void UnknownPolicyName_Reported()
     {
-        var dialect = DownstreamDialect(
-            ImmutableArray.Create(new SparseMemberPolicy("Missing", SparseMemberTransport.Full))
-        );
+        var dialect = DownstreamDialect(ImmutableArray.Create(new SparseMemberPolicy("Missing", SparseMemberTransport.Full)));
 
-        SparseDownstreamPolicy
-            .FindUnknownMemberNames(SecretMembers(), dialect)
-            .ShouldHaveSingleItem()
-            .ShouldBe("Missing");
-        Should.Throw<ArgumentException>(() =>
-            SparseDownstreamPolicy.ThrowOnInvalidTransport(SecretMembers(), dialect)
-        );
+        SparseDownstreamPolicy.FindUnknownMemberNames(SecretMembers(), dialect).ShouldHaveSingleItem().ShouldBe("Missing");
+        Should.Throw<ArgumentException>(() => SparseDownstreamPolicy.ThrowOnInvalidTransport(SecretMembers(), dialect));
     }
 
     [Test]
@@ -555,10 +456,7 @@ public sealed class DownstreamPolicyTests
         var diagnostics = ImmutableArray.CreateBuilder<SparseGeneratorDiagnostic>();
         SparseDownstreamPolicy.ValidateEmissionPlan(
             SecretMembers(),
-            DownstreamConfig(
-                DownstreamDialect(),
-                new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true)
-            ),
+            DownstreamConfig(DownstreamDialect(), new SparseEmissionFeatures(EmitPatch: false, EmitChangeSet: true)),
             diagnostics,
             CancellationToken.None
         );
@@ -579,12 +477,7 @@ public sealed class DownstreamPolicyTests
     public void EmissionPlan_StandaloneDefaults_PassUnconfigured()
     {
         var diagnostics = ImmutableArray.CreateBuilder<SparseGeneratorDiagnostic>();
-        SparseDownstreamPolicy.ValidateEmissionPlan(
-            SecretMembers(),
-            DownstreamConfig(DownstreamDialect()),
-            diagnostics,
-            CancellationToken.None
-        );
+        SparseDownstreamPolicy.ValidateEmissionPlan(SecretMembers(), DownstreamConfig(DownstreamDialect()), diagnostics, CancellationToken.None);
 
         diagnostics.ShouldBeEmpty();
     }

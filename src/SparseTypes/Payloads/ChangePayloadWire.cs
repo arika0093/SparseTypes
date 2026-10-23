@@ -2,7 +2,7 @@ using System.ComponentModel;
 
 namespace SparseTypes;
 
-/// <summary>Serializer-agnostic ChangePayload version-1 wire tokens.</summary>
+/// <summary>Serializer-agnostic ChangePayload version-0.1 wire tokens.</summary>
 /// <remarks>The base runtime carries no <c>System.Text.Json</c> reference.</remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class ChangePayloadWire
@@ -13,14 +13,44 @@ public static class ChangePayloadWire
     /// <summary>The envelope version property name.</summary>
     public const string VersionProperty = "version";
 
-    /// <summary>The envelope changes property name.</summary>
-    public const string ChangesProperty = "changes";
+    /// <summary>The envelope change property name.</summary>
+    public const string ChangeProperty = "change";
 
-    /// <summary>The polymorphic discriminator property name.</summary>
-    public const string DiscriminatorProperty = "member";
+    /// <summary>The operation discriminator property name.</summary>
+    public const string KindProperty = "kind";
 
-    /// <summary>The whole-root discriminator value.</summary>
-    public const string RootDiscriminator = "$root";
+    /// <summary>The model update members property name.</summary>
+    public const string MembersProperty = "members";
+
+    /// <summary>The collection item operations property name.</summary>
+    public const string ItemsProperty = "items";
+
+    /// <summary>The before endpoint property name.</summary>
+    public const string BeforeProperty = "before";
+
+    /// <summary>The after endpoint property name.</summary>
+    public const string AfterProperty = "after";
+
+    /// <summary>The item key property name.</summary>
+    public const string KeyProperty = "key";
+
+    /// <summary>The before index property name.</summary>
+    public const string BeforeIndexProperty = "beforeIndex";
+
+    /// <summary>The after index property name.</summary>
+    public const string AfterIndexProperty = "afterIndex";
+
+    /// <summary>The before order property name.</summary>
+    public const string BeforeOrderProperty = "beforeOrder";
+
+    /// <summary>The after order property name.</summary>
+    public const string AfterOrderProperty = "afterOrder";
+
+    /// <summary>The item reorder marker property name.</summary>
+    public const string IsReorderedProperty = "isReordered";
+
+    /// <summary>The temporary item identity property name.</summary>
+    public const string TemporaryKeyProperty = "temporaryKey";
 
     /// <summary>The endpoint state property name.</summary>
     public const string StateProperty = "state";
@@ -40,17 +70,17 @@ public static class ChangePayloadWire
     /// <summary>The <c>redacted</c> endpoint state token.</summary>
     public const string RedactedState = "redacted";
 
+    /// <summary>The <c>update</c> operation kind token.</summary>
+    public const string UpdateKind = "update";
+
+    /// <summary>The <c>replace</c> operation kind token.</summary>
+    public const string ReplaceKind = "replace";
+
     /// <summary>The <c>add</c> item kind token.</summary>
     public const string AddKind = "add";
 
     /// <summary>The <c>remove</c> item kind token.</summary>
     public const string RemoveKind = "remove";
-
-    /// <summary>The <c>edit</c> item kind token.</summary>
-    public const string EditKind = "edit";
-
-    /// <summary>The <c>reorder</c> item kind token.</summary>
-    public const string ReorderKind = "reorder";
 
     /// <summary>Returns the UTF-8 form of the endpoint state envelope name.</summary>
     /// <remarks>
@@ -81,21 +111,6 @@ public static class ChangePayloadWire
             _ => throw new System.ArgumentOutOfRangeException(nameof(state), state, null),
         };
 
-    /// <summary>Returns the UTF-8 form of the wire token for an item kind.</summary>
-    /// <remarks>The candidate enumeration mirrors <see cref="TryParseKind"/>.</remarks>
-    /// <param name="kind">The item kind.</param>
-    /// <returns>The lower-case kind token encoded as UTF-8.</returns>
-    /// <exception cref="System.ArgumentOutOfRangeException">An undefined kind value.</exception>
-    public static System.ReadOnlySpan<byte> KindTokenUtf8(ChangePayloadItemKind kind) =>
-        kind switch
-        {
-            ChangePayloadItemKind.Add => Utf8AddKind,
-            ChangePayloadItemKind.Remove => Utf8RemoveKind,
-            ChangePayloadItemKind.Edit => Utf8EditKind,
-            ChangePayloadItemKind.Reorder => Utf8ReorderKind,
-            _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
-        };
-
     private static readonly byte[] Utf8StateProperty = System.Text.Encoding.UTF8.GetBytes(StateProperty);
 
     private static readonly byte[] Utf8ValueProperty = System.Text.Encoding.UTF8.GetBytes(ValueProperty);
@@ -108,14 +123,6 @@ public static class ChangePayloadWire
 
     private static readonly byte[] Utf8RedactedState = System.Text.Encoding.UTF8.GetBytes(RedactedState);
 
-    private static readonly byte[] Utf8AddKind = System.Text.Encoding.UTF8.GetBytes(AddKind);
-
-    private static readonly byte[] Utf8RemoveKind = System.Text.Encoding.UTF8.GetBytes(RemoveKind);
-
-    private static readonly byte[] Utf8EditKind = System.Text.Encoding.UTF8.GetBytes(EditKind);
-
-    private static readonly byte[] Utf8ReorderKind = System.Text.Encoding.UTF8.GetBytes(ReorderKind);
-
     /// <summary>Maps an endpoint state to its wire token.</summary>
     /// <param name="state">The state to map.</param>
     /// <returns>The lower-case wire token.</returns>
@@ -127,19 +134,6 @@ public static class ChangePayloadWire
             ChangePayloadState.Value => ValueState,
             ChangePayloadState.Redacted => RedactedState,
             _ => throw new System.ArgumentOutOfRangeException(nameof(state), state, null),
-        };
-
-    /// <summary>Maps an item kind to its wire token.</summary>
-    /// <param name="kind">The kind to map.</param>
-    /// <returns>The lower-case wire token.</returns>
-    public static string ToToken(ChangePayloadItemKind kind) =>
-        kind switch
-        {
-            ChangePayloadItemKind.Add => AddKind,
-            ChangePayloadItemKind.Remove => RemoveKind,
-            ChangePayloadItemKind.Edit => EditKind,
-            ChangePayloadItemKind.Reorder => ReorderKind,
-            _ => throw new System.ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
 
     /// <summary>Parses a wire token into an endpoint state.</summary>
@@ -164,32 +158,6 @@ public static class ChangePayloadWire
                 return true;
             default:
                 state = default;
-                return false;
-        }
-    }
-
-    /// <summary>Parses a wire token into an item kind.</summary>
-    /// <param name="token">The lower-case token, or null.</param>
-    /// <param name="kind">The parsed kind on success.</param>
-    /// <returns>Whether the token is a known kind.</returns>
-    public static bool TryParseKind(string? token, out ChangePayloadItemKind kind)
-    {
-        switch (token)
-        {
-            case AddKind:
-                kind = ChangePayloadItemKind.Add;
-                return true;
-            case RemoveKind:
-                kind = ChangePayloadItemKind.Remove;
-                return true;
-            case EditKind:
-                kind = ChangePayloadItemKind.Edit;
-                return true;
-            case ReorderKind:
-                kind = ChangePayloadItemKind.Reorder;
-                return true;
-            default:
-                kind = default;
                 return false;
         }
     }

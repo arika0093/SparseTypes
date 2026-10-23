@@ -59,7 +59,7 @@ internal static class SparseChangePayloadReaderEmitter
         // paths, so there is exactly one routing seam for mixed requests.
         foreach (
             var member in members.Where(static member =>
-                !member.Property.IsJsonIgnored && (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
+                !member.Property.IsTransportIgnored && (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
             )
         )
         {

@@ -56,7 +56,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + ".Changes, Path = pathPrefix, Message = \"Payload changes must not be null.\" }); return; }"
         );
         AppendWholeValidate(code, members, dialect, modelType, runtime, error, kind);
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             code.AppendLine("bool __validateSeen" + member.Id + " = false;");
         }
@@ -64,7 +64,7 @@ internal static class SparseChangeSetPayloadValidateEmitter
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendMemberValidate(code, member, dialect, modelType, runtime, error, kind);
         }

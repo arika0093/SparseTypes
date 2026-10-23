@@ -81,7 +81,8 @@ internal static class SparseModelImplementationEmitter
             // Thin bridge keeps child "$proxy.__SparseGet_X(path)" call sites
             // working after the graph moves to DescriptorFactory.
             var accessor = SparseObservableDescriptorEmitter.AccessorName(model.ModelTypeName);
-            var factoryRef = SparseGeneratedPlacement.GetDescriptorFactoryReference(model, config, cancellationToken);
+            var sessionSimple = SparseGeneratedPlacement.ResolveUiTypeName("EditSession", members.Select(static member => member.Property.Name));
+            var sessionRef = model.ModelTypeName + "." + sessionSimple;
             var bridge =
                 "    internal "
                 + configured.DescriptorSetInterface
@@ -90,8 +91,8 @@ internal static class SparseModelImplementationEmitter
                 + "("
                 + configured.EffectivePathType(runtimeNamespace)
                 + " pathPrefix) => "
-                + factoryRef
-                + ".Create(this, pathPrefix);\n";
+                + sessionRef
+                + ".__SparseGetDescriptors(this, pathPrefix);\n";
             var privateMarker = "\n    private ";
             var privateIndex = inner.IndexOf(privateMarker, System.StringComparison.Ordinal);
             if (privateIndex >= 0)

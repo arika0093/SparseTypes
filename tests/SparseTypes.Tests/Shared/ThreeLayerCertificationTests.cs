@@ -123,7 +123,6 @@ public sealed class ThreeLayerCertificationTests
                     && !pair.Key.Contains("RemovalIndex", StringComparison.Ordinal)
                     && !pair.Key.Contains("JsonCodecs", StringComparison.Ordinal)
                     && !pair.Key.Contains("JsonPayloadCodecs", StringComparison.Ordinal)
-                    && !pair.Key.Contains("ChangePayloadJsonConverters", StringComparison.Ordinal)
                     && !pair.Key.Contains("EditSession", StringComparison.Ordinal)
                 )
                 .Select(static pair => pair.Value)

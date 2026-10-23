@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 using SparseTypes;
 
@@ -36,6 +37,80 @@ public partial class WideDispatchWidget
     public int Hidden { get; set; }
 }
 
+[SparseModel]
+public partial class TransportPolicyWidget
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public int JsonExcluded { get; set; }
+
+    [SparseTransportIgnore]
+    public int TransportExcluded { get; set; }
+
+    public int Visible { get; set; }
+}
+
+[SparseModel]
+public partial class TransportPolicyChild
+{
+    [SparseTransportIgnore]
+    public int LocalOnly { get; set; }
+
+    public int Visible { get; set; }
+}
+
+[SparseModel]
+public partial class TransportPolicyParent
+{
+    public TransportPolicyChild Child { get; set; } = new();
+}
+
+[SparseModel]
+public partial class TransportPolicyKeyedItem
+{
+    [SparseKey]
+    public int Id { get; set; }
+
+    [SparseTransportIgnore]
+    public int LocalOnly { get; set; }
+}
+
+[SparseModel]
+public partial class TransportPolicyKeyedHolder
+{
+    public global::System.Collections.Generic.List<TransportPolicyKeyedItem> Items { get; set; } = new();
+}
+
+[SparseModel]
+public partial class JsonExcludedChild
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Hidden { get; set; }
+
+    public string? Visible { get; set; }
+}
+
+[SparseModel]
+public partial class JsonExcludedParent
+{
+    public JsonExcludedChild Child { get; set; } = new();
+}
+
+[SparseModel]
+public partial class JsonExcludedKeyedItem
+{
+    [SparseKey]
+    public int Id { get; set; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Hidden { get; set; }
+}
+
+[SparseModel]
+public partial class JsonExcludedKeyedHolder
+{
+    public global::System.Collections.Generic.List<JsonExcludedKeyedItem> Items { get; set; } = new();
+}
+
 public sealed class CountingSuffixNamingPolicy : JsonNamingPolicy
 {
     public string Suffix { get; set; } = "_1";
@@ -66,8 +141,7 @@ public sealed class FragmentAndChangeSetJsonTests
         {
             PropertyNamingPolicy = namingPolicy,
             PropertyNameCaseInsensitive = true,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         var reader = new System.Text.Json.Utf8JsonReader(
             System.Text.Encoding.UTF8.GetBytes(
@@ -76,11 +150,7 @@ public sealed class FragmentAndChangeSetJsonTests
         );
         reader.Read().ShouldBeTrue();
 
-        var fragment = WideDispatchWidget.Fragment.JsonConverter.Read(
-            ref reader,
-            typeof(WideDispatchWidget.Fragment),
-            options
-        )!;
+        var fragment = WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
 
         namingPolicy.ConversionCount.ShouldBe(6);
         fragment.Alpha.Value.ShouldBe(1);
@@ -95,17 +165,11 @@ public sealed class FragmentAndChangeSetJsonTests
         namingPolicy.Suffix = "_2";
         namingPolicy.ResetCount();
         var nextReader = new System.Text.Json.Utf8JsonReader(
-            System.Text.Encoding.UTF8.GetBytes(
-                """{"Alpha_1":8,"Bravo_1":9,"Charlie_1":10,"Delta_1":11,"Echo_1":12,"fixedName":13,"Hidden_1":14}"""
-            )
+            System.Text.Encoding.UTF8.GetBytes("""{"Alpha_1":8,"Bravo_1":9,"Charlie_1":10,"Delta_1":11,"Echo_1":12,"fixedName":13,"Hidden_1":14}""")
         );
         nextReader.Read().ShouldBeTrue();
 
-        var next = WideDispatchWidget.Fragment.JsonConverter.Read(
-            ref nextReader,
-            typeof(WideDispatchWidget.Fragment),
-            options
-        )!;
+        var next = WideDispatchWidget.Fragment.JsonConverter.Read(ref nextReader, typeof(WideDispatchWidget.Fragment), options)!;
 
         namingPolicy.ConversionCount.ShouldBe(0);
         next.Alpha.Value.ShouldBe(8);
@@ -120,8 +184,7 @@ public sealed class FragmentAndChangeSetJsonTests
         var firstOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = namingPolicy,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         firstOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
         firstOptions.MakeReadOnly();
@@ -137,19 +200,14 @@ public sealed class FragmentAndChangeSetJsonTests
         var secondOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = namingPolicy,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         secondOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
         secondOptions.MakeReadOnly();
         ReadWideFragment("""{"Bravo_2":4}""", secondOptions).Bravo.Value.ShouldBe(4);
         namingPolicy.ConversionCount.ShouldBe(12);
 
-        var fragment = new WideDispatchWidget.Fragment
-        {
-            Alpha = Optional<int>.Present(3),
-            Explicit = Optional<int>.Present(4),
-        };
+        var fragment = new WideDispatchWidget.Fragment { Alpha = Optional<int>.Present(3), Explicit = Optional<int>.Present(4) };
         var firstJson = JsonSerializer.Serialize(fragment, firstOptions);
         var secondJson = JsonSerializer.Serialize(fragment, secondOptions);
 
@@ -165,72 +223,44 @@ public sealed class FragmentAndChangeSetJsonTests
         var collisionOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = new DuplicateNameNamingPolicy(),
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         Should.Throw<JsonException>(() => ReadWideFragment("{}", collisionOptions));
 
         var duplicateWriteOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = new DuplicateNameNamingPolicy(),
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         duplicateWriteOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
         var duplicateJson = JsonSerializer.Serialize(
-            new WideDispatchWidget.Fragment
-            {
-                Alpha = Optional<int>.Present(1),
-                Bravo = Optional<int>.Present(2),
-            },
+            new WideDispatchWidget.Fragment { Alpha = Optional<int>.Present(1), Bravo = Optional<int>.Present(2) },
             duplicateWriteOptions
         );
         duplicateJson.Split("\"duplicate\"", StringSplitOptions.None).Length.ShouldBe(3);
 
         var strictOptions = new JsonSerializerOptions
         {
-            UnmappedMemberHandling = System
-                .Text
-                .Json
-                .Serialization
-                .JsonUnmappedMemberHandling
-                .Disallow,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
-        Should.Throw<JsonException>(() =>
-            ReadWideFragment("""{"unknown":{"nested":true}}""", strictOptions)
-        );
+        Should.Throw<JsonException>(() => ReadWideFragment("""{"unknown":{"nested":true}}""", strictOptions));
     }
 
-    private static WideDispatchWidget.Fragment ReadWideFragment(
-        string json,
-        JsonSerializerOptions options
-    )
+    private static WideDispatchWidget.Fragment ReadWideFragment(string json, JsonSerializerOptions options)
     {
         var reader = new System.Text.Json.Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json));
         reader.Read();
-        return WideDispatchWidget.Fragment.JsonConverter.Read(
-            ref reader,
-            typeof(WideDispatchWidget.Fragment),
-            options
-        )!;
+        return WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
     }
 
     [Test]
     public void FragmentWireNamesRoundTrip()
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         options.Converters.Add(NamingWidget.Fragment.JsonConverter);
 
-        var fragment = new NamingWidget.Fragment
-        {
-            Value = Optional<string?>.Present("v"),
-            Slash = Optional<int>.Present(7),
-        };
+        var fragment = new NamingWidget.Fragment { Value = Optional<string?>.Present("v"), Slash = Optional<int>.Present(7) };
         var json = JsonSerializer.Serialize(fragment, options);
         json.ShouldContain("customName");
         json.ShouldContain("a/b");
@@ -244,14 +274,7 @@ public sealed class FragmentAndChangeSetJsonTests
     [Test]
     public void ChangeSetRoundTripsWithExplicitWireNames()
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        };
-        options.Converters.Add(NamingWidget.Fragment.JsonConverter);
-
-        Optional<NamingWidget.Fragment?> State(NamingWidget model) =>
-            Optional<NamingWidget.Fragment?>.Present(NamingWidget.Fragment.From(model));
+        Optional<NamingWidget.Fragment?> State(NamingWidget model) => Optional<NamingWidget.Fragment?>.Present(NamingWidget.Fragment.From(model));
         var before = State(
             new NamingWidget
             {
@@ -270,12 +293,12 @@ public sealed class FragmentAndChangeSetJsonTests
         );
 
         var payload = NamingWidget.ChangeSet.Between(before, after).ToPayload();
-        var json = JsonSerializer.Serialize(payload, options);
-        json.ShouldContain("\"member\":\"Value\"");
+        var json = JsonSerializer.Serialize(payload, NamingWidget.PayloadJson.Default);
+        json.ShouldContain("\"customName\"");
+        json.ShouldContain("\"a/b\"");
+        json.ShouldNotContain("\"member\":\"Value\"");
 
-        var restored = JsonSerializer
-            .Deserialize<NamingWidget.ChangePayload>(json, options)!
-            .ToChangeSet();
+        var restored = JsonSerializer.Deserialize(json, NamingWidget.PayloadJson.Default)!.ToChangeSet();
         NamingWidget.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
@@ -287,8 +310,7 @@ public sealed class FragmentAndChangeSetJsonTests
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         // Unknown-only reads skip member lookup, so the options stay mutable
         // while these repeated reads exercise the cached camelCase index.
@@ -308,15 +330,13 @@ public sealed class FragmentAndChangeSetJsonTests
         var sensitive = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         var insensitive = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
         for (var i = 0; i < 3; i++)
         {
@@ -331,14 +351,9 @@ public sealed class FragmentAndChangeSetJsonTests
         var camel = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
-        var identity = new JsonSerializerOptions
-        {
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
+        var identity = new JsonSerializerOptions { TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver() };
         for (var i = 0; i < 3; i++)
         {
             ReadWideFragment("""{"alpha":1}""", camel).Alpha.Value.ShouldBe(1);
@@ -352,14 +367,9 @@ public sealed class FragmentAndChangeSetJsonTests
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver =
-                new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
+            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
         };
-        System.Threading.Tasks.Parallel.For(
-            0,
-            64,
-            _ => ReadWideFragment("""{"alpha":1,"fixedName":2}""", options).Alpha.Value.ShouldBe(1)
-        );
+        System.Threading.Tasks.Parallel.For(0, 64, _ => ReadWideFragment("""{"alpha":1,"fixedName":2}""", options).Alpha.Value.ShouldBe(1));
     }
 
     private static long MeasureWideReadBytes(string json, JsonSerializerOptions[] optionsPerRead)
@@ -377,25 +387,17 @@ public sealed class FragmentAndChangeSetJsonTests
         return System.GC.GetAllocatedBytesForCurrentThread() - before;
     }
 
-    private static WideDispatchWidget.Fragment ReadWideFragment(
-        byte[] json,
-        JsonSerializerOptions options
-    )
+    private static WideDispatchWidget.Fragment ReadWideFragment(byte[] json, JsonSerializerOptions options)
     {
         var reader = new System.Text.Json.Utf8JsonReader(json);
         reader.Read();
-        return WideDispatchWidget.Fragment.JsonConverter.Read(
-            ref reader,
-            typeof(WideDispatchWidget.Fragment),
-            options
-        )!;
+        return WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
     }
 
     [Test]
-    public void IgnoredOnlyChangeFailsTransportInsteadOfGoingSilent()
+    public void JsonIgnorePreservesNeutralPayloadButFailsJsonSerialization()
     {
-        Optional<NamingWidget.Fragment?> State(NamingWidget model) =>
-            Optional<NamingWidget.Fragment?>.Present(NamingWidget.Fragment.From(model));
+        Optional<NamingWidget.Fragment?> State(NamingWidget model) => Optional<NamingWidget.Fragment?>.Present(NamingWidget.Fragment.From(model));
         var before = State(
             new NamingWidget
             {
@@ -413,15 +415,29 @@ public sealed class FragmentAndChangeSetJsonTests
             }
         );
 
-        // The only modified property is JSON-ignored: the ChangeSet is
-        // nonempty, but its payload would travel empty.
         var ignoredOnly = NamingWidget.ChangeSet.Between(before, after);
         ignoredOnly.IsEmpty.ShouldBeFalse();
-        var omitted = Should.Throw<InvalidOperationException>(() => ignoredOnly.ToPayload());
-        omitted.Message.ShouldContain("Plain");
+        var payload = ignoredOnly.ToPayload();
+        payload.Changes.ShouldHaveSingleItem();
+        payload.ToChangeSet().IsEmpty.ShouldBeFalse();
+        Should.Throw<JsonException>(() => JsonSerializer.Serialize(payload, NamingWidget.PayloadJson.Default));
+        var output = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(output))
+        {
+            Should.Throw<JsonException>(() => JsonSerializer.Serialize(writer, payload, NamingWidget.PayloadJson.Default));
+            output.WrittenCount.ShouldBe(0);
+        }
+        const string ignoredMemberInput =
+            """{"version":"0.1","change":{"kind":"update","members":{"plain":{"kind":"replace","before":{"state":"value","value":2},"after":{"state":"value","value":3}}}}}""";
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<NamingWidget.ChangePayload>(ignoredMemberInput, NamingWidget.PayloadJson.Default)
+        );
+        const string ignoredSnapshotInput =
+            """{"version":"0.1","change":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":{"plain":{"state":"value","value":3}}}}}""";
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<NamingWidget.ChangePayload>(ignoredSnapshotInput, NamingWidget.PayloadJson.Default)
+        );
 
-        // A mixed ignored/non-ignored edit fails too rather than partially
-        // exporting.
         var mixed = NamingWidget.ChangeSet.Between(
             before,
             State(
@@ -433,12 +449,126 @@ public sealed class FragmentAndChangeSetJsonTests
                 }
             )
         );
-        Should.Throw<InvalidOperationException>(() => mixed.ToPayload());
+        mixed.ToPayload().Changes!.Count.ShouldBe(2);
+        Should.Throw<JsonException>(() => JsonSerializer.Serialize(mixed.ToPayload(), NamingWidget.PayloadJson.Default));
 
-        // Patch-side export follows the same lossless rule.
-        Should.Throw<InvalidOperationException>(() =>
-            NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Plain = 3 })
+        var patchPayload = NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Plain = 3 });
+        patchPayload.Changes.ShouldHaveSingleItem();
+        Should.Throw<JsonException>(() => JsonSerializer.Serialize(patchPayload, NamingWidget.PayloadJson.Default));
+        NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Value = "b" }).Changes.ShouldHaveSingleItem();
+    }
+
+    [Test]
+    public void JsonExcludedNestedAndKeyedChangesFailBeforeWritingBytes()
+    {
+        var nested = JsonExcludedParent
+            .ChangeSet.Between(
+                Optional<JsonExcludedParent.Fragment?>.Present(
+                    JsonExcludedParent.Fragment.From(new JsonExcludedParent { Child = new JsonExcludedChild { Hidden = "before" } })
+                ),
+                Optional<JsonExcludedParent.Fragment?>.Present(
+                    JsonExcludedParent.Fragment.From(new JsonExcludedParent { Child = new JsonExcludedChild { Hidden = "after" } })
+                )
+            )
+            .ToPayload();
+        var nestedOutput = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(nestedOutput))
+        {
+            Should.Throw<JsonException>(() => JsonSerializer.Serialize(writer, nested, JsonExcludedParent.PayloadJson.Default));
+            nestedOutput.WrittenCount.ShouldBe(0);
+        }
+
+        var keyed = JsonExcludedKeyedHolder
+            .ChangeSet.Between(
+                Optional<JsonExcludedKeyedHolder.Fragment?>.Present(
+                    JsonExcludedKeyedHolder.Fragment.From(
+                        new JsonExcludedKeyedHolder { Items = [new JsonExcludedKeyedItem { Id = 1, Hidden = "before" }] }
+                    )
+                ),
+                Optional<JsonExcludedKeyedHolder.Fragment?>.Present(
+                    JsonExcludedKeyedHolder.Fragment.From(
+                        new JsonExcludedKeyedHolder { Items = [new JsonExcludedKeyedItem { Id = 1, Hidden = "after" }] }
+                    )
+                )
+            )
+            .ToPayload();
+        var keyedOutput = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(keyedOutput))
+        {
+            Should.Throw<JsonException>(() => JsonSerializer.Serialize(writer, keyed, JsonExcludedKeyedHolder.PayloadJson.Default));
+            keyedOutput.WrittenCount.ShouldBe(0);
+        }
+
+        var whole = JsonExcludedChild
+            .ChangeSet.Between(
+                Optional<JsonExcludedChild.Fragment?>.Present(JsonExcludedChild.Fragment.From(new JsonExcludedChild { Hidden = "before" })),
+                Optional<JsonExcludedChild.Fragment?>.Missing
+            )
+            .ToPayload();
+        var wholeOutput = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(wholeOutput))
+        {
+            Should.Throw<JsonException>(() => JsonSerializer.Serialize(writer, whole, JsonExcludedChild.PayloadJson.Default));
+            wholeOutput.WrittenCount.ShouldBe(0);
+        }
+    }
+
+    [Test]
+    public void SparseTransportIgnoreRejectsChangeSetAndPatchExport()
+    {
+        var before = TransportPolicyWidget.Fragment.From(new TransportPolicyWidget { TransportExcluded = 1 });
+        var after = TransportPolicyWidget.Fragment.From(new TransportPolicyWidget { TransportExcluded = 2 });
+        var changes = TransportPolicyWidget.ChangeSet.Between(
+            Optional<TransportPolicyWidget.Fragment?>.Present(before),
+            Optional<TransportPolicyWidget.Fragment?>.Present(after)
         );
-        NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Value = "b" });
+
+        var changeSetError = Should.Throw<InvalidOperationException>(() => changes.ToPayload());
+        changeSetError.Message.ShouldContain("SparseTransportIgnore");
+        changeSetError.Message.ShouldContain("TransportExcluded");
+
+        var patchError = Should.Throw<InvalidOperationException>(() =>
+            TransportPolicyWidget.ChangePayload.FromPatch(new TransportPolicyWidget.Patch { TransportExcluded = 2 })
+        );
+        patchError.Message.ShouldContain("SparseTransportIgnore");
+        patchError.Message.ShouldContain("TransportExcluded");
+
+        var visiblePayload = TransportPolicyWidget.ChangePayload.FromPatch(new TransportPolicyWidget.Patch { Visible = 1 });
+        visiblePayload.Changes.ShouldHaveSingleItem();
+        const string transportExcludedInput =
+            """{"version":"0.1","change":{"kind":"update","members":{"transportExcluded":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""";
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<TransportPolicyWidget.ChangePayload>(transportExcludedInput, TransportPolicyWidget.PayloadJson.Default)
+        );
+
+        var rootTransition = TransportPolicyWidget.ChangeSet.Between(
+            Optional<TransportPolicyWidget.Fragment?>.Present(TransportPolicyWidget.Fragment.From(new TransportPolicyWidget())),
+            Optional<TransportPolicyWidget.Fragment?>.Missing
+        );
+        Should.Throw<InvalidOperationException>(() => rootTransition.ToPayload()).Message.ShouldContain("$root");
+
+        var nestedChanges = TransportPolicyParent.ChangeSet.Between(
+            Optional<TransportPolicyParent.Fragment?>.Present(
+                TransportPolicyParent.Fragment.From(new TransportPolicyParent { Child = new TransportPolicyChild { LocalOnly = 1 } })
+            ),
+            Optional<TransportPolicyParent.Fragment?>.Present(
+                TransportPolicyParent.Fragment.From(new TransportPolicyParent { Child = new TransportPolicyChild { LocalOnly = 2 } })
+            )
+        );
+        Should.Throw<InvalidOperationException>(() => nestedChanges.ToPayload()).Message.ShouldContain("SparseTransportIgnore");
+
+        var collectionChanges = TransportPolicyKeyedHolder.ChangeSet.Between(
+            Optional<TransportPolicyKeyedHolder.Fragment?>.Present(
+                TransportPolicyKeyedHolder.Fragment.From(
+                    new TransportPolicyKeyedHolder { Items = [new TransportPolicyKeyedItem { Id = 1, LocalOnly = 1 }] }
+                )
+            ),
+            Optional<TransportPolicyKeyedHolder.Fragment?>.Present(
+                TransportPolicyKeyedHolder.Fragment.From(
+                    new TransportPolicyKeyedHolder { Items = [new TransportPolicyKeyedItem { Id = 1, LocalOnly = 2 }] }
+                )
+            )
+        );
+        Should.Throw<InvalidOperationException>(() => collectionChanges.ToPayload()).Message.ShouldContain("SparseTransportIgnore");
     }
 }

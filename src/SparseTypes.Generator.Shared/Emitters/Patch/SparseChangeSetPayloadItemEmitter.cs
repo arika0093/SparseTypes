@@ -137,13 +137,12 @@ internal static class SparseChangeSetPayloadItemEmitter
         if (isModelValue)
         {
             code.AppendLine(
-                "if (before.IsPresent || after.IsPresent) throw new global::System.ArgumentException(\"An edited model payload item must omit 'before' and 'after'.\");"
+                "if (item.Edit is null ? !before.IsPresent || !after.IsPresent : before.IsPresent || after.IsPresent) throw new global::System.ArgumentException(\"A model item update requires only 'edit'; a replacement requires both 'before' and 'after'.\");"
             );
-            code.AppendLine("if (item.Edit is null) throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\");");
             if (isKeyed)
             {
                 code.AppendLine(
-                    "if (item.BeforeIndex < 0 || item.AfterIndex < 0) throw new global::System.ArgumentException(\"An edited keyed payload item has invalid indices.\");"
+                    "if (item.BeforeIndex < 0 || item.AfterIndex < 0) throw new global::System.ArgumentException(\"An updated or replaced keyed payload item has invalid indices.\");"
                 );
             }
         }
@@ -223,6 +222,7 @@ internal static class SparseChangeSetPayloadItemEmitter
             var edit = hasEdit
                 ? "("
                     + edited
+                    + " && item.Edit is not null"
                     + " ? "
                     + restoredEditPrefix
                     + "item.Edit?.ToChangeSetCore() ?? throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\") : "
@@ -296,6 +296,7 @@ internal static class SparseChangeSetPayloadItemEmitter
                     + ", "
                     + "("
                     + edited
+                    + " && item.Edit is not null"
                     + " ? restoredEdit ?? item.Edit?.ToChangeSetCore() ?? throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\") : "
                     + derivedEdit
                     + "), false);"
@@ -318,12 +319,8 @@ internal static class SparseChangeSetPayloadItemEmitter
     )
     {
         var id = member.Id;
-        var runtime = dialect.RuntimeNamespace;
         var payloadChange = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Change");
-        code.AppendLine("/// <summary>Payload change for one member.</summary>");
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine("public sealed class " + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", id) + " : " + payloadChange);
-        code.OpenBlock();
+        var isCollection = SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member);
         var memberValueType = SparseChangeSetBasicsEmitter.IsNested(member)
             ? SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
                 dialect,
@@ -332,6 +329,18 @@ internal static class SparseChangeSetPayloadItemEmitter
                 implementationNamespace
             ) + "?"
             : SparseChangeSetBasicsEmitter.FragmentValueType(member);
+        var payloadBase = isCollection
+            ? SparseChangeSetPayloadEmitter.PayloadName(modelType, "CollectionChange")
+                + "<"
+                + memberValueType
+                + ", "
+                + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Item", id)
+                + ">"
+            : payloadChange;
+        code.AppendLine("/// <summary>Payload change for one member.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("public sealed class " + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", id) + " : " + payloadBase);
+        code.OpenBlock();
         // XML docs precede serialization attributes so the compiler associates
         // them with the member (CS1591).
         code.AppendLine("/// <summary>Gets or sets the snapshot value.</summary>");
@@ -356,35 +365,6 @@ internal static class SparseChangeSetPayloadItemEmitter
         }
         else if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
         {
-            var valueType = SparseChangeSetBasicsEmitter.FragmentValueType(member);
-            code.AppendLine("/// <summary>Gets or sets the before endpoint.</summary>");
-            SparseChangeSetPayloadEmitter.AppendIgnoreNull(code, dialect.EmitJson);
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "Before", 2, dialect.EmitJson);
-            if (dialect.EmitJson)
-            {
-                SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, valueType, implementationNamespace);
-            }
-
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + endpoint + "<" + valueType + ">? Before { get; set; }");
-            code.AppendLine("/// <summary>Gets or sets the after endpoint.</summary>");
-            SparseChangeSetPayloadEmitter.AppendIgnoreNull(code, dialect.EmitJson);
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "After", 3, dialect.EmitJson);
-            if (dialect.EmitJson)
-            {
-                SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, valueType, implementationNamespace);
-            }
-
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + endpoint + "<" + valueType + ">? After { get; set; }");
-            code.AppendLine("/// <summary>Gets or sets the per-item changes.</summary>");
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "Items", 4, dialect.EmitJson);
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine(
-                "public global::System.Collections.Generic.List<"
-                    + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Item", id)
-                    + "> Items { get; set; } = new();"
-            );
             if (SparseChangeSetBasicsEmitter.IsKeyed(member))
             {
                 var keyType = SparseChangeSetBasicsEmitter.KeyTypeOf(member);
@@ -461,43 +441,14 @@ internal static class SparseChangeSetPayloadItemEmitter
                     "Core",
                     implementationNamespace
                 );
+            var itemOperationBase =
+                SparseChangeSetPayloadEmitter.PayloadName(modelType, "ItemOperation") + "<" + keyType + ", " + itemValueType + ">";
             code.AppendLine("/// <summary>Per-item change for a collection member.</summary>");
             code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-            code.AppendLine("public sealed class " + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Item", id));
+            code.AppendLine(
+                "public sealed class " + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Item", id) + " : " + itemOperationBase
+            );
             code.OpenBlock();
-            code.AppendLine("/// <summary>Gets or sets the item key.</summary>");
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "Key", 0, dialect.EmitJson);
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + keyType + " Key { get; set; } = default!;");
-            code.AppendLine("/// <summary>Gets or sets the before endpoint.</summary>");
-            SparseChangeSetPayloadEmitter.AppendIgnoreNull(code, dialect.EmitJson);
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "Before", 4, dialect.EmitJson);
-            if (dialect.EmitJson)
-            {
-                SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, itemValueType, implementationNamespace);
-            }
-
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + endpoint + "<" + itemValueType + ">? Before { get; set; }");
-            code.AppendLine("/// <summary>Gets or sets the after endpoint.</summary>");
-            SparseChangeSetPayloadEmitter.AppendIgnoreNull(code, dialect.EmitJson);
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "After", 5, dialect.EmitJson);
-            if (dialect.EmitJson)
-            {
-                SparseChangePayloadJsonBridgeEmitter.AppendEndpointConverterAttribute(code, itemValueType, implementationNamespace);
-            }
-
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + endpoint + "<" + itemValueType + ">? After { get; set; }");
-            code.AppendLine("/// <summary>Gets or sets the item change kind.</summary>");
-            SparseChangeSetPayloadEmitter.AppendJsonProperty(code, "Kind", 1, dialect.EmitJson);
-            if (dialect.EmitJson)
-            {
-                SparseChangePayloadJsonBridgeEmitter.AppendItemKindConverterAttribute(code, implementationNamespace);
-            }
-
-            AppendHiddenMemberAttribute(code);
-            code.AppendLine("public " + runtime + "ChangePayloadItemKind Kind { get; set; }");
             if (SparseChangeSetBasicsEmitter.IsKeyed(member))
             {
                 code.AppendLine("/// <summary>Gets or sets the before index.</summary>");

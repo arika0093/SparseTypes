@@ -33,7 +33,7 @@
       Condition="'@(_ReadmeGeneratedSource)' == ''"
       Text="The README consumer did not emit any generated source files."
     />
-    <RemoveDir Directories="$(ReadmeGeneratedCodeDirectory)" />
+    <Delete Files="$(ReadmeGeneratedCodeDirectory)/*.g.cs" />
     <MakeDir Directories="$(ReadmeGeneratedCodeDirectory)" />
     <Copy
       SourceFiles="@(_ReadmeGeneratedSource)"

@@ -36,7 +36,7 @@ An unchanged scalar's Before and After are missing because there is no transitio
 
 `SparseChangeRecord` is in `SparseTypes.Generated`; it exposes Path, PathText, Before, After, and Kind. Its constructor accepts path, presence-aware boxed endpoints, and SparseChangeKind. Kind is Changed, Added, Removed, or Order. Some model member names collide with convenience enumeration names; the `ISparseChangeSet` contract remains the generic inspection entry point.
 
-Payload export throws `InvalidOperationException` if changed JsonIgnore members would be lost. Do not serialize ChangeSet directly as a substitute for ToPayload.
+`ToPayload()` preserves changes to `[JsonIgnore]` members in the neutral payload; the JSON codec rejects serializing such a payload before writing bytes. Changes to `[SparseTransportIgnore]` members are rejected during payload export. Do not serialize ChangeSet directly as a substitute for `ToPayload()`.
 
 ## Rebase and application
 

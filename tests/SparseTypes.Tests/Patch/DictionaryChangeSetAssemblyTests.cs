@@ -9,16 +9,9 @@ public sealed class DictionaryChangeSetAssemblyTests
     {
         var before = new ScalarDictHolder
         {
-            Scores = Enumerable
-                .Range(0, 2048)
-                .ToDictionary(static index => "remove-" + index, static index => index),
+            Scores = Enumerable.Range(0, 2048).ToDictionary(static index => "remove-" + index, static index => index),
         };
-        var after = new ScalarDictHolder
-        {
-            Scores = Enumerable
-                .Range(0, 2048)
-                .ToDictionary(static index => "add-" + index, static index => index),
-        };
+        var after = new ScalarDictHolder { Scores = Enumerable.Range(0, 2048).ToDictionary(static index => "add-" + index, static index => index) };
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
         var items = changes.Scores.ToDictionary(static item => item.Key);
         foreach (var key in new[] { "remove-0", "add-0", "remove-2047", "add-2047", "remove-0" })
@@ -35,17 +28,10 @@ public sealed class DictionaryChangeSetAssemblyTests
     {
         var before = new ScalarDictHolder
         {
-            Scores = Enumerable
-                .Range(0, 2048)
-                .ToDictionary(static index => "remove-" + index, static index => index),
+            Scores = Enumerable.Range(0, 2048).ToDictionary(static index => "remove-" + index, static index => index),
         };
         before.Scores["edit"] = 1;
-        var after = new ScalarDictHolder
-        {
-            Scores = Enumerable
-                .Range(0, 2048)
-                .ToDictionary(static index => "add-" + index, static index => index),
-        };
+        var after = new ScalarDictHolder { Scores = Enumerable.Range(0, 2048).ToDictionary(static index => "add-" + index, static index => index) };
         after.Scores["edit"] = 2;
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
         changes.Scores.GetChange("missing").IsEmpty.ShouldBeTrue();
@@ -93,27 +79,17 @@ public sealed class DictionaryChangeSetAssemblyTests
             )
         );
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
-        changes
-            .Scores.Select(static item => item.Key)
-            .ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
+        changes.Scores.Select(static item => item.Key).ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
         changes.Scores.GetChange("edit").Before.Value.ShouldBe(1);
         changes.Scores.GetChange("edit").After.Value.ShouldBe(2);
         changes.Scores.GetChange("keep").IsEmpty.ShouldBeTrue();
 
-        var restored = JsonSerializer
-            .Deserialize<ScalarDictHolder.ChangePayload>(
-                JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var restored = PayloadJsonTestSupport
+            .Deserialize<ScalarDictHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        restored
-            .Scores.Select(static item => item.Key)
-            .ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
-        ScalarDictHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
-        ScalarDictHolder
-            .Patch.Between(restored.Invert().ToPatch().Apply(after), before)
-            .IsEmpty.ShouldBeTrue();
+        restored.Scores.Select(static item => item.Key).ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
+        ScalarDictHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
+        ScalarDictHolder.Patch.Between(restored.Invert().ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -148,28 +124,18 @@ public sealed class DictionaryChangeSetAssemblyTests
             )
         );
         var changes = StructuralDictHolder.ChangeSet.Between(before, after);
-        changes
-            .Servers.Select(static item => item.Key)
-            .ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
+        changes.Servers.Select(static item => item.Key).ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
         changes.Servers.GetChange("add1").Edit.Name.After.Value.ShouldBe("added1");
         changes.Servers.GetChange("remove1").Edit.Name.Before.Value.ShouldBe("removed1");
         changes.Servers.GetChange("edit").Edit.Name.Before.Value.ShouldBe("before");
         changes.Servers.GetChange("edit").Edit.Name.After.Value.ShouldBe("after");
         changes.Servers.GetChange("keep").IsEmpty.ShouldBeTrue();
 
-        var restored = JsonSerializer
-            .Deserialize<StructuralDictHolder.ChangePayload>(
-                JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var restored = PayloadJsonTestSupport
+            .Deserialize<StructuralDictHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        restored
-            .Servers.Select(static item => item.Key)
-            .ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
-        StructuralDictHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
-        StructuralDictHolder
-            .Patch.Between(restored.Invert().ToPatch().Apply(after), before)
-            .IsEmpty.ShouldBeTrue();
+        restored.Servers.Select(static item => item.Key).ShouldBe(["add1", "add2", "remove1", "remove2", "edit"]);
+        StructuralDictHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
+        StructuralDictHolder.Patch.Between(restored.Invert().ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
     }
 }

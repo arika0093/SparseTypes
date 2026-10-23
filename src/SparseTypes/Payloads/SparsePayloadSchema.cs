@@ -10,14 +10,25 @@ public sealed class SparsePayloadSchema
     /// <summary>Creates a schema descriptor.</summary>
     /// <param name="type">CLR type represented by the schema.</param>
     /// <param name="name">Stable preferred component name.</param>
-    /// <param name="jsonSchema">A JSON Schema object encoded as JSON.</param>
+    /// <param name="jsonSchema">A JSON Schema object encoded as JSON. Used for both OpenAPI dialects.</param>
     public SparsePayloadSchema(Type type, string name, string jsonSchema)
+        : this(type, name, jsonSchema, jsonSchema) { }
+
+    /// <summary>Creates a schema descriptor with separate OpenAPI 3.0 and 3.1 forms.</summary>
+    /// <param name="type">CLR type represented by the schema.</param>
+    /// <param name="name">Stable preferred component name.</param>
+    /// <param name="openApi30JsonSchema">The OpenAPI 3.0 JSON Schema object.</param>
+    /// <param name="openApi31JsonSchema">The OpenAPI 3.1 JSON Schema object.</param>
+    public SparsePayloadSchema(Type type, string name, string openApi30JsonSchema, string openApi31JsonSchema)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("A schema name is required.", nameof(name)) : name;
-        JsonSchema = string.IsNullOrWhiteSpace(jsonSchema)
-            ? throw new ArgumentException("A JSON schema is required.", nameof(jsonSchema))
-            : jsonSchema;
+        OpenApi30JsonSchema = string.IsNullOrWhiteSpace(openApi30JsonSchema)
+            ? throw new ArgumentException("An OpenAPI 3.0 JSON schema is required.", nameof(openApi30JsonSchema))
+            : openApi30JsonSchema;
+        OpenApi31JsonSchema = string.IsNullOrWhiteSpace(openApi31JsonSchema)
+            ? throw new ArgumentException("An OpenAPI 3.1 JSON schema is required.", nameof(openApi31JsonSchema))
+            : openApi31JsonSchema;
     }
 
     /// <summary>Gets the represented CLR type.</summary>
@@ -27,15 +38,13 @@ public sealed class SparsePayloadSchema
     public string Name { get; }
 
     /// <summary>Gets the JSON Schema document for the represented type.</summary>
-    public string JsonSchema { get; }
-}
+    public string JsonSchema => OpenApi31JsonSchema;
 
-/// <summary>Provides generated JSON schemas for a ChangePayload and its nested payload DTOs.</summary>
-[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
-public interface ISparsePayloadSchemaProvider
-{
-    /// <summary>Gets the schema descriptors generated for this payload.</summary>
-    IReadOnlyList<SparsePayloadSchema> GetSparsePayloadSchemas();
+    /// <summary>Gets the OpenAPI 3.0 JSON Schema document.</summary>
+    public string OpenApi30JsonSchema { get; }
+
+    /// <summary>Gets the OpenAPI 3.1 JSON Schema document.</summary>
+    public string OpenApi31JsonSchema { get; }
 }
 
 /// <summary>Creates deterministic OpenAPI component names for CLR types.</summary>

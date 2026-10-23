@@ -83,15 +83,10 @@ public sealed class MixedItemPartitionTests
     private static MixedSecretHolder.ChangePayload MixedPayload(string name, string? secret)
     {
         var payload = MixedSecretHolder
-            .ChangeSet.Between(
-                HolderState(MixedHolder("Alice", BeforeSecret)),
-                HolderState(MixedHolder(name, secret))
-            )
+            .ChangeSet.Between(HolderState(MixedHolder("Alice", BeforeSecret)), HolderState(MixedHolder(name, secret)))
             .ToPayload();
         // Exercise the JSON wire shape as well as the in-memory DTOs.
-        return JsonSerializer.Deserialize<MixedSecretHolder.ChangePayload>(
-            JsonSerializer.Serialize(payload)
-        )!;
+        return PayloadJsonTestSupport.RoundTrip(payload);
     }
 
     private static void ShouldNotLeakSecrets(params string?[] texts)
@@ -114,9 +109,7 @@ public sealed class MixedItemPartitionTests
         applied.ShouldBeFalse();
         updated.ShouldBeNull();
         result.HasConflicts.ShouldBeTrue();
-        result
-            .Conflicts.Select(static conflict => conflict.PathText)
-            .ShouldBe(["Items[\"a\"].Name", "Map[\"k\"].Name"]);
+        result.Conflicts.Select(static conflict => conflict.PathText).ShouldBe(["Items[\"a\"].Name", "Map[\"k\"].Name"]);
         // The write-only subset is reported but never committed on its own.
         result.WriteOnlyPaths.ShouldBe(["Items[a].Secret", "Map[k].Secret"]);
         current.Items.Single().Name.ShouldBe("Charlie");
@@ -177,15 +170,11 @@ public sealed class MixedItemPartitionTests
     [Test]
     public void NestedChildMixedEditKeepsOrdinaryChecks()
     {
-        var before = HolderState(
-            new MixedSecretHolder { Items = [Item("a", "Alice", BeforeSecret)] }
-        );
+        var before = HolderState(new MixedSecretHolder { Items = [Item("a", "Alice", BeforeSecret)] });
         var edited = Item("a", "Alice", AfterSecret);
         edited.Detail!.Note = "note-Bob";
         var after = HolderState(new MixedSecretHolder { Items = [edited] });
-        var payload = JsonSerializer.Deserialize<MixedSecretHolder.ChangePayload>(
-            JsonSerializer.Serialize(MixedSecretHolder.ChangeSet.Between(before, after).ToPayload())
-        )!;
+        var payload = PayloadJsonTestSupport.RoundTrip(MixedSecretHolder.ChangeSet.Between(before, after).ToPayload());
 
         var diverged = new MixedSecretHolder { Items = [Item("a", "Alice", "current-secret")] };
         diverged.Items.Single().Detail!.Note = "note-Charlie";
@@ -194,9 +183,7 @@ public sealed class MixedItemPartitionTests
 
         applied.ShouldBeFalse();
         updated.ShouldBeNull();
-        result
-            .Conflicts.Select(static conflict => conflict.PathText)
-            .ShouldBe(["Items[\"a\"].Detail.Note"]);
+        result.Conflicts.Select(static conflict => conflict.PathText).ShouldBe(["Items[\"a\"].Detail.Note"]);
         result.WriteOnlyPaths.ShouldBe(["Items[a].Secret"]);
         diverged.Items.Single().Detail!.Note.ShouldBe("note-Charlie");
         diverged.Items.Single().Secret.ShouldBe("current-secret");
@@ -234,16 +221,9 @@ public sealed class MixedItemPartitionTests
                     }
                 )
             );
-        var payload = JsonSerializer.Deserialize<MixedTempHolder.ChangePayload>(
-            JsonSerializer.Serialize(
-                MixedTempHolder
-                    .ChangeSet.Between(
-                        TempState("Alice", BeforeSecret),
-                        TempState("Bob", AfterSecret)
-                    )
-                    .ToPayload()
-            )
-        )!;
+        var payload = PayloadJsonTestSupport.RoundTrip(
+            MixedTempHolder.ChangeSet.Between(TempState("Alice", BeforeSecret), TempState("Bob", AfterSecret)).ToPayload()
+        );
         var current = new MixedTempHolder
         {
             Items =

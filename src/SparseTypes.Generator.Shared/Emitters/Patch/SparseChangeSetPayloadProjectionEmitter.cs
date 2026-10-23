@@ -54,7 +54,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendMemberProjection(code, member, members, dialect, modelType, strict);
         }

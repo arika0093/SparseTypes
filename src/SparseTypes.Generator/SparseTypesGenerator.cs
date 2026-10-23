@@ -65,6 +65,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 #endif
         ModelAttributeMetadataName: ModelAttributeName,
         IgnoreAttributeMetadataName: "SparseTypes.SparseIgnoreAttribute",
+        TransportIgnoreAttributeMetadataName: "SparseTypes.SparseTransportIgnoreAttribute",
         RedactBeforeAttributeMetadataName: "SparseTypes.SparseRedactBeforeAttribute",
         MergeAttributeMetadataName: MergeAttributeName,
         MergeStrategyBaseMetadataName: MergeStrategyBaseName,
@@ -95,7 +96,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             SparseTypesDiagnosticIds.InvalidEmissionPlan,
             SparseTypesDiagnosticIds.UnknownProductMember,
             SparseTypesDiagnosticIds.InvalidComparisonStrategy,
-            UnsupportedPayloadJsonPoco: SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco
+            UnsupportedPayloadJsonPoco: SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco,
+            TransportIgnoreOnKey: SparseTypesDiagnosticIds.TransportIgnoreOnKey
         ),
         HintNameSuffix: ".SparseTypes.g.cs",
         PromotedHintNameSuffix: ".SparsePromoted.g.cs",
@@ -179,8 +181,9 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
                 QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
             },
-            PayloadSchemaProviderType = "global::SparseTypes.ISparsePayloadSchemaProvider",
             PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
+            PayloadSchemaBundleType = "global::SparseTypes.SparsePayloadSchemaBundle",
+            PayloadSchemaNamesType = "global::SparseTypes.SparsePayloadSchemaNames",
             OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
 #if SPARSE_FRAGMENTS
             EmitPatchRebase = false,
@@ -514,39 +517,6 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 }
             }
         );
-        var needsChangePayloadJsonConverters = hasModels
-            .Combine(stjCapabilities)
-            .Select(
-                static (input, _) =>
-                    (
-                        HasModels: input.Left,
-                        EmitConverters: input.Left && Configuration.EffectiveEmissionFeatures.EmitChangePayload && input.Right.SupportsV1Wire
-                    )
-            )
-            .WithComparer(EqualityComparer<(bool HasModels, bool EmitConverters)>.Default)
-            .WithTrackingName("SparseTypesGenerator.GeneratedOnceChangePayloadJsonConverters");
-        context.RegisterSourceOutput(
-            needsChangePayloadJsonConverters,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit.HasModels && implementationNamespace is not null && Configuration.PatchDialect is { } patchDialect)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.ChangePayloadJsonConvertersHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderChangePayloadJsonConverters(
-                                implementationNamespace,
-                                patchDialect,
-                                emit.EmitConverters,
-                                productionContext.CancellationToken
-                            ),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         // Shared JSON kernels back every split-mode fragment and payload
         // converter; single-file legacy output keeps its inline copies.
         // Content follows the JSON families: compilations without them keep
@@ -748,9 +718,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             (code, generatedModel, members) => SparseModelExtensionsEmitter.Append(code, generatedModel, members, configuration),
 #endif
             analysis.PayloadJsonPocos,
-            appendModelMembers
+            appendModelMembers,
+            analysis.PayloadContract
         );
-        var additional = SparsePerModelEmitter.BuildSupportImplementationSources(model, analysis.Members, cancellationToken, configuration);
+        var additional = ImmutableArray<SparseGeneratedSource>.Empty;
         if (implementation.HasValue)
         {
             additional = additional.Add(implementation.Value);
@@ -793,6 +764,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             SparseTypesDiagnosticIds.InvalidEntityMapperDeclaration => InvalidEntityMapperDeclaration,
             SparseTypesDiagnosticIds.UnsupportedEntityMemberShape => UnsupportedEntityMemberShape,
             SparseTypesDiagnosticIds.UnsupportedPayloadJsonPoco => UnsupportedPayloadJsonPoco,
+            SparseTypesDiagnosticIds.TransportIgnoreOnKey => TransportIgnoreOnKey,
             _ => throw new global::System.ArgumentOutOfRangeException(nameof(id), id, null),
         };
 
@@ -847,7 +819,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             configuration,
             appendModelMembers
         );
-        var additional = SparsePerModelEmitter.BuildSupportImplementationSources(promoted.Model, promoted.Members, cancellationToken, configuration);
+        var additional = ImmutableArray<SparseGeneratedSource>.Empty;
         if (implementation.HasValue)
         {
             additional = additional.Add(implementation.Value);

@@ -62,26 +62,33 @@ namespace SparseTypes
     public static class ChangePayloadWire
     {
         public const string AddKind = "add";
-        public const string ChangesProperty = "changes";
-        public const string DiscriminatorProperty = "member";
-        public const string EditKind = "edit";
+        public const string AfterIndexProperty = "afterIndex";
+        public const string AfterOrderProperty = "afterOrder";
+        public const string AfterProperty = "after";
+        public const string BeforeIndexProperty = "beforeIndex";
+        public const string BeforeOrderProperty = "beforeOrder";
+        public const string BeforeProperty = "before";
+        public const string ChangeProperty = "change";
+        public const string IsReorderedProperty = "isReordered";
+        public const string ItemsProperty = "items";
+        public const string KeyProperty = "key";
+        public const string KindProperty = "kind";
+        public const string MembersProperty = "members";
         public const string MissingState = "missing";
         public const string NullState = "null";
         public const string RedactedState = "redacted";
         public const string RemoveKind = "remove";
-        public const string ReorderKind = "reorder";
-        public const string RootDiscriminator = "$root";
+        public const string ReplaceKind = "replace";
         public const string StateProperty = "state";
+        public const string TemporaryKeyProperty = "temporaryKey";
+        public const string UpdateKind = "update";
         public const string ValueProperty = "value";
         public const string ValueState = "value";
         public const string Version = "0.1";
         public const string VersionProperty = "version";
-        public static System.ReadOnlySpan<byte> KindTokenUtf8(SparseTypes.ChangePayloadItemKind kind) { }
         public static System.ReadOnlySpan<byte> StatePropertyUtf8() { }
         public static System.ReadOnlySpan<byte> StateTokenUtf8(SparseTypes.ChangePayloadState state) { }
-        public static string ToToken(SparseTypes.ChangePayloadItemKind kind) { }
         public static string ToToken(SparseTypes.ChangePayloadState state) { }
-        public static bool TryParseKind(string? token, out SparseTypes.ChangePayloadItemKind kind) { }
         public static bool TryParseState(string? token, out SparseTypes.ChangePayloadState state) { }
         public static System.ReadOnlySpan<byte> ValuePropertyUtf8() { }
     }
@@ -422,10 +429,6 @@ namespace SparseTypes
         bool IsReordered { get; }
         TKey Key { get; }
         System.Guid? TemporaryKey { get; }
-    }
-    public interface ISparsePayloadSchemaProvider
-    {
-        System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> GetSparsePayloadSchemas();
     }
     public interface ISparseStructuralDictionaryItemChange<TKey, TValue, TEdit> : SparseTypes.ISparseDictionaryItemChange<TKey, TValue>
     {
@@ -1011,9 +1014,21 @@ namespace SparseTypes
     public sealed class SparsePayloadSchema
     {
         public SparsePayloadSchema(System.Type type, string name, string jsonSchema) { }
+        public SparsePayloadSchema(System.Type type, string name, string openApi30JsonSchema, string openApi31JsonSchema) { }
         public string JsonSchema { get; }
         public string Name { get; }
+        public string OpenApi30JsonSchema { get; }
+        public string OpenApi31JsonSchema { get; }
         public System.Type Type { get; }
+    }
+    public sealed class SparsePayloadSchemaBundle
+    {
+        public SparsePayloadSchemaBundle(System.Type rootType, System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> openApi30Schemas, System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> openApi31Schemas, System.Collections.Generic.IReadOnlyList<System.Type> requiredExternalSchemaTypes, System.Collections.Generic.IReadOnlyList<System.Func<SparseTypes.SparsePayloadSchemaBundle>>? dependencies = null) { }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> OpenApi30Schemas { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> OpenApi31Schemas { get; }
+        public System.Collections.Generic.IReadOnlyList<System.Type> RequiredExternalSchemaTypes { get; }
+        public string RootSchemaName { get; }
+        public System.Type RootType { get; }
     }
     public static class SparsePayloadSchemaNames
     {

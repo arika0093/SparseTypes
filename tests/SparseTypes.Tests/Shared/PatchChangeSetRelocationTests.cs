@@ -42,17 +42,9 @@ namespace SparseTypes.Tests.Shared
                 """,
                 path: "Models.cs"
             );
-            var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-                Path.PathSeparator
-            );
-            var references = trusted
-                .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-                .ToList();
-            references.Add(
-                MetadataReference.CreateFromFile(
-                    typeof(SparseModelAttribute).Assembly.Location
-                )
-            );
+            var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+            var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+            references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
             var compilation = CSharpCompilation.Create(
                 "RelocationProbe",
                 [tree],
@@ -61,18 +53,11 @@ namespace SparseTypes.Tests.Shared
             );
             GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
             driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-            updated
-                .GetDiagnostics()
-                .Where(static d => d.Severity == DiagnosticSeverity.Error)
-                .ShouldBeEmpty();
+            updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
             return driver
                 .GetRunResult()
                 .Results.SelectMany(static result => result.GeneratedSources)
-                .ToDictionary(
-                    static source => source.HintName,
-                    static source => source.SourceText.ToString(),
-                    StringComparer.Ordinal
-                );
+                .ToDictionary(static source => source.HintName, static source => source.SourceText.ToString(), StringComparer.Ordinal);
         }
 
         [Test]
@@ -85,9 +70,7 @@ namespace SparseTypes.Tests.Shared
                 && text.Contains("ProbeRoot", StringComparison.Ordinal)
             );
             var implementation = sources.Values.Single(text =>
-                text.Contains(
-                    "Per-model generated operations for 'global::RelocationProbe.ProbeRoot'"
-                )
+                text.Contains("Per-model generated operations for 'global::RelocationProbe.ProbeRoot'")
             );
 
             // state-bound bodies live in the private nested Patch.__Core /
@@ -104,9 +87,7 @@ namespace SparseTypes.Tests.Shared
 
             // Split emission: the surface carries facades plus nested cores,
             // the implementation carries Builder/Paths and DTOs.
-            var hints = sources
-                .Keys.Where(static key => key.Contains("ProbeRoot", StringComparison.Ordinal))
-                .ToArray();
+            var hints = sources.Keys.Where(static key => key.Contains("ProbeRoot", StringComparison.Ordinal)).ToArray();
             hints.Length.ShouldBeGreaterThanOrEqualTo(1);
             surface.ShouldContain("class Patch");
         }
@@ -180,18 +161,10 @@ namespace SparseTypes.Tests.Shared
         public void PatchAlgebraLawsHoldAcrossTheBoundary()
         {
             var before = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment
-                {
-                    Title = Optional<string?>.Present("a"),
-                    Count = Optional<int>.Present(1),
-                }
+                new Parent.Fragment { Title = Optional<string?>.Present("a"), Count = Optional<int>.Present(1) }
             );
             var after = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment
-                {
-                    Title = Optional<string?>.Present("b"),
-                    Count = Optional<int>.Present(2),
-                }
+                new Parent.Fragment { Title = Optional<string?>.Present("b"), Count = Optional<int>.Present(2) }
             );
 
             // Between/Apply round trip.
@@ -204,11 +177,7 @@ namespace SparseTypes.Tests.Shared
             // Compose equivalence: sequential application equals composed
             // application.
             var middle = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment
-                {
-                    Title = Optional<string?>.Present("a"),
-                    Count = Optional<int>.Present(9),
-                }
+                new Parent.Fragment { Title = Optional<string?>.Present("a"), Count = Optional<int>.Present(9) }
             );
             var first = Parent.Patch.Between(before, middle);
             var second = Parent.Patch.Between(middle, after);
@@ -237,12 +206,8 @@ namespace SparseTypes.Tests.Shared
         public void ComposeNullFirstThrowsArgumentNullException()
         {
             // Pin "Maintain null/missing semantics".
-            var before = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("a") }
-            );
-            var after = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("b") }
-            );
+            var before = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("a") });
+            var after = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("b") });
             var activePatch = Parent.Patch.Between(before, after);
             var wholePatch = new Parent.Patch();
             wholePatch.SetNull();
@@ -257,12 +222,8 @@ namespace SparseTypes.Tests.Shared
         [Test]
         public void PatchRebaseLawsHoldAcrossTheBoundary()
         {
-            var basis = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("base") }
-            );
-            var desired = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("local") }
-            );
+            var basis = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("base") });
+            var desired = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("local") });
             var local = Parent.Patch.Between(basis, desired);
 
             // Clean rebase onto an untouched concurrent state succeeds empty of
@@ -271,9 +232,7 @@ namespace SparseTypes.Tests.Shared
             clean.Conflicts.ShouldBeEmpty();
 
             // A concurrent conflicting change reports a structured conflict.
-            var concurrent = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("remote") }
-            );
+            var concurrent = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("remote") });
             var conflicted = Parent.Patch.Rebase(basis, local, concurrent);
             conflicted.Conflicts.ShouldNotBeEmpty();
             conflicted.Conflicts[0].PathText.ShouldBe("Title");
@@ -282,15 +241,9 @@ namespace SparseTypes.Tests.Shared
         [Test]
         public void ChangeSetLawsHoldAcrossTheBoundary()
         {
-            var first = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("a") }
-            );
-            var second = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("b") }
-            );
-            var third = Optional<Parent.Fragment?>.Present(
-                new Parent.Fragment { Title = Optional<string?>.Present("c") }
-            );
+            var first = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("a") });
+            var second = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("b") });
+            var third = Optional<Parent.Fragment?>.Present(new Parent.Fragment { Title = Optional<string?>.Present("c") });
 
             var forward = Parent.ChangeSet.Between(first, second);
             forward.IsEmpty.ShouldBeFalse();
@@ -322,10 +275,7 @@ namespace SparseTypes.Tests.Shared
             var changes = composed.EnumerateChanges().ToArray();
             changes.Length.ShouldBe(1);
             changes[0].PathText.ShouldBe("Title");
-            composed
-                .EnumerateChangedPaths()
-                .Select(static path => path.ToString())
-                .ShouldBe(["Title"]);
+            composed.EnumerateChangedPaths().Select(static path => path.ToString()).ShouldBe(["Title"]);
 
             // Rebase onto a matching state succeeds.
             var rebased = composed.RebaseOnto(first);
@@ -344,11 +294,7 @@ namespace SparseTypes.Tests.Shared
             var after = new Roster
             {
                 Label = "v2",
-                Items =
-                [
-                    new RosterItem { Id = "b", Name = "bob" },
-                    new RosterItem { Id = "a", Name = "ann2" },
-                ],
+                Items = [new RosterItem { Id = "b", Name = "bob" }, new RosterItem { Id = "a", Name = "ann2" }],
                 Scores = new Dictionary<string, string> { ["k"] = "2" },
             };
 
@@ -383,18 +329,9 @@ namespace SparseTypes.Tests.Shared
             var local = new Roster.Patch();
             local.Items.Edit("a").Name = "local";
             var concurrent = Optional<Roster.Fragment?>.Present(
-                new Roster.Fragment
-                {
-                    Items = Optional<List<RosterItem>>.Present([
-                        new RosterItem { Id = "a", Name = "remote" },
-                    ]),
-                }
+                new Roster.Fragment { Items = Optional<List<RosterItem>>.Present([new RosterItem { Id = "a", Name = "remote" }]) }
             );
-            var rebased = Roster.Patch.Rebase(
-                Optional<Roster.Fragment?>.Present(basis),
-                local,
-                concurrent
-            );
+            var rebased = Roster.Patch.Rebase(Optional<Roster.Fragment?>.Present(basis), local, concurrent);
             rebased.Conflicts.ShouldNotBeEmpty();
         }
 
@@ -404,8 +341,8 @@ namespace SparseTypes.Tests.Shared
             var before = new Parent { Title = "a", Count = 1 };
             var after = new Parent { Title = "b", Count = 2 };
             var payload = before.CreateChangeSet(after).ToPayload();
-            var json = JsonSerializer.Serialize(payload);
-            var restored = JsonSerializer.Deserialize<Parent.ChangePayload>(json);
+            var json = PayloadJsonTestSupport.Serialize(payload);
+            var restored = PayloadJsonTestSupport.Deserialize<Parent.ChangePayload>(json);
             restored.ShouldNotBeNull();
             var roundTripped = Parent.ChangeSet.FromPayload(restored!);
             roundTripped.Title.After.Value.ShouldBe("b");

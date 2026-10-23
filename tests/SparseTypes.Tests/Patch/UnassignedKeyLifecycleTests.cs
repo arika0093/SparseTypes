@@ -10,21 +10,14 @@ public sealed class UnassignedKeyLifecycleTests
         where T : class => session.Model;
 
     private static Optional<AssignedServerHolder.Fragment?> F(params AssignedServer[] items) =>
-        Optional<AssignedServerHolder.Fragment?>.Present(
-            AssignedServerHolder.Fragment.From(new AssignedServerHolder { Items = items.ToList() })
-        );
+        Optional<AssignedServerHolder.Fragment?>.Present(AssignedServerHolder.Fragment.From(new AssignedServerHolder { Items = items.ToList() }));
 
     private static AssignedServer Item(int id, string name) => new() { Id = id, Name = name };
 
-    private static string PayloadJson(AssignedServerHolder.ChangeSet changes) =>
-        JsonSerializer.Serialize(changes.ToPayload());
+    private static string PayloadJson(AssignedServerHolder.ChangeSet changes) => PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
-    private static AssignedServerHolder.ChangeSet PayloadRoundTrip(
-        AssignedServerHolder.ChangeSet changes
-    ) =>
-        JsonSerializer
-            .Deserialize<AssignedServerHolder.ChangePayload>(PayloadJson(changes))!
-            .ToChangeSet();
+    private static AssignedServerHolder.ChangeSet PayloadRoundTrip(AssignedServerHolder.ChangeSet changes) =>
+        PayloadJsonTestSupport.Deserialize<AssignedServerHolder.ChangePayload>(PayloadJson(changes)).ToChangeSet();
 
     private static Optional<AssignedServerHolder.Fragment?> H(AssignedServerHolder model) =>
         Optional<AssignedServerHolder.Fragment?>.Present(AssignedServerHolder.Fragment.From(model));
@@ -36,10 +29,7 @@ public sealed class UnassignedKeyLifecycleTests
         var after = F(Item(0, "first"), Item(7, "existing"), Item(0, "second"));
 
         var patch = AssignedServerHolder.Patch.Between(before, after);
-        patch
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        patch.Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
 
         var changes = AssignedServerHolder.ChangeSet.Between(before, after);
         changes.Items.Added.Select(item => item.Name).ShouldBe(["first", "second"]);
@@ -49,14 +39,12 @@ public sealed class UnassignedKeyLifecycleTests
 
         // Typed payload JSON preserves each occurrence and final order.
         var restored = PayloadRoundTrip(changes);
-        restored
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        restored.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
         using var document = JsonDocument.Parse(PayloadJson(changes));
         document
-            .RootElement.GetProperty("changes")[0]
+            .RootElement.GetProperty("change")
+            .GetProperty("members")
+            .GetProperty("items")
             .GetProperty("afterOrder")
             .EnumerateArray()
             .Select(key => key.GetInt32())
@@ -71,11 +59,7 @@ public sealed class UnassignedKeyLifecycleTests
 
         var changes = AssignedServerHolder.ChangeSet.Between(before, after);
         changes.Items.Added.Count.ShouldBe(2);
-        changes
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["same", "existing", "same"]);
+        changes.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["same", "existing", "same"]);
 
         var restored = PayloadRoundTrip(changes);
         restored.ToPatch().Apply(before).Value!.Items.Value!.Count.ShouldBe(3);
@@ -88,11 +72,7 @@ public sealed class UnassignedKeyLifecycleTests
         var before = F(Item(7, "a"), Item(8, "b"));
         var reordered = F(Item(0, "new"), Item(8, "b"), Item(7, "a"));
         var changes = AssignedServerHolder.ChangeSet.Between(before, reordered);
-        changes
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["new", "b", "a"]);
+        changes.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["new", "b", "a"]);
 
         // Removal plus unassigned add.
         var removed = F(Item(0, "new"), Item(7, "a"));
@@ -105,12 +85,8 @@ public sealed class UnassignedKeyLifecycleTests
 
         // Duplicate assigned keys stay invalid even beside unassigned adds.
         var duplicate = F(Item(0, "new"), Item(7, "a"), Item(7, "b"));
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.ChangeSet.Between(before, duplicate)
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.Patch.Between(before, duplicate)
-        );
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.ChangeSet.Between(before, duplicate));
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.Patch.Between(before, duplicate));
     }
 
     [Test]
@@ -119,12 +95,8 @@ public sealed class UnassignedKeyLifecycleTests
         var invalid = F(Item(0, "stale"));
         var valid = F(Item(1, "ok"));
 
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.Patch.Between(invalid, valid)
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.ChangeSet.Between(invalid, valid)
-        );
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.Patch.Between(invalid, valid));
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.ChangeSet.Between(invalid, valid));
 
         // Applying any granular patch onto an unassigned baseline fails.
         var patch = AssignedServerHolder.Patch.Between(valid, F(Item(1, "ok"), Item(2, "new")));
@@ -133,9 +105,7 @@ public sealed class UnassignedKeyLifecycleTests
         // The second diff cannot even be built because its baseline would carry
         // sentinels.
         var first = AssignedServerHolder.ChangeSet.Between(valid, F(Item(0, "new"), Item(1, "ok")));
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.ChangeSet.Between(F(Item(0, "new"), Item(1, "ok")), valid)
-        );
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.ChangeSet.Between(F(Item(0, "new"), Item(1, "ok")), valid));
         // Conflicting stable continuities also fail deterministically.
         var conflictA = AssignedServerHolder.ChangeSet.Between(F(Item(7, "a")), F(Item(7, "b")));
         var conflictB = AssignedServerHolder.ChangeSet.Between(F(Item(7, "c")), F(Item(7, "d")));
@@ -152,12 +122,7 @@ public sealed class UnassignedKeyLifecycleTests
         // Stable then unassigned composes.
         var first = AssignedServerHolder.ChangeSet.Between(b0, b1);
         var second = AssignedServerHolder.ChangeSet.Between(b1, b2);
-        first
-            .Compose(second)
-            .ToPatch()
-            .Apply(b0)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "updated", "second"]);
+        first.Compose(second).ToPatch().Apply(b0).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "updated", "second"]);
 
         // Unassigned adds rebase onto a concurrent stable add.
         var concurrent = F(Item(7, "updated"), Item(9, "concurrent"));
@@ -179,9 +144,7 @@ public sealed class UnassignedKeyLifecycleTests
 
         // Stable-only invert round-trips.
         var stableInverted = first.Invert();
-        AssignedServerHolder
-            .Patch.Between(stableInverted.ToPatch().Apply(b1), b0)
-            .IsEmpty.ShouldBeTrue();
+        AssignedServerHolder.Patch.Between(stableInverted.ToPatch().Apply(b1), b0).IsEmpty.ShouldBeTrue();
 
         // JSON round-trip keeps rebase semantics for the supported case.
         var restored = PayloadRoundTrip(second);
@@ -213,10 +176,7 @@ public sealed class UnassignedKeyLifecycleTests
             .ShouldBe(["existing", "first", "second"]);
 
         // Server assigns distinct IDs and normalizes order/fields.
-        var persisted = new AssignedServerHolder
-        {
-            Items = [Item(7, "EXISTING"), Item(11, "FIRST"), Item(12, "SECOND")],
-        };
+        var persisted = new AssignedServerHolder { Items = [Item(7, "EXISTING"), Item(11, "FIRST"), Item(12, "SECOND")] };
 
         // Application discards the unassigned session; no identity is inferred.
         var fresh = persisted.CreateEditSession();
@@ -228,9 +188,7 @@ public sealed class UnassignedKeyLifecycleTests
         Raw(fresh).Items.Single(item => item.Id == 11).Name = "First v2";
         var next = fresh.CreateChangeSet();
         next.IsEmpty.ShouldBeFalse();
-        AssignedServerHolder
-            .Patch.Between(next.ToPatch().Apply(H(persisted)), H(Raw(fresh)))
-            .IsEmpty.ShouldBeTrue();
+        AssignedServerHolder.Patch.Between(next.ToPatch().Apply(H(persisted)), H(Raw(fresh))).IsEmpty.ShouldBeTrue();
     }
 
     [Test]

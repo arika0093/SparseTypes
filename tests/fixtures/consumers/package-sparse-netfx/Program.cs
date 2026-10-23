@@ -42,17 +42,14 @@ var inverted = edits.Invert(before).Apply(edits.Apply(before));
 Require(inverted.Value!.Label.Value == "original", "invert round-trip");
 
 var changes = NetFxSettings.ChangeSet.Between(before, edits.Apply(before));
-var changesJson = JsonSerializer.Serialize(changes.ToPayload());
-var imported = JsonSerializer.Deserialize<NetFxSettings.ChangePayload>(changesJson)?.ToChangeSet();
+var changesJson = JsonSerializer.Serialize(changes.ToPayload(), NetFxSettings.PayloadJson.Default);
+var imported = JsonSerializer.Deserialize<NetFxSettings.ChangePayload>(changesJson, NetFxSettings.PayloadJson.Default)?.ToChangeSet();
 if (imported is null)
 {
     throw new InvalidOperationException("Failed: ChangeSet payload JSON deserialize");
 }
 var roundTripped = imported.ToPatch().Apply(before);
-Require(
-    NetFxSettings.Patch.Between(roundTripped, edits.Apply(before)).IsEmpty,
-    "ChangeSet payload JSON semantic round-trip"
-);
+Require(NetFxSettings.Patch.Between(roundTripped, edits.Apply(before)).IsEmpty, "ChangeSet payload JSON semantic round-trip");
 
 // Patch algebra: composed patch matches sequential apply (nested + presence
 // transition).
@@ -64,15 +61,8 @@ var composed = first.Compose(second);
 var viaComposed = composed.Apply(before);
 var viaSequential = second.Apply(first.Apply(before));
 Require(Same(viaComposed, viaSequential), "compose matches sequential apply");
-Require(
-    viaComposed.Value!.Child.Value!.Count.Value == 11
-        && viaComposed.Value.Child.Value.Host.Value == "composed-next",
-    "compose nested members"
-);
-Require(
-    viaComposed.Value.Label.IsPresent && viaComposed.Value.Label.Value is null,
-    "compose presence transition"
-);
+Require(viaComposed.Value!.Child.Value!.Count.Value == 11 && viaComposed.Value.Child.Value.Host.Value == "composed-next", "compose nested members");
+Require(viaComposed.Value.Label.IsPresent && viaComposed.Value.Label.Value is null, "compose presence transition");
 
 // Structured rebase: disjoint local/nested edit merges cleanly onto upstream
 // label edit.
@@ -85,9 +75,7 @@ var rebased = NetFxSettings.Patch.Rebase(before, local, current);
 Require(!rebased.HasConflicts, "rebase disjoint merge");
 var replayed = rebased.Rebased.Apply(current);
 Require(
-    replayed.Value!.Label.Value == "upstream"
-        && replayed.Value.Child.Value!.Count.Value == 12
-        && replayed.Value.Child.Value.Host.Value == "keep",
+    replayed.Value!.Label.Value == "upstream" && replayed.Value.Child.Value!.Count.Value == 12 && replayed.Value.Child.Value.Host.Value == "keep",
     "rebase replay on current"
 );
 
@@ -99,16 +87,13 @@ var conflictCurrent = Optional<NetFxSettings.Fragment?>.Present(conflictBuilder.
 var conflicted = NetFxSettings.Patch.Rebase(before, conflictLocal, conflictCurrent);
 Require(conflicted.HasConflicts, "rebase conflict detection");
 Require(
-    conflicted.Conflicts.Count == 1
-        && conflicted.Conflicts[0].Kind == SparseConflictKind.Scalar
-        && conflicted.Conflicts[0].PathText == "Label",
+    conflicted.Conflicts.Count == 1 && conflicted.Conflicts[0].Kind == SparseConflictKind.Scalar && conflicted.Conflicts[0].PathText == "Label",
     "rebase structured conflict"
 );
 
 Console.WriteLine("SparseTypes net48 consumer passed.");
 
-static bool Same(Optional<NetFxSettings.Fragment?> left, Optional<NetFxSettings.Fragment?> right) =>
-    NetFxSettings.Patch.Between(left, right).IsEmpty;
+static bool Same(Optional<NetFxSettings.Fragment?> left, Optional<NetFxSettings.Fragment?> right) => NetFxSettings.Patch.Between(left, right).IsEmpty;
 
 static void Require(bool condition, string capability)
 {

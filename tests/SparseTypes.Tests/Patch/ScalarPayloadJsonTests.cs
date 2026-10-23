@@ -86,8 +86,8 @@ public sealed class ScalarPayloadJsonTests
                 Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(after))
             )
             .ToPayload();
-        var json = JsonSerializer.Serialize(payload);
-        var restored = JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(json)!.ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(payload);
+        var restored = PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(json).ToChangeSet();
         ScalarLedger
             .Patch.Between(
                 restored.ToPatch().Apply(Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(before))),
@@ -118,8 +118,8 @@ public sealed class ScalarPayloadJsonTests
     {
         var json = RoundTripPayload(new ScalarLedger(), Ledger());
 
-        json.ShouldContain("\"MaybeScores\"");
-        var restored = JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(json)!.ToChangeSet();
+        json.ShouldContain("\"maybeScores\"");
+        var restored = PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(json).ToChangeSet();
         var replayed = restored.ToPatch().Apply(Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger())));
         var scores = replayed.Value!.MaybeScores.Value!;
         scores.Count.ShouldBe(3);
@@ -140,20 +140,22 @@ public sealed class ScalarPayloadJsonTests
         var intAfter = new ScalarLedger { LedgerId = 2L };
         var intJson = RoundTripPayload(before, intAfter);
         Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(intJson.Replace("\"value\":2}", "\"value\":\"oops\"}"))
+            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(intJson.Replace("\"value\":2}", "\"value\":\"oops\"}"))
         );
-        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(intJson.Replace("\"value\":2}", "\"value\":2.5}")));
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(intJson.Replace("\"value\":2}", "\"value\":2.5}"))
+        );
 
         var enumAfter = new ScalarLedger { Kind = ByteKind.Closed };
         var enumJson = RoundTripPayload(before, enumAfter);
         Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(enumJson.Replace("\"value\":2}", "\"value\":\"Closed\"}"))
+            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(enumJson.Replace("\"value\":2}", "\"value\":\"Closed\"}"))
         );
 
         var charAfter = new ScalarLedger { Grade = 'a' };
         var charJson = RoundTripPayload(before, charAfter);
         Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(charJson.Replace("\"value\":\"a\"}", "\"value\":\"ab\"}"))
+            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(charJson.Replace("\"value\":\"a\"}", "\"value\":\"ab\"}"))
         );
     }
 
@@ -229,25 +231,5 @@ public sealed class ScalarPayloadJsonTests
         }
 
         badReadThrew.ShouldBeTrue();
-    }
-
-    [Test]
-    public void BridgeEndpointConverterCoversScalarsWithoutMetadata()
-    {
-        var longConverter = new global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<long>();
-        var options = new JsonSerializerOptions();
-        options.Converters.Add(longConverter);
-
-        var endpoint = JsonSerializer.Deserialize<ChangePayloadEndpoint<long>>("""{"state":"value","value":123456789012345}""", options)!;
-        endpoint.Value.ShouldBe(123456789012345L);
-        JsonSerializer.Serialize(endpoint, options).ShouldContain("\"value\":123456789012345");
-
-        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<ChangePayloadEndpoint<long>>("""{"state":"value","value":"oops"}""", options));
-
-        var enumConverter = new global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<ByteKind>();
-        var enumOptions = new JsonSerializerOptions();
-        enumOptions.Converters.Add(enumConverter);
-        var enumEndpoint = JsonSerializer.Deserialize<ChangePayloadEndpoint<ByteKind>>("""{"state":"value","value":2}""", enumOptions)!;
-        enumEndpoint.Value.ShouldBe(ByteKind.Closed);
     }
 }

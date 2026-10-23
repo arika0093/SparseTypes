@@ -66,7 +66,7 @@ public sealed class FakeOrderSaveService
         CancellationToken cancellationToken
     )
     {
-        ReceivedJson.Add(JsonSerializer.Serialize(payload));
+        ReceivedJson.Add(JsonSerializer.Serialize(payload, BlazorEditFormOrder.PayloadJson.Default));
         await Task.Yield();
         cancellationToken.ThrowIfCancellationRequested();
         if (Mode == BlazorFormOutcome.TransportError)

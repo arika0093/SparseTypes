@@ -6,6 +6,7 @@ Package and namespace: `SparseTypes`. Attributes configure source generation. In
 | --- | --- | --- |
 | `[SparseModel]` | Class or struct | Parameterless. Starts generation for a supported partial model. Not inherited. |
 | `[SparseIgnore]` | Property | Parameterless. Removes the member from generated tracking, fragments, patches, cloning, and payloads. Inherited with the property. |
+| `[SparseTransportIgnore]` | Property | Parameterless. Keeps local tracking but excludes the member from every generated payload format; exporting a change to it throws. Cannot be applied to a `[SparseKey]` property. |
 | `[SparseKey]` | Property | Parameterless; optional settable `object? Unassigned` declares a sentinel. Exactly one readable key per element-patched model. |
 | `[SparseTemporaryKey]` | Property | Parameterless. Marks one public read/write `Guid?` property without an initializer, paired with an unassigned key. |
 | `[SparseMerge(MergeMode mode)]` | Property | Read-only `Mode` and `StrategyType`. Configures the member merge operation. |
@@ -15,7 +16,7 @@ Package and namespace: `SparseTypes`. Attributes configure source generation. In
 | `[SparseRedactBefore]` | Property | Parameterless. Hides before-state on payload export; does not remove the local transition. |
 | `[SparseCloneReferenceSafe]` | Property | Parameterless. Opts into sharing that reference when cloning instead of requiring a deep copy. |
 
-Except for `SparseModel` and `SparseCompare`, the attributes above are inherited with property declarations. `SparseKey`, `SparseTemporaryKey`, `SparseIgnore`, and `SparseRedactBefore` do not allow multiple instances on one property.
+Except for `SparseModel` and `SparseCompare`, the attributes above are inherited with property declarations. `SparseKey`, `SparseTemporaryKey`, `SparseIgnore`, `SparseTransportIgnore`, and `SparseRedactBefore` do not allow multiple instances on one property.
 
 ## Example model
 
@@ -44,7 +45,7 @@ public partial class ReferenceItem
 
 ## Interactions
 
-`SparseIgnore` excludes a member from the generated surface. `System.Text.Json.Serialization.JsonIgnoreAttribute` retains local tracking but excludes Fragment JSON. Exporting a changed JsonIgnore member to a payload throws instead of dropping it.
+`SparseIgnore` excludes a member from the generated surface. `SparseTransportIgnore` keeps the member locally but rejects payload export when that member changes. `System.Text.Json.Serialization.JsonIgnoreAttribute` is JSON-specific: it excludes Fragment JSON, but the neutral payload retains the change and the JSON codec rejects serializing that payload instead of silently dropping it.
 
 `SparseMerge` controls layering and collection semantics. `SparseCompare` controls semantic equality. `SparseRebasePolicy` handles concurrent changes; configuring a merge mode does not grant unconditional overwrite permission during rebase.
 

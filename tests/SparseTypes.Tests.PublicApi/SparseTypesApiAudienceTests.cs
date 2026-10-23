@@ -32,6 +32,7 @@ public sealed class SparseTypesApiAudienceTests
         "SparseTypes.MergeMode",
         "SparseTypes.SparseModelAttribute",
         "SparseTypes.SparseIgnoreAttribute",
+        "SparseTypes.SparseTransportIgnoreAttribute",
         "SparseTypes.SparseRedactBeforeAttribute",
         "SparseTypes.SparseKeyAttribute",
         "SparseTypes.SparseTemporaryKeyAttribute",

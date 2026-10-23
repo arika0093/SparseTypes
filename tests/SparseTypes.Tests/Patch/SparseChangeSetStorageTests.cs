@@ -43,20 +43,13 @@ public sealed class SparseChangeSetStorageTests
     [Test]
     public void ChangeSetStoresOptionalValuesWithoutPresenceAndValueFields()
     {
-        var fields = typeof(WideWidget.ChangeSet).GetFields(
-            BindingFlags.Instance | BindingFlags.NonPublic
-        );
+        var fields = typeof(WideWidget.ChangeSet).GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
 
         fields
-            .Where(field =>
-                field.FieldType.IsGenericType
-                && field.FieldType.GetGenericTypeDefinition() == typeof(Optional<>)
-            )
+            .Where(field => field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Optional<>))
             .Count()
             .ShouldBeGreaterThan(0);
-        fields.ShouldNotContain(field =>
-            field.Name.EndsWith("IsPresent", StringComparison.Ordinal)
-        );
+        fields.ShouldNotContain(field => field.Name.EndsWith("IsPresent", StringComparison.Ordinal));
         fields.ShouldNotContain(field => field.Name.EndsWith("Value", StringComparison.Ordinal));
     }
 
@@ -118,7 +111,7 @@ public sealed class SparseChangeSetStorageTests
         var before = WideState();
         var after = WideState(alpha: "a2");
         var changes = WideWidget.ChangeSet.Between(before, after);
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
         json.ShouldContain("Alpha");
         json.ShouldContain("a2");
@@ -133,16 +126,11 @@ public sealed class SparseChangeSetStorageTests
 
         // Payload scales with the change, not the model: one changed member
         // serializes far smaller than changing every member.
-        var allChanged = WideWidget.ChangeSet.Between(
-            WideState(),
-            WideState("a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2")
-        );
-        var allJson = JsonSerializer.Serialize(allChanged.ToPayload());
-        (json.Length * 3 < allJson.Length).ShouldBeTrue(
-            $"sparse single {json.Length} should scale vs full {allJson.Length}"
-        );
+        var allChanged = WideWidget.ChangeSet.Between(WideState(), WideState("a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2"));
+        var allJson = PayloadJsonTestSupport.Serialize(allChanged.ToPayload());
+        (json.Length * 3 < allJson.Length).ShouldBeTrue($"sparse single {json.Length} should scale vs full {allJson.Length}");
 
-        var back = JsonSerializer.Deserialize<WideWidget.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<WideWidget.ChangePayload>(json).ToChangeSet();
         back.Alpha.IsChanged.ShouldBeTrue();
         back.Alpha.After.Value.ShouldBe("a2");
         back.Bravo.IsChanged.ShouldBeFalse();
@@ -158,11 +146,7 @@ public sealed class SparseChangeSetStorageTests
                 {
                     Label = Optional<string?>.Present("keep"),
                     Nested = Optional<Nested.Fragment?>.Present(
-                        new Nested.Fragment
-                        {
-                            Host = Optional<string>.Present(host),
-                            Port = Optional<int>.Present(port),
-                        }
+                        new Nested.Fragment { Host = Optional<string>.Present(host), Port = Optional<int>.Present(port) }
                     ),
                 }
             );
@@ -180,12 +164,12 @@ public sealed class SparseChangeSetStorageTests
         changes.Nested.Port.IsChanged.ShouldBeFalse();
         changes.Nested.Port.Before.IsPresent.ShouldBeFalse();
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldContain("Host");
         json.ShouldNotContain("Label");
         json.ShouldNotContain("Port");
 
-        var back = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json).ToChangeSet();
         back.Nested.Host.After.Value.ShouldBe("b");
         back.Nested.Port.IsChanged.ShouldBeFalse();
         Settings.Patch.Between(back.ToPatch().Apply(State("a")), State("b")).IsEmpty.ShouldBeTrue();
@@ -194,20 +178,16 @@ public sealed class SparseChangeSetStorageTests
     [Test]
     public void AtomicCustomMemberRetainsWholeChangedValue()
     {
-        var before = Optional<StrategySettings.Fragment?>.Present(
-            StrategySettings.Fragment.From(new StrategySettings { Values = [1, 2] })
-        );
-        var after = Optional<StrategySettings.Fragment?>.Present(
-            StrategySettings.Fragment.From(new StrategySettings { Values = [3, 4] })
-        );
+        var before = Optional<StrategySettings.Fragment?>.Present(StrategySettings.Fragment.From(new StrategySettings { Values = [1, 2] }));
+        var after = Optional<StrategySettings.Fragment?>.Present(StrategySettings.Fragment.From(new StrategySettings { Values = [3, 4] }));
         var changes = StrategySettings.ChangeSet.Between(before, after);
         changes.Values.IsChanged.ShouldBeTrue();
         changes.Values.Before.Value.ShouldBe([1, 2]);
         changes.Values.After.Value.ShouldBe([3, 4]);
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldContain("Values");
-        var back = JsonSerializer.Deserialize<StrategySettings.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<StrategySettings.ChangePayload>(json).ToChangeSet();
         back.Values.After.Value.ShouldBe([3, 4]);
         StrategySettings.Patch.Between(back.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
@@ -217,9 +197,7 @@ public sealed class SparseChangeSetStorageTests
     {
         Optional<ServerGroupHolder.Fragment?> State(string? title, params KeyedServer[] servers) =>
             Optional<ServerGroupHolder.Fragment?>.Present(
-                ServerGroupHolder.Fragment.From(
-                    new ServerGroupHolder { Title = title, Servers = servers.ToList() }
-                )
+                ServerGroupHolder.Fragment.From(new ServerGroupHolder { Title = title, Servers = servers.ToList() })
             );
         KeyedServer S(string id, string name) =>
             new()
@@ -243,10 +221,10 @@ public sealed class SparseChangeSetStorageTests
         changes.Servers.Edited.ContainsKey("b").ShouldBeTrue();
         changes.Servers.Edited["b"].Name.After.Value.ShouldBe("B2");
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldNotContain("Title");
 
-        var back = JsonSerializer.Deserialize<ServerGroupHolder.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<ServerGroupHolder.ChangePayload>(json).ToChangeSet();
         back.Servers.Added.Select(e => e.Id).ShouldBe(["c"]);
         back.Servers.Removed.Select(e => e.Id).ShouldBe(["a"]);
         back.Servers.Edited["b"].Name.After.Value.ShouldBe("B2");
@@ -264,23 +242,12 @@ public sealed class SparseChangeSetStorageTests
     {
         var missing = Optional<Settings.Fragment?>.Missing;
         var nullState = Optional<Settings.Fragment?>.Present(null);
-        var value = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present("v") }
-        );
-        foreach (
-            var (b, a) in new[]
-            {
-                (missing, missing),
-                (missing, nullState),
-                (nullState, value),
-                (value, missing),
-                (value, value),
-            }
-        )
+        var value = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("v") });
+        foreach (var (b, a) in new[] { (missing, missing), (missing, nullState), (nullState, value), (value, missing), (value, value) })
         {
             var changes = Settings.ChangeSet.Between(b, a);
-            var back = JsonSerializer
-                .Deserialize<Settings.ChangePayload>(JsonSerializer.Serialize(changes.ToPayload()))!
+            var back = PayloadJsonTestSupport
+                .Deserialize<Settings.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
                 .ToChangeSet();
             back.IsEmpty.ShouldBe(changes.IsEmpty);
             back.Invert().Invert().IsEmpty.ShouldBe(changes.IsEmpty);
@@ -292,11 +259,7 @@ public sealed class SparseChangeSetStorageTests
     public void BetweenAndFromPatchNormalizeEquivalently()
     {
         var baseline = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment
-            {
-                Label = Optional<string?>.Present("a"),
-                RetryCount = Optional<int>.Present(1),
-            }
+            new Settings.Fragment { Label = Optional<string?>.Present("a"), RetryCount = Optional<int>.Present(1) }
         );
         var granular = new Settings.Patch { Label = "b" };
         var whole = new Settings.Patch();
@@ -313,12 +276,7 @@ public sealed class SparseChangeSetStorageTests
             changes.RetryCount.IsChanged.ShouldBeFalse();
             changes.RetryCount.Before.IsPresent.ShouldBeFalse();
         }
-        Settings
-            .Patch.Between(
-                fromGranular.ToPatch().Apply(baseline),
-                fromWhole.ToPatch().Apply(baseline)
-            )
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(fromGranular.ToPatch().Apply(baseline), fromWhole.ToPatch().Apply(baseline)).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -326,20 +284,14 @@ public sealed class SparseChangeSetStorageTests
     {
         Optional<Settings.Fragment?> S(string? label, int retry) =>
             Optional<Settings.Fragment?>.Present(
-                new Settings.Fragment
-                {
-                    Label = Optional<string?>.Present(label),
-                    RetryCount = Optional<int>.Present(retry),
-                }
+                new Settings.Fragment { Label = Optional<string?>.Present(label), RetryCount = Optional<int>.Present(retry) }
             );
         var b0 = S("a", 1);
         var b1 = S("b", 1);
         var b2 = S("b", 2);
 
         Settings.ChangeSet RoundTrip(Settings.ChangeSet value) =>
-            JsonSerializer
-                .Deserialize<Settings.ChangePayload>(JsonSerializer.Serialize(value.ToPayload()))!
-                .ToChangeSet();
+            PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(PayloadJsonTestSupport.Serialize(value.ToPayload())).ToChangeSet();
 
         var c1 = RoundTrip(Settings.ChangeSet.Between(b0, b1));
         var c2 = RoundTrip(Settings.ChangeSet.Between(b1, b2));
@@ -354,8 +306,6 @@ public sealed class SparseChangeSetStorageTests
         var clean = RoundTrip(Settings.ChangeSet.Between(S("a", 1), S("a", 2)));
         var cleanRebased = clean.RebaseOnto(S("b", 1));
         cleanRebased.HasConflicts.ShouldBeFalse();
-        Settings
-            .Patch.Between(cleanRebased.Rebased.ToPatch().Apply(S("b", 1)), S("b", 2))
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(cleanRebased.Rebased.ToPatch().Apply(S("b", 1)), S("b", 2)).IsEmpty.ShouldBeTrue();
     }
 }

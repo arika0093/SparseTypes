@@ -9,23 +9,18 @@ public sealed class MixedPayloadTests
 {
     private const string Secret = "s3cr3t-label-value";
 
-    private static Settings.ChangePayload DeserializeSettings(string json) =>
-        JsonSerializer.Deserialize<Settings.ChangePayload>(json)!;
+    private static Settings.ChangePayload DeserializeSettings(string json) => PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
 
     private static string WithSecret(string json) => json.Replace("{SECRET}", Secret);
 
     private static Optional<Settings.Fragment?> SettingsState(string? label, int retry) =>
         Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment
-            {
-                Label = Optional<string?>.Present(label),
-                RetryCount = Optional<int>.Present(retry),
-            }
+            new Settings.Fragment { Label = Optional<string?>.Present(label), RetryCount = Optional<int>.Present(retry) }
         );
 
     private static string ScalarChange(string member, string before, string after) =>
-        """{"version":"0.1","changes":[{"member":"{MEMBER}","before":{BEFORE},"after":{AFTER}}]}"""
-            .Replace("{MEMBER}", member)
+        """{"version":"0.1","change":{"kind":"update","members":{"{MEMBER}":{"kind":"replace","before":{BEFORE},"after":{AFTER}}}}}"""
+            .Replace("{MEMBER}", char.ToLowerInvariant(member[0]) + member[1..])
             .Replace("{BEFORE}", before)
             .Replace("{AFTER}", after);
 
@@ -40,18 +35,14 @@ public sealed class MixedPayloadTests
     [Test]
     public void RedactedWireRoundTripsAtVersion01()
     {
-        var payload = DeserializeSettings(
-            ScalarChange("Label", """{"state":"redacted"}""", """{"state":"value","value":"x"}""")
-        );
-        var json = JsonSerializer.Serialize(payload);
+        var payload = DeserializeSettings(ScalarChange("Label", """{"state":"redacted"}""", """{"state":"value","value":"x"}"""));
+        var json = PayloadJsonTestSupport.Serialize(payload);
         json.ShouldContain("\"version\":\"0.1\"");
         json.ShouldContain("\"state\":\"redacted\"");
 
         var restored = DeserializeSettings(json);
         var change = restored.Changes!.Single();
-        var before =
-            (ChangePayloadEndpoint<string?>)
-                change.GetType().GetProperty("Before")!.GetValue(change)!;
+        var before = (ChangePayloadEndpoint<string?>)change.GetType().GetProperty("Before")!.GetValue(change)!;
         before.IsRedacted.ShouldBeTrue();
     }
 
@@ -72,9 +63,7 @@ public sealed class MixedPayloadTests
     [Test]
     public void ToChangeSetFailsOnRedactedAfter()
     {
-        var payload = DeserializeSettings(
-            ScalarChange("Label", """{"state":"missing"}""", """{"state":"redacted"}""")
-        );
+        var payload = DeserializeSettings(ScalarChange("Label", """{"state":"missing"}""", """{"state":"redacted"}"""));
 
         var exception = Should.Throw<ArgumentException>(() => payload.ToChangeSet());
         exception.Message.ShouldContain("Label");
@@ -153,18 +142,14 @@ public sealed class MixedPayloadTests
     public void RedactedIsNotMissing()
     {
         // A blind remove applies even though no baseline was ever supplied.
-        var blindRemove = DeserializeSettings(
-            ScalarChange("Label", """{"state":"redacted"}""", """{"state":"missing"}""")
-        );
+        var blindRemove = DeserializeSettings(ScalarChange("Label", """{"state":"redacted"}""", """{"state":"missing"}"""));
         var removed = blindRemove.ToPatch().Apply(SettingsState("anything", 1));
         removed.Value!.Label.IsPresent.ShouldBeFalse();
 
         // An ordinary remove against a stale baseline still conflicts instead.
         var staleRemove = Settings.ChangeSet.Between(
             SettingsState("a", 1),
-            Optional<Settings.Fragment?>.Present(
-                new Settings.Fragment { RetryCount = Optional<int>.Present(1) }
-            )
+            Optional<Settings.Fragment?>.Present(new Settings.Fragment { RetryCount = Optional<int>.Present(1) })
         );
         var conflicted = staleRemove.RebaseOnto(SettingsState("b", 1));
         conflicted.HasConflicts.ShouldBeTrue();
@@ -173,9 +158,7 @@ public sealed class MixedPayloadTests
     [Test]
     public void BlindNullSetAppliesExplicitNull()
     {
-        var payload = DeserializeSettings(
-            ScalarChange("Label", """{"state":"redacted"}""", """{"state":"null"}""")
-        );
+        var payload = DeserializeSettings(ScalarChange("Label", """{"state":"redacted"}""", """{"state":"null"}"""));
         var applied = payload.ToPatch().Apply(SettingsState("before", 1));
         applied.Value!.Label.IsPresent.ShouldBeTrue();
         applied.Value!.Label.Value.ShouldBeNull();
@@ -241,9 +224,7 @@ public sealed class MixedPayloadTests
         skipped.ShouldBeEmpty();
         Settings.Patch.Between(rollback.ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
         var inverted = Settings.ChangeSet.Between(before, after).Invert();
-        Settings
-            .Patch.Between(rollback.ToPatch().Apply(after), inverted.ToPatch().Apply(after))
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(rollback.ToPatch().Apply(after), inverted.ToPatch().Apply(after)).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -252,13 +233,11 @@ public sealed class MixedPayloadTests
         var json = WithSecret(
             """{"version":"0.1","changes":[{"member":"Items","before":{"state":"redacted"},"after":{"state":"value","value":[{"Id":"a","Name":"{SECRET}","Count":1}]}}]}"""
         );
-        var payload = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json)!;
+        var payload = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(json);
 
         Should.Throw<ArgumentException>(() => payload.ToChangeSet()).Message.ShouldContain("Items");
 
-        var before = Optional<KeyedServerHolder.Fragment?>.Present(
-            KeyedServerHolder.Fragment.From(new KeyedServerHolder())
-        );
+        var before = Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder()));
         var applied = payload.ToPatch().Apply(before);
         applied.Value!.Items.Value!.Single().Name.ShouldBe(Secret);
 
@@ -272,7 +251,7 @@ public sealed class MixedPayloadTests
     {
         var json =
             """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"a","kind":"edit","before":{"state":"redacted"},"after":{"state":"value","value":9}}]}]}""";
-        var payload = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(json)!;
+        var payload = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(json);
 
         var changeFailure = Should.Throw<ArgumentException>(() => payload.ToChangeSet());
         changeFailure.Message.ShouldContain("Scores");
@@ -285,9 +264,8 @@ public sealed class MixedPayloadTests
     [Test]
     public void DictionaryWholeBlindSetApplies()
     {
-        var json =
-            """{"version":"0.1","changes":[{"member":"Scores","before":{"state":"redacted"},"after":{"state":"value","value":{"b":3}}}]}""";
-        var payload = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(json)!;
+        var json = """{"version":"0.1","changes":[{"member":"Scores","before":{"state":"redacted"},"after":{"state":"value","value":{"b":3}}}]}""";
+        var payload = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(json);
 
         var before = Optional<ScalarDictHolder.Fragment?>.Present(
             ScalarDictHolder.Fragment.From(new ScalarDictHolder { Scores = new() { ["a"] = 1 } })
@@ -302,7 +280,7 @@ public sealed class MixedPayloadTests
         var json = WithSecret(
             """{"version":"0.1","changes":[{"member":"$root","before":{"state":"redacted"},"after":{"state":"value","value":{"members":[{"member":"Host","value":{"state":"value","value":"{SECRET}"}},{"member":"Port","value":{"state":"value","value":2}}]}}}]}"""
         );
-        var payload = JsonSerializer.Deserialize<Nested.ChangePayload>(json)!;
+        var payload = PayloadJsonTestSupport.Deserialize<Nested.ChangePayload>(json);
 
         var rootFailure = Should.Throw<ArgumentException>(() => payload.ToChangeSet());
         rootFailure.Message.ShouldContain("$root");
@@ -328,23 +306,16 @@ public sealed class MixedPayloadTests
         redacted.IsRedacted.ShouldBeTrue();
         Should.Throw<InvalidOperationException>(() => redacted.ToOptional());
 
-        ChangePayloadEndpoint<string?>
-            .FromOptional(Optional<string?>.Missing)
-            .IsRedacted.ShouldBeFalse();
-        var inconsistent = new ChangePayloadEndpoint<string?>
-        {
-            State = ChangePayloadState.Missing,
-            Value = "oops",
-        };
+        ChangePayloadEndpoint<string?>.FromOptional(Optional<string?>.Missing).IsRedacted.ShouldBeFalse();
+        var inconsistent = new ChangePayloadEndpoint<string?> { State = ChangePayloadState.Missing, Value = "oops" };
         Should.Throw<InvalidOperationException>(() => inconsistent.ToOptional());
     }
 
     [Test]
     public void KeyedWholeBlindRemovalFailsTyped()
     {
-        var json =
-            """{"version":"0.1","changes":[{"member":"Items","before":{"state":"redacted"},"after":{"state":"missing"}}]}""";
-        var payload = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json)!;
+        var json = """{"version":"0.1","changes":[{"member":"Items","before":{"state":"redacted"},"after":{"state":"missing"}}]}""";
+        var payload = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(json);
 
         var failure = Should.Throw<ArgumentException>(() => payload.ToPatch());
         failure.Message.ShouldContain("Items");
@@ -360,8 +331,6 @@ public sealed class MixedPayloadTests
 
         var roundTripped = changes.Invert().Invert();
         Settings.Patch.Between(roundTripped.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
-        Settings
-            .Patch.Between(changes.Invert().ToPatch().Apply(after), before)
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(changes.Invert().ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
     }
 }

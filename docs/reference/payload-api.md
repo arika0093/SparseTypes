@@ -28,16 +28,18 @@ Use `payload.Validate()` for the aggregate result before conversion when reporti
 
 ## Wire tokens
 
-`ChangePayloadWire` defines version `"0.1"` and these constant groups:
+`ChangePayloadWire` defines version `"0.1"` and the structural tokens used by generated codecs:
 
 | Constants | Tokens |
 | --- | --- |
-| `VersionProperty`, `ChangesProperty`, `DiscriminatorProperty`, `RootDiscriminator` | `version`, `changes`, `member`, `$root` |
+| `Version`, `VersionProperty`, `ChangeProperty` | `0.1`, `version`, `change` |
+| `KindProperty`, `MembersProperty`, `ItemsProperty`, `BeforeProperty`, `AfterProperty` | `kind`, `members`, `items`, `before`, `after` |
+| `KeyProperty`, `BeforeIndexProperty`, `AfterIndexProperty`, `BeforeOrderProperty`, `AfterOrderProperty`, `IsReorderedProperty`, `TemporaryKeyProperty` | `key`, `beforeIndex`, `afterIndex`, `beforeOrder`, `afterOrder`, `isReordered`, `temporaryKey` |
 | `StateProperty`, `ValueProperty` | `state`, `value` |
 | `MissingState`, `NullState`, `ValueState`, `RedactedState` | `missing`, `null`, `value`, `redacted` |
-| `AddKind`, `RemoveKind`, `EditKind`, `ReorderKind` | `add`, `remove`, `edit`, `reorder` |
+| `UpdateKind`, `ReplaceKind`, `AddKind`, `RemoveKind` | `update`, `replace`, `add`, `remove` |
 
-`ToToken` accepts `ChangePayloadState` or `ChangePayloadItemKind`. `TryParseState(string? token, out state)` and `TryParseKind(string? token, out kind)` return false for unknown tokens. `StatePropertyUtf8()`, `ValuePropertyUtf8()`, `StateTokenUtf8(state)`, and `KindTokenUtf8(kind)` expose ReadOnlySpan<byte> tokens for serializers.
+`ToToken` and `TryParseState(string? token, out state)` map endpoint states. `StatePropertyUtf8()`, `ValuePropertyUtf8()`, and `StateTokenUtf8(state)` expose `ReadOnlySpan<byte>` tokens for serializers. Item kinds are an in-memory DTO detail; generated codecs map them to the operation tokens above.
 
 `ChangePayloadItemKind` values are Add, Remove, Edit, and Reorder.
 

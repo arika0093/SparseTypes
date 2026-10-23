@@ -12,8 +12,7 @@ namespace SparseTypes.Tests.Shared;
 // descriptor factories, regardless of descriptor dialect.
 public sealed class AttributeBridgeTests
 {
-    private const string AttributeExpression =
-        "new global::System.ComponentModel.DescriptionAttribute(\"bridge-probe\")";
+    private const string AttributeExpression = "new global::System.ComponentModel.DescriptionAttribute(\"bridge-probe\")";
 
     private static SparseTypeModel TextType() =>
         new(
@@ -93,9 +92,7 @@ public sealed class AttributeBridgeTests
     private static SparseGeneratorConfig ProductConfigWithoutDescriptors()
     {
         var configuration = (SparseGeneratorConfig)(
-            typeof(SparseTypesGenerator)
-                .GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.GetValue(null)
+            typeof(SparseTypesGenerator).GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null)
             ?? throw new InvalidOperationException("Missing generator configuration.")
         );
         return configuration with { DescriptorDialect = null };
@@ -103,16 +100,11 @@ public sealed class AttributeBridgeTests
 
     private static SparseGeneratorConfig ProductConfig() =>
         (SparseGeneratorConfig)(
-            typeof(SparseTypesGenerator)
-                .GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.GetValue(null)
+            typeof(SparseTypesGenerator).GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null)
             ?? throw new InvalidOperationException("Missing generator configuration.")
         );
 
-    private static (string Surface, string? Implementation) BuildSplit(
-        SparseGeneratorConfig config,
-        ImmutableArray<SparseMemberModel> members
-    ) =>
+    private static (string Surface, string? Implementation) BuildSplit(SparseGeneratorConfig config, ImmutableArray<SparseMemberModel> members) =>
         SparseFragmentEmitter.BuildSplitSource(
             BridgeModel(),
             members,
@@ -125,10 +117,8 @@ public sealed class AttributeBridgeTests
             config
         );
 
-    private static string BuildSurface(
-        SparseGeneratorConfig config,
-        ImmutableArray<SparseMemberModel> members
-    ) => BuildSplit(config, members).Surface;
+    private static string BuildSurface(SparseGeneratorConfig config, ImmutableArray<SparseMemberModel> members) =>
+        BuildSplit(config, members).Surface;
 
     [Test]
     public void SurfaceAndFactoryAgreeOnBridgeNames()
@@ -141,21 +131,21 @@ public sealed class AttributeBridgeTests
         // The descriptor factory calls back into the same model-local bridge
         // the surface defines instead of inlining private attribute types.
         var factoryConfig = ProductConfig();
-        var factory = SparseDescriptorFactoryEmitter.BuildSource(
+        var factory = SparseDescriptorFactoryEmitter.BuildFactorySource(
             BridgeModel(),
             members,
             factoryConfig,
             CancellationToken.None,
             factoryConfig.RuntimeDialect!.Namespace
         );
-        factory.Source.ShouldContain("ReadModel.__SparseAttributes_0()");
+        factory.ShouldContain("ReadModel.__SparseAttributes_0()");
     }
 
     [Test]
     public void DescriptorFactoryEmitsItsSignatureReceiversAndAttributeBridgesDirectly()
     {
         var config = ProductConfig();
-        var source = SparseDescriptorFactoryEmitter.BuildSource(
+        var source = SparseDescriptorFactoryEmitter.BuildFactorySource(
             BridgeModel(),
             AttributedMembers(),
             config,
@@ -163,12 +153,12 @@ public sealed class AttributeBridgeTests
             config.RuntimeDialect!.Namespace
         );
 
-        source.Source.ShouldContain("Create(");
-        source.Source.ShouldContain("ReadModel.__SparseAttributes_0()");
-        source.Source.ShouldContain("observable.Label");
-        source.Source.ShouldContain("observable.__model.Label");
-        source.Source.ShouldNotContain("__SparseGetDescriptors_");
-        source.Source.ShouldNotContain("this.");
+        source.ShouldContain("Create(");
+        source.ShouldContain("ReadModel.__SparseAttributes_0()");
+        source.ShouldContain("observable.Label");
+        source.ShouldContain("observable.__model.Label");
+        source.ShouldNotContain("__SparseGetDescriptors_");
+        source.ShouldNotContain("this.");
 
         var customConfig = config with
         {
@@ -178,17 +168,15 @@ public sealed class AttributeBridgeTests
                 PathType = "global::Downstream.Path",
             },
         };
-        var customSource = SparseDescriptorFactoryEmitter.BuildSource(
+        var customSource = SparseDescriptorFactoryEmitter.BuildFactorySource(
             BridgeModel(),
             AttributedMembers(),
             customConfig,
             CancellationToken.None,
             config.RuntimeDialect!.Namespace
         );
-        customSource.Source.ShouldContain(
-            "internal static global::Downstream.IDescriptorSet Create("
-        );
-        customSource.Source.ShouldContain("global::Downstream.Path pathPrefix");
+        customSource.ShouldContain("internal static global::Downstream.IDescriptorSet Create(");
+        customSource.ShouldContain("global::Downstream.Path pathPrefix");
     }
 
     [Test]
@@ -211,52 +199,28 @@ public sealed class AttributeBridgeTests
         // bridge the surface defines; otherwise the compilation below fails.
         var defined = new HashSet<string>(
             Regex
-                .Matches(
-                    surface,
-                    @"__SparseAttributes_(\d+)\(\) =>",
-                    RegexOptions.None,
-                    TimeSpan.FromSeconds(1)
-                )
+                .Matches(surface, @"__SparseAttributes_(\d+)\(\) =>", RegexOptions.None, TimeSpan.FromSeconds(1))
                 .Select(static match => match.Groups[1].Value)
         );
         var referenced = implementations
             .SelectMany(static source =>
                 Regex
-                    .Matches(
-                        source.Source,
-                        @"__SparseAttributes_(\d+)\(\)",
-                        RegexOptions.None,
-                        TimeSpan.FromSeconds(1)
-                    )
+                    .Matches(source.Source, @"__SparseAttributes_(\d+)\(\)", RegexOptions.None, TimeSpan.FromSeconds(1))
                     .Select(static match => match.Groups[1].Value)
             )
             .Distinct()
             .ToArray();
         referenced.ShouldBeSubsetOf(defined);
 
-        var cores = SparseEditSessionEmitter.RenderCoreSources(
-            config.EditSessionDialect!,
-            config.RuntimeDialect!,
-            config.PatchDialect!.Value
-        );
+        var cores = SparseEditSessionEmitter.RenderCoreSources(config.EditSessionDialect!, config.RuntimeDialect!, config.PatchDialect!.Value);
         var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(config)!;
-        var changePayloadConverters = SparseGeneratedOnceEmitter.RenderChangePayloadJsonConverters(
-            implementationNamespace,
-            config.PatchDialect!.Value,
-            emitConverters: true,
-            CancellationToken.None
-        );
         var jsonCodecs = SparseGeneratedOnceEmitter.RenderJsonCodecs(
             implementationNamespace,
             config.PatchDialect!.Value,
             emitCodecs: true,
             CancellationToken.None
         );
-        var jsonPayloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
-            implementationNamespace,
-            emitCodecs: true,
-            CancellationToken.None
-        );
+        var jsonPayloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(implementationNamespace, emitCodecs: true, CancellationToken.None);
         const string stub = """
             namespace Ns
             {
@@ -272,37 +236,21 @@ public sealed class AttributeBridgeTests
             .Select(static source => CSharpSyntaxTree.ParseText(source.Source))
             .Prepend(CSharpSyntaxTree.ParseText(surface, path: "Surface.cs"))
             .Prepend(CSharpSyntaxTree.ParseText(splitImplementation!, path: "Implementation.cs"))
-            .Append(
-                CSharpSyntaxTree.ParseText(changePayloadConverters, path: "PayloadConverters.cs")
-            )
             .Append(CSharpSyntaxTree.ParseText(jsonCodecs, path: "JsonCodecs.cs"))
             .Append(CSharpSyntaxTree.ParseText(jsonPayloadCodecs, path: "JsonPayloadCodecs.cs"))
             .Append(CSharpSyntaxTree.ParseText(cores.Core, path: "EditSessionCore.cs"))
-            .Append(
-                CSharpSyntaxTree.ParseText(cores.CurrentCore, path: "EditSessionWithCurrentCore.cs")
-            )
+            .Append(CSharpSyntaxTree.ParseText(cores.CurrentCore, path: "EditSessionWithCurrentCore.cs"))
             .Append(CSharpSyntaxTree.ParseText(stub, path: "Models.cs"))
             .ToArray();
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "NoDescriptorBridgeProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 }

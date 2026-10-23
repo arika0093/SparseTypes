@@ -9,43 +9,25 @@ namespace SparseTypes.Tests.Diagnostics;
 /// <remarks>Identity is declared with exactly one property marked with parameterless <c>[SparseKey]</c>.</remarks>
 public sealed class SparseKeyDiagnosticTests
 {
-    private static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        ImmutableArray<GeneratedSourceResult> Sources
-    ) Run(string source)
+    private static (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> Sources) Run(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseKeyDiagnosticsProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
-        return (
-            runResult.Diagnostics,
-            runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray()
-        );
+        return (runResult.Diagnostics, runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray());
     }
 
-    private static void AssertSpfIds(
-        ImmutableArray<Diagnostic> diagnostics,
-        params string[] expectedIds
-    )
+    private static void AssertSpfIds(ImmutableArray<Diagnostic> diagnostics, params string[] expectedIds)
     {
         var actual = diagnostics
             .Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
@@ -53,16 +35,10 @@ public sealed class SparseKeyDiagnosticTests
             .OrderBy(static id => id)
             .ToArray();
         actual.ShouldBe(expectedIds.OrderBy(static id => id).ToArray());
-        foreach (
-            var diagnostic in diagnostics.Where(d =>
-                d.Id.StartsWith("SPF", StringComparison.Ordinal)
-            )
-        )
+        foreach (var diagnostic in diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)))
         {
             diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
-            diagnostic.Descriptor.HelpLinkUri.ShouldStartWith(
-                "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf"
-            );
+            diagnostic.Descriptor.HelpLinkUri.ShouldStartWith("https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf");
         }
     }
 
@@ -75,10 +51,7 @@ public sealed class SparseKeyDiagnosticTests
         """;
 
     private static string WithHolder(string element) =>
-        "using SparseTypes;\nusing System;\nusing System.Collections.Generic;\n"
-        + element
-        + "\n"
-        + HolderTail;
+        "using SparseTypes;\nusing System;\nusing System.Collections.Generic;\n" + element + "\n" + HolderTail;
 
     [Test]
     public void Spf013_MultiplePropertyKeysReportError()
@@ -169,6 +142,23 @@ public sealed class SparseKeyDiagnosticTests
         };
         var (diagnostics, sources) = Run(WithHolder(element));
         AssertSpfIds(diagnostics, ["SPF017"]);
+        sources.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void Spf037_TransportIgnoredKeyReportsError()
+    {
+        const string element = """
+            public partial class Keyed
+            {
+                [SparseKey]
+                [SparseTransportIgnore]
+                public string Id { get; set; } = "";
+            }
+            """;
+        var (diagnostics, sources) = Run(WithHolder(element));
+        AssertSpfIds(diagnostics, ["SPF037"]);
+        diagnostics.Single(d => d.Id == "SPF037").GetMessage().ShouldContain("Id");
         sources.ShouldBeEmpty();
     }
 

@@ -170,8 +170,8 @@ internal static class SparsePayloadJsonSharedEmitter
         code.OpenBlock();
         code.AppendLine("\"add\" => " + runtime + "ChangePayloadItemKind.Add,");
         code.AppendLine("\"remove\" => " + runtime + "ChangePayloadItemKind.Remove,");
-        code.AppendLine("\"edit\" => " + runtime + "ChangePayloadItemKind.Edit,");
-        code.AppendLine("\"reorder\" => " + runtime + "ChangePayloadItemKind.Reorder,");
+        code.AppendLine("\"update\" => " + runtime + "ChangePayloadItemKind.Edit,");
+        code.AppendLine("\"replace\" => " + runtime + "ChangePayloadItemKind.Edit,");
         code.AppendLine("_ => throw new global::System.Text.Json.JsonException(\"Unknown item kind.\"),");
         code.Unindent().AppendLine("};");
         code.AppendLine();
@@ -194,27 +194,55 @@ internal static class SparsePayloadJsonSharedEmitter
         );
         code.AppendLine("var state = default(" + runtime + "ChangePayloadState);");
         code.AppendLine("var hasState = false;");
+        code.AppendLine("var hasValue = false;");
+        code.AppendLine("var hasStateProperty = false;");
+        code.AppendLine("var hasValueProperty = false;");
         code.AppendLine("TValue? value = default;");
+        code.AppendLine("global::System.Collections.Generic.HashSet<string>? seenExtensions = null;");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
-        code.AppendLine(
-            "if (reader.ValueTextEquals(\"state\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); state = ParseState(reader.GetString()); hasState = true; }"
-        );
+        code.AppendLine("if (reader.ValueTextEquals(\"state\"))");
+        code.OpenBlock();
+        code.AppendLine("if (hasStateProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("hasStateProperty = true;");
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
+        code.AppendLine("state = ParseState(reader.GetString()); hasState = true;");
+        code.CloseBlock();
         code.AppendLine("else if (reader.ValueTextEquals(\"value\"))");
         code.OpenBlock();
+        code.AppendLine("if (hasValueProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("hasValueProperty = true;");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
+        code.AppendLine("hasValue = true;");
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
         code.AppendLine("else if (rootReader is not null) value = rootReader(ref reader, options);");
         code.AppendLine("else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
         code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueInfo<TValue>(options));");
         code.CloseBlock();
-        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }");
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var extensionName = reader.GetString() ?? string.Empty;");
+        code.AppendLine("seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine("if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
+        code.AppendLine("reader.Skip();");
+        code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");");
+        code.AppendLine(
+            "if (state != "
+                + runtime
+                + "ChangePayloadState.Value && hasValue) throw new global::System.Text.Json.JsonException(\"A value-free endpoint must not contain a value property.\");"
+        );
+        code.AppendLine(
+            "if (state == "
+                + runtime
+                + "ChangePayloadState.Value && (!hasValue || (!typeof(TValue).IsValueType && value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)))) throw new global::System.Text.Json.JsonException(\"A value endpoint must contain a non-null value.\");"
+        );
         code.AppendLine("return new " + runtime + "ChangePayloadEndpoint<TValue> { State = state, Value = value };");
         code.CloseBlock();
         code.AppendLine();
@@ -225,14 +253,33 @@ internal static class SparsePayloadJsonSharedEmitter
         );
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("value.Validate();");
+        code.AppendLine(
+            "if (value.State == "
+                + runtime
+                + "ChangePayloadState.Value && ((!typeof(TValue).IsValueType && value.Value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value.Value!, default!)))) throw new global::System.Text.Json.JsonException(\"A value endpoint must contain a non-null value.\");"
+        );
+        code.AppendLine(
+            "if (value.State != "
+                + runtime
+                + "ChangePayloadState.Missing && value.State != "
+                + runtime
+                + "ChangePayloadState.Null && value.State != "
+                + runtime
+                + "ChangePayloadState.Value && value.State != "
+                + runtime
+                + "ChangePayloadState.Redacted) throw new global::System.Text.Json.JsonException(\"Unknown endpoint state.\");"
+        );
         code.AppendLine("writer.WriteStartObject();");
         code.AppendLine("writer.WriteString(\"state\", " + runtime + "ChangePayloadWire.ToToken(value.State));");
+        code.AppendLine("if (value.State == " + runtime + "ChangePayloadState.Value)");
+        code.OpenBlock();
         code.AppendLine("writer.WritePropertyName(\"value\");");
-        code.AppendLine("if (value.Value is null) writer.WriteNullValue();");
-        code.AppendLine("else if (rootWriter is not null) rootWriter(writer, value.Value!, options);");
+        code.AppendLine("if (rootWriter is not null) rootWriter(writer, value.Value!, options);");
         code.AppendLine(
             "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, GetValueInfo<TValue>(options));"
         );
+        code.CloseBlock();
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();

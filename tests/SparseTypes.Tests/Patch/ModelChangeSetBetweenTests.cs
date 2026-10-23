@@ -17,9 +17,7 @@ public sealed class ModelChangeSetBetweenTests
             Optional<RedactedAccount.Fragment?>.Present(RedactedAccount.Fragment.From(before)),
             Optional<RedactedAccount.Fragment?>.Present(RedactedAccount.Fragment.From(after))
         );
-        JsonSerializer
-            .Serialize(direct.ToPayload())
-            .ShouldBe(JsonSerializer.Serialize(projected.ToPayload()));
+        PayloadJsonTestSupport.Serialize(direct.ToPayload()).ShouldBe(PayloadJsonTestSupport.Serialize(projected.ToPayload()));
         direct.ToPatch().ApplyTo(before).DisplayName.ShouldBe(afterName);
         direct.Invert().ToPatch().ApplyTo(after).DisplayName.ShouldBe(beforeName);
     }
@@ -39,11 +37,7 @@ public sealed class ModelChangeSetBetweenTests
     public void NullModelInputsRetainProjectionValidation()
     {
         var model = new RedactedAccount();
-        Should
-            .Throw<ArgumentNullException>(() => RedactedAccount.ChangeSet.Between(null!, model))
-            .ParamName.ShouldBe("value");
-        Should
-            .Throw<ArgumentNullException>(() => RedactedAccount.ChangeSet.Between(model, null!))
-            .ParamName.ShouldBe("value");
+        Should.Throw<ArgumentNullException>(() => RedactedAccount.ChangeSet.Between(null!, model)).ParamName.ShouldBe("value");
+        Should.Throw<ArgumentNullException>(() => RedactedAccount.ChangeSet.Between(model, null!)).ParamName.ShouldBe("value");
     }
 }

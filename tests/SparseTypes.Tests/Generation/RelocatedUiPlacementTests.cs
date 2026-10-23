@@ -9,42 +9,25 @@ namespace SparseTypes.Tests.Generation;
 /// <summary>Placement checks for relocated UI/editing types.</summary>
 public sealed class RelocatedUiPlacementTests
 {
-    private static (
-        Compilation Compilation,
-        string Surface,
-        IReadOnlyDictionary<string, string> All
-    ) Generate(string source)
+    private static (Compilation Compilation, string Surface, IReadOnlyDictionary<string, string> All) Generate(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "RelocatedProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
         var all = driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
-            .ToDictionary(
-                static generated => generated.HintName,
-                static generated => generated.SourceText.ToString()
-            );
-        var surface = all.Values.First(text =>
-            text.Contains("Extensions_", StringComparison.Ordinal)
-        );
+            .ToDictionary(static generated => generated.HintName, static generated => generated.SourceText.ToString());
+        var surface = all.Values.First(text => text.Contains("Extensions_", StringComparison.Ordinal));
         return (updated, surface, all);
     }
 
@@ -63,10 +46,7 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, _) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         var model = compilation.GetTypeByMetadataName("Reloc.Probe.CollisionModel");
         model.ShouldNotBeNull();
         var nested = model!.GetTypeMembers().Select(static type => type.Name).ToList();
@@ -76,11 +56,7 @@ public sealed class RelocatedUiPlacementTests
         nested.ShouldContain("SparseObservable");
         nested.ShouldContain("ReadOnlyView");
         nested.ShouldContain("EditSession");
-        model!
-            .GetTypeMembers("SparseObservable")
-            .ShouldHaveSingleItem()
-            .ContainingType.ToDisplayString()
-            .ShouldBe("Reloc.Probe.CollisionModel");
+        model!.GetTypeMembers("SparseObservable").ShouldHaveSingleItem().ContainingType.ToDisplayString().ShouldBe("Reloc.Probe.CollisionModel");
     }
 
     [Test]
@@ -100,9 +76,7 @@ public sealed class RelocatedUiPlacementTests
         // Single-file emission: one merged hint carries the surface plus
         // implementations (observable, view, session, factory).
         hints.Length.ShouldBe(1);
-        hints
-            .Count(static key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .ShouldBe(1);
+        hints.Count(static key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBe(1);
     }
 
     [Test]
@@ -123,10 +97,7 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, _) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         var internalModel = compilation.GetTypeByMetadataName("Reloc.Probe.InternalModel");
         internalModel.ShouldNotBeNull();
         // UI/editing types nest in the model with model-level accessibility.
@@ -162,9 +133,7 @@ public sealed class RelocatedUiPlacementTests
             method.ReturnType.ToDisplayString().ShouldContain("EntryModel.EditSession");
         }
         var toObservable = extensions.GetMembers("ToObservable").ShouldHaveSingleItem();
-        ((IMethodSymbol)toObservable)
-            .ReturnType.ToDisplayString()
-            .ShouldContain("EntryModel.Observable");
+        ((IMethodSymbol)toObservable).ReturnType.ToDisplayString().ShouldContain("EntryModel.Observable");
     }
 
     [Test]
@@ -185,19 +154,11 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, all) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         // Child UI references resolve to model-nested types, never to an
         // implementation-container copy.
-        all.Values.ShouldContain(static text =>
-            text.Contains("NestedChild.Observable", StringComparison.Ordinal)
-        );
-        var childContainer = SparseGeneratedPlacement.GetContainerForQualifiedName(
-            "global::Reloc.Probe.NestedChild",
-            CancellationToken.None
-        );
+        all.Values.ShouldContain(static text => text.Contains("NestedChild.Observable", StringComparison.Ordinal));
+        var childContainer = SparseGeneratedPlacement.GetContainerForQualifiedName("global::Reloc.Probe.NestedChild", CancellationToken.None);
         foreach (var text in all.Values)
         {
             text.ShouldNotContain("SparseTypes.Generated." + childContainer + ".Observable");
@@ -230,23 +191,14 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, all) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
-        var factory = all.Values.First(text =>
-            text.Contains("internal static class DescriptorFactory", StringComparison.Ordinal)
-        );
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        var factory = all.Values.First(text => text.Contains("private static class DescriptorFactory", StringComparison.Ordinal));
         // Member access in code follows the factory parameter.
         factory.ShouldContain("observable.observable");
         factory.ShouldContain("observable.pathPrefix");
         // The attribute literal survives verbatim on the surface bridge.
-        var surface = all.Values.First(text =>
-            text.Contains("__SparseAttributes_", StringComparison.Ordinal)
-        );
-        surface.ShouldContain(
-            "\"call this.foo; child ref global::Reloc.Probe.TrickyChild.Observable; use __model.bar\""
-        );
+        var surface = all.Values.First(text => text.Contains("__SparseAttributes_", StringComparison.Ordinal));
+        surface.ShouldContain("\"call this.foo; child ref global::Reloc.Probe.TrickyChild.Observable; use __model.bar\"");
         foreach (var text in all.Values)
         {
             text.ShouldNotContain("\"call observable.foo");
@@ -255,7 +207,7 @@ public sealed class RelocatedUiPlacementTests
     }
 
     [Test]
-    public void DescriptorFactoryLivesOutsideModel()
+    public void DescriptorFactoryIsPrivateInsideEditSession()
     {
         const string source = """
             using SparseTypes;
@@ -267,26 +219,18 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, all) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         var model = compilation.GetTypeByMetadataName("Reloc.Probe.FactoryModel");
         model.ShouldNotBeNull();
         model!.GetTypeMembers("DescriptorFactory").ShouldBeEmpty();
-        compilation
-            .GetSymbolsWithName("DescriptorFactory")
-            .OfType<INamedTypeSymbol>()
-            .Where(static symbol =>
-                symbol
-                    .ContainingNamespace.ToDisplayString()
-                    .StartsWith("SparseTypes.Generated", StringComparison.Ordinal)
-            )
-            .ShouldHaveSingleItem();
+        var editSession = model.GetTypeMembers("EditSession").ShouldHaveSingleItem();
+        var descriptorFactory = editSession.GetTypeMembers("DescriptorFactory").ShouldHaveSingleItem();
+        descriptorFactory.DeclaredAccessibility.ShouldBe(Accessibility.Private);
+        descriptorFactory.IsStatic.ShouldBeTrue();
+        compilation.GetSymbolsWithName("DescriptorFactory").OfType<INamedTypeSymbol>().ShouldHaveSingleItem().ContainingType.ShouldBe(editSession);
         // Single-file emission: the factory shares the merged model hint.
         all.Keys.Count(static key =>
-                key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-                && key.Contains("FactoryModel", StringComparison.Ordinal)
+                key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal) && key.Contains("FactoryModel", StringComparison.Ordinal)
             )
             .ShouldBe(1);
     }
@@ -316,19 +260,12 @@ public sealed class RelocatedUiPlacementTests
             }
             """;
         var (compilation, _, all) = Generate(source);
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
-        var factory = all.Values.First(text =>
-            text.Contains("internal static class DescriptorFactory", StringComparison.Ordinal)
-        );
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        var factory = all.Values.First(text => text.Contains("private static class DescriptorFactory", StringComparison.Ordinal));
         factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_0()");
         factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_1()");
         factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_2()");
-        var surface = all.Values.First(text =>
-            text.Contains("__SparseAttributes_0()", StringComparison.Ordinal)
-        );
+        var surface = all.Values.First(text => text.Contains("__SparseAttributes_0()", StringComparison.Ordinal));
         surface.ShouldContain("escaped \\\" quote");
     }
 }

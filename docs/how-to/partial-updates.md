@@ -135,9 +135,9 @@ var secretBase = new PartialProfile { DisplayName = "Ann", Phone = "old-phone" }
 var secretEdited = new PartialProfile { DisplayName = "Ann", Phone = "new-phone" };
 var rotation = secretBase.CreateChangeSet(secretEdited);
 
-var wire = JsonSerializer.Serialize(rotation.ToPayload());
+var wire = JsonSerializer.Serialize(rotation.ToPayload(), PartialProfile.PayloadJson.Default);
 // wire carries "new-phone" but never "old-phone"
-var incoming = JsonSerializer.Deserialize<PartialProfile.ChangePayload>(wire)!;
+var incoming = JsonSerializer.Deserialize<PartialProfile.ChangePayload>(wire, PartialProfile.PayloadJson.Default)!;
 
 // The redacted payload still projects to a baseline-free command.
 var replayed = incoming.ToPatch().ApplyTo(secretBase);

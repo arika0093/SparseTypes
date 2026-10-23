@@ -49,10 +49,7 @@ public static class ApiReferenceSamples
         var model = effective.ToModel();
         // /sample
         DocsCheck.Require(model.Theme == "dark" && model.RetryCount == 3, "higher layer wins");
-        DocsCheck.Require(
-            edited.Theme.IsPresent && edited.Theme.Value is null,
-            "builder sets null"
-        );
+        DocsCheck.Require(edited.Theme.IsPresent && edited.Theme.Value is null, "builder sets null");
         DocsCheck.Require(effective.Theme.Value == "dark", "builder leaves original unchanged");
     }
 
@@ -68,14 +65,8 @@ public static class ApiReferenceSamples
         var undo = patch.Invert(Optional<ReferenceSettings.Fragment?>.Present(layer));
         var restored = updated.Apply(undo);
         // /sample
-        DocsCheck.Require(
-            !updated.Theme.IsPresent && updated.RetryCount.Value == 5,
-            "patch operations"
-        );
-        DocsCheck.Require(
-            restored.Theme.Value == "dark" && restored.RetryCount.Value == 3,
-            "patch inverse"
-        );
+        DocsCheck.Require(!updated.Theme.IsPresent && updated.RetryCount.Value == 5, "patch operations");
+        DocsCheck.Require(restored.Theme.Value == "dark" && restored.RetryCount.Value == 3, "patch inverse");
     }
 
     private static void ChangeSets()
@@ -100,16 +91,13 @@ public static class ApiReferenceSamples
         var before = new ReferenceSettings { Theme = "light" };
         var after = new ReferenceSettings { Theme = "dark" };
         var payload = before.CreateChangeSet(after).ToPayload();
-        var json = JsonSerializer.Serialize(payload);
-        var received = JsonSerializer.Deserialize<ReferenceSettings.ChangePayload>(json)!;
+        var json = JsonSerializer.Serialize(payload, ReferenceSettings.PayloadJson.Default);
+        var received = JsonSerializer.Deserialize<ReferenceSettings.ChangePayload>(json, ReferenceSettings.PayloadJson.Default)!;
 
         var validation = received.Validate();
         var changes = received.ToChangeSet();
         // /sample
-        DocsCheck.Require(
-            validation.IsValid && changes.Theme.After.Value == "dark",
-            "payload round trip"
-        );
+        DocsCheck.Require(validation.IsValid && changes.Theme.After.Value == "dark", "payload round trip");
     }
 
     private static void Sessions()
@@ -124,10 +112,7 @@ public static class ApiReferenceSamples
         session.AcceptChanges(submitted);
         var pending = session.CreateChangeSet();
         // /sample
-        DocsCheck.Require(
-            !pending.Theme.IsChanged && pending.RetryCount.IsChanged,
-            "later edits retained"
-        );
+        DocsCheck.Require(!pending.Theme.IsChanged && pending.RetryCount.IsChanged, "later edits retained");
     }
 
     private static void Views()
@@ -163,22 +148,13 @@ public static class ApiReferenceSamples
         // sample: reference-collection
         var session = new ReferenceSettings().CreateEditSession();
         var editor = session.EditCollection<ReferenceItem, string>(session.Paths.Items);
-        var added = editor.TryAdd(
-            new ReferenceItem { Id = "a", Title = "first" },
-            out var addError
-        );
+        var added = editor.TryAdd(new ReferenceItem { Id = "a", Title = "first" }, out var addError);
         var duplicate = editor.TryAdd(new ReferenceItem { Id = "a" }, out var duplicateError);
         var found = editor.TryGetByKey("a", out var item, out var lookupError);
         // /sample
         DocsCheck.Require(added && addError == SparseCollectionEditError.None, "editor adds");
-        DocsCheck.Require(
-            !duplicate && duplicateError == SparseCollectionEditError.DuplicateKey,
-            "duplicate rejected"
-        );
-        DocsCheck.Require(
-            found && lookupError == SparseCollectionEditError.None && item!.Title == "first",
-            "key lookup"
-        );
+        DocsCheck.Require(!duplicate && duplicateError == SparseCollectionEditError.DuplicateKey, "duplicate rejected");
+        DocsCheck.Require(found && lookupError == SparseCollectionEditError.None && item!.Title == "first", "key lookup");
     }
 
     private static void Rebase()
@@ -194,10 +170,7 @@ public static class ApiReferenceSamples
         var resolved = resolution.TryBuild(out var changes, out var failure);
         // /sample
         DocsCheck.Require(result.HasConflicts && resolved && failure is null, "conflict resolved");
-        DocsCheck.Require(
-            changes!.TryApplyTo(current, out var updated) && updated.Theme == "dark",
-            "resolution applies"
-        );
+        DocsCheck.Require(changes!.TryApplyTo(current, out var updated) && updated.Theme == "dark", "resolution applies");
     }
 
     private static void Groups()
@@ -212,10 +185,7 @@ public static class ApiReferenceSamples
         var submitted = submission.Get(handle).Changes;
         group.AcceptChanges(submission, handle);
         // /sample
-        DocsCheck.Require(
-            submitted.Theme.IsChanged && !session.HasChanges,
-            "group acknowledges captured change"
-        );
+        DocsCheck.Require(submitted.Theme.IsChanged && !session.HasChanges, "group acknowledges captured change");
     }
 
     private static void Validation()

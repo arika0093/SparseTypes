@@ -71,22 +71,12 @@ Require(editContext.Validate(), "valid model passes validation");
 session.Observable.Number = string.Empty;
 editContext.NotifyFieldChanged(session.Field(BlazorDocsOrder.SparsePath.Number));
 Require(!editContext.Validate(), "empty number fails validation");
-Require(
-    editContext.GetValidationMessages().Contains("Number is required."),
-    "validation message surfaces through the store"
-);
+Require(editContext.GetValidationMessages().Contains("Number is required."), "validation message surfaces through the store");
 
 // Externally obtained errors (for example structured rebase conflicts) surface
 // the same way without taking a dependency on HTTP transport.
-session.AddValidationError(
-    store,
-    session.Field(BlazorDocsOrder.SparsePath.Number),
-    "Server rejected the order number."
-);
-Require(
-    editContext.GetValidationMessages().Contains("Server rejected the order number."),
-    "external error surfaces through AddValidationError"
-);
+session.AddValidationError(store, session.Field(BlazorDocsOrder.SparsePath.Number), "Server rejected the order number.");
+Require(editContext.GetValidationMessages().Contains("Server rejected the order number."), "external error surfaces through AddValidationError");
 
 // sample: ui-session
 var uiOrder = new UiOrder { Number = "ORD-1" };
@@ -186,10 +176,7 @@ public static class UiDocSamples
             inputStore.Clear();
             if (string.IsNullOrWhiteSpace(inputSession.Current.Number))
             {
-                inputStore.Add(
-                    inputSession.Field(BlazorEditFormOrder.SparsePath.Number),
-                    "Number is required."
-                );
+                inputStore.Add(inputSession.Field(BlazorEditFormOrder.SparsePath.Number), "Number is required.");
             }
         };
 
@@ -208,10 +195,7 @@ public static class UiDocSamples
         // inputContext.Validate() == false
         // /sample
         DocsCheck.Require(!inputContext.Validate(), "empty number fails validation");
-        DocsCheck.Require(
-            inputContext.GetValidationMessages().Contains("Number is required."),
-            "required message surfaces through the store"
-        );
+        DocsCheck.Require(inputContext.GetValidationMessages().Contains("Number is required."), "required message surfaces through the store");
     }
 
     private static async Task BlazorFormSaveAsync()
@@ -231,10 +215,7 @@ public static class UiDocSamples
             saveStore.Clear();
             if (string.IsNullOrWhiteSpace(saveSession.Current.Number))
             {
-                saveStore.Add(
-                    saveSession.Field(BlazorEditFormOrder.SparsePath.Number),
-                    "Number is required."
-                );
+                saveStore.Add(saveSession.Field(BlazorEditFormOrder.SparsePath.Number), "Number is required.");
             }
         }
         saveContext.OnValidationRequested += ValidateSave;
@@ -260,10 +241,7 @@ public static class UiDocSamples
                 throw new InvalidOperationException("The form has validation errors.");
             }
             var submitted = saveSession.CreateChangeSet();
-            var saveResult = await saveService.SaveAsync(
-                submitted.ToPayload(),
-                CancellationToken.None
-            );
+            var saveResult = await saveService.SaveAsync(submitted.ToPayload(), CancellationToken.None);
             if (saveResult is BlazorFormConflicted)
             {
                 throw new InvalidOperationException("Expected the save to succeed.");
@@ -290,10 +268,7 @@ public static class UiDocSamples
         // /sample
         DocsCheck.Require(!isSaving, "save-in-flight state clears in finally");
         DocsCheck.Require(!saveSession.HasChanges, "fresh session on persisted state is clean");
-        DocsCheck.Require(
-            ReferenceEquals(saveContext.Model, saveService.PersistedState),
-            "fresh EditContext binds the persisted model"
-        );
+        DocsCheck.Require(ReferenceEquals(saveContext.Model, saveService.PersistedState), "fresh EditContext binds the persisted model");
         DocsCheck.Require(saveSession.Current.Number == "ORD-2", "normalised number adopted");
         DocsCheck.Require(saveSession.Current.Version == 8, "server-assigned version adopted");
         DocsCheck.Require(saveService.ReceivedJson.Count == 1, "exactly one change set submitted");
@@ -311,10 +286,7 @@ public static class UiDocSamples
             conflictStore.Clear();
             if (string.IsNullOrWhiteSpace(conflictSession.Current.Number))
             {
-                conflictStore.Add(
-                    conflictSession.Field(BlazorEditFormOrder.SparsePath.Number),
-                    "Number is required."
-                );
+                conflictStore.Add(conflictSession.Field(BlazorEditFormOrder.SparsePath.Number), "Number is required.");
             }
         };
         var conflictService = new FakeOrderSaveService
@@ -324,9 +296,7 @@ public static class UiDocSamples
         };
 
         conflictSession.Observable.Number = "ORD-2";
-        conflictContext.NotifyFieldChanged(
-            conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
-        );
+        conflictContext.NotifyFieldChanged(conflictSession.Field(BlazorEditFormOrder.SparsePath.Number));
         var submitted = conflictSession.CreateChangeSet();
         var serverState = conflictService.ServerState;
         if (submitted.TryApplyTo(serverState, out _, out var surfacingConflicts))
@@ -335,24 +305,14 @@ public static class UiDocSamples
         }
         foreach (var conflict in surfacingConflicts)
         {
-            conflictSession.AddValidationError(
-                conflictStore,
-                conflict.Path,
-                "Server kept a newer value."
-            );
+            conflictSession.AddValidationError(conflictStore, conflict.Path, "Server kept a newer value.");
         }
         // surfacingConflicts.Single().PathText == "Number"
         // conflictSession.HasChanges == true
         // conflictSession.Current.Number == "ORD-2"
-        DocsCheck.Require(
-            surfacingConflicts.Single().PathText == nameof(BlazorEditFormOrder.Number),
-            "structured conflict names the member"
-        );
+        DocsCheck.Require(surfacingConflicts.Single().PathText == nameof(BlazorEditFormOrder.Number), "structured conflict names the member");
         DocsCheck.Require(conflictContext.IsModified(), "field stays marked modified");
-        DocsCheck.Require(
-            conflictSession.HasChanges && conflictSession.Current.Number == "ORD-2",
-            "original session and pending edit kept"
-        );
+        DocsCheck.Require(conflictSession.HasChanges && conflictSession.Current.Number == "ORD-2", "original session and pending edit kept");
 
         // The conflict needs an explicit user decision. Reloading the
         // conflicting state reports the same conflict and keeps everything.
@@ -367,9 +327,7 @@ public static class UiDocSamples
 
         // The user takes the server value, then the pending change is gone.
         conflictSession.Observable.Number = "SERVER";
-        conflictContext.NotifyFieldChanged(
-            conflictSession.Field(BlazorEditFormOrder.SparsePath.Number)
-        );
+        conflictContext.NotifyFieldChanged(conflictSession.Field(BlazorEditFormOrder.SparsePath.Number));
         var resolved = conflictSession.Reload(serverState);
         // resolved.HasConflicts == false
         // conflictSession.HasChanges == false
@@ -390,10 +348,7 @@ public static class UiDocSamples
             retryStore.Clear();
             if (string.IsNullOrWhiteSpace(retrySession.Current.Number))
             {
-                retryStore.Add(
-                    retrySession.Field(BlazorEditFormOrder.SparsePath.Number),
-                    "Number is required."
-                );
+                retryStore.Add(retrySession.Field(BlazorEditFormOrder.SparsePath.Number), "Number is required.");
             }
         };
         var retryService = new FakeOrderSaveService
@@ -432,10 +387,7 @@ public static class UiDocSamples
         // pending change is still intact.
         retryService.Mode = BlazorFormOutcome.Saved;
         var retrySubmitted = retrySession.CreateChangeSet();
-        var retryResult = await retryService.SaveAsync(
-            retrySubmitted.ToPayload(),
-            CancellationToken.None
-        );
+        var retryResult = await retryService.SaveAsync(retrySubmitted.ToPayload(), CancellationToken.None);
         var persisted = ((BlazorFormSaved)retryResult).Persisted;
         retrySession = persisted.CreateEditSession();
         // retrySession.HasChanges == false
@@ -443,8 +395,7 @@ public static class UiDocSamples
         DocsCheck.Require(transportFailed, "transport failure observed");
         DocsCheck.Require(!isSaving, "editing unblocked in finally");
         DocsCheck.Require(
-            retrySubmitted.Number.Before.Value == "ORD-1"
-                && retrySubmitted.Number.After.Value == "ORD-2",
+            retrySubmitted.Number.Before.Value == "ORD-1" && retrySubmitted.Number.After.Value == "ORD-2",
             "retry carries the original pending change"
         );
         DocsCheck.Require(!retrySession.HasChanges, "retry from persisted state is clean");
@@ -454,11 +405,7 @@ public static class UiDocSamples
     // CollectionState, opt-in history, and session-replacement context
     private static async Task BlazorToolkitBindingsAsync()
     {
-        var order = new UiOrder
-        {
-            Number = "ORD-1",
-            Items = [new UiOrderItem { Id = "line-1", Name = "First item" }],
-        };
+        var order = new UiOrder { Number = "ORD-1", Items = [new UiOrderItem { Id = "line-1", Name = "First item" }] };
         var session = order.CreateEditSession();
         var context = session.CreateEditContext();
         var history = session.EnableHistory();
@@ -467,31 +414,19 @@ public static class UiDocSamples
         // wraps in ValueChanged, and the original-model value expression.
         var number = session.Bind(UiOrder.SparsePath.Number, context);
         DocsCheck.Require(number.Value == "ORD-1", "binding reads the live value");
-        DocsCheck.Require(
-            number.ValueExpression is not null,
-            "member path exposes a value expression"
-        );
+        DocsCheck.Require(number.ValueExpression is not null, "member path exposes a value expression");
         await number.SetAsync("ORD-2");
         DocsCheck.Require(order.Number == "ORD-2", "binding writes through the session");
         DocsCheck.Require(context.IsModified(), "binding write marks the field modified");
-        DocsCheck.Require(
-            session.FieldState(UiOrder.SparsePath.Number).IsChanged,
-            "scalar field state reports the edit"
-        );
+        DocsCheck.Require(session.FieldState(UiOrder.SparsePath.Number).IsChanged, "scalar field state reports the edit");
 
         // Custom-component wiring over a keyed path: value and callback only,
         // since keyed paths expose no value expression.
         var name = session.Bind(UiOrder.SparsePath.Items.Key("line-1").Name, context);
         DocsCheck.Require(name.ValueExpression is null, "keyed path exposes no expression");
         await name.SetAsync("Renamed item");
-        DocsCheck.Require(
-            order.Items.Single(item => item.Id == "line-1").Name == "Renamed item",
-            "keyed binding writes through the session"
-        );
-        DocsCheck.Require(
-            session.FieldState(UiOrder.SparsePath.Items.Key("line-1").Name).IsChanged,
-            "keyed field state reports the edit"
-        );
+        DocsCheck.Require(order.Items.Single(item => item.Id == "line-1").Name == "Renamed item", "keyed binding writes through the session");
+        DocsCheck.Require(session.FieldState(UiOrder.SparsePath.Items.Key("line-1").Name).IsChanged, "keyed field state reports the edit");
         DocsCheck.Require(
             session.CollectionState(UiOrder.SparsePath.Items).GetItemState("line-1").IsEdited,
             "collection state reports the edited row"
@@ -501,18 +436,14 @@ public static class UiDocSamples
         // Undo replays newest-first: the name edit reverts before the number
         // edit.
         history.Undo();
-        DocsCheck.Require(
-            order.Items.Single(item => item.Id == "line-1").Name == "First item",
-            "undo restores the newest keyed edit"
-        );
+        DocsCheck.Require(order.Items.Single(item => item.Id == "line-1").Name == "First item", "undo restores the newest keyed edit");
         DocsCheck.Require(order.Number == "ORD-2", "older scalar edit still pending");
         history.Undo();
         DocsCheck.Require(order.Number == "ORD-1", "second undo restores the scalar edit");
         history.Redo();
         history.Redo();
         DocsCheck.Require(
-            order.Number == "ORD-2"
-                && order.Items.Single(item => item.Id == "line-1").Name == "Renamed item",
+            order.Number == "ORD-2" && order.Items.Single(item => item.Id == "line-1").Name == "Renamed item",
             "redo reapplies both edits"
         );
 
@@ -538,10 +469,7 @@ public static class UiDocSamples
 
         DocsCheck.Require(staleRejected, "stale context rejected by the fresh session");
         var freshContext = fresh.ReplaceEditContext(context);
-        DocsCheck.Require(
-            ReferenceEquals(freshContext.Model, persisted),
-            "replacement context binds the persisted model"
-        );
+        DocsCheck.Require(ReferenceEquals(freshContext.Model, persisted), "replacement context binds the persisted model");
         var freshBinding = fresh.Bind(UiOrder.SparsePath.Number, freshContext);
         DocsCheck.Require(freshBinding.Value == "SAVED", "fresh binding reads persisted state");
     }
@@ -579,19 +507,13 @@ public static class UiDocSamples
         // headlessNumber.Value == "ORD-1"
         // headlessNumber.ValueExpression is not null
         DocsCheck.Require(headlessNumber.Value == "ORD-1", "binding reads the live value");
-        DocsCheck.Require(
-            headlessNumber.ValueExpression is not null,
-            "member path exposes an expression"
-        );
+        DocsCheck.Require(headlessNumber.ValueExpression is not null, "member path exposes an expression");
         await headlessNumber.SetAsync("ORD-2");
         // headlessOrder.Number == "ORD-2"
         // headlessSession.FieldState(HeadlessOrder.SparsePath.Number).IsChanged == true
         // headlessHistory.CanUndo == true
         DocsCheck.Require(headlessOrder.Number == "ORD-2", "binding writes through the session");
-        DocsCheck.Require(
-            headlessSession.FieldState(HeadlessOrder.SparsePath.Number).IsChanged,
-            "scalar field state reports the edit"
-        );
+        DocsCheck.Require(headlessSession.FieldState(HeadlessOrder.SparsePath.Number).IsChanged, "scalar field state reports the edit");
         DocsCheck.Require(headlessHistory.CanUndo, "session-owned history retains the edit");
 
         headlessHistory.Undo();
@@ -603,34 +525,19 @@ public static class UiDocSamples
 
         // Keyed and indexed paths expose no expression, so value/callback
         // inputs edit them while validation stays explicit.
-        var headlessPrice = headlessSession.Bind(
-            HeadlessOrder.SparsePath.Lines.Key("b").Price,
-            headlessContext
-        );
+        var headlessPrice = headlessSession.Bind(HeadlessOrder.SparsePath.Lines.Key("b").Price, headlessContext);
         // headlessPrice.ValueExpression is null
-        DocsCheck.Require(
-            headlessPrice.ValueExpression is null,
-            "keyed path exposes no expression"
-        );
+        DocsCheck.Require(headlessPrice.ValueExpression is null, "keyed path exposes no expression");
         await headlessPrice.SetAsync(99m);
         // headlessOrder.Lines.Single(line => line.Sku == "b").Price == 99m
         // headlessSession.CollectionState(HeadlessOrder.SparsePath.Lines).GetItemState("b").IsEdited == true
+        DocsCheck.Require(headlessOrder.Lines.Single(line => line.Sku == "b").Price == 99m, "keyed binding writes through the session");
         DocsCheck.Require(
-            headlessOrder.Lines.Single(line => line.Sku == "b").Price == 99m,
-            "keyed binding writes through the session"
-        );
-        DocsCheck.Require(
-            headlessSession
-                .CollectionState(HeadlessOrder.SparsePath.Lines)
-                .GetItemState("b")
-                .IsEdited,
+            headlessSession.CollectionState(HeadlessOrder.SparsePath.Lines).GetItemState("b").IsEdited,
             "collection state reports the edited row"
         );
 
-        var headlessSku = headlessSession.Bind(
-            HeadlessOrder.SparsePath.Lines.At(0).Sku,
-            headlessContext
-        );
+        var headlessSku = headlessSession.Bind(HeadlessOrder.SparsePath.Lines.At(0).Sku, headlessContext);
         // headlessSku.Value == "a"
         DocsCheck.Require(headlessSku.Value == "a", "indexed binding follows the position");
 
@@ -646,24 +553,17 @@ public static class UiDocSamples
                 TemporaryId = headlessTemporaryId,
             }
         );
-        var headlessTitle = headlessDraftSession.Bind(
-            HeadlessOrder.SparsePath.Drafts.TemporaryKey(headlessTemporaryId).Title,
-            headlessDraftContext
-        );
+        var headlessTitle = headlessDraftSession.Bind(HeadlessOrder.SparsePath.Drafts.TemporaryKey(headlessTemporaryId).Title, headlessDraftContext);
         // headlessTitle.Value == "draft"
         DocsCheck.Require(headlessTitle.Value == "draft", "temporary-key binding reads the value");
         await headlessTitle.SetAsync("draft v2");
         // headlessDrafts.Drafts.Single(item => item.TemporaryId == headlessTemporaryId).Title == "draft v2"
         // headlessDraftContext.IsModified() == true
         DocsCheck.Require(
-            headlessDrafts.Drafts.Single(item => item.TemporaryId == headlessTemporaryId).Title
-                == "draft v2",
+            headlessDrafts.Drafts.Single(item => item.TemporaryId == headlessTemporaryId).Title == "draft v2",
             "temporary-key binding writes through the session"
         );
-        DocsCheck.Require(
-            headlessDraftContext.IsModified(),
-            "temporary-key write marks the field modified"
-        );
+        DocsCheck.Require(headlessDraftContext.IsModified(), "temporary-key write marks the field modified");
 
         headlessSession.DisableHistory();
         // /sample
@@ -694,10 +594,7 @@ public static class UiDocSamples
             stockModel.Number == "ORD-2" && stockSession.Current.Number == "ORD-2",
             "observable writes through to the live model behind the read-only view"
         );
-        DocsCheck.Require(
-            stockChanges.Number.After.Value == "ORD-2",
-            "session derives the semantic transition"
-        );
+        DocsCheck.Require(stockChanges.Number.After.Value == "ORD-2", "session derives the semantic transition");
     }
 }
 
@@ -779,12 +676,9 @@ public sealed class FakeOrderSaveService
 
     public List<string> ReceivedJson { get; } = new();
 
-    public async Task<BlazorFormSaveResult> SaveAsync(
-        BlazorEditFormOrder.ChangePayload payload,
-        CancellationToken cancellationToken
-    )
+    public async Task<BlazorFormSaveResult> SaveAsync(BlazorEditFormOrder.ChangePayload payload, CancellationToken cancellationToken)
     {
-        ReceivedJson.Add(JsonSerializer.Serialize(payload));
+        ReceivedJson.Add(JsonSerializer.Serialize(payload, BlazorEditFormOrder.PayloadJson.Default));
         await Task.Yield();
         cancellationToken.ThrowIfCancellationRequested();
         if (Mode == BlazorFormOutcome.TransportError)

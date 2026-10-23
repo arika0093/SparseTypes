@@ -1,4 +1,4 @@
-# SparseTypes Analyzer Diagnostics (SPF001-SPF036)
+# SparseTypes Analyzer Diagnostics (SPF001-SPF037)
 
 Diagnostics reported by the source generator `SparseTypes.Generator`.
 Each diagnostic's `HelpLinkUri` points to the corresponding heading in this file.
@@ -40,6 +40,7 @@ with a `Code fix` entry below. Fixes apply through the IDE light bulb and Fix Al
 | [SPF034](#spf034-invalid-entity-mapper-declaration) | Invalid entity mapper declaration | Error |
 | [SPF035](#spf035-unsupported-entity-member-shape) | Unsupported entity member shape | Error |
 | [SPF036](#spf036-custom-leaf-type-needs-external-json-metadata) | Custom leaf type needs external JSON metadata | Warning |
+| [SPF037](#spf037-sparsetransportignore-on-collection-identity) | SparseTransportIgnore cannot exclude a collection identity | Error |
 
 ## SPF001: Sparse model must be partial
 
@@ -351,7 +352,7 @@ public partial class PolicySettings
 * Fix: Enable the required feature families together, or move the transport
   policy to a scalar member. The same ID reports a partial `System.Text.Json`
   surface: when the compilation references `System.Text.Json` but lacks APIs
-  required for the `ChangePayload` v1 contract, the message names the missing
+  required for the `ChangePayload` JSON codec, the message names the missing
   members and JSON artifacts are omitted. Reference a compatible
   `System.Text.Json` version to restore JSON support. Builds that only need
   the serializer-independent core can suppress this instance; a fully absent
@@ -462,3 +463,12 @@ public partial class PolicySettings
   for the type to the serializer options, or simplify the type to public
   properties with an accessible constructor. This is a warning; generation
   continues.
+
+## SPF037: SparseTransportIgnore on collection identity
+
+* Message: `Collection identity property '{0}' cannot be marked with SparseTransportIgnore`
+* Cause: A property marked with `[SparseKey]` supplies the identity used by
+  keyed collection payload operations. Excluding that property from transport
+  would make those operations impossible to identify.
+* Fix: Keep the key in the transport contract. Apply `[SparseTransportIgnore]`
+  only to non-key members whose changes must remain local.

@@ -4,7 +4,7 @@ For method and property lookup, see [generated ChangePayload](generated-payload.
 
 A `ChangePayload` is the versioned JSON envelope that carries a `ChangeSet` transition, a `Patch` command, or a mix of both across a process boundary. It names members and carries typed values, so each side converts the envelope into its own `Patch` or `ChangeSet`. The library performs no domain-specific model mapping, and the client and server models may differ.
 
-The current format token is `"version": "0.1"`. Treat it as the documented current format, not a promise of indefinite backwards compatibility. The token gates the transport grammar only: envelope, endpoint, kind, and discriminator representation. It says nothing about the sender and receiver model schemas, the library package version, or concurrency revisions. Those stay the application responsibility, as the [version section](#version-and-malformed-payloads) explains. For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md). For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
+The current format token is `"version": "0.1"`. It identifies the documented grammar, not the sender and receiver model schemas, the library package version, or concurrency revisions. This format makes breaking wire changes without changing the token, so it cannot identify payloads produced by an earlier grammar; deploy compatible senders and receivers together. Schema evolution across models is also the application's responsibility, as the [version section](#version-and-malformed-payloads) explains. For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md). For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
 
 <!-- sample: payload-models -->
 ```csharp
@@ -58,22 +58,24 @@ public partial class WireSecret
 
 Serialize and deserialize the generated `T.ChangePayload`, not `T.ChangeSet` or `T.Patch`. The typed member variants are suitable for OpenAPI endpoint schemas.
 
-## Envelope layout
+## Envelope and model changes
 
-The top-level object carries the format token and the member changes. Nested changes omit the token. The smallest valid envelope carries one member transition with both endpoints present:
+The envelope carries `version` and one `change`. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. Nested model changes use the same `update` shape without another version token.
 
 <!-- json-specimen: payload-envelope -->
 ```jsonc
 {
-  // The format token appears only on the top-level envelope.
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Label",
-      "before": { "state": "value", "value": "before" },
-      "after": { "state": "value", "value": "after" }
+  "change": {
+    "kind": "update",
+    "members": {
+      "label": {
+        "kind": "replace",
+        "before": { "state": "value", "value": "before" },
+        "after": { "state": "value", "value": "after" }
+      }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
@@ -81,25 +83,25 @@ The top-level object carries the format token and the member changes. Nested cha
 | Field | Meaning |
 | --- | --- |
 | `version` | Required format token, currently `"0.1"`. |
-| `changes` | Member changes in deterministic order. |
-| `member` | CLR member name, or `"$root"` for whole-contribution transitions. |
-| `before` / `after` | Presence-aware endpoints for scalar and nested members. |
-| `nested` | Nested `changes` array for a nested model member. |
-| `items` | Keyed or dictionary item operations for collection members. |
-| `beforeOrder` / `afterOrder` | Key sequences for keyed members. |
+| `change` | Root model operation. Its `kind` is `update` or `replace`. |
+| `members` | Optional changed-member object for an `update`. Unspecified members are unchanged. |
+| `kind` | Operation discriminator. Member replacements use `replace`; nested and collection changes use `update`. |
+| `before` / `after` | Endpoints for a value replacement or model snapshot replacement. |
+| `items` | Keyed or dictionary item operations for a collection update. |
+| `beforeOrder` / `afterOrder` | Key sequences for keyed collection updates. |
 
-Payload DTO property names use camel case, `kind` values are lowercase, and property order is explicit. Embedded custom values follow the application JSON metadata; covered scalar, enum, and collection values use canonical wire encoding. Unused item fields stay omitted: an edit item carries only its nested `edit` payload, an addition carries only the endpoint needed to apply it, and a removal carries only the endpoint needed to apply it. Value-free endpoints still serialize an explicit `"value": null`, as the examples below show.
+Generated structure names use a fixed contract and are not changed by serializer naming policies. Leaf values use their configured JSON metadata. Optional members are omitted, and value-free endpoints contain only `state`.
 
 ## Endpoint states
 
-Each endpoint carries a `state`: `missing` (known absent), `null` (explicit null), `value` (with a `value`), or `redacted` (deliberately undisclosed).
+Each endpoint carries a `state`: `missing` (known absent), `null` (explicit null), `value` (with a `value`), or `redacted` (deliberately undisclosed). Only the `value` state has a `value` property.
 
 | State | JSON | Meaning |
 | --- | --- | --- |
-| `missing` | `{"state":"missing","value":null}` | Known absent. An addition arrives with a missing before-state; a removal leaves a missing after-state. |
-| `null` | `{"state":"null","value":null}` | Explicit null. Present, and the value is null. |
+| `missing` | `{"state":"missing"}` | Known absent. An addition arrives with a missing before-state; a removal leaves a missing after-state. |
+| `null` | `{"state":"null"}` | Explicit null. Present, and the value is null. |
 | `value` | `{"state":"value","value":"after"}` | Present with a value. |
-| `redacted` | `{"state":"redacted","value":null}` | Undisclosed before-state. Never read as missing. |
+| `redacted` | `{"state":"redacted"}` | Undisclosed before-state. Never read as missing. |
 
 Redacted is never read as missing. A redacted before-state must arrive with an explicit desired after-state; envelopes that omit it, or that redact an after-state, are rejected.
 
@@ -107,28 +109,24 @@ Redacted is never read as missing. A redacted before-state must arrive with an e
 
 <!-- sample: payload-scalar-set -->
 ```csharp
-var setBefore = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 })
-);
-var setAfter = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 })
-);
-
+var setBefore = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 }));
+var setAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 }));
 var setPayload = WireSettings.ChangeSet.Between(setBefore, setAfter).ToPayload();
-var setJson = JsonSerializer.Serialize(setPayload);
+var setJson = JsonSerializer.Serialize(setPayload, WireSettings.PayloadJson.Default);
 // setJson == {
 //   "version": "0.1",
-//   "changes": [
-//     {
-//       "member": "Label",
-//       "before": { "state": "value", "value": "before" },
-//       "after": { "state": "value", "value": "after" }
+//   "change": {
+//     "kind": "update",
+//     "members": {
+//       "label": {
+//         "kind": "replace",
+//         "before": { "state": "value", "value": "before" },
+//         "after": { "state": "value", "value": "after" }
+//       }
 //     }
-//   ]
+//   }
 // }
-var setRestored = JsonSerializer
-    .Deserialize<WireSettings.ChangePayload>(setJson)!
-    .ToChangeSet();
+var setRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(setJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
 // setRestored.ToPatch().Apply(setBefore) replays setAfter
 ```
 <!-- /sample -->
@@ -139,14 +137,16 @@ The JSON above is actual serializer output. Only the changed member travels. An 
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Label",
-      // An addition starts from a known-absent value.
-      "before": { "state": "missing", "value": null },
-      "after": { "state": "value", "value": "after" }
+  "change": {
+    "kind": "update",
+    "members": {
+      "label": {
+        "kind": "replace",
+        "before": { "state": "missing" },
+        "after": { "state": "value", "value": "after" }
+      }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
@@ -157,28 +157,24 @@ An explicit null stays present. It is distinct from both a value change and a re
 
 <!-- sample: payload-explicit-null -->
 ```csharp
-var nullBefore = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 })
-);
-var nullAfter = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = null, RetryCount = 1 })
-);
-
+var nullBefore = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 }));
+var nullAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = null, RetryCount = 1 }));
 var nullPayload = WireSettings.ChangeSet.Between(nullBefore, nullAfter).ToPayload();
-var nullJson = JsonSerializer.Serialize(nullPayload);
+var nullJson = JsonSerializer.Serialize(nullPayload, WireSettings.PayloadJson.Default);
 // nullJson == {
 //   "version": "0.1",
-//   "changes": [
-//     {
-//       "member": "Label",
-//       "before": { "state": "value", "value": "before" },
-//       "after": { "state": "null", "value": null }
+//   "change": {
+//     "kind": "update",
+//     "members": {
+//       "label": {
+//         "kind": "replace",
+//         "before": { "state": "value", "value": "before" },
+//         "after": { "state": "null" }
+//       }
 //     }
-//   ]
+//   }
 // }
-var nullRestored = JsonSerializer
-    .Deserialize<WireSettings.ChangePayload>(nullJson)!
-    .ToChangeSet();
+var nullRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(nullJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
 // nullRestored.ToPatch().Apply(nullBefore) replays nullAfter
 ```
 <!-- /sample -->
@@ -192,32 +188,30 @@ A removal leaves a missing after-state. Missing never equals a present value, no
 var removeBefore = Optional<WireSettings.Fragment?>.Present(
     WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 })
 );
-var removeAfter = Optional<WireSettings.Fragment?>.Present(
-    new WireSettings.Fragment { RetryCount = 1 }
-);
-
+var removeAfter = Optional<WireSettings.Fragment?>.Present(new WireSettings.Fragment { RetryCount = 1 });
 var removePayload = WireSettings.ChangeSet.Between(removeBefore, removeAfter).ToPayload();
-var removeJson = JsonSerializer.Serialize(removePayload);
+var removeJson = JsonSerializer.Serialize(removePayload, WireSettings.PayloadJson.Default);
 // removeJson == {
 //   "version": "0.1",
-//   "changes": [
-//     {
-//       "member": "Label",
-//       "before": { "state": "value", "value": "before" },
-//       "after": { "state": "missing", "value": null }
+//   "change": {
+//     "kind": "update",
+//     "members": {
+//       "label": {
+//         "kind": "replace",
+//         "before": { "state": "value", "value": "before" },
+//         "after": { "state": "missing" }
+//       }
 //     }
-//   ]
+//   }
 // }
-var removeRestored = JsonSerializer
-    .Deserialize<WireSettings.ChangePayload>(removeJson)!
-    .ToChangeSet();
+var removeRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(removeJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
 // !removeRestored.ToPatch().Apply(removeBefore).Value!.Label.IsPresent
 ```
 <!-- /sample -->
 
 ## Nested changes
 
-A nested member recurses through the same typed shape under its `nested` payload.
+A nested member recurses through the same typed shape under its `change` property.
 
 <!-- sample: payload-nested -->
 ```csharp
@@ -239,13 +233,11 @@ var nestedAfter = Optional<WireOrder.Fragment?>.Present(
         }
     )
 );
-
 var nestedPayload = WireOrder.ChangeSet.Between(nestedBefore, nestedAfter).ToPayload();
-var nestedJson = JsonSerializer.Serialize(nestedPayload);
-// nestedJson carries member "Customer" with a nested changes array and no inner version
-var nestedRestored = JsonSerializer
-    .Deserialize<WireOrder.ChangePayload>(nestedJson)!
-    .ToChangeSet();
+var nestedJson = JsonSerializer.Serialize(nestedPayload, WireOrder.PayloadJson.Default);
+Console.WriteLine("NESTED=" + nestedJson);
+// nestedJson carries an optional customer update with no inner version
+var nestedRestored = JsonSerializer.Deserialize<WireOrder.ChangePayload>(nestedJson, WireOrder.PayloadJson.Default)!.ToChangeSet();
 // nestedRestored.Customer.Name.After.Value == "Bob"
 ```
 <!-- /sample -->
@@ -254,28 +246,31 @@ var nestedRestored = JsonSerializer
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Customer",
-      "nested": {
-        // Nested changes use the same shape without another version token.
-        "changes": [
-          {
-            "member": "Name",
-            "before": { "state": "value", "value": "Ann" },
-            "after": { "state": "value", "value": "Bob" }
+  "change": {
+    "kind": "update",
+    "members": {
+      "customer": {
+        "kind": "update",
+        "change": {
+          "kind": "update",
+          "members": {
+            "name": {
+              "kind": "replace",
+              "before": { "state": "value", "value": "Ann" },
+              "after": { "state": "value", "value": "Bob" }
+            }
           }
-        ]
+        }
       }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
 
 ## Keyed changes
 
-Keyed members rebase element-wise where keys line up. Each item names its `key`, its `kind`, and its positions. `beforeIndex` and `afterIndex` are absolute zero-based positions in the before and after order; an addition carries `beforeIndex` -1, a removal carries `afterIndex` -1. The example below moves `["a","b"]` to `["b","c"]`, so the added key `c` lands at `afterIndex` 1.
+Keyed members rebase element-wise where keys line up. Each item names its `key` and operation. An index is present only when that side has a position; additions omit `beforeIndex`, and removals omit `afterIndex`. The example moves `["a","b"]` to `["b","c"]`, so the added key `c` has `afterIndex` 1.
 
 <!-- sample: payload-keyed -->
 ```csharp
@@ -303,15 +298,12 @@ var keyedAfter = Optional<WireFleet.Fragment?>.Present(
         }
     )
 );
-
 var keyedPayload = WireFleet.ChangeSet.Between(keyedBefore, keyedAfter).ToPayload();
-var keyedJson = JsonSerializer.Serialize(keyedPayload);
-// keyedJson contains an edit that moves b and changes its Host,
+var keyedJson = JsonSerializer.Serialize(keyedPayload, WireFleet.PayloadJson.Default);
+// keyedJson contains an update that moves b and changes its Host,
 // an addition of c at index 1, and a removal of a from index 0.
 // beforeOrder is ["a","b"] and afterOrder is ["b","c"].
-var keyedRestored = JsonSerializer
-    .Deserialize<WireFleet.ChangePayload>(keyedJson)!
-    .ToChangeSet();
+var keyedRestored = JsonSerializer.Deserialize<WireFleet.ChangePayload>(keyedJson, WireFleet.PayloadJson.Default)!.ToChangeSet();
 // keyedRestored.Servers.GetChange("b").IsEdited == true
 // keyedRestored.Servers.GetChange("c").IsAdded == true
 // keyedRestored.Servers.GetChange("a").IsRemoved == true
@@ -322,87 +314,92 @@ var keyedRestored = JsonSerializer
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Servers",
-      "items": [
-        {
-          // b moves from position 1 to 0 and its Host changes.
-          "key": "b",
-          "kind": "edit",
-          "beforeIndex": 1,
-          "afterIndex": 0,
-          "edit": {
-            "changes": [
-              {
-                "member": "Host",
-                "before": { "state": "value", "value": "B" },
-                "after": { "state": "value", "value": "B2" }
+  "change": {
+    "kind": "update",
+    "members": {
+      "servers": {
+        "kind": "update",
+        "items": [
+          {
+            // b moves from position 1 to 0 and its Host changes.
+            "key": "b",
+            "kind": "update",
+            "beforeIndex": 1,
+            "afterIndex": 0,
+            "change": {
+              "kind": "update",
+              "members": {
+                "host": {
+                  "kind": "replace",
+                  "before": { "state": "value", "value": "B" },
+                  "after": { "state": "value", "value": "B2" }
+                }
               }
-            ]
+            }
+          },
+          {
+            // c is new, so it has no before position.
+            "key": "c",
+            "kind": "add",
+            "afterIndex": 1,
+            "after": {
+              "state": "value",
+              "value": { "Id": "c", "Host": "C" }
+            }
+          },
+          {
+            // a is removed, so it has no after position.
+            "key": "a",
+            "kind": "remove",
+            "beforeIndex": 0,
+            "before": {
+              "state": "value",
+              "value": { "Id": "a", "Host": "A" }
+            }
           }
-        },
-        {
-          // c is new, so it has no before position.
-          "key": "c",
-          "kind": "add",
-          "beforeIndex": -1,
-          "afterIndex": 1,
-          "after": {
-            "state": "value",
-            "value": { "Id": "c", "Host": "C" }
-          }
-        },
-        {
-          // a is removed, so it has no after position.
-          "key": "a",
-          "kind": "remove",
-          "beforeIndex": 0,
-          "afterIndex": -1,
-          "before": {
-            "state": "value",
-            "value": { "Id": "a", "Host": "A" }
-          }
-        }
-      ],
-      // These arrays record the complete key sequence before and after.
-      "beforeOrder": ["a", "b"],
-      "afterOrder": ["b", "c"]
+        ],
+        // These arrays record the complete key sequence before and after.
+        "beforeOrder": ["a", "b"],
+        "afterOrder": ["b", "c"]
+      }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
 
-A pure reorder carries `reorder` items with indexes and the before and after key sequences:
+A pure reorder carries `update` items marked with `isReordered`, indexes, and the before and after key sequences:
 
 <!-- json-specimen: payload-reorder -->
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Servers",
-      "items": [
-        {
-          "key": "b",
-          "kind": "reorder",
-          "beforeIndex": 1,
-          "afterIndex": 0,
-          "isReordered": true
-        },
-        {
-          "key": "a",
-          "kind": "reorder",
-          "beforeIndex": 0,
-          "afterIndex": 1,
-          "isReordered": true
-        }
-      ],
-      "beforeOrder": ["a", "b"],
-      "afterOrder": ["b", "a"]
+  "change": {
+    "kind": "update",
+    "members": {
+      "servers": {
+        "kind": "update",
+        "items": [
+          {
+            "key": "b",
+            "kind": "update",
+            "beforeIndex": 1,
+            "afterIndex": 0,
+            "isReordered": true
+          },
+          {
+            "key": "a",
+            "kind": "update",
+            "beforeIndex": 0,
+            "afterIndex": 1,
+            "isReordered": true
+          }
+        ],
+        "beforeOrder": ["a", "b"],
+        "afterOrder": ["b", "a"]
+      }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
@@ -413,29 +410,32 @@ Scalar dictionary members use the same item vocabulary without positions. The ex
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "Scores",
-      "items": [
-        {
-          "key": "c",
-          "kind": "add",
-          "after": { "state": "value", "value": 4 }
-        },
-        {
-          "key": "a",
-          "kind": "remove",
-          "before": { "state": "value", "value": 1 }
-        },
-        {
-          "key": "b",
-          "kind": "edit",
-          "before": { "state": "value", "value": 2 },
-          "after": { "state": "value", "value": 3 }
-        }
-      ]
+  "change": {
+    "kind": "update",
+    "members": {
+      "scores": {
+        "kind": "update",
+        "items": [
+          {
+            "key": "c",
+            "kind": "add",
+            "after": { "state": "value", "value": 4 }
+          },
+          {
+            "key": "a",
+            "kind": "remove",
+            "before": { "state": "value", "value": 1 }
+          },
+          {
+            "key": "b",
+            "kind": "replace",
+            "before": { "state": "value", "value": 2 },
+            "after": { "state": "value", "value": 3 }
+          }
+        ]
+      }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
@@ -451,33 +451,28 @@ shown in [Keyed collections](../explanation/keyed-collections.md#temporary-ident
 
 ## Whole-root transitions
 
-Whole-contribution transitions, including root missing, present-null, and present-value states, encode under the `"$root"` member with a `members` array:
+Whole-model transitions use `kind: "replace"` with before and after snapshot endpoints. Snapshot members are keyed objects whose values are endpoints:
 
 <!-- json-specimen: payload-root -->
 ```jsonc
 {
   "version": "0.1",
-  "changes": [
-    {
-      "member": "$root",
-      "before": { "state": "missing", "value": null },
-      "after": {
-        "state": "value",
-        "value": {
-          // Whole-root values contain member names and their endpoints.
-          "members": [
-            { "member": "Label", "value": { "state": "value", "value": "present" } },
-            { "member": "RetryCount", "value": { "state": "value", "value": 3 } }
-          ]
-        }
+  "change": {
+    "kind": "replace",
+    "before": { "state": "missing" },
+    "after": {
+      "state": "value",
+      "value": {
+        "label": { "state": "value", "value": "present" },
+        "retryCount": { "state": "value", "value": 3 }
       }
     }
-  ]
+  }
 }
 ```
 <!-- /json-specimen -->
 
-Whole-root redacted operations are reported under the same `"$root"` path.
+Whole-model replacements use the model root path during validation and conflict reporting.
 
 ## Baseline-free commands and redaction
 
@@ -486,23 +481,23 @@ A `Patch` enters the envelope with `ChangePayload.FromPatch(patch)`, which redac
 <!-- sample: payload-command -->
 ```csharp
 var rotation = new WireSecret.Patch { Password = "rotated-value" };
-
 // A command needs no baseline: the envelope redacts what it never observed.
 var command = WireSecret.ChangePayload.FromPatch(rotation);
-var commandJson = JsonSerializer.Serialize(command);
+var commandJson = JsonSerializer.Serialize(command, WireSecret.PayloadJson.Default);
 // commandJson == {
 //   "version": "0.1",
-//   "changes": [
-//     {
-//       "member": "Password",
-//       "before": { "state": "redacted", "value": null },
-//       "after": { "state": "value", "value": "rotated-value" }
+//   "change": {
+//     "kind": "update",
+//     "members": {
+//       "password": {
+//         "kind": "replace",
+//         "before": { "state": "redacted" },
+//         "after": { "state": "value", "value": "rotated-value" }
+//       }
 //     }
-//   ]
+//   }
 // }
-var applied = WireSecret
-    .Fragment.From(new WireSecret { DisplayName = "a", Password = "previous-placeholder" })
-    .Apply(command.ToPatch());
+var applied = WireSecret.Fragment.From(new WireSecret { DisplayName = "a", Password = "previous-placeholder" }).Apply(command.ToPatch());
 // applied.Password.Value == "rotated-value"
 ```
 <!-- /sample -->
@@ -518,24 +513,22 @@ Redacting the before-value does not protect a sensitive after-value. The after-s
 var convertBefore = Optional<WireSettings.Fragment?>.Present(
     WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 })
 );
-var convertAfter = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 })
-);
-
+var convertAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 }));
 // ChangeSet -> envelope -> ChangeSet keeps the before-state.
 var transition = WireSettings.ChangeSet.Between(convertBefore, convertAfter);
 var envelope = transition.ToPayload();
 var roundTripped = JsonSerializer
-    .Deserialize<WireSettings.ChangePayload>(JsonSerializer.Serialize(envelope))!
+    .Deserialize<WireSettings.ChangePayload>(
+        JsonSerializer.Serialize(envelope, WireSettings.PayloadJson.Default),
+        WireSettings.PayloadJson.Default
+    )!
     .ToChangeSet();
 // roundTripped.ToPatch().Apply(convertBefore) replays convertAfter
-
 // ChangeSet -> Patch discards the before-state explicitly.
 // Patch + known baseline -> ChangeSet reattaches it.
 var operations = transition.ToPatch();
 var reattached = WireSettings.ChangeSet.FromPatch(convertBefore, operations);
 // reattached.ToPatch().Apply(convertBefore) replays convertAfter
-
 // Envelope -> ChangeSet requires complete history: FromPayload rejects redacted envelopes.
 var complete = WireSettings.ChangeSet.FromPayload(envelope);
 // complete.ToPatch().Apply(convertBefore) replays convertAfter
@@ -577,27 +570,30 @@ var mixed = JsonSerializer.Deserialize<WireSecret.ChangePayload>(
     """
     {
       "version": "0.1",
-      "changes": [
-        {
-          "member": "DisplayName",
-          "before": { "state": "value", "value": "a" },
-          "after": { "state": "value", "value": "b" }
-        },
-        {
-          "member": "Password",
-          "before": { "state": "redacted", "value": null },
-          "after": { "state": "value", "value": "rotated-value" }
+      "change": {
+        "kind": "update",
+        "members": {
+          "displayName": {
+            "kind": "replace",
+            "before": { "state": "value", "value": "a" },
+            "after": { "state": "value", "value": "b" }
+          },
+          "password": {
+            "kind": "replace",
+            "before": { "state": "redacted" },
+            "after": { "state": "value", "value": "rotated-value" }
+          }
         }
-      ]
+      }
     }
-    """
+    """,
+    WireSecret.PayloadJson.Default
 )!;
 var mixedCurrent = new WireSecret { DisplayName = "a", Password = "current-placeholder" };
 if (!mixed.TryApplyMixedTo(mixedCurrent, out var mixedUpdated, out var mixedOutcome))
 {
     throw new InvalidOperationException("The change conflicts with the current model.");
 }
-
 // mixedUpdated.DisplayName == "b"
 // mixedUpdated.Password == "rotated-value"
 // mixedOutcome.WriteOnlyPaths reports ["Password"]
@@ -615,20 +611,14 @@ if (!mixed.TryApplyMixedTo(mixedCurrent, out var mixedUpdated, out var mixedOutc
 var invertBefore = Optional<WireSettings.Fragment?>.Present(
     WireSettings.Fragment.From(new WireSettings { Label = "before", RetryCount = 1 })
 );
-var invertAfter = Optional<WireSettings.Fragment?>.Present(
-    WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 })
-);
+var invertAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 }));
 var invertible = WireSettings.ChangeSet.Between(invertBefore, invertAfter).ToPayload();
-
 // Fully baseline-aware envelopes invert with nothing skipped.
 var rollback = invertible.InvertReversibleChanges(out var skipped);
 // skipped is empty
 // rollback.ToPatch().Apply(invertAfter) walks back to invertBefore
-
 // Write-only members have no prior value, so they stay out of the rollback.
-var writeOnly = WireSecret.ChangePayload.FromPatch(
-    new WireSecret.Patch { Password = "rotated-value" }
-);
+var writeOnly = WireSecret.ChangePayload.FromPatch(new WireSecret.Patch { Password = "rotated-value" });
 var partial = writeOnly.InvertReversibleChanges(out var skippedWriteOnly);
 // skippedWriteOnly reports ["Password"]
 // partial carries no member change
@@ -647,22 +637,15 @@ var validateBefore = Optional<WireSettings.Fragment?>.Present(
 var validateAfter = Optional<WireSettings.Fragment?>.Present(
     WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 })
 );
-
-var validateEnvelope = WireSettings
-    .ChangeSet.Between(validateBefore, validateAfter)
-    .ToPayload();
+var validateEnvelope = WireSettings.ChangeSet.Between(validateBefore, validateAfter).ToPayload();
 var validation = validateEnvelope.Validate();
 // validation.IsValid is true
 // validation.Errors is empty
-
 // Write-only envelopes validate too: validity is not convertibility.
-var writeOnlyEnvelope = WireSecret.ChangePayload.FromPatch(
-    new WireSecret.Patch { Password = "rotated-value" }
-);
+var writeOnlyEnvelope = WireSecret.ChangePayload.FromPatch(new WireSecret.Patch { Password = "rotated-value" });
 var writeOnlyValidation = writeOnlyEnvelope.Validate();
 // writeOnlyValidation.IsValid is true
 // writeOnlyEnvelope.ToChangeSet() still throws
-
 validateEnvelope.Version = "0.2";
 var versionValidation = validateEnvelope.Validate();
 // versionValidation.IsValid is false
@@ -680,16 +663,11 @@ Every interpretation path (`ToChangeSet`, `ToPatch`, `InvertReversibleChanges`, 
 ```csharp
 var guarded = WireSettings
     .ChangeSet.Between(
-        Optional<WireSettings.Fragment?>.Present(
-            WireSettings.Fragment.From(new WireSettings { Label = "before" })
-        ),
-        Optional<WireSettings.Fragment?>.Present(
-            WireSettings.Fragment.From(new WireSettings { Label = "after" })
-        )
+        Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "before" })),
+        Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "after" }))
     )
     .ToPayload();
 guarded.Version = "0.2";
-
 // Every interpretation path rejects the same unknown version before touching model state.
 var versionRejected = 0;
 try
@@ -714,28 +692,26 @@ catch (ArgumentException)
 
 Only `"0.1"` is accepted, compared ordinally. A missing, null, non-string, or different version fails: envelopes that deserialize still fail validation before producing a `ChangeSet`.
 
-The `"0.1"` token covers the wire grammar only, not the model schemas on either side. The `member` discriminator names a generated model contract, so identical wire versions do not imply matching model definitions. When a sender adds a member the receiver model lacks, the receiver rejects the unknown `member` discriminator instead of guessing. Model evolution across deployment boundaries stays the application responsibility: coordinate field changes, add adapters, or agree on a separate schema handshake. The wire version never carries that information.
+The `"0.1"` token covers the wire grammar only, not the model schemas on either side. A receiver skips an unknown name in `members`, so adding a field can result in an older model silently ignoring that part of a change. Coordinate model evolution across deployments, add adapters, or agree on a separate schema handshake; the wire version does not carry that information.
 
-Payload DTOs ignore unknown JSON properties at the envelope, member, and item levels, so additive extensions do not break older readers. Only supplemental properties are lenient: unknown `member` discriminators, unknown item `kind` tokens, unknown endpoint `state` tokens, and a missing required `state` still fail. Every endpoint object must carry an explicit `state`; `{}` or `{"value":"x"}` is not an explicit `"state":"missing"`. Depending on where the envelope fails, deserialization throws `JsonException` or conversion throws `ArgumentException`. The following are all malformed: unknown member names (including inside nested payloads), null items, members without endpoints, duplicate changes for one member, duplicate keyed changes for one key, keyed additions without an after-endpoint, keyed removals without a before-endpoint, unknown item kinds, redacted after-states, redacted before-states without an after-state, value-carrying missing, null, or redacted endpoints, and per-item redacted endpoints in keyed and dictionary members. Diagnostics carry member paths and reasons only, never secret before, current, or after values. Duplicate JSON properties are the other lenient case: `System.Text.Json` object deserialization is last-wins, so the envelope stays valid when the winning values are well-formed.
+The reader skips unknown metadata properties and unknown member names, including names nested in child models. A known member excluded from the JSON contract is rejected rather than treated as an unknown name. Unknown operation kinds and endpoint states, missing required fields, and duplicate JSON properties are rejected. Every endpoint object must carry an explicit `state`; `{}` or `{"value":"x"}` is not an explicit `"state":"missing"`. Depending on where input fails, deserialization throws `JsonException` or conversion throws `ArgumentException`. Other malformed payloads include null items, invalid endpoints, duplicate item identities, keyed additions without an after-endpoint, keyed removals without a before-endpoint, redacted after-states, redacted before-states without an after-state, value-carrying missing, null, or redacted endpoints, and per-item redacted endpoints in keyed and dictionary members. Diagnostics carry member paths and reasons only, never secret before, current, or after values.
 
 ### Payload export and JsonIgnore members
 
-Attempting to export a `ChangeSet` or `Patch` containing changes to a `[JsonIgnore]` member via `ToPayload()` or `ChangePayload.FromPatch(patch)` throws `InvalidOperationException`. This guard prevents silently dropping modified data on the wire when serializing transitions across process boundaries. If normal and ignored members are modified in the same change set, the entire export fails atomically. To exclude a property from sparse tracking and wire payloads entirely, mark it with `[SparseIgnore]`.
+A `[JsonIgnore]` member remains part of the neutral payload produced by `ToPayload()` or `ChangePayload.FromPatch(patch)`. The generated JSON codec rejects serialization of that payload with `JsonException` before writing any bytes, rather than silently dropping the change. `[SparseTransportIgnore]` excludes a member from every payload format; exporting a change to it through `ToPayload()` or `ChangePayload.FromPatch(patch)` throws `InvalidOperationException`. Use `[SparseIgnore]` to exclude a property from sparse tracking entirely.
 
 ## Optional JSON support
 
 The base package does not depend on `System.Text.Json`. JSON attributes, converters, and the endpoint bridge are generated only when the consuming compilation references a compatible API set. `Fragment`, `Patch`, `ChangeSet`, and the `ChangePayload` CLR projections (`ToPayload`, `FromPatch`, `ToPatch`, `ToChangeSet`) work without it. A compilation with a partial API set gets the same omission plus a diagnostic that names the missing members.
 
-The 0.1 wire contract needs named and ordered properties, null and default omission, polymorphic discriminators, endpoint and kind converters, and the UTF-8 reader and writer with options and type metadata. The generator probes for `JsonSerializer` and `JsonConverter<T>` with overridable `Read` and `Write`, the `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`, `JsonPolymorphic`, `JsonDerivedType`, and `JsonConverter` attributes, `JsonIgnoreCondition`, `JsonUnmappedMemberHandling.Disallow`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonSerializerOptions.GetTypeInfo`, `JsonTypeInfo`, and `JsonException`, plus the scalar codec members the generated converters call directly (numeric, boolean, Guid, date/time, and string readers; the matching writers; and the `JsonException` message/inner-exception constructors). A reference that lacks any of these, such as an older `System.Text.Json` version, omits the JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with the missing names; a compilation with no reference at all stays silent and builds the serializer-independent core. Payload DTOs ignore unknown properties once emitted; generated fragment converters still honor `JsonSerializerOptions.UnmappedMemberHandling`.
+The payload codec is generated from the wire contract and does not use polymorphic serializer attributes. It needs `JsonSerializer`, `JsonConverter<T>`, `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`/`JsonIgnoreCondition`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonTypeInfo`, `JsonSerializerOptions.GetTypeInfo`, and the scalar codec members called by generated converters. Generated fragment converters also use `JsonUnmappedMemberHandling.Disallow` when available. A partial `System.Text.Json` reference omits JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with missing API names; a compilation with no reference stays silent and builds the serializer-independent core.
 
 The scalar-set payload from the earlier section serializes through the generated resolver like this:
 
 <!-- sample: payload-context -->
 ```csharp
 var contextJson = JsonSerializer.Serialize(setPayload, WireSettings.PayloadJson.Default);
-var contextRestored = JsonSerializer
-    .Deserialize(contextJson, WireSettings.PayloadJson.Default)!
-    .ToChangeSet();
+var contextRestored = JsonSerializer.Deserialize(contextJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
 // contextRestored.ToPatch().Apply(setBefore) replays setAfter
 ```
 <!-- /sample -->
@@ -850,9 +826,7 @@ var pocoAfter = Optional<PocoWidget.Fragment?>.Present(
 );
 var pocoPayload = PocoWidget.ChangeSet.Between(pocoBefore, pocoAfter).ToPayload();
 var pocoJson = JsonSerializer.Serialize(pocoPayload, PocoWidget.PayloadJson.Default);
-var pocoRestored = JsonSerializer
-    .Deserialize(pocoJson, PocoWidget.PayloadJson.Default)!
-    .ToChangeSet();
+var pocoRestored = JsonSerializer.Deserialize(pocoJson, PocoWidget.PayloadJson.Default)!.ToChangeSet();
 // pocoRestored.ToPatch().Apply(pocoBefore) replays pocoAfter
 ```
 <!-- /sample -->

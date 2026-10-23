@@ -39,12 +39,6 @@ internal static class SparseGeneratedOnceEmitter
     public static string RemovalIndexHintName(string implementationNamespace) =>
         SparseGeneratedOnceNames.RemovalIndexHintName(implementationNamespace);
 
-    /// <summary>Gets the stable hint name for shared ChangePayload JSON converters.</summary>
-    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
-    /// <returns>A stable unique hint name.</returns>
-    public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) =>
-        SparseGeneratedOnceNames.ChangePayloadJsonConvertersHintName(implementationNamespace);
-
     /// <summary>Gets the stable hint name for shared JSON codecs.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <returns>A stable unique hint name.</returns>
@@ -96,19 +90,6 @@ internal static class SparseGeneratedOnceEmitter
     /// <returns>Generic index helpers over caller-owned removal lists.</returns>
     public static string RenderRemovalIndex(string implementationNamespace, CancellationToken cancellationToken) =>
         SparseGeneratedOnceRemovalIndex.BuildSource(implementationNamespace, cancellationToken);
-
-    /// <summary>Renders shared ChangePayload endpoint and item-kind converters.</summary>
-    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
-    /// <param name="dialect">Product runtime type vocabulary.</param>
-    /// <param name="emitConverters">Whether the consumer has the required serializer API.</param>
-    /// <param name="cancellationToken">Cooperative cancellation.</param>
-    /// <returns>Stable-hint source, with converter implementations when supported.</returns>
-    public static string RenderChangePayloadJsonConverters(
-        string implementationNamespace,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        bool emitConverters,
-        CancellationToken cancellationToken
-    ) => SparseGeneratedOnceChangePayloadJsonConverters.BuildSource(implementationNamespace, dialect, emitConverters, cancellationToken);
 
     /// <summary>Renders shared System.Text.Json codecs for fragment and payload converters.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>

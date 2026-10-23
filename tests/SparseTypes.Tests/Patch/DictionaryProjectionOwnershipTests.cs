@@ -50,13 +50,11 @@ public sealed class DictionaryProjectionOwnershipTests
                 },
             }
         );
-        var payload = JsonSerializer.Serialize(changes.ToPayload());
-        Should.Throw<NotSupportedException>(() =>
-            ((IDictionary<string, KeyedServer.ChangeSet>)changes.Servers.Edited).Clear()
-        );
+        var payload = PayloadJsonTestSupport.Serialize(changes.ToPayload());
+        Should.Throw<NotSupportedException>(() => ((IDictionary<string, KeyedServer.ChangeSet>)changes.Servers.Edited).Clear());
         changes.Servers.GetChange("server").Edit.Name.After.Value.ShouldBe("after");
         changes.Servers.Edited["server"].Name.After.Value.ShouldBe("after");
-        JsonSerializer.Serialize(changes.ToPayload()).ShouldBe(payload);
+        PayloadJsonTestSupport.Serialize(changes.ToPayload()).ShouldBe(payload);
     }
 
     [Test]
@@ -64,20 +62,16 @@ public sealed class DictionaryProjectionOwnershipTests
     [Arguments(true)]
     public void WholeDictionaryViewsReturnIndependentContainerSnapshots(bool wholeRoot)
     {
-        var before = wholeRoot
-            ? Optional<ScalarDictHolder.Fragment?>.Missing
-            : Optional<ScalarDictHolder.Fragment?>.Present(new());
-        var after = Optional<ScalarDictHolder.Fragment?>.Present(
-            ScalarDictHolder.Fragment.From(new() { Scores = new() { ["score"] = 1 } })
-        );
+        var before = wholeRoot ? Optional<ScalarDictHolder.Fragment?>.Missing : Optional<ScalarDictHolder.Fragment?>.Present(new());
+        var after = Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(new() { Scores = new() { ["score"] = 1 } }));
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
-        var payload = JsonSerializer.Serialize(changes.ToPayload());
+        var payload = PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
         changes.Scores.After.Value!.Clear();
 
         changes.Scores.After.Value!.Count.ShouldBe(1);
         changes.ToPatch().Apply(before).Value!.Scores.Value!.Count.ShouldBe(1);
-        JsonSerializer.Serialize(changes.ToPayload()).ShouldBe(payload);
+        PayloadJsonTestSupport.Serialize(changes.ToPayload()).ShouldBe(payload);
     }
 
     [Test]
@@ -85,22 +79,18 @@ public sealed class DictionaryProjectionOwnershipTests
     [Arguments(true)]
     public void WholeStructuralDictionaryViewsReturnIndependentContainerSnapshots(bool wholeRoot)
     {
-        var before = wholeRoot
-            ? Optional<StructuralDictHolder.Fragment?>.Missing
-            : Optional<StructuralDictHolder.Fragment?>.Present(new());
+        var before = wholeRoot ? Optional<StructuralDictHolder.Fragment?>.Missing : Optional<StructuralDictHolder.Fragment?>.Present(new());
         var after = Optional<StructuralDictHolder.Fragment?>.Present(
-            StructuralDictHolder.Fragment.From(
-                new() { Servers = new() { ["server"] = new() { Id = "server" } } }
-            )
+            StructuralDictHolder.Fragment.From(new() { Servers = new() { ["server"] = new() { Id = "server" } } })
         );
         var changes = StructuralDictHolder.ChangeSet.Between(before, after);
-        var payload = JsonSerializer.Serialize(changes.ToPayload());
+        var payload = PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
         changes.Servers.After.Value!.Clear();
 
         changes.Servers.After.Value!.Count.ShouldBe(1);
         changes.ToPatch().Apply(before).Value!.Servers.Value!.Count.ShouldBe(1);
-        JsonSerializer.Serialize(changes.ToPayload()).ShouldBe(payload);
+        PayloadJsonTestSupport.Serialize(changes.ToPayload()).ShouldBe(payload);
     }
 
     [Test]
@@ -113,15 +103,11 @@ public sealed class DictionaryProjectionOwnershipTests
                 Scores = new() { ["score"] = 2, ["added"] = 3 },
             }
         );
-        var payload = JsonSerializer.Serialize(changes.ToPayload());
-        Should.Throw<NotSupportedException>(() =>
-            ((IDictionary<string, int>)changes.Scores.Edited).Clear()
-        );
-        Should.Throw<NotSupportedException>(() =>
-            ((IDictionary<string, int>)changes.Scores.Added).Clear()
-        );
+        var payload = PayloadJsonTestSupport.Serialize(changes.ToPayload());
+        Should.Throw<NotSupportedException>(() => ((IDictionary<string, int>)changes.Scores.Edited).Clear());
+        Should.Throw<NotSupportedException>(() => ((IDictionary<string, int>)changes.Scores.Added).Clear());
         changes.Scores.GetChange("score").After.Value.ShouldBe(2);
         changes.Scores.GetChange("added").After.Value.ShouldBe(3);
-        JsonSerializer.Serialize(changes.ToPayload()).ShouldBe(payload);
+        PayloadJsonTestSupport.Serialize(changes.ToPayload()).ShouldBe(payload);
     }
 }

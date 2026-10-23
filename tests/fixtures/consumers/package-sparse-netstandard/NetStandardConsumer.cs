@@ -15,10 +15,7 @@ public static class NetStandardConsumerCheck
                 Child = new NetStandardChild { Count = 7, Host = "keep" },
                 Plugins = new List<string> { "base-plugin" },
                 Tags = new HashSet<string>(StringComparer.Ordinal) { "base-tag" },
-                Options = new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["theme"] = "dark",
-                },
+                Options = new Dictionary<string, string>(StringComparer.Ordinal) { ["theme"] = "dark" },
             }
         );
 
@@ -39,16 +36,8 @@ public static class NetStandardConsumerCheck
         Require(merged.Label == "original", "merge keeps lower value for missing members");
         Require(merged.Child!.Host == "keep", "merge falls through nested missing members");
         Require(merged.Child.Count == 9, "merge higher priority wins");
-        Require(
-            merged.Plugins.Count == 2
-                && merged.Plugins[0] == "base-plugin"
-                && merged.Plugins[1] == "extra-plugin",
-            "merge Append concatenates"
-        );
-        Require(
-            merged.Tags.SetEquals(new HashSet<string>(StringComparer.Ordinal) { "base-tag", "extra-tag" }),
-            "merge SetUnion combines sets"
-        );
+        Require(merged.Plugins.Count == 2 && merged.Plugins[0] == "base-plugin" && merged.Plugins[1] == "extra-plugin", "merge Append concatenates");
+        Require(merged.Tags.SetEquals(new HashSet<string>(StringComparer.Ordinal) { "base-tag", "extra-tag" }), "merge SetUnion combines sets");
         Require(merged.Options["theme"] == "dark", "merge keeps Replace dictionary");
 
         // Typed patch: present null, nested Set/Remove/SetNull.
@@ -71,10 +60,7 @@ public static class NetStandardConsumerCheck
         var before = new NetStandardSettings { Label = "before" };
         var after = new NetStandardSettings { Label = "after" };
         var diff = NetStandardSettings.Fragment.Diff(before, after);
-        Require(
-            NetStandardSettings.Fragment.From(before).ApplyChanges(diff).Label.Value == "after",
-            "Diff/ApplyChanges"
-        );
+        Require(NetStandardSettings.Fragment.From(before).ApplyChanges(diff).Label.Value == "after", "Diff/ApplyChanges");
         var basis = Optional<NetStandardSettings.Fragment?>.Present(original);
         var edits = new NetStandardSettings.Patch { Label = (string?)null };
         var next = new NetStandardSettings.Patch();
@@ -82,27 +68,16 @@ public static class NetStandardConsumerCheck
         var combined = edits.Compose(next);
         var applied = combined.Apply(basis);
         var restored = combined.Invert(basis).Apply(applied);
-        Require(
-            restored.Value!.Label.Value == "original"
-                && restored.Value.Child.Value!.Count.Value == 7,
-            "exact inversion"
-        );
+        Require(restored.Value!.Label.Value == "original" && restored.Value.Child.Value!.Count.Value == 7, "exact inversion");
         var between = NetStandardSettings.Patch.Between(basis, applied);
-        Require(
-            between.Apply(basis).Value!.Child.Value!.Host.Value == "next",
-            "sparse Between"
-        );
+        Require(between.Apply(basis).Value!.Child.Value!.Host.Value == "next", "sparse Between");
 
         // Structured rebase.
         var upstream = original.ToBuilder();
         upstream.Label = Optional<string?>.Present("upstream");
         var local = new NetStandardSettings.Patch();
         local.Child.Count = 12;
-        var rebased = NetStandardSettings.Patch.Rebase(
-            basis,
-            local,
-            Optional<NetStandardSettings.Fragment?>.Present(upstream.Build())
-        );
+        var rebased = NetStandardSettings.Patch.Rebase(basis, local, Optional<NetStandardSettings.Fragment?>.Present(upstream.Build()));
         Require(!rebased.HasConflicts, "structured rebase");
 
         // Builders and structural DeepClone (exercises set/dictionary clone
@@ -120,25 +95,20 @@ public static class NetStandardConsumerCheck
         var fragmentClone = original.DeepClone();
         Require(fragmentClone.Label.Value == "original", "fragment DeepClone");
 
-        // ChangeSet payload JSON transport (ordinary System.Text.Json).
+        // ChangeSet payload JSON transport uses the generated type metadata.
         var baseline = new NetStandardSettings.Fragment { Label = "base" };
         var baselineOpt = Optional<NetStandardSettings.Fragment?>.Present(baseline);
         var editedBaseline = new NetStandardSettings.Fragment { Label = "patched" };
-        var changes = NetStandardSettings.ChangeSet.Between(
-            baselineOpt,
-            Optional<NetStandardSettings.Fragment?>.Present(editedBaseline));
-        var changesJson = JsonSerializer.Serialize(changes.ToPayload());
+        var changes = NetStandardSettings.ChangeSet.Between(baselineOpt, Optional<NetStandardSettings.Fragment?>.Present(editedBaseline));
+        var changesJson = JsonSerializer.Serialize(changes.ToPayload(), NetStandardSettings.PayloadJson.Default);
         var restoredChanges = JsonSerializer
-            .Deserialize<NetStandardSettings.ChangePayload>(changesJson)
+            .Deserialize<NetStandardSettings.ChangePayload>(changesJson, NetStandardSettings.PayloadJson.Default)
             ?.ToChangeSet();
         if (restoredChanges is null)
         {
             throw new InvalidOperationException("Failed: ChangeSet payload JSON deserialize");
         }
-        Require(
-            restoredChanges.ToPatch().Apply(baselineOpt).Value!.Label.Value == "patched",
-            "ChangeSet payload JSON round-trip"
-        );
+        Require(restoredChanges.ToPatch().Apply(baselineOpt).Value!.Label.Value == "patched", "ChangeSet payload JSON round-trip");
         Require(changesJson.Contains("patched"), "ChangeSet payload JSON export");
 
         var modelBefore = new NetStandardSettings
@@ -173,13 +143,7 @@ public static class NetStandardConsumerCheck
 
         var conflictingModel = modelBefore.DeepClone();
         conflictingModel.Label = "server-label";
-        if (
-            modelChanges.TryApplyTo(
-                conflictingModel,
-                out var conflictedModel,
-                out var modelConflicts
-            )
-        )
+        if (modelChanges.TryApplyTo(conflictingModel, out var conflictedModel, out var modelConflicts))
         {
             throw new InvalidOperationException("Failed: model conflict should be reported");
         }
@@ -211,8 +175,7 @@ public partial class NetStandardSettings
     [SparseMerge(MergeMode.SetUnion)]
     public HashSet<string> Tags { get; set; } = new HashSet<string>(StringComparer.Ordinal);
 
-    public Dictionary<string, string> Options { get; set; } =
-        new Dictionary<string, string>(StringComparer.Ordinal);
+    public Dictionary<string, string> Options { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
 }
 
 public partial class NetStandardChild

@@ -110,27 +110,17 @@ public sealed class CrossBoundaryLifecycleTests
 
         // Versioned transport to the server.
         var payload = submitted.ToPayload();
-        var json = JsonSerializer.Serialize(payload);
+        var json = PayloadJsonTestSupport.Serialize(payload);
         json.ShouldContain("\"version\":\"0.1\"");
-        var incoming = JsonSerializer.Deserialize<LifecycleOrder.ChangePayload>(json)!;
+        var incoming = PayloadJsonTestSupport.Deserialize<LifecycleOrder.ChangePayload>(json);
         incoming.Version.ShouldBe("0.1");
 
         // The server applies the change onto its copy of the baseline.
-        var applied = incoming
-            .ToChangeSet()
-            .TryApplyTo(serverModel, out var persisted, out var conflicts);
+        var applied = incoming.ToChangeSet().TryApplyTo(serverModel, out var persisted, out var conflicts);
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
         persisted.ShouldNotBeNull();
-        CheckServerState(
-            persisted!,
-            "ORD-2",
-            "note",
-            "db.new",
-            5432,
-            2,
-            [(1, "first"), (2, "second")]
-        );
+        CheckServerState(persisted!, "ORD-2", "note", "db.new", 5432, 2, [(1, "first"), (2, "second")]);
 
         // The client keeps editing after the snapshot; acknowledgement only
         // advances the baseline by the submitted transition.
@@ -157,12 +147,8 @@ public sealed class CrossBoundaryLifecycleTests
         serverView.Note = "local-note";
         LifecycleOrder
             .ChangeSet.Between(
-                Optional<LifecycleOrder.Fragment?>.Present(
-                    LifecycleOrder.Fragment.From(serverView)
-                ),
-                Optional<LifecycleOrder.Fragment?>.Present(
-                    LifecycleOrder.Fragment.From(Raw(client))
-                )
+                Optional<LifecycleOrder.Fragment?>.Present(LifecycleOrder.Fragment.From(serverView)),
+                Optional<LifecycleOrder.Fragment?>.Present(LifecycleOrder.Fragment.From(Raw(client)))
             )
             .IsEmpty.ShouldBeTrue();
     }
@@ -179,11 +165,7 @@ public sealed class CrossBoundaryLifecycleTests
         // A disjoint server edit merges cleanly and keeps both sides.
         var disjointServer = Baseline();
         disjointServer.Child!.Port = 9999;
-        var disjoint = submitted.TryApplyTo(
-            disjointServer,
-            out var merged,
-            out var disjointConflicts
-        );
+        var disjoint = submitted.TryApplyTo(disjointServer, out var merged, out var disjointConflicts);
         disjoint.ShouldBeTrue();
         disjointConflicts.ShouldBeNull();
         merged!.Number.ShouldBe("ORD-2");
@@ -193,11 +175,7 @@ public sealed class CrossBoundaryLifecycleTests
         // A conflicting server edit rejects without touching the server copy.
         var conflictingServer = Baseline();
         conflictingServer.Number = "ORD-9";
-        var conflicted = submitted.TryApplyTo(
-            conflictingServer,
-            out var rejected,
-            out var conflicts
-        );
+        var conflicted = submitted.TryApplyTo(conflictingServer, out var rejected, out var conflicts);
         conflicted.ShouldBeFalse();
         rejected.ShouldBeNull();
         conflicts!.Count.ShouldBe(1);
@@ -212,11 +190,7 @@ public sealed class CrossBoundaryLifecycleTests
 
         // Rebasing the pending change drops only the conflicting member: the
         // disjoint edit replays onto the server state.
-        var rebased = submitted.RebaseOnto(
-            Optional<LifecycleOrder.Fragment?>.Present(
-                LifecycleOrder.Fragment.From(conflictingServer)
-            )
-        );
+        var rebased = submitted.RebaseOnto(Optional<LifecycleOrder.Fragment?>.Present(LifecycleOrder.Fragment.From(conflictingServer)));
         rebased.HasConflicts.ShouldBeTrue();
         var replayed = rebased.Rebased.TryApplyTo(conflictingServer, out var resolved, out _);
         replayed.ShouldBeTrue();
@@ -233,9 +207,7 @@ public sealed class CrossBoundaryLifecycleTests
         var payload = changes.ToPayload();
 
         // A rejected wire version never becomes a ChangeSet.
-        var tampered = JsonSerializer.Deserialize<LifecycleSecret.ChangePayload>(
-            JsonSerializer.Serialize(payload)
-        )!;
+        var tampered = PayloadJsonTestSupport.RoundTrip(payload);
         tampered.Version = "9.9";
         Should.Throw<ArgumentException>(() => tampered.ToChangeSet());
 
@@ -246,12 +218,7 @@ public sealed class CrossBoundaryLifecycleTests
             RejectChangesWithRedactedBeforeValuesDuringRebase = true,
             RedactedBeforePaths = [nameof(LifecycleSecret.Password)],
         };
-        var strictApplied = changes.TryApplyTo(
-            current,
-            out var strictUpdated,
-            out var strictConflicts,
-            strict
-        );
+        var strictApplied = changes.TryApplyTo(current, out var strictUpdated, out var strictConflicts, strict);
         strictApplied.ShouldBeFalse();
         strictUpdated.ShouldBeNull();
         strictConflicts!.Count.ShouldBe(1);
@@ -260,9 +227,7 @@ public sealed class CrossBoundaryLifecycleTests
         current.Password.ShouldBe("hunter2");
 
         // The pass-through mixed path applies the blind set atomically.
-        var mixed = JsonSerializer.Deserialize<LifecycleSecret.ChangePayload>(
-            JsonSerializer.Serialize(payload)
-        )!;
+        var mixed = PayloadJsonTestSupport.RoundTrip(payload);
         var passed = mixed.TryApplyMixedTo(current, out var mixedUpdated, out var outcome);
         passed.ShouldBeTrue();
         mixedUpdated!.Label.ShouldBe("b");

@@ -22,46 +22,28 @@ public sealed class GeneratedOnceDriverTests
             DriverResult
                 .Results.SelectMany(static result => result.GeneratedSources)
                 .GroupBy(static source => source.HintName)
-                .ToDictionary(
-                    static group => group.Key,
-                    static group => group.First().SourceText.ToString(),
-                    StringComparer.Ordinal
-                );
+                .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
 
         public ImmutableArray<Diagnostic> SpfDiagnostics() =>
-            DriverResult
-                .Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-                .ToImmutableArray();
+            DriverResult.Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ToImmutableArray();
 
         public IReadOnlyList<IncrementalStepRunReason> Reasons(string trackingName) =>
             GeneratorResult.TrackedSteps.TryGetValue(trackingName, out var steps)
-                ? steps
-                    .SelectMany(static step => step.Outputs.Select(static output => output.Reason))
-                    .ToArray()
+                ? steps.SelectMany(static step => step.Outputs.Select(static output => output.Reason)).ToArray()
                 : Array.Empty<IncrementalStepRunReason>();
     }
 
     private static CSharpCompilation CreateCompilation(Dictionary<string, string> files)
     {
-        var trees = files
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseGeneratedOnceProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
@@ -71,10 +53,7 @@ public sealed class GeneratedOnceDriverTests
         GeneratorDriver driver = tracked
             ? CSharpGeneratorDriver.Create(
                 new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() },
-                driverOptions: new GeneratorDriverOptions(
-                    IncrementalGeneratorOutputKind.None,
-                    trackIncrementalGeneratorSteps: true
-                )
+                driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true)
             )
             : CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
@@ -140,21 +119,15 @@ public sealed class GeneratedOnceDriverTests
         """;
 
     private static int CountTypeDefinitions(Dictionary<string, string> sources, string snippet) =>
-        sources.Values.Sum(source =>
-            source.Split('\n').Count(line => line.Contains(snippet, StringComparison.Ordinal))
-        );
+        sources.Values.Sum(source => source.Split('\n').Count(line => line.Contains(snippet, StringComparison.Ordinal)));
 
     private static void NoneModified(Probe probe, string stage)
     {
         var reasons = probe.Reasons(stage);
         reasons.ShouldNotBeEmpty($"expected tracking data for '{stage}'");
         reasons
-            .All(static reason =>
-                reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged
-            )
-            .ShouldBeTrue(
-                $"expected '{stage}' to change no output, got: {string.Join(", ", reasons)}"
-            );
+            .All(static reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged)
+            .ShouldBeTrue($"expected '{stage}' to change no output, got: {string.Join(", ", reasons)}");
     }
 
     private static void HasModified(Probe probe, string stage)
@@ -163,9 +136,7 @@ public sealed class GeneratedOnceDriverTests
         reasons.ShouldNotBeEmpty($"expected tracking data for '{stage}'");
         reasons
             .Any(static reason => reason == IncrementalStepRunReason.Modified)
-            .ShouldBeTrue(
-                $"expected '{stage}' to change an output, got: {string.Join(", ", reasons)}"
-            );
+            .ShouldBeTrue($"expected '{stage}' to change an output, got: {string.Join(", ", reasons)}");
     }
 
     [Test]
@@ -191,21 +162,13 @@ public sealed class GeneratedOnceDriverTests
     {
         // Session cores live in the SparseTypes runtime; the generator only
         // emits the per-model adapters that bind to them.
-        var probe = Run(
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }
-        );
+        var probe = Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel });
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
         sources.Keys.ShouldNotContain(key => key.Contains("EditSession", StringComparison.Ordinal));
         sources.Keys.ShouldContain(key => key.Contains("JsonCodecs", StringComparison.Ordinal));
-        sources
-            .Keys.Count(key =>
-                key.EndsWith("ChangePayloadJsonConverters.g.cs", StringComparison.Ordinal)
-            )
-            .ShouldBe(1);
-        sources.Values.ShouldContain(source =>
-            source.Contains("global::SparseTypes.Generated.EditSessionCore<", StringComparison.Ordinal)
-        );
+        sources.Keys.ShouldNotContain(key => key.EndsWith("ChangePayloadJsonConverters.g.cs", StringComparison.Ordinal));
+        sources.Values.ShouldContain(source => source.Contains("global::SparseTypes.Generated.EditSessionCore<", StringComparison.Ordinal));
         sources.Keys.ShouldNotContain(key =>
             key.Contains("CloneKernels", StringComparison.Ordinal)
             || key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
@@ -216,30 +179,18 @@ public sealed class GeneratedOnceDriverTests
     [Test]
     public void ScalarModelBetweenComparesWithoutFragmentProjection()
     {
-        var probe = Run(
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }
-        );
+        var probe = Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel });
         var methods = probe
             .Sources()
-            .Values.SelectMany(source =>
-                CSharpSyntaxTree
-                    .ParseText(source)
-                    .GetRoot()
-                    .DescendantNodes()
-                    .OfType<MethodDeclarationSyntax>()
-            )
+            .Values.SelectMany(source => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
             .Where(declaration =>
                 declaration.Identifier.ValueText == "Between"
                 && declaration.ParameterList.Parameters.Count == 2
                 && declaration.ParameterList.Parameters.All(parameter =>
-                    parameter.Type?.ToString().EndsWith("ScalarModel", StringComparison.Ordinal)
-                        is true
+                    parameter.Type?.ToString().EndsWith("ScalarModel", StringComparison.Ordinal) is true
                 )
             )
-            .Where(declaration =>
-                declaration.Body is not null
-                && declaration.Body.ToString().Contains("before.Label", StringComparison.Ordinal)
-            )
+            .Where(declaration => declaration.Body is not null && declaration.Body.ToString().Contains("before.Label", StringComparison.Ordinal))
             .ToArray();
         methods.ShouldNotBeEmpty();
         foreach (var method in methods)
@@ -286,28 +237,18 @@ public sealed class GeneratedOnceDriverTests
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
         var traversalSource = sources.Values.Single(source =>
-            source.Contains("__SparseCollectInto", StringComparison.Ordinal)
-            && source.Contains("__sparse_set_transition_", StringComparison.Ordinal)
+            source.Contains("__SparseCollectInto", StringComparison.Ordinal) && source.Contains("__sparse_set_transition_", StringComparison.Ordinal)
         );
         traversalSource.ShouldContain("var __sparse_set_transition_0 = Labels;");
         traversalSource.ShouldContain("if (__sparse_set_transition_0.IsChanged)");
         traversalSource.ShouldNotContain("if (Labels.IsChanged)");
 
-        var childSources = sources.Values.Where(source =>
-            source.Contains(".TryAcceptChildDraft<TChild>(", StringComparison.Ordinal)
-        );
+        var childSources = sources.Values.Where(source => source.Contains(".TryAcceptChildDraft<TChild>(", StringComparison.Ordinal));
         childSources.ShouldNotBeEmpty();
         foreach (var childSource in childSources)
         {
-            var acceptStart = childSource.IndexOf(
-                ".TryAcceptChildDraft<TChild>(",
-                StringComparison.Ordinal
-            );
-            var preflightStart = childSource.IndexOf(
-                ".TryPreflightChildDraft<TChild>(",
-                acceptStart,
-                StringComparison.Ordinal
-            );
+            var acceptStart = childSource.IndexOf(".TryAcceptChildDraft<TChild>(", StringComparison.Ordinal);
+            var preflightStart = childSource.IndexOf(".TryPreflightChildDraft<TChild>(", acceptStart, StringComparison.Ordinal);
             acceptStart.ShouldBeGreaterThanOrEqualTo(0);
             preflightStart.ShouldBeGreaterThan(acceptStart);
             childSource
@@ -326,10 +267,7 @@ public sealed class GeneratedOnceDriverTests
                 ["Scalar.cs"] = ScalarModel,
                 ["Collection.cs"] = CollectionModel,
                 ["Keyed.cs"] = KeyedModel,
-                ["SecondCollection.cs"] = CollectionModel.Replace(
-                    "CollectionModel",
-                    "SecondCollectionModel"
-                ),
+                ["SecondCollection.cs"] = CollectionModel.Replace("CollectionModel", "SecondCollectionModel"),
             }
         );
         probe.SpfDiagnostics().ShouldBeEmpty();
@@ -341,22 +279,14 @@ public sealed class GeneratedOnceDriverTests
         CountTypeDefinitions(sources, "class SparseRemovalIndex<").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseJsonCodecs").ShouldBe(1);
         CountTypeDefinitions(sources, "class SparseJsonPayloadCodecs").ShouldBe(1);
-        CountTypeDefinitions(sources, "class ChangePayloadEndpointJsonConverter<").ShouldBe(1);
-        CountTypeDefinitions(sources, "class ChangePayloadItemKindJsonConverter").ShouldBe(1);
-        sources.Values.ShouldNotContain(source =>
-            source.Contains("class EditSessionCore<", StringComparison.Ordinal)
-        );
+        CountTypeDefinitions(sources, "class ChangePayloadEndpointJsonConverter<").ShouldBe(0);
+        CountTypeDefinitions(sources, "class ChangePayloadItemKindJsonConverter").ShouldBe(0);
+        sources.Values.ShouldNotContain(source => source.Contains("class EditSessionCore<", StringComparison.Ordinal));
         // Per-model sessions bind to the runtime session cores.
         CountTypeDefinitions(sources, "global::SparseTypes.Generated.EditSessionCore<").ShouldBeGreaterThan(0);
-        sources
-            .Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal))
-            .ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal)).ShouldBe(1);
     }
 
     [Test]
@@ -405,10 +335,7 @@ public sealed class GeneratedOnceDriverTests
         CountTypeDefinitions(sources, "class SparseCloneKernels").ShouldBe(1);
         // Colliding short names still compile through per-model containers.
         var updated = RunAndUpdate(probe.Compilation, probe.Driver);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]
@@ -431,9 +358,7 @@ public sealed class GeneratedOnceDriverTests
             }
         );
         probe.SpfDiagnostics().ShouldBeEmpty();
-        probe
-            .Sources()
-            .Keys.ShouldNotContain(key => key.Contains("EditSession", StringComparison.Ordinal));
+        probe.Sources().Keys.ShouldNotContain(key => key.Contains("EditSession", StringComparison.Ordinal));
     }
 
     [Test]
@@ -468,9 +393,7 @@ public sealed class GeneratedOnceDriverTests
         );
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
-        sources
-            .Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -489,25 +412,15 @@ public sealed class GeneratedOnceDriverTests
     public void UnrelatedEdit_PreservesHelperBytesAndHintSet()
     {
         var before = Run(
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["Scalar.cs"] = ScalarModel,
-                ["Collection.cs"] = CollectionModel,
-            },
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel, ["Collection.cs"] = CollectionModel },
             tracked: true
         );
         before.SpfDiagnostics().ShouldBeEmpty();
         var beforeSources = before.Sources();
-        var after = Rerun(
-            before,
-            "Scalar.cs",
-            ScalarModel.Replace("}", "    public int EditMarker { get; set; }\n}")
-        );
+        var after = Rerun(before, "Scalar.cs", ScalarModel.Replace("}", "    public int EditMarker { get; set; }\n}"));
         after.SpfDiagnostics().ShouldBeEmpty();
         var afterSources = after.Sources();
-        afterSources
-            .Keys.OrderBy(static key => key)
-            .ShouldBe(beforeSources.Keys.OrderBy(static key => key));
+        afterSources.Keys.OrderBy(static key => key).ShouldBe(beforeSources.Keys.OrderBy(static key => key));
         foreach (
             var hint in beforeSources.Keys.Where(static key =>
                 key.Contains("JsonCodecs", StringComparison.Ordinal)
@@ -540,34 +453,16 @@ public sealed class GeneratedOnceDriverTests
     [Test]
     public void CapabilityEdit_UpdatesOnlyAffectedFamilies()
     {
-        var before = Run(
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel },
-            tracked: true
-        );
+        var before = Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }, tracked: true);
         before.SpfDiagnostics().ShouldBeEmpty();
-        before
-            .Sources()
-            .Keys.ShouldNotContain(key => key.Contains("CloneKernels", StringComparison.Ordinal));
-        var jsonCodecsBefore = before
-            .Sources()
-            .First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
-            .Value;
-        var after = Rerun(
-            before,
-            "Scalar.cs",
-            CollectionModel.Replace("CollectionModel", "ScalarModel")
-        );
+        before.Sources().Keys.ShouldNotContain(key => key.Contains("CloneKernels", StringComparison.Ordinal));
+        var jsonCodecsBefore = before.Sources().First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).Value;
+        var after = Rerun(before, "Scalar.cs", CollectionModel.Replace("CollectionModel", "ScalarModel"));
         after.SpfDiagnostics().ShouldBeEmpty();
         var afterSources = after.Sources();
-        afterSources
-            .Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        afterSources
-            .Keys.Any(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        afterSources
-            .First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
-            .Value.ShouldBe(jsonCodecsBefore);
+        afterSources.Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBeTrue();
+        afterSources.Keys.Any(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBeTrue();
+        afterSources.First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).Value.ShouldBe(jsonCodecsBefore);
         // The unaffected families recompute value-equal; the newly
         // requested families change output.
         NoneModified(after, "SparseTypesGenerator.GeneratedOnceJsonCodecs");
@@ -620,10 +515,7 @@ public sealed class GeneratedOnceDriverTests
         var compilation = CreateCompilation(files);
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var stream = new MemoryStream();
         updated.Emit(stream).Success.ShouldBeTrue();
         var consumer = System.Reflection.Assembly.Load(stream.ToArray());
@@ -667,15 +559,9 @@ public sealed class GeneratedOnceDriverTests
             """,
             path: "ConsumerCheck.cs"
         );
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var checkReferences = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        checkReferences.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var checkReferences = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        checkReferences.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         checkReferences.Add(MetadataReference.CreateFromImage(stream.ToArray()));
         var checkCompilation = CSharpCompilation.Create(
             "ConsumerCheck",
@@ -683,10 +569,7 @@ public sealed class GeneratedOnceDriverTests
             checkReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
-        checkCompilation
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        checkCompilation.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var checkStream = new MemoryStream();
         checkCompilation.Emit(checkStream).Success.ShouldBeTrue();
         var checkAssembly = System.Reflection.Assembly.Load(checkStream.ToArray());
@@ -707,11 +590,7 @@ public sealed class GeneratedOnceDriverTests
         System.AppDomain.CurrentDomain.AssemblyResolve += resolver;
         try
         {
-            checkAssembly
-                .GetType("ConsumerCheck")!
-                .GetMethod("Run")!
-                .Invoke(null, null)
-                .ShouldBe("b:x:b");
+            checkAssembly.GetType("ConsumerCheck")!.GetMethod("Run")!.Invoke(null, null).ShouldBe("b:x:b");
         }
         finally
         {

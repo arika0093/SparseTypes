@@ -6,9 +6,7 @@ namespace SparseTypes.Tests;
 public sealed class KeyedGetChangeTests
 {
     private static Optional<KeyedServerHolder.Fragment?> Keyed(params KeyedServer[] items) =>
-        Optional<KeyedServerHolder.Fragment?>.Present(
-            KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-        );
+        Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
 
     private static KeyedServer S(string id, string? name = null, int count = 1) =>
         new()
@@ -18,14 +16,8 @@ public sealed class KeyedGetChangeTests
             Count = count,
         };
 
-    private static Optional<CompositeServerHolder.Fragment?> Composite(
-        params CompositeServer[] items
-    ) =>
-        Optional<CompositeServerHolder.Fragment?>.Present(
-            CompositeServerHolder.Fragment.From(
-                new CompositeServerHolder { Items = items.ToList() }
-            )
-        );
+    private static Optional<CompositeServerHolder.Fragment?> Composite(params CompositeServer[] items) =>
+        Optional<CompositeServerHolder.Fragment?>.Present(CompositeServerHolder.Fragment.From(new CompositeServerHolder { Items = items.ToList() }));
 
     private static CompositeServer C(string tenant, string id, string? name = null) =>
         new()
@@ -53,10 +45,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void UnchangedKeyReturnsEmptyNotNull()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b")),
-            Keyed(S("a"), S("b", "b2"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b")), Keyed(S("a"), S("b", "b2")));
         var item = changes.Items.GetChange("a");
         AssertEmpty(item);
     }
@@ -72,10 +61,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void AddedRemovedEditedLookup()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("b"), S("c")),
-            Keyed(S("b", "b2"), S("d"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("b"), S("c")), Keyed(S("b", "b2"), S("d")));
         var transition = changes.Items;
 
         var added = transition.GetChange("d");
@@ -110,10 +96,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void TupleKeyLookupUsesTupleKey()
     {
-        var changes = CompositeServerHolder.ChangeSet.Between(
-            Composite(C("t1", "a")),
-            Composite(C("t1", "a", "A2"), C("t2", "a"))
-        );
+        var changes = CompositeServerHolder.ChangeSet.Between(Composite(C("t1", "a")), Composite(C("t1", "a", "A2"), C("t2", "a")));
         var transition = changes.Items;
 
         var edited = transition.GetChange(("t1", "a"));
@@ -134,8 +117,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void ComputedKeyLookupUsesComparerSemantics()
     {
-        Optional<SkApiCluster.Fragment?> State(SkApiCluster m) =>
-            Optional<SkApiCluster.Fragment?>.Present(SkApiCluster.Fragment.From(m));
+        Optional<SkApiCluster.Fragment?> State(SkApiCluster m) => Optional<SkApiCluster.Fragment?>.Present(SkApiCluster.Fragment.From(m));
         var changes = SkApiCluster.ChangeSet.Between(
             State(
                 new SkApiCluster
@@ -201,10 +183,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void LookupMatchesEnumerationForNonEmptyChanges()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("b"), S("a"), S("d"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("b"), S("a"), S("d")));
         var transition = changes.Items;
 
         var enumerated = transition.ToList();
@@ -212,8 +191,7 @@ public sealed class KeyedGetChangeTests
         foreach (var item in enumerated)
         {
             item.IsEmpty.ShouldBeFalse();
-            ReferenceEquals(item, transition.GetChange(item.Key))
-                .ShouldBeTrue($"lookup must return the enumerated instance for key {item.Key}");
+            ReferenceEquals(item, transition.GetChange(item.Key)).ShouldBeTrue($"lookup must return the enumerated instance for key {item.Key}");
         }
 
         // Removed keys are non-empty changes and appear in enumeration.
@@ -221,10 +199,7 @@ public sealed class KeyedGetChangeTests
         transition.GetChange("c").IsRemoved.ShouldBeTrue();
 
         // Truly unchanged keys never appear in enumeration.
-        var quiet = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("b"), S("a"), S("c"))
-        );
+        var quiet = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("b"), S("a"), S("c")));
         quiet.Items.Select(i => i.Key).ShouldBe(["b", "a"]);
         AssertEmpty(quiet.Items.GetChange("c"));
     }
@@ -232,10 +207,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void PureRemovalDoesNotReorderSurvivors()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("b"), S("c"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("b"), S("c")));
         var transition = changes.Items;
         transition.OrderChanged.ShouldBeTrue();
 
@@ -253,10 +225,7 @@ public sealed class KeyedGetChangeTests
     {
         // Removal of "a" shifts "b" from absolute index 1 to 0, but the
         // surviving relative rank ([b, c] on both sides) is unchanged.
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("b", "b2"), S("c"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("b", "b2"), S("c")));
         var transition = changes.Items;
 
         var b = transition.GetChange("b");
@@ -270,10 +239,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void PureAdditionDoesNotReorderSurvivors()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b")),
-            Keyed(S("a"), S("b"), S("c"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b")), Keyed(S("a"), S("b"), S("c")));
         var transition = changes.Items;
 
         // Pure-addition survivors carry no semantic change.
@@ -288,10 +254,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void SwapMarksAffectedSurvivorsReordered()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("b"), S("a"), S("c"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("b"), S("a"), S("c")));
         var transition = changes.Items;
 
         var a = transition.GetChange("a");
@@ -311,10 +274,7 @@ public sealed class KeyedGetChangeTests
     [Test]
     public void ReorderPlusAddRemovePreservesBothSemantics()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(S("a"), S("b"), S("c")),
-            Keyed(S("c"), S("b"), S("d"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(S("a"), S("b"), S("c")), Keyed(S("c"), S("b"), S("d")));
         var transition = changes.Items;
 
         // Surviving rank: before [b, c], after [c, b] -> both reordered.
@@ -430,10 +390,8 @@ public sealed class KeyedGetChangeTests
         var after = Keyed(S("a", "a2"), S("c"));
         var changes = KeyedServerHolder.ChangeSet.Between(before, after);
 
-        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload());
-        var back = System
-            .Text.Json.JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json)!
-            .ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
+        var back = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(json).ToChangeSet();
 
         back.Items.GetChange("a").IsEdited.ShouldBeTrue();
         back.Items.GetChange("a").Edit.Name.After.Value.ShouldBe("a2");

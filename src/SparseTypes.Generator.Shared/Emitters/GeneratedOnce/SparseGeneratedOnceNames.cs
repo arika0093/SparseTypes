@@ -24,9 +24,6 @@ internal static class SparseGeneratedOnceNames
     /// <summary>Simple name of the shared endpoint JSON converter.</summary>
     public const string ChangePayloadEndpointJsonConverter = "ChangePayloadEndpointJsonConverter";
 
-    /// <summary>Simple name of the shared item-kind JSON converter.</summary>
-    public const string ChangePayloadItemKindJsonConverter = "ChangePayloadItemKindJsonConverter";
-
     /// <summary>Simple name of the shared JSON codec container.</summary>
     public const string JsonCodecs = "SparseJsonCodecs";
 
@@ -66,12 +63,6 @@ internal static class SparseGeneratedOnceNames
     public static string QualifiedChangePayloadEndpointJsonConverter(string implementationNamespace) =>
         "global::" + implementationNamespace + "." + ChangePayloadEndpointJsonConverter;
 
-    /// <summary>Qualified name of the shared ChangePayload item-kind converter.</summary>
-    /// <param name="implementationNamespace">Explicit generated namespace.</param>
-    /// <returns>Globally qualified type name.</returns>
-    public static string QualifiedChangePayloadItemKindJsonConverter(string implementationNamespace) =>
-        "global::" + implementationNamespace + "." + ChangePayloadItemKindJsonConverter;
-
     /// <summary>Qualified name of the shared JSON codec container.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
@@ -96,11 +87,6 @@ internal static class SparseGeneratedOnceNames
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
     /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
     public static string RemovalIndexHintName(string implementationNamespace) => "Generated.RemovalIndex.g.cs";
-
-    /// <summary>Stable hint name for shared ChangePayload converter source.</summary>
-    /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>
-    /// <returns>Deterministic hint name under the shared Generated prefix.</returns>
-    public static string ChangePayloadJsonConvertersHintName(string implementationNamespace) => "Generated.ChangePayloadJsonConverters.g.cs";
 
     /// <summary>Stable hint name for shared JSON codec source.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace (reserved for future product disambiguation).</param>

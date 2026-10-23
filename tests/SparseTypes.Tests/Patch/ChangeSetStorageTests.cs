@@ -72,21 +72,19 @@ public sealed class ChangeSetStorageTests
         foreach (var before in states)
         {
             foreach (var after in states)
-        {
-            var change = CompactStorageRecord.ChangeSet.Between(before, after);
-            RequireState(change.ToPatch().Apply(before), after);
-            RequireState(change.Invert().ToPatch().Apply(after), before);
-            var json = JsonSerializer.Serialize(change.ToPayload());
-            var restored = JsonSerializer
-                .Deserialize<CompactStorageRecord.ChangePayload>(json)!
-                .ToChangeSet();
-            RequireState(restored.ToPatch().Apply(before), after);
-            foreach (var final in states)
             {
-                var next = CompactStorageRecord.ChangeSet.Between(after, final);
-                RequireState(change.Compose(next).ToPatch().Apply(before), final);
+                var change = CompactStorageRecord.ChangeSet.Between(before, after);
+                RequireState(change.ToPatch().Apply(before), after);
+                RequireState(change.Invert().ToPatch().Apply(after), before);
+                var json = PayloadJsonTestSupport.Serialize(change.ToPayload());
+                var restored = PayloadJsonTestSupport.Deserialize<CompactStorageRecord.ChangePayload>(json).ToChangeSet();
+                RequireState(restored.ToPatch().Apply(before), after);
+                foreach (var final in states)
+                {
+                    var next = CompactStorageRecord.ChangeSet.Between(after, final);
+                    RequireState(change.Compose(next).ToPatch().Apply(before), final);
+                }
             }
-        }
         }
     }
 
@@ -115,10 +113,7 @@ public sealed class ChangeSetStorageTests
         change.ToPatch().ApplyTo(before).__sparse_before_0Value.ShouldBe("C");
     }
 
-    private static void RequireState(
-        Optional<CompactStorageRecord.Fragment?> actual,
-        Optional<CompactStorageRecord.Fragment?> expected
-    )
+    private static void RequireState(Optional<CompactStorageRecord.Fragment?> actual, Optional<CompactStorageRecord.Fragment?> expected)
     {
         actual.IsPresent.ShouldBe(expected.IsPresent);
         if (expected.IsPresent && expected.Value is null)

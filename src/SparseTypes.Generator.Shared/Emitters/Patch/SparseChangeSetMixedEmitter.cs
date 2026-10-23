@@ -91,11 +91,11 @@ internal static class SparseChangeSetMixedEmitter
             "if (payload.Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(payload));"
         );
         AppendWholePartition(code, members, dialect, modelType, rootChange);
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendPartitionLocals(code, member, dialect, members);
         }
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             code.AppendLine("bool __payloadSeen" + member.Id + " = false;");
         }
@@ -103,7 +103,7 @@ internal static class SparseChangeSetMixedEmitter
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendPartitionCase(code, member, dialect, modelType);
         }
@@ -116,7 +116,7 @@ internal static class SparseChangeSetMixedEmitter
         foreach (var member in members)
         {
             var id = member.Id;
-            if (member.Property.IsJsonIgnored)
+            if (member.Property.IsTransportIgnored)
             {
                 args.AddRange(SparseChangeSetBasicsEmitter.EmptyMemberArgs(member));
                 continue;

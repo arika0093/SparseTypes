@@ -49,9 +49,9 @@ session.Observable.Database!.Port = 7432;
 var outgoing = session.CreateChangeSet();
 
 // Client/Server Edits: the typed payload crosses process boundaries as ordinary
-// System.Text.Json.
-var json = JsonSerializer.Serialize(outgoing.ToPayload());
-var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
+// System.Text.Json with the generated payload metadata.
+var json = JsonSerializer.Serialize(outgoing.ToPayload(), Settings.PayloadJson.Default);
+var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json, Settings.PayloadJson.Default)!.ToChangeSet();
 Require(incoming.Label.IsChanged, "ChangeSet payload JSON round-trip preserves transitions");
 var updated = Settings.Fragment.From(settings).Apply(incoming.ToPatch());
 var rebased = incoming.RebaseOnto(updated);

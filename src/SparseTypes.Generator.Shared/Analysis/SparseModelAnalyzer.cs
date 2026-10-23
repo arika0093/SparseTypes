@@ -38,6 +38,7 @@ internal static class SparseModelAnalyzer
         SparseModelDiagnostics.CollectMemberDiagnostics(model, members, config, diagnostics, cancellationToken);
 
         var memberModels = SparseModelDiscovery.CreateMemberModels(members, config, cancellationToken, model);
+        var payloadContract = SparsePayloadContract.Create(memberModels);
 
         // Whole-member reconciliation cannot target nested, keyed, dictionary,
         // or merge-collection members.
@@ -83,10 +84,22 @@ internal static class SparseModelAnalyzer
 
         // Statically provable duplicate JSON wire names fail here instead of
         // surfacing as runtime converter errors in generated code.
-        foreach (var duplicate in SparseShapeValidation.FindDuplicateWireNames(memberModels))
+        var hasPayloadJson = config.EffectiveEmissionFeatures.EmitChangePayload && config.EffectiveEmissionFeatures.EmitJsonConverters;
+        var duplicateWireNames = hasPayloadJson
+            ? SparseShapeValidation.FindDuplicatePayloadWireNames(payloadContract)
+            : SparseShapeValidation.FindDuplicateWireNames(memberModels);
+        foreach (var duplicate in duplicateWireNames)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var owner = SparseShapeValidation.FindWireNameOwner(members, duplicate, cancellationToken);
+            var owner = hasPayloadJson
+                ? members
+                    .FirstOrDefault(symbolMember =>
+                        payloadContract.Members.Any(contractMember =>
+                            contractMember.JsonName == duplicate && contractMember.ClrName == symbolMember.Property.Name
+                        )
+                    )
+                    ?.Property
+                : SparseShapeValidation.FindWireNameOwner(members, duplicate, config, cancellationToken);
             diagnostics.Add(
                 new SparseGeneratorDiagnostic(config.EffectiveDiagnosticIds.DuplicateJsonPropertyName, owner?.Locations.FirstOrDefault(), duplicate)
             );
@@ -149,7 +162,8 @@ internal static class SparseModelAnalyzer
             diagnostics.ToImmutable().AddRange(capabilityDiagnostics),
             promotedModels,
             readOnlyViewModels,
-            payloadJsonPocos
+            payloadJsonPocos,
+            payloadContract
         );
     }
 

@@ -72,9 +72,7 @@ public sealed class PatchOwnershipTests
         var scores = new Dictionary<string, int> { ["a"] = 1 };
         var patch = new ScalarDictHolder.Patch();
         patch.Scores.Set(scores);
-        var basis = ScalarDictHolder.Fragment.From(
-            new ScalarDictHolder { Scores = new() { ["x"] = 0 } }
-        );
+        var basis = ScalarDictHolder.Fragment.From(new ScalarDictHolder { Scores = new() { ["x"] = 0 } });
 
         var result = basis.Apply(patch);
 
@@ -118,17 +116,10 @@ public sealed class PatchOwnershipTests
     [Test]
     public void PatchBetweenSharesAfterValues()
     {
-        var before = Optional<ScalarSequenceHolder.Fragment?>.Present(
-            ScalarSequenceHolder.Fragment.From(new ScalarSequenceHolder { Tags = ["x"] })
-        );
-        var after = ScalarSequenceHolder.Fragment.From(
-            new ScalarSequenceHolder { Tags = ["a", "b"] }
-        );
+        var before = Optional<ScalarSequenceHolder.Fragment?>.Present(ScalarSequenceHolder.Fragment.From(new ScalarSequenceHolder { Tags = ["x"] }));
+        var after = ScalarSequenceHolder.Fragment.From(new ScalarSequenceHolder { Tags = ["a", "b"] });
 
-        var patch = ScalarSequenceHolder.Patch.Between(
-            before,
-            Optional<ScalarSequenceHolder.Fragment?>.Present(after)
-        );
+        var patch = ScalarSequenceHolder.Patch.Between(before, Optional<ScalarSequenceHolder.Fragment?>.Present(after));
 
         var applied = patch.Apply(before);
         ReferenceEquals(applied.Value!.Tags.Value, after.Tags.Value).ShouldBeTrue();
@@ -150,18 +141,14 @@ public sealed class PatchOwnershipTests
         ReferenceEquals(applied.Value.Tags.Value, model.Tags).ShouldBeFalse();
     }
 
-    private static string ChangeSetJson(ScalarSequenceHolder.ChangeSet changes) =>
-        JsonSerializer.Serialize(changes.ToPayload());
+    private static string ChangeSetJson(ScalarSequenceHolder.ChangeSet changes) => PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
     /// <summary>ChangeSet ownership: unlike <c>Patch</c> above, a <c>ChangeSet</c> snapshots its inputs.</summary>
     [Test]
     public void ChangeSetSnapshotsWholeRootFragments()
     {
         var tags = new List<string> { "a" };
-        var frag = new ScalarSequenceHolder.Fragment
-        {
-            Tags = Optional<List<string>>.Present(tags),
-        };
+        var frag = new ScalarSequenceHolder.Fragment { Tags = Optional<List<string>>.Present(tags) };
         var changes = ScalarSequenceHolder.ChangeSet.Between(
             Optional<ScalarSequenceHolder.Fragment?>.Missing,
             Optional<ScalarSequenceHolder.Fragment?>.Present(frag)
@@ -228,18 +215,15 @@ public sealed class PatchOwnershipTests
             new ScalarDictHolder.Fragment { Scores = Optional<Dictionary<string, int>>.Missing }
         );
         var after = Optional<ScalarDictHolder.Fragment?>.Present(
-            new ScalarDictHolder.Fragment
-            {
-                Scores = Optional<Dictionary<string, int>>.Present(scores),
-            }
+            new ScalarDictHolder.Fragment { Scores = Optional<Dictionary<string, int>>.Present(scores) }
         );
         var changes = ScalarDictHolder.ChangeSet.Between(before, after);
-        var payload = JsonSerializer.Serialize(changes.ToPayload());
+        var payload = PayloadJsonTestSupport.Serialize(changes.ToPayload());
 
         scores["mutated"] = 2;
 
         changes.IsEmpty.ShouldBeFalse();
-        JsonSerializer.Serialize(changes.ToPayload()).ShouldBe(payload);
+        PayloadJsonTestSupport.Serialize(changes.ToPayload()).ShouldBe(payload);
         changes.Scores.After.Value!.ContainsKey("mutated").ShouldBeFalse();
     }
 }

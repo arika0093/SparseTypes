@@ -139,6 +139,17 @@ internal static class SparseKeyAnalyzer
                 );
             }
 
+            if (SparseModelDiscovery.IsTransportIgnored(property, config))
+            {
+                diagnostics.Add(
+                    new SparseGeneratorDiagnostic(
+                        config.EffectiveDiagnosticIds.TransportIgnoreOnKey,
+                        property.Locations.FirstOrDefault(),
+                        property.Name
+                    )
+                );
+            }
+
             if (HasAttributeArguments(attribute))
             {
                 diagnostics.Add(

@@ -464,9 +464,33 @@ public partial class DatabaseSettings
         }
         private global::SparseTypes.Generated.IDescriptorSet? __descriptors;
     }
-    /// <summary>JSON metadata for 'global::DatabaseSettings' change payloads.</summary>
+    /// <summary>Metadata for 'global::DatabaseSettings' change payloads.</summary>
     public static class PayloadJson
     {
+        /// <summary>Gets the generated OpenAPI 3.0 and 3.1 payload schema bundle.</summary>
+        public static global::SparseTypes.SparsePayloadSchemaBundle Schema { get; } = new global::SparseTypes.SparsePayloadSchemaBundle(
+            typeof(ChangePayload),
+            new global::SparseTypes.SparsePayloadSchema[]
+            {
+                new(typeof(ChangePayload), "DatabaseSettings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"enum\":[\"0.1\"]},\"change\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}},\"required\":[\"version\",\"change\"]}"),
+                new(typeof(__Internal_7C0CFA12.ModelChange_7C0CFA12), "DatabaseSettings_ModelChange", "{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"update\"]},\"members\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_MembersDelta" + "\"}},\"required\":[\"kind\",\"members\"],\"not\":{\"required\":[\"before\",\"after\"]}},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"replace\"]},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"redacted\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Snapshot" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Snapshot" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"before\",\"after\"],\"not\":{\"required\":[\"members\"]}}],\"discriminator\":{\"propertyName\":\"kind\"}}"),
+                new(typeof(__Internal_7C0CFA12.Snapshot_7C0CFA12), "DatabaseSettings_Snapshot", "{\"type\":\"object\",\"properties\":{\"host\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"port\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}}}"),
+                new(typeof(__Internal_7C0CFA12.MembersDelta_7C0CFA12), "DatabaseSettings_MembersDelta", "{\"type\":\"object\",\"properties\":{\"host\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Change_host" + "\"},\"port\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Change_port" + "\"}}}"),
+                new(typeof(__Internal_7C0CFA12.Change0_7C0CFA12), "DatabaseSettings_Change_host", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"replace\"]},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"redacted\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
+                new(typeof(__Internal_7C0CFA12.Change1_7C0CFA12), "DatabaseSettings_Change_port", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"replace\"]},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"redacted\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
+            },
+            new global::SparseTypes.SparsePayloadSchema[]
+            {
+                new(typeof(ChangePayload), "DatabaseSettings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"const\":\"0.1\"},\"change\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}},\"required\":[\"version\",\"change\"]}"),
+                new(typeof(__Internal_7C0CFA12.ModelChange_7C0CFA12), "DatabaseSettings_ModelChange", "{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"update\"},\"members\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_MembersDelta" + "\"}},\"required\":[\"kind\",\"members\"],\"not\":{\"required\":[\"before\",\"after\"]}},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"replace\"},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"redacted\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Snapshot" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Snapshot" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"before\",\"after\"],\"not\":{\"required\":[\"members\"]}}],\"discriminator\":{\"propertyName\":\"kind\"}}"),
+                new(typeof(__Internal_7C0CFA12.Snapshot_7C0CFA12), "DatabaseSettings_Snapshot", "{\"type\":\"object\",\"properties\":{\"host\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"port\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}}}"),
+                new(typeof(__Internal_7C0CFA12.MembersDelta_7C0CFA12), "DatabaseSettings_MembersDelta", "{\"type\":\"object\",\"properties\":{\"host\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Change_host" + "\"},\"port\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Change_port" + "\"}}}"),
+                new(typeof(__Internal_7C0CFA12.Change0_7C0CFA12), "DatabaseSettings_Change_host", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"replace\"},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"redacted\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
+                new(typeof(__Internal_7C0CFA12.Change1_7C0CFA12), "DatabaseSettings_Change_port", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"replace\"},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"redacted\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"integer\",\"format\":\"int32\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
+            },
+            new global::System.Type[] {  },
+            new global::System.Func<global::SparseTypes.SparsePayloadSchemaBundle>[] {  }
+        );
         /// <summary>Gets the shared payload metadata for 'global::DatabaseSettings' change payloads.</summary>
         public static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<global::DatabaseSettings.ChangePayload> Default => global::SparseTypes.Generated.__Internal_7C0CFA12.PayloadJsonResolver.Default.ChangePayload;
         /// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>
@@ -689,7 +713,7 @@ public partial class DatabaseSettings
         /// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>
         public static global::SparseTypes.RebaseResult<Patch> Rebase(global::SparseTypes.Optional<Fragment?> baseState, Patch local, global::SparseTypes.Optional<Fragment?> currentState, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.Rebase(baseState, local, currentState, options);
         /// <summary>Builds a baseline-free command core from this patch.</summary>
-        /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. JSON-ignored members throw instead of exporting lossy cores.</remarks>
+        /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>
         /// <returns>The baseline-free command core.</returns>
         internal __Internal_7C0CFA12.Core_7C0CFA12 ToChangePayloadCore() => __Core.ToChangePayloadCore(this);
         internal Fragment ApplyMembers(Fragment current) => __Core.ApplyMembers(this, current);
@@ -883,7 +907,7 @@ public partial class DatabaseSettings
                 return new global::SparseTypes.RebaseResult<Patch>(result, conflicts);
             }
             /// <summary>Builds a baseline-free command core from this patch.</summary>
-            /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. JSON-ignored members throw instead of exporting lossy cores.</remarks>
+            /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>
             /// <param name="self">The patch to convert.</param>
             /// <returns>The baseline-free command core.</returns>
             internal static __Internal_7C0CFA12.Core_7C0CFA12 ToChangePayloadCore(Patch self)
@@ -1058,10 +1082,8 @@ public partial class DatabaseSettings
         /// <param name="options">Optional rebase behavior.</param>
         public void ApplyInPlace(global::DatabaseSettings current, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.ApplyInPlace(this, current, options);
         /// <summary>Gets the typed transition for member 'Host'.</summary>
-        [global::System.Text.Json.Serialization.JsonIgnore]
         public global::SparseTypes.SparseValueTransition<string> Host => __Core.__SparseGet_0(this);
         /// <summary>Gets the typed transition for member 'Port'.</summary>
-        [global::System.Text.Json.Serialization.JsonIgnore]
         public global::SparseTypes.SparseValueTransition<int> Port => __Core.__SparseGet_1(this);
         /// <summary>Named change-kind values for compatibility with earlier generated APIs.</summary>
         public static class ChangeKind
@@ -1168,7 +1190,7 @@ public partial class DatabaseSettings
         /// <returns><see langword="true"/> when the value applied.</returns>
         internal static bool __SparseTryApplyResolution(Fragment fragment, global::SparseTypes.SparsePath path, int offset, global::SparseTypes.Optional<object?> desired, global::SparseTypes.SparseResolutionWorkspace workspace, out Fragment? updated, out string? error) => __Core.__SparseTryApplyResolution(fragment, path, offset, desired, workspace, out updated, out error);
         /// <summary>Builds the transport core for this change set.</summary>
-        /// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>
+        /// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>
         /// <param name="redactBefores">Whether to redact before-states.</param>
         /// <returns>The transport core.</returns>
         internal __Internal_7C0CFA12.Core_7C0CFA12 ToPayloadCore(bool redactBefores) => __Core.ToPayloadCore(this, redactBefores);
@@ -2010,7 +2032,7 @@ public partial class DatabaseSettings
                 return new ChangePayload { Version = "0.1", Changes = ToPayloadChanges(self, false) };
             }
             /// <summary>Builds the transport changes for this change set.</summary>
-            /// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>
+            /// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>
             /// <param name="self">The change set to convert.</param>
             /// <param name="redactBefores">Whether to redact before-states.</param>
             /// <returns>The transport changes.</returns>
@@ -2224,24 +2246,17 @@ public partial class DatabaseSettings
 
     /// <summary>Serializable envelope carrying the validated transition for transport.</summary>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Always)]
-    public sealed class ChangePayload : __Internal_7C0CFA12.Core_7C0CFA12, global::SparseTypes.ISparsePayloadSchemaProvider
+    public sealed class ChangePayload : __Internal_7C0CFA12.Core_7C0CFA12
     {
-        /// <inheritdoc />
-        global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparsePayloadSchema> global::SparseTypes.ISparsePayloadSchemaProvider.GetSparsePayloadSchemas() => new global::SparseTypes.SparsePayloadSchema[]
-        {
-            new(typeof(ChangePayload), "DatabaseSettings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\"},\"changes\":{\"type\":\"array\",\"items\":{\"$ref\":\"#/components/schemas/DatabaseSettings_Change\"}}}}"),
-            new(typeof(__Internal_7C0CFA12.Change_7C0CFA12), "DatabaseSettings_Change", "{\"oneOf\":[{\"$ref\":\"#/components/schemas/DatabaseSettings_RootChange\"},{\"$ref\":\"#/components/schemas/DatabaseSettings_Change_Host\"},{\"$ref\":\"#/components/schemas/DatabaseSettings_Change_Port\"}],\"discriminator\":{\"propertyName\":\"member\",\"mapping\":{\"$root\":\"#/components/schemas/DatabaseSettings_RootChange\",\"Host\":\"#/components/schemas/DatabaseSettings_Change_Host\",\"Port\":\"#/components/schemas/DatabaseSettings_Change_Port\"}}}"),
-            new(typeof(__Internal_7C0CFA12.RootChange_7C0CFA12), "DatabaseSettings_RootChange", "{}"),
-            new(typeof(__Internal_7C0CFA12.Core_7C0CFA12), "DatabaseSettings_Core", "{}"),
-            new(typeof(__Internal_7C0CFA12.Root_7C0CFA12), "DatabaseSettings_Root", "{}"),
-            new(typeof(__Internal_7C0CFA12.Change0_7C0CFA12), "DatabaseSettings_Change_Host", "{}"),
-            new(typeof(__Internal_7C0CFA12.Change1_7C0CFA12), "DatabaseSettings_Change_Port", "{}"),
-        };
         /// <summary>Gets or sets the provisional wire version token.</summary>
-        [global::System.Text.Json.Serialization.JsonPropertyName("version")]
-        [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
         public string? Version { get; set; }
+        /// <summary>Gets or sets the typed model change.</summary>
+        public __Internal_7C0CFA12.ModelChange_7C0CFA12? Change
+        {
+            get => FromLegacyChanges(Changes);
+            set => Changes = ToLegacyChanges(value);
+        }
         /// <summary>Converts this validated envelope to a complete change set.</summary>
         /// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref="ToPatch"/> instead.</remarks>
         /// <returns>The validated change set.</returns>
@@ -2291,6 +2306,94 @@ public partial class DatabaseSettings
             if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));
             return new ChangePayload { Version = "0.1", Changes = __Internal_7C0CFA12.Core_7C0CFA12.FromPatchCore(patch).Changes };
         }
+        internal static __Internal_7C0CFA12.ModelChange_7C0CFA12? FromLegacyChanges(global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12>? changes)
+        {
+            if (changes is null) return null;
+            if (changes.Count == 1 && changes[0] is __Internal_7C0CFA12.RootChange_7C0CFA12 whole)
+            {
+                return new __Internal_7C0CFA12.ModelChange_7C0CFA12 { Kind = __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Replace, Before = MapRootEndpointToSnapshot(whole.Before), After = MapRootEndpointToSnapshot(whole.After) };
+            }
+            var members = new __Internal_7C0CFA12.MembersDelta_7C0CFA12();
+            foreach (var change in changes)
+            {
+                switch (change)
+                {
+                    case __Internal_7C0CFA12.Change0_7C0CFA12 member0:
+                    if (members.Host is not null) throw new global::System.ArgumentException("A model update cannot contain duplicate member changes.", nameof(changes));
+                    members.Host = member0;
+                    break;
+                    case __Internal_7C0CFA12.Change1_7C0CFA12 member1:
+                    if (members.Port is not null) throw new global::System.ArgumentException("A model update cannot contain duplicate member changes.", nameof(changes));
+                    members.Port = member1;
+                    break;
+                    default: throw new global::System.ArgumentException("A model update contains an unknown change.", nameof(changes));
+                }
+            }
+            return new __Internal_7C0CFA12.ModelChange_7C0CFA12 { Kind = __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Update, Members = members };
+        }
+
+        internal static global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12>? ToLegacyChanges(__Internal_7C0CFA12.ModelChange_7C0CFA12? change)
+        {
+            if (change is null) return null;
+            if (change.Kind == __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Replace)
+            {
+                if (change.Members is not null) throw new global::System.ArgumentException("A replacement cannot contain member changes.", nameof(change));
+                if (change.Before is null || change.After is null) throw new global::System.ArgumentException("A replacement requires both endpoints.", nameof(change));
+                return new global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12> { new __Internal_7C0CFA12.RootChange_7C0CFA12 { Before = MapSnapshotEndpointToRoot(change.Before), After = MapSnapshotEndpointToRoot(change.After) } };
+            }
+            if (change.Kind != __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Update) throw new global::System.ArgumentOutOfRangeException(nameof(change));
+            if (change.Before is not null || change.After is not null) throw new global::System.ArgumentException("An update cannot contain replacement endpoints.", nameof(change));
+            if (change.Members is null) throw new global::System.ArgumentException("An update requires a members object.", nameof(change));
+            var changes = new global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12>();
+            if (change.Members.Host is not null) changes.Add(change.Members.Host);
+            if (change.Members.Port is not null) changes.Add(change.Members.Port);
+            return changes;
+        }
+
+        internal static global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Snapshot_7C0CFA12>? MapRootEndpointToSnapshot(global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Root_7C0CFA12>? endpointValue)
+        {
+            if (endpointValue is null) return null;
+            return new global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Snapshot_7C0CFA12> { State = endpointValue.State, Value = endpointValue.Value is null ? null : SnapshotFromRoot(endpointValue.Value) };
+        }
+
+        internal static global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Root_7C0CFA12>? MapSnapshotEndpointToRoot(global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Snapshot_7C0CFA12>? endpointValue)
+        {
+            if (endpointValue is null) return null;
+            return new global::SparseTypes.ChangePayloadEndpoint<__Internal_7C0CFA12.Root_7C0CFA12> { State = endpointValue.State, Value = endpointValue.Value is null ? null : RootFromSnapshot(endpointValue.Value) };
+        }
+
+        internal static __Internal_7C0CFA12.Snapshot_7C0CFA12 SnapshotFromRoot(__Internal_7C0CFA12.Root_7C0CFA12 root)
+        {
+            if (root is null) throw new global::System.ArgumentNullException(nameof(root));
+            if (root.Members is null) throw new global::System.ArgumentException("A snapshot must contain its member collection.", nameof(root));
+            var snapshot = new __Internal_7C0CFA12.Snapshot_7C0CFA12();
+            foreach (var member in root.Members)
+            {
+                switch (member)
+                {
+                    case __Internal_7C0CFA12.Change0_7C0CFA12 member0:
+                    if (snapshot.Host is not null) throw new global::System.ArgumentException("A snapshot cannot contain duplicate members.", nameof(root));
+                    snapshot.Host = member0.Value;
+                    break;
+                    case __Internal_7C0CFA12.Change1_7C0CFA12 member1:
+                    if (snapshot.Port is not null) throw new global::System.ArgumentException("A snapshot cannot contain duplicate members.", nameof(root));
+                    snapshot.Port = member1.Value;
+                    break;
+                    default: throw new global::System.ArgumentException("A snapshot contains an unknown member.", nameof(root));
+                }
+            }
+            return snapshot;
+        }
+
+        internal static __Internal_7C0CFA12.Root_7C0CFA12 RootFromSnapshot(__Internal_7C0CFA12.Snapshot_7C0CFA12 snapshot)
+        {
+            if (snapshot is null) throw new global::System.ArgumentNullException(nameof(snapshot));
+            var root = new __Internal_7C0CFA12.Root_7C0CFA12();
+            if (snapshot.Host is not null) root.Members.Add(new __Internal_7C0CFA12.Change0_7C0CFA12 { Value = snapshot.Host });
+            if (snapshot.Port is not null) root.Members.Add(new __Internal_7C0CFA12.Change1_7C0CFA12 { Value = snapshot.Port });
+            return root;
+        }
+
     }
 
     /// <summary>Typed path navigation for 'global::DatabaseSettings'.</summary>
@@ -2518,11 +2621,6 @@ namespace SparseTypes.Generated
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             public class Core_7C0CFA12
             {
-                /// <summary>Gets or sets the member changes carried by this core.</summary>
-                [global::System.Text.Json.Serialization.JsonPropertyName("changes")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(1)]
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::System.Collections.Generic.List<Change_7C0CFA12>? Changes { get; set; }
                 /// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>
                 /// <remarks>Redacted before-states project to their requested after-state without historical comparison; ordinary members project their after-state too. The result is baseline-free and can no longer rebase or report conflicts. Public callers enter through the version-validated envelope override.</remarks>
                 /// <returns>The baseline-free patch.</returns>
@@ -2689,6 +2787,9 @@ namespace SparseTypes.Generated
                         }
                     }
                 }
+                /// <summary>Gets or sets the member changes carried by this core.</summary>
+                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+                internal global::System.Collections.Generic.List<Change_7C0CFA12>? Changes { get; set; }
                 internal global::DatabaseSettings.ChangeSet ToChangeSetCore() => global::DatabaseSettings.ChangeSet.FromPayloadCore(this);
                 internal global::DatabaseSettings.Patch ToPatchCore() => global::DatabaseSettings.ChangeSet.PatchFromPayloadCore(this);
                 internal static Core_7C0CFA12 FromPatchCore(global::DatabaseSettings.Patch patch) => patch.ToChangePayloadCore();
@@ -2702,8 +2803,6 @@ namespace SparseTypes.Generated
             public sealed class Root_7C0CFA12
             {
                 /// <summary>Gets or sets the snapshot member values.</summary>
-                [global::System.Text.Json.Serialization.JsonPropertyName("members")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::System.Collections.Generic.List<Change_7C0CFA12> Members { get; set; } = new();
                 /// <summary>Builds a snapshot from a fragment.</summary>
@@ -2761,11 +2860,7 @@ namespace SparseTypes.Generated
                 }
             }
 
-            /// <summary>Base type for the per-member change variants.</summary>
-            [global::System.Text.Json.Serialization.JsonPolymorphic(TypeDiscriminatorPropertyName = "member")]
-            [global::System.Text.Json.Serialization.JsonDerivedType(typeof(RootChange_7C0CFA12), "$root")]
-            [global::System.Text.Json.Serialization.JsonDerivedType(typeof(Change0_7C0CFA12), "Host")]
-            [global::System.Text.Json.Serialization.JsonDerivedType(typeof(Change1_7C0CFA12), "Port")]
+            /// <summary>Base type for the internal change representation.</summary>
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             public abstract class Change_7C0CFA12 { }
 
@@ -2774,17 +2869,9 @@ namespace SparseTypes.Generated
             public sealed class RootChange_7C0CFA12 : Change_7C0CFA12
             {
                 /// <summary>Gets or sets the before snapshot.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("before")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<Root_7C0CFA12>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<Root_7C0CFA12>? Before { get; set; }
                 /// <summary>Gets or sets the after snapshot.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("after")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(1)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<Root_7C0CFA12>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<Root_7C0CFA12>? After { get; set; }
             }
@@ -2794,24 +2881,12 @@ namespace SparseTypes.Generated
             public sealed class Change0_7C0CFA12 : Change_7C0CFA12
             {
                 /// <summary>Gets or sets the snapshot value.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("value")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<string>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<string>? Value { get; set; }
                 /// <summary>Gets or sets the before endpoint.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("before")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<string>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<string>? Before { get; set; }
                 /// <summary>Gets or sets the after endpoint.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("after")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(1)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<string>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<string>? After { get; set; }
             }
@@ -2821,26 +2896,88 @@ namespace SparseTypes.Generated
             public sealed class Change1_7C0CFA12 : Change_7C0CFA12
             {
                 /// <summary>Gets or sets the snapshot value.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("value")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<int>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<int>? Value { get; set; }
                 /// <summary>Gets or sets the before endpoint.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("before")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(0)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<int>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<int>? Before { get; set; }
                 /// <summary>Gets or sets the after endpoint.</summary>
-                [global::System.Text.Json.Serialization.JsonIgnore(Condition = global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-                [global::System.Text.Json.Serialization.JsonPropertyName("after")]
-                [global::System.Text.Json.Serialization.JsonPropertyOrder(1)]
-                [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<int>))]
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
                 public global::SparseTypes.ChangePayloadEndpoint<int>? After { get; set; }
+            }
+
+            /// <summary>Base role for a collection replacement or keyed item update.</summary>
+            /// <typeparam name="TCollection">The collection value type.</typeparam>
+            /// <typeparam name="TItem">The item-operation type.</typeparam>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public abstract class CollectionChange_7C0CFA12<TCollection, TItem> : Change_7C0CFA12
+            {
+                /// <summary>Gets or sets the before collection endpoint.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<TCollection>? Before { get; set; }
+                /// <summary>Gets or sets the after collection endpoint.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<TCollection>? After { get; set; }
+                /// <summary>Gets or sets the item operations for an incremental update.</summary>
+                public global::System.Collections.Generic.List<TItem> Items { get; set; } = new();
+            }
+
+            /// <summary>Base role for an operation on one keyed or dictionary item.</summary>
+            /// <typeparam name="TKey">The item identity type.</typeparam>
+            /// <typeparam name="TValue">The item value type.</typeparam>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public abstract class ItemOperation_7C0CFA12<TKey, TValue>
+            {
+                /// <summary>Gets or sets the item identity.</summary>
+                public TKey Key { get; set; } = default!;
+                /// <summary>Gets or sets the before endpoint.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<TValue>? Before { get; set; }
+                /// <summary>Gets or sets the after endpoint.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<TValue>? After { get; set; }
+                /// <summary>Gets or sets the item operation kind.</summary>
+                public global::SparseTypes.ChangePayloadItemKind Kind { get; set; }
+            }
+
+            /// <summary>Operation kind for a model payload change.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public enum ModelChangeKind_7C0CFA12
+            {
+                /// <summary>Updates only the listed members.</summary>
+                Update,
+                /// <summary>Replaces the entire model snapshot.</summary>
+                Replace
+            }
+
+            /// <summary>Snapshot value of a model's transportable members.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public sealed class Snapshot_7C0CFA12
+            {
+                /// <summary>Gets or sets the snapshot endpoint for Host.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<string>? Host { get; set; }
+                /// <summary>Gets or sets the snapshot endpoint for Port.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<int>? Port { get; set; }
+            }
+
+            /// <summary>Optional member operations for a model update.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public sealed class MembersDelta_7C0CFA12
+            {
+                /// <summary>Gets or sets the optional change for Host.</summary>
+                public Change0_7C0CFA12? Host { get; set; }
+                /// <summary>Gets or sets the optional change for Port.</summary>
+                public Change1_7C0CFA12? Port { get; set; }
+            }
+
+            /// <summary>Typed update or replacement for a model.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            public sealed class ModelChange_7C0CFA12
+            {
+                /// <summary>Gets or sets whether this is a member update or whole-model replacement.</summary>
+                public ModelChangeKind_7C0CFA12 Kind { get; set; }
+                /// <summary>Gets or sets the optional member operations for an update.</summary>
+                public MembersDelta_7C0CFA12? Members { get; set; }
+                /// <summary>Gets or sets the before snapshot for a replacement.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<Snapshot_7C0CFA12>? Before { get; set; }
+                /// <summary>Gets or sets the after snapshot for a replacement.</summary>
+                public global::SparseTypes.ChangePayloadEndpoint<Snapshot_7C0CFA12>? After { get; set; }
             }
 
     }
@@ -2857,33 +2994,24 @@ namespace SparseTypes.Generated
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A payload must be an object.");
                 string? version = null;
-                var changes = new global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12>();
-                var hasChanges = false;
+                __Internal_7C0CFA12.ModelChange_7C0CFA12? change = null;
+                bool hasVersion = false;
+                bool hasChange = false;
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
                 while (reader.Read())
                 {
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                     if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed payload.");
-                    if (reader.ValueTextEquals("version"))
-                    { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); }
-                    else if (reader.ValueTextEquals("changes"))
-                    {
-                        if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload.");
-                        hasChanges = true;
-                        if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null)
-                        {
-                            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException("Payload changes must be an array.");
-                            while (reader.Read())
-                            {
-                                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                                changes.Add(ReadChange(ref reader, options));
-                            }
-                        }
-                    }
+                    var name = reader.GetString() ?? string.Empty;
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    if (name == "version")
+                    { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); hasVersion = true; }
+                    else if (name == "change")
+                    { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); change = ReadModelChange(ref reader, options); hasChange = true; }
                     else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); reader.Skip(); }
                 }
-                var payload = new ChangePayload { Version = version };
-                if (hasChanges) payload.Changes = changes;
-                return payload;
+                if (!hasVersion || !hasChange || change is null) throw new global::System.Text.Json.JsonException("A payload requires version and change properties.");
+                return new ChangePayload { Version = version, Change = change };
             }
 
             /// <inheritdoc />
@@ -2891,210 +3019,263 @@ namespace SparseTypes.Generated
             public override void Write(global::System.Text.Json.Utf8JsonWriter writer, ChangePayload? value, global::System.Text.Json.JsonSerializerOptions options)
             {
                 if (value is null) { writer.WriteNullValue(); return; }
+                ValidatePayloadForJson(value);
+                var change = value.Change ?? throw new global::System.Text.Json.JsonException("A payload change is required.");
                 writer.WriteStartObject();
                 writer.WriteString("version", value.Version);
-                writer.WritePropertyName("changes");
-                if (value.Changes is null) writer.WriteNullValue();
-                else { writer.WriteStartArray(); foreach (var item in value.Changes) WriteChange(writer, item, options); writer.WriteEndArray(); }
+                writer.WritePropertyName("change");
+                WriteModelChange(writer, change, options);
                 writer.WriteEndObject();
             }
 
-            /// <summary>Reads a nested change core.</summary>
+            internal static void ValidatePayloadForJson(ChangePayload value)
+            {
+                var validation = value.Validate();
+                if (!validation.IsValid) throw new global::System.Text.Json.JsonException("The change payload does not satisfy its structural contract.");
+                ValidateCoreForJson(value);
+            }
+
+            internal static void ValidateCoreForJson(__Internal_7C0CFA12.Core_7C0CFA12? value)
+            {
+                if (value is null) return;
+                var validation = value.Validate();
+                if (!validation.IsValid) throw new global::System.Text.Json.JsonException("The change payload does not satisfy its structural contract.");
+                if (value.Changes is null) return;
+                foreach (var change in value.Changes)
+                {
+                    switch (change)
+                    {
+                        case __Internal_7C0CFA12.RootChange_7C0CFA12 root:
+                        if (root.Before?.State == global::SparseTypes.ChangePayloadState.Value) ValidateRootForJson(root.Before.Value);
+                        if (root.After?.State == global::SparseTypes.ChangePayloadState.Value) ValidateRootForJson(root.After.Value);
+                        break;
+                        case __Internal_7C0CFA12.Change0_7C0CFA12 member0:
+                        break;
+                        case __Internal_7C0CFA12.Change1_7C0CFA12 member1:
+                        break;
+                        default: break;
+                    }
+                }
+            }
+
+            internal static void ValidateRootForJson(__Internal_7C0CFA12.Root_7C0CFA12? value)
+            {
+                if (value is null) return;
+                if (value.Members is null) throw new global::System.Text.Json.JsonException("A snapshot must contain its member collection.");
+                foreach (var member in value.Members)
+                {
+                    switch (member)
+                    {
+                        case __Internal_7C0CFA12.Change0_7C0CFA12 member0:
+                        break;
+                        case __Internal_7C0CFA12.Change1_7C0CFA12 member1:
+                        break;
+                        default: break;
+                    }
+                }
+            }
+            /// <summary>Reads a nested model change.</summary>
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             internal static __Internal_7C0CFA12.Core_7C0CFA12 ReadCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A core must be an object.");
-                var core = new __Internal_7C0CFA12.Core_7C0CFA12();
-                while (reader.Read())
-                {
-                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed core.");
-                    if (reader.ValueTextEquals("changes"))
-                    {
-                        if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed core.");
-                        if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) core.Changes = null;
-                        else
-                        {
-                            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException("Payload changes must be an array.");
-                            var list = new global::System.Collections.Generic.List<__Internal_7C0CFA12.Change_7C0CFA12>();
-                            while (reader.Read())
-                            {
-                                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                                list.Add(ReadChange(ref reader, options));
-                            }
-                            core.Changes = list;
-                        }
-                    }
-                    else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed core."); reader.Skip(); }
-                }
-                return core;
+                __Internal_7C0CFA12.ModelChange_7C0CFA12 change = ReadModelChange(ref reader, options);
+                var payload = new ChangePayload { Change = change };
+                return new __Internal_7C0CFA12.Core_7C0CFA12 { Changes = payload.Changes };
             }
 
-            /// <summary>Writes a nested change core.</summary>
+            /// <summary>Writes a nested model change.</summary>
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             internal static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Core_7C0CFA12? value, global::System.Text.Json.JsonSerializerOptions options)
             {
                 if (value is null) { writer.WriteNullValue(); return; }
-                writer.WriteStartObject();
-                writer.WritePropertyName("changes");
-                if (value.Changes is null) writer.WriteNullValue();
-                else { writer.WriteStartArray(); foreach (var item in value.Changes) WriteChange(writer, item, options); writer.WriteEndArray(); }
-                writer.WriteEndObject();
+                var payload = new ChangePayload { Changes = value.Changes };
+                var change = payload.Change ?? throw new global::System.Text.Json.JsonException("A model change is required.");
+                WriteModelChange(writer, change, options);
             }
 
-            /// <summary>Reads a snapshot root.</summary>
+            /// <summary>Reads a typed model snapshot.</summary>
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            internal static __Internal_7C0CFA12.Root_7C0CFA12 ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
+            internal static __Internal_7C0CFA12.Snapshot_7C0CFA12 ReadSnapshot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A root must be an object.");
-                var root = new __Internal_7C0CFA12.Root_7C0CFA12();
+                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A snapshot must be an object.");
+                var snapshot = new __Internal_7C0CFA12.Snapshot_7C0CFA12();
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
                 while (reader.Read())
                 {
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed root.");
-                    if (reader.ValueTextEquals("members"))
+                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed snapshot.");
+                    var name = reader.GetString() ?? string.Empty;
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed snapshot.");
+                    switch (name)
                     {
-                        if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed root.");
-                        if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) root.Members = new();
-                        else
-                        {
-                            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartArray) throw new global::System.Text.Json.JsonException("Root members must be an array.");
-                            root.Members.Clear();
-                            while (reader.Read())
-                            {
-                                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                                root.Members.Add(ReadChange(ref reader, options));
-                            }
-                        }
+                        case "host":
+                        snapshot.Host = ReadEndpoint<string>(ref reader, options, null, null);
+                        break;
+                        case "port":
+                        snapshot.Port = ReadEndpoint<int>(ref reader, options, null, null);
+                        break;
+                        default: reader.Skip(); break;
                     }
-                    else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed root."); reader.Skip(); }
                 }
-                return root;
+                return snapshot;
             }
 
-            /// <summary>Writes a snapshot root.</summary>
+            /// <summary>Writes a typed model snapshot.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            internal static void WriteSnapshot(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Snapshot_7C0CFA12? value, global::System.Text.Json.JsonSerializerOptions options)
+            {
+                if (value is null) throw new global::System.Text.Json.JsonException("A snapshot is required.");
+                writer.WriteStartObject();
+                if (value.Host is not null)
+                {
+                    writer.WritePropertyName("host");
+                    WriteEndpoint(writer, value.Host, options, null);
+                }
+                if (value.Port is not null)
+                {
+                    writer.WritePropertyName("port");
+                    WriteEndpoint(writer, value.Port, options, null);
+                }
+                writer.WriteEndObject();
+            }
+
+            /// <summary>Reads a legacy internal root from its typed snapshot wire form.</summary>
+            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+            internal static __Internal_7C0CFA12.Root_7C0CFA12 ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
+            {
+                return global::DatabaseSettings.ChangePayload.RootFromSnapshot(ReadSnapshot(ref reader, options));
+            }
+
+            /// <summary>Writes a legacy internal root using its typed snapshot wire form.</summary>
             [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
             internal static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Root_7C0CFA12? value, global::System.Text.Json.JsonSerializerOptions options)
             {
                 if (value is null) { writer.WriteNullValue(); return; }
-                writer.WriteStartObject();
-                writer.WritePropertyName("members");
-                writer.WriteStartArray();
-                foreach (var item in value.Members) WriteChange(writer, item, options);
-                writer.WriteEndArray();
-                writer.WriteEndObject();
+                WriteSnapshot(writer, global::DatabaseSettings.ChangePayload.SnapshotFromRoot(value), options);
             }
 
-            private static __Internal_7C0CFA12.Change_7C0CFA12 ReadChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
+            private static __Internal_7C0CFA12.ModelChange_7C0CFA12 ReadModelChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
-                var lookahead = reader;
-                string? member = null;
-                var hasMember = false;
-                var hasEndObject = false;
-                while (lookahead.Read())
-                {
-                    if (lookahead.TokenType == global::System.Text.Json.JsonTokenType.EndObject) { hasEndObject = true; break; }
-                    if (lookahead.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) { lookahead.Skip(); continue; }
-                    var isMember = lookahead.ValueTextEquals("member");
-                    if (!lookahead.Read()) break;
-                    if (isMember)
-                    {
-                        hasMember = true;
-                        member = lookahead.TokenType == global::System.Text.Json.JsonTokenType.String ? lookahead.GetString() : null;
-                    }
-                    lookahead.Skip();
-                }
-                if (hasEndObject && hasMember) return ReadDispatchedChange(ref reader, options, member);
-                using var document = global::System.Text.Json.JsonDocument.ParseValue(ref reader);
-                var element = document.RootElement;
-                if (element.TryGetProperty("member", out var discriminator) && discriminator.ValueKind == global::System.Text.Json.JsonValueKind.String) member = discriminator.GetString();
-                var bytes = System.Text.Encoding.UTF8.GetBytes(element.GetRawText());
-                var nested = new global::System.Text.Json.Utf8JsonReader(bytes);
-                nested.Read();
-                return ReadDispatchedChange(ref nested, options, member);
-            }
-
-            private static __Internal_7C0CFA12.Change_7C0CFA12 ReadDispatchedChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, string? member)
-            {
-                if (member == "$root") return ReadRootChange(ref reader, options);
-                if (member == "Host") return ReadMember0(ref reader, options);
-                if (member == "Port") return ReadMember1(ref reader, options);
-                throw new global::System.Text.Json.JsonException("Unknown payload member.");
-            }
-
-            private static void WriteChange(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Change_7C0CFA12 item, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                writer.WriteStartObject();
-                var written = false;
-                if (!written && item is __Internal_7C0CFA12.Change0_7C0CFA12 member0)
-                {
-                    writer.WriteString("member", "Host");
-                    WriteMember0Body(writer, member0, options);
-                    written = true;
-                }
-                if (!written && item is __Internal_7C0CFA12.Change1_7C0CFA12 member1)
-                {
-                    writer.WriteString("member", "Port");
-                    WriteMember1Body(writer, member1, options);
-                    written = true;
-                }
-                if (!written && item is __Internal_7C0CFA12.RootChange_7C0CFA12 rootChange)
-                {
-                    writer.WriteString("member", "$root");
-                    WriteRootChangeBody(writer, rootChange, options);
-                    written = true;
-                }
-                if (!written) throw new global::System.Text.Json.JsonException("Unknown payload change.");
-                writer.WriteEndObject();
-            }
-
-            private static __Internal_7C0CFA12.RootChange_7C0CFA12 ReadRootChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-            {
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
-                var change = new __Internal_7C0CFA12.RootChange_7C0CFA12();
+                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A model change must be an object.");
+                var change = new __Internal_7C0CFA12.ModelChange_7C0CFA12();
+                string? operation = null;
+                bool hasKind = false, hasMembers = false, hasBefore = false, hasAfter = false;
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
                 while (reader.Read())
                 {
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed change.");
+                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed model change.");
                     var name = reader.GetString() ?? string.Empty;
-                    if (name == "member") { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change."); reader.Skip(); continue; }
-                    if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                    if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<__Internal_7C0CFA12.Root_7C0CFA12>(ref reader, options, ReadRoot, null); }
-                    else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<__Internal_7C0CFA12.Root_7C0CFA12>(ref reader, options, ReadRoot, null); }
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed model change.");
+                    if (name == "kind")
+                    {
+                        operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null;
+                        change.Kind = operation switch { "update" => __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Update, "replace" => __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Replace, _ => throw new global::System.Text.Json.JsonException("Unknown model change kind.") };
+                        hasKind = true;
+                    }
+                    else if (name == "members") { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }
+                    else if (name == "before") { change.Before = ReadEndpoint<__Internal_7C0CFA12.Snapshot_7C0CFA12>(ref reader, options, ReadSnapshot, null); hasBefore = true; }
+                    else if (name == "after") { change.After = ReadEndpoint<__Internal_7C0CFA12.Snapshot_7C0CFA12>(ref reader, options, ReadSnapshot, null); hasAfter = true; }
                     else reader.Skip();
                 }
+                if (!hasKind) throw new global::System.Text.Json.JsonException("A model change requires a kind.");
+                if (operation == "replace" && (!hasBefore || !hasAfter || change.Before is null || change.After is null || hasMembers)) throw new global::System.Text.Json.JsonException("A replacement requires both endpoints and no members object.");
+                if (operation == "update" && (!hasMembers || change.Members is null || hasBefore || hasAfter)) throw new global::System.Text.Json.JsonException("An update requires members and cannot contain replacement endpoints.");
                 return change;
             }
 
-            private static void WriteRootChangeBody(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.RootChange_7C0CFA12 change, global::System.Text.Json.JsonSerializerOptions options)
+            private static __Internal_7C0CFA12.MembersDelta_7C0CFA12 ReadMembersDelta(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (change.Before is not null) { writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, WriteRoot); }
-                if (change.After is not null) { writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, WriteRoot); }
+                if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("Members must be an object.");
+                var members = new __Internal_7C0CFA12.MembersDelta_7C0CFA12();
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+                while (reader.Read())
+                {
+                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
+                    if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed members object.");
+                    var name = reader.GetString() ?? string.Empty;
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed members object.");
+                    switch (name)
+                    {
+                        case "host": members.Host = (__Internal_7C0CFA12.Change0_7C0CFA12)ReadMember0(ref reader, options); break;
+                        case "port": members.Port = (__Internal_7C0CFA12.Change1_7C0CFA12)ReadMember1(ref reader, options); break;
+                        default: reader.Skip(); break;
+                    }
+                }
+                return members;
+            }
+
+            private static void WriteModelChange(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.ModelChange_7C0CFA12 change, global::System.Text.Json.JsonSerializerOptions options)
+            {
+                if (change is null) throw new global::System.Text.Json.JsonException("A model change is required.");
+                writer.WriteStartObject();
+                writer.WriteString("kind", change.Kind switch { __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Update => "update", __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Replace => "replace", _ => throw new global::System.Text.Json.JsonException("Unknown model change kind.") });
+                if (change.Kind == __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Replace)
+                {
+                    if (change.Members is not null || change.Before is null || change.After is null) throw new global::System.Text.Json.JsonException("A replacement requires both endpoints and no members object.");
+                    writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, WriteSnapshot);
+                    writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, WriteSnapshot);
+                }
+                else if (change.Kind == __Internal_7C0CFA12.ModelChangeKind_7C0CFA12.Update)
+                {
+                    if (change.Members is null || change.Before is not null || change.After is not null) throw new global::System.Text.Json.JsonException("An update requires members and cannot contain replacement endpoints.");
+                    writer.WritePropertyName("members"); WriteMembersDelta(writer, change.Members, options);
+                }
+                else throw new global::System.Text.Json.JsonException("Unknown model change kind.");
+                writer.WriteEndObject();
+            }
+
+            private static void WriteMembersDelta(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.MembersDelta_7C0CFA12 members, global::System.Text.Json.JsonSerializerOptions options)
+            {
+                if (members is null) throw new global::System.Text.Json.JsonException("Members are required.");
+                writer.WriteStartObject();
+                if (members.Host is not null)
+                {
+                    writer.WritePropertyName("host");
+                    writer.WriteStartObject();
+                    WriteMember0Body(writer, members.Host, options);
+                    writer.WriteEndObject();
+                }
+                if (members.Port is not null)
+                {
+                    writer.WritePropertyName("port");
+                    writer.WriteStartObject();
+                    WriteMember1Body(writer, members.Port, options);
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndObject();
             }
 
             private static __Internal_7C0CFA12.Change_7C0CFA12 ReadMember0(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
                 var change = new __Internal_7C0CFA12.Change0_7C0CFA12();
+                string? operation = null;
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
                 while (reader.Read())
                 {
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                     if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed change.");
                     var name = reader.GetString() ?? string.Empty;
-                    if (name == "member") { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change."); reader.Skip(); continue; }
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                    if (name == "value") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<string>(ref reader, options, null, null); }
+                    if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
                     else if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<string>(ref reader, options, null, null); }
                     else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<string>(ref reader, options, null, null); }
                     else reader.Skip();
                 }
+                if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");
+                if (operation != "replace") throw new global::System.Text.Json.JsonException("Unknown value change kind.");
                 return change;
             }
 
             private static void WriteMember0Body(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Change0_7C0CFA12 change, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (change.Value is not null) { writer.WritePropertyName("value"); WriteEndpoint(writer, change.Value, options, null); }
+                if (change.After is null) throw new global::System.Text.Json.JsonException("A value change requires an after-state.");
+                writer.WriteString("kind", "replace");
                 if (change.Before is not null) { writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, null); }
                 if (change.After is not null) { writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, null); }
             }
@@ -3103,24 +3284,29 @@ namespace SparseTypes.Generated
             {
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
                 var change = new __Internal_7C0CFA12.Change1_7C0CFA12();
+                string? operation = null;
+                var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
                 while (reader.Read())
                 {
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                     if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed change.");
                     var name = reader.GetString() ?? string.Empty;
-                    if (name == "member") { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change."); reader.Skip(); continue; }
+                    if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                    if (name == "value") { if (!TryReadNull(ref reader)) change.Value = ReadEndpoint<int>(ref reader, options, null, null); }
+                    if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
                     else if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<int>(ref reader, options, null, null); }
                     else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<int>(ref reader, options, null, null); }
                     else reader.Skip();
                 }
+                if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");
+                if (operation != "replace") throw new global::System.Text.Json.JsonException("Unknown value change kind.");
                 return change;
             }
 
             private static void WriteMember1Body(global::System.Text.Json.Utf8JsonWriter writer, __Internal_7C0CFA12.Change1_7C0CFA12 change, global::System.Text.Json.JsonSerializerOptions options)
             {
-                if (change.Value is not null) { writer.WritePropertyName("value"); WriteEndpoint(writer, change.Value, options, null); }
+                if (change.After is null) throw new global::System.Text.Json.JsonException("A value change requires an after-state.");
+                writer.WriteString("kind", "replace");
                 if (change.Before is not null) { writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, null); }
                 if (change.After is not null) { writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, null); }
             }

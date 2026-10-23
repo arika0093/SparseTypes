@@ -15,19 +15,13 @@ public sealed class TemporaryKeyReorderProjectionTests
         var last = new TempOrderLine { TemporaryId = Guid.NewGuid(), Name = "last" };
         var fixedItem = new TempOrderLine { Id = 7, Name = "fixed" };
         var before = State(mixed ? [first, fixedItem, last] : [first, last]);
-        var updated = new TempOrderLine
-        {
-            TemporaryId = first.TemporaryId,
-            Name = edited ? "edited" : "first",
-        };
+        var updated = new TempOrderLine { TemporaryId = first.TemporaryId, Name = edited ? "edited" : "first" };
         var after = State(mixed ? [last, fixedItem, updated] : [last, updated]);
         var changes = TempOrderHolder.ChangeSet.Between(before, after);
 
         changes.Lines.BeforeOrder.ShouldBe(changes.Lines.AfterOrder);
         changes.Lines.OrderChanged.ShouldBeTrue();
-        var payload = JsonSerializer.Deserialize<TempOrderHolder.ChangePayload>(
-            JsonSerializer.Serialize(changes.ToPayload())
-        )!;
+        var payload = PayloadJsonTestSupport.RoundTrip(changes.ToPayload());
         AssertSame(changes.ToPatch().Apply(before), after);
         AssertSame(changes.Invert().ToPatch().Apply(after), before);
         AssertSame(payload.ToPatch().Apply(before), after);
@@ -35,15 +29,8 @@ public sealed class TemporaryKeyReorderProjectionTests
     }
 
     private static Optional<TempOrderHolder.Fragment?> State(List<TempOrderLine> lines) =>
-        Optional<TempOrderHolder.Fragment?>.Present(
-            TempOrderHolder.Fragment.From(new TempOrderHolder { Lines = lines })
-        );
+        Optional<TempOrderHolder.Fragment?>.Present(TempOrderHolder.Fragment.From(new TempOrderHolder { Lines = lines }));
 
-    private static void AssertSame(
-        Optional<TempOrderHolder.Fragment?> actual,
-        Optional<TempOrderHolder.Fragment?> expected
-    ) =>
-        JsonSerializer
-            .Serialize(actual.Value!.ToModel())
-            .ShouldBe(JsonSerializer.Serialize(expected.Value!.ToModel()));
+    private static void AssertSame(Optional<TempOrderHolder.Fragment?> actual, Optional<TempOrderHolder.Fragment?> expected) =>
+        JsonSerializer.Serialize(actual.Value!.ToModel()).ShouldBe(JsonSerializer.Serialize(expected.Value!.ToModel()));
 }

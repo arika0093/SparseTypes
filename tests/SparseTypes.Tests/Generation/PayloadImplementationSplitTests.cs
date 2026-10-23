@@ -30,42 +30,23 @@ public sealed class PayloadImplementationSplitTests
 
     private static Dictionary<string, string> Sources()
     {
-        var trees = Files()
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = Files().Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparsePayloadSplitProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        var driver = CSharpGeneratorDriver.Create(
-            new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() }
-        );
+        var driver = CSharpGeneratorDriver.Create(new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() });
         var result = driver.RunGenerators(compilation).GetRunResult();
-        result
-            .Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        result.Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return result
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
     [Test]
@@ -75,13 +56,11 @@ public sealed class PayloadImplementationSplitTests
         // Single-file emission: one merged hint per model carries the surface
         // plus implementations.
         var mergedHint = sources.Keys.Single(key =>
-            key.Contains("SplitParent", StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         sources
             .Keys.Count(key =>
-                key.Contains("SplitParent", StringComparison.Ordinal)
-                && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal)
+                key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal)
             )
             .ShouldBe(0);
         var merged = sources[mergedHint];
@@ -90,18 +69,15 @@ public sealed class PayloadImplementationSplitTests
         merged.ShouldContain("class ChangePayload");
         merged.ShouldContain("FragmentJsonConverter");
         // The public Fragment accessor forwards directly to the implementation converter.
-        merged.ShouldContain(
-            "public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter"
-        );
+        merged.ShouldContain("public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter");
         // The DTO hierarchy stays model-facing; converter bodies live in generated source.
         merged.ShouldContain("static partial class __Internal_");
         merged.ShouldContain("public class Core_");
         merged.ShouldContain("public sealed class Root_");
-        merged.ShouldContain("JsonDerivedType");
+        merged.ShouldContain("PayloadJsonConverter");
+        merged.ShouldContain("PayloadJsonResolver");
         var allSources = string.Concat(sources.Values);
-        allSources.ShouldContain(
-            ": global::System.Text.Json.Serialization.JsonConverter<Fragment>"
-        );
+        allSources.ShouldContain(": global::System.Text.Json.Serialization.JsonConverter<Fragment>");
         allSources.ShouldContain("public override Fragment Read(");
         // Container references resolve through the shared file alias.
         merged.ShouldContain("using __Internal_");
@@ -112,8 +88,7 @@ public sealed class PayloadImplementationSplitTests
     {
         var sources = Sources();
         var mergedHint = sources.Keys.Single(key =>
-            key.Contains("SplitParent", StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         var merged = sources[mergedHint];
 
@@ -121,14 +96,16 @@ public sealed class PayloadImplementationSplitTests
         merged.ShouldContain("static partial class __Internal_");
         merged.ShouldContain("public class Core_");
         merged.ShouldContain("public sealed class Root_");
-        merged.ShouldContain("JsonDerivedType");
+        merged.ShouldContain("PayloadJsonConverter");
+        merged.ShouldContain("PayloadJsonResolver");
         merged.ShouldContain("FragmentJsonConverter");
         merged.ShouldContain("public override Fragment Read(");
         merged.ShouldContain("public override void Write(");
         // Nested child payloads resolve to the implementation namespace.
         merged.ShouldContain("global::SparseTypes.Generated.__Internal_");
-        // Wire protocol is untouched by the move.
-        merged.ShouldContain("\"member\"");
-        merged.ShouldContain("$root");
+        // The generated model change uses a typed update/replacement contract.
+        merged.ShouldContain("\"members\"");
+        merged.ShouldContain("\"kind\"");
+        merged.ShouldNotContain("\"member\"");
     }
 }

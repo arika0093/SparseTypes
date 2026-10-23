@@ -192,8 +192,9 @@ internal static class SparseFragmentPatchEmitter
         bool PathIsValueType = false,
         string? TypedPathInterfaceType = null,
         SparseStjCapabilities? StjCapabilities = null,
-        string? PayloadSchemaProviderType = null,
         string? PayloadSchemaDescriptorType = null,
+        string? PayloadSchemaBundleType = null,
+        string? PayloadSchemaNamesType = null,
         bool EmitPatchRebase = true
     )
     {
@@ -329,7 +330,8 @@ internal static class SparseFragmentPatchEmitter
         SparseOperationTarget? target = null,
         bool canApplyChangeSetInPlace = false,
         bool modelIsReferenceType = true,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        SparsePayloadContract? payloadContract = null
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -426,7 +428,8 @@ internal static class SparseFragmentPatchEmitter
                 implementationBuilder,
                 target,
                 modelIsReferenceType,
-                payloadJsonPocos
+                payloadJsonPocos,
+                payloadContract
             );
         }
     }

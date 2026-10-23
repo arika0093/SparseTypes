@@ -20,7 +20,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
         string? implementationNamespace = null
     )
     {
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             var property = SparseNaming.EscapeIdentifier(member.Property.Name);
             var redact = redactFlagged && member.RedactBefore ? "true" : "redactBefores";

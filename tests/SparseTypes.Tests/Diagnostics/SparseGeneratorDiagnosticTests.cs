@@ -8,37 +8,23 @@ namespace SparseTypes.Tests.Diagnostics;
 
 public sealed class SparseGeneratorDiagnosticTests
 {
-    private static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        ImmutableArray<GeneratedSourceResult> Sources
-    ) Run(string source)
+    private static (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> Sources) Run(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseDiagnosticsProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
         var diagnostics = runResult.Diagnostics;
-        var sources = runResult
-            .Results.SelectMany(static r => r.GeneratedSources)
-            .ToImmutableArray();
+        var sources = runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray();
         return (diagnostics, sources);
     }
 
@@ -59,29 +45,21 @@ public sealed class SparseGeneratorDiagnosticTests
         diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
         diagnostic.GetMessage().ShouldContain(expectedArg);
         diagnostic.Descriptor.HelpLinkUri.ShouldBe(
-            "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md"
-                + expectedHelpAnchor
+            "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md" + expectedHelpAnchor
         );
         if (expectInSource)
         {
-            diagnostic.Location.IsInSource.ShouldBeTrue(
-                $"expected {expectedId} to have a source location"
-            );
+            diagnostic.Location.IsInSource.ShouldBeTrue($"expected {expectedId} to have a source location");
             var tree = diagnostic.Location.SourceTree!;
             var text = tree.GetText().ToString(diagnostic.Location.SourceSpan);
-            text.Contains(expectedArg)
-                .ShouldBeTrue($"location span '{text}' should contain '{expectedArg}'");
+            text.Contains(expectedArg).ShouldBeTrue($"location span '{text}' should contain '{expectedArg}'");
         }
         else
         {
-            diagnostic.Location.IsInSource.ShouldBeFalse(
-                $"expected {expectedId} to have Location.None"
-            );
+            diagnostic.Location.IsInSource.ShouldBeFalse($"expected {expectedId} to have Location.None");
         }
         // No other SPF diagnostics.
-        diagnostics
-            .Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Id != expectedId)
-            .ShouldBeEmpty();
+        diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Id != expectedId).ShouldBeEmpty();
         return diagnostic;
     }
 
@@ -97,13 +75,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF001",
-            "NonPartialModel",
-            "#spf001-sparse-model-must-be-partial",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF001", "NonPartialModel", "#spf001-sparse-model-must-be-partial", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -152,13 +124,7 @@ public sealed class SparseGeneratorDiagnosticTests
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF002",
-            expectedArg,
-            "#spf002-unsupported-sparse-model",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF002", expectedArg, "#spf002-unsupported-sparse-model", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -196,13 +162,7 @@ public sealed class SparseGeneratorDiagnosticTests
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF003",
-            expectedArg,
-            "#spf003-model-needs-a-supported-constructor",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF003", expectedArg, "#spf003-model-needs-a-supported-constructor", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -282,23 +242,13 @@ public sealed class SparseGeneratorDiagnosticTests
         };
         var (diagnostics, sources) = Run(source);
         var expectedArg = kind == "nestedTarget" ? "Child" : "Name";
-        AssertSingleSpf(
-            diagnostics,
-            "SPF004",
-            expectedArg,
-            "#spf004-invalid-custom-merge-strategy",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF004", expectedArg, "#spf004-invalid-custom-merge-strategy", expectInSource: true);
         if (kind == "nestedTarget")
         {
             // The valid sibling root still generates; only the offending model
             // is skipped.
-            sources
-                .Any(s => s.HintName.Contains("Spf004Child", StringComparison.Ordinal))
-                .ShouldBeTrue();
-            sources
-                .Any(s => s.HintName.Contains("NestedStrategyModel", StringComparison.Ordinal))
-                .ShouldBeFalse();
+            sources.Any(s => s.HintName.Contains("Spf004Child", StringComparison.Ordinal)).ShouldBeTrue();
+            sources.Any(s => s.HintName.Contains("NestedStrategyModel", StringComparison.Ordinal)).ShouldBeFalse();
         }
         else
         {
@@ -411,30 +361,16 @@ public sealed class SparseGeneratorDiagnosticTests
             "appendTarget" => "Tags",
             _ => "Name",
         };
-        AssertSingleSpf(
-            diagnostics,
-            "SPF027",
-            expectedArg,
-            "#spf027-invalid-custom-rebase-policy",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF027", expectedArg, "#spf027-invalid-custom-rebase-policy", expectInSource: true);
         if (kind == "nestedTarget")
         {
-            sources
-                .Any(s => s.HintName.Contains("Spf027Child", StringComparison.Ordinal))
-                .ShouldBeTrue();
-            sources
-                .Any(s => s.HintName.Contains("NestedPolicyModel", StringComparison.Ordinal))
-                .ShouldBeFalse();
+            sources.Any(s => s.HintName.Contains("Spf027Child", StringComparison.Ordinal)).ShouldBeTrue();
+            sources.Any(s => s.HintName.Contains("NestedPolicyModel", StringComparison.Ordinal)).ShouldBeFalse();
         }
         else if (kind == "keyedTarget")
         {
-            sources
-                .Any(s => s.HintName.Contains("Spf027Item", StringComparison.Ordinal))
-                .ShouldBeTrue();
-            sources
-                .Any(s => s.HintName.Contains("KeyedPolicyModel", StringComparison.Ordinal))
-                .ShouldBeFalse();
+            sources.Any(s => s.HintName.Contains("Spf027Item", StringComparison.Ordinal)).ShouldBeTrue();
+            sources.Any(s => s.HintName.Contains("KeyedPolicyModel", StringComparison.Ordinal)).ShouldBeFalse();
         }
         else
         {
@@ -502,13 +438,7 @@ public sealed class SparseGeneratorDiagnosticTests
         };
         var expectedArg = kind == "appendOnSet" ? "Tags" : "Name";
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF005",
-            expectedArg,
-            "#spf005-unsupported-merge-mode",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF005", expectedArg, "#spf005-unsupported-merge-mode", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -542,13 +472,7 @@ public sealed class SparseGeneratorDiagnosticTests
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF006",
-            "Label",
-            "#spf006-required-member-cannot-be-constructed",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF006", "Label", "#spf006-required-member-cannot-be-constructed", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -568,13 +492,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF007",
-            "Child",
-            "#spf007-unsupported-structural-member-construction",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF007", "Child", "#spf007-unsupported-structural-member-construction", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -597,9 +515,7 @@ public sealed class SparseGeneratorDiagnosticTests
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         sources.Length.ShouldBeGreaterThan(0);
-        sources
-            .Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -630,13 +546,7 @@ public sealed class SparseGeneratorDiagnosticTests
         };
         var expectedArg = kind == "unsupportedType" ? "Value" : "Next";
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF008",
-            expectedArg,
-            "#spf008-unsupported-deep-clone-member",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF008", expectedArg, "#spf008-unsupported-deep-clone-member", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -656,13 +566,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """.Replace("NAME", memberName);
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF009",
-            memberName,
-            "#spf009-member-conflicts-with-generated-api",
-            expectInSource: false
-        );
+        AssertSingleSpf(diagnostics, "SPF009", memberName, "#spf009-member-conflicts-with-generated-api", expectInSource: false);
         sources.ShouldBeEmpty();
     }
 
@@ -682,13 +586,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """.Replace("NAME", nestedTypeName);
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF009",
-            nestedTypeName,
-            "#spf009-member-conflicts-with-generated-api",
-            expectInSource: false
-        );
+        AssertSingleSpf(diagnostics, "SPF009", nestedTypeName, "#spf009-member-conflicts-with-generated-api", expectInSource: false);
         sources.ShouldBeEmpty();
     }
 
@@ -717,13 +615,7 @@ public sealed class SparseGeneratorDiagnosticTests
             """.Replace("NAME", nestedTypeName);
 
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF009",
-            nestedTypeName,
-            "#spf009-member-conflicts-with-generated-api",
-            expectInSource: false
-        );
+        AssertSingleSpf(diagnostics, "SPF009", nestedTypeName, "#spf009-member-conflicts-with-generated-api", expectInSource: false);
         sources.ShouldBeEmpty();
     }
 
@@ -753,15 +645,9 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("Spf010RootOne", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        sources
-            .Any(s => s.HintName.Contains("Spf010RootTwo", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        sources
-            .Any(s => s.HintName.Contains("Spf010Shared", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010RootOne", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010RootTwo", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010Shared", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -813,6 +699,7 @@ public sealed class SparseGeneratorDiagnosticTests
             ["SPF034"] = "#spf034-invalid-entity-mapper-declaration",
             ["SPF035"] = "#spf035-unsupported-entity-member-shape",
             ["SPF036"] = "#spf036-custom-leaf-type-needs-external-json-metadata",
+            ["SPF037"] = "#spf037-sparsetransportignore-on-collection-identity",
         };
         var descriptors = typeof(SparseTypesGenerator)
             .GetFields(BindingFlags.NonPublic | BindingFlags.Static)
@@ -829,10 +716,7 @@ public sealed class SparseGeneratorDiagnosticTests
                 : DiagnosticSeverity.Error
             );
             descriptor.Category.ShouldBe("SparseTypes");
-            descriptor.HelpLinkUri.ShouldBe(
-                "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md"
-                    + anchor
-            );
+            descriptor.HelpLinkUri.ShouldBe("https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md" + anchor);
             descriptor.MessageFormat.ToString().ShouldContain("{0}");
         }
     }
@@ -859,19 +743,9 @@ public sealed class SparseGeneratorDiagnosticTests
         info.Location.IsInSource.ShouldBeTrue();
         sources.ShouldNotBeEmpty();
         sources
-            .Any(static generated =>
-                generated
-                    .SourceText.ToString()
-                    .Contains("public bool TryApplyInPlace", StringComparison.Ordinal)
-            )
+            .Any(static generated => generated.SourceText.ToString().Contains("public bool TryApplyInPlace", StringComparison.Ordinal))
             .ShouldBeTrue();
-        sources
-            .Any(static generated =>
-                generated
-                    .SourceText.ToString()
-                    .Contains("InPlaceWriteUnavailable", StringComparison.Ordinal)
-            )
-            .ShouldBeTrue();
+        sources.Any(static generated => generated.SourceText.ToString().Contains("InPlaceWriteUnavailable", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     private static DiagnosticDescriptor GetDescriptorById(string id) =>
@@ -936,15 +810,9 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("Spf010SameRootOne", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        sources
-            .Any(s => s.HintName.Contains("Spf010SameRootTwo", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        sources
-            .Any(s => s.HintName.Contains("Spf010SameShared", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010SameRootOne", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010SameRootTwo", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("Spf010SameShared", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -964,13 +832,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF011",
-            "Items",
-            "#spf011-structural-sequence-without-usable-key",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF011", "Items", "#spf011-structural-sequence-without-usable-key", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -994,9 +856,7 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("KeyedHolder", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("KeyedHolder", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -1018,9 +878,7 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("UnkeyedEscapeHolder", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("UnkeyedEscapeHolder", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -1042,9 +900,7 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("ExplicitReplaceHolder", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("ExplicitReplaceHolder", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -1065,13 +921,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF022",
-            "Id",
-            "#spf022-sparseignore-on-key",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF022", "Id", "#spf022-sparseignore-on-key", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -1096,13 +946,7 @@ public sealed class SparseGeneratorDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF022",
-            "Key",
-            "#spf022-sparseignore-on-key",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF022", "Key", "#spf022-sparseignore-on-key", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -1145,13 +989,7 @@ public sealed class SparseGeneratorDiagnosticTests
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
         var (diagnostics, sources) = Run(source);
-        AssertSingleSpf(
-            diagnostics,
-            "SPF023",
-            "Hidden",
-            "#spf023-sparseignore-on-unsupported-property",
-            expectInSource: true
-        );
+        AssertSingleSpf(diagnostics, "SPF023", "Hidden", "#spf023-sparseignore-on-unsupported-property", expectInSource: true);
         sources.ShouldBeEmpty();
     }
 
@@ -1174,8 +1012,6 @@ public sealed class SparseGeneratorDiagnosticTests
             """;
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.Contains("IgnoredJsonNameModel", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(s => s.HintName.Contains("IgnoredJsonNameModel", StringComparison.Ordinal)).ShouldBeTrue();
     }
 }

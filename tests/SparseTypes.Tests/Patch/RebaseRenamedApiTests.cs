@@ -57,8 +57,7 @@ public sealed class RebaseRenamedApiTests
     [Test]
     public void KeyedConflictViaOrdinaryModelsKeepsDisjointKeys()
     {
-        static KeyedServerHolder Holder(params KeyedServer[] items) =>
-            new() { Items = items.ToList() };
+        static KeyedServerHolder Holder(params KeyedServer[] items) => new() { Items = items.ToList() };
 
         var baseModel = Holder(
             new KeyedServer
@@ -98,11 +97,7 @@ public sealed class RebaseRenamedApiTests
         var baseModel = new Settings { Label = "a", RetryCount = 1 };
         var editedModel = new Settings { Label = "b", RetryCount = 2 };
         var currentModel = new Settings { Label = "c", RetryCount = 3 };
-        var before = new Settings
-        {
-            Label = currentModel.Label,
-            RetryCount = currentModel.RetryCount,
-        };
+        var before = new Settings { Label = currentModel.Label, RetryCount = currentModel.RetryCount };
 
         var changes = baseModel.CreateChangeSet(editedModel);
         var ok = changes.TryApplyTo(currentModel, out var updated, out var conflicts);
@@ -174,8 +169,8 @@ public sealed class RebaseRenamedApiTests
         var stateC = new Settings { Label = "b", RetryCount = 1 };
 
         var outgoing = stateA.CreateChangeSet(stateB);
-        var json = JsonSerializer.Serialize(outgoing.ToPayload());
-        var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(outgoing.ToPayload());
+        var incoming = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json).ToChangeSet();
 
         var ok = incoming.TryApplyTo(stateC, out var saved, out var conflicts);
 
@@ -192,11 +187,7 @@ public sealed class RebaseRenamedApiTests
         var resultType = typeof(RebaseResult<Settings.ChangeSet>);
         resultType.GetProperty("Rebased").ShouldNotBeNull();
         resultType.GetProperty("Patch").ShouldBeNull();
-        resultType
-            .GetProperty("Conflicts")!
-            .PropertyType.ShouldBe(typeof(IReadOnlyList<SparseConflict>));
-        typeof(SparseConflict)
-            .GetProperty("Kind")!
-            .PropertyType.ShouldBe(typeof(SparseConflictKind));
+        resultType.GetProperty("Conflicts")!.PropertyType.ShouldBe(typeof(IReadOnlyList<SparseConflict>));
+        typeof(SparseConflict).GetProperty("Kind")!.PropertyType.ShouldBe(typeof(SparseConflictKind));
     }
 }

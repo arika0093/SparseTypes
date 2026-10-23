@@ -45,17 +45,17 @@ clientSession.Observable.Theme = "dark";
 // 1. Serialize the transition to a JSON wire payload
 var outgoingChanges = clientSession.CreateChangeSet();
 var payload = outgoingChanges.ToPayload();
-var json = JsonSerializer.Serialize(payload);
+var json = JsonSerializer.Serialize(payload, UserSettings.PayloadJson.Default);
 Console.WriteLine($"Wire JSON: {json}");
 
 // 2. Deserialize on the server into a typed ChangeSet
-var receivedPayload = JsonSerializer.Deserialize<UserSettings.ChangePayload>(json)!;
+var receivedPayload = JsonSerializer.Deserialize<UserSettings.ChangePayload>(json, UserSettings.PayloadJson.Default)!;
 var incomingChanges = receivedPayload.ToChangeSet();
 Console.WriteLine(
     $"Received Theme change: {incomingChanges.Theme.Before.Value} -> {incomingChanges.Theme.After.Value}"
 );
 // Output:
-// Wire JSON: {"version":"0.1","changes":[{"member":"Theme","before":{"state":"value","value":"light"},"after":{"state":"value","value":"dark"}}]}
+// Wire JSON: {"version":"0.1","change":{"kind":"update","members":{"theme":{"kind":"replace","before":{"state":"value","value":"light"},"after":{"state":"value","value":"dark"}}}}}
 // Received Theme change: light -> dark
 ```
 <!-- /sample -->

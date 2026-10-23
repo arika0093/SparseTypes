@@ -220,40 +220,6 @@ internal static class SparseGeneratedPlacement
         return child.NonNullableName + "." + simple;
     }
 
-    /// <summary>Gets the qualified descriptor-factory reference for a model.</summary>
-    /// <remarks>
-    /// Unlike UI types, the factory stays in the implementation namespace when
-    /// relocation is enabled.
-    /// </remarks>
-    /// <param name="model">Owning model.</param>
-    /// <param name="config">Owning generator configuration.</param>
-    /// <param name="cancellationToken">Cooperative cancellation.</param>
-    /// <returns>Nested reference for single-file emission, qualified otherwise.</returns>
-    public static string GetDescriptorFactoryReference(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
-    {
-        var root = TryGetImplementationNamespace(config);
-        return root is null
-            ? model.ModelTypeName + ".DescriptorFactory"
-            : "global::" + root + "." + GetImplementationContainer(model, cancellationToken) + ".DescriptorFactory";
-    }
-
-    /// <summary>Gets the qualified child descriptor-factory reference.</summary>
-    /// <param name="childQualifiedName">Child <c>NonNullableName</c>.</param>
-    /// <param name="config">Owning generator configuration.</param>
-    /// <param name="cancellationToken">Cooperative cancellation.</param>
-    /// <returns>Factory reference matching the child's own container.</returns>
-    public static string GetChildDescriptorFactoryReference(
-        string childQualifiedName,
-        SparseGeneratorConfig config,
-        CancellationToken cancellationToken
-    )
-    {
-        var root = TryGetImplementationNamespace(config);
-        return root is null
-            ? childQualifiedName + ".DescriptorFactory"
-            : "global::" + root + "." + GetContainerForQualifiedName(childQualifiedName, cancellationToken) + ".DescriptorFactory";
-    }
-
     /// <summary>Gets the observable implementation hint name.</summary>
     /// <param name="model">Model identity.</param>
     /// <param name="cancellationToken">Cooperative cancellation.</param>
@@ -274,13 +240,6 @@ internal static class SparseGeneratedPlacement
     /// <returns>A hint distinct from the surface file.</returns>
     public static string EditSessionHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
         ImplementationHintName(model, ".EditSession.g.cs", cancellationToken);
-
-    /// <summary>Gets the descriptor-factory implementation hint name.</summary>
-    /// <param name="model">Model identity.</param>
-    /// <param name="cancellationToken">Cooperative cancellation.</param>
-    /// <returns>A hint distinct from the surface file.</returns>
-    public static string DescriptorFactoryHintName(SparseModelInfo model, CancellationToken cancellationToken) =>
-        ImplementationHintName(model, ".DescriptorFactory.g.cs", cancellationToken);
 
     private static string QualifiedIdentity(string qualifiedTypeName)
     {

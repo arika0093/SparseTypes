@@ -25,10 +25,7 @@ public static class RebaseSamples
         {
             throw new InvalidOperationException("Expected a conflict-free rebase.");
         }
-        DocsCheck.Require(
-            applied.RetryCount == 2 && applied.Label == "b",
-            "disjoint rebase replays local edit and keeps concurrent edit"
-        );
+        DocsCheck.Require(applied.RetryCount == 2 && applied.Label == "b", "disjoint rebase replays local edit and keeps concurrent edit");
     }
 
     private static void AlreadyAppliedEditsBecomeNoOps()
@@ -41,10 +38,7 @@ public static class RebaseSamples
         {
             throw new InvalidOperationException("The change conflicts with the current model.");
         }
-        DocsCheck.Require(
-            applied.RetryCount == 2,
-            "already-applied rebase keeps the current value"
-        );
+        DocsCheck.Require(applied.RetryCount == 2, "already-applied rebase keeps the current value");
     }
 
     private static void ConflictingEditsProduceStructuredConflicts()
@@ -52,11 +46,7 @@ public static class RebaseSamples
         var baseModel = new RebaseDocsSettings { RetryCount = 1 };
         var editedModel = new RebaseDocsSettings { RetryCount = 2 };
         var currentModel = new RebaseDocsSettings { RetryCount = 3 };
-        if (
-            baseModel
-                .CreateChangeSet(editedModel)
-                .TryApplyTo(currentModel, out _, out var conflicts)
-        )
+        if (baseModel.CreateChangeSet(editedModel).TryApplyTo(currentModel, out _, out var conflicts))
         {
             throw new InvalidOperationException("Expected a conflict.");
         }
@@ -65,9 +55,7 @@ public static class RebaseSamples
         DocsCheck.Require(conflict.Kind == SparseConflictKind.Scalar, "conflict kind is Scalar");
         DocsCheck.Require(conflict.PathText == "RetryCount", "conflict path names the member");
         DocsCheck.Require(
-            Equals(conflict.BaseValue.Value, 1)
-                && Equals(conflict.LocalValue.Value, 2)
-                && Equals(conflict.CurrentValue.Value, 3),
+            Equals(conflict.BaseValue.Value, 1) && Equals(conflict.LocalValue.Value, 2) && Equals(conflict.CurrentValue.Value, 3),
             "conflict carries base/local/current values"
         );
     }
@@ -80,10 +68,7 @@ public static class RebaseSamples
         RebaseResult<RebaseDocsSettings.ChangeSet> result = rootChange.RebaseOnto(missing);
         DocsCheck.Require(!result.HasConflicts, "missing-to-null root transition rebases");
         var applied = result.Rebased.ToPatch().Apply(missing);
-        DocsCheck.Require(
-            applied.IsPresent && applied.Value is null,
-            "root rebase preserves present-null state"
-        );
+        DocsCheck.Require(applied.IsPresent && applied.Value is null, "root rebase preserves present-null state");
     }
 
     private static void MixedRequestsApplyBlindSetsAtomically()
@@ -91,7 +76,8 @@ public static class RebaseSamples
         // sample: mixed-apply
         var currentModel = new RebaseDocsSettings { RetryCount = 1, Label = "current" };
         var payload = JsonSerializer.Deserialize<RebaseDocsSettings.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"redacted","value":null},"after":{"state":"value","value":"rotated"}},{"member":"RetryCount","before":{"state":"value","value":1},"after":{"state":"value","value":2}}]}"""
+            """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}},"retryCount":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""",
+            RebaseDocsSettings.PayloadJson.Default
         )!;
         if (!payload.TryApplyMixedTo(currentModel, out var updated, out var outcome))
         {
@@ -101,14 +87,8 @@ public static class RebaseSamples
         // updated.Label == "rotated"
         // updated.RetryCount == 2
         // /sample
-        DocsCheck.Require(
-            updated.Label == "rotated" && updated.RetryCount == 2,
-            "mixed request applies the blind set and the rebased transition"
-        );
-        DocsCheck.Require(
-            outcome.WriteOnlyPaths.Count == 1 && outcome.WriteOnlyPaths[0] == "Label",
-            "mixed outcome names the write-only path"
-        );
+        DocsCheck.Require(updated.Label == "rotated" && updated.RetryCount == 2, "mixed request applies the blind set and the rebased transition");
+        DocsCheck.Require(outcome.WriteOnlyPaths.Count == 1 && outcome.WriteOnlyPaths[0] == "Label", "mixed outcome names the write-only path");
     }
 
     private static void InPlaceApplyChecksBeforeState()
@@ -127,14 +107,8 @@ public static class RebaseSamples
         // boundModel.RetryCount == 2
         // boundModel.Label == "b"
         // /sample
-        DocsCheck.Require(
-            inPlaceConflicts is null,
-            "conflict-free in-place apply reports no conflicts"
-        );
-        DocsCheck.Require(
-            boundModel.RetryCount == 2 && boundModel.Label == "b",
-            "in-place apply replays the edit and keeps the concurrent edit"
-        );
+        DocsCheck.Require(inPlaceConflicts is null, "conflict-free in-place apply reports no conflicts");
+        DocsCheck.Require(boundModel.RetryCount == 2 && boundModel.Label == "b", "in-place apply replays the edit and keeps the concurrent edit");
     }
 
     private static void VersionedStoreSave()
@@ -149,9 +123,12 @@ public static class RebaseSamples
         var clientBaseline = new RebaseDocsSettings { RetryCount = 1, Label = "a" };
         const int clientVersion = 7;
         var clientEdited = new RebaseDocsSettings { RetryCount = 2, Label = "a" };
-        var incoming = JsonSerializer.Deserialize<RebaseDocsSettings.ChangePayload>(
-            JsonSerializer.Serialize(clientBaseline.CreateChangeSet(clientEdited).ToPayload())
-        )!.ToChangeSet();
+        var incoming = JsonSerializer
+            .Deserialize<RebaseDocsSettings.ChangePayload>(
+                JsonSerializer.Serialize(clientBaseline.CreateChangeSet(clientEdited).ToPayload(), RebaseDocsSettings.PayloadJson.Default),
+                RebaseDocsSettings.PayloadJson.Default
+            )!
+            .ToChangeSet();
 
         // Another writer persisted C at v8 (Label "a" -> "b") before the save.
         var writerRow = store.LoadCurrent(out var writerVersion);
@@ -230,30 +207,15 @@ public static class RebaseSamples
         DocsCheck.Require(clientVersion == 7, "client token records the read version");
         DocsCheck.Require(writerRow.RetryCount == 1, "writer loaded the read state");
         DocsCheck.Require(loadedVersion == 8, "server rebases onto the loaded token");
-        DocsCheck.Require(
-            saveConflicts is null,
-            "conflict-free rebase reports no conflicts"
-        );
-        DocsCheck.Require(
-            merged.RetryCount == 2 && merged.Label == "b",
-            "disjoint rebase keeps the client edit and the server edit"
-        );
-        DocsCheck.Require(
-            overlapConflict.Kind == SparseConflictKind.Scalar,
-            "overlap conflict kind is Scalar"
-        );
-        DocsCheck.Require(
-            overlapConflict.PathText == "RetryCount",
-            "overlap conflict names the member"
-        );
+        DocsCheck.Require(saveConflicts is null, "conflict-free rebase reports no conflicts");
+        DocsCheck.Require(merged.RetryCount == 2 && merged.Label == "b", "disjoint rebase keeps the client edit and the server edit");
+        DocsCheck.Require(overlapConflict.Kind == SparseConflictKind.Scalar, "overlap conflict kind is Scalar");
+        DocsCheck.Require(overlapConflict.PathText == "RetryCount", "overlap conflict names the member");
         DocsCheck.Require(racedVersion == 9, "race starts from the saved token");
         DocsCheck.Require(!raceHit, "stale conditional write fails without overwriting");
         DocsCheck.Require(saved && attempts == 1, "bounded retry converges on the reload");
         var finalRow = store.LoadCurrent(out var finalVersion);
-        DocsCheck.Require(
-            finalRow.RetryCount == 2 && finalRow.Label == "c",
-            "retried save keeps the client edit over the newer row"
-        );
+        DocsCheck.Require(finalRow.RetryCount == 2 && finalRow.Label == "c", "retried save keeps the client edit over the newer row");
         DocsCheck.Require(finalVersion == 11, "versions advance monotonically");
         DocsCheck.Require(store.WriteCount == 4, "conflict and race paths write nothing extra");
     }

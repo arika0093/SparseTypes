@@ -21,6 +21,7 @@ public sealed class PayloadJsonHelperTests
             public partial class FirstWidget
             {
                 public string? Label { get; set; }
+                public SecondWidget? Child { get; set; }
             }
 
             [SparseModel]
@@ -127,19 +128,26 @@ public sealed class PayloadJsonHelperTests
         merged.ShouldContain("PayloadJsonResolver.Default.ChangePayload");
         merged.ShouldContain("PayloadJsonResolver.Default;");
         merged.ShouldNotContain("FirstWidgetJson");
+        merged.ShouldContain("public static global::SparseTypes.SparsePayloadSchemaBundle Schema");
+        merged.ShouldContain("\"change\"");
+        merged.ShouldContain("\"members\"");
+        merged.ShouldContain("\"label\"");
+        merged.ShouldContain("PayloadJson.Schema");
     }
 
     [Test]
-    public void WithoutStj_OmitsHelpers()
+    public void WithoutStj_EmitsSchemasWithoutJsonMetadata()
     {
         var sources = Run(CreateCompilation(NamespacedSource, includeStj: false));
+        var merged = string.Concat(sources.Values);
 
         foreach (var pair in sources)
         {
             pair.Value.ShouldNotContain("System.Text.Json");
-            pair.Value.ShouldNotContain("WidgetJson");
         }
 
+        merged.ShouldContain("public static global::SparseTypes.SparsePayloadSchemaBundle Schema");
+        merged.ShouldNotContain("JsonTypeInfo");
         CombinedCompilationHasNoErrors(CreateCompilation(NamespacedSource, includeStj: false), sources);
     }
 

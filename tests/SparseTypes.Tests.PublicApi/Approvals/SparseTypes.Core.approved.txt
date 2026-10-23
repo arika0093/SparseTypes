@@ -154,4 +154,9 @@ namespace SparseTypes
     {
         public SparseTemporaryKeyAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple=false, Inherited=true)]
+    public sealed class SparseTransportIgnoreAttribute : System.Attribute
+    {
+        public SparseTransportIgnoreAttribute() { }
+    }
 }

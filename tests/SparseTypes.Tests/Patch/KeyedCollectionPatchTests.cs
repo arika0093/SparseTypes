@@ -178,8 +178,7 @@ public sealed class KeyedCollectionPatchTests
             Count = count,
         };
 
-    private static KeyedServerHolder Holder(params KeyedServer[] items) =>
-        new() { Items = items.ToList() };
+    private static KeyedServerHolder Holder(params KeyedServer[] items) => new() { Items = items.ToList() };
 
     private static Optional<KeyedServerHolder.Fragment?> State(KeyedServerHolder model) =>
         Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(model));
@@ -231,10 +230,12 @@ public sealed class KeyedCollectionPatchTests
         applied.Value!.Items.Value!.Select(s => s.Id).ShouldBe(["c", "a", "b"]);
 
         var changeSet = KeyedServerHolder.ChangeSet.Between(before, after);
-        var payloadJson = System.Text.Json.JsonSerializer.Serialize(changeSet.ToPayload());
+        var payloadJson = PayloadJsonTestSupport.Serialize(changeSet.ToPayload());
         using var document = System.Text.Json.JsonDocument.Parse(payloadJson);
         document
-            .RootElement.GetProperty("changes")[0]
+            .RootElement.GetProperty("change")
+            .GetProperty("members")
+            .GetProperty("items")
             .GetProperty("afterOrder")
             .EnumerateArray()
             .Select(key => key.GetString())
@@ -258,11 +259,7 @@ public sealed class KeyedCollectionPatchTests
     public void UnassignedSentinelsAreIndependentAddsAndPreserveOrder()
     {
         Optional<AssignedServerHolder.Fragment?> F(params AssignedServer[] items) =>
-            Optional<AssignedServerHolder.Fragment?>.Present(
-                AssignedServerHolder.Fragment.From(
-                    new AssignedServerHolder { Items = items.ToList() }
-                )
-            );
+            Optional<AssignedServerHolder.Fragment?>.Present(AssignedServerHolder.Fragment.From(new AssignedServerHolder { Items = items.ToList() }));
 
         var before = F(new AssignedServer { Id = 7, Name = "existing" });
         var after = F(
@@ -273,34 +270,24 @@ public sealed class KeyedCollectionPatchTests
 
         var patch = AssignedServerHolder.Patch.Between(before, after);
         var applied = patch.Apply(before);
-        applied
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        applied.Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
         var changes = AssignedServerHolder.ChangeSet.Between(before, after);
         changes.IsEmpty.ShouldBeFalse();
-        changes
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        changes.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
         changes.Items.AfterOrder.ShouldBe([0, 7, 0]);
         changes.Items.Added.Select(item => item.Name).ShouldBe(["first", "second"]);
         changes.Items.GetChange(0).IsEmpty.ShouldBeTrue();
-        var payloadRoundTrip = System
-            .Text.Json.JsonSerializer.Deserialize<AssignedServerHolder.ChangePayload>(
-                System.Text.Json.JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var payloadRoundTrip = PayloadJsonTestSupport
+            .Deserialize<AssignedServerHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        payloadRoundTrip
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
-        var payloadJson = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload());
+        payloadRoundTrip.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
+        var payloadJson = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         using (var document = System.Text.Json.JsonDocument.Parse(payloadJson))
         {
             document
-                .RootElement.GetProperty("changes")[0]
+                .RootElement.GetProperty("change")
+                .GetProperty("members")
+                .GetProperty("items")
                 .GetProperty("afterOrder")
                 .EnumerateArray()
                 .Select(key => key.GetInt32())
@@ -310,12 +297,7 @@ public sealed class KeyedCollectionPatchTests
         var edited = F(new AssignedServer { Id = 7, Name = "updated" });
         var first = AssignedServerHolder.ChangeSet.Between(before, edited);
         var second = AssignedServerHolder.ChangeSet.Between(edited, after);
-        first
-            .Compose(second)
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        first.Compose(second).ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
 
         var manualFirst = new AssignedServerHolder.Patch();
         manualFirst.Items.Add(new AssignedServer { Name = "manual-first" });
@@ -327,10 +309,7 @@ public sealed class KeyedCollectionPatchTests
             .Value!.Items.Value!.Select(item => item.Name)
             .ShouldBe(["existing", "manual-first", "manual-second"]);
 
-        var concurrent = F(
-            new AssignedServer { Id = 7, Name = "existing" },
-            new AssignedServer { Id = 9, Name = "concurrent" }
-        );
+        var concurrent = F(new AssignedServer { Id = 7, Name = "existing" }, new AssignedServer { Id = 9, Name = "concurrent" });
         var rebased = changes.RebaseOnto(concurrent);
         rebased.HasConflicts.ShouldBeFalse();
         rebased
@@ -340,10 +319,7 @@ public sealed class KeyedCollectionPatchTests
             .ShouldBe(["existing", "concurrent", "first", "second"]);
         var patchRebased = AssignedServerHolder.Patch.Rebase(before, patch, concurrent);
         patchRebased.HasConflicts.ShouldBeFalse();
-        patchRebased
-            .Rebased.Apply(concurrent)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["existing", "concurrent", "first", "second"]);
+        patchRebased.Rebased.Apply(concurrent).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["existing", "concurrent", "first", "second"]);
     }
 
     [Test]
@@ -351,9 +327,7 @@ public sealed class KeyedCollectionPatchTests
     {
         Optional<NullableKeyServerHolder.Fragment?> F(params NullableKeyServer[] items) =>
             Optional<NullableKeyServerHolder.Fragment?>.Present(
-                NullableKeyServerHolder.Fragment.From(
-                    new NullableKeyServerHolder { Items = items.ToList() }
-                )
+                NullableKeyServerHolder.Fragment.From(new NullableKeyServerHolder { Items = items.ToList() })
             );
 
         var before = F(new NullableKeyServer { Id = "existing", Name = "existing" });
@@ -364,30 +338,16 @@ public sealed class KeyedCollectionPatchTests
         );
 
         var patch = NullableKeyServerHolder.Patch.Between(before, after);
-        patch
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        patch.Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
         var changes = NullableKeyServerHolder.ChangeSet.Between(before, after);
         changes.Items.Added.Select(item => item.Name).ShouldBe(["first", "second"]);
-        changes
-            .Items.AfterOrder.Select(static key => (string?)key)
-            .ShouldBe(new string?[] { null, "existing", null });
-        changes
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        changes.Items.AfterOrder.Select(static key => (string?)key).ShouldBe(new string?[] { null, "existing", null });
+        changes.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
 
         var updated = F(new NullableKeyServer { Id = "existing", Name = "updated" });
         var first = NullableKeyServerHolder.ChangeSet.Between(before, updated);
         var second = NullableKeyServerHolder.ChangeSet.Between(updated, after);
-        first
-            .Compose(second)
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        first.Compose(second).ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
 
         var concurrent = F(
             new NullableKeyServer { Id = "existing", Name = "existing" },
@@ -401,12 +361,8 @@ public sealed class KeyedCollectionPatchTests
             .Value!.Items.Value!.Select(item => item.Name)
             .ShouldBe(["existing", "concurrent", "first", "second"]);
 
-        Should.Throw<InvalidOperationException>(() =>
-            NullableKeyServerHolder.Patch.Between(after, before)
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            NullableKeyServerHolder.ChangeSet.Between(after, before)
-        );
+        Should.Throw<InvalidOperationException>(() => NullableKeyServerHolder.Patch.Between(after, before));
+        Should.Throw<InvalidOperationException>(() => NullableKeyServerHolder.ChangeSet.Between(after, before));
     }
 
     [Test]
@@ -414,21 +370,14 @@ public sealed class KeyedCollectionPatchTests
     {
         var before = Optional<NullableValueKeyServerHolder.Fragment?>.Present(
             NullableValueKeyServerHolder.Fragment.From(
-                new NullableValueKeyServerHolder
-                {
-                    Items = [new NullableValueKeyServer { Id = 3, Name = "existing" }],
-                }
+                new NullableValueKeyServerHolder { Items = [new NullableValueKeyServer { Id = 3, Name = "existing" }] }
             )
         );
         var after = Optional<NullableValueKeyServerHolder.Fragment?>.Present(
             NullableValueKeyServerHolder.Fragment.From(
                 new NullableValueKeyServerHolder
                 {
-                    Items =
-                    [
-                        new NullableValueKeyServer { Id = null, Name = "new" },
-                        new NullableValueKeyServer { Id = 3, Name = "existing" },
-                    ],
+                    Items = [new NullableValueKeyServer { Id = null, Name = "new" }, new NullableValueKeyServer { Id = 3, Name = "existing" }],
                 }
             )
         );
@@ -490,21 +439,14 @@ public sealed class KeyedCollectionPatchTests
     {
         var explicitBefore = Optional<ExplicitNullKeyServerHolder.Fragment?>.Present(
             ExplicitNullKeyServerHolder.Fragment.From(
-                new ExplicitNullKeyServerHolder
-                {
-                    Items = [new ExplicitNullKeyServer { Id = "existing", Name = "existing" }],
-                }
+                new ExplicitNullKeyServerHolder { Items = [new ExplicitNullKeyServer { Id = "existing", Name = "existing" }] }
             )
         );
         var explicitAfter = Optional<ExplicitNullKeyServerHolder.Fragment?>.Present(
             ExplicitNullKeyServerHolder.Fragment.From(
                 new ExplicitNullKeyServerHolder
                 {
-                    Items =
-                    [
-                        new ExplicitNullKeyServer { Id = null, Name = "new" },
-                        new ExplicitNullKeyServer { Id = "existing", Name = "existing" },
-                    ],
+                    Items = [new ExplicitNullKeyServer { Id = null, Name = "new" }, new ExplicitNullKeyServer { Id = "existing", Name = "existing" }],
                 }
             )
         );
@@ -516,10 +458,7 @@ public sealed class KeyedCollectionPatchTests
 
         var overrideBefore = Optional<OverrideNullableKeyServerHolder.Fragment?>.Present(
             OverrideNullableKeyServerHolder.Fragment.From(
-                new OverrideNullableKeyServerHolder
-                {
-                    Items = [new OverrideNullableKeyServer { Id = "existing", Name = "existing" }],
-                }
+                new OverrideNullableKeyServerHolder { Items = [new OverrideNullableKeyServer { Id = "existing", Name = "existing" }] }
             )
         );
         var overrideAfter = Optional<OverrideNullableKeyServerHolder.Fragment?>.Present(
@@ -545,21 +484,12 @@ public sealed class KeyedCollectionPatchTests
     public void UnassignedKeysAreRejectedInBaselineAndOrdinaryDuplicatesStillFail()
     {
         Optional<AssignedServerHolder.Fragment?> F(params AssignedServer[] items) =>
-            Optional<AssignedServerHolder.Fragment?>.Present(
-                AssignedServerHolder.Fragment.From(
-                    new AssignedServerHolder { Items = items.ToList() }
-                )
-            );
+            Optional<AssignedServerHolder.Fragment?>.Present(AssignedServerHolder.Fragment.From(new AssignedServerHolder { Items = items.ToList() }));
         var invalidBaseline = F(new AssignedServer { Id = 0 });
         var valid = F(new AssignedServer { Id = 1 });
+        Should.Throw<InvalidOperationException>(() => AssignedServerHolder.Patch.Between(invalidBaseline, valid));
         Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.Patch.Between(invalidBaseline, valid)
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            AssignedServerHolder.Patch.Between(
-                valid,
-                F(new AssignedServer { Id = 1 }, new AssignedServer { Id = 1 })
-            )
+            AssignedServerHolder.Patch.Between(valid, F(new AssignedServer { Id = 1 }, new AssignedServer { Id = 1 }))
         );
     }
 
@@ -592,14 +522,10 @@ public sealed class KeyedCollectionPatchTests
             };
 
         Optional<CompositeServerHolder.Fragment?> StateOf(CompositeServerHolder m) =>
-            Optional<CompositeServerHolder.Fragment?>.Present(
-                CompositeServerHolder.Fragment.From(m)
-            );
+            Optional<CompositeServerHolder.Fragment?>.Present(CompositeServerHolder.Fragment.From(m));
 
         var before = StateOf(new CompositeServerHolder { Items = [S("t1", "a", "A")] });
-        var after = StateOf(
-            new CompositeServerHolder { Items = [S("t1", "a", "A"), S("t2", "a", "Other")] }
-        );
+        var after = StateOf(new CompositeServerHolder { Items = [S("t1", "a", "A"), S("t2", "a", "Other")] });
 
         // Same Id in different tenants are distinct keys.
         var patch = CompositeServerHolder.Patch.Between(before, after);
@@ -706,9 +632,7 @@ public sealed class KeyedCollectionPatchTests
         Optional<StructuralDictHolder.Fragment?> SOf(StructuralDictHolder m) =>
             Optional<StructuralDictHolder.Fragment?>.Present(StructuralDictHolder.Fragment.From(m));
 
-        var before = SOf(
-            new StructuralDictHolder { Servers = new() { ["web"] = Server("s1", "Old") } }
-        );
+        var before = SOf(new StructuralDictHolder { Servers = new() { ["web"] = Server("s1", "Old") } });
         var patch = new StructuralDictHolder.Patch();
         patch.Servers.Edit("web").Name = "New";
         patch.Servers.SetEntry("db", Server("s2", "Db"));
@@ -735,9 +659,7 @@ public sealed class KeyedCollectionPatchTests
         KeyedServerHolder.Patch.Between(composed.Apply(b0), b2).IsEmpty.ShouldBeTrue();
 
         var inverted = composed.Invert(b0);
-        KeyedServerHolder
-            .Patch.Between(inverted.Apply(composed.Apply(b0)), b0)
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(inverted.Apply(composed.Apply(b0)), b0).IsEmpty.ShouldBeTrue();
 
         // Rebase: untouched current keeps local.
         var kept = KeyedServerHolder.Patch.Rebase(b0, first, b0);
@@ -786,26 +708,18 @@ public sealed class KeyedCollectionPatchTests
 
         // The typed payload round-trip preserves the same keyed semantics.
         var changes = KeyedServerHolder.ChangeSet.Between(present, afterOpt);
-        var roundTripped = System
-            .Text.Json.JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
-                System.Text.Json.JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var roundTripped = PayloadJsonTestSupport
+            .Deserialize<KeyedServerHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        KeyedServerHolder
-            .Patch.Between(roundTripped.ToPatch().Apply(present), applied)
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(roundTripped.ToPatch().Apply(present), applied).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void ScalarSequenceRoundTripsAsWholeValue()
     {
-        var baseline = ScalarSequenceHolder.Fragment.From(
-            new ScalarSequenceHolder { Tags = ["a", "b"], Numbers = [1] }
-        );
+        var baseline = ScalarSequenceHolder.Fragment.From(new ScalarSequenceHolder { Tags = ["a", "b"], Numbers = [1] });
         var present = Optional<ScalarSequenceHolder.Fragment?>.Present(baseline);
-        var after = ScalarSequenceHolder.Fragment.From(
-            new ScalarSequenceHolder { Tags = ["a", "b", "c"], Numbers = [1] }
-        );
+        var after = ScalarSequenceHolder.Fragment.From(new ScalarSequenceHolder { Tags = ["a", "b", "c"], Numbers = [1] });
         var afterOpt = Optional<ScalarSequenceHolder.Fragment?>.Present(after);
 
         var patch = ScalarSequenceHolder.Patch.Between(present, afterOpt);
@@ -813,13 +727,9 @@ public sealed class KeyedCollectionPatchTests
         applied.Value!.Tags.Value!.ShouldBe(["a", "b", "c"]);
 
         var changes = ScalarSequenceHolder.ChangeSet.Between(present, afterOpt);
-        var roundTripped = System
-            .Text.Json.JsonSerializer.Deserialize<ScalarSequenceHolder.ChangePayload>(
-                System.Text.Json.JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var roundTripped = PayloadJsonTestSupport
+            .Deserialize<ScalarSequenceHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        ScalarSequenceHolder
-            .Patch.Between(roundTripped.ToPatch().Apply(present), applied)
-            .IsEmpty.ShouldBeTrue();
+        ScalarSequenceHolder.Patch.Between(roundTripped.ToPatch().Apply(present), applied).IsEmpty.ShouldBeTrue();
     }
 }

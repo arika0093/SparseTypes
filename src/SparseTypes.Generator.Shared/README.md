@@ -49,6 +49,12 @@ redaction attribute metadata name: members carrying the downstream redaction
 attribute emit a redacted before-state from `ToPayload()`. Merge enum values are
 normalized to shared semantic modes before validation and emission; the
 downstream enum does not need to reuse `SparseTypes.MergeMode`.
+Set the optional `TransportIgnoreAttributeMetadataName` when the product has a
+property attribute that excludes a tracked member from every payload format.
+The neutral payload retains `JsonIgnore` members, while the JSON projection
+excludes them and rejects serialization if a change touches one. With no
+transport-ignore metadata name configured, Shared emits no product-specific
+transport-attribute behavior.
 `SparseGeneratorConfig.FamilyNames` optionally rebinds the generated
 state, operation, transition, payload, and view names
 (`SparseFamilyNames`, defaulting to the standalone

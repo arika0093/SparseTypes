@@ -33,7 +33,8 @@ internal readonly record struct SparsePropertyModel(
     bool IsNullable = false,
     string? AttributeExpressions = null,
     bool IsNullableOblivious = false,
-    bool IsTemporaryKey = false
+    bool IsTemporaryKey = false,
+    bool IsTransportIgnored = false
 )
 {
     public bool IsJsonIgnored => JsonIgnoreCondition == 1;
@@ -323,7 +324,8 @@ internal sealed record SparseGenerationAnalysis(
     ImmutableArray<SparseGeneratorDiagnostic> Diagnostics,
     ImmutableArray<SparsePromotedModel> PromotedModels = default,
     ImmutableArray<SparseReadOnlyViewModel> ReadOnlyViewModels = default,
-    ImmutableArray<SparsePayloadJsonPocoModel> PayloadJsonPocos = default
+    ImmutableArray<SparsePayloadJsonPocoModel> PayloadJsonPocos = default,
+    SparsePayloadContract? PayloadContract = null
 )
 {
     public bool Equals(SparseGenerationAnalysis? other) =>
@@ -335,7 +337,8 @@ internal sealed record SparseGenerationAnalysis(
         && SparseSequence.Equal(Diagnostics, other.Diagnostics)
         && SparseSequence.Equal(PromotedModels, other.PromotedModels)
         && SparseSequence.Equal(ReadOnlyViewModels, other.ReadOnlyViewModels)
-        && SparseSequence.Equal(PayloadJsonPocos, other.PayloadJsonPocos);
+        && SparseSequence.Equal(PayloadJsonPocos, other.PayloadJsonPocos)
+        && Equals(PayloadContract, other.PayloadContract);
 
     public override int GetHashCode()
     {
@@ -346,7 +349,8 @@ internal sealed record SparseGenerationAnalysis(
         hash = unchecked(hash * 31 + SparseSequence.Hash(Diagnostics));
         hash = unchecked(hash * 31 + SparseSequence.Hash(PromotedModels));
         hash = unchecked(hash * 31 + SparseSequence.Hash(ReadOnlyViewModels));
-        return unchecked(hash * 31 + SparseSequence.Hash(PayloadJsonPocos));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(PayloadJsonPocos));
+        return unchecked(hash * 31 + (PayloadContract?.GetHashCode() ?? 0));
     }
 }
 

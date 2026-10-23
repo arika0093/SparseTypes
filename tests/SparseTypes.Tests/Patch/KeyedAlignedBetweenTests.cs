@@ -7,10 +7,7 @@ public sealed class KeyedAlignedBetweenTests
     [Test]
     public void EmptyIndexedCollectionsHaveNoChanges()
     {
-        var change = KeyedServerHolder.ChangeSet.Between(
-            new KeyedServerHolder(),
-            new KeyedServerHolder()
-        );
+        var change = KeyedServerHolder.ChangeSet.Between(new KeyedServerHolder(), new KeyedServerHolder());
         change.IsEmpty.ShouldBeTrue();
         change.Items.BeforeOrder.ShouldBeEmpty();
         change.Items.AfterOrder.ShouldBeEmpty();
@@ -21,9 +18,7 @@ public sealed class KeyedAlignedBetweenTests
     {
         var before = new KeyedServerHolder { Items = [new() { Id = null! }] };
         var after = before.DeepClone();
-        Should
-            .Throw<ArgumentNullException>(() => KeyedServerHolder.ChangeSet.Between(before, after))
-            .ParamName.ShouldBe("key");
+        Should.Throw<ArgumentNullException>(() => KeyedServerHolder.ChangeSet.Between(before, after)).ParamName.ShouldBe("key");
     }
 
     [Test]
@@ -31,12 +26,7 @@ public sealed class KeyedAlignedBetweenTests
     {
         var before = new KeyedServerHolder
         {
-            Items =
-            [
-                new() { Id = "a", Name = "A" },
-                new() { Id = "b", Name = "B" },
-                new() { Id = "c", Name = "C" },
-            ],
+            Items = [new() { Id = "a", Name = "A" }, new() { Id = "b", Name = "B" }, new() { Id = "c", Name = "C" }],
         };
         var after = before.DeepClone();
         after.Items[1].Name = "updated";
@@ -57,10 +47,8 @@ public sealed class KeyedAlignedBetweenTests
         item.After.IsPresent.ShouldBeFalse();
         item.Edit.Name.Before.Value.ShouldBe("B");
         item.Edit.Name.After.Value.ShouldBe("updated");
-        var restored = JsonSerializer
-            .Deserialize<KeyedServerHolder.ChangePayload>(
-                JsonSerializer.Serialize(change.ToPayload())
-            )!
+        var restored = PayloadJsonTestSupport
+            .Deserialize<KeyedServerHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(change.ToPayload()))
             .ToChangeSet();
         restored.Items.BeforeOrder.ShouldBe(view.BeforeOrder);
         restored.Items.AfterOrder.ShouldBe(view.AfterOrder);
@@ -78,15 +66,10 @@ public sealed class KeyedAlignedBetweenTests
     [Test]
     public void AlignedDuplicateKeysStillFailValidation()
     {
-        var before = new KeyedServerHolder
-        {
-            Items = [new() { Id = "duplicate" }, new() { Id = "duplicate" }],
-        };
+        var before = new KeyedServerHolder { Items = [new() { Id = "duplicate" }, new() { Id = "duplicate" }] };
         var after = before.DeepClone();
         Should
-            .Throw<InvalidOperationException>(() =>
-                KeyedServerHolder.ChangeSet.Between(before, after)
-            )
+            .Throw<InvalidOperationException>(() => KeyedServerHolder.ChangeSet.Between(before, after))
             .Message.ShouldBe("Duplicate key in keyed collection.");
     }
 }

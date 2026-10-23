@@ -13,12 +13,7 @@ public sealed class RosterHighlightTests
         return new PlaygroundRoster { Quests = quests.ToList() };
     }
 
-    private static PlaygroundQuest Quest(
-        string id,
-        string title = "",
-        int points = 0,
-        params int[] scores
-    ) =>
+    private static PlaygroundQuest Quest(string id, string title = "", int points = 0, params int[] scores) =>
         new()
         {
             Id = id,
@@ -35,10 +30,7 @@ public sealed class RosterHighlightTests
         );
     }
 
-    private static PlaygroundRoster.ChangeSet? TryDiff(
-        PlaygroundRoster before,
-        PlaygroundRoster after
-    )
+    private static PlaygroundRoster.ChangeSet? TryDiff(PlaygroundRoster before, PlaygroundRoster after)
     {
         try
         {
@@ -50,14 +42,11 @@ public sealed class RosterHighlightTests
         }
     }
 
-    private static bool TitleChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) =>
-        change.IsEdited && change.Edit.Title.IsChanged;
+    private static bool TitleChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) => change.IsEdited && change.Edit.Title.IsChanged;
 
-    private static bool PointsChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) =>
-        change.IsEdited && change.Edit.Points.IsChanged;
+    private static bool PointsChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) => change.IsEdited && change.Edit.Points.IsChanged;
 
-    private static bool ScoresChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) =>
-        change.IsEdited && change.Edit.Scores.IsChanged;
+    private static bool ScoresChanged(PlaygroundRoster.ChangeSet.QuestsTransition.Item change) => change.IsEdited && change.Edit.Scores.IsChanged;
 
     [Test]
     public void DefaultsShowAddRemoveEditAndMove()
@@ -151,10 +140,7 @@ public sealed class RosterHighlightTests
     [Test]
     public void ScalarCollectionEdit()
     {
-        var changes = Diff(
-            State(Quest("a", scores: [10, 20])),
-            State(Quest("a", scores: [10, 21]))
-        );
+        var changes = Diff(State(Quest("a", scores: [10, 20])), State(Quest("a", scores: [10, 21])));
         ScoresChanged(changes.Quests.GetChange("a")).ShouldBeTrue();
     }
 
@@ -163,10 +149,7 @@ public sealed class RosterHighlightTests
     {
         // Same parsed list, regardless of text formatting.
         IntListText.Parse("10,20").ShouldBe(IntListText.Parse("10, 20"));
-        var changes = Diff(
-            State(Quest("a", scores: [10, 20])),
-            State(Quest("a", scores: [10, 20]))
-        );
+        var changes = Diff(State(Quest("a", scores: [10, 20])), State(Quest("a", scores: [10, 20])));
         changes.IsEmpty.ShouldBeTrue();
         var change = changes.Quests.GetChange("a");
         change.IsEmpty.ShouldBeTrue();
@@ -218,10 +201,7 @@ public sealed class RosterHighlightTests
     [Test]
     public void ReorderPlusEdit()
     {
-        var changes = Diff(
-            State(Quest("a", "A"), Quest("b", "B")),
-            State(Quest("b", "B2"), Quest("a", "A"))
-        );
+        var changes = Diff(State(Quest("a", "A"), Quest("b", "B")), State(Quest("b", "B2"), Quest("a", "A")));
         var moved = changes.Quests.GetChange("a");
         moved.IsReordered.ShouldBeTrue();
         moved.IsEdited.ShouldBeFalse();
@@ -319,23 +299,14 @@ public sealed class RosterHighlightTests
         manual.ShouldContain("Quests.Edit");
 
         // The typed payload JSON uses the same shared instance.
-        var json = JsonSerializer.Serialize(
-            changes.ToPayload(),
-            new JsonSerializerOptions { WriteIndented = true }
-        );
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldContain("\"d\"");
-        var roundTripped = JsonSerializer
-            .Deserialize<PlaygroundRoster.ChangePayload>(json)!
-            .ToChangeSet();
+        var roundTripped = PayloadJsonTestSupport.Deserialize<PlaygroundRoster.ChangePayload>(json).ToChangeSet();
         roundTripped.Quests.GetChange("d").IsAdded.ShouldBeTrue();
         roundTripped.Quests.GetChange("a").IsRemoved.ShouldBeTrue();
 
         // Applied preview derives lazily from the same ChangeSet via ToPatch.
-        var applied = changes
-            .ToPatch()
-            .Apply(
-                Optional<PlaygroundRoster.Fragment?>.Present(PlaygroundRoster.Fragment.From(before))
-            );
+        var applied = changes.ToPatch().Apply(Optional<PlaygroundRoster.Fragment?>.Present(PlaygroundRoster.Fragment.From(before)));
         var appliedJson = PlaygroundJson.WriteRosterModel(applied.Value!.ToModel());
         var afterJson = PlaygroundJson.WriteRosterModel(after);
         appliedJson.ShouldBe(afterJson);
@@ -366,10 +337,7 @@ public sealed class RosterHighlightTests
         manual.ShouldContain("Quests.Edit");
         manual.ShouldContain("SetOrder");
 
-        var empty = PlaygroundSnippets.RosterManualPatchCSharp(
-            "patch",
-            Diff(before, RosterDefaults.Before())
-        );
+        var empty = PlaygroundSnippets.RosterManualPatchCSharp("patch", Diff(before, RosterDefaults.Before()));
         empty.ShouldContain("No quest changes.");
     }
 
@@ -391,15 +359,9 @@ public sealed class RosterHighlightTests
     [Test]
     public void GeneratedCSharpStringsEscapeControlCharacters()
     {
-        var model = PlaygroundSnippets.ModelCSharp(
-            "model",
-            new PlaygroundSettings { Label = "line\nbreak\t\"quote\"\\slash" }
-        );
+        var model = PlaygroundSnippets.ModelCSharp("model", new PlaygroundSettings { Label = "line\nbreak\t\"quote\"\\slash" });
 
-        Microsoft
-            .CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(model)
-            .GetDiagnostics()
-            .ShouldBeEmpty();
+        Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(model).GetDiagnostics().ShouldBeEmpty();
     }
 
     [Test]
@@ -456,9 +418,7 @@ public sealed class RosterHighlightTests
     public void Case3DoesNotReintroduceCopiedChangeGraph()
     {
         var playground = typeof(RosterDefaults).Assembly;
-        playground
-            .GetType("SparseTypes.Playground.Models.RosterCaseCoordinator")
-            .ShouldBeNull();
+        playground.GetType("SparseTypes.Playground.Models.RosterCaseCoordinator").ShouldBeNull();
         playground.GetType("SparseTypes.Playground.Models.RosterHighlight").ShouldBeNull();
         playground.GetType("SparseTypes.Playground.Models.RosterRowHighlight").ShouldBeNull();
 
@@ -478,9 +438,7 @@ public sealed class RosterHighlightTests
         editor.GetProperty("Highlights").ShouldBeNull();
         foreach (var prop in editor.GetProperties())
         {
-            prop.PropertyType.IsGenericType.ShouldBeFalse(
-                $"RosterEditor.{prop.Name} must not reintroduce a copied change dictionary."
-            );
+            prop.PropertyType.IsGenericType.ShouldBeFalse($"RosterEditor.{prop.Name} must not reintroduce a copied change dictionary.");
         }
     }
 
@@ -489,25 +447,16 @@ public sealed class RosterHighlightTests
     {
         // Pure membership shifts are not reorders: survivors stay empty even
         // though absolute indexes shift. Typed IsReordered drives highlighting.
-        var pureAdd = Diff(
-            State(Quest("a"), Quest("b")),
-            State(Quest("a"), Quest("b"), Quest("c"))
-        );
+        var pureAdd = Diff(State(Quest("a"), Quest("b")), State(Quest("a"), Quest("b"), Quest("c")));
         pureAdd.Quests.GetChange("a").IsReordered.ShouldBeFalse();
         pureAdd.Quests.GetChange("b").IsReordered.ShouldBeFalse();
         pureAdd.Quests.GetChange("c").IsAdded.ShouldBeTrue();
 
-        var pureRemove = Diff(
-            State(Quest("a"), Quest("b"), Quest("c")),
-            State(Quest("b"), Quest("c"))
-        );
+        var pureRemove = Diff(State(Quest("a"), Quest("b"), Quest("c")), State(Quest("b"), Quest("c")));
         pureRemove.Quests.GetChange("b").IsReordered.ShouldBeFalse();
         pureRemove.Quests.GetChange("c").IsReordered.ShouldBeFalse();
 
-        var removeAndAdd = Diff(
-            State(Quest("a"), Quest("b"), Quest("c")),
-            State(Quest("b"), Quest("d"), Quest("c"))
-        );
+        var removeAndAdd = Diff(State(Quest("a"), Quest("b"), Quest("c")), State(Quest("b"), Quest("d"), Quest("c")));
         removeAndAdd.Quests.GetChange("b").IsReordered.ShouldBeFalse();
         removeAndAdd.Quests.GetChange("c").IsReordered.ShouldBeFalse();
 

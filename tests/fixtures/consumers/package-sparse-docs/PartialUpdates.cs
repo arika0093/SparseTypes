@@ -59,9 +59,7 @@ public static class PartialUpdateSamples
 
         // Both inputs travel through the same envelope type.
         var transitionPayload = transition.ToPayload();
-        var commandPayload = PartialProfile.ChangePayload.FromPatch(
-            new PartialProfile.Patch { DisplayName = "Ada" }
-        );
+        var commandPayload = PartialProfile.ChangePayload.FromPatch(new PartialProfile.Patch { DisplayName = "Ada" });
 
         // ToPatch is the information-loss boundary: the before-state is gone,
         // so the projection can replay but no longer rebase or report conflicts.
@@ -71,11 +69,11 @@ public static class PartialUpdateSamples
         // /sample
         DocsCheck.Require(replayed.DisplayName == "Ada", "projected patch replays the after-state");
         DocsCheck.Require(
-            JsonSerializer.Serialize(transitionPayload).Contains("Ada"),
+            JsonSerializer.Serialize(transitionPayload, PartialProfile.PayloadJson.Default).Contains("Ada"),
             "transition payload carries the after-state"
         );
         DocsCheck.Require(
-            JsonSerializer.Serialize(commandPayload).Contains("Ada"),
+            JsonSerializer.Serialize(commandPayload, PartialProfile.PayloadJson.Default).Contains("Ada"),
             "command payload carries the desired state"
         );
     }
@@ -102,9 +100,9 @@ public static class PartialUpdateSamples
         var secretEdited = new PartialProfile { DisplayName = "Ann", Phone = "new-phone" };
         var rotation = secretBase.CreateChangeSet(secretEdited);
 
-        var wire = JsonSerializer.Serialize(rotation.ToPayload());
+        var wire = JsonSerializer.Serialize(rotation.ToPayload(), PartialProfile.PayloadJson.Default);
         // wire carries "new-phone" but never "old-phone"
-        var incoming = JsonSerializer.Deserialize<PartialProfile.ChangePayload>(wire)!;
+        var incoming = JsonSerializer.Deserialize<PartialProfile.ChangePayload>(wire, PartialProfile.PayloadJson.Default)!;
 
         // The redacted payload still projects to a baseline-free command.
         var replayed = incoming.ToPatch().ApplyTo(secretBase);

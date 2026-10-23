@@ -319,9 +319,9 @@ var finish = Optional<CounterSettings.Fragment?>.Present(
 
 var changes = CounterSettings.ChangeSet.Between(start, finish);
 
-var json = JsonSerializer.Serialize(changes.ToPayload());
+var json = JsonSerializer.Serialize(changes.ToPayload(), CounterSettings.PayloadJson.Default);
 var restored = JsonSerializer
-    .Deserialize<CounterSettings.ChangePayload>(json)!
+    .Deserialize<CounterSettings.ChangePayload>(json, CounterSettings.PayloadJson.Default)!
     .ToChangeSet();
 // restored.ToPatch().Apply(start) replays finish
 ```
@@ -362,7 +362,7 @@ var transition = LoginSettings.ChangeSet.Between(
     Optional<LoginSettings.Fragment?>.Present(current),
     Optional<LoginSettings.Fragment?>.Present(applied)
 );
-var wire = JsonSerializer.Serialize(transition.ToPayload());
+var wire = JsonSerializer.Serialize(transition.ToPayload(), LoginSettings.PayloadJson.Default);
 // wire carries "after-password" but never "before-password"
 ```
 <!-- /sample -->

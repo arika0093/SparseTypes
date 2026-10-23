@@ -60,10 +60,7 @@ public sealed class PlaygroundCase4Tests
         history.UndoCount.ShouldBe(1);
         var payloadJson = PlaygroundJson.WriteSettingsChangeSet(session.CreateChangeSet());
         using var payloadDocument = JsonDocument.Parse(payloadJson);
-        var passwordChange = payloadDocument
-            .RootElement.GetProperty("changes")
-            .EnumerateArray()
-            .Single(change => change.GetProperty("member").GetString() == "Password");
+        var passwordChange = payloadDocument.RootElement.GetProperty("change").GetProperty("members").GetProperty("password");
         passwordChange.GetProperty("before").GetProperty("state").GetString().ShouldBe("redacted");
         payloadJson.ShouldNotContain("synthetic-before-password");
         payloadJson.ShouldContain("synthetic-after-password");
@@ -116,9 +113,7 @@ public sealed class PlaygroundCase4Tests
         json.ShouldContain("[masked]");
         json.ShouldNotContain("synthetic-password");
         model.Password.ShouldBe("synthetic-password");
-        PlaygroundJson
-            .MaskPasswordSummaryValue("Password", "\"synthetic-password\"")
-            .ShouldBe("[masked]");
+        PlaygroundJson.MaskPasswordSummaryValue("Password", "\"synthetic-password\"").ShouldBe("[masked]");
         PlaygroundJson.MaskPasswordSummaryValue("RetryCount", "3").ShouldBe("3");
     }
 }

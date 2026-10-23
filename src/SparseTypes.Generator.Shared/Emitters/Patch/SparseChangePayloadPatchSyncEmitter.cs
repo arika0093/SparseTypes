@@ -28,7 +28,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
             var core = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
             code.AppendLine("/// <summary>Builds a baseline-free command core from this patch.</summary>");
             code.AppendLine(
-                "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. JSON-ignored members throw instead of exporting lossy cores.</remarks>"
+                "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>"
             );
             code.AppendLine("/// <returns>The baseline-free command core.</returns>");
             code.AppendLine("internal " + core + " ToChangePayloadCore() => " + target.PatchOperationsType + ".ToChangePayloadCore(this);");
@@ -83,7 +83,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
         var change = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Change");
         code.AppendLine("/// <summary>Builds a baseline-free command core from this patch.</summary>");
         code.AppendLine(
-            "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. JSON-ignored members throw instead of exporting lossy cores.</remarks>"
+            "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>"
         );
         if (target is not null)
         {
@@ -105,7 +105,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
         }
         AppendIgnoredPatchGuard(code, members, dialect);
         code.AppendLine("var changes = new global::System.Collections.Generic.List<" + change + ">();");
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendCoreFromPatchMember(code, member, dialect, modelType, implementationNamespace);
         }
@@ -114,11 +114,10 @@ internal static class SparseChangePayloadPatchSyncEmitter
         code.CloseBlock();
     }
 
-    /// <summary>Emits the fail-closed guard for JSON-ignored members in transport cores.</summary>
-    /// <remarks>Transport excludes STJ <c>JsonIgnore</c> members, so exporting a change that touches one would silently lose it.</remarks>
-    internal static void AppendIgnoredTransportGuard(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
+    /// <summary>Emits the fail-closed guard for transport-ignored members.</summary>
+    internal static void AppendTransportIgnoreGuard(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
     {
-        var ignored = members.Where(static member => member.Property.IsJsonIgnored).ToArray();
+        var ignored = members.Where(static member => member.Property.IsTransportIgnored).ToArray();
         if (ignored.Length == 0)
         {
             return;
@@ -139,19 +138,18 @@ internal static class SparseChangePayloadPatchSyncEmitter
             }
         }
         code.AppendLine(
-            "if (__ignoredOmitted.Count != 0) throw new global::System.InvalidOperationException(\"ChangeSet transport omits JSON-ignored members (\" + string.Join(\", \", __ignoredOmitted) + \").\");"
+            "if (__ignoredOmitted.Count != 0) throw new global::System.InvalidOperationException(\"ChangeSet transport excludes members marked with SparseTransportIgnore (\" + string.Join(\", \", __ignoredOmitted) + \").\");"
         );
     }
 
-    /// <summary>Emits the fail-closed guard for JSON-ignored patch fields.</summary>
-    /// <remarks>Patch transport excludes STJ <c>JsonIgnore</c> members, so a patch that sets one cannot export losslessly.</remarks>
+    /// <summary>Emits the fail-closed guard for transport-ignored patch fields.</summary>
     private static void AppendIgnoredPatchGuard(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect
     )
     {
-        var ignored = members.Where(static member => member.Property.IsJsonIgnored).ToArray();
+        var ignored = members.Where(static member => member.Property.IsTransportIgnored).ToArray();
         if (ignored.Length == 0)
         {
             return;
@@ -177,7 +175,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
             }
         }
         code.AppendLine(
-            "if (__ignoredOmitted.Count != 0) throw new global::System.InvalidOperationException(\"ChangeSet transport omits JSON-ignored members (\" + string.Join(\", \", __ignoredOmitted) + \").\");"
+            "if (__ignoredOmitted.Count != 0) throw new global::System.InvalidOperationException(\"Patch transport excludes members marked with SparseTransportIgnore (\" + string.Join(\", \", __ignoredOmitted) + \").\");"
         );
     }
 
@@ -329,7 +327,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
         code.AppendLine("if (!wholeAfter.IsPresent) { var wholePatch = new Patch(); wholePatch.__SparseRemove(); return wholePatch; }");
         code.AppendLine("if (wholeAfter.Value is null) { var wholePatch = new Patch(); wholePatch.__SparseSetNull(); return wholePatch; }");
         code.AppendLine("return new Patch(wholeAfter.Value);");
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendPatchFromCoreMember(code, member, dialect, modelType, runtime, state);
         }
@@ -523,6 +521,15 @@ internal static class SparseChangePayloadPatchSyncEmitter
         var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
         var itemKind = runtime + "ChangePayloadItemKind";
         var isModelValue = isKeyed ? member.Collection.ElementType.IsFragmentModel : member.Collection.ValueType?.IsFragmentModel == true;
+        var itemPatchType = string.Empty;
+        var itemFragmentType = string.Empty;
+        if (isModelValue)
+        {
+            itemPatchType = isKeyed ? SparseKeyedCollectionEmitter.ElementPatchType(member) : SparseKeyedCollectionEmitter.ValuePatchType(member);
+            itemFragmentType = isKeyed
+                ? SparseChangeSetBasicsEmitter.ElementFragmentOf(member)
+                : SparseChangeSetBasicsEmitter.ValueFragmentOf(member);
+        }
         code.AppendLine(
             "if (changeItem" + id + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(payload));"
         );
@@ -626,17 +633,14 @@ internal static class SparseChangePayloadPatchSyncEmitter
         code.OpenBlock();
         if (isModelValue)
         {
+            code.AppendLine("if (changeItem" + id + ".Edit is not null)");
+            code.OpenBlock();
             code.AppendLine(
                 "if (changeItem"
                     + id
                     + ".Before is not null || changeItem"
                     + id
-                    + ".After is not null) throw new global::System.ArgumentException(\"An edited model payload item must omit 'before' and 'after'.\", nameof(payload));"
-            );
-            code.AppendLine(
-                "if (changeItem"
-                    + id
-                    + ".Edit is null) throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\", nameof(payload));"
+                    + ".After is not null) throw new global::System.ArgumentException(\"A model item update must omit 'before' and 'after'.\", nameof(payload));"
             );
             if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
@@ -662,6 +666,50 @@ internal static class SparseChangePayloadPatchSyncEmitter
             {
                 code.AppendLine("collection" + id + ".__SparseSetEdited(changeItem" + id + ".Key, changeItem" + id + ".Edit.ToPatchCore());");
             }
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
+            code.AppendLine(
+                "if (changeItem"
+                    + id
+                    + ".Before is null || changeItem"
+                    + id
+                    + ".After is null || changeItem"
+                    + id
+                    + ".After.IsRedacted) throw new global::System.ArgumentException(\"A model item replacement requires 'before' and an observable 'after'.\", nameof(payload));"
+            );
+            code.AppendLine("var replaced" + id + " = changeItem" + id + ".After.ToOptional();");
+            code.AppendLine(
+                "if (!replaced"
+                    + id
+                    + ".IsPresent) throw new global::System.ArgumentException(\"A model item replacement requires 'after'.\", nameof(payload));"
+            );
+            code.AppendLine("var replacedPatch" + id + " = new " + itemPatchType + "(" + itemFragmentType + ".From(replaced" + id + ".Value!));");
+            if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+            {
+                code.AppendLine(
+                    "if (changeItem"
+                        + id
+                        + ".TemporaryKey.HasValue) collection"
+                        + id
+                        + ".__SparseSetEditedByTemporaryKey(changeItem"
+                        + id
+                        + ".TemporaryKey.Value, replacedPatch"
+                        + id
+                        + "); else collection"
+                        + id
+                        + ".__SparseSetEdited(changeItem"
+                        + id
+                        + ".Key, replacedPatch"
+                        + id
+                        + ");"
+                );
+            }
+            else
+            {
+                code.AppendLine("collection" + id + ".__SparseSetEdited(changeItem" + id + ".Key, replacedPatch" + id + ");");
+            }
+            code.CloseBlock();
         }
         else
         {

@@ -10,15 +10,10 @@ namespace SparseTypes.Tests;
 /// </remarks>
 public sealed class ChangePayloadRebaseOptionsTests
 {
-    private static ChangePayloadRebaseOptions PassThrough(params string[] paths) =>
-        new() { RedactedBeforePaths = paths };
+    private static ChangePayloadRebaseOptions PassThrough(params string[] paths) => new() { RedactedBeforePaths = paths };
 
     private static ChangePayloadRebaseOptions Strict(params string[] paths) =>
-        new()
-        {
-            RejectChangesWithRedactedBeforeValuesDuringRebase = true,
-            RedactedBeforePaths = paths,
-        };
+        new() { RejectChangesWithRedactedBeforeValuesDuringRebase = true, RedactedBeforePaths = paths };
 
     [Test]
     public void Options_DefaultToPassthrough()
@@ -51,12 +46,7 @@ public sealed class ChangePayloadRebaseOptionsTests
         var current = new Settings { Label = "other", RetryCount = 1 };
 
         var changes = before.CreateChangeSet(edited);
-        var applied = changes.TryApplyTo(
-            current,
-            out var updated,
-            out var conflicts,
-            PassThrough("Label")
-        );
+        var applied = changes.TryApplyTo(current, out var updated, out var conflicts, PassThrough("Label"));
 
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
@@ -88,10 +78,7 @@ public sealed class ChangePayloadRebaseOptionsTests
 
         var rebased = changes.RebaseOnto(current, options);
         rebased.HasConflicts.ShouldBeTrue();
-        var kept = rebased
-            .Rebased.ToPatch()
-            .Apply(Settings.Fragment.From(current))
-            .Value!.ToModel();
+        var kept = rebased.Rebased.ToPatch().Apply(Settings.Fragment.From(current)).Value!.ToModel();
         kept.Label.ShouldBe("other");
         kept.RetryCount.ShouldBe(2);
     }
@@ -103,9 +90,7 @@ public sealed class ChangePayloadRebaseOptionsTests
         var edited = new Settings { Label = "secret", RetryCount = 2 };
         var current = new Settings { Label = "other", RetryCount = 3 };
 
-        var applied = before
-            .CreateChangeSet(edited)
-            .TryApplyTo(current, out var updated, out var conflicts, Strict("Label"));
+        var applied = before.CreateChangeSet(edited).TryApplyTo(current, out var updated, out var conflicts, Strict("Label"));
 
         applied.ShouldBeFalse();
         updated.ShouldBeNull();
@@ -119,13 +104,9 @@ public sealed class ChangePayloadRebaseOptionsTests
     [Test]
     public void RedactedRemoval_PassesThroughMissingDesired()
     {
-        var before = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present("a") }
-        );
+        var before = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("a") });
         var after = Optional<Settings.Fragment?>.Present(new Settings.Fragment());
-        var current = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present("b") }
-        );
+        var current = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("b") });
 
         var changes = Settings.ChangeSet.Between(before, after);
         var rebased = changes.RebaseOnto(current, PassThrough("Label"));
@@ -141,19 +122,11 @@ public sealed class ChangePayloadRebaseOptionsTests
     [Test]
     public void RedactedNull_PassesThroughPresentNullDesired()
     {
-        var before = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present("a") }
-        );
-        var after = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present(null) }
-        );
-        var current = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Label = Optional<string?>.Present("b") }
-        );
+        var before = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("a") });
+        var after = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present(null) });
+        var current = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("b") });
 
-        var rebased = Settings
-            .ChangeSet.Between(before, after)
-            .RebaseOnto(current, PassThrough("Label"));
+        var rebased = Settings.ChangeSet.Between(before, after).RebaseOnto(current, PassThrough("Label"));
 
         rebased.HasConflicts.ShouldBeFalse();
         var applied = rebased.Rebased.ToPatch().Apply(current).Value!;
@@ -177,9 +150,7 @@ public sealed class ChangePayloadRebaseOptionsTests
             Nested = new Nested { Host = "c", Port = 1 },
         };
 
-        var applied = before
-            .CreateChangeSet(edited)
-            .TryApplyTo(current, out var updated, out var conflicts, PassThrough("Nested"));
+        var applied = before.CreateChangeSet(edited).TryApplyTo(current, out var updated, out var conflicts, PassThrough("Nested"));
 
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
@@ -217,9 +188,7 @@ public sealed class ChangePayloadRebaseOptionsTests
         var edited = new KeyedServerHolder { Items = [new KeyedServer { Id = "a", Name = "B" }] };
         var current = new KeyedServerHolder { Items = [new KeyedServer { Id = "a", Name = "C" }] };
 
-        var applied = before
-            .CreateChangeSet(edited)
-            .TryApplyTo(current, out var updated, out var conflicts, PassThrough("Items"));
+        var applied = before.CreateChangeSet(edited).TryApplyTo(current, out var updated, out var conflicts, PassThrough("Items"));
 
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
@@ -238,9 +207,7 @@ public sealed class ChangePayloadRebaseOptionsTests
         var edited = new ScalarDictHolder { Scores = new() { ["a"] = 2 } };
         var current = new ScalarDictHolder { Scores = new() { ["a"] = 3 } };
 
-        var applied = before
-            .CreateChangeSet(edited)
-            .TryApplyTo(current, out var updated, out var conflicts, PassThrough("Scores"));
+        var applied = before.CreateChangeSet(edited).TryApplyTo(current, out var updated, out var conflicts, PassThrough("Scores"));
 
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
@@ -255,12 +222,8 @@ public sealed class ChangePayloadRebaseOptionsTests
     public void RedactedRoot_PassesThroughWholeContributionByDefault()
     {
         var missing = Optional<Settings.Fragment?>.Missing;
-        var value = Optional<Settings.Fragment?>.Present(
-            Settings.Fragment.From(new Settings { Label = "secret" })
-        );
-        var current = Optional<Settings.Fragment?>.Present(
-            Settings.Fragment.From(new Settings { Label = "current" })
-        );
+        var value = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "secret" }));
+        var current = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "current" }));
 
         var changes = Settings.ChangeSet.Between(missing, value);
         var passthrough = changes.RebaseOnto(current, PassThrough(""));
@@ -277,20 +240,11 @@ public sealed class ChangePayloadRebaseOptionsTests
     [Test]
     public void PatchRebase_RedactedScalar_PassesThroughOrFails()
     {
-        var baseState = Optional<Settings.Fragment?>.Present(
-            Settings.Fragment.From(new Settings { Label = "a" })
-        );
-        var currentState = Optional<Settings.Fragment?>.Present(
-            Settings.Fragment.From(new Settings { Label = "b" })
-        );
+        var baseState = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "a" }));
+        var currentState = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "b" }));
         var local = new Settings.Patch { Label = "secret" };
 
-        var passthrough = Settings.Patch.Rebase(
-            baseState,
-            local,
-            currentState,
-            PassThrough("Label")
-        );
+        var passthrough = Settings.Patch.Rebase(baseState, local, currentState, PassThrough("Label"));
         passthrough.HasConflicts.ShouldBeFalse();
         passthrough.Rebased.Apply(currentState).Value!.Label.Value.ShouldBe("secret");
 
@@ -309,23 +263,16 @@ public sealed class ChangePayloadRebaseOptionsTests
 
         var payload = before.CreateChangeSet(edited).ToPayload();
         payload.Version.ShouldBe("0.1");
-        var json = JsonSerializer.Serialize(payload);
-        var restored = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(payload);
+        var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json).ToChangeSet();
 
-        var applied = restored.TryApplyTo(
-            current,
-            out var updated,
-            out var conflicts,
-            PassThrough("Label")
-        );
+        var applied = restored.TryApplyTo(current, out var updated, out var conflicts, PassThrough("Label"));
 
         applied.ShouldBeTrue();
         conflicts.ShouldBeNull();
         updated!.Label.ShouldBe("secret");
 
-        restored
-            .TryApplyTo(current, out _, out var strictConflicts, Strict("Label"))
-            .ShouldBeFalse();
+        restored.TryApplyTo(current, out _, out var strictConflicts, Strict("Label")).ShouldBeFalse();
         strictConflicts!.Single().Kind.ShouldBe(SparseConflictKind.RedactedBefore);
     }
 }

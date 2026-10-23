@@ -235,17 +235,6 @@ public sealed class StjOptionalGenerationTests
         stub.AppendLine("        public JsonIgnoreAttribute() { }");
         stub.AppendLine("        public JsonIgnoreCondition Condition { get; set; }");
         stub.AppendLine("    }");
-        stub.AppendLine("    public sealed class JsonPolymorphicAttribute : System.Attribute");
-        stub.AppendLine("    {");
-        stub.AppendLine("        public JsonPolymorphicAttribute() { }");
-        stub.AppendLine("        public string? TypeDiscriminatorPropertyName { get; set; }");
-        stub.AppendLine("    }");
-        stub.AppendLine("    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]");
-        stub.AppendLine("    public sealed class JsonDerivedTypeAttribute : System.Attribute");
-        stub.AppendLine("    {");
-        stub.AppendLine("        public JsonDerivedTypeAttribute(System.Type derivedType) { }");
-        stub.AppendLine("        public JsonDerivedTypeAttribute(System.Type derivedType, string typeDiscriminator) { }");
-        stub.AppendLine("    }");
         stub.AppendLine("    public enum JsonUnmappedMemberHandling");
         stub.AppendLine("    {");
         stub.AppendLine("        Skip,");
@@ -359,7 +348,7 @@ public sealed class StjOptionalGenerationTests
     }
 
     [Test]
-    public void WithStj_EmitsVersion1Bridge()
+    public void WithStj_EmitsResolverWithoutReflectionBridges()
     {
         var compilation = CreateCompilation(includeStj: true);
         SparsePayloadJsonResolverCapabilityDetector.FindMissingApi(compilation).ShouldBeNull();
@@ -367,9 +356,10 @@ public sealed class StjOptionalGenerationTests
         var sources = Run(compilation);
         var merged = string.Concat(sources.Values);
 
-        merged.ShouldContain("ChangePayloadEndpointJsonConverter");
-        merged.ShouldContain("ChangePayloadItemKindJsonConverter");
-        merged.ShouldContain("JsonPolymorphic");
+        merged.ShouldNotContain("ChangePayloadEndpointJsonConverter");
+        merged.ShouldNotContain("ChangePayloadItemKindJsonConverter");
+        merged.ShouldNotContain("JsonPolymorphic");
+        merged.ShouldNotContain("JsonDerivedType");
         merged.ShouldContain("JsonUnmappedMemberHandling");
         merged.ShouldContain("PayloadJsonConverter");
         merged.ShouldContain("public static class PayloadJson");
@@ -378,7 +368,7 @@ public sealed class StjOptionalGenerationTests
     }
 
     [Test]
-    public void FullStubSurface_EmitsBridgeWithoutDiagnostic()
+    public void FullStubSurfaceDoesNotRequirePolymorphicAttributes()
     {
         // The hand-built surface is complete, so the detector must accept it
         // exactly like a current reference assembly.
@@ -389,8 +379,8 @@ public sealed class StjOptionalGenerationTests
         var sources = Run(compilation);
         var merged = string.Concat(sources.Values);
 
-        merged.ShouldContain("ChangePayloadEndpointJsonConverter");
-        merged.ShouldContain("ChangePayloadItemKindJsonConverter");
+        merged.ShouldNotContain("ChangePayloadEndpointJsonConverter");
+        merged.ShouldNotContain("ChangePayloadItemKindJsonConverter");
         merged.ShouldNotContain("internal sealed class PayloadJsonConverter");
 
         CombinedCompilationHasNoErrors(compilation, sources);
@@ -521,7 +511,7 @@ public sealed class StjOptionalGenerationTests
         var withStj = RunIncremental(ref driver, withStjCompilation);
 
         HasSpf028(withStj.Diagnostics, expected: false);
-        string.Concat(withStj.Sources.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
+        string.Concat(withStj.Sources.Values).ShouldNotContain("ChangePayloadEndpointJsonConverter");
         HasStableHints(withoutStj.Sources, withStj.Sources);
         JsonFreeSourcesAreIdentical(withStj.Sources, withoutStj.Sources);
 
@@ -553,13 +543,13 @@ public sealed class StjOptionalGenerationTests
         var upgradedStub = RunIncremental(ref driver, upgradedStubCompilation);
 
         HasSpf028(upgradedStub.Diagnostics, expected: false);
-        string.Concat(upgradedStub.Sources.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
+        string.Concat(upgradedStub.Sources.Values).ShouldNotContain("ChangePayloadEndpointJsonConverter");
         HasStableHints(partialStub.Sources, upgradedStub.Sources);
         JsonFreeSourcesAreIdentical(upgradedStub.Sources, partialStub.Sources);
     }
 
     [Test]
-    public void UpgradingPartialSurfaceToFull_RestoresBridgeWithStableHints()
+    public void UpgradingPartialSurfaceToFull_RestoresResolverWithStableHints()
     {
         var olderCompilation = CreateStubCompilation(
             StjStubSource(includePropertyOrder: false, includeUnmappedHandling: true, includeTypeInfoLookup: false)
@@ -578,18 +568,18 @@ public sealed class StjOptionalGenerationTests
             source.ShouldNotContain("System.Text.Json");
         }
 
-        string.Concat(fullSources.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
+        string.Concat(fullSources.Values).ShouldNotContain("ChangePayloadEndpointJsonConverter");
         JsonFreeSourcesAreIdentical(fullSources, olderSources);
     }
 
     [Test]
-    public void GainingStjReference_RestoresBridgeWithStableHints()
+    public void GainingStjReference_RestoresResolverWithStableHints()
     {
         var withoutStj = Run(CreateCompilation(includeStj: false));
         var withStj = Run(CreateCompilation(includeStj: true));
 
         withStj.Keys.ShouldBe(withoutStj.Keys, ignoreOrder: true);
-        string.Concat(withStj.Values).ShouldContain("ChangePayloadEndpointJsonConverter");
+        string.Concat(withStj.Values).ShouldNotContain("ChangePayloadEndpointJsonConverter");
         foreach (var source in withoutStj.Values)
         {
             source.ShouldNotContain("System.Text.Json");

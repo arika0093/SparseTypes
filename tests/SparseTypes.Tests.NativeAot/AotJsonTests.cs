@@ -84,22 +84,16 @@ public sealed class AotJsonTests
         // /sample
         using (var document = JsonDocument.Parse(json))
         {
-            await Assert
-                .That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "changes"]))
-                .IsTrue();
+            await Assert.That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "change"])).IsTrue();
             await Assert.That(document.RootElement.GetProperty("version").GetString()).IsEqualTo("0.1");
-            var nested = document
-                .RootElement.GetProperty("changes")
-                .EnumerateArray()
-                .Single(change => change.GetProperty("member").GetString() == "Child")
-                .GetProperty("nested");
+            var change = document.RootElement.GetProperty("change");
+            await Assert.That(change.GetProperty("kind").GetString()).IsEqualTo("update");
+            var members = change.GetProperty("members");
+            var nested = members.GetProperty("child").GetProperty("change");
             await Assert.That(nested.TryGetProperty("version", out _)).IsFalse();
-            await Assert.That(nested.TryGetProperty("changes", out _)).IsTrue();
-            var endpoint = document
-                .RootElement.GetProperty("changes")
-                .EnumerateArray()
-                .Single(change => change.GetProperty("member").GetString() == "Label")
-                .GetProperty("after");
+            await Assert.That(nested.GetProperty("kind").GetString()).IsEqualTo("update");
+            await Assert.That(nested.TryGetProperty("members", out _)).IsTrue();
+            var endpoint = members.GetProperty("label").GetProperty("after");
             await Assert.That(endpoint.EnumerateObject().Select(property => property.Name).SequenceEqual(["state", "value"])).IsTrue();
         }
         await Assert.That(json.Contains("\"state\":\"value\"")).IsTrue();
@@ -118,16 +112,15 @@ public sealed class AotJsonTests
         var serverTypeInfo = PayloadCollectionTypeInfo(serverOptions);
         var serverJson = JsonSerializer.Serialize(serverChanges.ToPayload(), serverTypeInfo);
         using var serverDocument = JsonDocument.Parse(serverJson);
-        var serverItems = serverDocument
-            .RootElement.GetProperty("changes")
-            .EnumerateArray()
-            .Single(change => change.GetProperty("member").GetString() == "Items")
-            .GetProperty("items");
+        var serverItems = serverDocument.RootElement.GetProperty("change").GetProperty("members").GetProperty("items").GetProperty("items");
         var editedItem = serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "a");
         await Assert
-            .That(editedItem.EnumerateObject().Select(property => property.Name).SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "edit"]))
+            .That(
+                editedItem.EnumerateObject().Select(property => property.Name).SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "change"])
+            )
             .IsTrue();
-        await Assert.That(editedItem.GetProperty("kind").GetString()).IsEqualTo("edit");
+        await Assert.That(editedItem.GetProperty("kind").GetString()).IsEqualTo("update");
+        await Assert.That(editedItem.GetProperty("change").GetProperty("members").TryGetProperty("name", out _)).IsTrue();
         await Assert
             .That(serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "b").GetProperty("kind").GetString())
             .IsEqualTo("add");
@@ -222,7 +215,13 @@ public sealed class AotJsonTests
 
         var reordered = ServerState(new PayloadItem { Id = "b", Name = "B" }, new PayloadItem { Id = "a", Name = "A" });
         var reorderJson = JsonSerializer.Serialize(PayloadCollection.ChangeSet.Between(before, reordered).ToPayload(), collectionTypeInfo);
-        await Assert.That(reorderJson.Contains("\"kind\":\"reorder\"")).IsTrue();
+        using (var reorderDocument = JsonDocument.Parse(reorderJson))
+        {
+            var itemChanges = reorderDocument.RootElement.GetProperty("change").GetProperty("members").GetProperty("items");
+            await Assert.That(itemChanges.GetProperty("beforeOrder").GetArrayLength()).IsEqualTo(2);
+            await Assert.That(itemChanges.GetProperty("afterOrder")[0].GetString()).IsEqualTo("b");
+            await Assert.That(itemChanges.GetProperty("items").EnumerateArray().All(item => item.GetProperty("isReordered").GetBoolean())).IsTrue();
+        }
         var reorderRestored = JsonSerializer.Deserialize(reorderJson, collectionTypeInfo)!.ToChangeSet();
         await Assert.That(PayloadCollection.Patch.Between(reorderRestored.ToPatch().Apply(before), reordered).IsEmpty).IsTrue();
     }
@@ -238,12 +237,15 @@ public sealed class AotJsonTests
         var kindOptions = PayloadCollectionOptions();
         var kindTypeInfo = PayloadCollectionTypeInfo(kindOptions);
         var json = JsonSerializer.Serialize(PayloadCollection.ChangeSet.Between(before, after).ToPayload(), kindTypeInfo);
-        await Assert.That(json.Contains("\"kind\":\"edit\"")).IsTrue();
+        await Assert.That(json.Contains("\"kind\":\"update\"")).IsTrue();
 
         var rejected = false;
         try
         {
-            JsonSerializer.Deserialize(json.Replace("\"kind\":\"edit\"", "\"kind\":\"bogus\""), kindTypeInfo);
+            JsonSerializer.Deserialize(
+                json.Replace("\"kind\":\"update\",\"beforeIndex\":0", "\"kind\":\"bogus\",\"beforeIndex\":0", StringComparison.Ordinal),
+                kindTypeInfo
+            );
         }
         catch (JsonException)
         {
@@ -388,7 +390,7 @@ public sealed class AotJsonTests
 
         await Assert.That(json.Contains("\"kind\":\"add\"")).IsTrue();
         await Assert.That(json.Contains("\"kind\":\"remove\"")).IsTrue();
-        await Assert.That(json.Contains("\"kind\":\"edit\"")).IsTrue();
+        await Assert.That(json.Contains("\"kind\":\"update\"")).IsTrue();
         await Assert.That(json.Contains("\"Display\":\"c:C\"")).IsTrue();
         await Assert.That(json.Contains("\"tag\":\"label-detail-a\"")).IsTrue();
 

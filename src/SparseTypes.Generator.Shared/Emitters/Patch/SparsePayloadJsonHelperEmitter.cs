@@ -11,19 +11,27 @@ internal static class SparsePayloadJsonHelperEmitter
     {
         var payloadType = context.ModelType + ".ChangePayload";
         var resolver = context.ResolverTypeReference + ".Default";
-        code.AppendLine("/// <summary>JSON metadata for '" + context.ModelType + "' change payloads.</summary>");
+        code.AppendLine("/// <summary>Metadata for '" + context.ModelType + "' change payloads.</summary>");
         code.AppendLine((model.IsPublic ? "public" : "internal") + " static class PayloadJson");
         code.OpenBlock();
-        code.AppendLine("/// <summary>Gets the shared payload metadata for '" + context.ModelType + "' change payloads.</summary>");
-        code.AppendLine(
-            "public static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<"
-                + payloadType
-                + "> Default => "
-                + resolver
-                + ".ChangePayload;"
-        );
-        code.AppendLine("/// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>");
-        code.AppendLine("public static global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver Resolver => " + resolver + ";");
+        if (context.Dialect.PayloadSchemaBundleType is not null && context.Dialect.PayloadSchemaDescriptorType is not null)
+        {
+            SparsePayloadSchemaEmitter.AppendSchemaProperty(code, context);
+        }
+
+        if (context.SupportsJson)
+        {
+            code.AppendLine("/// <summary>Gets the shared payload metadata for '" + context.ModelType + "' change payloads.</summary>");
+            code.AppendLine(
+                "public static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<"
+                    + payloadType
+                    + "> Default => "
+                    + resolver
+                    + ".ChangePayload;"
+            );
+            code.AppendLine("/// <summary>Gets the resolver supplying payload metadata with caller-provided options.</summary>");
+            code.AppendLine("public static global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver Resolver => " + resolver + ";");
+        }
         code.CloseBlock();
         code.AppendLine();
     }

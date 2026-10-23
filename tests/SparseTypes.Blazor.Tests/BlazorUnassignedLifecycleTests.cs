@@ -19,9 +19,7 @@ public sealed class BlazorUnassignedLifecycleTests
         };
 
     private static Optional<BlazorUnassignedOrder.Fragment?> State(BlazorUnassignedOrder model) =>
-        Optional<BlazorUnassignedOrder.Fragment?>.Present(
-            BlazorUnassignedOrder.Fragment.From(model)
-        );
+        Optional<BlazorUnassignedOrder.Fragment?>.Present(BlazorUnassignedOrder.Fragment.From(model));
 
     [Test]
     public void UnassignedAddsAreIndependentThroughPayload()
@@ -44,15 +42,11 @@ public sealed class BlazorUnassignedLifecycleTests
         changes.Items.Added.Select(item => item.Name).ShouldBe(["first", "second"]);
         changes.Items.GetChange(0).IsEmpty.ShouldBeTrue();
 
-        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload());
+        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload(), BlazorUnassignedOrder.PayloadJson.Default);
         var restored = System
-            .Text.Json.JsonSerializer.Deserialize<BlazorUnassignedOrder.ChangePayload>(json)!
+            .Text.Json.JsonSerializer.Deserialize<BlazorUnassignedOrder.ChangePayload>(json, BlazorUnassignedOrder.PayloadJson.Default)!
             .ToChangeSet();
-        restored
-            .ToPatch()
-            .Apply(before)
-            .Value!.Items.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        restored.ToPatch().Apply(before).Value!.Items.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
     }
 
     [Test]

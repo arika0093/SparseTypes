@@ -288,4 +288,13 @@ public sealed partial class SparseTypesGenerator
         true,
         helpLinkUri: "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata"
     );
+    private static readonly DiagnosticDescriptor TransportIgnoreOnKey = new(
+        SparseTypesDiagnosticIds.TransportIgnoreOnKey,
+        "Collection identity cannot be excluded from transport",
+        "Collection identity property '{0}' cannot be marked with SparseTransportIgnore",
+        "SparseTypes",
+        DiagnosticSeverity.Error,
+        true,
+        helpLinkUri: "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf037-sparsetransportignore-on-collection-identity"
+    );
 }

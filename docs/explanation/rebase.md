@@ -341,7 +341,8 @@ When a deserialized `ChangePayload` mixes ordinary baseline-aware transitions wi
 ```csharp
 var currentModel = new RebaseDocsSettings { RetryCount = 1, Label = "current" };
 var payload = JsonSerializer.Deserialize<RebaseDocsSettings.ChangePayload>(
-    """{"version":"0.1","changes":[{"member":"Label","before":{"state":"redacted","value":null},"after":{"state":"value","value":"rotated"}},{"member":"RetryCount","before":{"state":"value","value":1},"after":{"state":"value","value":2}}]}"""
+    """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}},"retryCount":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""",
+    RebaseDocsSettings.PayloadJson.Default
 )!;
 if (!payload.TryApplyMixedTo(currentModel, out var updated, out var outcome))
 {
@@ -404,9 +405,9 @@ var stateB = new RebaseSettings { RetryCount = 2, Label = "a" };
 var outgoing = stateA.CreateChangeSet(stateB);
 
 // The typed payload travels as JSON through the application's own transport.
-var json = JsonSerializer.Serialize(outgoing.ToPayload());
+var json = JsonSerializer.Serialize(outgoing.ToPayload(), RebaseSettings.PayloadJson.Default);
 var incoming = JsonSerializer
-    .Deserialize<RebaseSettings.ChangePayload>(json)!
+    .Deserialize<RebaseSettings.ChangePayload>(json, RebaseSettings.PayloadJson.Default)!
     .ToChangeSet();
 
 // Meanwhile the server moved A -> C. The server loads only the current state:
@@ -493,7 +494,11 @@ var clientBaseline = new RebaseDocsSettings { RetryCount = 1, Label = "a" };
 const int clientVersion = 7;
 var clientEdited = new RebaseDocsSettings { RetryCount = 2, Label = "a" };
 var incoming = JsonSerializer.Deserialize<RebaseDocsSettings.ChangePayload>(
-    JsonSerializer.Serialize(clientBaseline.CreateChangeSet(clientEdited).ToPayload())
+    JsonSerializer.Serialize(
+        clientBaseline.CreateChangeSet(clientEdited).ToPayload(),
+        RebaseDocsSettings.PayloadJson.Default
+    ),
+    RebaseDocsSettings.PayloadJson.Default
 )!.ToChangeSet();
 
 // Another writer persisted C at v8 (Label "a" -> "b") before the save.

@@ -7,12 +7,9 @@ namespace SparseTypes.Tests;
 public sealed class TemporaryKeyIdentityTests
 {
     private static Optional<TempOrderHolder.Fragment?> F(params TempOrderLine[] items) =>
-        Optional<TempOrderHolder.Fragment?>.Present(
-            TempOrderHolder.Fragment.From(new TempOrderHolder { Lines = items.ToList() })
-        );
+        Optional<TempOrderHolder.Fragment?>.Present(TempOrderHolder.Fragment.From(new TempOrderHolder { Lines = items.ToList() }));
 
-    private static TempOrderLine Assigned(int id, string name) =>
-        new() { Id = id, Name = name };
+    private static TempOrderLine Assigned(int id, string name) => new() { Id = id, Name = name };
 
     private static TempOrderLine Pending(string name)
     {
@@ -22,8 +19,8 @@ public sealed class TemporaryKeyIdentityTests
 
     private static TempOrderHolder.ChangeSet PayloadRoundTrip(TempOrderHolder.ChangeSet changes)
     {
-        var json = JsonSerializer.Serialize(changes.ToPayload());
-        return JsonSerializer.Deserialize<TempOrderHolder.ChangePayload>(json)!.ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
+        return PayloadJsonTestSupport.Deserialize<TempOrderHolder.ChangePayload>(json).ToChangeSet();
     }
 
     [Test]
@@ -69,11 +66,7 @@ public sealed class TemporaryKeyIdentityTests
         applied[2].TemporaryId.ShouldBe(second.TemporaryId);
 
         var restored = PayloadRoundTrip(changes);
-        restored
-            .ToPatch()
-            .Apply(before)
-            .Value!.Lines.Value!.Select(item => item.Name)
-            .ShouldBe(["first", "existing", "second"]);
+        restored.ToPatch().Apply(before).Value!.Lines.Value!.Select(item => item.Name).ShouldBe(["first", "existing", "second"]);
         restored.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded.ShouldBeTrue();
     }
 
@@ -85,11 +78,7 @@ public sealed class TemporaryKeyIdentityTests
         var baseline = F(Assigned(7, "existing"), first, second);
 
         // Edit a pending addition by temporary identity.
-        var edited = F(Assigned(7, "existing"), first, new TempOrderLine
-        {
-            Name = "second v2",
-            TemporaryId = second.TemporaryId,
-        });
+        var edited = F(Assigned(7, "existing"), first, new TempOrderLine { Name = "second v2", TemporaryId = second.TemporaryId });
         var edit = TempOrderHolder.ChangeSet.Between(baseline, edited);
         var editItem = edit.Lines.GetTemporaryChange(second.TemporaryId!.Value);
         editItem.IsEdited.ShouldBeTrue();
@@ -104,11 +93,7 @@ public sealed class TemporaryKeyIdentityTests
         var reordered = F(second, Assigned(7, "existing"), first);
         var reorder = TempOrderHolder.ChangeSet.Between(baseline, reordered);
         reorder.Lines.OrderChanged.ShouldBeTrue();
-        reorder
-            .ToPatch()
-            .Apply(baseline)
-            .Value!.Lines.Value!.Select(item => item.Name)
-            .ShouldBe(["second", "existing", "first"]);
+        reorder.ToPatch().Apply(baseline).Value!.Lines.Value!.Select(item => item.Name).ShouldBe(["second", "existing", "first"]);
     }
 
     [Test]
@@ -123,10 +108,7 @@ public sealed class TemporaryKeyIdentityTests
 
         // Empty GUID is reserved.
         Should.Throw<InvalidOperationException>(() =>
-            TempOrderHolder.ChangeSet.Between(
-                baseline,
-                F(Assigned(7, "existing"), new TempOrderLine { Name = "x", TemporaryId = Guid.Empty })
-            )
+            TempOrderHolder.ChangeSet.Between(baseline, F(Assigned(7, "existing"), new TempOrderLine { Name = "x", TemporaryId = Guid.Empty }))
         );
 
         // Duplicate GUIDs in one collection.
@@ -134,21 +116,13 @@ public sealed class TemporaryKeyIdentityTests
         Should.Throw<InvalidOperationException>(() =>
             TempOrderHolder.ChangeSet.Between(
                 baseline,
-                F(
-                    new TempOrderLine { Name = "a", TemporaryId = dup },
-                    new TempOrderLine { Name = "b", TemporaryId = dup }
-                )
+                F(new TempOrderLine { Name = "a", TemporaryId = dup }, new TempOrderLine { Name = "b", TemporaryId = dup })
             )
         );
 
         // Duplicate GUIDs in the baseline are rejected as well.
-        var badBaseline = F(
-            new TempOrderLine { Name = "a", TemporaryId = dup },
-            new TempOrderLine { Name = "b", TemporaryId = dup }
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            TempOrderHolder.ChangeSet.Between(badBaseline, F(Assigned(1, "ok")))
-        );
+        var badBaseline = F(new TempOrderLine { Name = "a", TemporaryId = dup }, new TempOrderLine { Name = "b", TemporaryId = dup });
+        Should.Throw<InvalidOperationException>(() => TempOrderHolder.ChangeSet.Between(badBaseline, F(Assigned(1, "ok"))));
     }
 
     [Test]
@@ -175,12 +149,8 @@ public sealed class TemporaryKeyIdentityTests
         var fork = session.Fork();
         fork.CreateChangeSet().IsEmpty.ShouldBeTrue();
         var forkModel = ((ISparseEditSession<TempOrderHolder>)fork).Model;
-        forkModel.Lines.Single(item => item.TemporaryId == added.TemporaryId).Name =
-            "forked edit";
-        fork
-            .CreateChangeSet()
-            .Lines.GetTemporaryChange(added.TemporaryId!.Value)
-            .IsEdited.ShouldBeTrue();
+        forkModel.Lines.Single(item => item.TemporaryId == added.TemporaryId).Name = "forked edit";
+        fork.CreateChangeSet().Lines.GetTemporaryChange(added.TemporaryId!.Value).IsEdited.ShouldBeTrue();
     }
 
     [Test]
@@ -196,25 +166,13 @@ public sealed class TemporaryKeyIdentityTests
         var addSecond = TempOrderHolder.ChangeSet.Between(b1, b2);
         var composed = addFirst.Compose(addSecond);
         composed.Lines.Added.Count.ShouldBe(2);
-        composed
-            .ToPatch()
-            .Apply(b0)
-            .Value!.Lines.Value!.Select(item => item.Name)
-            .ShouldBe(["existing", "first", "second"]);
+        composed.ToPatch().Apply(b0).Value!.Lines.Value!.Select(item => item.Name).ShouldBe(["existing", "first", "second"]);
 
         // Editing a pending addition composes through the add.
-        var b3 = F(
-            Assigned(7, "existing"),
-            new TempOrderLine { Name = "first v2", TemporaryId = first.TemporaryId },
-            second
-        );
+        var b3 = F(Assigned(7, "existing"), new TempOrderLine { Name = "first v2", TemporaryId = first.TemporaryId }, second);
         var editPending = TempOrderHolder.ChangeSet.Between(b2, b3);
         var updateFlow = addFirst.Compose(TempOrderHolder.ChangeSet.Between(b1, b3));
-        updateFlow
-            .ToPatch()
-            .Apply(b0)
-            .Value!.Lines.Value!.Select(item => item.Name)
-            .ShouldBe(["existing", "first v2", "second"]);
+        updateFlow.ToPatch().Apply(b0).Value!.Lines.Value!.Select(item => item.Name).ShouldBe(["existing", "first v2", "second"]);
 
         // Invert + rebase round-trip keeps identities.
         var inverted = addSecond.Invert();
@@ -222,12 +180,8 @@ public sealed class TemporaryKeyIdentityTests
         rebased.HasConflicts.ShouldBeFalse();
 
         // Fragment clone retains temporary identities.
-        var clone = TempOrderHolder.Fragment.From(
-            new TempOrderHolder { Lines = [Assigned(7, "existing"), first] }
-        );
-        var roundTripped = PayloadRoundTrip(
-            TempOrderHolder.ChangeSet.Between(b0, F(Assigned(7, "existing"), first))
-        );
+        var clone = TempOrderHolder.Fragment.From(new TempOrderHolder { Lines = [Assigned(7, "existing"), first] });
+        var roundTripped = PayloadRoundTrip(TempOrderHolder.ChangeSet.Between(b0, F(Assigned(7, "existing"), first)));
         roundTripped.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded.ShouldBeTrue();
     }
 
@@ -235,12 +189,14 @@ public sealed class TemporaryKeyIdentityTests
     public void TemporaryRemnantDoesNotCreateChanges()
     {
         var temp = Guid.NewGuid();
-        var withTemp = F(new TempOrderLine
-        {
-            Id = 11,
-            Name = "saved",
-            TemporaryId = temp,
-        });
+        var withTemp = F(
+            new TempOrderLine
+            {
+                Id = 11,
+                Name = "saved",
+                TemporaryId = temp,
+            }
+        );
         var withoutTemp = F(Assigned(11, "saved"));
 
         // A response echoing the temporary value compares identically with a
@@ -254,9 +210,7 @@ public sealed class TemporaryKeyIdentityTests
     public void TypedPathAddressesTemporaryElements()
     {
         var temp = Guid.NewGuid();
-        SparsePath<TempOrderHolder, string> byTemp = TempOrderHolder
-            .SparsePath.Lines.TemporaryKey(temp)
-            .Name;
+        SparsePath<TempOrderHolder, string> byTemp = TempOrderHolder.SparsePath.Lines.TemporaryKey(temp).Name;
         SparsePath<TempOrderHolder, string> byKey = TempOrderHolder.SparsePath.Lines.Key(7).Name;
 
         byTemp.ToString().ShouldBe("Lines[temp:\"" + temp.ToString("D") + "\"].Name");
@@ -266,9 +220,7 @@ public sealed class TemporaryKeyIdentityTests
         SparsePath tempPath = TempOrderHolder.SparsePath.Lines.TemporaryKey(temp);
         SparsePath keyPath = TempOrderHolder.SparsePath.Lines.Key(7);
         tempPath.Equals(keyPath).ShouldBeFalse();
-        tempPath.ShouldBe(
-            SparsePath.Root<TempOrderHolder>().Member("Lines").TemporaryKey(temp)
-        );
+        tempPath.ShouldBe(SparsePath.Root<TempOrderHolder>().Member("Lines").TemporaryKey(temp));
 
         // Path text round-trips temporary segments explicitly.
         var parsed = SparsePath.Parse<TempOrderHolder>(byTemp.ToString());
@@ -318,10 +270,7 @@ public sealed class TemporaryKeyIdentityTests
         var changes = TempCompositeHolder.ChangeSet.Between(before, after);
         changes.Lines.Added.Count.ShouldBe(1);
         changes.Lines.GetTemporaryChange(temp).IsAdded.ShouldBeTrue();
-        changes
-            .ToPatch()
-            .Apply(before)
-            .Value!.Lines.Value!.Count.ShouldBe(2);
+        changes.ToPatch().Apply(before).Value!.Lines.Value!.Count.ShouldBe(2);
     }
 
     [Test]
@@ -354,9 +303,6 @@ public sealed class TemporaryKeyIdentityTests
 
         var changes = TempOrderBook.ChangeSet.Between(baseline, after);
         changes.IsEmpty.ShouldBeFalse();
-        changes
-            .ToPatch()
-            .Apply(baseline)
-            .Value!.Customer.Value!.Orders.Value!.Count.ShouldBe(1);
+        changes.ToPatch().Apply(baseline).Value!.Customer.Value!.Orders.Value!.Count.ShouldBe(1);
     }
 }

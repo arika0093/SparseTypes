@@ -136,8 +136,8 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.OpenBlock();
         code.AppendLine("\"add\" => " + kind + ".Add,");
         code.AppendLine("\"remove\" => " + kind + ".Remove,");
-        code.AppendLine("\"edit\" => " + kind + ".Edit,");
-        code.AppendLine("\"reorder\" => " + kind + ".Reorder,");
+        code.AppendLine("\"update\" => " + kind + ".Edit,");
+        code.AppendLine("\"replace\" => " + kind + ".Edit,");
         code.AppendLine("_ => throw new global::System.Text.Json.JsonException(\"Unknown item kind.\"),");
         code.Unindent().AppendLine("};");
         code.AppendLine();
@@ -164,29 +164,6 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.AppendLine("return state;");
         code.CloseBlock();
         code.AppendLine();
-        code.AppendLine("internal static " + kind + " ReadItemKind(ref global::System.Text.Json.Utf8JsonReader reader)");
-        code.OpenBlock();
-        code.AppendLine("var kind = default(" + kind + ");");
-        code.AppendLine("var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;");
-        code.AppendLine("if (tokenMatched)");
-        code.OpenBlock();
-        code.AppendLine("kind = " + kind + ".Add;");
-        AppendTokenComparison(code, wire, "KindTokenUtf8", "kind");
-        foreach (var kindMember in (string[])["Remove", "Edit", "Reorder"])
-        {
-            code.AppendLine("if (!tokenMatched) kind = " + kind + "." + kindMember + ";");
-            AppendTokenComparison(code, wire, "KindTokenUtf8", "kind");
-        }
-
-        code.CloseBlock();
-        code.AppendLine("if (!tokenMatched)");
-        code.OpenBlock();
-        code.AppendLine("if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) _ = reader.GetString();");
-        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Unknown item kind.\");");
-        code.CloseBlock();
-        code.AppendLine("return kind;");
-        code.CloseBlock();
-        code.AppendLine();
         code.AppendLine(
             "internal static "
                 + endpoint
@@ -199,7 +176,11 @@ internal static class SparseGeneratedOnceJsonCodecs
         );
         code.AppendLine("var state = default(" + state + ");");
         code.AppendLine("var hasState = false;");
+        code.AppendLine("var hasValue = false;");
+        code.AppendLine("var hasStateProperty = false;");
+        code.AppendLine("var hasValueProperty = false;");
         code.AppendLine("TValue? value = default;");
+        code.AppendLine("global::System.Collections.Generic.HashSet<string>? seenExtensions = null;");
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
@@ -208,21 +189,43 @@ internal static class SparseGeneratedOnceJsonCodecs
         );
         code.AppendLine("if (reader.ValueTextEquals(" + wire + ".StatePropertyUtf8()))");
         code.OpenBlock();
+        code.AppendLine("if (hasStateProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("hasStateProperty = true;");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         code.AppendLine("state = ReadEndpointState(ref reader);");
         code.AppendLine("hasState = true;");
         code.CloseBlock();
         code.AppendLine("else if (reader.ValueTextEquals(" + wire + ".ValuePropertyUtf8()))");
         code.OpenBlock();
+        code.AppendLine("if (hasValueProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("hasValueProperty = true;");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
+        code.AppendLine("hasValue = true;");
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
         code.AppendLine("else if (rootReader is not null) value = rootReader(ref reader, options);");
         code.AppendLine("else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
         code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, getTypeInfo(options));");
         code.CloseBlock();
-        code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\"); reader.Skip(); }");
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine("var extensionName = reader.GetString() ?? string.Empty;");
+        code.AppendLine("seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine("if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
+        code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
+        code.AppendLine("reader.Skip();");
+        code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("if (!hasState) throw new global::System.Text.Json.JsonException(\"An endpoint must contain a state.\");");
+        code.AppendLine(
+            "if (state != "
+                + state
+                + ".Value && hasValue) throw new global::System.Text.Json.JsonException(\"A value-free endpoint must not contain a value property.\");"
+        );
+        code.AppendLine(
+            "if (state == "
+                + state
+                + ".Value && (!hasValue || (!typeof(TValue).IsValueType && value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)))) throw new global::System.Text.Json.JsonException(\"A value endpoint must contain a non-null value.\");"
+        );
         code.AppendLine("return new " + endpoint + "<TValue> { State = state, Value = value };");
         code.CloseBlock();
         code.AppendLine();
@@ -233,14 +236,33 @@ internal static class SparseGeneratedOnceJsonCodecs
         );
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("value.Validate();");
+        code.AppendLine(
+            "if (value.State == "
+                + state
+                + ".Value && ((!typeof(TValue).IsValueType && value.Value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value.Value!, default!)))) throw new global::System.Text.Json.JsonException(\"A value endpoint must contain a non-null value.\");"
+        );
+        code.AppendLine(
+            "if (value.State != "
+                + state
+                + ".Missing && value.State != "
+                + state
+                + ".Null && value.State != "
+                + state
+                + ".Value && value.State != "
+                + state
+                + ".Redacted) throw new global::System.Text.Json.JsonException(\"Unknown endpoint state.\");"
+        );
         code.AppendLine("writer.WriteStartObject();");
         code.AppendLine("writer.WriteString(" + wire + ".StateProperty, " + wire + ".ToToken(value.State));");
+        code.AppendLine("if (value.State == " + state + ".Value)");
+        code.OpenBlock();
         code.AppendLine("writer.WritePropertyName(" + wire + ".ValueProperty);");
-        code.AppendLine("if (value.Value is null) writer.WriteNullValue();");
-        code.AppendLine("else if (rootWriter is not null) rootWriter(writer, value.Value!, options);");
+        code.AppendLine("if (rootWriter is not null) rootWriter(writer, value.Value!, options);");
         code.AppendLine(
             "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, getTypeInfo(options));"
         );
+        code.CloseBlock();
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();

@@ -221,9 +221,58 @@ internal static class SparseChangeSetMixedKeyedEmitter
                 code.AppendLine("continue;");
                 code.CloseBlock();
                 code.AppendLine(
-                    "throw new global::System.ArgumentException(\"A '\" + __itemPath"
+                    "if (changeItem.Kind == "
+                        + itemKind
+                        + ".Edit && changeItem.Edit is null && changeItem.After is not null && !changeItem.After.IsRedacted)"
+                );
+                code.OpenBlock();
+                code.AppendLine("var __replacementAfter" + id + " = changeItem.After.ToOptional();");
+                code.AppendLine(
+                    "if (!__replacementAfter"
                         + id
-                        + " + \"' edited model payload item must omit 'before' and 'after'.\", nameof(payload));"
+                        + ".IsPresent) throw new global::System.ArgumentException(\"A model item replacement requires an observable after-state.\", nameof(payload));"
+                );
+                var itemPatchType = isKeyed
+                    ? SparseKeyedCollectionEmitter.ElementPatchType(member)
+                    : SparseKeyedCollectionEmitter.ValuePatchType(member);
+                var itemFragmentType = isKeyed
+                    ? SparseChangeSetBasicsEmitter.ElementFragmentOf(member)
+                    : SparseChangeSetBasicsEmitter.ValueFragmentOf(member);
+                code.AppendLine(
+                    "var __replacementPatch"
+                        + id
+                        + " = new "
+                        + itemPatchType
+                        + "("
+                        + itemFragmentType
+                        + ".From(__replacementAfter"
+                        + id
+                        + ".Value!));"
+                );
+                if (isKeyed && SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+                {
+                    code.AppendLine(
+                        "if (changeItem.TemporaryKey.HasValue) __blindColl"
+                            + id
+                            + ".__SparseSetEditedByTemporaryKey(changeItem.TemporaryKey.Value, __replacementPatch"
+                            + id
+                            + "); else __blindColl"
+                            + id
+                            + ".__SparseSetEdited(changeItem.Key!, __replacementPatch"
+                            + id
+                            + ");"
+                    );
+                }
+                else
+                {
+                    code.AppendLine("__blindColl" + id + ".__SparseSetEdited(changeItem.Key!, __replacementPatch" + id + ");");
+                }
+                code.AppendLine("blindPaths.Add(__itemPath" + id + ");");
+                code.AppendLine("__hasBlindColl" + id + " = true;");
+                code.AppendLine("continue;");
+                code.CloseBlock();
+                code.AppendLine(
+                    "throw new global::System.ArgumentException(\"A redacted model item before-state is valid only for a removal or a replacement with an observable after-state.\", nameof(payload));"
                 );
                 code.CloseBlock();
             }

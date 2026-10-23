@@ -39,9 +39,7 @@ public static class TutorialFirstEditSamples
         // 2. Inspect what changed
         var changes = session.CreateChangeSet();
 
-        Console.WriteLine(
-            $"Theme changed: {changes.Theme.IsChanged} ({changes.Theme.Before.Value} -> {changes.Theme.After.Value})"
-        );
+        Console.WriteLine($"Theme changed: {changes.Theme.IsChanged} ({changes.Theme.Before.Value} -> {changes.Theme.After.Value})");
         Console.WriteLine($"RefreshInterval changed: {changes.RefreshInterval.IsChanged}");
         // Output:
         // Theme changed: True (light -> dark)
@@ -68,10 +66,7 @@ public static class TutorialFirstEditSamples
         // Output: After RevertChanges -> Theme: light, RefreshInterval: 60, HasChanges: False
         // /sample
         DocsCheck.Require(!session.HasChanges, "RevertChanges clears HasChanges");
-        DocsCheck.Require(
-            settings.Theme == "light" && settings.RefreshInterval == 60,
-            "RevertChanges restores baseline values"
-        );
+        DocsCheck.Require(settings.Theme == "light" && settings.RefreshInterval == 60, "RevertChanges restores baseline values");
     }
 
     private static void SendAndRebaseTutorial()
@@ -89,24 +84,19 @@ public static class TutorialFirstEditSamples
         // 1. Serialize the transition to a JSON wire payload
         var outgoingChanges = clientSession.CreateChangeSet();
         var payload = outgoingChanges.ToPayload();
-        var json = JsonSerializer.Serialize(payload);
+        var json = JsonSerializer.Serialize(payload, UserSettings.PayloadJson.Default);
         Console.WriteLine($"Wire JSON: {json}");
 
         // 2. Deserialize on the server into a typed ChangeSet
-        var receivedPayload = JsonSerializer.Deserialize<UserSettings.ChangePayload>(json)!;
+        var receivedPayload = JsonSerializer.Deserialize<UserSettings.ChangePayload>(json, UserSettings.PayloadJson.Default)!;
         var incomingChanges = receivedPayload.ToChangeSet();
-        Console.WriteLine(
-            $"Received Theme change: {incomingChanges.Theme.Before.Value} -> {incomingChanges.Theme.After.Value}"
-        );
+        Console.WriteLine($"Received Theme change: {incomingChanges.Theme.Before.Value} -> {incomingChanges.Theme.After.Value}");
         // Output:
-        // Wire JSON: {"version":"0.1","changes":[{"member":"Theme","before":{"state":"value","value":"light"},"after":{"state":"value","value":"dark"}}]}
+        // Wire JSON: {"version":"0.1","change":{"kind":"update","members":{"theme":{"kind":"replace","before":{"state":"value","value":"light"},"after":{"state":"value","value":"dark"}}}}}
         // Received Theme change: light -> dark
         // /sample
         DocsCheck.Require(incomingChanges.Theme.IsChanged, "incoming changes preserve Theme edit");
-        DocsCheck.Require(
-            incomingChanges.Theme.After.Value == "dark",
-            "incoming changes preserve Theme value"
-        );
+        DocsCheck.Require(incomingChanges.Theme.After.Value == "dark", "incoming changes preserve Theme value");
 
         // sample: tutorial-rebase
         // 3. Reconcile disjoint concurrent changes
@@ -119,17 +109,12 @@ public static class TutorialFirstEditSamples
 
         var rebaseResult = incomingChanges.RebaseOnto(serverCurrent);
         var merged = rebaseResult.Rebased.ToPatch().ApplyTo(serverCurrent);
-        Console.WriteLine(
-            $"Disjoint rebase -> HasConflicts: {rebaseResult.HasConflicts}, DisplayName: {merged.DisplayName}, Theme: {merged.Theme}"
-        );
+        Console.WriteLine($"Disjoint rebase -> HasConflicts: {rebaseResult.HasConflicts}, DisplayName: {merged.DisplayName}, Theme: {merged.Theme}");
         // Output:
         // Disjoint rebase -> HasConflicts: False, DisplayName: Alice Cooper, Theme: dark
         // /sample
         DocsCheck.Require(!rebaseResult.HasConflicts, "rebase has no conflicts");
-        DocsCheck.Require(
-            merged.DisplayName == "Alice Cooper" && merged.Theme == "dark",
-            "disjoint rebase preserves both edits"
-        );
+        DocsCheck.Require(merged.DisplayName == "Alice Cooper" && merged.Theme == "dark", "disjoint rebase preserves both edits");
 
         // sample: tutorial-rebase-conflict
         // 4. Detect an overlapping edit on the same property
@@ -152,10 +137,7 @@ public static class TutorialFirstEditSamples
         // Conflict at Theme: base=light, local=dark, current=high-contrast
         // /sample
         DocsCheck.Require(conflictResult.HasConflicts, "overlapping edit reports conflict");
-        DocsCheck.Require(
-            conflictResult.Conflicts[0].PathText == "Theme",
-            "conflict identifies Theme"
-        );
+        DocsCheck.Require(conflictResult.Conflicts[0].PathText == "Theme", "conflict identifies Theme");
     }
 
     private static void LayerAndResetTutorial()
@@ -170,11 +152,7 @@ public static class TutorialFirstEditSamples
         };
 
         // RefreshInterval is omitted (Missing), DisplayName is explicitly null, and Theme is "dark"
-        var userOverride = new UserSettings.Fragment
-        {
-            DisplayName = (string?)null,
-            Theme = "dark",
-        };
+        var userOverride = new UserSettings.Fragment { DisplayName = (string?)null, Theme = "dark" };
 
         var effective = defaultLayer.Merge(userOverride);
         Console.WriteLine(
@@ -183,10 +161,7 @@ public static class TutorialFirstEditSamples
         // Output:
         // Merged -> DisplayName present: True (value: null), Theme: dark, RefreshInterval: 30
         // /sample
-        DocsCheck.Require(
-            effective.DisplayName.IsPresent && effective.DisplayName.Value is null,
-            "explicit null overrides default"
-        );
+        DocsCheck.Require(effective.DisplayName.IsPresent && effective.DisplayName.Value is null, "explicit null overrides default");
         DocsCheck.Require(effective.Theme.Value == "dark", "override wins");
         DocsCheck.Require(effective.RefreshInterval.Value == 30, "missing falls through");
 
@@ -200,17 +175,12 @@ public static class TutorialFirstEditSamples
 
         var revealed = defaultLayer.Merge(updatedOverride);
         var finalSettings = revealed.ToModel();
-        Console.WriteLine(
-            $"After Remove -> Theme: {finalSettings.Theme}, RefreshInterval: {finalSettings.RefreshInterval}"
-        );
+        Console.WriteLine($"After Remove -> Theme: {finalSettings.Theme}, RefreshInterval: {finalSettings.RefreshInterval}");
         // Output:
         // After Remove -> Theme: light, RefreshInterval: 30
         // /sample
         DocsCheck.Require(!updatedOverride.Theme.IsPresent, "Remove clears Theme override");
-        DocsCheck.Require(
-            finalSettings.Theme == "light" && finalSettings.RefreshInterval == 30,
-            "lower layer Theme revealed after Remove"
-        );
+        DocsCheck.Require(finalSettings.Theme == "light" && finalSettings.RefreshInterval == 30, "lower layer Theme revealed after Remove");
     }
 
     private static void HistoryFlow()
@@ -235,10 +205,7 @@ public static class TutorialFirstEditSamples
         // /sample
         DocsCheck.Require(history.CanUndo, "edit retained in history");
         history.Undo();
-        DocsCheck.Require(
-            historyModel.RefreshInterval == 60 && historyModel.Theme == "dark",
-            "undo restores latest step"
-        );
+        DocsCheck.Require(historyModel.RefreshInterval == 60 && historyModel.Theme == "dark", "undo restores latest step");
         history.Redo();
         DocsCheck.Require(historyModel.RefreshInterval == 120, "redo reapplies edit");
         historySession.DisableHistory();

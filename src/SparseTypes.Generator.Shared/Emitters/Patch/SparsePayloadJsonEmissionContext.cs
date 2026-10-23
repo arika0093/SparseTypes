@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using System.Linq;
+
 namespace SparseTypes.Generator.Shared;
 
 /// <summary>Shared context for payload JSON resolver emission.</summary>
@@ -10,10 +13,12 @@ internal sealed record PayloadJsonEmissionContext(
     string ContainerAlias,
     string ConverterName,
     string ResolverName,
-    string RootDiscriminator,
-    System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> Pocos
+    System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> Pocos,
+    bool SupportsJson
 )
 {
+    public SparsePayloadContract Contract { get; init; } = SparsePayloadContract.Create(Members);
+
     /// <summary>Creates the emission context for one model.</summary>
     public static PayloadJsonEmissionContext? TryCreate(
         System.Collections.Immutable.ImmutableArray<SparseMemberModel> members,
@@ -21,9 +26,24 @@ internal sealed record PayloadJsonEmissionContext(
         string? modelType,
         string? implementationNamespace,
         System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
+    ) => TryCreate(SparsePayloadContract.Create(members), dialect, modelType, implementationNamespace, pocos);
+
+    /// <summary>Creates the emission context from the canonical payload contract.</summary>
+    public static PayloadJsonEmissionContext? TryCreate(
+        SparsePayloadContract contract,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? modelType,
+        string? implementationNamespace,
+        System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
     )
     {
-        if (!dialect.EmitJson || !dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver || modelType is null)
+        if (modelType is null)
+        {
+            return null;
+        }
+
+        var supportsJson = dialect.EmitJson && dialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver;
+        if (!supportsJson && dialect.PayloadSchemaBundleType is null)
         {
             return null;
         }
@@ -31,7 +51,7 @@ internal sealed record PayloadJsonEmissionContext(
         var runtime = dialect.RuntimeNamespace;
         var containerAlias = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(dialect, modelType);
         return new PayloadJsonEmissionContext(
-            members,
+            contract.Members.Select(static member => member.Member).ToImmutableArray(),
             dialect,
             modelType,
             implementationNamespace,
@@ -39,20 +59,12 @@ internal sealed record PayloadJsonEmissionContext(
             containerAlias,
             "PayloadJsonConverter",
             "PayloadJsonResolver",
-            RootDiscriminatorFor(members),
-            pocos.IsDefault ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty : pocos
-        );
-    }
-
-    private static string RootDiscriminatorFor(System.Collections.Immutable.ImmutableArray<SparseMemberModel> members)
-    {
-        var builder = new System.Text.StringBuilder("$root");
-        while (members.Any(member => string.Equals(member.Property.Name, builder.ToString(), System.StringComparison.Ordinal)))
+            pocos.IsDefault ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty : pocos,
+            supportsJson
+        )
         {
-            builder.Append('$');
-        }
-
-        return builder.ToString();
+            Contract = contract,
+        };
     }
 
     /// <summary>Qualified DTO type for the current model.</summary>

@@ -61,10 +61,7 @@ Uses the [reference models](attributes.md#example-model).
 ```csharp
 var session = new ReferenceSettings().CreateEditSession();
 var editor = session.EditCollection<ReferenceItem, string>(session.Paths.Items);
-var added = editor.TryAdd(
-    new ReferenceItem { Id = "a", Title = "first" },
-    out var addError
-);
+var added = editor.TryAdd(new ReferenceItem { Id = "a", Title = "first" }, out var addError);
 var duplicate = editor.TryAdd(new ReferenceItem { Id = "a" }, out var duplicateError);
 var found = editor.TryGetByKey("a", out var item, out var lookupError);
 ```

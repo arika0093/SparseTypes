@@ -39,30 +39,19 @@ public sealed class SparseKeyedDictChangeSetTests
         };
 
     private static Optional<KeyedServerHolder.Fragment?> KState(params KeyedServer[] items) =>
-        Optional<KeyedServerHolder.Fragment?>.Present(
-            KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-        );
+        Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
 
     private static Optional<ScalarDictHolder.Fragment?> DState(Dictionary<string, int> scores) =>
-        Optional<ScalarDictHolder.Fragment?>.Present(
-            ScalarDictHolder.Fragment.From(new ScalarDictHolder { Scores = scores })
-        );
+        Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(new ScalarDictHolder { Scores = scores }));
 
-    private static Optional<StructuralDictHolder.Fragment?> TState(
-        Dictionary<string, KeyedServer> servers
-    ) =>
-        Optional<StructuralDictHolder.Fragment?>.Present(
-            StructuralDictHolder.Fragment.From(new StructuralDictHolder { Servers = servers })
-        );
+    private static Optional<StructuralDictHolder.Fragment?> TState(Dictionary<string, KeyedServer> servers) =>
+        Optional<StructuralDictHolder.Fragment?>.Present(StructuralDictHolder.Fragment.From(new StructuralDictHolder { Servers = servers }));
 
     private static void AssertKeyedReplay(
         Optional<KeyedServerHolder.Fragment?> before,
         Optional<KeyedServerHolder.Fragment?> after,
         KeyedServerHolder.ChangeSet changes
-    ) =>
-        KeyedServerHolder
-            .Patch.Between(changes.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+    ) => KeyedServerHolder.Patch.Between(changes.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
 
     [Test]
     public void SingleEditedKeyDoesNotRetainUnrelatedValues()
@@ -92,7 +81,7 @@ public sealed class SparseKeyedDictChangeSetTests
         changes.Items.Edited.Count.ShouldBe(1);
         changes.Items.Edited.ContainsKey("k7").ShouldBeTrue();
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         // Unchanged element payloads must not be retained/serialized (wide
         // names fail obviously).
         json.ShouldNotContain("k5-original-");
@@ -113,12 +102,10 @@ public sealed class SparseKeyedDictChangeSetTests
                     .ToArray()
             )
         );
-        var fullJson = JsonSerializer.Serialize(full.ToPayload());
-        (json.Length * 3 < fullJson.Length).ShouldBeTrue(
-            $"sparse single {json.Length} should scale vs full {fullJson.Length}"
-        );
+        var fullJson = PayloadJsonTestSupport.Serialize(full.ToPayload());
+        (json.Length * 3 < fullJson.Length).ShouldBeTrue($"sparse single {json.Length} should scale vs full {fullJson.Length}");
 
-        var back = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(json).ToChangeSet();
         back.Items.Edited.ContainsKey("k7").ShouldBeTrue();
         back.Items.GetChange("k0").IsEmpty.ShouldBeTrue();
         AssertKeyedReplay(before, after, back);
@@ -136,15 +123,13 @@ public sealed class SparseKeyedDictChangeSetTests
         changes.Scores.Removed.Count.ShouldBe(0);
         changes.Scores.Edited.Count.ShouldBe(1);
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldContain("9999");
         json.ShouldNotContain("key150");
-        var back = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(json)!.ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(json).ToChangeSet();
         back.Scores.Edited["key7"].ShouldBe(9999);
         back.Scores.GetChange("key0").IsEmpty.ShouldBeTrue();
-        ScalarDictHolder
-            .Patch.Between(back.ToPatch().Apply(DState(beforeDict)), DState(afterDict))
-            .IsEmpty.ShouldBeTrue();
+        ScalarDictHolder.Patch.Between(back.ToPatch().Apply(DState(beforeDict)), DState(afterDict)).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -152,29 +137,20 @@ public sealed class SparseKeyedDictChangeSetTests
     {
         var before = DState(new Dictionary<string, int> { ["edit"] = 1, ["remove"] = 2 });
         var after = DState(new Dictionary<string, int> { ["edit"] = 3, ["add"] = 4 });
-        var entries = ScalarDictHolder
-            .ChangeSet.Between(before, after)
-            .EnumerateChanges()
-            .ToDictionary(static change => change.Path);
+        var entries = ScalarDictHolder.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[ScalarDictHolder.SparsePath.Scores.Key("edit")]
-            .Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Changed);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Changed);
         entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].Before.Value.ShouldBe(1);
         entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].After.Value.ShouldBe(3);
-        entries[ScalarDictHolder.SparsePath.Scores.Key("add")]
-            .Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Added);
-        entries[ScalarDictHolder.SparsePath.Scores.Key("remove")]
-            .Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Removed);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("add")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Added);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("remove")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Removed);
     }
 
     [Test]
     public void EnumeratePathsEscapeControlCharacters()
     {
         var tricky = "a\nb\tc\"d\\e\r\nf\x01g";
-        var changes = ScalarDictHolder.ChangeSet.Between(
-            DState(new Dictionary<string, int>()),
-            DState(new Dictionary<string, int> { [tricky] = 1 })
-        );
+        var changes = ScalarDictHolder.ChangeSet.Between(DState(new Dictionary<string, int>()), DState(new Dictionary<string, int> { [tricky] = 1 }));
         changes.IsEmpty.ShouldBeFalse();
 
         var enumerated = changes.EnumerateChanges().ToList();
@@ -222,45 +198,27 @@ public sealed class SparseKeyedDictChangeSetTests
         paths.Distinct().Count().ShouldBe(2);
         paths[0].ShouldNotBe(paths[1]);
         paths[0].ToString().ShouldBe(paths[1].ToString());
-        paths[0]
-            .ToString()
-            .ShouldBe("Scores[\"SparseTypes.Tests.CollidingCompositeKey:same\"]");
+        paths[0].ToString().ShouldBe("Scores[\"SparseTypes.Tests.CollidingCompositeKey:same\"]");
         changes
             .EnumerateChangedPaths()
             .Select(static path => path.ToString())
             .OrderBy(static path => path, StringComparer.Ordinal)
-            .ShouldBe(
-                paths
-                    .Select(static path => path.ToString())
-                    .OrderBy(static path => path, StringComparer.Ordinal)
-            );
+            .ShouldBe(paths.Select(static path => path.ToString()).OrderBy(static path => path, StringComparer.Ordinal));
 
         // Simple string keys keep their backwards-compatible form.
-        var simple = ScalarDictHolder.ChangeSet.Between(
-            DState(new Dictionary<string, int>()),
-            DState(new Dictionary<string, int> { ["plain"] = 1 })
-        );
+        var simple = ScalarDictHolder.ChangeSet.Between(DState(new Dictionary<string, int>()), DState(new Dictionary<string, int> { ["plain"] = 1 }));
         simple.EnumerateChanges().Single().PathText.ShouldBe("Scores[\"plain\"]");
     }
 
     [Test]
     public void EnumerateChangesFlattensNestedDictionaryValues()
     {
-        var before = TState(
-            new Dictionary<string, KeyedServer> { ["server"] = S("server", "before") }
-        );
-        var after = TState(
-            new Dictionary<string, KeyedServer> { ["server"] = S("server", "after") }
-        );
-        var entries = StructuralDictHolder
-            .ChangeSet.Between(before, after)
-            .EnumerateChanges()
-            .ToDictionary(static change => change.Path);
+        var before = TState(new Dictionary<string, KeyedServer> { ["server"] = S("server", "before") });
+        var after = TState(new Dictionary<string, KeyedServer> { ["server"] = S("server", "after") });
+        var entries = StructuralDictHolder.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[StructuralDictHolder.SparsePath.Servers.Key("server").Name]
-            .Before.Value.ShouldBe("before");
-        entries[StructuralDictHolder.SparsePath.Servers.Key("server").Name]
-            .After.Value.ShouldBe("after");
+        entries[StructuralDictHolder.SparsePath.Servers.Key("server").Name].Before.Value.ShouldBe("before");
+        entries[StructuralDictHolder.SparsePath.Servers.Key("server").Name].After.Value.ShouldBe("after");
     }
 
     [Test]
@@ -280,20 +238,14 @@ public sealed class SparseKeyedDictChangeSetTests
         AssertKeyedReplay(KState(S("a"), S("b")), KState(S("b")), remove);
 
         // Edit-only (no order change).
-        var edit = KeyedServerHolder.ChangeSet.Between(
-            KState(S("a"), S("b")),
-            KState(S("a", "A2"), S("b"))
-        );
+        var edit = KeyedServerHolder.ChangeSet.Between(KState(S("a"), S("b")), KState(S("a", "A2"), S("b")));
         edit.Items.GetChange("a").IsEdited.ShouldBeTrue();
         edit.Items.GetChange("a").IsReordered.ShouldBeFalse();
         edit.Items.OrderChanged.ShouldBeFalse();
         AssertKeyedReplay(KState(S("a"), S("b")), KState(S("a", "A2"), S("b")), edit);
 
         // Reorder-only.
-        var reorder = KeyedServerHolder.ChangeSet.Between(
-            KState(S("a"), S("b"), S("c")),
-            KState(S("b"), S("a"), S("c"))
-        );
+        var reorder = KeyedServerHolder.ChangeSet.Between(KState(S("a"), S("b"), S("c")), KState(S("b"), S("a"), S("c")));
         reorder.Items.OrderChanged.ShouldBeTrue();
         reorder.Items.GetChange("a").IsReordered.ShouldBeTrue();
         reorder.Items.GetChange("c").IsEmpty.ShouldBeTrue();
@@ -302,18 +254,13 @@ public sealed class SparseKeyedDictChangeSetTests
         reorder.Invert().Items.AfterOrder.ShouldBe(["a", "b", "c"]);
 
         // Mixed.
-        var mixed = KeyedServerHolder.ChangeSet.Between(
-            KState(S("a"), S("b"), S("c")),
-            KState(S("c", "C2"), S("d"))
-        );
+        var mixed = KeyedServerHolder.ChangeSet.Between(KState(S("a"), S("b"), S("c")), KState(S("c", "C2"), S("d")));
         mixed.Items.GetChange("d").IsAdded.ShouldBeTrue();
         mixed.Items.GetChange("a").IsRemoved.ShouldBeTrue();
         mixed.Items.GetChange("c").IsEdited.ShouldBeTrue();
         AssertKeyedReplay(KState(S("a"), S("b"), S("c")), KState(S("c", "C2"), S("d")), mixed);
-        var mixedBack = JsonSerializer
-            .Deserialize<KeyedServerHolder.ChangePayload>(
-                JsonSerializer.Serialize(mixed.ToPayload())
-            )!
+        var mixedBack = PayloadJsonTestSupport
+            .Deserialize<KeyedServerHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(mixed.ToPayload()))
             .ToChangeSet();
         AssertKeyedReplay(KState(S("a"), S("b"), S("c")), KState(S("c", "C2"), S("d")), mixedBack);
     }
@@ -321,8 +268,7 @@ public sealed class SparseKeyedDictChangeSetTests
     [Test]
     public void NestedKeyedElementChangeSets()
     {
-        Optional<ClusterHolder.Fragment?> State(ClusterHolder m) =>
-            Optional<ClusterHolder.Fragment?>.Present(ClusterHolder.Fragment.From(m));
+        Optional<ClusterHolder.Fragment?> State(ClusterHolder m) => Optional<ClusterHolder.Fragment?>.Present(ClusterHolder.Fragment.From(m));
         ClusterHolder Before() =>
             new()
             {
@@ -358,14 +304,10 @@ public sealed class SparseKeyedDictChangeSetTests
             };
         var changes = ClusterHolder.ChangeSet.Between(State(Before()), State(After()));
         changes.Groups.IsChanged.ShouldBeTrue();
-        var back = JsonSerializer
-            .Deserialize<ClusterHolder.ChangePayload>(
-                JsonSerializer.Serialize(changes.ToPayload())
-            )!
+        var back = PayloadJsonTestSupport
+            .Deserialize<ClusterHolder.ChangePayload>(PayloadJsonTestSupport.Serialize(changes.ToPayload()))
             .ToChangeSet();
-        ClusterHolder
-            .Patch.Between(back.ToPatch().Apply(State(Before())), State(After()))
-            .IsEmpty.ShouldBeTrue();
+        ClusterHolder.Patch.Between(back.ToPatch().Apply(State(Before())), State(After())).IsEmpty.ShouldBeTrue();
         back.Invert().Invert().IsEmpty.ShouldBeFalse();
     }
 
@@ -416,14 +358,8 @@ public sealed class SparseKeyedDictChangeSetTests
                 Name = "C1",
                 Count = 1,
             };
-        var first = KeyedServerHolder.ChangeSet.Between(
-            KState(A0(), B1(), C0()),
-            KState(A1(), B1(), C0())
-        );
-        var second = KeyedServerHolder.ChangeSet.Between(
-            KState(A0(), B2(), C0()),
-            KState(A0(), B2(), C1())
-        );
+        var first = KeyedServerHolder.ChangeSet.Between(KState(A0(), B1(), C0()), KState(A1(), B1(), C0()));
+        var second = KeyedServerHolder.ChangeSet.Between(KState(A0(), B2(), C0()), KState(A0(), B2(), C1()));
         var composed = first.Compose(second);
 
         composed.Items.GetChange("a").IsEdited.ShouldBeTrue();
@@ -545,10 +481,7 @@ public sealed class SparseKeyedDictChangeSetTests
         AssertKeyedReplay(s0, s2, chained);
 
         // Non-contiguous same key throws.
-        var other = KeyedServerHolder.ChangeSet.Between(
-            KState(S("a", "OTHER")),
-            KState(S("a", "A9"))
-        );
+        var other = KeyedServerHolder.ChangeSet.Between(KState(S("a", "OTHER")), KState(S("a", "A9")));
         Should.Throw<InvalidOperationException>(() => c1.Compose(other));
 
         // Contiguous scalar-dict chains and mismatches.
@@ -558,10 +491,7 @@ public sealed class SparseKeyedDictChangeSetTests
         var e1 = ScalarDictHolder.ChangeSet.Between(d0, d1);
         var e2 = ScalarDictHolder.ChangeSet.Between(d1, d2);
         e1.Compose(e2).Scores.GetChange("k").After.Value.ShouldBe(3);
-        var eBroken = ScalarDictHolder.ChangeSet.Between(
-            DState(new() { ["k"] = 9 }),
-            DState(new() { ["k"] = 10 })
-        );
+        var eBroken = ScalarDictHolder.ChangeSet.Between(DState(new() { ["k"] = 9 }), DState(new() { ["k"] = 10 }));
         Should.Throw<InvalidOperationException>(() => e1.Compose(eBroken));
 
         // Add-then-remove normalizes to empty; remove-then-add becomes edit.
@@ -586,9 +516,7 @@ public sealed class SparseKeyedDictChangeSetTests
             },
             K("c")
         );
-        var composed = KeyedServerHolder
-            .ChangeSet.Between(s0, s1)
-            .Compose(KeyedServerHolder.ChangeSet.Between(s1, s2));
+        var composed = KeyedServerHolder.ChangeSet.Between(s0, s1).Compose(KeyedServerHolder.ChangeSet.Between(s1, s2));
 
         composed.Items.OrderChanged.ShouldBeTrue();
         composed.Items.Edited.ContainsKey("a").ShouldBeTrue();
@@ -605,12 +533,7 @@ public sealed class SparseKeyedDictChangeSetTests
         var current = KState(S("a", "A0"), S("b"), S("c"));
         var rebased = KeyedServerHolder.ChangeSet.Between(before, edited).RebaseOnto(current);
         rebased.HasConflicts.ShouldBeFalse();
-        KeyedServerHolder
-            .Patch.Between(
-                rebased.Rebased.ToPatch().Apply(current),
-                KState(S("a", "A1"), S("b"), S("c"))
-            )
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(rebased.Rebased.ToPatch().Apply(current), KState(S("a", "A1"), S("b"), S("c"))).IsEmpty.ShouldBeTrue();
 
         // Already applied.
         var already = KeyedServerHolder.ChangeSet.Between(before, edited).RebaseOnto(edited);
@@ -618,10 +541,7 @@ public sealed class SparseKeyedDictChangeSetTests
         already.Rebased.IsEmpty.ShouldBeTrue();
 
         // Same-key conflict keeps clean keys.
-        var multi = KeyedServerHolder.ChangeSet.Between(
-            KState(S("a", "A0"), S("b", "B0")),
-            KState(S("a", "A1"), S("b", "B1"))
-        );
+        var multi = KeyedServerHolder.ChangeSet.Between(KState(S("a", "A0"), S("b", "B0")), KState(S("a", "A1"), S("b", "B1")));
         var conflicted = multi.RebaseOnto(KState(S("a", "OTHER"), S("b", "B0")));
         conflicted.HasConflicts.ShouldBeTrue();
         conflicted.Rebased.Items.GetChange("b").IsEdited.ShouldBeTrue();
@@ -629,23 +549,14 @@ public sealed class SparseKeyedDictChangeSetTests
 
         // Dictionary: unrelated concurrent add merges; same-key conflict
         // isolates.
-        var dChanges = ScalarDictHolder.ChangeSet.Between(
-            DState(new() { ["a"] = 1 }),
-            DState(new() { ["a"] = 2 })
-        );
+        var dChanges = ScalarDictHolder.ChangeSet.Between(DState(new() { ["a"] = 1 }), DState(new() { ["a"] = 2 }));
         var dMerged = dChanges.RebaseOnto(DState(new() { ["a"] = 1, ["c"] = 9 }));
         dMerged.HasConflicts.ShouldBeFalse();
         ScalarDictHolder
-            .Patch.Between(
-                dMerged.Rebased.ToPatch().Apply(DState(new() { ["a"] = 1, ["c"] = 9 })),
-                DState(new() { ["a"] = 2, ["c"] = 9 })
-            )
+            .Patch.Between(dMerged.Rebased.ToPatch().Apply(DState(new() { ["a"] = 1, ["c"] = 9 })), DState(new() { ["a"] = 2, ["c"] = 9 }))
             .IsEmpty.ShouldBeTrue();
 
-        var dMulti = ScalarDictHolder.ChangeSet.Between(
-            DState(new() { ["a"] = 1, ["b"] = 1 }),
-            DState(new() { ["a"] = 2, ["b"] = 2 })
-        );
+        var dMulti = ScalarDictHolder.ChangeSet.Between(DState(new() { ["a"] = 1, ["b"] = 1 }), DState(new() { ["a"] = 2, ["b"] = 2 }));
         var dConflicted = dMulti.RebaseOnto(DState(new() { ["a"] = 99, ["b"] = 1 }));
         dConflicted.HasConflicts.ShouldBeTrue();
         dConflicted.Rebased.Scores.GetChange("b").After.Value.ShouldBe(2);
@@ -661,9 +572,7 @@ public sealed class SparseKeyedDictChangeSetTests
         inverted.Items.GetChange("d").IsRemoved.ShouldBeTrue();
         inverted.Items.GetChange("a").IsAdded.ShouldBeTrue();
         inverted.Items.OrderChanged.ShouldBe(changes.Items.OrderChanged);
-        KeyedServerHolder
-            .Patch.Between(inverted.ToPatch().Apply(after), before)
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(inverted.ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
         changes.Invert().Invert().Items.AfterOrder.ShouldBe(changes.Items.AfterOrder.ToArray());
 
         var dBefore = DState(new() { ["a"] = 1, ["b"] = 2 });
@@ -672,8 +581,6 @@ public sealed class SparseKeyedDictChangeSetTests
         var dInverted = dChanges.Invert();
         dInverted.Scores.GetChange("c").IsRemoved.ShouldBeTrue();
         dInverted.Scores.GetChange("a").IsAdded.ShouldBeTrue();
-        ScalarDictHolder
-            .Patch.Between(dInverted.ToPatch().Apply(dAfter), dBefore)
-            .IsEmpty.ShouldBeTrue();
+        ScalarDictHolder.Patch.Between(dInverted.ToPatch().Apply(dAfter), dBefore).IsEmpty.ShouldBeTrue();
     }
 }

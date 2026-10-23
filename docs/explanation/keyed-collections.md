@@ -354,9 +354,11 @@ var edited = session.CreateChangeSet();
 var path = KeyedOrderBook.SparsePath.Lines.TemporaryKey(first.TemporaryId!.Value).Name;
 // path addresses the pending row by its temporary Guid, never by position
 
-var wire = JsonSerializer.Serialize(pending.ToPayload());
+var wire = JsonSerializer.Serialize(
+    pending.ToPayload(),
+    KeyedOrderBook.PayloadJson.Default);
 var restored = JsonSerializer
-    .Deserialize<KeyedOrderBook.ChangePayload>(wire)!
+    .Deserialize<KeyedOrderBook.ChangePayload>(wire, KeyedOrderBook.PayloadJson.Default)!
     .ToChangeSet();
 // restored.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded == true
 ```
@@ -487,4 +489,3 @@ var response = new KeyedOrderBook
 <!-- /sample -->
 
 When using `SparseTypes.EntityFrameworkCore`, `mapper.ApplyWithKeyCorrelation(...)` automates this correlation for tracked EF Core navigations; see [EF Core mapping](../how-to/efcore-mapping.md).
-

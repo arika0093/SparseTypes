@@ -10,23 +10,16 @@ public sealed class TemporaryKeyReconcileRegressionTests
 {
     private static TempOrderLine Assigned(int id, string name) => new() { Id = id, Name = name };
 
-    private static TempOrderLine Pending(string name, Guid? temp = null) =>
-        new() { Name = name, TemporaryId = temp ?? Guid.NewGuid() };
+    private static TempOrderLine Pending(string name, Guid? temp = null) => new() { Name = name, TemporaryId = temp ?? Guid.NewGuid() };
 
-    private static TempOrderHolder SubmittedHolderAfter(
-        TempOrderHolder baseline,
-        TempOrderHolder.ChangeSet submitted
-    ) => submitted.ToPatch().Apply(TempOrderHolder.Fragment.From(baseline)).Value!.ToModel();
+    private static TempOrderHolder SubmittedHolderAfter(TempOrderHolder baseline, TempOrderHolder.ChangeSet submitted) =>
+        submitted.ToPatch().Apply(TempOrderHolder.Fragment.From(baseline)).Value!.ToModel();
 
-    private static TempOrderBook SubmittedBookAfter(
-        TempOrderBook baseline,
-        TempOrderBook.ChangeSet submitted
-    ) => submitted.ToPatch().Apply(TempOrderBook.Fragment.From(baseline)).Value!.ToModel();
+    private static TempOrderBook SubmittedBookAfter(TempOrderBook baseline, TempOrderBook.ChangeSet submitted) =>
+        submitted.ToPatch().Apply(TempOrderBook.Fragment.From(baseline)).Value!.ToModel();
 
-    private static TempCustomerHolder SubmittedCustomersAfter(
-        TempCustomerHolder baseline,
-        TempCustomerHolder.ChangeSet submitted
-    ) => submitted.ToPatch().Apply(TempCustomerHolder.Fragment.From(baseline)).Value!.ToModel();
+    private static TempCustomerHolder SubmittedCustomersAfter(TempCustomerHolder baseline, TempCustomerHolder.ChangeSet submitted) =>
+        submitted.ToPatch().Apply(TempCustomerHolder.Fragment.From(baseline)).Value!.ToModel();
 
     [Test]
     public void ReconcileAndApplyAdoptsRemoteValuesWhenSubmittedValuesArePersisted()
@@ -73,9 +66,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         live.Total = 21;
         var conflictingPersisted = new TempReconcileScalar { Customer = "remote", Total = 22 };
 
-        session
-            .TryReconcileAndApply(submitted, conflictingPersisted, out var conflicts)
-            .ShouldBeFalse();
+        session.TryReconcileAndApply(submitted, conflictingPersisted, out var conflicts).ShouldBeFalse();
 
         conflicts.ShouldNotBeNull().ShouldHaveSingleItem();
         conflicts![0].Path.RootType.ShouldBe(typeof(TempReconcileScalar));
@@ -86,9 +77,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         session.HasChanges.ShouldBeTrue();
 
         var persistedSubmission = new TempReconcileScalar { Customer = "remote", Total = 20 };
-        session
-            .TryReconcileAndApply(submitted, persistedSubmission, out var retryConflicts)
-            .ShouldBeTrue();
+        session.TryReconcileAndApply(submitted, persistedSubmission, out var retryConflicts).ShouldBeTrue();
         retryConflicts.ShouldBeNull();
         live.Customer.ShouldBe("remote");
         live.Total.ShouldBe(21);
@@ -122,10 +111,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         conflicts.ShouldBeNull();
         baseline.Lines[0].Id.ShouldBe(31);
         baseline.Lines[0].Name.ShouldBe("edited while saving");
-        session
-            .CreateChangeSet()
-            .Lines.GetChange(31)
-            .Edit.Name.After.Value.ShouldBe("edited while saving");
+        session.CreateChangeSet().Lines.GetChange(31).Edit.Name.After.Value.ShouldBe("edited while saving");
     }
 
     [Test]
@@ -188,8 +174,8 @@ public sealed class TemporaryKeyReconcileRegressionTests
         // The submitted transition survives a ChangeSet/Payload round-trip
         // with the shared Guid visible under both collection paths.
         var payload = submitted.ToPayload();
-        var json = JsonSerializer.Serialize(payload);
-        var revived = JsonSerializer.Deserialize<TempOrderBook.ChangePayload>(json)!.ToChangeSet();
+        var json = PayloadJsonTestSupport.Serialize(payload);
+        var revived = PayloadJsonTestSupport.Deserialize<TempOrderBook.ChangePayload>(json).ToChangeSet();
         revived.Customer.Orders.GetTemporaryChange(shared).IsAdded.ShouldBeTrue();
         revived.Lines.GetTemporaryChange(shared).IsAdded.ShouldBeTrue();
 
@@ -242,9 +228,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         pending.Customer.Orders.GetChange(21).IsEdited.ShouldBeTrue();
         pending.Lines.GetChange(22).IsEdited.ShouldBeTrue();
         pending.Lines.GetChange(7).IsEmpty.ShouldBeTrue();
-        TempOrderBook
-            .SparsePath.Customer.Orders.TemporaryKey(shared)
-            .ShouldNotBe(TempOrderBook.SparsePath.Lines.TemporaryKey(shared));
+        TempOrderBook.SparsePath.Customer.Orders.TemporaryKey(shared).ShouldNotBe(TempOrderBook.SparsePath.Lines.TemporaryKey(shared));
     }
 
     // the same scope still rejects a duplicated Guid without
@@ -295,14 +279,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
     public void SameTemporaryGuidUnderDistinctAssignedParentsReconciles()
     {
         var shared = Guid.NewGuid();
-        var baseline = new TempCustomerHolder
-        {
-            Customers =
-            [
-                new TempCustomer { Id = 1, Name = "one" },
-                new TempCustomer { Id = 2, Name = "two" },
-            ],
-        };
+        var baseline = new TempCustomerHolder { Customers = [new TempCustomer { Id = 1, Name = "one" }, new TempCustomer { Id = 2, Name = "two" }] };
         var session = baseline.CreateEditSession();
         baseline.Customers[0].Orders.Add(new TempOrderLine { Name = "a", TemporaryId = shared });
         baseline.Customers[1].Orders.Add(new TempOrderLine { Name = "b", TemporaryId = shared });
@@ -404,10 +381,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         baseline.Lines.Single(item => item.Id == 8).Name = "NORMALIZED";
         session.CreateChangeSet().Lines.GetChange(8).IsEdited.ShouldBeTrue();
 
-        var persisted = new TempOrderHolder
-        {
-            Lines = [Assigned(7, "NORMALIZED"), Assigned(8, "NORMALIZED")],
-        };
+        var persisted = new TempOrderHolder { Lines = [Assigned(7, "NORMALIZED"), Assigned(8, "NORMALIZED")] };
 
         session.TryReconcile(submitted, persisted, out var error).ShouldBeTrue();
         error.ShouldBeNull();
@@ -473,10 +447,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         var added = Pending("new");
         baseline.Lines.Add(added);
         var submitted = session.CreateChangeSet();
-        var submittedAfter = SubmittedHolderAfter(
-            new TempOrderHolder { Lines = [Assigned(1, "a"), Assigned(2, "b")] },
-            submitted
-        );
+        var submittedAfter = SubmittedHolderAfter(new TempOrderHolder { Lines = [Assigned(1, "a"), Assigned(2, "b")] }, submitted);
 
         _ = submittedAfter;
         var persisted = new TempOrderHolder
@@ -555,28 +526,17 @@ public sealed class TemporaryKeyReconcileRegressionTests
     [Test]
     public void ConcurrentLocalReorderWinsOverServerOrder()
     {
-        var baseline = new TempOrderHolder
-        {
-            Lines = [Assigned(1, "a"), Assigned(2, "b"), Assigned(3, "c")],
-        };
+        var baseline = new TempOrderHolder { Lines = [Assigned(1, "a"), Assigned(2, "b"), Assigned(3, "c")] };
         var session = baseline.CreateEditSession();
         baseline.Lines.Single(item => item.Id == 1).Name = "a2";
         var submitted = session.CreateChangeSet();
 
         // Local reorder while the save is in flight.
-        var reordered = new List<TempOrderLine>
-        {
-            baseline.Lines[1],
-            baseline.Lines[0],
-            baseline.Lines[2],
-        };
+        var reordered = new List<TempOrderLine> { baseline.Lines[1], baseline.Lines[0], baseline.Lines[2] };
         baseline.Lines.Clear();
         baseline.Lines.AddRange(reordered);
 
-        var persisted = new TempOrderHolder
-        {
-            Lines = [Assigned(3, "C"), Assigned(2, "B"), Assigned(1, "A2")],
-        };
+        var persisted = new TempOrderHolder { Lines = [Assigned(3, "C"), Assigned(2, "B"), Assigned(1, "A2")] };
 
         session.TryReconcile(submitted, persisted, out var error).ShouldBeTrue();
         error.ShouldBeNull();
@@ -644,16 +604,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         var afterFirstFirst = Pending("after first first");
         var afterFirstSecond = Pending("after first second");
         baseline.Lines.Clear();
-        baseline.Lines.AddRange([
-            headFirst,
-            headSecond,
-            first,
-            afterFirstFirst,
-            afterFirstSecond,
-            second,
-            third,
-            submittedPending,
-        ]);
+        baseline.Lines.AddRange([headFirst, headSecond, first, afterFirstFirst, afterFirstSecond, second, third, submittedPending]);
 
         var persisted = new TempOrderHolder
         {
@@ -675,16 +626,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         error.ShouldBeNull();
         baseline
             .Lines.Select(item => item.Name)
-            .ShouldBe([
-                "head second",
-                "head first",
-                "first edited",
-                "after first second",
-                "after first first",
-                "SECOND",
-                "THIRD",
-                "SUBMITTED",
-            ]);
+            .ShouldBe(["head second", "head first", "first edited", "after first second", "after first first", "SECOND", "THIRD", "SUBMITTED"]);
         baseline.Lines[2].Id.ShouldBe(1);
         baseline.Lines[^1].Id.ShouldBe(11);
     }
@@ -699,10 +641,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
     {
         var baseline = new TempOrderHolder
         {
-            Lines = Enumerable
-                .Range(1, count)
-                .Select(id => new TempOrderLine { Id = id, Name = "live-" + id })
-                .ToList(),
+            Lines = Enumerable.Range(1, count).Select(id => new TempOrderLine { Id = id, Name = "live-" + id }).ToList(),
         };
         var session = baseline.CreateEditSession();
         var submittedPending = Pending("submitted");
@@ -722,15 +661,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
                         Name = "submitted",
                     }
                 )
-                .Concat(
-                    Enumerable
-                        .Range(1, count)
-                        .Select(index => new TempOrderLine
-                        {
-                            Id = count + index + 1,
-                            Name = "server-added-" + index,
-                        })
-                )
+                .Concat(Enumerable.Range(1, count).Select(index => new TempOrderLine { Id = count + index + 1, Name = "server-added-" + index }))
                 .ToList(),
         };
 
@@ -745,19 +676,14 @@ public sealed class TemporaryKeyReconcileRegressionTests
         baseline.Lines[0].Id.ShouldBe(count);
         baseline.Lines[count - 1].Id.ShouldBe(1);
         baseline.Lines[^1].Id.ShouldBe(count * 2 + 1);
-        Console.WriteLine(
-            $"rows={count}; elapsed={stopwatch.Elapsed.TotalMilliseconds:F2}ms; allocated={allocatedBytes} bytes"
-        );
+        Console.WriteLine($"rows={count}; elapsed={stopwatch.Elapsed.TotalMilliseconds:F2}ms; allocated={allocatedBytes} bytes");
     }
 
     [Test]
     public void BulkServerDeletionCompactsLiveRows()
     {
         const int count = 10_000;
-        var baseline = new TempOrderHolder
-        {
-            Lines = Enumerable.Range(1, count).Select(id => Assigned(id, "live")).ToList(),
-        };
+        var baseline = new TempOrderHolder { Lines = Enumerable.Range(1, count).Select(id => Assigned(id, "live")).ToList() };
         var session = baseline.CreateEditSession();
         var pending = Pending("submitted");
         baseline.Lines.Add(pending);
@@ -840,9 +766,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
                 },
             ],
         };
-        writableSession
-            .TryReconcile(writableSubmitted, writablePersisted, out var writableError)
-            .ShouldBeTrue();
+        writableSession.TryReconcile(writableSubmitted, writablePersisted, out var writableError).ShouldBeTrue();
         writableError.ShouldBeNull();
     }
 
@@ -859,9 +783,7 @@ public sealed class TemporaryKeyReconcileRegressionTests
         var session = baseline.CreateEditSession();
         var nestedTemp = Guid.NewGuid();
         var topTemp = Guid.NewGuid();
-        baseline.Customer.Orders.Add(
-            new TempOrderLine { Name = "nested", TemporaryId = nestedTemp }
-        );
+        baseline.Customer.Orders.Add(new TempOrderLine { Name = "nested", TemporaryId = nestedTemp });
         baseline.Lines.Add(new TempOrderLine { Name = "top", TemporaryId = topTemp });
         var submitted = session.CreateChangeSet();
 

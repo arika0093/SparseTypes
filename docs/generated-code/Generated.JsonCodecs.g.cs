@@ -223,8 +223,8 @@ namespace SparseTypes.Generated
         {
             "add" => global::SparseTypes.ChangePayloadItemKind.Add,
             "remove" => global::SparseTypes.ChangePayloadItemKind.Remove,
-            "edit" => global::SparseTypes.ChangePayloadItemKind.Edit,
-            "reorder" => global::SparseTypes.ChangePayloadItemKind.Reorder,
+            "update" => global::SparseTypes.ChangePayloadItemKind.Edit,
+            "replace" => global::SparseTypes.ChangePayloadItemKind.Edit,
             _ => throw new global::System.Text.Json.JsonException("Unknown item kind."),
         };
 
@@ -251,69 +251,69 @@ namespace SparseTypes.Generated
             return state;
         }
 
-        internal static global::SparseTypes.ChangePayloadItemKind ReadItemKind(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            var kind = default(global::SparseTypes.ChangePayloadItemKind);
-            var tokenMatched = reader.TokenType == global::System.Text.Json.JsonTokenType.String;
-            if (tokenMatched)
-            {
-                kind = global::SparseTypes.ChangePayloadItemKind.Add;
-                tokenMatched = reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.KindTokenUtf8(kind));
-                if (!tokenMatched) kind = global::SparseTypes.ChangePayloadItemKind.Remove;
-                tokenMatched = reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.KindTokenUtf8(kind));
-                if (!tokenMatched) kind = global::SparseTypes.ChangePayloadItemKind.Edit;
-                tokenMatched = reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.KindTokenUtf8(kind));
-                if (!tokenMatched) kind = global::SparseTypes.ChangePayloadItemKind.Reorder;
-                tokenMatched = reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.KindTokenUtf8(kind));
-            }
-            if (!tokenMatched)
-            {
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) _ = reader.GetString();
-                throw new global::System.Text.Json.JsonException("Unknown item kind.");
-            }
-            return kind;
-        }
-
         internal static global::SparseTypes.ChangePayloadEndpoint<TValue>? ReadEndpoint<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, RootReader<TValue>? rootReader, RootWriter<TValue>? rootWriter, global::System.Func<global::System.Text.Json.JsonSerializerOptions, global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>> getTypeInfo)
         {
             if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
             if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("An endpoint must be an object.");
             var state = default(global::SparseTypes.ChangePayloadState);
             var hasState = false;
+            var hasValue = false;
+            var hasStateProperty = false;
+            var hasValueProperty = false;
             TValue? value = default;
+            global::System.Collections.Generic.HashSet<string>? seenExtensions = null;
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
                 if (reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.StatePropertyUtf8()))
                 {
+                    if (hasStateProperty) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    hasStateProperty = true;
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
                     state = ReadEndpointState(ref reader);
                     hasState = true;
                 }
                 else if (reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.ValuePropertyUtf8()))
                 {
+                    if (hasValueProperty) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    hasValueProperty = true;
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
+                    hasValue = true;
                     if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;
                     else if (rootReader is not null) value = rootReader(ref reader, options);
                     else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;
                     else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, getTypeInfo(options));
                 }
-                else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); reader.Skip(); }
+                else
+                {
+                    var extensionName = reader.GetString() ?? string.Empty;
+                    seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+                    if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
+                    if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
+                    reader.Skip();
+                }
             }
             if (!hasState) throw new global::System.Text.Json.JsonException("An endpoint must contain a state.");
+            if (state != global::SparseTypes.ChangePayloadState.Value && hasValue) throw new global::System.Text.Json.JsonException("A value-free endpoint must not contain a value property.");
+            if (state == global::SparseTypes.ChangePayloadState.Value && (!hasValue || (!typeof(TValue).IsValueType && value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
             return new global::SparseTypes.ChangePayloadEndpoint<TValue> { State = state, Value = value };
         }
 
         internal static void WriteEndpoint<TValue>(global::System.Text.Json.Utf8JsonWriter writer, global::SparseTypes.ChangePayloadEndpoint<TValue>? value, global::System.Text.Json.JsonSerializerOptions options, RootWriter<TValue>? rootWriter, global::System.Func<global::System.Text.Json.JsonSerializerOptions, global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>> getTypeInfo)
         {
             if (value is null) { writer.WriteNullValue(); return; }
+            value.Validate();
+            if (value.State == global::SparseTypes.ChangePayloadState.Value && ((!typeof(TValue).IsValueType && value.Value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value.Value, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
+            if (value.State != global::SparseTypes.ChangePayloadState.Missing && value.State != global::SparseTypes.ChangePayloadState.Null && value.State != global::SparseTypes.ChangePayloadState.Value && value.State != global::SparseTypes.ChangePayloadState.Redacted) throw new global::System.Text.Json.JsonException("Unknown endpoint state.");
             writer.WriteStartObject();
             writer.WriteString(global::SparseTypes.ChangePayloadWire.StateProperty, global::SparseTypes.ChangePayloadWire.ToToken(value.State));
-            writer.WritePropertyName(global::SparseTypes.ChangePayloadWire.ValueProperty);
-            if (value.Value is null) writer.WriteNullValue();
-            else if (rootWriter is not null) rootWriter(writer, value.Value!, options);
-            else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, getTypeInfo(options));
+            if (value.State == global::SparseTypes.ChangePayloadState.Value)
+            {
+                writer.WritePropertyName(global::SparseTypes.ChangePayloadWire.ValueProperty);
+                if (rootWriter is not null) rootWriter(writer, value.Value!, options);
+                else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, getTypeInfo(options));
+            }
             writer.WriteEndObject();
         }
 

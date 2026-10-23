@@ -331,7 +331,7 @@ public sealed class GeneratedApiApprovalTests
         var restored = JsonSerializer.Deserialize(json, CatalogSerializerContext.Default.CatalogScalarChangePayload);
 
         restored.ShouldNotBeNull();
-        restored!.Changes.ShouldHaveSingleItem();
+        restored!.Change.ShouldNotBeNull();
         restored.ToChangeSet().IsEmpty.ShouldBeFalse();
     }
 
@@ -360,7 +360,8 @@ public sealed class GeneratedApiApprovalTests
             resolver.IsNestedAssembly.ShouldBeTrue();
             resolver.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
             changePayload.GetProperty("Version")!.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
-            changePayload.GetProperty("Changes")!.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+            changePayload.GetProperty("Change").ShouldNotBeNull();
+            changePayload.GetProperty("Changes").ShouldBeNull();
             changePayload.GetMethod("ToPatch")!.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
         }
     }

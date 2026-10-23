@@ -23,7 +23,8 @@ internal static class SparseFragmentEmitter
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
-        Action<SharedIndentedBuilder>? appendModelMembers = null
+        Action<SharedIndentedBuilder>? appendModelMembers = null,
+        SparsePayloadContract? payloadContract = null
     )
     {
         return BuildSplitSource(
@@ -38,7 +39,8 @@ internal static class SparseFragmentEmitter
             config,
             appendProductExtensions,
             payloadJsonPocos,
-            appendModelMembers
+            appendModelMembers,
+            payloadContract
         ).Surface;
     }
 
@@ -56,7 +58,8 @@ internal static class SparseFragmentEmitter
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions = null,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
-        Action<SharedIndentedBuilder>? appendModelMembers = null
+        Action<SharedIndentedBuilder>? appendModelMembers = null,
+        SparsePayloadContract? payloadContract = null
     )
     {
         return BuildSourceInternal(
@@ -71,7 +74,8 @@ internal static class SparseFragmentEmitter
             config,
             appendProductExtensions,
             payloadJsonPocos,
-            appendModelMembers
+            appendModelMembers,
+            payloadContract
         );
     }
 
@@ -130,8 +134,8 @@ internal static class SparseFragmentEmitter
             + suffix;
     }
 
-    /// <summary>Builds relocated UI/session/factory implementation sources for one model.</summary>
-    /// <remarks>Emits per-model observable, view, session, and descriptor sources under distinct hints.</remarks>
+    /// <summary>Builds relocated UI and session implementation sources for one model.</summary>
+    /// <remarks>The descriptor factory is nested in the edit-session source.</remarks>
     /// <param name="model">Model identity.</param>
     /// <param name="members">Analyzed members.</param>
     /// <param name="readOnlyViewModels">Read-only view models.</param>
@@ -178,10 +182,6 @@ internal static class SparseFragmentEmitter
         if (!model.IsStruct)
         {
             builder.Add(SparseModelImplementationEmitter.BuildEditSessionSource(model, members, config, cancellationToken));
-            if (config.DescriptorDialect is not null)
-            {
-                builder.Add(SparseDescriptorFactoryEmitter.BuildSource(model, members, config, cancellationToken, runtime.Namespace));
-            }
         }
 
         return builder.ToImmutable();
@@ -199,7 +199,8 @@ internal static class SparseFragmentEmitter
         SparseGeneratorConfig config,
         Action<SharedIndentedBuilder, SparseModelInfo, ImmutableArray<SparseMemberModel>>? appendProductExtensions,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
-        Action<SharedIndentedBuilder>? appendModelMembers = null
+        Action<SharedIndentedBuilder>? appendModelMembers = null,
+        SparsePayloadContract? payloadContract = null
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -494,7 +495,8 @@ internal static class SparseFragmentEmitter
                 builderContainer: operationContainer,
                 model: model,
                 config: config,
-                payloadJsonPocos: payloadJsonPocos
+                payloadJsonPocos: payloadJsonPocos,
+                payloadContract: payloadContract
             );
             // Stage 4: moved algorithms live in the operations class in the
             // Keep each model's hint distinct while using the same source file.
@@ -663,7 +665,8 @@ internal static class SparseFragmentEmitter
         string? builderContainer = null,
         SparseModelInfo? model = null,
         SparseGeneratorConfig? config = null,
-        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default
+        ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
+        SparsePayloadContract? payloadContract = null
     )
     {
         SparseFragmentCoreEmitter.AppendDeclaration(code, string.Empty, string.Empty, accessibility: generatedAccessibility);
@@ -773,7 +776,8 @@ internal static class SparseFragmentEmitter
             operationTarget,
             canApplyChangeSetInPlace,
             modelIsReferenceType,
-            payloadJsonPocos
+            payloadJsonPocos,
+            payloadContract
         );
         if (features.EmitChangeSet)
         {

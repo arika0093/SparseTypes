@@ -160,9 +160,7 @@ public sealed class FragmentEditState
     {
         return new PlaygroundSettings.Fragment(origin)
         {
-            Enabled = EnabledPresent
-                ? Optional<bool>.Present(EnabledValue)
-                : Optional<bool>.Missing,
+            Enabled = EnabledPresent ? Optional<bool>.Present(EnabledValue) : Optional<bool>.Missing,
             RetryCount = RetryPresent ? Optional<int>.Present(RetryValue) : Optional<int>.Missing,
             Label = LabelMode switch
             {
@@ -176,13 +174,9 @@ public sealed class FragmentEditState
                 NullPresence.Null => Optional<PlaygroundNested.Fragment?>.Present(null),
                 _ => Optional<PlaygroundNested.Fragment?>.Missing,
             },
-            Plugins = PluginsPresent
-                ? Optional<IReadOnlyList<string>>.Present(ParsePlugins(PluginsText))
-                : Optional<IReadOnlyList<string>>.Missing,
+            Plugins = PluginsPresent ? Optional<IReadOnlyList<string>>.Present(ParsePlugins(PluginsText)) : Optional<IReadOnlyList<string>>.Missing,
             Tags = TagsPresent
-                ? Optional<HashSet<string>>.Present(
-                    new HashSet<string>(ParsePlugins(TagsText), StringComparer.Ordinal)
-                )
+                ? Optional<HashSet<string>>.Present(new HashSet<string>(ParsePlugins(TagsText), StringComparer.Ordinal))
                 : Optional<HashSet<string>>.Missing,
         };
     }
@@ -198,10 +192,7 @@ public sealed class FragmentEditState
 
     /// <summary>Parses comma- or newline-separated plugin names.</summary>
     public static IReadOnlyList<string> ParsePlugins(string text) =>
-        text.Split(
-            [',', '\n', '\r'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-        );
+        text.Split([',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }
 
 /// <summary>Editable operations for one <see cref="PlaygroundSettings.Patch"/>.</summary>
@@ -315,11 +306,7 @@ public sealed class PatchEditState
         return patch;
     }
 
-    private static void ApplyOperation<T>(
-        ref FragmentOperation<T> target,
-        PatchKind operation,
-        T value
-    )
+    private static void ApplyOperation<T>(ref FragmentOperation<T> target, PatchKind operation, T value)
     {
         if (operation == PatchKind.Set)
         {
@@ -339,17 +326,7 @@ public sealed class PatchEditState
 /// <summary>Trim-safe JSON helpers for the playground.</summary>
 public static class PlaygroundJson
 {
-    private static readonly string[] SettingsFragmentOrder =
-    [
-        "Enabled",
-        "RetryCount",
-        "Label",
-        "Password",
-        "Nested",
-        "Plugins",
-        "Tags",
-        "Tasks",
-    ];
+    private static readonly string[] SettingsFragmentOrder = ["Enabled", "RetryCount", "Label", "Password", "Nested", "Plugins", "Tags", "Tasks"];
     private static readonly string[] NestedFragmentOrder = ["Host", "Port"];
     private static readonly string[] RosterFragmentOrder = ["Quests"];
     private static readonly string[] QuestFragmentOrder = ["Id", "Title", "Points", "Scores"];
@@ -372,9 +349,7 @@ public static class PlaygroundJson
     // Display paths serialize directly to indented text, so model rendering
     // never parses its own output. The Default context stays compact for
     // scalar/cell formatting (see FormatChangeValue).
-    private static readonly PlaygroundJsonContext IndentedJsonContext = new(
-        new JsonSerializerOptions { WriteIndented = true }
-    );
+    private static readonly PlaygroundJsonContext IndentedJsonContext = new(new JsonSerializerOptions { WriteIndented = true });
 
     // Fully configured once and frozen: display paths reuse these instead of
     // rebuilding options and resolvers on every render.
@@ -389,10 +364,7 @@ public static class PlaygroundJson
 
     private static JsonSerializerOptions CreateFragmentOptions()
     {
-        var options = new JsonSerializerOptions
-        {
-            TypeInfoResolver = PlaygroundJsonContext.Default,
-        };
+        var options = new JsonSerializerOptions { TypeInfoResolver = PlaygroundJsonContext.Default };
         options.Converters.Add(PlaygroundSettings.Fragment.JsonConverter);
         options.Converters.Add(PlaygroundNested.Fragment.JsonConverter);
         options.Converters.Add(PlaygroundRoster.Fragment.JsonConverter);
@@ -404,6 +376,10 @@ public static class PlaygroundJson
         new()
         {
             TypeInfoResolver = JsonTypeInfoResolver.Combine(
+                PlaygroundSettings.PayloadJson.Resolver,
+                PlaygroundRoster.PayloadJson.Resolver,
+                PlaygroundNested.PayloadJson.Resolver,
+                PlaygroundQuest.PayloadJson.Resolver,
                 PlaygroundJsonContext.Default,
                 new DefaultJsonTypeInfoResolver()
             ),
@@ -435,26 +411,14 @@ public static class PlaygroundJson
 
         if (value is IEnumerable<string> strings)
         {
-            return "["
-                + string.Join(
-                    ", ",
-                    strings.Select(static item =>
-                        JsonSerializer.Serialize(item, PlaygroundJsonContext.Default.String)
-                    )
-                )
-                + "]";
+            return "[" + string.Join(", ", strings.Select(static item => JsonSerializer.Serialize(item, PlaygroundJsonContext.Default.String))) + "]";
         }
 
         // Collection-level Before/After values (e.g. a whole keyed list) box as
         // ReadOnlyCollection<T>.
         if (value is System.Collections.IEnumerable sequence)
         {
-            return "["
-                + string.Join(
-                    ", ",
-                    sequence.Cast<object?>().Select(static item => FormatChangeValue(item))
-                )
-                + "]";
+            return "[" + string.Join(", ", sequence.Cast<object?>().Select(static item => FormatChangeValue(item))) + "]";
         }
 
         var typeInfo = PlaygroundJsonContext.Default.GetTypeInfo(value.GetType());
@@ -469,8 +433,7 @@ public static class PlaygroundJson
     }
 
     /// <summary>Replaces a password value in a human-readable change summary.</summary>
-    public static string MaskPasswordSummaryValue(string path, string value) =>
-        IsPasswordPath(path) ? "[masked]" : value;
+    public static string MaskPasswordSummaryValue(string path, string value) => IsPasswordPath(path) ? "[masked]" : value;
 
     /// <summary>Serializes a settings summary without exposing its password value.</summary>
     public static string WriteMaskedSettingsSummary(PlaygroundSettings model)
@@ -491,17 +454,12 @@ public static class PlaygroundJson
     /// <summary>Deserializes a settings ChangeSet from its typed payload DTO.</summary>
     public static PlaygroundSettings.ChangeSet ReadSettingsChangeSet(string json)
     {
-        var payload = JsonSerializer.Deserialize<PlaygroundSettings.ChangePayload>(
-            json,
-            SharedChangeSetOptions
-        );
-        return payload?.ToChangeSet()
-            ?? throw new JsonException("The ChangePayload JSON deserialized to null.");
+        var payload = JsonSerializer.Deserialize<PlaygroundSettings.ChangePayload>(json, SharedChangeSetOptions);
+        return payload?.ToChangeSet() ?? throw new JsonException("The ChangePayload JSON deserialized to null.");
     }
 
     /// <summary>Decodes a fully written UTF-8 buffer to the final display string.</summary>
-    internal static string DecodeUtf8(ArrayBufferWriter<byte> buffer) =>
-        Encoding.UTF8.GetString(buffer.WrittenSpan);
+    internal static string DecodeUtf8(ArrayBufferWriter<byte> buffer) => Encoding.UTF8.GetString(buffer.WrittenSpan);
 
     /// <summary>Serializes a fragment to its canonical (present-members-only) JSON.</summary>
     public static string WriteFragment(PlaygroundSettings.Fragment fragment)
@@ -509,11 +467,7 @@ public static class PlaygroundJson
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
         {
-            PlaygroundSettings.Fragment.JsonConverter.Write(
-                writer,
-                fragment,
-                SharedFragmentOptions
-            );
+            PlaygroundSettings.Fragment.JsonConverter.Write(writer, fragment, SharedFragmentOptions);
         }
 
         return OrderFragmentJson(buffer, "settings");
@@ -545,11 +499,7 @@ public static class PlaygroundJson
         return DecodeUtf8(output);
     }
 
-    private static void WriteOrderedFragmentValue(
-        Utf8JsonWriter writer,
-        JsonElement value,
-        string context
-    )
+    private static void WriteOrderedFragmentValue(Utf8JsonWriter writer, JsonElement value, string context)
     {
         if (value.ValueKind == JsonValueKind.Object)
         {
@@ -560,11 +510,7 @@ public static class PlaygroundJson
                 if (value.TryGetProperty(name, out var property))
                 {
                     writer.WritePropertyName(name);
-                    WriteOrderedFragmentValue(
-                        writer,
-                        property,
-                        FragmentChildContext(context, name)
-                    );
+                    WriteOrderedFragmentValue(writer, property, FragmentChildContext(context, name));
                 }
             }
 
@@ -573,11 +519,7 @@ public static class PlaygroundJson
                 if (Array.IndexOf(order, property.Name) < 0)
                 {
                     writer.WritePropertyName(property.Name);
-                    WriteOrderedFragmentValue(
-                        writer,
-                        property.Value,
-                        FragmentChildContext(context, property.Name)
-                    );
+                    WriteOrderedFragmentValue(writer, property.Value, FragmentChildContext(context, property.Name));
                 }
             }
 
@@ -628,12 +570,10 @@ public static class PlaygroundJson
         };
 
     /// <summary>Serializes a roster model to indented JSON.</summary>
-    public static string WriteRosterModel(PlaygroundRoster model) =>
-        JsonSerializer.Serialize(model, IndentedJsonContext.PlaygroundRoster);
+    public static string WriteRosterModel(PlaygroundRoster model) => JsonSerializer.Serialize(model, IndentedJsonContext.PlaygroundRoster);
 
     /// <summary>Serializes a model to indented JSON.</summary>
-    public static string WriteModel(PlaygroundSettings model) =>
-        JsonSerializer.Serialize(model, IndentedJsonContext.PlaygroundSettings);
+    public static string WriteModel(PlaygroundSettings model) => JsonSerializer.Serialize(model, IndentedJsonContext.PlaygroundSettings);
 
     /// <summary>Serializes an enterprise catalog item using generated JSON metadata.</summary>
     public static string WriteEnterpriseCatalog(EnterpriseCatalogItem model) =>
@@ -645,10 +585,7 @@ public static class PlaygroundJson
         try
         {
             using var document = JsonDocument.Parse(json);
-            return JsonSerializer.Serialize(
-                document,
-                new JsonSerializerOptions { WriteIndented = true }
-            );
+            return JsonSerializer.Serialize(document, new JsonSerializerOptions { WriteIndented = true });
         }
         catch (JsonException)
         {

@@ -32,4 +32,5 @@ internal static class SparseTypesDiagnosticIds
     public const string InvalidEntityMapperDeclaration = "SPF034";
     public const string UnsupportedEntityMemberShape = "SPF035";
     public const string UnsupportedPayloadJsonPoco = "SPF036";
+    public const string TransportIgnoreOnKey = "SPF037";
 }

@@ -150,13 +150,12 @@ internal static class SparseRelocatedEditSessionCore
         }
         if (config.DescriptorDialect is { } descriptorDialect && config.EffectiveEmissionFeatures.EmitObservable)
         {
-            var factoryRef = SparseGeneratedPlacement.GetDescriptorFactoryReference(model, config, code.CancellationToken);
             code.AppendLine("/// <summary>Gets descriptors bound to this session's observable model.</summary>");
             code.AppendLine(
                 "public "
                     + descriptorDialect.DescriptorSetInterface
                     + " Descriptors => __descriptors ?? (__descriptors = "
-                    + factoryRef
+                    + "DescriptorFactory"
                     + ".Create(Observable, "
                     + descriptorDialect.EffectivePathType(config.RuntimeDialect?.Namespace ?? patchDialect.RuntimeNamespace)
                     + ".Root(typeof("
@@ -281,6 +280,18 @@ internal static class SparseRelocatedEditSessionCore
                 config
             );
         }
+        if (config.DescriptorDialect is { } descriptorBridgeDialect && config.EffectiveEmissionFeatures.EmitObservable)
+        {
+            code.AppendLine(
+                "internal static "
+                    + descriptorBridgeDialect.DescriptorSetInterface
+                    + " __SparseGetDescriptors("
+                    + observableRef
+                    + " observable, "
+                    + descriptorBridgeDialect.EffectivePathType(config.RuntimeDialect?.Namespace ?? patchDialect.RuntimeNamespace)
+                    + " pathPrefix) => DescriptorFactory.Create(observable, pathPrefix);"
+            );
+        }
         SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
         code.AppendLine(
             "internal " + sessionSimple + "(" + modelType + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
@@ -336,6 +347,13 @@ internal static class SparseRelocatedEditSessionCore
         if (config.DescriptorDialect is { } descriptorsDialect && config.EffectiveEmissionFeatures.EmitObservable)
         {
             code.AppendLine("private " + descriptorsDialect.DescriptorSetInterface + "? __descriptors;");
+            SparseDescriptorFactoryEmitter.AppendNestedFactory(
+                code,
+                model,
+                members,
+                config,
+                config.RuntimeDialect?.Namespace ?? patchDialect.RuntimeNamespace
+            );
         }
         code.CloseBlock();
     }

@@ -5,16 +5,13 @@ using System.Text.Json.Serialization;
 namespace SparseTypes.Tests.Patch;
 
 /// <summary>Certifies the optional-JSON split.</summary>
-/// <remarks>The base runtime carries no System.Text.Json reference; the v1 wire shape is implemented by generated bridge converters.</remarks>
+/// <remarks>The base runtime carries no System.Text.Json reference; the generated resolver owns the payload wire shape.</remarks>
 public sealed class ChangePayloadWireTests
 {
     [Test]
     public void RuntimeCarriesNoSystemTextJsonReference()
     {
-        typeof(ChangePayloadEndpoint<>)
-            .Assembly.GetReferencedAssemblies()
-            .Select(static name => name.Name)
-            .ShouldNotContain("System.Text.Json");
+        typeof(ChangePayloadEndpoint<>).Assembly.GetReferencedAssemblies().Select(static name => name.Name).ShouldNotContain("System.Text.Json");
     }
 
     [Test]
@@ -28,10 +25,7 @@ public sealed class ChangePayloadWireTests
                 .Concat(typeof(ChangePayloadItemKind).GetCustomAttributes())
         )
         {
-            (attribute.GetType().FullName ?? string.Empty).ShouldNotStartWith(
-                "System.Text.Json",
-                Case.Sensitive
-            );
+            (attribute.GetType().FullName ?? string.Empty).ShouldNotStartWith("System.Text.Json", Case.Sensitive);
         }
     }
 
@@ -39,45 +33,46 @@ public sealed class ChangePayloadWireTests
     public void WireTokensMatchVersion1()
     {
         ChangePayloadWire.Version.ShouldBe("0.1");
+        ChangePayloadWire.VersionProperty.ShouldBe("version");
+        ChangePayloadWire.ChangeProperty.ShouldBe("change");
+        ChangePayloadWire.KindProperty.ShouldBe("kind");
+        ChangePayloadWire.MembersProperty.ShouldBe("members");
+        ChangePayloadWire.ItemsProperty.ShouldBe("items");
+        ChangePayloadWire.BeforeProperty.ShouldBe("before");
+        ChangePayloadWire.AfterProperty.ShouldBe("after");
+        ChangePayloadWire.KeyProperty.ShouldBe("key");
+        ChangePayloadWire.BeforeIndexProperty.ShouldBe("beforeIndex");
+        ChangePayloadWire.AfterIndexProperty.ShouldBe("afterIndex");
+        ChangePayloadWire.BeforeOrderProperty.ShouldBe("beforeOrder");
+        ChangePayloadWire.AfterOrderProperty.ShouldBe("afterOrder");
+        ChangePayloadWire.IsReorderedProperty.ShouldBe("isReordered");
+        ChangePayloadWire.TemporaryKeyProperty.ShouldBe("temporaryKey");
         ChangePayloadWire.ToToken(ChangePayloadState.Missing).ShouldBe("missing");
         ChangePayloadWire.ToToken(ChangePayloadState.Null).ShouldBe("null");
         ChangePayloadWire.ToToken(ChangePayloadState.Value).ShouldBe("value");
         ChangePayloadWire.ToToken(ChangePayloadState.Redacted).ShouldBe("redacted");
-        ChangePayloadWire.ToToken(ChangePayloadItemKind.Add).ShouldBe("add");
-        ChangePayloadWire.ToToken(ChangePayloadItemKind.Remove).ShouldBe("remove");
-        ChangePayloadWire.ToToken(ChangePayloadItemKind.Edit).ShouldBe("edit");
-        ChangePayloadWire.ToToken(ChangePayloadItemKind.Reorder).ShouldBe("reorder");
+        ChangePayloadWire.UpdateKind.ShouldBe("update");
+        ChangePayloadWire.ReplaceKind.ShouldBe("replace");
+        ChangePayloadWire.AddKind.ShouldBe("add");
+        ChangePayloadWire.RemoveKind.ShouldBe("remove");
 
         foreach (var state in Enum.GetValues<ChangePayloadState>())
         {
-            ChangePayloadWire
-                .TryParseState(ChangePayloadWire.ToToken(state), out var parsedState)
-                .ShouldBeTrue();
+            ChangePayloadWire.TryParseState(ChangePayloadWire.ToToken(state), out var parsedState).ShouldBeTrue();
             parsedState.ShouldBe(state);
         }
-        foreach (var kind in Enum.GetValues<ChangePayloadItemKind>())
-        {
-            ChangePayloadWire
-                .TryParseKind(ChangePayloadWire.ToToken(kind), out var parsedKind)
-                .ShouldBeTrue();
-            parsedKind.ShouldBe(kind);
-        }
         ChangePayloadWire.TryParseState("nope", out _).ShouldBeFalse();
-        ChangePayloadWire.TryParseKind("nope", out _).ShouldBeFalse();
     }
 
     [Test]
-    public void GeneratedBridgeWritesStateBeforeValue()
+    public void GeneratedResolverWritesStateBeforeValue()
     {
         var before = Settings.Fragment.From(new Settings { Label = "before", RetryCount = 1 });
         var after = Settings.Fragment.From(new Settings { Label = "after", RetryCount = 1 });
         var payload = Settings
-            .ChangeSet.Between(
-                Optional<Settings.Fragment?>.Present(before),
-                Optional<Settings.Fragment?>.Present(after)
-            )
+            .ChangeSet.Between(Optional<Settings.Fragment?>.Present(before), Optional<Settings.Fragment?>.Present(after))
             .ToPayload();
-        var json = JsonSerializer.Serialize(payload);
+        var json = JsonSerializer.Serialize(payload, Settings.PayloadJson.Default);
 
         // v1 order: state(0) precedes value(1) inside every endpoint.
         var state = json.IndexOf("\"state\":\"value\"", StringComparison.Ordinal);
@@ -87,211 +82,173 @@ public sealed class ChangePayloadWireTests
     }
 
     [Test]
-    public void GeneratedOnceBridgeConvertersServePayloadDtos()
+    public void GeneratedResolverWritesTypedChangeEnvelopeWithoutDiscriminators()
+    {
+        var before = Settings.Fragment.From(new Settings { Label = "before", RetryCount = 1 });
+        var after = Settings.Fragment.From(new Settings { Label = "after", RetryCount = 1 });
+        var payload = Settings
+            .ChangeSet.Between(Optional<Settings.Fragment?>.Present(before), Optional<Settings.Fragment?>.Present(after))
+            .ToPayload();
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(payload, Settings.PayloadJson.Default));
+        var envelope = document.RootElement;
+        envelope.EnumerateObject().Select(static property => property.Name).ShouldBe(new[] { "version", "change" });
+        envelope.TryGetProperty("changes", out _).ShouldBeFalse();
+
+        var change = envelope.GetProperty("change");
+        change.GetProperty("kind").GetString().ShouldBe("update");
+        var members = change.GetProperty("members");
+        var label = members.GetProperty("label");
+        label.GetProperty("kind").GetString().ShouldBe("replace");
+        label.TryGetProperty("member", out _).ShouldBeFalse();
+        label.GetProperty("after").GetProperty("value").GetString().ShouldBe("after");
+    }
+
+    [Test]
+    public void ChangePayloadKeepsItsTypedChangeAsTheCanonicalMutableShape()
+    {
+        var before = Settings.Fragment.From(new Settings { Label = "before", RetryCount = 1 });
+        var after = Settings.Fragment.From(new Settings { Label = "after", RetryCount = 1 });
+        var payload = Settings
+            .ChangeSet.Between(Optional<Settings.Fragment?>.Present(before), Optional<Settings.Fragment?>.Present(after))
+            .ToPayload();
+        var change = payload.Change!;
+        change.Members!.Label!.After = ChangePayloadEndpoint<string?>.FromOptional(Optional<string?>.Present("edited"));
+
+        ReferenceEquals(payload.Change, change).ShouldBeTrue();
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(payload, Settings.PayloadJson.Default));
+        document
+            .RootElement.GetProperty("change")
+            .GetProperty("members")
+            .GetProperty("label")
+            .GetProperty("after")
+            .GetProperty("value")
+            .GetString()
+            .ShouldBe("edited");
+        payload.ToChangeSet().Label.After.Value.ShouldBe("edited");
+    }
+
+    [Test]
+    public void PayloadDtosDoNotExposeReflectionJsonAttributes()
     {
         var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        var endpointConverter =
-            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>);
-        var kindConverter =
-            typeof(global::SparseTypes.Generated.ChangePayloadItemKindJsonConverter);
-        endpointConverter.IsGenericTypeDefinition.ShouldBeTrue();
-        kindConverter.ShouldNotBeNull();
 
-        // Every endpoint-typed DTO property routes through the bridge, so the
-        // wire no longer depends on runtime attributes.
+        // DTO reflection serialization is not the payload wire route.
         var endpointProperties = container
             .GetNestedTypes()
             .SelectMany(static type => type.GetProperties())
             .Where(static property =>
-                property.PropertyType.IsGenericType
-                && property.PropertyType.GetGenericTypeDefinition()
-                    == typeof(ChangePayloadEndpoint<>)
+                property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(ChangePayloadEndpoint<>)
             )
             .ToArray();
         endpointProperties.ShouldNotBeEmpty();
         foreach (var property in endpointProperties)
         {
-            property
-                .GetCustomAttribute<JsonConverterAttribute>()
-                .ShouldNotBeNull(property.DeclaringType!.Name + "." + property.Name)
-                .ConverterType!.GetGenericTypeDefinition()
-                .ShouldBe(endpointConverter.GetGenericTypeDefinition());
+            property.GetCustomAttribute<JsonConverterAttribute>().ShouldBeNull();
         }
+        typeof(Settings.ChangePayload).GetCustomAttribute<JsonConverterAttribute>().ShouldBeNull();
+        Settings.PayloadJson.Default.ShouldNotBeNull();
     }
 
     [Test]
-    public void BridgeRejectsUnknownStateTokens()
+    public void CollectionChangesAndItemOperationsUseDistinctTypedRoles()
     {
-        var converterType =
-            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
-                typeof(string)
-            );
-        var options = new JsonSerializerOptions();
-        options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
+        var container = typeof(KeyedServerHolder.ChangePayload).BaseType!.DeclaringType!;
+        var roles = container.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
+        var collectionRole = roles.Single(static type => type.Name.StartsWith("CollectionChange_", StringComparison.Ordinal));
+        var itemRole = roles.Single(static type => type.Name.StartsWith("ItemOperation_", StringComparison.Ordinal));
+        var membersDelta = roles.Single(static type => type.Name.StartsWith("MembersDelta_", StringComparison.Ordinal));
+        var collectionChange = membersDelta.GetProperty("Items")!.PropertyType;
+        var itemOperation = collectionChange.GetProperty("Items")!.PropertyType.GetGenericArguments()[0];
 
-        var endpoint = JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-            """{"state":"value","value":"kept"}""",
-            options
-        )!;
-        endpoint.State.ShouldBe(ChangePayloadState.Value);
-        endpoint.Value.ShouldBe("kept");
-
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-                """{"state":"nope","value":null}""",
-                options
-            )
-        );
-    }
-
-    [Test]
-    public void BridgeRoundTripsEveryEndpointState()
-    {
-        var converterType =
-            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
-                typeof(string)
-            );
-        var options = new JsonSerializerOptions();
-        options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
-
-        // Scalar, keyed, dictionary, and nested round-trips live in
-        // ChangePayloadTests; redaction round-trips live in
-        foreach (var state in Enum.GetValues<ChangePayloadState>())
-        {
-            var token = ChangePayloadWire.ToToken(state);
-            var endpoint = JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-                "{\"state\":\"" + token + "\",\"value\":null}",
-                options
-            )!;
-            endpoint.State.ShouldBe(state);
-
-            var json = JsonSerializer.Serialize(endpoint, options);
-            json.ShouldContain("\"state\":\"" + token + "\"");
-        }
-    }
-
-    [Test]
-    public void BridgeRequiresExplicitEndpointState()
-    {
-        var converterType =
-            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
-                typeof(string)
-            );
-        var options = new JsonSerializerOptions();
-        options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
-
-        // An explicit missing state stays valid.
-        var missing = JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-            """{"state":"missing","value":null}""",
-            options
-        )!;
-        missing.State.ShouldBe(ChangePayloadState.Missing);
-
-        // An omitted state is not an explicit missing endpoint, even when
-        // only additive extension properties are present.
-        foreach (var json in new[] { "{}", """{"value":"kept"}""", """{"extension":123}""" })
-        {
-            Should.Throw<JsonException>(() =>
-                JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(json, options)
-            );
-        }
-
-        // Null and unknown states still fail.
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-                """{"state":null,"value":null}""",
-                options
-            )
-        );
-    }
-
-    [Test]
-    public void BridgeIgnoresUnknownExtensionProperties()
-    {
-        var converterType =
-            typeof(global::SparseTypes.Generated.ChangePayloadEndpointJsonConverter<>).MakeGenericType(
-                typeof(string)
-            );
-        var options = new JsonSerializerOptions();
-        options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
-
-        // Extra fields ride along without changing the interpreted endpoint;
-        // later duplicates still win.
-        var endpoint = JsonSerializer.Deserialize<ChangePayloadEndpoint<string>>(
-            """{"state":"value","value":"kept","extension":123}""",
-            options
-        )!;
-        endpoint.State.ShouldBe(ChangePayloadState.Value);
-        endpoint.Value.ShouldBe("kept");
+        collectionChange.BaseType!.GetGenericTypeDefinition().ShouldBe(collectionRole);
+        itemOperation.BaseType!.GetGenericTypeDefinition().ShouldBe(itemRole);
     }
 
     [Test]
     public void PayloadIgnoresExtensionPropertiesAtEveryLevel()
     {
         var json =
-            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"},"extension":{"nested":true}}],"extension":123}""";
-        var restored = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"},"extension":{"nested":true}}},"extension":123}}""";
+        var restored = JsonSerializer.Deserialize<Settings.ChangePayload>(json, Settings.PayloadJson.Default)!;
 
         restored.ToChangeSet().Label.After.Value.ShouldBe("after");
 
         var nestedJson =
-            """{"version":"0.1","changes":[{"member":"Nested","nested":{"changes":[{"member":"Host","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}}]},"extension":1}]}""";
-        var nested = JsonSerializer.Deserialize<Settings.ChangePayload>(nestedJson)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update","change":{"kind":"update","members":{"host":{"kind":"replace","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}}}},"extension":1}}}}""";
+        var nested = JsonSerializer.Deserialize<Settings.ChangePayload>(nestedJson, Settings.PayloadJson.Default)!;
         nested.ToChangeSet().Nested.Host.After.Value.ShouldBe("b");
 
         var keyedJson =
-            """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"add","beforeIndex":-1,"afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}},"extension":"x"}],"beforeOrder":[],"afterOrder":["a"]}]}""";
-        var keyed = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"items":{"kind":"update","items":[{"key":"a","kind":"add","afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}},"extension":"x"}],"beforeOrder":[],"afterOrder":["a"]}}}}""";
+        var keyed = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson, KeyedServerHolder.PayloadJson.Default)!;
         keyed.ToChangeSet().Items.GetChange("a").IsAdded.ShouldBeTrue();
     }
 
     [Test]
     public void PayloadStillRejectsUnknownOperations()
     {
-        // Unknown member discriminators never drop an operation silently.
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<Settings.ChangePayload>(
-                """{"version":"0.1","changes":[{"member":"Nope","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}}]}"""
-            )
-        );
+        // Unknown model-member names are additive extensions and are skipped.
+        var unknownMember = JsonSerializer.Deserialize<Settings.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"nope":{"kind":"replace","after":{"state":"value","value":"b"}}}}}""",
+            Settings.PayloadJson.Default
+        )!;
+        unknownMember.ToChangeSet().ShouldNotBeNull();
 
-        // Unknown item kinds never drop an operation silently.
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
-                """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"bogus","beforeIndex":-1,"afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":[],"afterOrder":["a"]}]}"""
-            )
-        );
+        // Unknown and legacy item kinds never drop an operation silently.
+        const string itemJson =
+            """{"version":"0.1","change":{"kind":"update","members":{"items":{"kind":"update","items":[{"key":"a","kind":"__kind__","afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":[],"afterOrder":["a"]}}}}""";
+        foreach (var kind in new[] { "bogus", "edit", "reorder" })
+        {
+            var json = itemJson.Replace("__kind__", kind, StringComparison.Ordinal);
+            Should.Throw<JsonException>(() =>
+                JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json, KeyedServerHolder.PayloadJson.Default)
+            );
+        }
 
         // Unknown endpoint states never decode silently.
         Should.Throw<JsonException>(() =>
             JsonSerializer.Deserialize<Settings.ChangePayload>(
-                """{"version":"0.1","changes":[{"member":"Label","before":{"state":"nope"},"after":{"state":"value","value":"b"}}]}"""
+                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"nope"},"after":{"state":"value","value":"b"}}}}}""",
+                Settings.PayloadJson.Default
             )
         );
     }
 
     [Test]
-    public void BridgeRoundTripsEveryItemKindAndRejectsUnknownTokens()
+    public void NestedSnapshotEndpointsRejectValuesForValueFreeStates()
     {
-        var converterType =
-            typeof(global::SparseTypes.Generated.ChangePayloadItemKindJsonConverter);
-        var options = new JsonSerializerOptions();
-        options.Converters.Add((JsonConverter)Activator.CreateInstance(converterType)!);
+        var json =
+            """{"version":"0.1","change":{"kind":"replace","before":{"state":"value","value":{"nested":{"state":"missing","value":{"host":{"state":"value","value":"secret"}}}}},"after":{"state":"value","value":{}}}}""";
 
-        foreach (var kind in Enum.GetValues<ChangePayloadItemKind>())
+        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<Settings.ChangePayload>(json, Settings.PayloadJson.Default));
+    }
+
+    [Test]
+    public void PayloadRejectsDuplicateKnownAndUnknownProperties()
+    {
+        foreach (
+            var json in new[]
+            {
+                """{"version":"0.1","version":"0.1","change":{"kind":"update","members":{}}}""",
+                """{"version":"0.1","extension":1,"extension":2,"change":{"kind":"update","members":{}}}""",
+                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"a"},"before":{"state":"value","value":"b"},"after":{"state":"value","value":"c"}}}}}""",
+                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"},"extension":1,"extension":2}}}""",
+            }
+        )
         {
-            var token = ChangePayloadWire.ToToken(kind);
-            var json = JsonSerializer.Serialize(kind, options);
-            json.ShouldBe("\"" + token + "\"");
-            JsonSerializer.Deserialize<ChangePayloadItemKind>(json, options).ShouldBe(kind);
-        }
+            var rejected = false;
+            try
+            {
+                JsonSerializer.Deserialize(json, Settings.PayloadJson.Default);
+            }
+            catch (JsonException)
+            {
+                rejected = true;
+            }
 
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ChangePayloadItemKind>("\"bogus\"", options)
-        );
-        Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<ChangePayloadItemKind>("null", options)
-        );
+            rejected.ShouldBeTrue(json);
+        }
     }
 
     [Test]

@@ -243,7 +243,7 @@ public sealed class AotScalarTests
 
         var editJson = SerializePayload(PayloadLongKeyHolder.ChangeSet.Between(before, edited).ToPayload(), PayloadLongKeyHolder.PayloadJson.Default);
         await Assert.That(editJson.Contains("\"key\":7")).IsTrue();
-        await Assert.That(editJson.Contains("\"kind\":\"edit\"")).IsTrue();
+        await Assert.That(editJson.Contains("\"kind\":\"update\"")).IsTrue();
         var editRestored = JsonSerializer.Deserialize(editJson, PayloadLongKeyHolder.PayloadJson.Default)!.ToChangeSet();
         await Assert.That(PayloadLongKeyHolder.Patch.Between(editRestored.ToPatch().Apply(before), edited).IsEmpty).IsTrue();
 
@@ -265,7 +265,7 @@ public sealed class AotScalarTests
             PayloadLongKeyHolder.ChangeSet.Between(edited, reordered).ToPayload(),
             PayloadLongKeyHolder.PayloadJson.Default
         );
-        await Assert.That(reorderJson.Contains("\"kind\":\"reorder\"")).IsTrue();
+        await Assert.That(reorderJson.Contains("\"isReordered\":true")).IsTrue();
         var reorderRestored = JsonSerializer.Deserialize(reorderJson, PayloadLongKeyHolder.PayloadJson.Default)!.ToChangeSet();
         await Assert.That(PayloadLongKeyHolder.Patch.Between(reorderRestored.ToPatch().Apply(edited), reordered).IsEmpty).IsTrue();
     }
@@ -337,7 +337,13 @@ public sealed class AotScalarTests
             PayloadScalars.ChangeSet.Between(Optional<PayloadScalars.Fragment?>.Missing, after).ToPayload(),
             PayloadScalars.PayloadJson.Default
         );
-        await Assert.That(json.Contains("\"member\":\"$root\"")).IsTrue();
+        using (var document = JsonDocument.Parse(json))
+        {
+            var change = document.RootElement.GetProperty("change");
+            await Assert.That(change.GetProperty("kind").GetString()).IsEqualTo("replace");
+            await Assert.That(change.GetProperty("before").GetProperty("state").GetString()).IsEqualTo("missing");
+            await Assert.That(change.GetProperty("after").GetProperty("state").GetString()).IsEqualTo("value");
+        }
         var restored = JsonSerializer.Deserialize(json, PayloadScalars.PayloadJson.Default)!.ToChangeSet();
         await Assert.That(PayloadScalars.Patch.Between(restored.ToPatch().Apply(Optional<PayloadScalars.Fragment?>.Missing), after).IsEmpty).IsTrue();
     }

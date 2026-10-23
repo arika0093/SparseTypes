@@ -359,13 +359,15 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
             code.OpenBlock();
             code.AppendLine("if (changeItem.Kind == " + itemKind + ".Remove && changeItem.Edit is null) continue;");
             code.AppendLine(
-                "errors.Add(new "
+                "if (changeItem.Kind != "
+                    + itemKind
+                    + ".Edit || changeItem.Edit is not null || changeItem.After is null) { errors.Add(new "
                     + error
                     + " { Kind = "
                     + kind
                     + ".Endpoint, Path = "
                     + itemPath
-                    + ", Message = \"An edited model payload item must omit 'before' and 'after'.\" }); continue;"
+                    + ", Message = \"A redacted model item before-state is valid only for a replacement with an observable after-state.\" }); continue; }"
             );
             code.CloseBlock();
         }
@@ -446,7 +448,7 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         code.AppendLine(
             "var __validateItemBefore"
                 + id
-                + " = changeItem.Before is null ? "
+                + " = changeItem.Before is null || changeItem.Before.IsRedacted ? "
                 + runtime
                 + "Optional<"
                 + ItemValueType(member)
@@ -514,19 +516,20 @@ internal static class SparseChangeSetPayloadValidateKeyedEmitter
         if (isModelValue)
         {
             code.AppendLine(
-                "if (__validateItemBefore"
+                "if (changeItem.Edit is null ? changeItem.Before is null || (!__validateItemBefore"
+                    + id
+                    + ".IsPresent && !changeItem.Before.IsRedacted) || !__validateItemAfter"
+                    + id
+                    + ".IsPresent : __validateItemBefore"
                     + id
                     + ".IsPresent || __validateItemAfter"
                     + id
-                    + ".IsPresent) throw new global::System.ArgumentException(\"An edited model payload item must omit 'before' and 'after'.\");"
-            );
-            code.AppendLine(
-                "if (changeItem.Edit is null) throw new global::System.ArgumentException(\"Edited payload items require an edit payload.\");"
+                    + ".IsPresent) throw new global::System.ArgumentException(\"A model item update requires only 'change'; a replacement requires 'before' and 'after'.\");"
             );
             if (isKeyed)
             {
                 code.AppendLine(
-                    "if (changeItem.BeforeIndex < 0 || changeItem.AfterIndex < 0) throw new global::System.ArgumentException(\"An edited keyed payload item has invalid indices.\");"
+                    "if (changeItem.BeforeIndex < 0 || changeItem.AfterIndex < 0) throw new global::System.ArgumentException(\"An updated or replaced keyed payload item has invalid indices.\");"
                 );
             }
 

@@ -4,23 +4,14 @@ namespace SparseTypes.Tests;
 
 public sealed class ChangeSetTests
 {
-    private static Optional<Settings.Fragment?> Present(Settings.Fragment fragment) =>
-        Optional<Settings.Fragment?>.Present(fragment);
+    private static Optional<Settings.Fragment?> Present(Settings.Fragment fragment) => Optional<Settings.Fragment?>.Present(fragment);
 
     private static Settings.Fragment MakeSettings(string? label = "initial", int retry = 3)
     {
-        return new Settings.Fragment
-        {
-            Label = Optional<string?>.Present(label),
-            RetryCount = Optional<int>.Present(retry),
-        };
+        return new Settings.Fragment { Label = Optional<string?>.Present(label), RetryCount = Optional<int>.Present(retry) };
     }
 
-    private static void AssertSame(
-        Optional<Settings.Fragment?> left,
-        Optional<Settings.Fragment?> right,
-        string message
-    )
+    private static void AssertSame(Optional<Settings.Fragment?> left, Optional<Settings.Fragment?> right, string message)
     {
         Settings.Patch.Between(left, right).IsEmpty.ShouldBeTrue(message);
     }
@@ -45,12 +36,8 @@ public sealed class ChangeSetTests
         };
 
         Settings.ChangeSet.Between(model, model).IsEmpty.ShouldBeTrue();
-        Should
-            .Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(null!, model))
-            .ParamName.ShouldBe("value");
-        Should
-            .Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(model, null!))
-            .ParamName.ShouldBe("value");
+        Should.Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(null!, model)).ParamName.ShouldBe("value");
+        Should.Throw<ArgumentNullException>(() => Settings.ChangeSet.Between(model, null!)).ParamName.ShouldBe("value");
     }
 
     [Test]
@@ -68,9 +55,7 @@ public sealed class ChangeSetTests
 
         rebased.HasConflicts.ShouldBeFalse();
         rebased.Rebased.IsEmpty.ShouldBeTrue();
-        Should
-            .Throw<ArgumentNullException>(() => empty.RebaseOnto((Settings)null!))
-            .ParamName.ShouldBe("value");
+        Should.Throw<ArgumentNullException>(() => empty.RebaseOnto((Settings)null!)).ParamName.ShouldBe("value");
     }
 
     [Test]
@@ -78,10 +63,7 @@ public sealed class ChangeSetTests
     {
         var beforeValues = new HashSet<string>(["a"], StringComparer.Ordinal);
         var afterValues = new HashSet<string>(["a", "b"], StringComparer.Ordinal);
-        var changes = SetSettings.ChangeSet.Between(
-            new SetSettings { Values = beforeValues },
-            new SetSettings { Values = afterValues }
-        );
+        var changes = SetSettings.ChangeSet.Between(new SetSettings { Values = beforeValues }, new SetSettings { Values = afterValues });
 
         beforeValues.Add("changed later");
         afterValues.Add("changed later");
@@ -115,11 +97,7 @@ public sealed class ChangeSetTests
         toNull.IsEmpty.ShouldBeFalse();
 
         var unset = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment
-            {
-                Label = Optional<string?>.Missing,
-                RetryCount = Optional<int>.Present(1),
-            }
+            new Settings.Fragment { Label = Optional<string?>.Missing, RetryCount = Optional<int>.Present(1) }
         );
         var unsetChanges = Settings.ChangeSet.Between(before, unset);
         unsetChanges.IsEmpty.ShouldBeFalse();
@@ -134,9 +112,7 @@ public sealed class ChangeSetTests
             {
                 Label = Optional<string?>.Present("before"),
                 RetryCount = Optional<int>.Missing,
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("host-before") }
-                ),
+                Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("host-before") }),
             }
         );
         var after = Optional<Settings.Fragment?>.Present(
@@ -144,16 +120,11 @@ public sealed class ChangeSetTests
             {
                 Label = Optional<string?>.Present(null),
                 RetryCount = Optional<int>.Present(3),
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("host-after") }
-                ),
+                Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("host-after") }),
             }
         );
 
-        var entries = Settings
-            .ChangeSet.Between(before, after)
-            .EnumerateChanges()
-            .ToDictionary(static change => change.Path);
+        var entries = Settings.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
         entries[Settings.SparsePath.Label].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
         entries[Settings.SparsePath.Label].Before.Value.ShouldBe("before");
@@ -162,8 +133,7 @@ public sealed class ChangeSetTests
         entries[Settings.SparsePath.RetryCount].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
         entries[Settings.SparsePath.RetryCount].Before.IsPresent.ShouldBeFalse();
         entries[Settings.SparsePath.RetryCount].After.Value.ShouldBe(3);
-        entries[Settings.SparsePath.Nested.Host]
-            .Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
+        entries[Settings.SparsePath.Nested.Host].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
         entries[Settings.SparsePath.Nested.Host].Before.Value.ShouldBe("host-before");
         entries[Settings.SparsePath.Nested.Host].After.Value.ShouldBe("host-after");
     }
@@ -172,9 +142,7 @@ public sealed class ChangeSetTests
     public void EnumerateChangesRepresentsKeyedItemsAndOrder()
     {
         Optional<KeyedServerHolder.Fragment?> State(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
 
         var before = State(
             new KeyedServer
@@ -204,26 +172,15 @@ public sealed class ChangeSetTests
                 Count = 1,
             }
         );
-        var entries = KeyedServerHolder
-            .ChangeSet.Between(before, after)
-            .EnumerateChanges()
-            .ToDictionary(static change => change.Path);
+        var entries = KeyedServerHolder.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[KeyedServerHolder.SparsePath.Items.Key("a")]
-            .Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Added);
-        entries[KeyedServerHolder.SparsePath.Items.Key("c")]
-            .Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Removed);
+        entries[KeyedServerHolder.SparsePath.Items.Key("a")].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Added);
+        entries[KeyedServerHolder.SparsePath.Items.Key("c")].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Removed);
         entries[KeyedServerHolder.SparsePath.Items.Key("b").Name].Before.Value.ShouldBe("before");
         entries[KeyedServerHolder.SparsePath.Items.Key("b").Name].After.Value.ShouldBe("after");
-        entries[KeyedServerHolder.SparsePath.Items]
-            .Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Order);
-        (
-            (IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].Before.Value!
-        ).ShouldBe(["b", "c"]);
-        ((IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].After.Value!).ShouldBe([
-            "a",
-            "b",
-        ]);
+        entries[KeyedServerHolder.SparsePath.Items].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Order);
+        ((IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].Before.Value!).ShouldBe(["b", "c"]);
+        ((IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].After.Value!).ShouldBe(["a", "b"]);
     }
 
     [Test]
@@ -270,12 +227,8 @@ public sealed class ChangeSetTests
 
         // Nested whole-child presence transitions are not dropped: the child
         // root entry appears under the parent member path.
-        var nestedMissing = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Missing }
-        );
-        var nestedPresent = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(null) }
-        );
+        var nestedMissing = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Missing });
+        var nestedPresent = Optional<Settings.Fragment?>.Present(new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(null) });
         var nested = Settings.ChangeSet.Between(nestedMissing, nestedPresent);
         nested.IsEmpty.ShouldBeFalse();
         nested.EnumerateChanges().Select(static change => change.PathText).ShouldContain("Nested");
@@ -285,20 +238,10 @@ public sealed class ChangeSetTests
     public void NestedStructuralChangeIsPreserved()
     {
         var before = Present(
-            new Settings.Fragment
-            {
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("a") }
-                ),
-            }
+            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("a") }) }
         );
         var after = Present(
-            new Settings.Fragment
-            {
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("b") }
-                ),
-            }
+            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("b") }) }
         );
         var changes = Settings.ChangeSet.Between(before, after);
         changes.IsEmpty.ShouldBeFalse();
@@ -316,9 +259,7 @@ public sealed class ChangeSetTests
         );
         var changes = ScalarSequenceHolder.ChangeSet.Between(before, after);
         changes.IsEmpty.ShouldBeFalse();
-        ScalarSequenceHolder
-            .Patch.Between(changes.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        ScalarSequenceHolder.Patch.Between(changes.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -326,9 +267,7 @@ public sealed class ChangeSetTests
     {
         Optional<KeyedServerHolder.Fragment?> FragmentOf(params KeyedServer[] items)
         {
-            return Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            return Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         }
 
         var b0 = FragmentOf(
@@ -386,9 +325,7 @@ public sealed class ChangeSetTests
     {
         Optional<KeyedServerHolder.Fragment?> FragmentOf(params KeyedServer[] items)
         {
-            return Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            return Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         }
 
         var before = FragmentOf(
@@ -409,25 +346,17 @@ public sealed class ChangeSetTests
         );
         var changes = KeyedServerHolder.ChangeSet.Between(before, after);
         changes.IsEmpty.ShouldBeFalse();
-        KeyedServerHolder
-            .Patch.Between(changes.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        KeyedServerHolder.Patch.Between(changes.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void CustomMergeStrategyPreserved()
     {
-        var before = Optional<StrategySettings.Fragment?>.Present(
-            StrategySettings.Fragment.From(new StrategySettings { Values = [1, 2] })
-        );
-        var after = Optional<StrategySettings.Fragment?>.Present(
-            StrategySettings.Fragment.From(new StrategySettings { Values = [3, 4] })
-        );
+        var before = Optional<StrategySettings.Fragment?>.Present(StrategySettings.Fragment.From(new StrategySettings { Values = [1, 2] }));
+        var after = Optional<StrategySettings.Fragment?>.Present(StrategySettings.Fragment.From(new StrategySettings { Values = [3, 4] }));
         var changes = StrategySettings.ChangeSet.Between(before, after);
         changes.IsEmpty.ShouldBeFalse();
-        StrategySettings
-            .Patch.Between(changes.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        StrategySettings.Patch.Between(changes.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
 
         var beforeModel = new StrategySettings { Values = [1, 2] };
         var afterModel = new StrategySettings { Values = [3, 4] };
@@ -463,12 +392,7 @@ public sealed class ChangeSetTests
         var expected = Settings.ChangeSet.Between(beforeState, afterState);
 
         changes.IsEmpty.ShouldBe(expected.IsEmpty);
-        Settings
-            .Patch.Between(
-                changes.ToPatch().Apply(beforeState),
-                expected.ToPatch().Apply(beforeState)
-            )
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(changes.ToPatch().Apply(beforeState), expected.ToPatch().Apply(beforeState)).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -515,8 +439,7 @@ public sealed class ChangeSetTests
         if (!changes.TryApplyTo(before, out var updated, out var conflicts))
         {
             throw new InvalidOperationException(
-                "Expected keyed model application to be clean: "
-                    + string.Join(", ", conflicts.Select(static conflict => conflict.PathText))
+                "Expected keyed model application to be clean: " + string.Join(", ", conflicts.Select(static conflict => conflict.PathText))
             );
         }
 
@@ -530,22 +453,8 @@ public sealed class ChangeSetTests
     [Test]
     public void ModelTryApplyToPreservesKeyedReorder()
     {
-        var before = new KeyedServerHolder
-        {
-            Items =
-            [
-                new KeyedServer { Id = "a", Name = "a" },
-                new KeyedServer { Id = "b", Name = "b" },
-            ],
-        };
-        var after = new KeyedServerHolder
-        {
-            Items =
-            [
-                new KeyedServer { Id = "b", Name = "b" },
-                new KeyedServer { Id = "a", Name = "a" },
-            ],
-        };
+        var before = new KeyedServerHolder { Items = [new KeyedServer { Id = "a", Name = "a" }, new KeyedServer { Id = "b", Name = "b" }] };
+        var after = new KeyedServerHolder { Items = [new KeyedServer { Id = "b", Name = "b" }, new KeyedServer { Id = "a", Name = "a" }] };
         var changes = KeyedServerHolder.ChangeSet.Between(before, after);
 
         if (!changes.TryApplyTo(before, out var updated))
@@ -564,10 +473,7 @@ public sealed class ChangeSetTests
         patch.Nested.Host = "db.local";
 
         var changes = Settings.ChangeSet.FromPatch(baseline, patch);
-        var expected = Settings.ChangeSet.FromPatch(
-            Present(Settings.Fragment.From(baseline)),
-            patch
-        );
+        var expected = Settings.ChangeSet.FromPatch(Present(Settings.Fragment.From(baseline)), patch);
 
         Settings
             .Patch.Between(
@@ -593,12 +499,7 @@ public sealed class ChangeSetTests
         var expected = Settings.Fragment.From(current).Apply(patch).ToModel();
         var actual = patch.ApplyTo(current);
 
-        Settings
-            .Patch.Between(
-                Present(Settings.Fragment.From(actual)),
-                Present(Settings.Fragment.From(expected))
-            )
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(Present(Settings.Fragment.From(actual)), Present(Settings.Fragment.From(expected))).IsEmpty.ShouldBeTrue();
         current.Label.ShouldBe("before");
         current.Nested!.Host.ShouldBe("before-host");
         current.Plugins.ShouldBe(["base"]);
@@ -612,9 +513,7 @@ public sealed class ChangeSetTests
         patch.Label = "Bob";
         var changes = Settings.ChangeSet.FromPatch(baseline, patch);
         var expected = Settings.ChangeSet.Between(baseline, patch.Apply(baseline));
-        Settings
-            .Patch.Between(changes.ToPatch().Apply(baseline), expected.ToPatch().Apply(baseline))
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(changes.ToPatch().Apply(baseline), expected.ToPatch().Apply(baseline)).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -634,9 +533,7 @@ public sealed class ChangeSetTests
         var changes = Settings.ChangeSet.Between(before, after);
         var roundTripped = changes.Invert().Invert();
         Settings.Patch.Between(roundTripped.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
-        Settings
-            .Patch.Between(changes.Invert().ToPatch().Apply(after), before)
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(changes.Invert().ToPatch().Apply(after), before).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -668,21 +565,13 @@ public sealed class ChangeSetTests
     public void CleanDisjointRebaseReplays()
     {
         var baseState = Present(MakeSettings("Alice", 20));
-        var edited = Present(
-            new Settings.Fragment
-            {
-                Label = Optional<string?>.Present("Alice"),
-                RetryCount = Optional<int>.Present(21),
-            }
-        );
+        var edited = Present(new Settings.Fragment { Label = Optional<string?>.Present("Alice"), RetryCount = Optional<int>.Present(21) });
         var current = Present(MakeSettings("Bob", 20));
         var changes = Settings.ChangeSet.Between(baseState, edited);
         var result = changes.RebaseOnto(current);
         result.HasConflicts.ShouldBeFalse();
         var expected = Present(MakeSettings("Bob", 21));
-        Settings
-            .Patch.Between(result.Rebased.ToPatch().Apply(current), expected)
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(result.Rebased.ToPatch().Apply(current), expected).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -708,10 +597,7 @@ public sealed class ChangeSetTests
     [Test]
     public void ModelRebaseRecognizesAlreadyAppliedChange()
     {
-        var changes = Settings.ChangeSet.Between(
-            MakeSettings("Alice", 1).ToModel(),
-            MakeSettings("Bob", 1).ToModel()
-        );
+        var changes = Settings.ChangeSet.Between(MakeSettings("Alice", 1).ToModel(), MakeSettings("Bob", 1).ToModel());
         var current = MakeSettings("Bob", 1).ToModel();
         var rebased = changes.RebaseOnto(current);
 
@@ -722,10 +608,7 @@ public sealed class ChangeSetTests
     [Test]
     public void TryApplyToReturnsNonNullModelWhenConflictFree()
     {
-        var changes = Settings.ChangeSet.Between(
-            MakeSettings("Alice", 20).ToModel(),
-            MakeSettings("Alice", 21).ToModel()
-        );
+        var changes = Settings.ChangeSet.Between(MakeSettings("Alice", 20).ToModel(), MakeSettings("Alice", 21).ToModel());
         var current = MakeSettings("Bob", 20).ToModel();
 
         if (!changes.TryApplyTo(current, out var updated))
@@ -740,10 +623,7 @@ public sealed class ChangeSetTests
     [Test]
     public void TryApplyToReturnsConflictsWithoutPartiallyAppliedModel()
     {
-        var changes = Settings.ChangeSet.Between(
-            MakeSettings("Alice", 1).ToModel(),
-            MakeSettings("Bob", 2).ToModel()
-        );
+        var changes = Settings.ChangeSet.Between(MakeSettings("Alice", 1).ToModel(), MakeSettings("Bob", 2).ToModel());
         var current = MakeSettings("Carol", 1).ToModel();
 
         if (changes.TryApplyTo(current, out var updated, out var conflicts))
@@ -789,9 +669,7 @@ public sealed class ChangeSetTests
         var result = changes.RebaseOnto(current);
         result.HasConflicts.ShouldBeFalse();
         var expected = Present(MakeSettings("Bob", 2));
-        Settings
-            .Patch.Between(result.Rebased.ToPatch().Apply(current), expected)
-            .IsEmpty.ShouldBeTrue();
+        Settings.Patch.Between(result.Rebased.ToPatch().Apply(current), expected).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -809,28 +687,13 @@ public sealed class ChangeSetTests
     public void NestedConflictReported()
     {
         var baseState = Present(
-            new Settings.Fragment
-            {
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("a") }
-                ),
-            }
+            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("a") }) }
         );
         var edited = Present(
-            new Settings.Fragment
-            {
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("b") }
-                ),
-            }
+            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("b") }) }
         );
         var current = Present(
-            new Settings.Fragment
-            {
-                Nested = Optional<Nested.Fragment?>.Present(
-                    new Nested.Fragment { Host = Optional<string>.Present("c") }
-                ),
-            }
+            new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present("c") }) }
         );
         var changes = Settings.ChangeSet.Between(baseState, edited);
         var result = changes.RebaseOnto(current);
@@ -842,9 +705,7 @@ public sealed class ChangeSetTests
     {
         Optional<KeyedServerHolder.Fragment?> FragmentOf(params KeyedServer[] items)
         {
-            return Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            return Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         }
 
         var baseState = FragmentOf(
@@ -933,11 +794,7 @@ public sealed class ChangeSetTests
         toNull.Label.After.Value.ShouldBeNull();
 
         var unsetAfter = Optional<Settings.Fragment?>.Present(
-            new Settings.Fragment
-            {
-                Label = Optional<string?>.Missing,
-                RetryCount = Optional<int>.Present(1),
-            }
+            new Settings.Fragment { Label = Optional<string?>.Missing, RetryCount = Optional<int>.Present(1) }
         );
         var unset = Settings.ChangeSet.Between(before, unsetAfter);
         unset.Label.IsChanged.ShouldBeTrue();
@@ -974,12 +831,7 @@ public sealed class ChangeSetTests
     {
         Optional<Settings.Fragment?> State(string host) =>
             Optional<Settings.Fragment?>.Present(
-                new Settings.Fragment
-                {
-                    Nested = Optional<Nested.Fragment?>.Present(
-                        new Nested.Fragment { Host = Optional<string>.Present(host) }
-                    ),
-                }
+                new Settings.Fragment { Nested = Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present(host) }) }
             );
         var unchanged = Settings.ChangeSet.Between(State("a"), State("a"));
         unchanged.Nested.IsEmpty.ShouldBeTrue();
@@ -992,10 +844,7 @@ public sealed class ChangeSetTests
         changes.Nested.Host.After.Value.ShouldBe("b");
         changes.Nested.Port.IsChanged.ShouldBeFalse();
 
-        var missingNested = Settings.ChangeSet.Between(
-            Optional<Settings.Fragment?>.Present(new Settings.Fragment()),
-            State("h")
-        );
+        var missingNested = Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Present(new Settings.Fragment()), State("h"));
         missingNested.Nested.IsEmpty.ShouldBeFalse();
         missingNested.Nested.Host.IsChanged.ShouldBeTrue();
         missingNested.Nested.Host.Before.IsPresent.ShouldBeFalse();
@@ -1006,9 +855,7 @@ public sealed class ChangeSetTests
     public void TypedKeyedAddRemoveEdit()
     {
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         var b0 = F(
             new KeyedServer
             {
@@ -1057,9 +904,7 @@ public sealed class ChangeSetTests
     public void TypedKeyedNormalizationIgnoresPatchShape()
     {
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         var b = new KeyedServer
         {
             Id = "b",
@@ -1110,10 +955,7 @@ public sealed class ChangeSetTests
         var fromWhole = KeyedServerHolder.ChangeSet.FromPatch(before, whole);
 
         TextCheck(fromGranular.Items, fromWhole.Items);
-        static void TextCheck(
-            KeyedServerHolder.ChangeSet.ItemsTransition left,
-            KeyedServerHolder.ChangeSet.ItemsTransition right
-        )
+        static void TextCheck(KeyedServerHolder.ChangeSet.ItemsTransition left, KeyedServerHolder.ChangeSet.ItemsTransition right)
         {
             left.Added.Select(e => e.Id).ShouldBe(right.Added.Select(e => e.Id).ToArray());
             left.Removed.Select(e => e.Id).ShouldBe(right.Removed.Select(e => e.Id).ToArray());
@@ -1140,9 +982,7 @@ public sealed class ChangeSetTests
     public void TypedKeyChangeIsRemovePlusAdd()
     {
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         var changes = KeyedServerHolder.ChangeSet.Between(
             F(
                 new KeyedServer
@@ -1170,9 +1010,7 @@ public sealed class ChangeSetTests
     public void TypedKeyedEnumerationAndReorderSemantics()
     {
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         KeyedServer S(string id) =>
             new()
             {
@@ -1181,27 +1019,19 @@ public sealed class ChangeSetTests
                 Count = 1,
             };
 
-        var membership = KeyedServerHolder.ChangeSet.Between(
-            F(S("a"), S("b"), S("c")),
-            F(S("b"), S("c"))
-        );
+        var membership = KeyedServerHolder.ChangeSet.Between(F(S("a"), S("b"), S("c")), F(S("b"), S("c")));
         membership.Items.OrderChanged.ShouldBeTrue();
         membership.Items.Added.Count.ShouldBe(0);
         membership.Items.Removed.Select(e => e.Id).ShouldBe(["a"]);
         membership.Items.Select(i => i.Key).ShouldBe(["a"]);
         foreach (var item in membership.Items)
         {
-            item.IsReordered.ShouldBeFalse(
-                $"key {item.Key} must not be reordered by membership-only shift"
-            );
+            item.IsReordered.ShouldBeFalse($"key {item.Key} must not be reordered by membership-only shift");
         }
         membership.Items.BeforeOrder.ShouldBe(["a", "b", "c"]);
         membership.Items.AfterOrder.ShouldBe(["b", "c"]);
 
-        var reorder = KeyedServerHolder.ChangeSet.Between(
-            F(S("a"), S("b"), S("c")),
-            F(S("b"), S("a"), S("c"))
-        );
+        var reorder = KeyedServerHolder.ChangeSet.Between(F(S("a"), S("b"), S("c")), F(S("b"), S("a"), S("c")));
         reorder.Items.OrderChanged.ShouldBeTrue();
         reorder.Items.Added.Count.ShouldBe(0);
         reorder.Items.Removed.Count.ShouldBe(0);
@@ -1259,8 +1089,7 @@ public sealed class ChangeSetTests
     [Test]
     public void TypedDictionaryTransitions()
     {
-        Optional<ScalarDictHolder.Fragment?> S(ScalarDictHolder m) =>
-            Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(m));
+        Optional<ScalarDictHolder.Fragment?> S(ScalarDictHolder m) => Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(m));
         var changes = ScalarDictHolder.ChangeSet.Between(
             S(
                 new ScalarDictHolder
@@ -1324,36 +1153,25 @@ public sealed class ChangeSetTests
     public void TypedProjectionsAreReadOnly()
     {
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         var changes = KeyedServerHolder.ChangeSet.Between(
             F(new KeyedServer { Id = "a" }, new KeyedServer { Id = "b" }),
             F(new KeyedServer { Id = "b", Name = "B2" }, new KeyedServer { Id = "c" })
         );
         Should.Throw<System.NotSupportedException>(() =>
-            ((System.Collections.Generic.IList<KeyedServer>)changes.Items.Added).Add(
-                new KeyedServer { Id = "x" }
-            )
+            ((System.Collections.Generic.IList<KeyedServer>)changes.Items.Added).Add(new KeyedServer { Id = "x" })
         );
         Should.Throw<System.NotSupportedException>(() =>
-            ((System.Collections.Generic.IList<KeyedServer>)changes.Items.Removed).Add(
-                new KeyedServer { Id = "x" }
-            )
+            ((System.Collections.Generic.IList<KeyedServer>)changes.Items.Removed).Add(new KeyedServer { Id = "x" })
         );
-        Should.Throw<System.NotSupportedException>(() =>
-            ((System.Collections.Generic.IList<string>)changes.Items.BeforeOrder).Add("x")
-        );
+        Should.Throw<System.NotSupportedException>(() => ((System.Collections.Generic.IList<string>)changes.Items.BeforeOrder).Add("x"));
 
-        Optional<ScalarDictHolder.Fragment?> S(ScalarDictHolder m) =>
-            Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(m));
+        Optional<ScalarDictHolder.Fragment?> S(ScalarDictHolder m) => Optional<ScalarDictHolder.Fragment?>.Present(ScalarDictHolder.Fragment.From(m));
         var dict = ScalarDictHolder.ChangeSet.Between(
             S(new ScalarDictHolder { Scores = new() { ["a"] = 1 } }),
             S(new ScalarDictHolder { Scores = new() { ["a"] = 2 } })
         );
-        Should.Throw<System.NotSupportedException>(() =>
-            ((System.Collections.Generic.IDictionary<string, int>)dict.Scores.Edited).Add("x", 1)
-        );
+        Should.Throw<System.NotSupportedException>(() => ((System.Collections.Generic.IDictionary<string, int>)dict.Scores.Edited).Add("x", 1));
     }
 
     [Test]
@@ -1361,13 +1179,8 @@ public sealed class ChangeSetTests
     {
         typeof(Settings.ChangeSet)
             .GetInterfaces()
-            .ShouldNotContain(t =>
-                t.IsGenericType
-                && t.GetGenericTypeDefinition() == typeof(System.Collections.Generic.IEnumerable<>)
-            );
-        typeof(Settings.ChangeSet)
-            .GetInterfaces()
-            .ShouldNotContain(t => t == typeof(System.Collections.IEnumerable));
+            .ShouldNotContain(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(System.Collections.Generic.IEnumerable<>));
+        typeof(Settings.ChangeSet).GetInterfaces().ShouldNotContain(t => t == typeof(System.Collections.IEnumerable));
     }
 
     [Test]
@@ -1381,9 +1194,7 @@ public sealed class ChangeSetTests
                 Name = tenant + id,
             };
         Optional<CompositeServerHolder.Fragment?> StateOf(CompositeServerHolder m) =>
-            Optional<CompositeServerHolder.Fragment?>.Present(
-                CompositeServerHolder.Fragment.From(m)
-            );
+            Optional<CompositeServerHolder.Fragment?>.Present(CompositeServerHolder.Fragment.From(m));
         var changes = CompositeServerHolder.ChangeSet.Between(
             StateOf(new CompositeServerHolder { Items = [S("t1", "a")] }),
             StateOf(new CompositeServerHolder { Items = [S("t1", "a"), S("t2", "a")] })
@@ -1401,33 +1212,27 @@ public sealed class ChangeSetTests
         var before = Present(MakeSettings("Alice", 1));
         var after = Present(MakeSettings("Bob", 2));
         var changes = Settings.ChangeSet.Between(before, after);
-        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload());
+        var json = PayloadJsonTestSupport.Serialize(changes.ToPayload());
         json.ShouldNotContain("Added");
         json.ShouldNotContain("Removed");
         json.ShouldNotContain("Edited");
         json.ShouldNotContain("IsChanged");
         json.ShouldNotContain("BeforeOrder");
-        var back = System
-            .Text.Json.JsonSerializer.Deserialize<Settings.ChangePayload>(json)!
-            .ToChangeSet();
+        var back = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json).ToChangeSet();
         back.Label.IsChanged.ShouldBeTrue();
         back.Label.After.Value.ShouldBe("Bob");
         back.RetryCount.After.Value.ShouldBe(2);
         Settings.Patch.Between(back.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
 
         Optional<KeyedServerHolder.Fragment?> F(params KeyedServer[] items) =>
-            Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-            );
+            Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
         var keyed = KeyedServerHolder.ChangeSet.Between(
             F(new KeyedServer { Id = "a", Name = "A" }),
             F(new KeyedServer { Id = "a", Name = "B" }, new KeyedServer { Id = "b" })
         );
-        var keyedJson = System.Text.Json.JsonSerializer.Serialize(keyed.ToPayload());
+        var keyedJson = PayloadJsonTestSupport.Serialize(keyed.ToPayload());
         keyedJson.ShouldNotContain("Added");
-        var keyedBack = System
-            .Text.Json.JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson)!
-            .ToChangeSet();
+        var keyedBack = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson).ToChangeSet();
         keyedBack.Items.Added.Select(e => e.Id).ShouldBe(["b"]);
         keyedBack.Items.Edited["a"].Name.After.Value.ShouldBe("B");
     }

@@ -36,14 +36,12 @@ internal readonly record struct SparseStjCapabilities(
     public static SparseStjCapabilities None { get; } = default;
 
     /// <summary>Whether the ChangePayload v1 wire contract can be emitted as specified.</summary>
-    /// <remarks>V1 needs every flag: named/ordered properties.</remarks>
+    /// <remarks>The payload resolver uses hand-written codecs instead of polymorphic serializer attributes.</remarks>
     public bool SupportsV1Wire =>
         HasSystemTextJson
         && HasJsonPropertyName
         && HasJsonPropertyOrder
         && HasJsonIgnore
-        && HasJsonPolymorphic
-        && HasJsonDerivedType
         && HasUnmappedMemberHandling
         && HasJsonConverter
         && HasUtf8JsonReaderWriter
@@ -82,16 +80,6 @@ internal readonly record struct SparseStjCapabilities(
         if (!HasJsonIgnore)
         {
             missing.Add("JsonIgnoreAttribute/Condition");
-        }
-
-        if (!HasJsonPolymorphic)
-        {
-            missing.Add("JsonPolymorphicAttribute");
-        }
-
-        if (!HasJsonDerivedType)
-        {
-            missing.Add("JsonDerivedTypeAttribute");
         }
 
         if (!HasUnmappedMemberHandling)

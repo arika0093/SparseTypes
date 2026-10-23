@@ -58,6 +58,10 @@ internal static class SparseModelDiscovery
     internal static bool IsRedactBefore(IPropertySymbol property, SparseGeneratorConfig config) =>
         property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.RedactBeforeAttributeMetadataName);
 
+    internal static bool IsTransportIgnored(IPropertySymbol property, SparseGeneratorConfig config) =>
+        config.TransportIgnoreAttributeMetadataName is not null
+        && property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString() == config.TransportIgnoreAttributeMetadataName);
+
     internal static IEnumerable<SparseSymbolMemberModel> GetMembers(
         INamedTypeSymbol model,
         SparseGeneratorConfig config,
@@ -482,7 +486,8 @@ internal static class SparseModelDiscovery
             IsNullableType(member.Property.Type),
             SparseAttributeSource.FormatPropertyAttributes(member.Property),
             IsNullableObliviousType(member.Property.Type),
-            string.Equals(member.Property.Name, temporaryKeyProperty, StringComparison.Ordinal)
+            string.Equals(member.Property.Name, temporaryKeyProperty, StringComparison.Ordinal),
+            IsTransportIgnored(member.Property, config)
         );
         SparseTypeModel? childModel = null;
         string? childFragmentType = null;

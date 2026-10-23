@@ -39,9 +39,7 @@ public static class VerifiedSamples
     private static void CoreCreate()
     {
         // sample: core-create
-        var current = CounterSettings.Fragment.From(
-            new CounterSettings { Label = "a", RetryCount = 1 }
-        );
+        var current = CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 });
 
         var sparse = new CounterSettings.Fragment
         {
@@ -101,10 +99,7 @@ public static class VerifiedSamples
 
         builder.Label = Optional<string?>.Missing;
         // builder.Build().Label.IsPresent == false; result still carries present null
-        DocsCheck.Require(
-            result.Label.IsPresent && result.Label.Value is null,
-            "built present null"
-        );
+        DocsCheck.Require(result.Label.IsPresent && result.Label.Value is null, "built present null");
         DocsCheck.Require(original.Label.Value == "before", "original untouched by the builder");
         DocsCheck.Require(!builder.Build().Label.IsPresent, "builder tracks missing");
         DocsCheck.Require(result.Label.IsPresent, "earlier build keeps present null");
@@ -114,9 +109,7 @@ public static class VerifiedSamples
     private static void CorePatch()
     {
         // sample: core-patch
-        var basis = CounterSettings.Fragment.From(
-            new CounterSettings { Label = "a", RetryCount = 1 }
-        );
+        var basis = CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 });
 
         var update = new CounterSettings.Patch { Label = (string?)null };
         var updated = basis.Apply(update);
@@ -130,39 +123,27 @@ public static class VerifiedSamples
         var remove = new CounterSettings.Patch();
         remove.RetryCount.Remove();
         // !remove.Apply(basis).Value!.RetryCount.IsPresent
-        DocsCheck.Require(
-            !remove.Apply(basis).Value!.RetryCount.IsPresent,
-            "Remove drops the contribution"
-        );
+        DocsCheck.Require(!remove.Apply(basis).Value!.RetryCount.IsPresent, "Remove drops the contribution");
         // /sample
     }
 
     private static void CoreBetween()
     {
         // sample: core-between
-        var a = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a" })
-        );
+        var a = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a" }));
         var b = Optional<CounterSettings.Fragment?>.Present(new CounterSettings.Fragment());
 
         var removal = CounterSettings.ChangeSet.Between(a, b); // Label: present → missing
         // !removal.ToPatch().Apply(a).Value!.Label.IsPresent
-        DocsCheck.Require(
-            !removal.ToPatch().Apply(a).Value!.Label.IsPresent,
-            "Between preserves the removal"
-        );
+        DocsCheck.Require(!removal.ToPatch().Apply(a).Value!.Label.IsPresent, "Between preserves the removal");
         // /sample
     }
 
     private static void CoreChangeSet()
     {
         // sample: core-changeset
-        var start = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 })
-        );
-        var finish = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 })
-        );
+        var start = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 }));
+        var finish = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 }));
 
         // Patch says "set these values": mutable and baseline-free.
         var desired = new CounterSettings.Patch { Label = "b" };
@@ -172,30 +153,20 @@ public static class VerifiedSamples
         // transition.IsEmpty == false
         // transition.ToPatch().Apply(start) replays finish
         DocsCheck.Require(!transition.IsEmpty, "ChangeSet carries the Label change");
-        DocsCheck.Require(
-            CounterSettings.Patch.Between(transition.ToPatch().Apply(start), finish).IsEmpty,
-            "ToPatch replays the transition"
-        );
+        DocsCheck.Require(CounterSettings.Patch.Between(transition.ToPatch().Apply(start), finish).IsEmpty, "ToPatch replays the transition");
 
         // ChangeSet.FromPatch attaches a known baseline to an existing patch.
         var fromPatch = CounterSettings.ChangeSet.FromPatch(start, desired);
         // fromPatch.ToPatch().Apply(start) replays finish
-        DocsCheck.Require(
-            CounterSettings.Patch.Between(fromPatch.ToPatch().Apply(start), finish).IsEmpty,
-            "FromPatch derives the same transition"
-        );
+        DocsCheck.Require(CounterSettings.Patch.Between(fromPatch.ToPatch().Apply(start), finish).IsEmpty, "FromPatch derives the same transition");
         // /sample
     }
 
     private static void CoreTyped()
     {
         // sample: core-typed
-        var before = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 })
-        );
-        var after = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 })
-        );
+        var before = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 }));
+        var after = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 }));
 
         var changes = CounterSettings.ChangeSet.Between(before, after);
 
@@ -252,12 +223,8 @@ public static class VerifiedSamples
     private static void CoreTransitionContracts()
     {
         // sample: core-transition-contracts
-        var before = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 })
-        );
-        var after = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 })
-        );
+        var before = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 }));
+        var after = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 }));
 
         // Generic consumers program against the contracts, not generated names.
         ISparseChangeSet changes = CounterSettings.ChangeSet.Between(before, after);
@@ -281,76 +248,49 @@ public static class VerifiedSamples
                 && contractLabel.After.Value == "b",
             "contract scalar lookup preserves presence"
         );
-        DocsCheck.Require(
-            !changes.TryGetValueChange<int>("Label", out _),
-            "contract scalar lookup rejects a wrong value type"
-        );
-        DocsCheck.Require(
-            records.Count == 1 && records[0].PathText == "Label",
-            "contract records reuse the typed enumeration"
-        );
+        DocsCheck.Require(!changes.TryGetValueChange<int>("Label", out _), "contract scalar lookup rejects a wrong value type");
+        DocsCheck.Require(records.Count == 1 && records[0].PathText == "Label", "contract records reuse the typed enumeration");
         // /sample
     }
 
     private static void CoreAlgebra()
     {
         // sample: core-algebra
-        var s0 = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 })
-        );
-        var s1 = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 })
-        );
-        var s2 = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 2 })
-        );
+        var s0 = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 }));
+        var s1 = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 1 }));
+        var s2 = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 2 }));
 
         // ChangeSet + ChangeSet -> ChangeSet for contiguous transitions.
         var first = CounterSettings.ChangeSet.Between(s0, s1);
         var second = CounterSettings.ChangeSet.Between(s1, s2);
         var combined = first.Compose(second);
         // combined.ToPatch().Apply(s0) reaches s2
-        DocsCheck.Require(
-            CounterSettings.Patch.Between(combined.ToPatch().Apply(s0), s2).IsEmpty,
-            "composed ChangeSet spans both transitions"
-        );
+        DocsCheck.Require(CounterSettings.Patch.Between(combined.ToPatch().Apply(s0), s2).IsEmpty, "composed ChangeSet spans both transitions");
 
         // ChangeSet inverts without an external baseline.
         var undone = combined.Invert();
         // undone.ToPatch().Apply(s2) walks back to s0
-        DocsCheck.Require(
-            CounterSettings.Patch.Between(undone.ToPatch().Apply(s2), s0).IsEmpty,
-            "inverted ChangeSet walks back"
-        );
+        DocsCheck.Require(CounterSettings.Patch.Between(undone.ToPatch().Apply(s2), s0).IsEmpty, "inverted ChangeSet walks back");
 
         // Patch + Patch -> Patch stays baseline-free.
         var local = new CounterSettings.Patch { Label = "x" };
         var more = new CounterSettings.Patch { RetryCount = 5 };
         var both = local.Compose(more);
         // both.Label == "x", both.RetryCount == 5
-        DocsCheck.Require(
-            both.Label.Value == "x" && both.RetryCount.Value == 5,
-            "composed Patch carries both operations"
-        );
+        DocsCheck.Require(both.Label.Value == "x" && both.RetryCount.Value == 5, "composed Patch carries both operations");
         // /sample
     }
 
     private static void CoreSerialization()
     {
         // sample: core-serialization
-        var start = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 })
-        );
-        var finish = Optional<CounterSettings.Fragment?>.Present(
-            CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 2 })
-        );
+        var start = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "a", RetryCount = 1 }));
+        var finish = Optional<CounterSettings.Fragment?>.Present(CounterSettings.Fragment.From(new CounterSettings { Label = "b", RetryCount = 2 }));
 
         var changes = CounterSettings.ChangeSet.Between(start, finish);
 
-        var json = JsonSerializer.Serialize(changes.ToPayload());
-        var restored = JsonSerializer
-            .Deserialize<CounterSettings.ChangePayload>(json)!
-            .ToChangeSet();
+        var json = JsonSerializer.Serialize(changes.ToPayload(), CounterSettings.PayloadJson.Default);
+        var restored = JsonSerializer.Deserialize<CounterSettings.ChangePayload>(json, CounterSettings.PayloadJson.Default)!.ToChangeSet();
         // restored.ToPatch().Apply(start) replays finish
         DocsCheck.Require(
             CounterSettings.Patch.Between(restored.ToPatch().Apply(start), finish).IsEmpty,
@@ -363,9 +303,7 @@ public static class VerifiedSamples
     private static void CoreChangePayload()
     {
         // sample: core-change-payload
-        var current = LoginSettings.Fragment.From(
-            new LoginSettings { DisplayName = "a", Password = "before-password" }
-        );
+        var current = LoginSettings.Fragment.From(new LoginSettings { DisplayName = "a", Password = "before-password" });
 
         var rotation = new LoginSettings.Patch { Password = "after-password" };
 
@@ -375,16 +313,13 @@ public static class VerifiedSamples
         // applied.DisplayName.Value == "a"
         // applied.Password.Value == "after-password"
         DocsCheck.Require(applied.DisplayName.Value == "a", "untouched member kept");
-        DocsCheck.Require(
-            applied.Password.Value == "after-password",
-            "baseline-free command applied"
-        );
+        DocsCheck.Require(applied.Password.Value == "after-password", "baseline-free command applied");
 
         var transition = LoginSettings.ChangeSet.Between(
             Optional<LoginSettings.Fragment?>.Present(current),
             Optional<LoginSettings.Fragment?>.Present(applied)
         );
-        var wire = JsonSerializer.Serialize(transition.ToPayload());
+        var wire = JsonSerializer.Serialize(transition.ToPayload(), LoginSettings.PayloadJson.Default);
         // wire carries "after-password" but never "before-password"
         DocsCheck.Require(!wire.Contains("before-password"), "before-state stays undisclosed");
         DocsCheck.Require(wire.Contains("after-password"), "desired state travels");
@@ -461,23 +396,14 @@ public static class VerifiedSamples
         var edited = servers.GetChange("b");
         // edited.IsEdited == true
         // edited.Edit.Host.After.Value == "B2"
-        DocsCheck.Require(
-            servers.Added.Count == 1 && servers.Added.Single().Id == "c",
-            "added projection"
-        );
-        DocsCheck.Require(
-            servers.Removed.Count == 1 && servers.Removed.Single().Id == "a",
-            "removed projection"
-        );
+        DocsCheck.Require(servers.Added.Count == 1 && servers.Added.Single().Id == "c", "added projection");
+        DocsCheck.Require(servers.Removed.Count == 1 && servers.Removed.Single().Id == "a", "removed projection");
         DocsCheck.Require(servers.Edited["b"].Host.After.Value == "B2", "edited projection");
         DocsCheck.Require(servers.BeforeOrder.SequenceEqual(["a", "b"]), "before order preserved");
         DocsCheck.Require(servers.AfterOrder.SequenceEqual(["b", "c"]), "after order preserved");
         DocsCheck.Require(servers.OrderChanged, "order change observed");
         DocsCheck.Require(edited.IsEdited, "keyed lookup observes the edit");
-        DocsCheck.Require(
-            edited.Edit.Host.After.Value == "B2",
-            "keyed lookup carries the nested change"
-        );
+        DocsCheck.Require(edited.Edit.Host.After.Value == "B2", "keyed lookup carries the nested change");
         DocsCheck.Require(servers.GetChange("absent").IsEmpty, "unknown key is empty");
         // /sample
     }
@@ -531,16 +457,8 @@ public static class VerifiedSamples
             "contract keyed lookup preserves add/edit"
         );
         DocsCheck.Require(
-            pending.TryGetKeyedChange<int, DocsTempLine, DocsTempLine.ChangeSet>(
-                "Lines",
-                out var pendingLines
-            )
-                && pendingLines
-                    is ISparseTemporaryKeyedChange<
-                        int,
-                        DocsTempLine,
-                        DocsTempLine.ChangeSet
-                    > temporary
+            pending.TryGetKeyedChange<int, DocsTempLine, DocsTempLine.ChangeSet>("Lines", out var pendingLines)
+                && pendingLines is ISparseTemporaryKeyedChange<int, DocsTempLine, DocsTempLine.ChangeSet> temporary
                 && temporary.GetTemporaryChange(pendingId).IsAdded,
             "contract temporary lookup stays collection-scoped"
         );
@@ -611,28 +529,16 @@ public static class VerifiedSamples
         var path = KeyedOrderBook.SparsePath.Lines.TemporaryKey(first.TemporaryId!.Value).Name;
         // path addresses the pending row by its temporary Guid, never by position
 
-        var wire = JsonSerializer.Serialize(pending.ToPayload());
-        var restored = JsonSerializer
-            .Deserialize<KeyedOrderBook.ChangePayload>(wire)!
-            .ToChangeSet();
+        var wire = JsonSerializer.Serialize(pending.ToPayload(), KeyedOrderBook.PayloadJson.Default);
+        var restored = JsonSerializer.Deserialize<KeyedOrderBook.ChangePayload>(wire, KeyedOrderBook.PayloadJson.Default)!.ToChangeSet();
         // restored.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded == true
         DocsCheck.Require(
-            pending.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded
-                && pending.Lines.GetTemporaryChange(second.TemporaryId!.Value).IsAdded,
+            pending.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded && pending.Lines.GetTemporaryChange(second.TemporaryId!.Value).IsAdded,
             "pending additions are identified by temporary Guid"
         );
-        DocsCheck.Require(
-            edited.Lines.GetTemporaryChange(second.TemporaryId!.Value).IsEdited,
-            "pending additions stay editable by temporary Guid"
-        );
-        DocsCheck.Require(
-            restored.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded,
-            "temporary identity survives payload conversion"
-        );
-        DocsCheck.Require(
-            path.ToString().StartsWith("Lines[temp:", StringComparison.Ordinal),
-            "typed path carries a temporary segment"
-        );
+        DocsCheck.Require(edited.Lines.GetTemporaryChange(second.TemporaryId!.Value).IsEdited, "pending additions stay editable by temporary Guid");
+        DocsCheck.Require(restored.Lines.GetTemporaryChange(first.TemporaryId!.Value).IsAdded, "temporary identity survives payload conversion");
+        DocsCheck.Require(path.ToString().StartsWith("Lines[temp:", StringComparison.Ordinal), "typed path carries a temporary segment");
         // /sample
     }
 
@@ -754,14 +660,10 @@ public static class VerifiedSamples
         };
         // response.Lines.Single(line => line.Id == 11).TemporaryId == requested.Lines[1].TemporaryId
         DocsCheck.Require(
-            response.Lines.Single(line => line.Id == 11).TemporaryId
-                == requested.Lines[1].TemporaryId,
+            response.Lines.Single(line => line.Id == 11).TemporaryId == requested.Lines[1].TemporaryId,
             "response restores the temporary Guid by assigned key"
         );
-        DocsCheck.Require(
-            response.Lines.Single(line => line.Id == 7).TemporaryId is null,
-            "existing rows carry no temporary Guid"
-        );
+        DocsCheck.Require(response.Lines.Single(line => line.Id == 7).TemporaryId is null, "existing rows carry no temporary Guid");
         // /sample
     }
 
@@ -811,11 +713,7 @@ public static class VerifiedSamples
         var conflictEdited = new RebaseSettings { RetryCount = 2 };
         var conflictCurrent = new RebaseSettings { RetryCount = 3 };
 
-        if (
-            conflictBase
-                .CreateChangeSet(conflictEdited)
-                .TryApplyTo(conflictCurrent, out _, out var conflicts)
-        )
+        if (conflictBase.CreateChangeSet(conflictEdited).TryApplyTo(conflictCurrent, out _, out var conflicts))
         {
             throw new InvalidOperationException("Expected a conflict.");
         }
@@ -826,9 +724,7 @@ public static class VerifiedSamples
         DocsCheck.Require(conflict.Kind == SparseConflictKind.Scalar, "conflict kind is Scalar");
         DocsCheck.Require(conflict.PathText == "RetryCount", "conflict path names the member");
         DocsCheck.Require(
-            Equals(conflict.BaseValue.Value, 1)
-                && Equals(conflict.LocalValue.Value, 2)
-                && Equals(conflict.CurrentValue.Value, 3),
+            Equals(conflict.BaseValue.Value, 1) && Equals(conflict.LocalValue.Value, 2) && Equals(conflict.CurrentValue.Value, 3),
             "conflict carries base/local/current values"
         );
         // /sample
@@ -862,10 +758,8 @@ public static class VerifiedSamples
         var outgoing = stateA.CreateChangeSet(stateB);
 
         // The typed payload travels as JSON through the application's own transport.
-        var json = JsonSerializer.Serialize(outgoing.ToPayload());
-        var incoming = JsonSerializer
-            .Deserialize<RebaseSettings.ChangePayload>(json)!
-            .ToChangeSet();
+        var json = JsonSerializer.Serialize(outgoing.ToPayload(), RebaseSettings.PayloadJson.Default);
+        var incoming = JsonSerializer.Deserialize<RebaseSettings.ChangePayload>(json, RebaseSettings.PayloadJson.Default)!.ToChangeSet();
 
         // Meanwhile the server moved A -> C. The server loads only the current state:
         // no historical snapshots are required because the ChangeSet carries its own before-state.
@@ -913,17 +807,9 @@ public static class VerifiedSamples
         var secretBase = new RebaseSettings { RetryCount = 1, Label = "a" };
         var secretEdited = new RebaseSettings { RetryCount = 1, Label = "new-secret" };
         var secretCurrent = new RebaseSettings { RetryCount = 1, Label = "other" };
-        var redacted = new ChangePayloadRebaseOptions
-        {
-            RejectChangesWithRedactedBeforeValuesDuringRebase = true,
-            RedactedBeforePaths = ["Label"],
-        };
+        var redacted = new ChangePayloadRebaseOptions { RejectChangesWithRedactedBeforeValuesDuringRebase = true, RedactedBeforePaths = ["Label"] };
 
-        if (
-            secretBase
-                .CreateChangeSet(secretEdited)
-                .TryApplyTo(secretCurrent, out _, out var redactedConflicts, redacted)
-        )
+        if (secretBase.CreateChangeSet(secretEdited).TryApplyTo(secretCurrent, out _, out var redactedConflicts, redacted))
         {
             throw new InvalidOperationException("Expected a redacted-before failure.");
         }
@@ -931,10 +817,7 @@ public static class VerifiedSamples
         var redactedConflict = redactedConflicts.Single();
         // redactedConflict.Kind == SparseConflictKind.RedactedBefore
         // redactedConflict.PathText == "Label"
-        DocsCheck.Require(
-            redactedConflict.Kind == SparseConflictKind.RedactedBefore,
-            "redacted-before failure is typed"
-        );
+        DocsCheck.Require(redactedConflict.Kind == SparseConflictKind.RedactedBefore, "redacted-before failure is typed");
         DocsCheck.Require(redactedConflict.PathText == "Label", "conflict names the member");
         // /sample
     }
@@ -1110,8 +993,7 @@ public partial class RebasePolicySettings
 
 public sealed class ConcatLabelPolicy : FragmentRebasePolicy<string?>
 {
-    public override bool AreEqual(string? left, string? right) =>
-        string.Equals(left, right, StringComparison.Ordinal);
+    public override bool AreEqual(string? left, string? right) => string.Equals(left, right, StringComparison.Ordinal);
 
     public override bool TryRebase(
         Optional<string?> editBase,
@@ -1123,9 +1005,7 @@ public sealed class ConcatLabelPolicy : FragmentRebasePolicy<string?>
     {
         if (!editBase.IsPresent || !desired.IsPresent || !current.IsPresent)
         {
-            return FragmentRebasePolicy<string?>
-                .FailOnConflict()
-                .TryRebase(editBase, desired, current, out rebased, out reason);
+            return FragmentRebasePolicy<string?>.FailOnConflict().TryRebase(editBase, desired, current, out rebased, out reason);
         }
 
         if (AreEqual(desired.Value, editBase.Value))

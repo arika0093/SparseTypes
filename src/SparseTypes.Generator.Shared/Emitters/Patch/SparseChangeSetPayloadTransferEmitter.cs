@@ -21,7 +21,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         // change-set values project through the facade bridge.
         code.AppendLine("/// <summary>Builds the transport core for this change set.</summary>");
         code.AppendLine(
-            "/// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>"
+            "/// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>"
         );
         code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
         code.AppendLine("/// <returns>The transport core.</returns>");
@@ -76,7 +76,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         }
         code.AppendLine("/// <summary>Builds the transport changes for this change set.</summary>");
         code.AppendLine(
-            "/// <remarks>ChangeSet payloads are lossless: members excluded from JSON transport (STJ <c>JsonIgnore</c>) throw instead of silently dropping their changes. Ordinary <c>Fragment</c> JSON still honors <c>JsonIgnore</c>.</remarks>"
+            "/// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>"
         );
         if (target is not null)
         {
@@ -98,7 +98,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         {
             AppendSelfAliases(code, members);
         }
-        SparseChangePayloadPatchSyncEmitter.AppendIgnoredTransportGuard(code, members);
+        SparseChangePayloadPatchSyncEmitter.AppendTransportIgnoreGuard(code, members);
         code.AppendLine(
             "var changes = new global::System.Collections.Generic.List<"
                 + payloadChange
@@ -128,7 +128,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         code.CloseBlock();
 
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, dialect);
-        foreach (var member in members.Where(static member => !member.Property.IsJsonIgnored))
+        foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             var id = member.Id;
             var variant = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
@@ -363,7 +363,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         );
         // Endpoint-redact it so the mixed partition routes the whole change
         // blind instead of failing fragment conversion.
-        var wholeBeforeRedacted = members.Any(static member => !member.Property.IsJsonIgnored && member.RedactBefore);
+        var wholeBeforeRedacted = members.Any(static member => !member.Property.IsTransportIgnored && member.RedactBefore);
         if (wholeBeforeRedacted)
         {
             code.AppendLine("return " + endpoint + "<" + payloadRoot + ">.Redacted();");
@@ -438,7 +438,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         string.Join(
             " + ",
             members
-                .Where(static member => !member.Property.IsJsonIgnored)
+                .Where(static member => !member.Property.IsTransportIgnored)
                 .Select(static member =>
                     "("
                     + (

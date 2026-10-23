@@ -9,12 +9,8 @@ public sealed class PlaygroundPatchTests
     [Test]
     public void InvalidOrIncompatiblePayloadJsonThrows()
     {
-        Should.Throw<System.Text.Json.JsonException>(() =>
-            PlaygroundJson.ReadSettingsChangeSet("{")
-        );
-        Should.Throw<System.Text.Json.JsonException>(() =>
-            PlaygroundJson.ReadSettingsChangeSet("""{"version":"0.1","changes":"invalid"}""")
-        );
+        Should.Throw<System.Text.Json.JsonException>(() => PlaygroundJson.ReadSettingsChangeSet("{"));
+        Should.Throw<System.Text.Json.JsonException>(() => PlaygroundJson.ReadSettingsChangeSet("""{"version":"0.1","change":"invalid"}"""));
     }
 
     [Test]
@@ -35,9 +31,7 @@ public sealed class PlaygroundPatchTests
         }.Build();
         var baselineState = Optional<PlaygroundSettings.Fragment?>.Present(baseline);
         var changes = PlaygroundSettings.ChangeSet.FromPatch(baselineState, patch);
-        var imported = PlaygroundJson.ReadSettingsChangeSet(
-            PlaygroundJson.WriteSettingsChangeSet(changes)
-        );
+        var imported = PlaygroundJson.ReadSettingsChangeSet(PlaygroundJson.WriteSettingsChangeSet(changes));
 
         var expected = baseline.Apply(patch);
         var actual = baseline.Apply(imported.ToPatch());

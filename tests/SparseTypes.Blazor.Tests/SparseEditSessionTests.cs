@@ -32,8 +32,7 @@ public sealed class SparseEditSessionTests
             Contacts = new() { ["billing"] = new OrderCustomer { Name = "Ada" } },
         };
 
-    private static Optional<OrderDto.Fragment?> Present(OrderDto.Fragment fragment) =>
-        Optional<OrderDto.Fragment?>.Present(fragment);
+    private static Optional<OrderDto.Fragment?> Present(OrderDto.Fragment fragment) => Optional<OrderDto.Fragment?>.Present(fragment);
 
     private static void PatchesShouldBeEquivalent(OrderDto.Patch first, OrderDto.Patch second)
     {
@@ -147,41 +146,22 @@ public sealed class SparseEditSessionTests
         var linePath = lineSession.EnumerateChangedPaths().Single();
         // Keyed entries report stable key identity, not positions.
         linePath.ToString().ShouldBe("Lines[\"b\"].Quantity");
-        ReferenceEquals(lineSession.Field(linePath).Model, Raw(lineSession).Lines[1])
-            .ShouldBeTrue();
+        ReferenceEquals(lineSession.Field(linePath).Model, Raw(lineSession).Lines[1]).ShouldBeTrue();
 
         var dictionarySession = Order().CreateEditSession();
         Raw(dictionarySession).Contacts["billing"].Name = "Grace";
         var dictionaryPath = dictionarySession.EnumerateChangedPaths().Single();
         dictionaryPath.ToString().ShouldBe("Contacts[\"billing\"].Name");
-        ReferenceEquals(
-                dictionarySession.Field(dictionaryPath).Model,
-                Raw(dictionarySession).Contacts["billing"]
-            )
-            .ShouldBeTrue();
+        ReferenceEquals(dictionarySession.Field(dictionaryPath).Model, Raw(dictionarySession).Contacts["billing"]).ShouldBeTrue();
 
-        Should.Throw<ArgumentException>(() =>
-            session.Field(SparsePath.Parse<OrderDto>("Customer.Unknown"))
-        );
-        Should.Throw<ArgumentException>(() =>
-            session.Field(SparsePath.Parse<OrderDto>("Lines[10].Quantity"))
-        );
+        Should.Throw<ArgumentException>(() => session.Field(SparsePath.Parse<OrderDto>("Customer.Unknown")));
+        Should.Throw<ArgumentException>(() => session.Field(SparsePath.Parse<OrderDto>("Lines[10].Quantity")));
     }
 
     [Test]
     public void CurrentViewWrapsNestedModelsAndCollectionsAsReadOnly()
     {
-        var model = new OrgDto
-        {
-            Teams =
-            [
-                new Team
-                {
-                    Name = "team",
-                    Members = [new TeamMember { Id = "member", Skills = ["csharp"] }],
-                },
-            ],
-        };
+        var model = new OrgDto { Teams = [new Team { Name = "team", Members = [new TeamMember { Id = "member", Skills = ["csharp"] }] }] };
         var session = model.CreateEditSession();
         var teams = session.Current.Teams;
 
@@ -470,14 +450,10 @@ public sealed class SparseEditSessionTests
             )
         );
         var currentFragment = Present(OrderDto.Fragment.From(Raw(session)));
-        OrderDto
-            .Patch.Between(second.ToPatch().Apply(acceptedBaseline), currentFragment)
-            .IsEmpty.ShouldBeTrue();
+        OrderDto.Patch.Between(second.ToPatch().Apply(acceptedBaseline), currentFragment).IsEmpty.ShouldBeTrue();
 
         // Inverting the ChangeSet walks back to the accepted baseline.
-        OrderDto
-            .Patch.Between(second.Invert().ToPatch().Apply(currentFragment), acceptedBaseline)
-            .IsEmpty.ShouldBeTrue();
+        OrderDto.Patch.Between(second.Invert().ToPatch().Apply(currentFragment), acceptedBaseline).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -546,18 +522,14 @@ public sealed class SparseEditSessionTests
         var changes = session.CreateChangeSet();
         changes.IsEmpty.ShouldBeFalse();
 
-        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload());
-        var restored = System
-            .Text.Json.JsonSerializer.Deserialize<OrderDto.ChangePayload>(json)!
-            .ToChangeSet();
+        var json = System.Text.Json.JsonSerializer.Serialize(changes.ToPayload(), OrderDto.PayloadJson.Default);
+        var restored = System.Text.Json.JsonSerializer.Deserialize<OrderDto.ChangePayload>(json, OrderDto.PayloadJson.Default)!.ToChangeSet();
         restored.IsEmpty.ShouldBeFalse();
 
         // Same apply semantics from the session baseline.
         PatchesShouldBeEquivalent(changes.ToPatch(), restored.ToPatch());
         var baseline = Present(OrderDto.Fragment.From(Order()));
-        OrderDto
-            .Patch.Between(changes.ToPatch().Apply(baseline), restored.ToPatch().Apply(baseline))
-            .IsEmpty.ShouldBeTrue();
+        OrderDto.Patch.Between(changes.ToPatch().Apply(baseline), restored.ToPatch().Apply(baseline)).IsEmpty.ShouldBeTrue();
 
         // Same rebase semantics onto a disjoint authoritative state.
         var authoritative = Present(
@@ -595,10 +567,7 @@ public sealed class SparseEditSessionTests
         var rebasedRestored = restored.RebaseOnto(authoritative);
         rebasedRestored.HasConflicts.ShouldBe(rebasedOriginal.HasConflicts);
         rebasedRestored.HasConflicts.ShouldBeFalse();
-        PatchesShouldBeEquivalent(
-            rebasedOriginal.Rebased.ToPatch(),
-            rebasedRestored.Rebased.ToPatch()
-        );
+        PatchesShouldBeEquivalent(rebasedOriginal.Rebased.ToPatch(), rebasedRestored.Rebased.ToPatch());
         var mergedOriginal = rebasedOriginal.Rebased.ToPatch().Apply(authoritative);
         var mergedRestored = rebasedRestored.Rebased.ToPatch().Apply(authoritative);
         OrderDto.Patch.Between(mergedOriginal, mergedRestored).IsEmpty.ShouldBeTrue();
@@ -632,11 +601,7 @@ public sealed class SparseEditSessionTests
         var editContext = session.CreateEditContext();
         var store = session.CreateValidationStore(editContext);
 
-        session.AddValidationError(
-            store,
-            session.Field(OrderDto.SparsePath.Number),
-            "Server rejected the order number."
-        );
+        session.AddValidationError(store, session.Field(OrderDto.SparsePath.Number), "Server rejected the order number.");
 
         editContext.GetValidationMessages().ShouldContain("Server rejected the order number.");
     }
@@ -659,9 +624,7 @@ public sealed class SparseEditSessionTests
 
         var store = session.CreateValidationStore(editContext);
         var otherField = new FieldIdentifier(Order(), nameof(OrderDto.Number));
-        Should.Throw<ArgumentException>(() =>
-            session.AddValidationError(store, otherField, "Wrong model.")
-        );
+        Should.Throw<ArgumentException>(() => session.AddValidationError(store, otherField, "Wrong model."));
     }
 
     [Test]
@@ -696,12 +659,7 @@ public sealed class SparseEditSessionTests
         // The accepted baseline is exactly the submitted state: replaying the
         // next transition onto it reaches the live model.
         var submittedBaseline = Present(OrderDto.Fragment.From(Order()).Apply(submitted.ToPatch()));
-        OrderDto
-            .Patch.Between(
-                next.ToPatch().Apply(submittedBaseline),
-                Present(OrderDto.Fragment.From(Raw(session)))
-            )
-            .IsEmpty.ShouldBeTrue();
+        OrderDto.Patch.Between(next.ToPatch().Apply(submittedBaseline), Present(OrderDto.Fragment.From(Raw(session)))).IsEmpty.ShouldBeTrue();
     }
 
     [Test]

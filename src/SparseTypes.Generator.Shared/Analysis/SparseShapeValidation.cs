@@ -191,12 +191,16 @@ internal static class SparseShapeValidation
     /// <summary>
     /// Finds JSON wire names claimed by more than one serializable member.
     /// </summary>
-    /// <remarks>Ordinal comparison: members ignored by <c>JsonIgnore</c> never participate (the generated converter skips them).</remarks>
+    /// <remarks>Ordinal comparison: JSON-ignored and transport-ignored members do not participate.</remarks>
     public static ImmutableArray<string> FindDuplicateWireNames(ImmutableArray<SparseMemberModel> members)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var duplicates = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (var property in members.Select(static member => member.Property).Where(static property => !property.IsJsonIgnored))
+        foreach (
+            var property in members
+                .Select(static member => member.Property)
+                .Where(static property => !property.IsJsonIgnored && !property.IsTransportIgnored)
+        )
         {
             var wire = property.JsonPropertyName ?? property.Name;
             if (!seen.Add(wire))
@@ -208,12 +212,32 @@ internal static class SparseShapeValidation
         return duplicates.ToImmutableArray();
     }
 
+    /// <summary>Finds duplicate names across model members used to route JSON input.</summary>
+    /// <remarks>Excluded members still need unique names so their input can be rejected explicitly.</remarks>
+    public static ImmutableArray<string> FindDuplicatePayloadWireNames(SparsePayloadContract contract)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var duplicates = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var name in contract.Members.Select(static member => member.JsonName).Where(name => !seen.Add(name)))
+        {
+            duplicates.Add(name);
+        }
+
+        return duplicates.ToImmutableArray();
+    }
+
     /// <summary>Resolves the property symbol carrying a duplicated wire name.</summary>
     public static IPropertySymbol? FindWireNameOwner(
         ImmutableArray<SparseSymbolMemberModel> symbolMembers,
         string wireName,
+        SparseGeneratorConfig config,
         CancellationToken cancellationToken
-    ) => symbolMembers.Select(static member => member.Property).FirstOrDefault(property => MatchesWireName(property, wireName, cancellationToken));
+    ) =>
+        symbolMembers
+            .Select(static member => member.Property)
+            .FirstOrDefault(property =>
+                !SparseModelDiscovery.IsTransportIgnored(property, config) && MatchesWireName(property, wireName, cancellationToken)
+            );
 
     private static bool MatchesWireName(IPropertySymbol property, string wireName, CancellationToken cancellationToken)
     {

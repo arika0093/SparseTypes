@@ -8,7 +8,7 @@
 | --- | --- |
 | `ChangePayload()` | Creates an envelope with generated defaults. |
 | `string? Version { get; set; }` | Wire version, currently `"0.1"`. |
-| `Changes { get; set; }` | Generated list of wire changes. Its CLR element type is generated implementation support; prefer conversion factories. |
+| `Change { get; set; }` | Typed root model operation generated from the model contract. |
 | `static ChangePayload FromPatch(T.Patch patch)` | Exports baseline-free commands with undisclosed before-state. |
 | `T.ChangeSet ToChangeSet()` | Converts only when every necessary before endpoint is known. Blind/redacted-before requests are rejected. |
 | `T.Patch ToPatch()` | Projects commands, dropping known history where present. |
@@ -20,11 +20,13 @@ The `result` of TryApplyMixedTo is a generated result type exposing `Conflicts`,
 
 To export a ChangeSet, call `changes.ToPayload()`. FromPatch is intentionally not equivalent: it does not know the previous values.
 
+Use the generated `T.PayloadJson.Default` metadata when serializing or deserializing this DTO. The DTO does not carry JSON attributes that define its wire format.
+
 ## Validation and failures
 
 Validate reports expected input errors through `IsValid` and `Errors`. Conversion methods reject invalid payloads and incompatible history with exceptions. JSON deserialization can throw `JsonException` for malformed input. A version mismatch is an error, not a request to infer another format.
 
-Exporting changed JsonIgnore members throws InvalidOperationException. SparseRedactBefore conceals before-state; it does not serialize a secret inside a redaction marker. Redacted endpoints cannot be recovered as known Optional values.
+JSON-excluded changes remain in the neutral payload but make JSON serialization fail before bytes are written. Changes to `SparseTransportIgnore` members fail during payload export. `SparseRedactBefore` conceals before-state; it does not serialize a secret inside a redaction marker. Redacted endpoints cannot be recovered as known Optional values.
 
 See [wire reference](change-payload.md) for endpoint layout, item records, whole-root changes, mixed composition, rollback, and AOT JsonSerializerContext requirements. Runtime endpoint/result types are listed in [payload runtime APIs](payload-api.md).
 
@@ -37,8 +39,8 @@ Uses the [reference models](attributes.md#example-model) and System.Text.Json.
 var before = new ReferenceSettings { Theme = "light" };
 var after = new ReferenceSettings { Theme = "dark" };
 var payload = before.CreateChangeSet(after).ToPayload();
-var json = JsonSerializer.Serialize(payload);
-var received = JsonSerializer.Deserialize<ReferenceSettings.ChangePayload>(json)!;
+var json = JsonSerializer.Serialize(payload, ReferenceSettings.PayloadJson.Default);
+var received = JsonSerializer.Deserialize<ReferenceSettings.ChangePayload>(json, ReferenceSettings.PayloadJson.Default)!;
 
 var validation = received.Validate();
 var changes = received.ToChangeSet();

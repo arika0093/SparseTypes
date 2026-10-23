@@ -20,10 +20,7 @@ namespace LangVersionProbe
                     Child = new ProbeChild { Count = 7, Host = "keep" },
                     Plugins = new List<string> { "base-plugin" },
                     Tags = new HashSet<string>(StringComparer.Ordinal) { "base-tag" },
-                    Options = new Dictionary<string, string>(StringComparer.Ordinal)
-                    {
-                        ["theme"] = "dark",
-                    },
+                    Options = new Dictionary<string, string>(StringComparer.Ordinal) { ["theme"] = "dark" },
                     Quests = new List<ProbeQuest>
                     {
                         new ProbeQuest { Slug = "a", Title = "A" },
@@ -50,13 +47,8 @@ namespace LangVersionProbe
             var merged = original.Merge(higher).ToModel();
             Require(merged.Child != null && merged.Child.Host == "keep", "merge keeps nested members");
             Require(merged.Child != null && merged.Child.Count == 9, "merge higher priority wins");
-            Require(
-                merged.Plugins.Count == 2 && merged.Plugins[1] == "extra-plugin",
-                "merge Append concatenates");
-            Require(
-                merged.Tags.SetEquals(
-                    new HashSet<string>(StringComparer.Ordinal) { "base-tag", "extra-tag" }),
-                "merge SetUnion combines sets");
+            Require(merged.Plugins.Count == 2 && merged.Plugins[1] == "extra-plugin", "merge Append concatenates");
+            Require(merged.Tags.SetEquals(new HashSet<string>(StringComparer.Ordinal) { "base-tag", "extra-tag" }), "merge SetUnion combines sets");
             Require(merged.Options["theme"] == "dark", "merge keeps Replace dictionary");
 
             // Typed patch: present null, nested Set/Remove/SetNull.
@@ -94,16 +86,12 @@ namespace LangVersionProbe
             };
             var questChanges = ProbeSettings.ChangeSet.Between(beforeQuests, afterQuests);
             Require(!questChanges.IsEmpty, "keyed Between detects changes");
+            Require(questChanges.Quests.Added.Count == 1 && questChanges.Quests.Added[0].Slug == "c", "keyed Added carries new element");
+            Require(questChanges.Quests.Removed.Count == 1 && questChanges.Quests.Removed[0].Slug == "a", "keyed Removed carries old element");
             Require(
-                questChanges.Quests.Added.Count == 1 && questChanges.Quests.Added[0].Slug == "c",
-                "keyed Added carries new element");
-            Require(
-                questChanges.Quests.Removed.Count == 1 && questChanges.Quests.Removed[0].Slug == "a",
-                "keyed Removed carries old element");
-            Require(
-                questChanges.Quests.Edited.ContainsKey("b")
-                    && questChanges.Quests.Edited["b"].Title.After.Value == "B2",
-                "keyed Edited carries nested transition");
+                questChanges.Quests.Edited.ContainsKey("b") && questChanges.Quests.Edited["b"].Title.After.Value == "B2",
+                "keyed Edited carries nested transition"
+            );
 
             // Patch algebra: compose, invert, sparse Between, structured
             // rebase.
@@ -115,14 +103,11 @@ namespace LangVersionProbe
             var combined = edits.Compose(next);
             var applied = combined.Apply(basis);
             var restored = combined.Invert(basis).Apply(applied);
+            Require(restored.Value != null && restored.Value.Label.Value == "original", "exact inversion restores label");
             Require(
-                restored.Value != null && restored.Value.Label.Value == "original",
-                "exact inversion restores label");
-            Require(
-                applied.Value != null
-                    && applied.Value.Child.Value != null
-                    && applied.Value.Child.Value.Count.Value == 11,
-                "patch composition applies nested edit");
+                applied.Value != null && applied.Value.Child.Value != null && applied.Value.Child.Value.Count.Value == 11,
+                "patch composition applies nested edit"
+            );
             var between = ProbeSettings.Patch.Between(basis, applied);
             Require(!between.IsEmpty, "sparse Between detects patch");
 
@@ -130,10 +115,7 @@ namespace LangVersionProbe
             upstream.Label = Optional<string?>.Present("upstream");
             var local = new ProbeSettings.Patch();
             local.Child.Count = 12;
-            var rebased = ProbeSettings.Patch.Rebase(
-                basis,
-                local,
-                Optional<ProbeSettings.Fragment?>.Present(upstream.Build()));
+            var rebased = ProbeSettings.Patch.Rebase(basis, local, Optional<ProbeSettings.Fragment?>.Present(upstream.Build()));
             Require(!rebased.HasConflicts, "structured rebase");
 
             // Builders and structural DeepClone.
@@ -148,16 +130,14 @@ namespace LangVersionProbe
             }
             Require(original.ToModel().Child != null && original.ToModel().Child!.Count == 7, "DeepClone model isolation");
 
-            // ChangeSet payload JSON transport with ordinary System.Text.Json.
+            // ChangeSet payload JSON transport uses the generated type metadata.
             var baseline = new ProbeSettings.Fragment { Label = "base" };
             var baselineOpt = Optional<ProbeSettings.Fragment?>.Present(baseline);
             var editedBaseline = new ProbeSettings.Fragment { Label = "patched" };
-            var changes = ProbeSettings.ChangeSet.Between(
-                baselineOpt,
-                Optional<ProbeSettings.Fragment?>.Present(editedBaseline));
-            var changesJson = JsonSerializer.Serialize(changes.ToPayload());
+            var changes = ProbeSettings.ChangeSet.Between(baselineOpt, Optional<ProbeSettings.Fragment?>.Present(editedBaseline));
+            var changesJson = JsonSerializer.Serialize(changes.ToPayload(), ProbeSettings.PayloadJson.Default);
             var restoredChanges = JsonSerializer
-                .Deserialize<ProbeSettings.ChangePayload>(changesJson)
+                .Deserialize<ProbeSettings.ChangePayload>(changesJson, ProbeSettings.PayloadJson.Default)
                 ?.ToChangeSet();
             if (restoredChanges is null)
             {
@@ -166,7 +146,8 @@ namespace LangVersionProbe
             Require(
                 restoredChanges.ToPatch().Apply(baselineOpt).Value != null
                     && restoredChanges.ToPatch().Apply(baselineOpt).Value!.Label.Value == "patched",
-                "ChangeSet payload JSON round-trip");
+                "ChangeSet payload JSON round-trip"
+            );
             Require(changesJson.Contains("patched"), "ChangeSet payload JSON export");
 
             // Model-baseline ChangeSet surface: FromPatch, ApplyTo, TryApplyTo.
@@ -174,12 +155,8 @@ namespace LangVersionProbe
             var modelAfter = new ProbeSettings { Label = "after" };
             var modelChanges = ProbeSettings.ChangeSet.Between(modelBefore, modelAfter);
             var modelPatch = new ProbeSettings.Patch { Label = "patched-model" };
-            Require(
-                !ProbeSettings.ChangeSet.FromPatch(modelBefore, modelPatch).IsEmpty,
-                "model-baseline FromPatch");
-            Require(
-                modelPatch.ApplyTo(modelBefore).Label == "patched-model",
-                "model Patch.ApplyTo");
+            Require(!ProbeSettings.ChangeSet.FromPatch(modelBefore, modelPatch).IsEmpty, "model-baseline FromPatch");
+            Require(modelPatch.ApplyTo(modelBefore).Label == "patched-model", "model Patch.ApplyTo");
             Require(modelBefore.Label == "before", "model Patch.ApplyTo isolation");
             if (!modelChanges.TryApplyTo(modelBefore.DeepClone(), out var updatedModel))
             {
@@ -214,8 +191,7 @@ namespace LangVersionProbe
         [SparseMerge(MergeMode.SetUnion)]
         public HashSet<string> Tags { get; set; } = new HashSet<string>(StringComparer.Ordinal);
 
-        public Dictionary<string, string> Options { get; set; } =
-            new Dictionary<string, string>(StringComparer.Ordinal);
+        public Dictionary<string, string> Options { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
         public List<ProbeQuest> Quests { get; set; } = new List<ProbeQuest>();
     }

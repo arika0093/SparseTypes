@@ -61,18 +61,13 @@ public partial class RedactedSecretMap
 /// <summary>Covers the unified ChangePayload transport.</summary>
 public sealed class ChangePayloadRedactionTests
 {
-    private static Optional<RedactedAccount.Fragment?> AccountState(
-        string? displayName,
-        string? password
-    ) =>
+    private static Optional<RedactedAccount.Fragment?> AccountState(string? displayName, string? password) =>
         Optional<RedactedAccount.Fragment?>.Present(
-            RedactedAccount.Fragment.From(
-                new RedactedAccount { DisplayName = displayName, Password = password }
-            )
+            RedactedAccount.Fragment.From(new RedactedAccount { DisplayName = displayName, Password = password })
         );
 
-    private static T PayloadRoundTrip<T>(T payload) =>
-        JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(payload))!;
+    private static T PayloadRoundTrip<T>(T payload)
+        where T : notnull => PayloadJsonTestSupport.RoundTrip(payload);
 
     [Test]
     public void MixedPayload_CarriesTransitionAndCommandTogether()
@@ -80,7 +75,7 @@ public sealed class ChangePayloadRedactionTests
         var before = AccountState("before-name", "before-password");
         var after = AccountState("after-name", "after-password");
         var payload = RedactedAccount.ChangeSet.Between(before, after).ToPayload();
-        var json = JsonSerializer.Serialize(payload);
+        var json = PayloadJsonTestSupport.Serialize(payload);
 
         // The regular transition and the baseline-free command share one
         // envelope.
@@ -108,20 +103,16 @@ public sealed class ChangePayloadRedactionTests
         Should.Throw<InvalidOperationException>(() => redacted.ToOptional());
 
         var missingJson =
-            """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"missing"},"after":{"state":"value","value":"after-name"}}]}""";
-        var missing = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(missingJson)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"displayName":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":"after-name"}}}}}""";
+        var missing = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(missingJson);
         missing.ToChangeSet().DisplayName.After.Value.ShouldBe("after-name");
 
         var redactedJson =
-            """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted"},"after":{"state":"value","value":"after-password"}}]}""";
-        var redactedPayload = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
-            redactedJson
-        )!;
+            """{"version":"0.1","change":{"kind":"update","members":{"password":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"after-password"}}}}}""";
+        var redactedPayload = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(redactedJson);
         Should.Throw<ArgumentException>(() => redactedPayload.ToChangeSet());
         var patch = redactedPayload.ToPatch();
-        var updated = patch.ApplyTo(
-            new RedactedAccount { DisplayName = "kept", Password = "before-password" }
-        );
+        var updated = patch.ApplyTo(new RedactedAccount { DisplayName = "kept", Password = "before-password" });
         updated.Password.ShouldBe("after-password");
         updated.DisplayName.ShouldBe("kept");
     }
@@ -130,16 +121,14 @@ public sealed class ChangePayloadRedactionTests
     public void RedactedBefore_RequiresObservableAfter()
     {
         var missingAfter =
-            """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"redacted"}}]}""";
-        var withoutAfter = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(missingAfter)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"displayName":{"kind":"replace","before":{"state":"redacted"}}}}}""";
+        var withoutAfter = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(missingAfter);
         Should.Throw<ArgumentException>(() => withoutAfter.ToChangeSet());
         Should.Throw<ArgumentException>(() => withoutAfter.ToPatch());
 
         var redactedAfter =
-            """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"redacted"},"after":{"state":"redacted"}}]}""";
-        var withRedactedAfter = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
-            redactedAfter
-        )!;
+            """{"version":"0.1","change":{"kind":"update","members":{"displayName":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"redacted"}}}}}""";
+        var withRedactedAfter = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(redactedAfter);
         Should.Throw<ArgumentException>(() => withRedactedAfter.ToChangeSet());
         Should.Throw<ArgumentException>(() => withRedactedAfter.ToPatch());
     }
@@ -149,47 +138,24 @@ public sealed class ChangePayloadRedactionTests
     {
         // Unit-level: a redacted endpoint carrying a value is malformed, and
         // the rejection never embeds the plaintext.
-        var smuggled = new ChangePayloadEndpoint<string>
-        {
-            State = ChangePayloadState.Redacted,
-            Value = "SECRET",
-        };
+        var smuggled = new ChangePayloadEndpoint<string> { State = ChangePayloadState.Redacted, Value = "SECRET" };
         var redactedError = Should.Throw<InvalidOperationException>(() => smuggled.Validate());
         redactedError.Message.ShouldNotContain("SECRET");
         Should.Throw<InvalidOperationException>(() => smuggled.ToOptional());
 
-        var missingWithValue = new ChangePayloadEndpoint<string>
-        {
-            State = ChangePayloadState.Missing,
-            Value = "SECRET",
-        };
+        var missingWithValue = new ChangePayloadEndpoint<string> { State = ChangePayloadState.Missing, Value = "SECRET" };
         Should.Throw<InvalidOperationException>(() => missingWithValue.Validate());
 
         // Value-free redactions (including explicit JSON null) stay valid.
         new ChangePayloadEndpoint<string> { State = ChangePayloadState.Redacted }.Validate();
         new ChangePayloadEndpoint<string?> { State = ChangePayloadState.Redacted }.Validate();
 
-        // Payload-level: every interpretation path rejects a smuggled value
-        // without applying anything or leaking the secret.
+        // The JSON reader rejects a smuggled value before constructing a
+        // payload, and its error does not echo the secret.
         var smuggledJson =
-            """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":"SECRET"},"after":{"state":"value","value":"after-password"}}]}""";
-        var smuggledPayload = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
-            smuggledJson
-        )!;
-        var beforeError = Should.Throw<InvalidOperationException>(() =>
-            smuggledPayload.ToChangeSet()
-        );
+            """{"version":"0.1","change":{"kind":"update","members":{"password":{"kind":"replace","before":{"state":"redacted","value":"SECRET"},"after":{"state":"value","value":"after-password"}}}}}""";
+        var beforeError = Should.Throw<JsonException>(() => PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(smuggledJson));
         beforeError.Message.ShouldNotContain("SECRET");
-        Should.Throw<InvalidOperationException>(() => smuggledPayload.ToPatch());
-        IReadOnlyList<string> skipped;
-        Should.Throw<InvalidOperationException>(() =>
-            smuggledPayload.InvertReversibleChanges(out skipped)
-        );
-        var model = new RedactedAccount { DisplayName = "kept", Password = "before-password" };
-        Should.Throw<InvalidOperationException>(() =>
-            smuggledPayload.TryApplyMixedTo(model, out _, out _)
-        );
-        model.Password.ShouldBe("before-password");
     }
 
     [Test]
@@ -197,12 +163,12 @@ public sealed class ChangePayloadRedactionTests
     {
         var patch = new RedactedAccount.Patch { Password = "after-password" };
         var payload = RedactedAccount.ChangePayload.FromPatch(patch);
-        var json = JsonSerializer.Serialize(payload);
+        var json = PayloadJsonTestSupport.Serialize(payload);
 
         payload.Version.ShouldBe("0.1");
         payload.Changes.ShouldHaveSingleItem();
         json.ShouldBe(
-            """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":null},"after":{"state":"value","value":"after-password"}}]}"""
+            """{"version":"0.1","change":{"kind":"update","members":{"password":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"after-password"}}}}}"""
         );
 
         var restored = PayloadRoundTrip(payload);
@@ -232,19 +198,15 @@ public sealed class ChangePayloadRedactionTests
 
         var before = State("before-nickname", "before-token");
         var after = State("after-nickname", "after-token");
-        var json = JsonSerializer.Serialize(
-            RedactedAccountHolder.ChangeSet.Between(before, after).ToPayload()
-        );
+        var json = PayloadJsonTestSupport.Serialize(RedactedAccountHolder.ChangeSet.Between(before, after).ToPayload());
 
         json.ShouldContain("\"state\":\"redacted\"");
         json.ShouldNotContain("before-token");
         json.ShouldContain("before-nickname");
 
-        var restored = JsonSerializer.Deserialize<RedactedAccountHolder.ChangePayload>(json)!;
+        var restored = PayloadJsonTestSupport.Deserialize<RedactedAccountHolder.ChangePayload>(json);
         Should.Throw<ArgumentException>(() => restored.ToChangeSet());
-        RedactedAccountHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        RedactedAccountHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -262,19 +224,15 @@ public sealed class ChangePayloadRedactionTests
 
         var before = State("before-nickname", "before-token");
         var after = State("after-nickname", "after-token");
-        var json = JsonSerializer.Serialize(
-            RedactedTeamHolder.ChangeSet.Between(before, after).ToPayload()
-        );
+        var json = PayloadJsonTestSupport.Serialize(RedactedTeamHolder.ChangeSet.Between(before, after).ToPayload());
 
         // The flagged nested member redacts every descendant before-state.
         json.ShouldNotContain("before-nickname");
         json.ShouldNotContain("before-token");
 
-        var restored = JsonSerializer.Deserialize<RedactedTeamHolder.ChangePayload>(json)!;
+        var restored = PayloadJsonTestSupport.Deserialize<RedactedTeamHolder.ChangePayload>(json);
         Should.Throw<ArgumentException>(() => restored.ToChangeSet());
-        RedactedTeamHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        RedactedTeamHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -282,35 +240,23 @@ public sealed class ChangePayloadRedactionTests
     {
         Optional<RedactedDeviceHolder.Fragment?> State(params RedactedDevice[] devices) =>
             Optional<RedactedDeviceHolder.Fragment?>.Present(
-                RedactedDeviceHolder.Fragment.From(
-                    new RedactedDeviceHolder { Devices = devices.ToList() }
-                )
+                RedactedDeviceHolder.Fragment.From(new RedactedDeviceHolder { Devices = devices.ToList() })
             );
 
         var before = State(new RedactedDevice { Id = "a", Name = "before-device" });
         var after = State(new RedactedDevice { Id = "a", Name = "after-device" });
-        var json = JsonSerializer.Serialize(
-            RedactedDeviceHolder.ChangeSet.Between(before, after).ToPayload()
-        );
+        var json = PayloadJsonTestSupport.Serialize(RedactedDeviceHolder.ChangeSet.Between(before, after).ToPayload());
 
         json.ShouldContain("\"state\":\"redacted\"");
         json.ShouldNotContain("before-device");
 
-        var restored = PayloadRoundTrip(
-            RedactedDeviceHolder.ChangeSet.Between(before, after).ToPayload()
-        );
+        var restored = PayloadRoundTrip(RedactedDeviceHolder.ChangeSet.Between(before, after).ToPayload());
         Should.Throw<ArgumentException>(() => restored.ToChangeSet());
-        RedactedDeviceHolder
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        RedactedDeviceHolder.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
 
-        var removed = PayloadRoundTrip(
-            RedactedDeviceHolder.ChangeSet.Between(after, State()).ToPayload()
-        );
+        var removed = PayloadRoundTrip(RedactedDeviceHolder.ChangeSet.Between(after, State()).ToPayload());
         Should.Throw<ArgumentException>(() => removed.ToChangeSet());
-        RedactedDeviceHolder
-            .Patch.Between(removed.ToPatch().Apply(after), State())
-            .IsEmpty.ShouldBeTrue();
+        RedactedDeviceHolder.Patch.Between(removed.ToPatch().Apply(after), State()).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
@@ -318,57 +264,61 @@ public sealed class ChangePayloadRedactionTests
     {
         Optional<RedactedSecretMap.Fragment?> State(string value) =>
             Optional<RedactedSecretMap.Fragment?>.Present(
-                RedactedSecretMap.Fragment.From(
-                    new RedactedSecretMap { Secrets = new() { ["key"] = value } }
-                )
+                RedactedSecretMap.Fragment.From(new RedactedSecretMap { Secrets = new() { ["key"] = value } })
             );
 
         var before = State("before-value");
         var after = State("after-value");
-        var json = JsonSerializer.Serialize(
-            RedactedSecretMap.ChangeSet.Between(before, after).ToPayload()
-        );
+        var json = PayloadJsonTestSupport.Serialize(RedactedSecretMap.ChangeSet.Between(before, after).ToPayload());
 
         json.ShouldContain("\"state\":\"redacted\"");
         json.ShouldNotContain("before-value");
 
-        var restored = PayloadRoundTrip(
-            RedactedSecretMap.ChangeSet.Between(before, after).ToPayload()
-        );
+        var restored = PayloadRoundTrip(RedactedSecretMap.ChangeSet.Between(before, after).ToPayload());
         Should.Throw<ArgumentException>(() => restored.ToChangeSet());
-        RedactedSecretMap
-            .Patch.Between(restored.ToPatch().Apply(before), after)
-            .IsEmpty.ShouldBeTrue();
+        RedactedSecretMap.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void WholeRoot_RedactsBeforeSnapshot()
     {
         var present = AccountState("name", "before-password");
-        var removed = PayloadRoundTrip(
-            RedactedAccount
-                .ChangeSet.Between(present, Optional<RedactedAccount.Fragment?>.Missing)
-                .ToPayload()
-        );
-        var removedJson = JsonSerializer.Serialize(removed);
-        removedJson.ShouldContain("\"member\":\"$root\"");
+        var removed = PayloadRoundTrip(RedactedAccount.ChangeSet.Between(present, Optional<RedactedAccount.Fragment?>.Missing).ToPayload());
+        var removedJson = PayloadJsonTestSupport.Serialize(removed);
+        removedJson.ShouldContain("\"kind\":\"replace\"");
         removedJson.ShouldContain("\"state\":\"redacted\"");
         removedJson.ShouldNotContain("before-password");
         Should.Throw<ArgumentException>(() => removed.ToChangeSet());
-        RedactedAccount
-            .Patch.Between(
-                removed.ToPatch().Apply(present),
-                Optional<RedactedAccount.Fragment?>.Missing
-            )
-            .IsEmpty.ShouldBeTrue();
+        RedactedAccount.Patch.Between(removed.ToPatch().Apply(present), Optional<RedactedAccount.Fragment?>.Missing).IsEmpty.ShouldBeTrue();
 
         // A missing before-state is known absence, so the add stays complete.
-        var added = PayloadRoundTrip(
-            RedactedAccount
-                .ChangeSet.Between(Optional<RedactedAccount.Fragment?>.Missing, present)
-                .ToPayload()
-        );
+        var added = PayloadRoundTrip(RedactedAccount.ChangeSet.Between(Optional<RedactedAccount.Fragment?>.Missing, present).ToPayload());
         added.ToChangeSet().IsEmpty.ShouldBeFalse();
+    }
+
+    [Test]
+    public void KeyedModelReplacementProjectsWithRedactedBefore()
+    {
+        var before = Optional<RedactedDeviceHolder.Fragment?>.Present(
+            RedactedDeviceHolder.Fragment.From(new RedactedDeviceHolder { Devices = [new RedactedDevice { Id = "device", Name = "old" }] })
+        );
+        var after = Optional<RedactedDeviceHolder.Fragment?>.Present(
+            RedactedDeviceHolder.Fragment.From(new RedactedDeviceHolder { Devices = [new RedactedDevice { Id = "device", Name = "new" }] })
+        );
+        var payload = PayloadJsonTestSupport.Deserialize<RedactedDeviceHolder.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"devices":{"kind":"update","items":[{"key":"device","kind":"replace","beforeIndex":0,"afterIndex":0,"before":{"state":"redacted"},"after":{"state":"value","value":{"Id":"device","Name":"new"}}}],"beforeOrder":["device"],"afterOrder":["device"]}}}}"""
+        )!;
+
+        payload.Validate().IsValid.ShouldBeTrue();
+        var restored = PayloadRoundTrip(payload);
+        var json = PayloadJsonTestSupport.Serialize(restored);
+        json.ShouldContain("\"kind\":\"replace\"");
+        json.ShouldContain("\"state\":\"redacted\"");
+        json.ShouldNotContain("\"old\"");
+        Should.Throw<ArgumentException>(() => restored.ToChangeSet());
+
+        var projected = restored.ToPatch();
+        RedactedDeviceHolder.Patch.Between(projected.Apply(before), after).IsEmpty.ShouldBeTrue();
     }
 
     [Test]

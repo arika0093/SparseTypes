@@ -30,16 +30,12 @@ public sealed class ChangePayloadValidateTests
     }
 
     private static Optional<Settings.Fragment?> SettingsState(string? label, int retry) =>
-        Optional<Settings.Fragment?>.Present(
-            Settings.Fragment.From(new Settings { Label = label, RetryCount = retry })
-        );
+        Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = label, RetryCount = retry }));
 
     [Test]
     public void ValidOrdinaryEnvelopePasses()
     {
-        var payload = Settings
-            .ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 2))
-            .ToPayload();
+        var payload = Settings.ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 2)).ToPayload();
 
         var result = payload.Validate();
 
@@ -51,15 +47,13 @@ public sealed class ChangePayloadValidateTests
     public void BlindAndMixedEnvelopesAreValidWithoutConversion()
     {
         // A baseline-free command carries no history, yet it is well-formed.
-        var command = RedactedAccount.ChangePayload.FromPatch(
-            new RedactedAccount.Patch { Password = AfterSecret }
-        );
+        var command = RedactedAccount.ChangePayload.FromPatch(new RedactedAccount.Patch { Password = AfterSecret });
         var commandResult = command.Validate();
         commandResult.IsValid.ShouldBeTrue();
         ShouldNotLeakSecrets(commandResult);
 
         // A mixed envelope is valid even though ToChangeSet cannot rebuild it.
-        var mixed = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
+        var mixed = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}},{"member":"Password","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}}]}"""
         )!;
         var mixedResult = mixed.Validate();
@@ -103,9 +97,7 @@ public sealed class ChangePayloadValidateTests
                 }
             )
         );
-        var payload = JsonSerializer.Deserialize<MixedSecretHolder.ChangePayload>(
-            JsonSerializer.Serialize(MixedSecretHolder.ChangeSet.Between(before, after).ToPayload())
-        )!;
+        var payload = PayloadJsonTestSupport.RoundTrip(MixedSecretHolder.ChangeSet.Between(before, after).ToPayload());
 
         var result = payload.Validate();
 
@@ -116,9 +108,7 @@ public sealed class ChangePayloadValidateTests
     [Test]
     public void InvalidVersionFails()
     {
-        var payload = Settings
-            .ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 1))
-            .ToPayload();
+        var payload = Settings.ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 1)).ToPayload();
         payload.Version = "0.2";
 
         var result = payload.Validate();
@@ -143,30 +133,23 @@ public sealed class ChangePayloadValidateTests
         nullResult.Errors.ShouldHaveSingleItem();
         nullResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Changes);
 
-        var nullEntry = Settings
-            .ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 1))
-            .ToPayload();
+        var nullEntry = Settings.ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 1)).ToPayload();
         nullEntry.Changes!.Add(null!);
         var nullEntryResult = nullEntry.Validate();
         nullEntryResult.IsValid.ShouldBeFalse();
-        nullEntryResult
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([ChangePayloadValidationKind.Changes]);
+        nullEntryResult.Errors.Select(static error => error.Kind).ShouldBe([ChangePayloadValidationKind.Changes]);
 
-        var duplicate = JsonSerializer.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}},{"member":"Label","before":{"state":"value","value":"b"},"after":{"state":"value","value":"c"}}]}"""
-        )!;
-        var duplicateResult = duplicate.Validate();
-        duplicateResult.IsValid.ShouldBeFalse();
-        duplicateResult.Errors.ShouldHaveSingleItem();
-        duplicateResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Duplicate);
-        duplicateResult.Errors.Single().Path.ShouldBe("Label");
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
+                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","after":{"state":"value","value":"b"}},"label":{"kind":"replace","after":{"state":"value","value":"c"}}}}}"""
+            )
+        );
     }
 
     [Test]
     public void InvalidEndpointsFailWithoutSecrets()
     {
-        var missingAfter = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
+        var missingAfter = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"value","value":"a"}}]}"""
         )!;
         var missingResult = missingAfter.Validate();
@@ -174,7 +157,7 @@ public sealed class ChangePayloadValidateTests
         missingResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Endpoint);
         missingResult.Errors.Single().Path.ShouldBe("DisplayName");
 
-        var redactedAfter = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
+        var redactedAfter = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"value","value":"a"},"after":{"state":"redacted"}}]}"""
         )!;
         var redactedResult = redactedAfter.Validate();
@@ -183,20 +166,18 @@ public sealed class ChangePayloadValidateTests
 
         // A smuggled value inside a value-free endpoint is rejected, and the
         // rejection never echoes the value.
-        var smuggled = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":"SECRET-SMUGGLED"},"after":{"state":"value","value":"after"}}]}"""
-        )!;
-        var smuggledResult = smuggled.Validate();
-        smuggledResult.IsValid.ShouldBeFalse();
-        smuggledResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Endpoint);
-        smuggledResult.Errors.Single().Message.ShouldNotContain("SECRET-SMUGGLED");
-        ShouldNotLeakSecrets(smuggledResult);
+        var smuggled = Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(
+                """{"version":"0.1","changes":[{"member":"Password","before":{"state":"redacted","value":"SECRET-SMUGGLED"},"after":{"state":"value","value":"after"}}]}"""
+            )
+        );
+        smuggled.Message.ShouldNotContain("SECRET-SMUGGLED");
     }
 
     [Test]
     public void DuplicateKeysAndTemporaryIdentitiesFail()
     {
-        var duplicateKeys = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(
+        var duplicateKeys = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"a","kind":"add","after":{"state":"value","value":1}},{"key":"a","kind":"add","after":{"state":"value","value":2}}]}]}"""
         )!;
         var keysResult = duplicateKeys.Validate();
@@ -206,7 +187,7 @@ public sealed class ChangePayloadValidateTests
         keysResult.Errors.Single().Path.ShouldBe("Scores");
 
         var temp = Guid.NewGuid();
-        var duplicateTemps = JsonSerializer.Deserialize<MixedTempHolder.ChangePayload>(
+        var duplicateTemps = PayloadJsonTestSupport.Deserialize<MixedTempHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Items","items":[{"key":0,"kind":"add","beforeIndex":-1,"afterIndex":0,"temporaryKey":"TEMP","after":{"state":"value","value":{"Id":0,"Name":"A"}}},{"key":0,"kind":"add","beforeIndex":-1,"afterIndex":1,"temporaryKey":"TEMP","after":{"state":"value","value":{"Id":0,"Name":"B"}}}],"beforeOrder":[],"afterOrder":[0,0],"tempBeforeOrder":["TEMP"],"tempAfterOrder":["TEMP","TEMP"]}]}""".Replace(
                 "TEMP",
                 temp.ToString()
@@ -214,16 +195,14 @@ public sealed class ChangePayloadValidateTests
         )!;
         var tempsResult = duplicateTemps.Validate();
         tempsResult.IsValid.ShouldBeFalse();
-        tempsResult
-            .Errors.Select(static error => error.Kind)
-            .ShouldContain(ChangePayloadValidationKind.Duplicate);
+        tempsResult.Errors.Select(static error => error.Kind).ShouldContain(ChangePayloadValidationKind.Duplicate);
     }
 
     [Test]
     public void MalformedItemsFailWithPaths()
     {
         // An addition must omit before and carry after.
-        var badAdd = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
+        var badAdd = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"add","beforeIndex":-1,"afterIndex":0,"before":{"state":"value","value":{"Id":"a","Name":"A","Count":0}},"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":[],"afterOrder":["a"]}]}"""
         )!;
         var addResult = badAdd.Validate();
@@ -233,7 +212,7 @@ public sealed class ChangePayloadValidateTests
         addResult.Errors.Single().Path.ShouldBe("Items[a]");
 
         // A scalar edit must carry both endpoints.
-        var badEdit = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(
+        var badEdit = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"a","kind":"edit","before":{"state":"value","value":1}}]}]}"""
         )!;
         var editResult = badEdit.Validate();
@@ -242,7 +221,7 @@ public sealed class ChangePayloadValidateTests
         editResult.Errors.Single().Path.ShouldBe("Scores[a]");
 
         // Dictionaries do not reorder.
-        var reorder = JsonSerializer.Deserialize<ScalarDictHolder.ChangePayload>(
+        var reorder = PayloadJsonTestSupport.Deserialize<ScalarDictHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Scores","items":[{"key":"a","kind":"reorder"}]}]}"""
         )!;
         var reorderResult = reorder.Validate();
@@ -250,9 +229,9 @@ public sealed class ChangePayloadValidateTests
         reorderResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Item);
 
         // A nested member without its core is malformed.
-        var nested = JsonSerializer.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Nested"}]}"""
-        )!;
+        var nested = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update"}}}}"""
+        );
         var nestedResult = nested.Validate();
         nestedResult.IsValid.ShouldBeFalse();
         nestedResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Changes);
@@ -263,7 +242,7 @@ public sealed class ChangePayloadValidateTests
     public void MissingTemporaryOrdersFail()
     {
         var temp = Guid.NewGuid();
-        var payload = JsonSerializer.Deserialize<MixedTempHolder.ChangePayload>(
+        var payload = PayloadJsonTestSupport.Deserialize<MixedTempHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Items","items":[{"key":0,"kind":"edit","beforeIndex":0,"afterIndex":0,"temporaryKey":"TEMP","edit":{"changes":[{"member":"Name","before":{"state":"value","value":"Alice"},"after":{"state":"value","value":"Bob"}}]}}],"beforeOrder":[0],"afterOrder":[0]}]}""".Replace(
                 "TEMP",
                 temp.ToString()
@@ -274,9 +253,7 @@ public sealed class ChangePayloadValidateTests
 
         result.IsValid.ShouldBeFalse();
         result.Errors.Count.ShouldBe(2);
-        result.Errors.ShouldAllBe(static error =>
-            error.Kind == ChangePayloadValidationKind.Order && error.Path == "Items"
-        );
+        result.Errors.ShouldAllBe(static error => error.Kind == ChangePayloadValidationKind.Order && error.Path == "Items");
     }
 
     [Test]
@@ -284,17 +261,10 @@ public sealed class ChangePayloadValidateTests
     {
         Optional<KeyedServerHolder.Fragment?> State(params string[] ids) =>
             Optional<KeyedServerHolder.Fragment?>.Present(
-                KeyedServerHolder.Fragment.From(
-                    new KeyedServerHolder
-                    {
-                        Items = ids.Select(static id => new KeyedServer { Id = id }).ToList(),
-                    }
-                )
+                KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = ids.Select(static id => new KeyedServer { Id = id }).ToList() })
             );
 
-        var payload = KeyedServerHolder
-            .ChangeSet.Between(State("a", "b"), State("b", "a"))
-            .ToPayload();
+        var payload = KeyedServerHolder.ChangeSet.Between(State("a", "b"), State("b", "a")).ToPayload();
         var change = payload.Changes!.Single();
         SetDtoProperty(change, "BeforeOrder", null);
         SetDtoProperty(change, "AfterOrder", null);
@@ -302,9 +272,7 @@ public sealed class ChangePayloadValidateTests
         var result = payload.Validate();
 
         result.IsValid.ShouldBeFalse();
-        result
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([ChangePayloadValidationKind.Order]);
+        result.Errors.Select(static error => error.Kind).ShouldBe([ChangePayloadValidationKind.Order]);
         result.Errors.Single().Path.ShouldBe("Items");
         result.Errors.Single().Message.ShouldContain("after-order");
         ShouldNotLeakSecrets(result);
@@ -315,9 +283,7 @@ public sealed class ChangePayloadValidateTests
     {
         var temp = Guid.NewGuid();
         Optional<MixedTempHolder.Fragment?> State(params MixedTempItem[] items) =>
-            Optional<MixedTempHolder.Fragment?>.Present(
-                MixedTempHolder.Fragment.From(new MixedTempHolder { Items = items.ToList() })
-            );
+            Optional<MixedTempHolder.Fragment?>.Present(MixedTempHolder.Fragment.From(new MixedTempHolder { Items = items.ToList() }));
 
         var payload = MixedTempHolder
             .ChangeSet.Between(
@@ -341,9 +307,7 @@ public sealed class ChangePayloadValidateTests
         var result = payload.Validate();
 
         result.IsValid.ShouldBeFalse();
-        result
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([ChangePayloadValidationKind.Order]);
+        result.Errors.Select(static error => error.Kind).ShouldBe([ChangePayloadValidationKind.Order]);
         result.Errors.Single().Path.ShouldBe("Items");
         result.Errors.Single().Message.ShouldContain("unassigned-key slots");
         ShouldNotLeakSecrets(result);
@@ -354,9 +318,7 @@ public sealed class ChangePayloadValidateTests
     {
         var temp = Guid.NewGuid();
         Optional<MixedTempHolder.Fragment?> State(params MixedTempItem[] items) =>
-            Optional<MixedTempHolder.Fragment?>.Present(
-                MixedTempHolder.Fragment.From(new MixedTempHolder { Items = items.ToList() })
-            );
+            Optional<MixedTempHolder.Fragment?>.Present(MixedTempHolder.Fragment.From(new MixedTempHolder { Items = items.ToList() }));
 
         var payload = MixedTempHolder
             .ChangeSet.Between(
@@ -383,35 +345,29 @@ public sealed class ChangePayloadValidateTests
     [Test]
     public void MultipleErrorsArriveInPayloadOrder()
     {
-        var payload = JsonSerializer.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"value","value":"a"}},{"member":"RetryCount","before":{"state":"value","value":1},"after":{"state":"redacted"}},{"member":"Label","before":{"state":"value","value":"b"},"after":{"state":"value","value":"c"}}]}"""
+        var payload = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"a"}},"retryCount":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"redacted"}}}}}"""
         )!;
 
         var result = payload.Validate();
 
         result.IsValid.ShouldBeFalse();
-        result.Errors.Count.ShouldBe(3);
-        result.Errors.Select(static error => error.Path).ShouldBe(["Label", "RetryCount", "Label"]);
-        result
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([
-                ChangePayloadValidationKind.Endpoint,
-                ChangePayloadValidationKind.Endpoint,
-                ChangePayloadValidationKind.Duplicate,
-            ]);
+        result.Errors.Count.ShouldBe(2);
+        result.Errors.Select(static error => error.Path).ShouldBe(["Label", "RetryCount"]);
+        result.Errors.Select(static error => error.Kind).ShouldBe([ChangePayloadValidationKind.Endpoint, ChangePayloadValidationKind.Endpoint]);
         ShouldNotLeakSecrets(result);
     }
 
     [Test]
     public void WholeRootShapesValidate()
     {
-        var whole = JsonSerializer.Deserialize<Nested.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing","value":null},"after":{"state":"value","value":{"members":[{"member":"Host","value":{"state":"value","value":"h"}},{"member":"Port","value":{"state":"value","value":2}}]}}}]}"""
+        var whole = PayloadJsonTestSupport.Deserialize<Nested.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing"},"after":{"state":"value","value":{"members":[{"member":"Host","value":{"state":"value","value":"h"}},{"member":"Port","value":{"state":"value","value":2}}]}}}]}"""
         )!;
         whole.Validate().IsValid.ShouldBeTrue();
 
-        var redactedAfter = JsonSerializer.Deserialize<Nested.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing","value":null},"after":{"state":"redacted","value":null}}]}"""
+        var redactedAfter = PayloadJsonTestSupport.Deserialize<Nested.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"missing"},"after":{"state":"redacted"}}]}"""
         )!;
         var redactedResult = redactedAfter.Validate();
         redactedResult.IsValid.ShouldBeFalse();
@@ -419,7 +375,7 @@ public sealed class ChangePayloadValidateTests
         redactedResult.Errors.Single().Path.ShouldBe("$root");
 
         // A blind whole-collection removal has no patch projection.
-        var blindRemoval = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
+        var blindRemoval = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"Items","before":{"state":"redacted"},"after":{"state":"missing"}}]}"""
         )!;
         var removalResult = blindRemoval.Validate();
@@ -434,17 +390,13 @@ public sealed class ChangePayloadValidateTests
         // Structural validity, conversion, and concurrent-state conflicts are
         // three separate answers: this mixed envelope is valid, unconvertible
         // to a ChangeSet, and conflicting against a diverged model.
-        var payload = JsonSerializer.Deserialize<RedactedAccount.ChangePayload>(
+        var payload = PayloadJsonTestSupport.Deserialize<RedactedAccount.ChangePayload>(
             """{"version":"0.1","changes":[{"member":"DisplayName","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}},{"member":"Password","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}}]}"""
         )!;
         payload.Validate().IsValid.ShouldBeTrue();
         Should.Throw<ArgumentException>(() => payload.ToChangeSet());
 
-        var applied = payload.TryApplyMixedTo(
-            new RedactedAccount { DisplayName = "diverged", Password = "kept" },
-            out var updated,
-            out var result
-        );
+        var applied = payload.TryApplyMixedTo(new RedactedAccount { DisplayName = "diverged", Password = "kept" }, out var updated, out var result);
 
         applied.ShouldBeFalse();
         updated.ShouldBeNull();
@@ -470,14 +422,7 @@ public sealed class ChangePayloadValidateTests
 
         // Default values stay allowed for value-free states and a value
         // state has no invariant violation, on either path.
-        foreach (
-            var state in new[]
-            {
-                ChangePayloadState.Missing,
-                ChangePayloadState.Null,
-                ChangePayloadState.Redacted,
-            }
-        )
+        foreach (var state in new[] { ChangePayloadState.Missing, ChangePayloadState.Null, ChangePayloadState.Redacted })
         {
             var scalar = new ChangePayloadEndpoint<int> { State = state };
             scalar.GetInvariantError().ShouldBeNull();
@@ -486,64 +431,40 @@ public sealed class ChangePayloadValidateTests
         var valued = new ChangePayloadEndpoint<int> { State = ChangePayloadState.Value, Value = 3 };
         valued.GetInvariantError().ShouldBeNull();
 
-        var nullEndpoint = new ChangePayloadEndpoint<string?>
-        {
-            State = ChangePayloadState.Missing,
-        };
+        var nullEndpoint = new ChangePayloadEndpoint<string?> { State = ChangePayloadState.Missing };
         nullEndpoint.GetInvariantError().ShouldBeNull();
     }
 
     [Test]
     public void ItemEndpointErrorsKeepOrderAndShortCircuitItemChecks()
     {
-        // Both endpoints of the same keyed item smuggle values: exactly two
-        // endpoint errors in before-then-after order, and the per-item redaction
-        // check disappears because the short-circuit already moved on.
-        var payload = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"edit","beforeIndex":0,"afterIndex":0,"before":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}},"after":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}]}"""
-        )!;
-
-        var result = payload.Validate();
-
-        result.IsValid.ShouldBeFalse();
-        result
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([ChangePayloadValidationKind.Endpoint, ChangePayloadValidationKind.Endpoint]);
-        result
-            .Errors.Select(static error => error.Message)
-            .ShouldBe([
-                "A redacted payload endpoint must not contain a value.",
-                "A redacted payload endpoint must not contain a value.",
-            ]);
-        result.Errors.ShouldAllBe(static error => error.Path == "Items");
+        // Value-free states cannot carry a value property, even when its JSON
+        // value is itself valid for the endpoint's generic type.
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(
+                """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"edit","beforeIndex":0,"afterIndex":0,"before":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}},"after":{"state":"redacted","value":{"Id":"a","Name":"HIDDEN","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}]}"""
+            )
+        );
 
         // A null before-endpoint object skips the invariant exactly like the
         // previous null-conditional Validate; the edit lifecycle still fails
         // its item-shape check afterwards.
-        var nullBefore = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Items","items":[{"key":"a","kind":"edit","beforeIndex":0,"afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}]}"""
+        var nullBefore = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"items":{"kind":"update","items":[{"key":"a","kind":"update","beforeIndex":0,"afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}}}],"beforeOrder":["a"],"afterOrder":["a"]}}}}"""
         )!;
         var nullBeforeResult = nullBefore.Validate();
         nullBeforeResult.IsValid.ShouldBeFalse();
         nullBeforeResult.Errors.ShouldContain(static error => error.Path == "Items[a]");
-        nullBeforeResult.Errors.ShouldContain(static error =>
-            error.Kind == ChangePayloadValidationKind.Item
-        );
+        nullBeforeResult.Errors.ShouldContain(static error => error.Kind == ChangePayloadValidationKind.Item);
     }
 
     [Test]
     public void WholeRootEndpointErrorsKeepOrderAndShortCircuitConversion()
     {
-        var payload = JsonSerializer.Deserialize<Nested.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"$root","before":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}},"after":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}}}]}"""
-        )!;
-
-        var result = payload.Validate();
-
-        result.IsValid.ShouldBeFalse();
-        result
-            .Errors.Select(static error => error.Kind)
-            .ShouldBe([ChangePayloadValidationKind.Endpoint, ChangePayloadValidationKind.Endpoint]);
-        result.Errors.Select(static error => error.Path).ShouldBe(["$root", "$root"]);
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<Nested.ChangePayload>(
+                """{"version":"0.1","changes":[{"member":"$root","before":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}},"after":{"state":"redacted","value":{"changes":[{"member":"Host","value":{"state":"value","value":"h"}}]}}}]}"""
+            )
+        );
     }
 }

@@ -49,7 +49,8 @@ internal sealed record SparseGeneratorConfig
         string? EditSessionWithPendingStateInterfaceMetadataName = null,
         string? EditChildDraftHostInterfaceMetadataName = null,
         string? EditChildDraftImplementationType = null,
-        string? EditSessionPipelineInterfaceMetadataName = null
+        string? EditSessionPipelineInterfaceMetadataName = null,
+        string? TransportIgnoreAttributeMetadataName = null
     )
     {
         this.ModelAttributeMetadataName = ModelAttributeMetadataName;
@@ -96,6 +97,7 @@ internal sealed record SparseGeneratorConfig
         this.EditChildDraftHostInterfaceMetadataName = EditChildDraftHostInterfaceMetadataName;
         this.EditChildDraftImplementationType = EditChildDraftImplementationType;
         this.EditSessionPipelineInterfaceMetadataName = EditSessionPipelineInterfaceMetadataName;
+        this.TransportIgnoreAttributeMetadataName = TransportIgnoreAttributeMetadataName;
         this.SessionCapabilityContracts = SessionCapabilityContracts;
     }
 
@@ -195,6 +197,9 @@ internal sealed record SparseGeneratorConfig
     /// <summary>Optional model-specific session reconciliation bridge.</summary>
     public string? EditSessionPipelineInterfaceMetadataName { get; init; }
 
+    /// <summary>Attribute that excludes a tracked member from transport payloads.</summary>
+    public string? TransportIgnoreAttributeMetadataName { get; init; }
+
     /// <summary>Product-owned session capability contracts implemented by generated sessions, or null when disabled.</summary>
     /// <remarks>Null keeps output byte-identical for downstream products without these contracts.</remarks>
     public SparseSessionCapabilityContracts? SessionCapabilityContracts { get; init; }
@@ -285,7 +290,8 @@ internal sealed record SparseDiagnosticIdMap
         string InvalidComparisonStrategy = "SPF030",
         string InvalidTemporaryKeyShape = "SPF031",
         string TemporaryKeyInitializer = "SPF032",
-        string UnsupportedPayloadJsonPoco = "SPF036"
+        string UnsupportedPayloadJsonPoco = "SPF036",
+        string TransportIgnoreOnKey = "SPF037"
     )
     {
         this.MustBePartial = MustBePartial;
@@ -313,6 +319,7 @@ internal sealed record SparseDiagnosticIdMap
         this.InvalidTemporaryKeyShape = InvalidTemporaryKeyShape;
         this.TemporaryKeyInitializer = TemporaryKeyInitializer;
         this.UnsupportedPayloadJsonPoco = UnsupportedPayloadJsonPoco;
+        this.TransportIgnoreOnKey = TransportIgnoreOnKey;
     }
 
     public string MustBePartial { get; init; }
@@ -371,6 +378,9 @@ internal sealed record SparseDiagnosticIdMap
 
     /// <summary>Diagnostic ID for a custom leaf type without generated payload JSON metadata.</summary>
     public string UnsupportedPayloadJsonPoco { get; init; }
+
+    /// <summary>Diagnostic ID for a collection identity excluded from transport.</summary>
+    public string TransportIgnoreOnKey { get; init; }
 }
 
 internal sealed record SparseRuntimeDialect
