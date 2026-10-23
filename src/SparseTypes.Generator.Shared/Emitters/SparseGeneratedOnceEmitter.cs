@@ -106,6 +106,7 @@ internal static class SparseGeneratedOnceEmitter
     /// <returns>A BCL-only generic coordinator source.</returns>
     public static string RenderObservationCoordinator(string implementationNamespace, CancellationToken cancellationToken) =>
         SparseGeneratedOnceObservationCoordinator.BuildSource(implementationNamespace, cancellationToken);
+
     /// <summary>Renders shared System.Text.Json codecs for fragment and payload converters.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <param name="dialect">Product runtime type vocabulary, or null for the BCL-only subset.</param>
