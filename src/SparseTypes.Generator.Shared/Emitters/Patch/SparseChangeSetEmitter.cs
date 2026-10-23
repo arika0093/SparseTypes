@@ -104,7 +104,7 @@ internal static class SparseChangeSetEmitter
         // first.
         var keyedProjectionFields = SparseChangeSetTransitionEmitter.AppendTypedSurface(code, members, dialect, target);
         SparseChangeSetEnumeratorEmitter.Append(code, members, dialect, target, modelType);
-        SparseChangeSetPathEmitter.Append(code, dialect, target);
+        SparseChangeSetPathEmitter.Append(code, dialect, target, modelType);
         // Resolution infrastructure is internal-only: it trails the public
         // surface (including payload facades below) to keep public-first order.
         using var resolutionInfra = target is null ? new SharedIndentedBuilder(code.CancellationToken) : null;

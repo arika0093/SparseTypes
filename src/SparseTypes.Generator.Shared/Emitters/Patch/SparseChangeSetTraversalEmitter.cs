@@ -31,7 +31,10 @@ internal static class SparseChangeSetTraversalEmitter
         "global::System.Collections.Generic.List<" + traversal.SegmentType + ">";
 
     /// <summary>Builds the leaf-sink delegate type for boxed endpoints plus a kind index.</summary>
-    internal static string SinkType(string optionalObject) => "global::System.Action<" + optionalObject + ", " + optionalObject + ", int>";
+    internal static string SinkType(string optionalObject) => "global::System.Func<" + optionalObject + ", " + optionalObject + ", int, bool>";
+
+    /// <summary>Builds the leaf-sink delegate type for path-only traversal.</summary>
+    internal static string PathSinkType(SparsePathTraversalContracts traversal) => "global::System.Func<" + ScratchListType(traversal) + ", bool>";
 
     /// <summary>Appends the root traversal walk shared by both placements.</summary>
     /// <remarks>The caller emits the method shell, the empty/whole guards, and the return; this fills the member walk.</remarks>
@@ -49,13 +52,13 @@ internal static class SparseChangeSetTraversalEmitter
         var self = target is null ? string.Empty : "self.";
         code.AppendLine(
             self
-                + "__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => changes.Add(new "
+                + "__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => { changes.Add(new "
                 + recordType
                 + "("
                 + traversal.PathFromSegments("typeof(" + rootModel + ")", "__sparse_scratch")
                 + ", __sparse_before, __sparse_after, ("
                 + kindType
-                + ")__sparse_kind)), __sparse_scratch);"
+                + ")__sparse_kind)); return true; }, null, __sparse_scratch);"
         );
     }
 
@@ -71,9 +74,16 @@ internal static class SparseChangeSetTraversalEmitter
     {
         code.AppendLine("/// <summary>Collects flattened transitions into the caller's sink (enumeration infrastructure).</summary>");
         code.AppendLine("/// <param name=\"__sparse_sink\">Receives boxed endpoints plus the change-kind index for each leaf.</param>");
+        code.AppendLine("/// <param name=\"__sparse_path_sink\">Receives paths without projecting or boxing endpoints.</param>");
         code.AppendLine("/// <param name=\"__sparse_scratch\">Push/pop segment buffer owned by the root enumeration.</param>");
         code.AppendLine(
-            "internal void __SparseCollectInto(" + SinkType(optionalObject) + " __sparse_sink, " + ScratchListType(traversal) + " __sparse_scratch)"
+            "internal bool __SparseCollectInto("
+                + SinkType(optionalObject)
+                + "? __sparse_sink, "
+                + PathSinkType(traversal)
+                + "? __sparse_path_sink, "
+                + ScratchListType(traversal)
+                + " __sparse_scratch)"
         );
         code.OpenBlock();
         // A whole nested transition collapses to one entry at the pushed
@@ -89,7 +99,7 @@ internal static class SparseChangeSetTraversalEmitter
             BoxValue(optionalObject, "__sparse_wholeAfter.IsPresent", "__sparse_wholeAfter.Value"),
             KindOf("__sparse_wholeBefore", "__sparse_wholeAfter")
         );
-        code.AppendLine("return;");
+        code.AppendLine("return true;");
         code.Unindent();
         code.CloseBlock();
         foreach (var member in members)
@@ -107,6 +117,12 @@ internal static class SparseChangeSetTraversalEmitter
             {
                 changed = setTransition + ".IsChanged";
                 code.AppendLine("var " + setTransition + " = " + property + ";");
+            }
+            else if (IsKeyed(member) || IsDict(member))
+            {
+                // Check canonical storage before the public projection getter,
+                // which may build collection views on its first access.
+                changed = HasField(member) + " && " + property + ".IsChanged";
             }
             code.AppendLine("if (" + changed + ")");
             code.OpenBlock();
@@ -136,6 +152,7 @@ internal static class SparseChangeSetTraversalEmitter
             code.CloseBlock();
         }
 
+        code.AppendLine("return true;");
         code.CloseBlock();
     }
 
@@ -151,7 +168,14 @@ internal static class SparseChangeSetTraversalEmitter
 
     private static void AppendSinkBoxed(SharedIndentedBuilder code, string before, string after, string kind)
     {
-        code.AppendLine("__sparse_sink(" + before + ", " + after + ", " + kind + ");");
+        code.AppendLine("if (__sparse_path_sink is not null)");
+        code.OpenBlock();
+        code.AppendLine("if (!__sparse_path_sink(__sparse_scratch)) return false;");
+        code.CloseBlock();
+        code.AppendLine("else if (!__sparse_sink!(" + before + ", " + after + ", " + kind + "))");
+        code.OpenBlock();
+        code.AppendLine("return false;");
+        code.CloseBlock();
     }
 
     private static string BoxValue(string optionalObject, string check, string value) =>
@@ -206,7 +230,7 @@ internal static class SparseChangeSetTraversalEmitter
     private static void AppendNestedCollect(SharedIndentedBuilder code, string property, string literal, SparsePathTraversalContracts traversal)
     {
         AppendPush(code, traversal.MemberSegment(literal));
-        code.AppendLine(property + ".__SparseCollectInto(__sparse_sink, __sparse_scratch);");
+        code.AppendLine("if (!" + property + ".__SparseCollectInto(__sparse_sink, __sparse_path_sink, __sparse_scratch)) return false;");
         AppendPop(code);
     }
 
@@ -271,7 +295,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.OpenBlock();
         code.Indent();
         AppendPush(code, itemPath);
-        code.AppendLine(item + ".Edit.__SparseCollectInto(__sparse_sink, __sparse_scratch);");
+        code.AppendLine("if (!" + item + ".Edit.__SparseCollectInto(__sparse_sink, __sparse_path_sink, __sparse_scratch)) return false;");
         AppendPop(code);
         code.Unindent();
         code.CloseBlock();
@@ -361,7 +385,7 @@ internal static class SparseChangeSetTraversalEmitter
         if (member.Collection.ValueType?.IsFragmentModel == true)
         {
             AppendPush(code, itemPath);
-            code.AppendLine(item + ".Edit.__SparseCollectInto(__sparse_sink, __sparse_scratch);");
+            code.AppendLine("if (!" + item + ".Edit.__SparseCollectInto(__sparse_sink, __sparse_path_sink, __sparse_scratch)) return false;");
             AppendPop(code);
         }
         else

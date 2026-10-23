@@ -168,23 +168,27 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     {
         get
         {
-            if (_hasChangesCacheValid)
+            if (_cacheObservableChanges && _lastObservedSnapshotValid && _hasChangesCacheValid)
             {
                 return _cachedHasChanges;
             }
 
-            var cachePending = _cacheObservableChanges && _hasChangesSnapshotPending;
             TChangeSet changes;
             try
             {
-                changes = cachePending ? _between(_baseline, _lastObserved) : CreateChangeSet();
+                changes = CreateChangeSet();
             }
             catch (InvalidOperationException exception) when (IsDuplicateKeyError(exception))
             {
                 return true;
             }
 
-            if (cachePending)
+            if (_cacheObservableChanges && _lastObservedSnapshotValid && _hasChangesCacheValid)
+            {
+                return _cachedHasChanges;
+            }
+
+            if (_cacheObservableChanges && _lastObservedSnapshotValid)
             {
                 CacheHasChanges(changes);
                 return _cachedHasChanges;
@@ -268,8 +272,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
         if (!start.IsPresent)
         {
-            _lastObserved = current;
-            InvalidateHasChangesCache();
+            SetObservedSnapshot(current);
             return;
         }
 
@@ -282,16 +285,11 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         {
             // The net batch state cannot be diffed; keep the last valid
             // observation so later diffs still start from valid state.
-            InvalidateHasChangesCache();
+            MarkObservedSnapshotInvalid();
             return;
         }
 
-        _lastObserved = current;
-        InvalidateHasChangesCache();
-        if (_cacheObservableChanges)
-        {
-            _hasChangesSnapshotPending = true;
-        }
+        SetObservedSnapshot(current);
 
         if (!_isEmpty(transition))
         {
@@ -302,14 +300,20 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     /// <summary>Derives the baseline-aware change set between the retained baseline and current model.</summary>
     public TChangeSet CreateChangeSet()
     {
-        var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
-        var changes = _between(_baseline, current);
-        if (_cacheObservableChanges && (_hasChangesCacheValid || _hasChangesSnapshotPending))
+        if (_cacheObservableChanges && _lastObservedSnapshotValid)
         {
-            CacheHasChanges(changes);
+            return GetChangeSetForObservedSnapshot();
         }
 
-        return changes;
+        return CreateChangeSetFromLiveModel();
+    }
+
+    /// <summary>Derives a change set from a fresh capture of the live model.</summary>
+    /// <remarks>Unlike <see cref="CreateChangeSet"/>, this method does not reuse the last observed snapshot.</remarks>
+    public TChangeSet CreateChangeSetFromLiveModel()
+    {
+        var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
+        return _between(_baseline, current);
     }
 
     /// <summary>Derives the baseline-free patch from the current baseline-aware change set.</summary>
@@ -335,8 +339,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         // Fail-fast when the live model cannot serve as a keyed baseline.
         _between(candidate, _baseline);
         SetBaseline(candidate);
-        _lastObserved = candidate;
-        InvalidateHasChangesCache();
+        SetObservedSnapshot(candidate);
         OnPropertyChanged(nameof(HasChanges));
     }
 
@@ -414,6 +417,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     /// <param name="refreshObservable">Refreshes observable notifications.</param>
     /// <param name="cacheObservableChanges">Whether to cache observable changes.</param>
     /// <param name="baselineToModel">Materializes a fragment as a model.</param>
+    /// <param name="tryApplyInPlace">Applies a prepared change set directly to the live model.</param>
     internal EditSessionCore(
         TModel model,
         TFragment baseline,
@@ -431,7 +435,8 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         Func<TChangeSet, IReadOnlyList<global::SparseTypes.SparsePath>>? enumerateChangedPaths = null,
         Action<TObservable>? refreshObservable = null,
         bool cacheObservableChanges = false,
-        Func<TFragment, TModel>? baselineToModel = null
+        Func<TFragment, TModel>? baselineToModel = null,
+        Func<TChangeSet, TModel, (bool Succeeded, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)>? tryApplyInPlace = null
     )
     {
         Model = model;
@@ -448,6 +453,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         _enumerateChangedPaths = enumerateChangedPaths;
         _refreshObservable = refreshObservable;
         _onChanged = onChanged;
+        _tryApplyInPlace = tryApplyInPlace;
         _cacheObservableChanges = cacheObservableChanges;
         _initialCacheObservableChanges = cacheObservableChanges;
         _baselineToModel = baselineToModel;
@@ -470,6 +476,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     private readonly Func<TChangeSet, global::SparseTypes.Optional<TFragment?>, global::SparseTypes.Optional<TFragment?>> _advanceBaseline;
     private readonly TObservable _observable;
     private readonly Func<TChangeSet, TModel, (TModel? Updated, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)>? _tryApplyTo;
+    private readonly Func<TChangeSet, TModel, (bool Succeeded, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)>? _tryApplyInPlace;
     private readonly Action<TModel, TModel>? _writeModel;
     private readonly Func<TChangeSet, TChangeSet>? _invert;
     private readonly Func<TChangeSet, TModel, global::SparseTypes.RebaseResult<TChangeSet>>? _rebase;
@@ -483,7 +490,12 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     private bool _cacheObservableChanges;
     private bool _hasChangesCacheValid;
     private bool _cachedHasChanges;
-    private bool _hasChangesSnapshotPending;
+    private bool _cachedChangeSetValid;
+    private bool _lastObservedSnapshotValid;
+    private long _observedGeneration;
+    private long _cachedChangeSetGeneration;
+    private long _cachedChangeSetBaselineRevision;
+    private TChangeSet? _cachedChangeSet;
     private global::SparseTypes.Optional<TFragment?> _lastObserved;
     private global::SparseTypes.Optional<TFragment?> _baseline;
     private long _baselineRevision;
@@ -503,6 +515,37 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         var revision = checked(_baselineRevision + 1);
         _baseline = baseline;
         _baselineRevision = revision;
+        InvalidateHasChangesCache();
+    }
+
+    private void SetObservedSnapshot(global::SparseTypes.Optional<TFragment?> snapshot)
+    {
+        _lastObserved = snapshot;
+        _observedGeneration = unchecked(_observedGeneration + 1);
+        _lastObservedSnapshotValid = true;
+        InvalidateHasChangesCache();
+    }
+
+    private void MarkObservedSnapshotInvalid()
+    {
+        _observedGeneration = unchecked(_observedGeneration + 1);
+        _lastObservedSnapshotValid = false;
+        InvalidateHasChangesCache();
+    }
+
+    private TChangeSet GetChangeSetForObservedSnapshot()
+    {
+        if (_cachedChangeSetValid && _cachedChangeSetGeneration == _observedGeneration && _cachedChangeSetBaselineRevision == _baselineRevision)
+        {
+            return _cachedChangeSet!;
+        }
+
+        var changes = _between(_baseline, _lastObserved);
+        _cachedChangeSet = changes;
+        _cachedChangeSetGeneration = _observedGeneration;
+        _cachedChangeSetBaselineRevision = _baselineRevision;
+        _cachedChangeSetValid = true;
+        return changes;
     }
 
     private void OnObservableChanged()
@@ -511,11 +554,12 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         {
             // Defer all snapshot/diff work to the outermost batch exit.
             _batchDirty = true;
-            InvalidateHasChangesCache();
+            MarkObservedSnapshotInvalid();
             OnPropertyChanged(nameof(HasChanges));
             return;
         }
 
+        MarkObservedSnapshotInvalid();
         var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
         TChangeSet transition;
         try
@@ -524,17 +568,11 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         }
         catch (InvalidOperationException exception) when (IsDuplicateKeyError(exception))
         {
-            InvalidateHasChangesCache();
             OnPropertyChanged(nameof(HasChanges));
             return;
         }
 
-        _lastObserved = current;
-        InvalidateHasChangesCache();
-        if (_cacheObservableChanges)
-        {
-            _hasChangesSnapshotPending = true;
-        }
+        SetObservedSnapshot(current);
 
         if (_batchDepth == 0 && !_isEmpty(transition))
         {
@@ -553,14 +591,13 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     private void InvalidateHasChangesCache()
     {
         _hasChangesCacheValid = false;
-        _hasChangesSnapshotPending = false;
+        _cachedChangeSetValid = false;
     }
 
     private void CacheHasChanges(TChangeSet changes)
     {
         _cachedHasChanges = !_isEmpty(changes);
         _hasChangesCacheValid = true;
-        _hasChangesSnapshotPending = false;
     }
 
     private void OnObservableMutation()

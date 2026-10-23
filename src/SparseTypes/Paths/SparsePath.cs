@@ -10,6 +10,7 @@ namespace SparseTypes;
 public readonly struct SparsePath : IEquatable<SparsePath>
 {
     private readonly SparsePathSegment[]? _storage;
+    private readonly int _length;
     private readonly Type? _rootType;
     private SparsePathSegment[] SegmentsArray => _storage ?? [];
     internal bool IsInitialized => _rootType is not null;
@@ -18,6 +19,14 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     {
         _rootType = rootType;
         _storage = ownedSegments;
+        _length = ownedSegments.Length;
+    }
+
+    private SparsePath(SparsePathSegment[] ownedSegments, int length, Type rootType)
+    {
+        _rootType = rootType;
+        _storage = ownedSegments;
+        _length = length;
     }
 
     /// <summary>Creates a path from a root type and segments.</summary>
@@ -29,6 +38,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         ArgumentNullException.ThrowIfNull(segments);
         _rootType = rootType;
         _storage = segments.ToArray();
+        _length = _storage.Length;
     }
 
     /// <summary>Creates a path from a root type and segments.</summary>
@@ -41,13 +51,13 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     public Type RootType => _rootType ?? typeof(object);
 
     /// <summary>Gets the ordered segments from the root.</summary>
-    public SparsePathSegments Segments => new(SegmentsArray);
+    public SparsePathSegments Segments => new(SegmentsArray, _length);
 
     /// <summary>Gets whether this path addresses the whole root contribution.</summary>
-    public bool IsRoot => SegmentsArray.Length == 0;
+    public bool IsRoot => _length == 0;
 
     /// <summary>Gets the segment count from the root.</summary>
-    public int Depth => SegmentsArray.Length;
+    public int Depth => _length;
 
     /// <summary>Creates the root path for a model type.</summary>
     /// <param name="rootType">The root model type.</param>
@@ -62,15 +72,23 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     {
         get
         {
-            if (SegmentsArray.Length == 0)
+            if (_length == 0)
             {
                 return null;
             }
 
-            var parent = new SparsePathSegment[SegmentsArray.Length - 1];
-            Array.Copy(SegmentsArray, parent, parent.Length);
-            return new SparsePath(parent, RootType);
+            return Prefix(_length - 1);
         }
+    }
+
+    internal SparsePath Prefix(int length)
+    {
+        if (length < 0 || length > _length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(length));
+        }
+
+        return length == 0 ? Root(RootType) : new SparsePath(SegmentsArray, length, RootType);
     }
 
     /// <summary>Appends a member segment for a declared model member.</summary>
@@ -94,9 +112,9 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <param name="segment">The segment to append.</param>
     public SparsePath Append(SparsePathSegment segment)
     {
-        var combined = new SparsePathSegment[SegmentsArray.Length + 1];
-        Array.Copy(SegmentsArray, combined, SegmentsArray.Length);
-        combined[SegmentsArray.Length] = segment;
+        var combined = new SparsePathSegment[_length + 1];
+        Array.Copy(SegmentsArray, combined, _length);
+        combined[_length] = segment;
         return new SparsePath(combined, RootType);
     }
 
@@ -105,14 +123,14 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <remarks>Used to prefix nested entries with their parent's path.</remarks>
     public SparsePath Append(SparsePath suffix)
     {
-        if (suffix.SegmentsArray.Length == 0)
+        if (suffix._length == 0)
         {
             return this;
         }
 
-        var combined = new SparsePathSegment[SegmentsArray.Length + suffix.SegmentsArray.Length];
-        Array.Copy(SegmentsArray, combined, SegmentsArray.Length);
-        Array.Copy(suffix.SegmentsArray, 0, combined, SegmentsArray.Length, suffix.SegmentsArray.Length);
+        var combined = new SparsePathSegment[_length + suffix._length];
+        Array.Copy(SegmentsArray, combined, _length);
+        Array.Copy(suffix.SegmentsArray, 0, combined, _length, suffix._length);
         return new SparsePath(combined, RootType);
     }
 
@@ -121,9 +139,9 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     public SparsePath PrependMember(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
-        var combined = new SparsePathSegment[SegmentsArray.Length + 1];
+        var combined = new SparsePathSegment[_length + 1];
         combined[0] = SparsePathSegment.Member(name);
-        Array.Copy(SegmentsArray, 0, combined, 1, SegmentsArray.Length);
+        Array.Copy(SegmentsArray, 0, combined, 1, _length);
         return new SparsePath(combined, RootType);
     }
 
@@ -132,14 +150,14 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <remarks>Used to bubble nested conflicts and changes to their parent root.</remarks>
     public SparsePath Prepend(SparsePath prefix)
     {
-        if (prefix.SegmentsArray.Length == 0)
+        if (prefix._length == 0)
         {
-            return new SparsePath(SegmentsArray, prefix.RootType);
+            return new SparsePath(SegmentsArray, _length, prefix.RootType);
         }
 
-        var combined = new SparsePathSegment[prefix.SegmentsArray.Length + SegmentsArray.Length];
-        Array.Copy(prefix.SegmentsArray, combined, prefix.SegmentsArray.Length);
-        Array.Copy(SegmentsArray, 0, combined, prefix.SegmentsArray.Length, SegmentsArray.Length);
+        var combined = new SparsePathSegment[prefix._length + _length];
+        Array.Copy(prefix.SegmentsArray, combined, prefix._length);
+        Array.Copy(SegmentsArray, 0, combined, prefix._length, _length);
         return new SparsePath(combined, prefix.RootType);
     }
 
@@ -147,12 +165,12 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <param name="other">The candidate descendant.</param>
     public bool IsAncestorOf(SparsePath other)
     {
-        if (RootType != other.RootType || SegmentsArray.Length >= other.SegmentsArray.Length)
+        if (RootType != other.RootType || _length >= other._length)
         {
             return false;
         }
 
-        for (var index = 0; index < SegmentsArray.Length; index++)
+        for (var index = 0; index < _length; index++)
         {
             if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
             {
@@ -176,12 +194,12 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return false;
         }
 
-        if (other.SegmentsArray.Length > SegmentsArray.Length)
+        if (other._length > _length)
         {
             return false;
         }
 
-        for (var index = 0; index < other.SegmentsArray.Length; index++)
+        for (var index = 0; index < other._length; index++)
         {
             if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
             {
@@ -201,12 +219,12 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return false;
         }
 
-        if (SegmentsArray.Length != other.SegmentsArray.Length)
+        if (_length != other._length)
         {
             return false;
         }
 
-        for (var index = 0; index < SegmentsArray.Length; index++)
+        for (var index = 0; index < _length; index++)
         {
             if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
             {
@@ -228,9 +246,9 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         unchecked
         {
             var hash = rootHashCode;
-            foreach (var segment in SegmentsArray)
+            for (var index = 0; index < _length; index++)
             {
-                hash = (hash * 397) ^ segment.GetHashCode();
+                hash = (hash * 397) ^ SegmentsArray[index].GetHashCode();
             }
 
             return hash;
@@ -247,7 +265,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <remarks>Member segments join with <c>.</c>.</remarks>
     public override string ToString()
     {
-        if (SegmentsArray.Length == 0)
+        if (_length == 0)
         {
             return "$root";
         }
@@ -255,8 +273,9 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         var builder = SparsePathTextBuilderPool.Rent();
         try
         {
-            foreach (var segment in SegmentsArray)
+            for (var index = 0; index < _length; index++)
             {
+                var segment = SegmentsArray[index];
                 switch (segment.Kind)
                 {
                     case SparsePathSegmentKind.Member:

@@ -166,6 +166,7 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         {
             code.AppendLine("if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key") + ") return Item.Empty;");
         }
+        code.AppendLine("if (_items.Count == 0) return Item.Empty;");
         code.AppendLine("var __lookup = _lookup;");
         code.AppendLine("if (__lookup is null)");
         code.OpenBlock();
@@ -238,6 +239,29 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         code.AppendLine("_items = items.AsReadOnly();");
         code.AppendLine("IsEmpty = isEmpty;");
         code.CloseBlock();
+        code.AppendLine(
+            "internal static "
+                + trans
+                + " __SparseEmpty { get; } = new "
+                + trans
+                + "(default, default, new global::System.Collections.Generic.List<"
+                + elementType
+                + ">(), new global::System.Collections.Generic.List<"
+                + elementType
+                + ">(), new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + elementCs
+                + ">("
+                + comparer
+                + "), new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(), new global::System.Collections.Generic.List<"
+                + keyType
+                + ">(), false, new global::System.Collections.Generic.List<"
+                + trans
+                + ".Item>(), true);"
+        );
         code.AppendLine("private readonly global::System.Collections.Generic.IReadOnlyList<Item> _items;");
         code.AppendLine("private global::System.Collections.Generic.Dictionary<" + keyType + ", Item>? _lookup;");
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))

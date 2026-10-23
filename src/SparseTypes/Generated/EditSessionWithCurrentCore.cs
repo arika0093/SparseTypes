@@ -55,6 +55,10 @@ public sealed class EditSessionCoreConfiguration<TModel, TFragment, TPatch, TCha
     /// <summary>Attempts to apply a change set and returns its updated model or conflicts.</summary>
     public Func<TChangeSet, TModel, (TModel? Updated, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)>? TryApplyTo { get; init; }
 
+    /// <summary>Validates and applies a change set directly to the live model.</summary>
+    /// <remarks>A failed result must leave the model unchanged. Exceptions may follow a partial write.</remarks>
+    public Func<TChangeSet, TModel, (bool Succeeded, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts)>? TryApplyInPlace { get; init; }
+
     /// <summary>Writes an updated model into the existing live model instance.</summary>
     public Action<TModel, TModel>? WriteModel { get; init; }
 
@@ -228,7 +232,8 @@ public class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable,
             configuration.EnumerateChangedPaths,
             configuration.RefreshObservable,
             cacheObservableChanges: true,
-            baselineToModel: configuration.BaselineToModel
+            baselineToModel: configuration.BaselineToModel,
+            tryApplyInPlace: configuration.TryApplyInPlace
         )
     {
         _configuration = configuration;

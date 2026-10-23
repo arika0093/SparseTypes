@@ -24,30 +24,11 @@ public sealed class ObservableProxyRegressionTests
         public Action Changed { get; }
     }
 
-    private static SparseObservableList<ProbeChild, ProbeView> ProbeList(
-        IList<ProbeChild> models,
-        Action onChanged,
-        bool cacheReferences = true
-    ) =>
-        new(
-            models,
-            static (item, changed) => new ProbeView(item, changed),
-            static view => view.Target,
-            onChanged,
-            cacheReferences
-        );
+    private static SparseObservableList<ProbeChild, ProbeView> ProbeList(IList<ProbeChild> models, Action onChanged, bool cacheReferences = true) =>
+        new(models, static (item, changed) => new ProbeView(item, changed), static view => view.Target, onChanged, cacheReferences);
 
-    private static SparseObservableDictionary<string, ProbeChild, ProbeView> ProbeDict(
-        IDictionary<string, ProbeChild> models,
-        Action onChanged
-    ) =>
-        new(
-            models,
-            static (item, changed) => new ProbeView(item, changed),
-            static view => view.Target,
-            onChanged,
-            cacheReferences: true
-        );
+    private static SparseObservableDictionary<string, ProbeChild, ProbeView> ProbeDict(IDictionary<string, ProbeChild> models, Action onChanged) =>
+        new(models, static (item, changed) => new ProbeView(item, changed), static view => view.Target, onChanged, cacheReferences: true);
 
     [Test]
     public void ListProxyIdentityIsStableAcrossAccessPatterns()
@@ -107,10 +88,7 @@ public sealed class ObservableProxyRegressionTests
     public void ListClearDetachesAllWithSingleReset()
     {
         var notified = 0;
-        var view = ProbeList(
-            [new ProbeChild { Name = "a" }, new ProbeChild { Name = "b" }],
-            () => notified++
-        );
+        var view = ProbeList([new ProbeChild { Name = "a" }, new ProbeChild { Name = "b" }], () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var first = view[0];
@@ -127,10 +105,7 @@ public sealed class ObservableProxyRegressionTests
     public void ListReplaceDetachesOnlyOldProxy()
     {
         var notified = 0;
-        var view = ProbeList(
-            [new ProbeChild { Name = "old" }, new ProbeChild { Name = "keep" }],
-            () => notified++
-        );
+        var view = ProbeList([new ProbeChild { Name = "old" }, new ProbeChild { Name = "keep" }], () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var old = view[0];
@@ -151,10 +126,7 @@ public sealed class ObservableProxyRegressionTests
     public void ListMoveKeepsProxiesAliveAndRaisesOnce()
     {
         var notified = 0;
-        var view = ProbeList(
-            [new ProbeChild { Name = "a" }, new ProbeChild { Name = "b" }],
-            () => notified++
-        );
+        var view = ProbeList([new ProbeChild { Name = "a" }, new ProbeChild { Name = "b" }], () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var first = view[0];
@@ -183,9 +155,7 @@ public sealed class ObservableProxyRegressionTests
         view.InsertModel(0, new ProbeChild { Name = "front" });
 
         ReferenceEquals(first, view[1]).ShouldBeTrue();
-        events
-            .Select(args => args.Action)
-            .ShouldBe([NotifyCollectionChangedAction.Add, NotifyCollectionChangedAction.Add]);
+        events.Select(args => args.Action).ShouldBe([NotifyCollectionChangedAction.Add, NotifyCollectionChangedAction.Add]);
         first.Changed();
         notified.ShouldBe(3);
     }
@@ -231,6 +201,116 @@ public sealed class ObservableProxyRegressionTests
         notified.ShouldBe(1);
         first.Changed();
         notified.ShouldBe(2);
+    }
+
+    [Test]
+    public void ExternalRangeRemovePrunesOnceAndKeepsRemainingDuplicateAlive()
+    {
+        var notified = 0;
+        var shared = new ProbeChild { Name = "shared" };
+        var removedA = new ProbeChild { Name = "a" };
+        var removedB = new ProbeChild { Name = "b" };
+        var source = new RangeObservableList<ProbeChild>([shared, removedA, removedB, shared]);
+        var view = ProbeList(source, () => notified++);
+        var sharedProxy = view[0];
+        var removedProxyA = view[1];
+        var removedProxyB = view[2];
+        var events = new List<NotifyCollectionChangedEventArgs>();
+        view.CollectionChanged += (_, args) => events.Add(args);
+
+        source.RemoveRange(0, 3);
+
+        events.Count.ShouldBe(1);
+        events[0].Action.ShouldBe(NotifyCollectionChangedAction.Remove);
+        notified.ShouldBe(1);
+        sharedProxy.Changed();
+        removedProxyA.Changed();
+        removedProxyB.Changed();
+        notified.ShouldBe(2);
+
+        source.RemoveRange(0, 1);
+
+        sharedProxy.Changed();
+        notified.ShouldBe(3);
+    }
+
+    [Test]
+    public void ExternalRangeReplaceKeepsDuplicateOldModelAlive()
+    {
+        var notified = 0;
+        var shared = new ProbeChild { Name = "shared" };
+        var replaced = new ProbeChild { Name = "replaced" };
+        var source = new RangeObservableList<ProbeChild>([shared, replaced, shared]);
+        var view = ProbeList(source, () => notified++);
+        var sharedProxy = view[0];
+        var replacedProxy = view[1];
+
+        source.ReplaceRange(0, [new ProbeChild { Name = "new-a" }, new ProbeChild { Name = "new-b" }]);
+
+        notified.ShouldBe(1);
+        sharedProxy.Changed();
+        replacedProxy.Changed();
+        notified.ShouldBe(2);
+        ReferenceEquals(sharedProxy, view[2]).ShouldBeTrue();
+    }
+
+    [Test]
+    public void DirectRawListMutationStillChecksLiveMembership()
+    {
+        var notified = 0;
+        var child = new ProbeChild { Name = "raw" };
+        var source = new List<ProbeChild> { child };
+        var view = ProbeList(source, () => notified++);
+        var proxy = view[0];
+
+        source.RemoveAt(0);
+        proxy.Changed();
+        notified.ShouldBe(0);
+
+        source.Add(child);
+        proxy.Changed();
+        notified.ShouldBe(1);
+    }
+
+    [Test]
+    public void RawModelAccessInvalidatesMembershipIndexUntilReset()
+    {
+        var notified = 0;
+        var child = new ProbeChild { Name = "raw" };
+        var source = new SilentObservableList<ProbeChild>([child]);
+        var view = ProbeList(source, () => notified++);
+        var proxy = view[0];
+
+        view.Model.RemoveAt(0);
+        proxy.Changed();
+        notified.ShouldBe(0);
+
+        source.Add(child);
+        proxy.Changed();
+        notified.ShouldBe(1);
+
+        view.NotifyReset(reportChange: false);
+        proxy.Changed();
+        notified.ShouldBe(2);
+    }
+
+    [Test]
+    public void ReaddedModelDoesNotReactivateStaleProxy()
+    {
+        var notified = 0;
+        var child = new ProbeChild { Name = "same" };
+        var view = ProbeList(new List<ProbeChild> { child }, () => notified++);
+        var stale = view[0];
+
+        view.RemoveAt(0);
+        view.AddModel(child);
+        var current = view[0];
+
+        ReferenceEquals(stale, current).ShouldBeFalse();
+        stale.Changed();
+        notified.ShouldBe(2);
+        current.Changed();
+        notified.ShouldBe(3);
     }
 
     [Test]
@@ -304,10 +384,7 @@ public sealed class ObservableProxyRegressionTests
         var notified = 0;
         var first = new ProbeChild { Name = "a" };
         var second = new ProbeChild { Name = "b" };
-        var view = ProbeDict(
-            new Dictionary<string, ProbeChild> { ["a"] = first, ["b"] = second },
-            () => notified++
-        );
+        var view = ProbeDict(new Dictionary<string, ProbeChild> { ["a"] = first, ["b"] = second }, () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var firstProxy = view["a"];
@@ -329,10 +406,7 @@ public sealed class ObservableProxyRegressionTests
     {
         var notified = 0;
         var shared = new ProbeChild { Name = "shared" };
-        var view = ProbeDict(
-            new Dictionary<string, ProbeChild> { ["a"] = shared, ["b"] = shared },
-            () => notified++
-        );
+        var view = ProbeDict(new Dictionary<string, ProbeChild> { ["a"] = shared, ["b"] = shared }, () => notified++);
         var sharedProxy = view["a"];
 
         ReferenceEquals(sharedProxy, view["b"]).ShouldBeTrue();
@@ -351,10 +425,7 @@ public sealed class ObservableProxyRegressionTests
     public void DictionarySetReplaceDetachesOnlyOldValue()
     {
         var notified = 0;
-        var view = ProbeDict(
-            new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "old" } },
-            () => notified++
-        );
+        var view = ProbeDict(new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "old" } }, () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var old = view["a"];
@@ -387,10 +458,7 @@ public sealed class ObservableProxyRegressionTests
     public void DictionaryClearDetachesAllWithSingleReset()
     {
         var notified = 0;
-        var view = ProbeDict(
-            new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "a" } },
-            () => notified++
-        );
+        var view = ProbeDict(new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "a" } }, () => notified++);
         var events = new List<NotifyCollectionChangedEventArgs>();
         view.CollectionChanged += (_, args) => events.Add(args);
         var first = view["a"];
@@ -406,10 +474,7 @@ public sealed class ObservableProxyRegressionTests
     public void DisposedDictionaryViewDetachesProxies()
     {
         var notified = 0;
-        var view = ProbeDict(
-            new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "a" } },
-            () => notified++
-        );
+        var view = ProbeDict(new Dictionary<string, ProbeChild> { ["a"] = new() { Name = "a" } }, () => notified++);
         var first = view["a"];
 
         view.Dispose();
@@ -436,5 +501,48 @@ public sealed class ObservableProxyRegressionTests
         oldElement.Name = "stale";
         notified.ShouldBe(1);
         Should.Throw<ObjectDisposedException>(() => oldView.Remove("b"));
+    }
+
+    private sealed class RangeObservableList<T>(IEnumerable<T> items) : List<T>(items), INotifyCollectionChanged
+    {
+        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+
+        public new void RemoveRange(int index, int count)
+        {
+            var removed = GetRange(index, count);
+            base.RemoveRange(index, count);
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, (System.Collections.IList)removed, index)
+            );
+        }
+
+        public void ReplaceRange(int index, IList<T> items)
+        {
+            var removed = GetRange(index, items.Count);
+            for (var offset = 0; offset < items.Count; offset++)
+            {
+                this[index + offset] = items[offset];
+            }
+
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Replace,
+                    (System.Collections.IList)items,
+                    (System.Collections.IList)removed,
+                    index
+                )
+            );
+        }
+    }
+
+    private sealed class SilentObservableList<T>(IEnumerable<T> items) : List<T>(items), INotifyCollectionChanged
+    {
+        public event NotifyCollectionChangedEventHandler? CollectionChanged
+        {
+            add { }
+            remove { }
+        }
     }
 }

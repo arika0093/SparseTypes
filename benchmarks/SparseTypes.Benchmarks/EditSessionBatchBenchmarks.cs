@@ -27,6 +27,7 @@ public class EditSessionBatchBenchmarks
     public int Size { get; set; }
 
     private const int EditCount = 64;
+    private const int SnapshotQueryCount = 16;
 
     private BenchBatchParent _prototype = null!;
 
@@ -36,16 +37,11 @@ public class EditSessionBatchBenchmarks
         _prototype = new BenchBatchParent
         {
             Title = "prototype",
-            Items = Enumerable
-                .Range(0, Size)
-                .Select(index => new BenchBatchChild { Id = "id-" + index, Name = "n-" + index })
-                .ToList(),
+            Items = Enumerable.Range(0, Size).Select(index => new BenchBatchChild { Id = "id-" + index, Name = "n-" + index }).ToList(),
         };
-        if (CreateSession() != Size || RootScalarEdits() != "odd".Length)
+        if (CreateSession() != Size || RootScalarEdits() != "odd".Length || RepeatedSnapshotQueries() != SnapshotQueryCount * 3)
         {
-            throw new InvalidOperationException(
-                "Session benchmarks must retain all items and apply edits."
-            );
+            throw new InvalidOperationException("Session benchmarks must retain all items and apply edits.");
         }
     }
 
@@ -53,9 +49,7 @@ public class EditSessionBatchBenchmarks
         new()
         {
             Title = _prototype.Title,
-            Items = _prototype
-                .Items.Select(child => new BenchBatchChild { Id = child.Id, Name = child.Name })
-                .ToList(),
+            Items = _prototype.Items.Select(child => new BenchBatchChild { Id = child.Id, Name = child.Name }).ToList(),
         };
 
     [Benchmark(Baseline = true, Description = "64 nested edits without batching")]
@@ -105,5 +99,34 @@ public class EditSessionBatchBenchmarks
         });
 
         return model.Items.Count + model.Title.Length;
+    }
+
+    [Benchmark(Description = "Repeated cached session, change-set, and watcher queries")]
+    public int RepeatedSnapshotQueries()
+    {
+        var session = Fresh().CreateEditSession();
+        using var watcher = session.ObserveField(BenchBatchParent.SparsePath.Title);
+        session.Observable.Title = "changed";
+
+        var checksum = 0;
+        for (var index = 0; index < SnapshotQueryCount; index++)
+        {
+            if (session.HasChanges)
+            {
+                checksum++;
+            }
+
+            if (!session.CreateChangeSet().IsEmpty)
+            {
+                checksum++;
+            }
+
+            if (watcher.HasChanges)
+            {
+                checksum++;
+            }
+        }
+
+        return checksum;
     }
 }

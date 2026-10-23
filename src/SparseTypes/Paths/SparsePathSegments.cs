@@ -11,17 +11,23 @@ namespace SparseTypes;
 public readonly struct SparsePathSegments : IReadOnlyList<SparsePathSegment>
 {
     private readonly SparsePathSegment[]? _segments;
+    private readonly int _length;
 
-    internal SparsePathSegments(SparsePathSegment[] segments) => _segments = segments;
+    internal SparsePathSegments(SparsePathSegment[] segments, int length)
+    {
+        _segments = segments;
+        _length = length;
+    }
 
     /// <summary>Gets the number of segments.</summary>
-    public int Count => _segments?.Length ?? 0;
+    public int Count => _length;
 
     /// <summary>Gets the segment at the specified index.</summary>
-    public SparsePathSegment this[int index] => (_segments ?? Array.Empty<SparsePathSegment>())[index];
+    public SparsePathSegment this[int index] =>
+        (_segments is not null && (uint)index < (uint)_length ? _segments : Array.Empty<SparsePathSegment>())[index];
 
     /// <summary>Returns an enumerator over the segments.</summary>
-    public Enumerator GetEnumerator() => new(_segments);
+    public Enumerator GetEnumerator() => new(_segments, _length);
 
     IEnumerator<SparsePathSegment> IEnumerable<SparsePathSegment>.GetEnumerator() => GetEnumerator();
 
@@ -32,29 +38,31 @@ public readonly struct SparsePathSegments : IReadOnlyList<SparsePathSegment>
     public struct Enumerator : IEnumerator<SparsePathSegment>
     {
         private readonly SparsePathSegment[]? _segments;
+        private readonly int _length;
         private int _index;
 
-        internal Enumerator(SparsePathSegment[]? segments)
+        internal Enumerator(SparsePathSegment[]? segments, int length)
         {
             _segments = segments;
+            _length = length;
             _index = -1;
         }
 
         /// <inheritdoc />
         public readonly SparsePathSegment Current =>
-            _segments is not null && (uint)_index < (uint)_segments.Length ? _segments[_index] : throw new InvalidOperationException();
+            _segments is not null && (uint)_index < (uint)_length ? _segments[_index] : throw new InvalidOperationException();
 
         readonly object IEnumerator.Current => Current;
 
         /// <inheritdoc />
         public bool MoveNext()
         {
-            if (_segments is not null && _index < _segments.Length - 1)
+            if (_segments is not null && _index < _length - 1)
             {
                 _index++;
                 return true;
             }
-            _index = _segments?.Length ?? 0;
+            _index = _length;
             return false;
         }
 

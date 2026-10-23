@@ -221,6 +221,7 @@ public sealed class AttributeBridgeTests
             CancellationToken.None
         );
         var jsonPayloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(implementationNamespace, emitCodecs: true, CancellationToken.None);
+        var observationCoordinator = SparseGeneratedOnceEmitter.RenderObservationCoordinator(implementationNamespace, CancellationToken.None);
         const string stub = """
             namespace Ns
             {
@@ -238,6 +239,7 @@ public sealed class AttributeBridgeTests
             .Prepend(CSharpSyntaxTree.ParseText(splitImplementation!, path: "Implementation.cs"))
             .Append(CSharpSyntaxTree.ParseText(jsonCodecs, path: "JsonCodecs.cs"))
             .Append(CSharpSyntaxTree.ParseText(jsonPayloadCodecs, path: "JsonPayloadCodecs.cs"))
+            .Append(CSharpSyntaxTree.ParseText(observationCoordinator, path: "ObservationCoordinator.cs"))
             .Append(CSharpSyntaxTree.ParseText(cores.Core, path: "EditSessionCore.cs"))
             .Append(CSharpSyntaxTree.ParseText(cores.CurrentCore, path: "EditSessionWithCurrentCore.cs"))
             .Append(CSharpSyntaxTree.ParseText(stub, path: "Models.cs"))

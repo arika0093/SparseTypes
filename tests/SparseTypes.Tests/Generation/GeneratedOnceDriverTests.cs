@@ -253,7 +253,7 @@ public sealed class GeneratedOnceDriverTests
             preflightStart.ShouldBeGreaterThan(acceptStart);
             childSource
                 .Substring(acceptStart, preflightStart - acceptStart)
-                .Split("fork.CreateChangeSet()", StringSplitOptions.None)
+                .Split("fork._session.CreateChangeSetFromLiveModel()", StringSplitOptions.None)
                 .Length.ShouldBe(2);
         }
     }

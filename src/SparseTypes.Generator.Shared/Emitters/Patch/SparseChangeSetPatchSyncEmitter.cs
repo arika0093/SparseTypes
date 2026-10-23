@@ -446,6 +446,27 @@ internal static class SparseChangeSetPatchSyncEmitter
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine("var __coll" + id + " = new " + coll + "();");
+        if (isKeyed)
+        {
+            code.AppendLine(
+                "var __conversionAddedKeys"
+                    + id
+                    + " = new global::System.Collections.Generic.HashSet<"
+                    + SparseChangeSetBasicsEmitter.KeyTypeOf(member)
+                    + ">(global::System.Collections.Generic.EqualityComparer<"
+                    + SparseChangeSetBasicsEmitter.KeyTypeOf(member)
+                    + ">.Default);"
+            );
+            if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+            {
+                code.AppendLine(
+                    "var __conversionAddedTemporaryKeys" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
+                );
+                code.AppendLine(
+                    "var __conversionRemovedTemporaryKeys" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>();"
+                );
+            }
+        }
         if (!isKeyed)
         {
             code.AppendLine("bool __reservedRemovals" + id + " = false;");
@@ -454,7 +475,14 @@ internal static class SparseChangeSetPatchSyncEmitter
         code.OpenBlock();
         if (isKeyed)
         {
-            code.AppendLine("if (__it.IsAdded) __coll" + id + ".Add(__it.After.Value!);");
+            code.AppendLine(
+                "if (__it.IsAdded) __coll"
+                    + id
+                    + ".__SparseAddForChangeSet(__it.After.Value!, __conversionAddedKeys"
+                    + id
+                    + (SparseKeyedCollectionEmitter.HasTemporaryKey(member) ? ", __conversionAddedTemporaryKeys" + id : "")
+                    + ");"
+            );
         }
         else
         {
@@ -469,14 +497,20 @@ internal static class SparseChangeSetPatchSyncEmitter
             code.AppendLine(
                 "{ if (__it.TemporaryKey.HasValue) __coll"
                     + id
-                    + ".RemoveByTemporaryKey(__it.TemporaryKey.Value); else __coll"
+                    + ".__SparseRemoveByTemporaryKeyForChangeSet(__it.TemporaryKey.Value, __conversionAddedTemporaryKeys"
                     + id
-                    + ".Remove(__it.Key); }"
+                    + ", __conversionRemovedTemporaryKeys"
+                    + id
+                    + "); else __coll"
+                    + id
+                    + ".__SparseRemoveForChangeSet(__it.Key, __conversionAddedKeys"
+                    + id
+                    + "); }"
             );
         }
         else if (isKeyed)
         {
-            code.AppendLine("{ __coll" + id + ".Remove(__it.Key); }");
+            code.AppendLine("{ __coll" + id + ".__SparseRemoveForChangeSet(__it.Key, __conversionAddedKeys" + id + "); }");
         }
         else
         {
@@ -525,12 +559,26 @@ internal static class SparseChangeSetPatchSyncEmitter
             if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
             {
                 code.AppendLine(
-                    "if (__isTempEdit) __coll" + id + ".UpdateByTemporaryKey(__it.After.Value!); else __coll" + id + ".Update(__it.After.Value!);"
+                    "if (__isTempEdit) __coll"
+                        + id
+                        + ".__SparseUpdateByTemporaryKeyForChangeSet(__it.After.Value!, __conversionAddedTemporaryKeys"
+                        + id
+                        + ", __conversionRemovedTemporaryKeys"
+                        + id
+                        + "); else __coll"
+                        + id
+                        + ".__SparseUpdateForChangeSet(__it.After.Value!, __conversionAddedKeys"
+                        + id
+                        + ", __conversionAddedTemporaryKeys"
+                        + id
+                        + ", __conversionRemovedTemporaryKeys"
+                        + id
+                        + ");"
                 );
             }
             else
             {
-                code.AppendLine("__coll" + id + ".Update(__it.After.Value!);");
+                code.AppendLine("__coll" + id + ".__SparseUpdateForChangeSet(__it.After.Value!, __conversionAddedKeys" + id + ");");
             }
         }
         else

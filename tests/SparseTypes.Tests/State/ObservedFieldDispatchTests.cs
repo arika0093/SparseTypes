@@ -9,23 +9,28 @@ public sealed class ObservedFieldDispatchTests
 {
     private static PropertyChangedEventHandler[]? DispatchSnapshot(object session)
     {
-        var field = session
-            .GetType()
-            .GetField(
-                "__observationHandlerSnapshot",
-                BindingFlags.Instance | BindingFlags.NonPublic
-            );
+        var coordinator = session.GetType().GetField("__observationCoordinator", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session);
+        if (coordinator is null)
+        {
+            return null;
+        }
+
+        var field = coordinator.GetType().GetField("_handlerSnapshot", BindingFlags.Instance | BindingFlags.NonPublic);
         field.ShouldNotBeNull();
-        return (PropertyChangedEventHandler[]?)field!.GetValue(session);
+        return (PropertyChangedEventHandler[]?)field!.GetValue(coordinator);
     }
 
     private static object? HandlerList(object session)
     {
-        var field = session
-            .GetType()
-            .GetField("__observationHandlers", BindingFlags.Instance | BindingFlags.NonPublic);
+        var coordinator = session.GetType().GetField("__observationCoordinator", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(session);
+        if (coordinator is null)
+        {
+            return null;
+        }
+
+        var field = coordinator.GetType().GetField("_handlers", BindingFlags.Instance | BindingFlags.NonPublic);
         field.ShouldNotBeNull();
-        return field!.GetValue(session);
+        return field!.GetValue(coordinator);
     }
 
     [Test]
@@ -141,9 +146,7 @@ public sealed class ObservedFieldDispatchTests
         watcher.Refresh();
         watcher.IsChanged.ShouldBeTrue();
         watcher.After.ShouldBe(Optional<string?>.Present("raw"));
-        session
-            .FieldState(Settings.SparsePath.Label)
-            .After.ShouldBe(Optional<string?>.Present("raw"));
+        session.FieldState(Settings.SparsePath.Label).After.ShouldBe(Optional<string?>.Present("raw"));
     }
 
     [Test]
@@ -151,9 +154,7 @@ public sealed class ObservedFieldDispatchTests
     {
         var model = Holder(("a", "a"), ("b", "b"));
         var session = model.CreateEditSession();
-        using var label = session.ObserveField(
-            SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items))
-        );
+        using var label = session.ObserveField(SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items)));
         var notifications = 0;
         ((INotifyPropertyChanged)label).PropertyChanged += (_, _) => notifications++;
 
@@ -168,9 +169,7 @@ public sealed class ObservedFieldDispatchTests
         session.Observable.Items[0].Name = "edit-after-fix";
         label.HasChanges.ShouldBeTrue();
         notifications.ShouldBeGreaterThan(0);
-        session
-            .FieldState(KeyedServerHolder.SparsePath.Items.Key("a").Name)
-            .After.ShouldBe(Optional<string>.Present("edit-after-fix"));
+        session.FieldState(KeyedServerHolder.SparsePath.Items.Key("a").Name).After.ShouldBe(Optional<string>.Present("edit-after-fix"));
     }
 
     [Test]

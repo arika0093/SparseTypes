@@ -24,6 +24,8 @@ public sealed class SparseObservableList<TModel, TView>
     private readonly Action? _onRawModelAccess;
     private readonly bool _cacheReferences;
     private readonly Dictionary<object, ProxyEntry> _proxies = new(SparseCoreRuntime.ReferenceComparer);
+    private Dictionary<object, int>? _membershipCounts;
+    private bool _membershipIndexValid;
     private static readonly PropertyChangedEventArgs CountChanged = new(nameof(Count));
     private static readonly PropertyChangedEventArgs ItemChanged = new("Item[]");
     private int _suppressedEvents;
@@ -48,6 +50,7 @@ public sealed class SparseObservableList<TModel, TView>
         _cacheReferences = cacheReferences;
         if (_model is INotifyCollectionChanged notifying)
         {
+            RebuildMembershipIndex();
             notifying.CollectionChanged += OnModelCollectionChanged;
         }
     }
@@ -58,6 +61,7 @@ public sealed class SparseObservableList<TModel, TView>
     {
         get
         {
+            InvalidateMembershipIndex();
             _onRawModelAccess?.Invoke();
             return _model;
         }
@@ -65,7 +69,14 @@ public sealed class SparseObservableList<TModel, TView>
 
     /// <summary>The live list instance without reporting raw-model access.</summary>
     /// <remarks>For trusted generated code only: the caller must raise the change itself.</remarks>
-    public IList<TModel> UnsafeModel => _model;
+    public IList<TModel> UnsafeModel
+    {
+        get
+        {
+            InvalidateMembershipIndex();
+            return _model;
+        }
+    }
 
     /// <summary>Whether this view has been detached from its model collection.</summary>
     public bool IsDisposed => _disposed;
@@ -313,6 +324,7 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
+        RebuildMembershipIndex();
         PruneStale();
         if (reportChange)
         {
@@ -340,6 +352,7 @@ public sealed class SparseObservableList<TModel, TView>
             notifying.CollectionChanged -= OnModelCollectionChanged;
         }
 
+        InvalidateMembershipIndex();
         DeactivateAll();
     }
 
@@ -367,9 +380,33 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
+        var removedKeys = new HashSet<object>(SparseCoreRuntime.ReferenceComparer);
         foreach (TModel item in items)
         {
-            PruneRemoved(item);
+            if (item is not null)
+            {
+                removedKeys.Add(item);
+            }
+        }
+
+        if (removedKeys.Count == 0)
+        {
+            return;
+        }
+
+        HashSet<object>? live = null;
+        if (!_membershipIndexValid)
+        {
+            live = CreateLiveSet();
+        }
+
+        foreach (var key in removedKeys)
+        {
+            var isPresent = _membershipIndexValid ? _membershipCounts!.ContainsKey(key) : live!.Contains(key);
+            if (!isPresent && _proxies.Remove(key, out var entry))
+            {
+                entry.Active = false;
+            }
         }
     }
 
@@ -393,19 +430,17 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
-        var live = new HashSet<object>(SparseCoreRuntime.ReferenceComparer);
-        for (var index = 0; index < _model.Count; index++)
+        HashSet<object>? live = null;
+        if (!_membershipIndexValid)
         {
-            if (_model[index] is { } item)
-            {
-                live.Add(item);
-            }
+            live = CreateLiveSet();
         }
 
         var staleKeys = new List<object>();
         foreach (var key in _proxies.Keys)
         {
-            if (!live.Contains(key))
+            var isPresent = _membershipIndexValid ? _membershipCounts!.ContainsKey(key) : live!.Contains(key);
+            if (!isPresent)
             {
                 staleKeys.Add(key);
             }
@@ -435,6 +470,7 @@ public sealed class SparseObservableList<TModel, TView>
         mutation();
         if (before == _notificationVersion)
         {
+            notification.UpdateMembership(this);
             var args = notification.Create(this);
             notification.Prune(this);
             RaiseCollectionChanged(args);
@@ -450,6 +486,7 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
+        UpdateMembership(args);
         var converted = ConvertArgs(args);
         switch (args.Action)
         {
@@ -588,6 +625,11 @@ public sealed class SparseObservableList<TModel, TView>
 
     private bool IsPresent(TModel item)
     {
+        if (_membershipIndexValid)
+        {
+            return item is not null && _membershipCounts!.ContainsKey(item);
+        }
+
         for (var index = 0; index < _model.Count; index++)
         {
             if (ReferenceEquals(_model[index], item))
@@ -597,6 +639,134 @@ public sealed class SparseObservableList<TModel, TView>
         }
 
         return false;
+    }
+
+    private HashSet<object> CreateLiveSet()
+    {
+        var live = new HashSet<object>(SparseCoreRuntime.ReferenceComparer);
+        for (var index = 0; index < _model.Count; index++)
+        {
+            if (_model[index] is { } item)
+            {
+                live.Add(item);
+            }
+        }
+
+        return live;
+    }
+
+    private void InvalidateMembershipIndex()
+    {
+        _membershipIndexValid = false;
+    }
+
+    private void RebuildMembershipIndex()
+    {
+        if (!_cacheReferences || _model is not INotifyCollectionChanged)
+        {
+            InvalidateMembershipIndex();
+            return;
+        }
+
+        _membershipCounts ??= new Dictionary<object, int>(SparseCoreRuntime.ReferenceComparer);
+        _membershipCounts.Clear();
+        for (var index = 0; index < _model.Count; index++)
+        {
+            AddMembership(_model[index]);
+        }
+
+        _membershipIndexValid = true;
+    }
+
+    private void UpdateMembership(NotifyCollectionChangedEventArgs args)
+    {
+        if (args.Action == NotifyCollectionChangedAction.Reset)
+        {
+            RebuildMembershipIndex();
+            return;
+        }
+
+        if (!_membershipIndexValid)
+        {
+            return;
+        }
+
+        switch (args.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                AddMembershipItems(args.NewItems);
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                RemoveMembershipItems(args.OldItems);
+                break;
+            case NotifyCollectionChangedAction.Replace:
+                RemoveMembershipItems(args.OldItems);
+                AddMembershipItems(args.NewItems);
+                break;
+        }
+    }
+
+    private void AddMembershipItems(System.Collections.IList? items)
+    {
+        if (items is null)
+        {
+            RebuildMembershipIndex();
+            return;
+        }
+
+        foreach (TModel item in items)
+        {
+            AddMembership(item);
+        }
+    }
+
+    private void RemoveMembershipItems(System.Collections.IList? items)
+    {
+        if (items is null)
+        {
+            RebuildMembershipIndex();
+            return;
+        }
+
+        foreach (TModel item in items)
+        {
+            RemoveMembership(item);
+        }
+    }
+
+    private void AddMembership(TModel item)
+    {
+        if (item is null || _membershipCounts is null)
+        {
+            return;
+        }
+
+        var key = (object)item;
+        _membershipCounts.TryGetValue(key, out var count);
+        _membershipCounts[key] = count + 1;
+    }
+
+    private void RemoveMembership(TModel item)
+    {
+        if (item is null || _membershipCounts is null)
+        {
+            return;
+        }
+
+        var key = (object)item;
+        if (!_membershipCounts.TryGetValue(key, out var count))
+        {
+            return;
+        }
+
+        if (count == 1)
+        {
+            _membershipCounts.Remove(key);
+        }
+        else
+        {
+            _membershipCounts[key] = count - 1;
+        }
     }
 
     private static TView CastView(object? value)
@@ -648,6 +818,34 @@ public sealed class SparseObservableList<TModel, TView>
             else if (action == NotifyCollectionChangedAction.Reset)
             {
                 owner.DeactivateAll();
+            }
+        }
+
+        public void UpdateMembership(SparseObservableList<TModel, TView> owner)
+        {
+            if (action == NotifyCollectionChangedAction.Reset)
+            {
+                owner.RebuildMembershipIndex();
+                return;
+            }
+
+            if (!owner._membershipIndexValid)
+            {
+                return;
+            }
+
+            switch (action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    owner.AddMembership(newModel);
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    owner.RemoveMembership(oldModel);
+                    break;
+                case NotifyCollectionChangedAction.Replace:
+                    owner.RemoveMembership(oldModel);
+                    owner.AddMembership(newModel);
+                    break;
             }
         }
     }

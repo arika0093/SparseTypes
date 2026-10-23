@@ -45,7 +45,8 @@ public sealed class SparseSessionCapabilityTests
             StateContracts = new SparseStateContracts(
                 "global::Downstream.FieldState",
                 "global::Downstream.CollectionState",
-                "global::Downstream.StateQueries"
+                "global::Downstream.StateQueries",
+                "CreateChangeSetFromLiveModel"
             ),
         };
 
@@ -84,7 +85,8 @@ public sealed class SparseSessionCapabilityTests
             StateContracts = new SparseStateContracts(
                 "global::Downstream.FieldState",
                 "global::Downstream.CollectionState",
-                "global::Downstream.StateQueries"
+                "global::Downstream.StateQueries",
+                "CreateChangeSetFromLiveModel"
             )
             {
                 QueryViewType = "global::Downstream.QueryView",
@@ -255,13 +257,7 @@ public sealed class SparseSessionCapabilityTests
         var config = ConfigFor(PlainDialect(), AllCapabilities(), withDescriptors: false);
 
         SparseEditSessionCapabilityEmitter
-            .AppendSessionCapabilityBases(
-                string.Empty,
-                "global::Downstream.Order",
-                config,
-                PlainDialect(),
-                hasOwnedHistory: false
-            )
+            .AppendSessionCapabilityBases(string.Empty, "global::Downstream.Order", config, PlainDialect(), hasOwnedHistory: false)
             .ShouldBe(", global::Downstream.ISessionWithBatchEdit");
     }
 
@@ -396,7 +392,5 @@ public sealed class SparseSessionCapabilityTests
     }
 
     private static string DeclarationLine(string source) =>
-        source
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .First(static line => line.Contains("public sealed class EditSession : "));
+        source.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).First(static line => line.Contains("public sealed class EditSession : "));
 }

@@ -481,6 +481,9 @@ internal static class SparseEditSessionChildEmitter
 
         var conflictType = patchDialect.ConflictType;
         var pathType = SparseFragmentPatchEmitter.GetPathType(patchDialect);
+        var liveChangeSet = patchDialect.StateContracts is { } states
+            ? "fork._session." + states.CreateChangeSetFromLiveModelMember + "()"
+            : "fork.CreateChangeSet()";
 
         code.AppendLine(sessionSimple + " global::" + hostName + "<" + sessionSimple + ", " + conflictType + ">.ForkForChildDraft() => Fork();");
         code.AppendLine(
@@ -530,7 +533,7 @@ internal static class SparseEditSessionChildEmitter
                 + ">? conflicts) where TChild : class"
         );
         code.OpenBlock();
-        code.AppendLine("var changes = fork.CreateChangeSet();");
+        code.AppendLine("var changes = " + liveChangeSet + ";");
         code.AppendLine("if (changes.IsEmpty) { conflicts = null; return true; }");
         code.AppendLine("var rebased = changes.RebaseOnto(_session.GetModelForFrameworkAccess());");
         code.AppendLine("if (rebased.HasConflicts) { conflicts = rebased.Conflicts; return false; }");
@@ -561,7 +564,7 @@ internal static class SparseEditSessionChildEmitter
                 + ">? conflicts) where TChild : class"
         );
         code.OpenBlock();
-        code.AppendLine("var changes = fork.CreateChangeSet();");
+        code.AppendLine("var changes = " + liveChangeSet + ";");
         code.AppendLine("if (changes.IsEmpty) { conflicts = null; return true; }");
         code.AppendLine("var rebased = changes.RebaseOnto(_session.GetModelForFrameworkAccess());");
         code.AppendLine("if (rebased.HasConflicts) { conflicts = rebased.Conflicts; return false; }");

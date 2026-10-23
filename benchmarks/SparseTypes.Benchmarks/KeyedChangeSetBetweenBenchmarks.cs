@@ -33,17 +33,11 @@ public class KeyedChangeSetBetweenBenchmarks
         var changes = Between();
         if (
             changes.IsEmpty != (Shape == KeyedChangeSetBetweenShape.NoOp)
-            || !BenchKeyedServerHolder
-                .Patch.Between(changes.ToPatch().Apply(_before), _after)
-                .IsEmpty
-            || !BenchKeyedServerHolder
-                .Patch.Between(changes.Invert().ToPatch().Apply(_after), _before)
-                .IsEmpty
+            || !BenchKeyedServerHolder.Patch.Between(changes.ToPatch().Apply(_before), _after).IsEmpty
+            || !BenchKeyedServerHolder.Patch.Between(changes.Invert().ToPatch().Apply(_after), _before).IsEmpty
         )
         {
-            throw new InvalidOperationException(
-                "Keyed differences must preserve endpoints and invert correctly."
-            );
+            throw new InvalidOperationException("Keyed differences must preserve endpoints and invert correctly.");
         }
     }
 
@@ -53,12 +47,7 @@ public class KeyedChangeSetBetweenBenchmarks
             .Range(0, Size)
             .Select(index => new BenchKeyedServer
             {
-                Id =
-                    (
-                        after && Shape == KeyedChangeSetBetweenShape.ReplaceAll
-                            ? "replacement-"
-                            : "server-"
-                    ) + index,
+                Id = (after && Shape == KeyedChangeSetBetweenShape.ReplaceAll ? "replacement-" : "server-") + index,
                 Name = "name-" + index,
                 Count = index + (IsEdited(index, after) ? 1 : 0),
             })
@@ -90,21 +79,16 @@ public class KeyedChangeSetBetweenBenchmarks
             items[^1].Id = "replacement-last";
         }
 
-        return Optional<BenchKeyedServerHolder.Fragment?>.Present(
-            BenchKeyedServerHolder.Fragment.From(new() { Items = items })
-        );
+        return Optional<BenchKeyedServerHolder.Fragment?>.Present(BenchKeyedServerHolder.Fragment.From(new() { Items = items }));
     }
 
     private bool IsEdited(int index, bool after) =>
-        after
-        && (
-            Shape == KeyedChangeSetBetweenShape.AllEdits
-            || (Shape == KeyedChangeSetBetweenShape.OneEdit && index == 0)
-        );
+        after && (Shape == KeyedChangeSetBetweenShape.AllEdits || (Shape == KeyedChangeSetBetweenShape.OneEdit && index == 0));
 
     [Benchmark]
-    public BenchKeyedServerHolder.ChangeSet Between() =>
-        BenchKeyedServerHolder.ChangeSet.Between(_before, _after);
+    public BenchKeyedServerHolder.ChangeSet Between() => BenchKeyedServerHolder.ChangeSet.Between(_before, _after);
+
+    public BenchKeyedServerHolder.ChangeSet EmptyBetween() => BenchKeyedServerHolder.ChangeSet.Between(_before, _before);
 
     public static void ValidateInputs()
     {

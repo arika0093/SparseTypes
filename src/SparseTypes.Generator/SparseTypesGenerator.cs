@@ -174,7 +174,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             StateContracts = new SparseStateContracts(
                 "global::SparseTypes.SparseFieldState",
                 "global::SparseTypes.SparseCollectionState",
-                "global::SparseTypes.SparseStateQueries"
+                "global::SparseTypes.SparseStateQueries",
+                "CreateChangeSetFromLiveModel"
             )
             {
                 ObservedFieldType = "global::SparseTypes.SparseObservedField",
@@ -230,7 +231,10 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 "global::SparseTypes.Generated.SparseSetDescriptor",
                 "global::SparseTypes.Generated.SparseSetDescriptorAccess",
                 "global::SparseTypes.Generated.SparseDescriptorShape",
-                "global::SparseTypes.Generated.SparseDescriptorValue"
+                "global::SparseTypes.Generated.SparseDescriptorValue",
+                ArrayDescriptorKeyEqualsMember: "KeyEquals",
+                ArrayDescriptorKeyHashMember: "KeyHash",
+                ArrayDescriptorTemporaryKeyMember: "GetItemTemporaryKey"
             ),
 #endif
         ReservedGeneratedNames: ImmutableArray.Create(
@@ -415,6 +419,8 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                         input.Left.Left,
                         input.Left.Right.Distinct,
                         Configuration.EffectiveEmissionFeatures,
+                        Configuration.GeneratedImplementationNamespace is not null
+                            && Configuration.PatchDialect?.StateContracts is { HasObservedField: true, HasQueryView: true },
                         input.Right.ReadOnlySet,
                         input.Right.Capacity,
                         cancellationToken
@@ -511,6 +517,27 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                         SparseGeneratedOnceEmitter.RemovalIndexHintName(implementationNamespace),
                         SourceText.From(
                             SparseGeneratedOnceEmitter.RenderRemovalIndex(implementationNamespace, productionContext.CancellationToken),
+                            Encoding.UTF8
+                        )
+                    );
+                }
+            }
+        );
+        var needsObservationCoordinator = generatedOncePlan
+            .Select(static (plan, _) => plan.Has(SparseGeneratedCapability.ObservationCoordinator))
+            .WithComparer(EqualityComparer<bool>.Default)
+            .WithTrackingName("SparseTypesGenerator.GeneratedOnceObservationCoordinator");
+        context.RegisterSourceOutput(
+            needsObservationCoordinator,
+            static (productionContext, emit) =>
+            {
+                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
+                if (emit && implementationNamespace is not null)
+                {
+                    productionContext.AddSource(
+                        SparseGeneratedOnceEmitter.ObservationCoordinatorHintName(implementationNamespace),
+                        SourceText.From(
+                            SparseGeneratedOnceEmitter.RenderObservationCoordinator(implementationNamespace, productionContext.CancellationToken),
                             Encoding.UTF8
                         )
                     );

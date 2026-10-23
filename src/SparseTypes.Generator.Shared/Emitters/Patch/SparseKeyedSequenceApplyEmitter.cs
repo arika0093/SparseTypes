@@ -172,6 +172,10 @@ internal static class SparseKeyedSequenceApplyEmitter
         {
             code.AppendLine("var __unassignedAdded = new global::System.Collections.Generic.List<" + elementType + ">();");
         }
+        if (hasTempApply)
+        {
+            code.AppendLine("var __unassignedAddedTemps = new global::System.Collections.Generic.HashSet<global::System.Guid>();");
+        }
 
         code.AppendLine("if (__added is not null) foreach (var item in __added)");
         code.OpenBlock();
@@ -187,9 +191,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                     + SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member)
                     + "(item); if (__addTemp.HasValue && __addTemp.Value != global::System.Guid.Empty) { if (__baselineTemp"
                     + member.Id
-                    + ".ContainsKey(__addTemp.Value)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); foreach (var __pending in __unassignedAdded) if ("
-                    + SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member)
-                    + "(__pending) == __addTemp.Value) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); } __unassignedAdded.Add(item); continue; }"
+                    + ".ContainsKey(__addTemp.Value) || !__unassignedAddedTemps.Add(__addTemp.Value)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); } __unassignedAdded.Add(item); continue; }"
             );
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))

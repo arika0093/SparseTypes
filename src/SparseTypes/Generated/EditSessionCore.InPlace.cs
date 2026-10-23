@@ -29,6 +29,30 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
     {
         if (changes is null)
             throw new ArgumentNullException(nameof(changes));
+        if (_tryApplyInPlace is not null)
+        {
+            (bool Succeeded, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts) directResult;
+            try
+            {
+                directResult = _tryApplyInPlace(changes, _model);
+            }
+            catch
+            {
+                ResynchronizeAfterFailedMutation();
+                throw;
+            }
+
+            if (!directResult.Succeeded)
+            {
+                conflicts = directResult.Conflicts;
+                return false;
+            }
+
+            conflicts = null;
+            RefreshAfterModelMutation();
+            return true;
+        }
+
         if (_tryApplyTo is null || _writeModel is null)
         {
             throw new NotSupportedException("This model cannot be updated in place.");
@@ -213,10 +237,10 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
 
     private void RefreshAfterModelMutation()
     {
+        MarkObservedSnapshotInvalid();
         var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
         var transition = _between(_lastObserved, current);
-        _lastObserved = current;
-        InvalidateHasChangesCache();
+        SetObservedSnapshot(current);
         _refreshObservable?.Invoke(_observable);
         if (_batchDepth == 0 && !_isEmpty(transition))
         {

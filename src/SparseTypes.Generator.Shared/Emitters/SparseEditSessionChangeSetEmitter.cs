@@ -31,7 +31,10 @@ internal static class SparseEditSessionChangeSetEmitter
             "/// <remarks>This does not accept or otherwise mutate registered child sessions, and it excludes their pending edits. Use <see cref=\"CreateChangeSet\"/> for the child-aware submission preview.</remarks>"
         );
         code.AppendLine("/// <returns>This session's own pending change set.</returns>");
-        code.AppendLine("public " + modelType + ".ChangeSet PreviewChangeSet() => _session.CreateChangeSet();");
+        var previewChangeSet = patchDialect.StateContracts is { } states
+            ? "_session." + states.CreateChangeSetFromLiveModelMember + "()"
+            : "_session.CreateChangeSet()";
+        code.AppendLine("public " + modelType + ".ChangeSet PreviewChangeSet() => " + previewChangeSet + ";");
 
         if (config.EditSessionWithChangeSetInterfaceMetadataName is { Length: > 0 } adapterName)
         {

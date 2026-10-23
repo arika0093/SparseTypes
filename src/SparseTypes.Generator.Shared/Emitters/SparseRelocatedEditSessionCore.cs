@@ -80,6 +80,8 @@ internal static class SparseRelocatedEditSessionCore
             : "static (changes, current) => { var candidate = "
                 + modelType
                 + ".Fragment.From(current).ToModel(); if (changes.TryApplyInPlace(candidate, out var conflicts)) return (candidate, null); return (null, conflicts); }";
+        var tryApplyInPlace =
+            "static (changes, current) => { var succeeded = changes.TryApplyInPlace(current, out var conflicts); return (succeeded, conflicts); }";
         var writeModel = canWriteInPlace
             ? "static (current, updated) => " + modelType + ".Fragment.From(updated).WriteTo(current)"
             : "static (current, updated) => " + modelType + ".Fragment.From(updated).__SparseWriteWritableTo(current)";
@@ -209,7 +211,7 @@ internal static class SparseRelocatedEditSessionCore
         );
         // Path-first semantic state inspection; shared with the
         // model-nested session placement so both surfaces stay identical.
-        SparseEditSessionStateEmitter.AppendStateMembers(code, modelType, members, patchDialect);
+        SparseEditSessionStateEmitter.AppendStateMembers(code, modelType, members, patchDialect, config.GeneratedImplementationNamespace);
         code.AppendLine("/// <summary>Applies a change set to the current model in place when possible.</summary>");
         code.AppendLine("/// <param name=\"changes\">The change set to apply.</param>");
         code.AppendLine("/// <param name=\"conflicts\">Structured conflicts when the change set cannot be applied in place.</param>");
@@ -335,6 +337,8 @@ internal static class SparseRelocatedEditSessionCore
                 + readOnlyRef
                 + "(current), TryApplyTo = "
                 + tryApply
+                + ", TryApplyInPlace = "
+                + tryApplyInPlace
                 + ", WriteModel = "
                 + writeModel
                 + ", Invert = static changes => changes.Invert(), Rebase = static (changes, server) => changes.RebaseOnto(server), EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(), RefreshObservable = static observable => observable.__SparseRefresh(), BaselineToModel = static fragment => fragment.ToModel() };"
@@ -343,7 +347,7 @@ internal static class SparseRelocatedEditSessionCore
         SparseEditSessionPathsEmitter.AppendPathsField(code, model, modelType, config, patchDialect);
         SparseEditSessionHistoryEmitter.AppendHistoryFields(code, modelType, conflictType, historyBinding);
         // Session-owned observation fan-out trails every public member.
-        SparseEditSessionStateEmitter.AppendObservationCoordinatorMembers(code, patchDialect);
+        SparseEditSessionStateEmitter.AppendObservationCoordinatorMembers(code, patchDialect, config.GeneratedImplementationNamespace);
         if (config.DescriptorDialect is { } descriptorsDialect && config.EffectiveEmissionFeatures.EmitObservable)
         {
             code.AppendLine("private " + descriptorsDialect.DescriptorSetInterface + "? __descriptors;");

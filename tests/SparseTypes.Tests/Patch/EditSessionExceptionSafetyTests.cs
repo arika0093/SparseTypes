@@ -25,7 +25,8 @@ public sealed class EditSessionExceptionSafetyTests
         Action<NeutralSessionModel, NeutralSessionModel> writeModel,
         Func<bool> refreshShouldThrow,
         List<NeutralSessionModel.ChangeSet> transitions,
-        List<string?> notifications
+        List<string?> notifications,
+        bool useDirectApply = false
     )
     {
         var configuration = new EditSessionCoreConfiguration<
@@ -42,13 +43,22 @@ public sealed class EditSessionExceptionSafetyTests
             ToPatch = static changes => changes.ToPatch(),
             IsEmpty = static changes => changes.IsEmpty,
             AdvanceBaseline = static (changes, baseline) => changes.ApplyToBaseline(baseline),
-            ToObservable = static (current, changed, access) =>
-                new NeutralObservable(current, changed, access),
+            ToObservable = static (current, changed, access) => new NeutralObservable(current, changed, access),
             ToCurrent = static current => new NeutralView(current),
             TryApplyTo = static (changes, current) =>
-                changes.TryApplyTo(current, out var updated, out var conflicts)
-                    ? (updated, null)
-                    : (null, conflicts),
+                changes.TryApplyTo(current, out var updated, out var conflicts) ? (updated, null) : (null, conflicts),
+            TryApplyInPlace = useDirectApply
+                ? (changes, current) =>
+                {
+                    if (!changes.TryApplyTo(current, out var updated, out var conflicts))
+                    {
+                        return (false, conflicts);
+                    }
+
+                    writeModel(current, updated!);
+                    return (true, (IReadOnlyList<SparseConflict>?)null);
+                }
+                : null,
             WriteModel = writeModel,
             Rebase = static (changes, server) => changes.RebaseOnto(server),
             EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(),
@@ -99,16 +109,12 @@ public sealed class EditSessionExceptionSafetyTests
             },
             static () => false,
             transitions,
-            notifications
+            notifications,
+            useDirectApply: true
         );
-        var changes = NeutralSessionModel.ChangeSet.Between(
-            new NeutralSessionModel { Name = "before", Version = 1 },
-            updated
-        );
+        var changes = NeutralSessionModel.ChangeSet.Between(new NeutralSessionModel { Name = "before", Version = 1 }, updated);
 
-        Should
-            .Throw<InvalidOperationException>(() => session.TryApplyInPlace(changes, out _))
-            .Message.ShouldBe(SetterFailure);
+        Should.Throw<InvalidOperationException>(() => session.TryApplyInPlace(changes, out _)).Message.ShouldBe(SetterFailure);
 
         // The failure is not atomic over external setters, but the session
         // heals.
@@ -157,9 +163,7 @@ public sealed class EditSessionExceptionSafetyTests
         var server = new NeutralSessionModel { Name = "server", Version = 1 };
         var transitionsBeforeReload = transitions.Count;
 
-        Should
-            .Throw<InvalidOperationException>(() => session.Reload(server))
-            .Message.ShouldBe(SetterFailure);
+        Should.Throw<InvalidOperationException>(() => session.Reload(server)).Message.ShouldBe(SetterFailure);
 
         // The partial write stays visible, while the server baseline is not
         // adopted.
@@ -178,9 +182,7 @@ public sealed class EditSessionExceptionSafetyTests
         // A failing resynchronization must not mask the original exception,
         // nor publish a false success transition.
         refreshShouldThrow = true;
-        Should
-            .Throw<InvalidOperationException>(() => session.Reload(server))
-            .Message.ShouldBe(SetterFailure);
+        Should.Throw<InvalidOperationException>(() => session.Reload(server)).Message.ShouldBe(SetterFailure);
         transitions.Count.ShouldBe(transitionsBeforeReload + 1);
         refreshShouldThrow = false;
 
@@ -219,14 +221,13 @@ public sealed class EditSessionExceptionSafetyTests
         var submitted = session.CreateChangeSet();
         var persisted = new NeutralSessionModel { Name = "base", Version = 1 };
         var retargetShouldThrow = true;
-        Func<
-            NeutralSessionModel,
-            NeutralSessionModel,
-            NeutralSessionModel,
-            object?,
-            NeutralSessionModel.ChangeSet,
-            string?
-        > retarget = (live, _, _, _, _) =>
+        Func<NeutralSessionModel, NeutralSessionModel, NeutralSessionModel, object?, NeutralSessionModel.ChangeSet, string?> retarget = (
+            live,
+            _,
+            _,
+            _,
+            _
+        ) =>
         {
             if (retargetShouldThrow)
             {
@@ -238,15 +239,10 @@ public sealed class EditSessionExceptionSafetyTests
             live.Name = "reconciled";
             return null;
         };
-        static (object? Map, string? Error) BuildMap(
-            NeutralSessionModel _,
-            NeutralSessionModel __
-        ) => (new object(), (string?)null);
+        static (object? Map, string? Error) BuildMap(NeutralSessionModel _, NeutralSessionModel __) => (new object(), (string?)null);
 
         Should
-            .Throw<InvalidOperationException>(() =>
-                session.TryReconcile(submitted, persisted, BuildMap, retarget, out _)
-            )
+            .Throw<InvalidOperationException>(() => session.TryReconcile(submitted, persisted, BuildMap, retarget, out _))
             .Message.ShouldBe(RetargetFailure);
 
         // The healthy rollback writer restored the pre-call snapshot.
@@ -262,18 +258,14 @@ public sealed class EditSessionExceptionSafetyTests
         // A failing resynchronization must not mask the original exception.
         refreshShouldThrow = true;
         Should
-            .Throw<InvalidOperationException>(() =>
-                session.TryReconcile(submitted, persisted, BuildMap, retarget, out _)
-            )
+            .Throw<InvalidOperationException>(() => session.TryReconcile(submitted, persisted, BuildMap, retarget, out _))
             .Message.ShouldBe(RetargetFailure);
         transitions.Count.ShouldBe(1);
         refreshShouldThrow = false;
 
         // A healthy retry still reconciles against the untouched baseline.
         retargetShouldThrow = false;
-        session
-            .TryReconcile(submitted, persisted, BuildMap, retarget, out var error)
-            .ShouldBeTrue();
+        session.TryReconcile(submitted, persisted, BuildMap, retarget, out var error).ShouldBeTrue();
         error.ShouldBeNull();
         model.Name.ShouldBe("reconciled");
         session.HasChanges.ShouldBeTrue();

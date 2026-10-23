@@ -30,6 +30,7 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
         code.AppendLine("public Item GetTemporaryChange(global::System.Guid temporaryKey)");
         code.OpenBlock();
         code.AppendLine("if (temporaryKey == global::System.Guid.Empty) return Item.Empty;");
+        code.AppendLine("if (_items.Count == 0) return Item.Empty;");
         code.AppendLine("var __lookup = _temporaryLookup;");
         code.AppendLine("if (__lookup is null)");
         code.OpenBlock();

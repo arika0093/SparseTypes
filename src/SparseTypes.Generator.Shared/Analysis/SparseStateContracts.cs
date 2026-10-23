@@ -2,7 +2,12 @@ namespace SparseTypes.Generator.Shared;
 
 /// <summary>Product-owned type names for the semantic field and collection state surface.</summary>
 /// <remarks>Shared emission references these state types only through this configuration.</remarks>
-internal sealed record SparseStateContracts(string FieldStateType, string CollectionStateType, string StateQueryType)
+internal sealed record SparseStateContracts(
+    string FieldStateType,
+    string CollectionStateType,
+    string StateQueryType,
+    string CreateChangeSetFromLiveModelMember
+)
 {
     /// <summary>Semantic field state type (open generic, arity 1).</summary>
     public string FieldStateType { get; init; } = FieldStateType;
@@ -12,6 +17,9 @@ internal sealed record SparseStateContracts(string FieldStateType, string Collec
 
     /// <summary>Static path-first state query type.</summary>
     public string StateQueryType { get; init; } = StateQueryType;
+
+    /// <summary>Session method that captures and diffs the live model without reusing an observed snapshot.</summary>
+    public string CreateChangeSetFromLiveModelMember { get; init; } = CreateChangeSetFromLiveModelMember;
 
     /// <summary>Opt-in live field-state subscription type (open generic, arity 1).</summary>
     /// <remarks>

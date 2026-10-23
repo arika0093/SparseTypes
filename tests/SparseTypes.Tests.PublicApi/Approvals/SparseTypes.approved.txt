@@ -1232,6 +1232,10 @@ namespace SparseTypes.Generated
         public System.Func<TModel, System.Action?, System.Action?, TObservable> ToObservable { get; init; }
         public System.Func<TChangeSet, TPatch> ToPatch { get; init; }
         [System.Runtime.CompilerServices.TupleElementNames(new string[] {
+                "Succeeded",
+                "Conflicts"})]
+        public System.Func<TChangeSet, TModel, System.ValueTuple<bool, System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>?>>? TryApplyInPlace { get; init; }
+        [System.Runtime.CompilerServices.TupleElementNames(new string[] {
                 "Updated",
                 "Conflicts"})]
         public System.Func<TChangeSet, TModel, System.ValueTuple<TModel?, System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>?>>? TryApplyTo { get; init; }
@@ -1256,6 +1260,7 @@ namespace SparseTypes.Generated
         public void BatchEdit(System.Action edit) { }
         protected virtual SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> CreateBranched(TModel live, SparseTypes.Optional<TFragment?> baseline, System.Guid rootId, System.Action? onChanged) { }
         public TChangeSet CreateChangeSet() { }
+        public TChangeSet CreateChangeSetFromLiveModel() { }
         public TPatch CreatePatch() { }
         public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> EnumerateChangedPaths() { }
         public virtual SparseTypes.Generated.EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObservable> Fork() { }
@@ -1457,9 +1462,12 @@ namespace SparseTypes.Generated
         public System.Func<int, SparseTypes.Generated.IDescriptorSet?>? GetItemDescriptors { get; set; }
         public System.Func<int, object?>? GetItemKey { get; set; }
         public System.Func<int, object?>? GetItemModel { get; set; }
+        public System.Func<int, System.Guid?>? GetItemTemporaryKey { get; set; }
         public System.Func<object?, int>? IndexOfKey { get; set; }
         public System.Func<System.Guid, int>? IndexOfTemporaryKey { get; set; }
         public System.Func<object?, bool>? IsUnassignedKey { get; set; }
+        public System.Func<object?, object?, bool>? KeyEquals { get; set; }
+        public System.Func<object?, int>? KeyHash { get; set; }
         public System.Func<object?, bool>? TryAdd { get; set; }
         public System.Func<int, object?, bool>? TryInsert { get; set; }
         public System.Func<int, int, bool>? TryMove { get; set; }

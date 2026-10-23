@@ -142,6 +142,7 @@ public class SparsePathTraversalBenchmarks
     private SparsePath<BenchPathCluster, string> _deep5a;
     private SparsePath<BenchPathCluster, string> _deep5b;
     private SparsePath<BenchPathCluster, string> _deep5Miss;
+    private SparsePath _deep32;
     private string _deep5Text = string.Empty;
     private SparsePath<BenchPathRoot, int> _escaped;
     private string _escapedText = string.Empty;
@@ -177,6 +178,11 @@ public class SparsePathTraversalBenchmarks
         _deep5a = BenchPathCluster.SparsePath.Groups.Key(GroupId).Members.Key(KeyedId).Name;
         _deep5b = BenchPathCluster.SparsePath.Groups.Key(GroupId).Members.Key(KeyedId).Name;
         _deep5Miss = BenchPathCluster.SparsePath.Groups.Key("missing").Members.Key(KeyedId).Name;
+        _deep32 = SparsePath.Root<BenchPathCluster>();
+        for (var index = 0; index < 32; index++)
+        {
+            _deep32 = _deep32.Member("Member" + index);
+        }
         _deep5Text = _deep5a.ToString();
         _escaped = BenchPathRoot.SparsePath.Scores.Key(EscapedKey);
         _escapedText = _escaped.ToString();
@@ -185,17 +191,11 @@ public class SparsePathTraversalBenchmarks
         _wideMissing = SparsePath.Root<BenchPathWide>().Member("Missing");
         _conflictMissing = SparsePath.Root<BenchPathSingle>().Member("Missing");
 
-        var sparseBefore = Optional<BenchPathSingle.Fragment?>.Present(
-            BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "before" })
-        );
-        var sparseAfter = Optional<BenchPathSingle.Fragment?>.Present(
-            BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "after" })
-        );
+        var sparseBefore = Optional<BenchPathSingle.Fragment?>.Present(BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "before" }));
+        var sparseAfter = Optional<BenchPathSingle.Fragment?>.Present(BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "after" }));
         _sparseChange = BenchPathSingle.ChangeSet.Between(sparseBefore, sparseAfter);
 
-        var wideBefore = Optional<BenchPathWide.Fragment?>.Present(
-            BenchPathWide.Fragment.From(new BenchPathWide())
-        );
+        var wideBefore = Optional<BenchPathWide.Fragment?>.Present(BenchPathWide.Fragment.From(new BenchPathWide()));
         var wideModel = new BenchPathWide
         {
             Value00 = 1,
@@ -215,9 +215,7 @@ public class SparsePathTraversalBenchmarks
             Value14 = 1,
             Value15 = 1,
         };
-        var wideAfter = Optional<BenchPathWide.Fragment?>.Present(
-            BenchPathWide.Fragment.From(wideModel)
-        );
+        var wideAfter = Optional<BenchPathWide.Fragment?>.Present(BenchPathWide.Fragment.From(wideModel));
         _wideChange = BenchPathWide.ChangeSet.Between(wideBefore, wideAfter);
 
         BenchPathRoot RootModel()
@@ -267,10 +265,7 @@ public class SparsePathTraversalBenchmarks
         var rootKeyedBase = RootModel();
         var rootKeyedEdited = RootModel();
         rootKeyedEdited.Items[1].Name = "edited";
-        _keyedOne = BenchPathRoot.ChangeSet.Between(
-            RootState(rootKeyedBase),
-            RootState(rootKeyedEdited)
-        );
+        _keyedOne = BenchPathRoot.ChangeSet.Between(RootState(rootKeyedBase), RootState(rootKeyedEdited));
 
         var rootMany = RootModel();
         for (var index = 0; index < 16; index++)
@@ -283,10 +278,7 @@ public class SparsePathTraversalBenchmarks
         var rootEscapedBase = RootModel();
         var rootEscapedEdited = RootModel();
         rootEscapedEdited.Scores[EscapedKey] = 99;
-        _escapedChange = BenchPathRoot.ChangeSet.Between(
-            RootState(rootEscapedBase),
-            RootState(rootEscapedEdited)
-        );
+        _escapedChange = BenchPathRoot.ChangeSet.Between(RootState(rootEscapedBase), RootState(rootEscapedEdited));
 
         Optional<BenchPathCluster.Fragment?> ClusterState(string name)
         {
@@ -316,10 +308,7 @@ public class SparsePathTraversalBenchmarks
             );
         }
 
-        _clusterChange = BenchPathCluster.ChangeSet.Between(
-            ClusterState("before"),
-            ClusterState("after")
-        );
+        _clusterChange = BenchPathCluster.ChangeSet.Between(ClusterState("before"), ClusterState("after"));
 
         Optional<BenchPathCompositeHolder.Fragment?> CompositeState(string name)
         {
@@ -341,25 +330,14 @@ public class SparsePathTraversalBenchmarks
             );
         }
 
-        _compositeChange = BenchPathCompositeHolder.ChangeSet.Between(
-            CompositeState("before"),
-            CompositeState("after")
-        );
+        _compositeChange = BenchPathCompositeHolder.ChangeSet.Between(CompositeState("before"), CompositeState("after"));
 
         _descriptors = RootModel().CreateEditSession().Descriptors;
 
-        var conflictBase = Optional<BenchPathSingle.Fragment?>.Present(
-            BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "a" })
-        );
-        var conflictLocal = Optional<BenchPathSingle.Fragment?>.Present(
-            BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "b" })
-        );
-        var conflictRemote = Optional<BenchPathSingle.Fragment?>.Present(
-            BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "c" })
-        );
-        var rebased = BenchPathSingle
-            .ChangeSet.Between(conflictBase, conflictLocal)
-            .RebaseOnto(conflictRemote);
+        var conflictBase = Optional<BenchPathSingle.Fragment?>.Present(BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "a" }));
+        var conflictLocal = Optional<BenchPathSingle.Fragment?>.Present(BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "b" }));
+        var conflictRemote = Optional<BenchPathSingle.Fragment?>.Present(BenchPathSingle.Fragment.From(new BenchPathSingle { Title = "c" }));
+        var rebased = BenchPathSingle.ChangeSet.Between(conflictBase, conflictLocal).RebaseOnto(conflictRemote);
         _conflicts = rebased.Conflicts;
         if (
             _sparseChange.Find(_scalar) is null
@@ -384,9 +362,7 @@ public class SparsePathTraversalBenchmarks
             || _deep5a.GetHashCode() != _deep5b.GetHashCode()
         )
         {
-            throw new InvalidOperationException(
-                "Typed path fixtures must resolve through the public lookup APIs."
-            );
+            throw new InvalidOperationException("Typed path fixtures must resolve through the public lookup APIs.");
         }
     }
 
@@ -416,40 +392,31 @@ public class SparsePathTraversalBenchmarks
     public SparsePath Construct_Root() => SparsePath.Root<BenchPathSingle>();
 
     [Benchmark(Description = "Construct scalar path (1 segment)")]
-    public SparsePath<BenchPathSingle, string> Construct_Scalar() =>
-        BenchPathSingle.SparsePath.Title;
+    public SparsePath<BenchPathSingle, string> Construct_Scalar() => BenchPathSingle.SparsePath.Title;
 
     [Benchmark(Description = "Construct nested path (2 segments)")]
-    public SparsePath<BenchPathRoot, string> Construct_Nested2() =>
-        BenchPathRoot.SparsePath.Nested.Name;
+    public SparsePath<BenchPathRoot, string> Construct_Nested2() => BenchPathRoot.SparsePath.Nested.Name;
 
     [Benchmark(Description = "Construct nested path (3 segments)")]
-    public SparsePath<BenchPathRoot, string> Construct_Nested3() =>
-        BenchPathRoot.SparsePath.Nested.Detail.Host;
+    public SparsePath<BenchPathRoot, string> Construct_Nested3() => BenchPathRoot.SparsePath.Nested.Detail.Host;
 
     [Benchmark(Description = "Construct keyed path (3 segments)")]
-    public SparsePath<BenchPathRoot, string> Construct_Keyed3() =>
-        BenchPathRoot.SparsePath.Items.Key(KeyedId).Name;
+    public SparsePath<BenchPathRoot, string> Construct_Keyed3() => BenchPathRoot.SparsePath.Items.Key(KeyedId).Name;
 
     [Benchmark(Description = "Construct indexed path (3 segments)")]
-    public SparsePath<BenchPathRoot, string> Construct_Indexed3() =>
-        BenchPathRoot.SparsePath.Items.At(0).Name;
+    public SparsePath<BenchPathRoot, string> Construct_Indexed3() => BenchPathRoot.SparsePath.Items.At(0).Name;
 
     [Benchmark(Description = "Construct scalar-dict path (2 segments)")]
-    public SparsePath<BenchPathRoot, int> Construct_DictScalar2() =>
-        BenchPathRoot.SparsePath.Scores.Key(KeyedId);
+    public SparsePath<BenchPathRoot, int> Construct_DictScalar2() => BenchPathRoot.SparsePath.Scores.Key(KeyedId);
 
     [Benchmark(Description = "Construct struct-dict path (3 segments)")]
-    public SparsePath<BenchPathRoot, string> Construct_DictStruct3() =>
-        BenchPathRoot.SparsePath.Servers.Key(KeyedId).Name;
+    public SparsePath<BenchPathRoot, string> Construct_DictStruct3() => BenchPathRoot.SparsePath.Servers.Key(KeyedId).Name;
 
     [Benchmark(Description = "Construct deep keyed path (5 segments)")]
-    public SparsePath<BenchPathCluster, string> Construct_Deep5() =>
-        BenchPathCluster.SparsePath.Groups.Key(GroupId).Members.Key(KeyedId).Name;
+    public SparsePath<BenchPathCluster, string> Construct_Deep5() => BenchPathCluster.SparsePath.Groups.Key(GroupId).Members.Key(KeyedId).Name;
 
     [Benchmark(Description = "Construct escaped-key path")]
-    public SparsePath<BenchPathRoot, int> Construct_EscapedKey() =>
-        BenchPathRoot.SparsePath.Scores.Key(EscapedKey);
+    public SparsePath<BenchPathRoot, int> Construct_EscapedKey() => BenchPathRoot.SparsePath.Scores.Key(EscapedKey);
 
     [Benchmark(Description = "Construct composite-key path")]
     public SparsePath<BenchPathCompositeHolder, string> Construct_CompositeKey() =>
@@ -463,6 +430,9 @@ public class SparsePathTraversalBenchmarks
 
     [Benchmark(Description = "GetHashCode deep path")]
     public int GetHashCode_Deep5() => _deep5a.GetHashCode();
+
+    [Benchmark(Description = "Create deep path prefix view (32 segments)")]
+    public SparsePath Prefix_Deep32() => SparseResolutionWorkspace.StagingKey(_deep32, 16);
 
     [Benchmark(Description = "ToString scalar path")]
     public string ToString_Scalar() => _scalar.ToString();
@@ -486,16 +456,13 @@ public class SparsePathTraversalBenchmarks
     public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Cached() => _sparseChange.Find(_scalar);
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (typed, cold)")]
-    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Cold() =>
-        _sparseChange.Find(BenchPathSingle.SparsePath.Title);
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Cold() => _sparseChange.Find(BenchPathSingle.SparsePath.Title);
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (parsed baseline)")]
-    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Parsed() =>
-        _sparseChange.Find(SparsePath.Parse<BenchPathSingle>(_scalarText));
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Hit_Parsed() => _sparseChange.Find(SparsePath.Parse<BenchPathSingle>(_scalarText));
 
     [Benchmark(Description = "ChangeSet Find sparse 1-prop hit (untyped, cached)")]
-    public SparseChangeRecord? ChangeSet_Find_Sparse_Untyped_Cached() =>
-        _sparseChange.Find(_scalarUntyped);
+    public SparseChangeRecord? ChangeSet_Find_Sparse_Untyped_Cached() => _sparseChange.Find(_scalarUntyped);
 
     [Benchmark(Description = "ChangeSet Find wide 16-prop hit (typed, cached)")]
     public SparseChangeRecord? ChangeSet_Find_Wide_Hit_Cached() => _wideChange.Find(_wideLast);
@@ -519,20 +486,16 @@ public class SparsePathTraversalBenchmarks
     public SparseChangeRecord? ChangeSet_Find_Composite_Hit() => _compositeChange.Find(_composite);
 
     [Benchmark(Description = "Descriptor Find nested (cached)")]
-    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Nested_Cached() =>
-        _descriptors.Find(_nested3);
+    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Nested_Cached() => _descriptors.Find(_nested3);
 
     [Benchmark(Description = "Descriptor Find nested (cold)")]
-    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Nested_Cold() =>
-        _descriptors.Find(BenchPathRoot.SparsePath.Nested.Detail.Host);
+    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Nested_Cold() => _descriptors.Find(BenchPathRoot.SparsePath.Nested.Detail.Host);
 
     [Benchmark(Description = "Descriptor Find keyed (cached)")]
-    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Keyed_Cached() =>
-        _descriptors.Find(_keyed);
+    public SparseTypes.Generated.IDescriptor? Descriptor_Find_Keyed_Cached() => _descriptors.Find(_keyed);
 
     [Benchmark(Description = "Descriptor Find struct-dict (cached)")]
-    public SparseTypes.Generated.IDescriptor? Descriptor_Find_DictStruct_Cached() =>
-        _descriptors.Find(_dictStruct);
+    public SparseTypes.Generated.IDescriptor? Descriptor_Find_DictStruct_Cached() => _descriptors.Find(_dictStruct);
 
     [Benchmark(Description = "Conflicts Find hit (cached)")]
     public SparseConflict? Conflicts_Find_Hit_Cached() => _conflicts.Find(_scalar);
@@ -541,8 +504,7 @@ public class SparsePathTraversalBenchmarks
     public SparseConflict? Conflicts_Find_Miss_Cached() => _conflicts.Find(_conflictMissing);
 
     [Benchmark(Description = "Conflicts Find miss (cold)")]
-    public SparseConflict? Conflicts_Find_Miss_Cold() =>
-        _conflicts.Find(SparsePath.Root<BenchPathSingle>().Member("Missing"));
+    public SparseConflict? Conflicts_Find_Miss_Cold() => _conflicts.Find(SparsePath.Root<BenchPathSingle>().Member("Missing"));
 
     [Benchmark(Description = "UI 100 repeated ChangeSet Finds (cached)")]
     public int Ui_Repeat100_Cached()

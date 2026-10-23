@@ -98,10 +98,10 @@ internal static class SparseChangeSetInPlaceEmitter
         code.AppendLine(
             "if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException(\"The rebased change does not produce a non-null model root. Use the presence-aware Fragment/Optional API for root presence transitions.\");"
         );
-        code.AppendLine("var __updatedModel = __applied.Value.ToModel();");
         code.AppendLine("var __sparse_inPlaceResult = __patch.ApplyInPlace(current);");
         code.AppendLine("if (!__sparse_inPlaceResult.Succeeded)");
         code.OpenBlock();
+        code.AppendLine("var __updatedModel = __applied.Value.ToModel();");
         code.AppendLine("var __sparse_inPlaceConflicts = new global::System.Collections.Generic.List<" + conflictType + ">();");
         foreach (var member in members.Where(static member => member.Property.IsReadOnly || member.Property.IsInitOnly))
         {

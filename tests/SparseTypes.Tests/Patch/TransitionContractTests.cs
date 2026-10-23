@@ -12,9 +12,7 @@ public sealed class TransitionContractTests
     /// <summary>Stands in for a separately compiled consumer (for example a persistence mapper).</summary>
     private static class ExternalConsumer
     {
-        public static List<string> SummarizeKeyed<TKey, TElement, TElementChange>(
-            ISparseKeyedChange<TKey, TElement, TElementChange> transition
-        )
+        public static List<string> SummarizeKeyed<TKey, TElement, TElementChange>(ISparseKeyedChange<TKey, TElement, TElementChange> transition)
             where TKey : notnull
         {
             var summary = new List<string>();
@@ -32,20 +30,12 @@ public sealed class TransitionContractTests
         }
 
         public static List<string> SummarizeRecords(ISparseChangeSet changes) =>
-            changes
-                .EnumerateChangeRecords()
-                .Select(static record => record.Kind + "@" + record.PathText)
-                .ToList();
+            changes.EnumerateChangeRecords().Select(static record => record.Kind + "@" + record.PathText).ToList();
     }
 
-    private static Optional<Settings.Fragment?> Present(Settings.Fragment fragment) =>
-        Optional<Settings.Fragment?>.Present(fragment);
+    private static Optional<Settings.Fragment?> Present(Settings.Fragment fragment) => Optional<Settings.Fragment?>.Present(fragment);
 
-    private static Settings.Fragment MakeSettings(
-        Optional<string?> label,
-        Optional<int> retry,
-        Optional<Nested.Fragment?> nested
-    ) =>
+    private static Settings.Fragment MakeSettings(Optional<string?> label, Optional<int> retry, Optional<Nested.Fragment?> nested) =>
         new()
         {
             Label = label,
@@ -54,34 +44,14 @@ public sealed class TransitionContractTests
         };
 
     private static Optional<Nested.Fragment?> NestedState(string host) =>
-        Optional<Nested.Fragment?>.Present(
-            new Nested.Fragment { Host = Optional<string>.Present(host) }
-        );
+        Optional<Nested.Fragment?>.Present(new Nested.Fragment { Host = Optional<string>.Present(host) });
 
     [Test]
     public void ScalarPresenceDistinguishesMissingNullAndValue()
     {
-        var before = Present(
-            MakeSettings(
-                Optional<string?>.Present("before"),
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
-        var missing = Present(
-            MakeSettings(
-                Optional<string?>.Missing,
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
-        var presentNull = Present(
-            MakeSettings(
-                Optional<string?>.Present(null),
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
+        var before = Present(MakeSettings(Optional<string?>.Present("before"), Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
+        var missing = Present(MakeSettings(Optional<string?>.Missing, Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
+        var presentNull = Present(MakeSettings(Optional<string?>.Present(null), Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
 
         ISparseChangeSet<Settings> toMissing = Settings.ChangeSet.Between(before, missing);
         toMissing.IsChanged.ShouldBeTrue();
@@ -104,13 +74,7 @@ public sealed class TransitionContractTests
     [Test]
     public void UnchangedScalarReportsNoChangeAndRejectsMismatches()
     {
-        var before = Present(
-            MakeSettings(
-                Optional<string?>.Present("same"),
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
+        var before = Present(MakeSettings(Optional<string?>.Present("same"), Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
         ISparseChangeSet changes = Settings.ChangeSet.Between(before, before);
         changes.IsEmpty.ShouldBeTrue();
         changes.IsChanged.ShouldBeFalse();
@@ -127,20 +91,8 @@ public sealed class TransitionContractTests
     [Test]
     public void NestedEditsRecurseThroughTheContract()
     {
-        var before = Present(
-            MakeSettings(
-                Optional<string?>.Present("same"),
-                Optional<int>.Present(1),
-                NestedState("host-before")
-            )
-        );
-        var after = Present(
-            MakeSettings(
-                Optional<string?>.Present("same"),
-                Optional<int>.Present(1),
-                NestedState("host-after")
-            )
-        );
+        var before = Present(MakeSettings(Optional<string?>.Present("same"), Optional<int>.Present(1), NestedState("host-before")));
+        var after = Present(MakeSettings(Optional<string?>.Present("same"), Optional<int>.Present(1), NestedState("host-after")));
         ISparseChangeSet changes = Settings.ChangeSet.Between(before, after);
         changes.IsChanged.ShouldBeTrue();
 
@@ -163,25 +115,10 @@ public sealed class TransitionContractTests
     [Test]
     public void RebasedChangeSetKeepsItsModelType()
     {
-        var baseline = Present(
-            MakeSettings(
-                Optional<string?>.Present("before"),
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
-        var edited = Present(
-            MakeSettings(
-                Optional<string?>.Present("after"),
-                Optional<int>.Present(1),
-                Optional<Nested.Fragment?>.Missing
-            )
-        );
+        var baseline = Present(MakeSettings(Optional<string?>.Present("before"), Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
+        var edited = Present(MakeSettings(Optional<string?>.Present("after"), Optional<int>.Present(1), Optional<Nested.Fragment?>.Missing));
 
-        ISparseChangeSet<Settings> rebased = Settings
-            .ChangeSet.Between(baseline, edited)
-            .RebaseOnto(baseline)
-            .Rebased;
+        ISparseChangeSet<Settings> rebased = Settings.ChangeSet.Between(baseline, edited).RebaseOnto(baseline).Rebased;
 
         rebased.IsChanged.ShouldBeTrue();
     }
@@ -202,16 +139,10 @@ public sealed class TransitionContractTests
             }
             """;
         var tree = CSharpSyntaxTree.ParseText(source);
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         var references = trustedAssemblies
-            .Select(static assemblyPath =>
-                (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
-            )
-            .Append(
-                MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-            )
+            .Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath))
+            .Append(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location))
             .Append(MetadataReference.CreateFromFile(typeof(Settings).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "TypedChangeSetCompileProbe",
@@ -227,14 +158,8 @@ public sealed class TransitionContractTests
             .ShouldContain("CS1503");
     }
 
-    private static Optional<CompositeServerHolder.Fragment?> Composite(
-        params CompositeServer[] items
-    ) =>
-        Optional<CompositeServerHolder.Fragment?>.Present(
-            CompositeServerHolder.Fragment.From(
-                new CompositeServerHolder { Items = items.ToList() }
-            )
-        );
+    private static Optional<CompositeServerHolder.Fragment?> Composite(params CompositeServer[] items) =>
+        Optional<CompositeServerHolder.Fragment?>.Present(CompositeServerHolder.Fragment.From(new CompositeServerHolder { Items = items.ToList() }));
 
     [Test]
     public void CompositeKeysExposeAddsEditsAndNestedChanges()
@@ -262,13 +187,7 @@ public sealed class TransitionContractTests
             }
         );
         ISparseChangeSet changes = CompositeServerHolder.ChangeSet.Between(before, after);
-        changes
-            .TryGetKeyedChange<
-                (string TenantId, string Id),
-                CompositeServer,
-                CompositeServer.ChangeSet
-            >("Items", out var items)
-            .ShouldBeTrue();
+        changes.TryGetKeyedChange<(string TenantId, string Id), CompositeServer, CompositeServer.ChangeSet>("Items", out var items).ShouldBeTrue();
         items.ShouldNotBeNull();
 
         // Membership growth changes the key order list; no surviving item is
@@ -287,29 +206,20 @@ public sealed class TransitionContractTests
         name!.After.Value.ShouldBe("A2");
 
         // The generic summary helper only knows the contracts.
-        ExternalConsumer
-            .SummarizeKeyed(items)
-            .ShouldBe(["(t1, a):edited:0->0", "(t2, a):added:-1->1"]);
+        ExternalConsumer.SummarizeKeyed(items).ShouldBe(["(t1, a):edited:0->0", "(t2, a):added:-1->1"]);
     }
 
     private static Optional<KeyedServerHolder.Fragment?> Keyed(params KeyedServer[] items) =>
-        Optional<KeyedServerHolder.Fragment?>.Present(
-            KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() })
-        );
+        Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(new KeyedServerHolder { Items = items.ToList() }));
 
-    private static KeyedServer Server(string id, string? name = null) =>
-        new() { Id = id, Name = name ?? id };
+    private static KeyedServer Server(string id, string? name = null) => new() { Id = id, Name = name ?? id };
 
     [Test]
     public void PureReorderMarksRelativeRankOnly()
     {
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Keyed(Server("a"), Server("b"), Server("c")),
-            Keyed(Server("b"), Server("a"), Server("c"))
-        );
+        var changes = KeyedServerHolder.ChangeSet.Between(Keyed(Server("a"), Server("b"), Server("c")), Keyed(Server("b"), Server("a"), Server("c")));
         ISparseChangeSet root = changes;
-        root.TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Items", out var items)
-            .ShouldBeTrue();
+        root.TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Items", out var items).ShouldBeTrue();
         items.ShouldNotBeNull();
 
         items!.OrderChanged.ShouldBeTrue();
@@ -325,14 +235,9 @@ public sealed class TransitionContractTests
         reordered.AfterIndex.ShouldBe(1);
 
         // Absolute index shift without relative-rank change is not a reorder.
-        var removal = KeyedServerHolder.ChangeSet.Between(
-            Keyed(Server("a"), Server("b"), Server("c")),
-            Keyed(Server("b"), Server("c"))
-        );
+        var removal = KeyedServerHolder.ChangeSet.Between(Keyed(Server("a"), Server("b"), Server("c")), Keyed(Server("b"), Server("c")));
         ISparseChangeSet removalRoot = removal;
-        removalRoot
-            .TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Items", out var kept)
-            .ShouldBeTrue();
+        removalRoot.TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Items", out var kept).ShouldBeTrue();
         kept.ShouldNotBeNull();
         // Pure-removal survivors carry no semantic change at all.
         kept!.GetChange("b").IsEmpty.ShouldBeTrue();
@@ -346,17 +251,9 @@ public sealed class TransitionContractTests
 
         // An edited survivor keeps absolute indexes alongside a false reorder
         // flag.
-        var shifted = KeyedServerHolder.ChangeSet.Between(
-            Keyed(Server("a"), Server("b"), Server("c")),
-            Keyed(Server("b", "b2"), Server("c"))
-        );
+        var shifted = KeyedServerHolder.ChangeSet.Between(Keyed(Server("a"), Server("b"), Server("c")), Keyed(Server("b", "b2"), Server("c")));
         ISparseChangeSet shiftedRoot = shifted;
-        shiftedRoot
-            .TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>(
-                "Items",
-                out var editedSurvivor
-            )
-            .ShouldBeTrue();
+        shiftedRoot.TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Items", out var editedSurvivor).ShouldBeTrue();
         editedSurvivor.ShouldNotBeNull();
         var edited = editedSurvivor!.GetChange("b");
         edited.IsEdited.ShouldBeTrue();
@@ -409,19 +306,13 @@ public sealed class TransitionContractTests
             )
         );
         ISparseChangeSet root = ClusterHolder.ChangeSet.Between(before, after);
-        root.TryGetKeyedChange<string, ServerGroup, ServerGroup.ChangeSet>("Groups", out var groups)
-            .ShouldBeTrue();
+        root.TryGetKeyedChange<string, ServerGroup, ServerGroup.ChangeSet>("Groups", out var groups).ShouldBeTrue();
         groups.ShouldNotBeNull();
 
         var group = groups!.GetChange("g1");
         group.IsEdited.ShouldBeTrue();
         ISparseChangeSet groupEdit = group.Edit;
-        groupEdit
-            .TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>(
-                "Servers",
-                out var servers
-            )
-            .ShouldBeTrue();
+        groupEdit.TryGetKeyedChange<string, KeyedServer, KeyedServer.ChangeSet>("Servers", out var servers).ShouldBeTrue();
         servers.ShouldNotBeNull();
         var server = servers!.GetChange("s1");
         server.IsEdited.ShouldBeTrue();
@@ -457,12 +348,7 @@ public sealed class TransitionContractTests
         scores.EnumerateEntries().Select(static entry => entry.Key).ShouldBe(["c", "a", "b"]);
 
         var structuralBefore = Optional<StructuralDictHolder.Fragment?>.Present(
-            StructuralDictHolder.Fragment.From(
-                new StructuralDictHolder
-                {
-                    Servers = new Dictionary<string, KeyedServer> { ["web"] = Server("web") },
-                }
-            )
+            StructuralDictHolder.Fragment.From(new StructuralDictHolder { Servers = new Dictionary<string, KeyedServer> { ["web"] = Server("web") } })
         );
         var structuralAfter = Optional<StructuralDictHolder.Fragment?>.Present(
             StructuralDictHolder.Fragment.From(
@@ -480,24 +366,39 @@ public sealed class TransitionContractTests
                 }
             )
         );
-        ISparseChangeSet structuralRoot = StructuralDictHolder.ChangeSet.Between(
-            structuralBefore,
-            structuralAfter
-        );
-        structuralRoot
-            .TryGetDictionaryChange<string, KeyedServer, KeyedServer.ChangeSet>(
-                "Servers",
-                out var servers
-            )
-            .ShouldBeTrue();
+        ISparseChangeSet structuralRoot = StructuralDictHolder.ChangeSet.Between(structuralBefore, structuralAfter);
+        structuralRoot.TryGetDictionaryChange<string, KeyedServer, KeyedServer.ChangeSet>("Servers", out var servers).ShouldBeTrue();
         servers.ShouldNotBeNull();
         var entry = servers!.GetChange("web");
         entry.IsEdited.ShouldBeTrue();
-        var structural =
-            entry
-            as ISparseStructuralDictionaryItemChange<string, KeyedServer, KeyedServer.ChangeSet>;
+        var structural = entry as ISparseStructuralDictionaryItemChange<string, KeyedServer, KeyedServer.ChangeSet>;
         structural.ShouldNotBeNull();
         structural!.Edit.Name.After.Value.ShouldBe("renamed");
+    }
+
+    [Test]
+    public void EmptyCollectionTransitionsReuseEmptyProjections()
+    {
+        var keyed = KeyedServerHolder.ChangeSet.Between(new KeyedServerHolder(), new KeyedServerHolder()).Items;
+        var keyedAgain = KeyedServerHolder.ChangeSet.Between(new KeyedServerHolder(), new KeyedServerHolder()).Items;
+        ReferenceEquals(keyed, keyedAgain).ShouldBeTrue();
+        keyed.IsEmpty.ShouldBeTrue();
+        keyed.Before.IsPresent.ShouldBeFalse();
+        keyed.After.IsPresent.ShouldBeFalse();
+        keyed.GetChange("missing").IsEmpty.ShouldBeTrue();
+
+        var dictionary = ScalarDictHolder.ChangeSet.Between(new ScalarDictHolder(), new ScalarDictHolder()).Scores;
+        var dictionaryAgain = ScalarDictHolder.ChangeSet.Between(new ScalarDictHolder(), new ScalarDictHolder()).Scores;
+        ReferenceEquals(dictionary, dictionaryAgain).ShouldBeTrue();
+        dictionary.IsEmpty.ShouldBeTrue();
+        dictionary.Before.IsPresent.ShouldBeFalse();
+        dictionary.After.IsPresent.ShouldBeFalse();
+        dictionary.GetChange("missing").IsEmpty.ShouldBeTrue();
+
+        var temporary = TempOrderHolder.ChangeSet.Between(new TempOrderHolder(), new TempOrderHolder()).Lines;
+        var temporaryAgain = TempOrderHolder.ChangeSet.Between(new TempOrderHolder(), new TempOrderHolder()).Lines;
+        ReferenceEquals(temporary, temporaryAgain).ShouldBeTrue();
+        temporary.GetTemporaryChange(Guid.NewGuid()).IsEmpty.ShouldBeTrue();
     }
 
     private static Optional<TempOrderBook.Fragment?> Book(TempOrderBook book) =>
@@ -528,26 +429,18 @@ public sealed class TransitionContractTests
 
         root.TryGetNestedChange("Customer", out var customer).ShouldBeTrue();
         customer.ShouldNotBeNull();
-        customer!
-            .TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>(
-                "Orders",
-                out var orders
-            )
-            .ShouldBeTrue();
+        customer!.TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>("Orders", out var orders).ShouldBeTrue();
         orders.ShouldNotBeNull();
-        var nestedTemp =
-            orders as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
+        var nestedTemp = orders as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
         nestedTemp.ShouldNotBeNull();
         var nested = nestedTemp!.GetTemporaryChange(shared);
         nested.IsAdded.ShouldBeTrue();
         nested.TemporaryKey.ShouldBe(shared);
         nested.After.Value!.Name.ShouldBe("nested");
 
-        root.TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>("Lines", out var lines)
-            .ShouldBeTrue();
+        root.TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>("Lines", out var lines).ShouldBeTrue();
         lines.ShouldNotBeNull();
-        var rootTemp =
-            lines as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
+        var rootTemp = lines as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
         rootTemp.ShouldNotBeNull();
         var atRoot = rootTemp!.GetTemporaryChange(shared);
         atRoot.IsAdded.ShouldBeTrue();
@@ -582,8 +475,7 @@ public sealed class TransitionContractTests
             )
         );
         ISparseChangeSet root = TempOrderHolder.ChangeSet.Between(before, after);
-        root.TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>("Lines", out var lines)
-            .ShouldBeTrue();
+        root.TryGetKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>("Lines", out var lines).ShouldBeTrue();
         lines.ShouldNotBeNull();
 
         // Assigned entries resolve by permanent key with no temporary identity.
@@ -591,8 +483,7 @@ public sealed class TransitionContractTests
         added.IsAdded.ShouldBeTrue();
         added.TemporaryKey.ShouldBeNull();
 
-        var temporary =
-            lines as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
+        var temporary = lines as ISparseTemporaryKeyedChange<int, TempOrderLine, TempOrderLine.ChangeSet>;
         temporary.ShouldNotBeNull();
         temporary!.GetTemporaryChange(temp).IsEmpty.ShouldBeTrue();
     }
@@ -600,20 +491,8 @@ public sealed class TransitionContractTests
     [Test]
     public void ChangeRecordsReuseTheTypedEnumerationProjection()
     {
-        var before = Present(
-            MakeSettings(
-                Optional<string?>.Present("before"),
-                Optional<int>.Missing,
-                NestedState("host-before")
-            )
-        );
-        var after = Present(
-            MakeSettings(
-                Optional<string?>.Present(null),
-                Optional<int>.Present(3),
-                NestedState("host-after")
-            )
-        );
+        var before = Present(MakeSettings(Optional<string?>.Present("before"), Optional<int>.Missing, NestedState("host-before")));
+        var after = Present(MakeSettings(Optional<string?>.Present(null), Optional<int>.Present(3), NestedState("host-after")));
         var typed = Settings.ChangeSet.Between(before, after);
         ISparseChangeSet root = typed;
 

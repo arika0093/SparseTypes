@@ -29,14 +29,7 @@ public sealed class SparseResolutionWorkspace
             throw new ArgumentOutOfRangeException(nameof(depth));
         }
 
-        var segments = path.Segments;
-        var prefix = new SparsePathSegment[depth];
-        for (var index = 0; index < depth; index++)
-        {
-            prefix[index] = segments[index];
-        }
-
-        return new SparsePath(path.RootType, prefix);
+        return path.Prefix(depth);
     }
 
     /// <summary>Reads the staged buffer published for the member path.</summary>

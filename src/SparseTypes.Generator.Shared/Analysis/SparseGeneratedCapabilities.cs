@@ -24,6 +24,9 @@ internal enum SparseGeneratedCapability
 
     /// <summary>Generic removal-index helpers for keyed and dictionary patches.</summary>
     RemovalIndex = 1 << 3,
+
+    /// <summary>Generic coordinator for live field-state watcher dispatch.</summary>
+    ObservationCoordinator = 1 << 4,
 }
 
 /// <summary>Aggregated compilation-scoped emission plan.</summary>
@@ -105,6 +108,7 @@ internal static class SparseGeneratedCapabilityPlanner
         ImmutableArray<SparseGenerationAnalysis> analyses,
         ImmutableArray<SparsePromotedModel> promoted,
         SparseEmissionFeatures features,
+        bool needsObservationCoordinator,
         bool bclHashSetImplementsReadOnlySet,
         bool bclHashSetSupportsCapacity,
         CancellationToken cancellationToken
@@ -137,6 +141,11 @@ internal static class SparseGeneratedCapabilityPlanner
         if (needsPortableView)
         {
             capabilities |= SparseGeneratedCapability.CloneKernels;
+        }
+
+        if (needsObservationCoordinator && HasFlag(capabilities, SparseGeneratedCapability.EditSession))
+        {
+            capabilities |= SparseGeneratedCapability.ObservationCoordinator;
         }
 
         return new SparseGeneratedOncePlan(
@@ -180,6 +189,14 @@ internal static class SparseGeneratedCapabilityPlanner
         if (plan.Has(SparseGeneratedCapability.RemovalIndex) && !features.EmitPatch)
         {
             errors.Add("Generated RemovalIndex requires EmitPatch.");
+        }
+
+        if (
+            plan.Has(SparseGeneratedCapability.ObservationCoordinator)
+            && (!features.EmitChangeSet || !features.EmitObservable || !features.EmitFragment)
+        )
+        {
+            errors.Add("Generated ObservationCoordinator requires EmitFragment, EmitChangeSet, and EmitObservable.");
         }
 
         return errors.ToImmutable();

@@ -108,16 +108,29 @@ internal static class MixedSequenceComposer
             Stage(staged, composedIndex, entry.Key, segments, entry.Value);
         }
 
-        var composed = new List<MixedMemberOperation>(staged.Count - removed.Count);
-        for (var ordinal = 0; ordinal < staged.Count; ordinal++)
+        if (removed.Count > 0)
         {
-            if (removed.Count == 0 || !removed.Contains(ordinal))
+            var removedPositions = new bool[staged.Count];
+            foreach (var position in removed)
             {
-                composed.Add(staged[ordinal]);
+                removedPositions[position] = true;
             }
+
+            var write = 0;
+            for (var read = 0; read < staged.Count; read++)
+            {
+                if (removedPositions[read])
+                {
+                    continue;
+                }
+
+                staged[write++] = staged[read];
+            }
+
+            staged.RemoveRange(write, staged.Count - write);
         }
 
-        return new MixedSequenceComposition(failures.Count == 0, composed, failures, pending);
+        return new MixedSequenceComposition(failures.Count == 0, staged, failures, pending);
     }
 
     private static void ComposeExactly(
@@ -162,10 +175,17 @@ internal static class MixedSequenceComposer
         MixedMemberOperation operation
     )
     {
-        staged.Add(operation);
-        if (!operation.IsWholeRoot)
+        if (operation.IsWholeRoot)
         {
-            composedIndex.Insert(path, segments, operation);
+            throw new InvalidOperationException("Whole-root operations must be handled before staging member operations.");
+        }
+
+        var stagedOrdinal = staged.Count;
+        staged.Add(operation);
+        var indexOrdinal = composedIndex.Insert(path, segments, operation);
+        if (indexOrdinal != stagedOrdinal)
+        {
+            throw new InvalidOperationException("Staged member positions must match composed-index ordinals.");
         }
     }
 

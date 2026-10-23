@@ -153,6 +153,7 @@ internal static class SparseChangeSetDictTransitionEmitter
         code.AppendLine("/// <returns>The typed change for the key.</returns>");
         code.AppendLine("public Item GetChange(" + keyType + " key)");
         code.OpenBlock();
+        code.AppendLine("if (_itemCount == 0) return Item.Empty;");
         AppendLookupBody(code);
         code.CloseBlock();
         SparseChangeSetContractEmitter.AppendDictionaryContractMembers(code, member, dialect);
@@ -187,6 +188,33 @@ internal static class SparseChangeSetDictTransitionEmitter
         code.AppendLine("_itemCount = items.Count;");
         code.AppendLine("IsEmpty = isEmpty;");
         code.CloseBlock();
+        code.AppendLine(
+            "internal static "
+                + trans
+                + " __SparseEmpty { get; } = new "
+                + trans
+                + "(default, default, new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + valueType
+                + ">("
+                + comparer
+                + "), new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + valueType
+                + ">("
+                + comparer
+                + "), new global::System.Collections.Generic.Dictionary<"
+                + keyType
+                + ", "
+                + editedType
+                + ">("
+                + comparer
+                + "), new global::System.Collections.Generic.List<"
+                + trans
+                + ".Item>(), true);"
+        );
         code.AppendLine("private readonly global::System.Collections.Generic.IReadOnlyList<Item> _items;");
         code.AppendLine("private global::System.Collections.Generic.Dictionary<" + keyType + ", Item>? _lookup;");
         code.AppendLine("private global::System.Collections.Generic.Dictionary<" + keyType + ", Item>?[]? _lookupPartitions;");

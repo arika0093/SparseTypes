@@ -58,11 +58,38 @@ public sealed class GeneratedOnceConformanceTests
         }
         """;
 
-    private static string CompileAndRun(
-        string implementationNamespace,
-        bool includePortableSetView,
-        bool hashSetSupportsCapacity
-    )
+    private const string ObservationProbe = """
+        using System.ComponentModel;
+        public static class ObservationProbe
+        {
+            private static PropertyChangedEventHandler? _invalidated;
+            private static int _generation;
+            public static string Run()
+            {
+                var coordinator = new __NS__.SparseObservationCoordinator<int>(
+                    handler => _invalidated += handler,
+                    handler => _invalidated -= handler,
+                    () => ++_generation);
+                var first = 0;
+                var second = 0;
+                PropertyChangedEventHandler firstHandler = (_, _) => first = coordinator.Query(() => -1, view => view);
+                PropertyChangedEventHandler secondHandler = (_, _) => second = coordinator.Query(() => -1, view => view);
+                coordinator.Subscribe(firstHandler);
+                coordinator.Subscribe(secondHandler);
+                _invalidated!(null, new PropertyChangedEventArgs("HasChanges"));
+                if (first != 1 || second != 1) return "first-generation-failed";
+                coordinator.Unsubscribe(firstHandler);
+                _invalidated!(null, new PropertyChangedEventArgs("HasChanges"));
+                if (first != 1 || second != 2) return "unsubscribe-failed";
+                coordinator.Unsubscribe(secondHandler);
+                if (_invalidated is not null) return "detach-failed";
+                if (coordinator.Query(() => 7, view => view) != 7) return "live-query-failed";
+                return "observation-ok";
+            }
+        }
+        """;
+
+    private static string CompileAndRun(string implementationNamespace, bool includePortableSetView, bool hashSetSupportsCapacity)
     {
         var clone = SparseGeneratedOnceEmitter.RenderCloneKernels(
             implementationNamespace,
@@ -70,15 +97,10 @@ public sealed class GeneratedOnceConformanceTests
             hashSetSupportsCapacity,
             CancellationToken.None
         );
-        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-            implementationNamespace,
-            CancellationToken.None
-        );
-        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(
-            implementationNamespace,
-            CancellationToken.None
-        );
-        foreach (var source in new[] { clone, adapters, removal })
+        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(implementationNamespace, CancellationToken.None);
+        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(implementationNamespace, CancellationToken.None);
+        var observation = SparseGeneratedOnceEmitter.RenderObservationCoordinator(implementationNamespace, CancellationToken.None);
+        foreach (var source in new[] { clone, adapters, removal, observation })
         {
             source.ShouldNotContain("SparseTypes");
         }
@@ -88,29 +110,21 @@ public sealed class GeneratedOnceConformanceTests
             CSharpSyntaxTree.ParseText(clone, path: "Clone.g.cs"),
             CSharpSyntaxTree.ParseText(adapters, path: "Adapters.g.cs"),
             CSharpSyntaxTree.ParseText(removal, path: "Removal.g.cs"),
-            CSharpSyntaxTree.ParseText(
-                ProbeDriver.Replace("__NS__", "global::" + implementationNamespace),
-                path: "Probe.cs"
-            ),
+            CSharpSyntaxTree.ParseText(observation, path: "Observation.g.cs"),
+            CSharpSyntaxTree.ParseText(ProbeDriver.Replace("__NS__", "global::" + implementationNamespace), path: "Probe.cs"),
+            CSharpSyntaxTree.ParseText(ObservationProbe.Replace("__NS__", "global::" + implementationNamespace), path: "ObservationProbe.cs"),
         };
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         // No SparseTypes runtime reference: the probe proves the
         // downstream dialect stands on BCL contracts alone.
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToArray();
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToArray();
         var compilation = CSharpCompilation.Create(
             "DownstreamOnceProbe",
             trees,
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var stream = new MemoryStream();
         compilation.Emit(stream).Success.ShouldBeTrue();
         var assembly = System.Reflection.Assembly.Load(stream.ToArray());
@@ -118,6 +132,7 @@ public sealed class GeneratedOnceConformanceTests
         driver.GetMethod("RunAdapters")!.Invoke(null, null).ShouldBe("adapters-ok");
         driver.GetMethod("RunClone")!.Invoke(null, null).ShouldBe("clone-ok");
         driver.GetMethod("RunRemoval")!.Invoke(null, null).ShouldBe("removal-ok");
+        assembly.GetType("ObservationProbe").ShouldNotBeNull().GetMethod("Run")!.Invoke(null, null).ShouldBe("observation-ok");
         return implementationNamespace;
     }
 
@@ -132,9 +147,7 @@ public sealed class GeneratedOnceConformanceTests
     {
         CompileAndRun("Acme.Product.Generated", false, true);
         CompileAndRun("Other.Product.Generated", false, true);
-        SparseGeneratedOnceEmitter
-            .CloneKernelsHintName("Acme.Product.Generated")
-            .ShouldBe("Generated.CloneKernels.g.cs");
+        SparseGeneratedOnceEmitter.CloneKernelsHintName("Acme.Product.Generated").ShouldBe("Generated.CloneKernels.g.cs");
         SparseGeneratedOnceEmitter
             .CloneKernelsHintName("Acme.Product.Generated")
             .ShouldBe(SparseGeneratedOnceEmitter.CloneKernelsHintName("Other.Product.Generated"));
@@ -152,12 +165,7 @@ public sealed class GeneratedOnceConformanceTests
         };
         var rendered = variants
             .Select(variant =>
-                SparseGeneratedOnceEmitter.RenderCloneKernels(
-                    "Downstream.Generated",
-                    variant.Portable,
-                    variant.Capacity,
-                    CancellationToken.None
-                )
+                SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", variant.Portable, variant.Capacity, CancellationToken.None)
             )
             .ToArray();
         rendered[0].ShouldNotContain("__SparseReadOnlySet<T>");
@@ -179,16 +187,7 @@ public sealed class GeneratedOnceConformanceTests
         var scalar = ScalarMember();
         var analyses = ImmutableArray.Create(
             new SparseGenerationAnalysis(
-                new SparseModelInfo(
-                    "Model",
-                    "global::Ns.Model",
-                    "Ns",
-                    false,
-                    false,
-                    false,
-                    "Ns.Model.Downstream.g.cs",
-                    null
-                ),
+                new SparseModelInfo("Model", "global::Ns.Model", "Ns", false, false, false, "Ns.Model.Downstream.g.cs", null),
                 ImmutableArray.Create(scalar),
                 ImmutableArray<SparsePocoCloneModel>.Empty,
                 ImmutableArray<SparseStructuralModel>.Empty,
@@ -202,6 +201,7 @@ public sealed class GeneratedOnceConformanceTests
             listed,
             ImmutableArray<SparsePromotedModel>.Empty,
             SparseEmissionFeatures.Standalone,
+            false,
             true,
             true,
             CancellationToken.None
@@ -216,21 +216,14 @@ public sealed class GeneratedOnceConformanceTests
             {
                 EmitObservable = false,
             },
+            false,
             true,
             true,
             CancellationToken.None
         );
         noObservable.Has(SparseGeneratedCapability.ReadOnlyAdapters).ShouldBeFalse();
         noObservable.Has(SparseGeneratedCapability.CloneKernels).ShouldBeTrue();
-        SparseGeneratedCapabilityPlanner
-            .Validate(
-                noObservable,
-                SparseEmissionFeatures.Standalone with
-                {
-                    EmitObservable = false,
-                }
-            )
-            .ShouldBeEmpty();
+        SparseGeneratedCapabilityPlanner.Validate(noObservable, SparseEmissionFeatures.Standalone with { EmitObservable = false }).ShouldBeEmpty();
     }
 
     [Test]
@@ -271,20 +264,9 @@ public sealed class GeneratedOnceConformanceTests
         session.Core.ShouldContain("global::Downstream.Conflict");
         session.Core.ShouldNotContain("SparseTypes");
 
-        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels(
-            "Downstream.Generated",
-            false,
-            true,
-            CancellationToken.None
-        );
-        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-            "Downstream.Generated",
-            CancellationToken.None
-        );
-        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(
-            "Downstream.Generated",
-            CancellationToken.None
-        );
+        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", false, true, CancellationToken.None);
+        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters("Downstream.Generated", CancellationToken.None);
+        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex("Downstream.Generated", CancellationToken.None);
         foreach (var source in new[] { clone, adapters, removal })
         {
             source.ShouldNotContain("global::Downstream.Optional");
@@ -307,17 +289,7 @@ public sealed class GeneratedOnceConformanceTests
             ),
             JsonPropertyName: "Name"
         );
-        return new SparseMemberModel(
-            0,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(0, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static SparseMemberModel ListMember()

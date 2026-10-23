@@ -362,6 +362,24 @@ internal static class SparseObservableSequenceDescriptorEmitter
         // Views hold proxies for reference fragments; keys always read the
         // model.
         string Unwrap(string view) => UnwrapModelExpression(names, view);
+        var keyIndexAccessors =
+            dialect.ArrayDescriptorKeyEqualsMember is { Length: > 0 } equalsMember
+            && dialect.ArrayDescriptorKeyHashMember is { Length: > 0 } hashMember
+                ? equalsMember
+                    + " = (left, right) => "
+                    + keyCast
+                    + "(left, out var leftKey) && "
+                    + keyCast
+                    + "(right, out var rightKey) && "
+                    + comparer
+                    + ".Equals(leftKey, rightKey), "
+                    + hashMember
+                    + " = key => "
+                    + keyCast
+                    + "(key, out var hashKey) ? "
+                    + comparer
+                    + ".GetHashCode(hashKey!) : 0, "
+                : string.Empty;
         var resolvers =
             "GetItemKey = index => { var rawKeyedItem = "
             + collection
@@ -390,8 +408,24 @@ internal static class SparseObservableSequenceDescriptorEmitter
         if (member.Collection.TemporaryKeyPropertyName is { } temporaryKeyProperty)
         {
             var temporaryProperty = SparseNaming.EscapeIdentifier(temporaryKeyProperty);
+            if (dialect.ArrayDescriptorTemporaryKeyMember is { Length: > 0 } temporaryKeyMember)
+            {
+                temporaryResolver +=
+                    temporaryKeyMember
+                    + " = index => { var rawTemporaryItem = "
+                    + collection
+                    + "[index]; var temporaryModel = "
+                    + Unwrap("rawTemporaryItem")
+                    + "; if (temporaryModel is not "
+                    + member.Collection.ElementType.NonNullableName
+                    + " typedTemporaryModel) return null; return typedTemporaryModel."
+                    + temporaryProperty
+                    + "; }, ";
+            }
+
             temporaryResolver =
-                "IndexOfTemporaryKey = temporaryKey => { var temporaryList = "
+                temporaryResolver
+                + "IndexOfTemporaryKey = temporaryKey => { var temporaryList = "
                 + collection
                 + "; for (var temporaryIndex = 0; temporaryIndex < temporaryList.Count; temporaryIndex++) { var temporaryModel = "
                 + Unwrap("temporaryList[temporaryIndex]")
@@ -401,6 +435,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
                 + temporaryProperty
                 + " == temporaryKey) return temporaryIndex; } return -1; }, ";
         }
+        resolvers = keyIndexAccessors + resolvers;
         var namesLiteral =
             "new string[] { " + string.Join(", ", member.Collection.KeyPropertyNames.Select(name => SymbolDisplay.FormatLiteral(name, true))) + " }";
         return (resolvers + temporaryResolver, ", typeof(" + keyTypeName + "), " + namesLiteral);

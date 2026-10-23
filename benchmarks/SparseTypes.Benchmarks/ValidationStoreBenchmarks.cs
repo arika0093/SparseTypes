@@ -20,21 +20,23 @@ public class ValidationStoreBenchmarks
     public int OriginCount { get; set; }
 
     private SparseValidationStore<BenchValidationModel> _store = null!;
+    private SparseValidationStore<BenchValidationModel> _queryStore = null!;
     private SparsePath _target = default;
+    private SparsePath _queryPath = default;
+    private string _queryText = string.Empty;
     private List<SparseConflict> _conflicts = [];
     private List<SparseConflict> _groupedConflicts = [];
     private List<SparseConflict> _alternatingConflicts = [];
-    private readonly SparseValidationConflictOptions _bulkOptions = new()
-    {
-        Origin = "origin-0",
-        MessageFactory = static _ => "conflict",
-    };
+    private readonly SparseValidationConflictOptions _bulkOptions = new() { Origin = "origin-0", MessageFactory = static _ => "conflict" };
     private int _notifications;
 
     [GlobalSetup]
     public void Setup()
     {
         _target = PathAt(0);
+        _queryPath = SparsePath.Root<BenchValidationModel>().Member("Target");
+        _queryText = _queryPath.ToString();
+        _queryStore = QueryStore();
         _conflicts = Enumerable
             .Range(0, 100)
             .Select(index => new SparseConflict(
@@ -82,6 +84,15 @@ public class ValidationStoreBenchmarks
         _store.SetErrors(_target, "origin-0", ["same"]);
         return _notifications;
     }
+
+    [Benchmark(Description = "HasPathErrors (sparse subtree)")]
+    public bool HasPathErrors_Subtree() => _queryStore.HasPathErrors(_queryPath);
+
+    [Benchmark(Description = "GetPathErrors (sparse subtree)")]
+    public IReadOnlyList<object?> GetPathErrors_Subtree() => _queryStore.GetPathErrors(_queryPath);
+
+    [Benchmark(Description = "GetErrors(string) (sparse subtree)")]
+    public IReadOnlyList<object?> GetErrors_Subtree() => _queryStore.GetErrors(_queryText).Cast<object?>().ToList();
 
     [Benchmark(Description = "Changed SetErrors (one path)")]
     public int SetErrors_Changed()
@@ -151,34 +162,21 @@ public class ValidationStoreBenchmarks
     [Benchmark(Description = "AddConflicts with replace-first")]
     public int AddConflicts_Replace()
     {
-        return _store.AddConflicts(
-            _conflicts,
-            new SparseValidationConflictOptions { Origin = "origin-0", ReplaceOriginFirst = true }
-        );
+        return _store.AddConflicts(_conflicts, new SparseValidationConflictOptions { Origin = "origin-0", ReplaceOriginFirst = true });
     }
 
     [Benchmark(Description = "AddConflicts with grouped repeated paths")]
     public int AddConflicts_Grouped() => _store.AddConflicts(_groupedConflicts, _bulkOptions);
 
     [Benchmark(Description = "AddConflicts with alternating repeated paths")]
-    public int AddConflicts_Alternating() =>
-        _store.AddConflicts(_alternatingConflicts, _bulkOptions);
+    public int AddConflicts_Alternating() => _store.AddConflicts(_alternatingConflicts, _bulkOptions);
 
-    private void OnChanged(object? sender, System.ComponentModel.DataErrorsChangedEventArgs args) =>
-        _notifications++;
+    private void OnChanged(object? sender, System.ComponentModel.DataErrorsChangedEventArgs args) => _notifications++;
 
-    private SparsePath PathAt(int index) =>
-        SparsePath.Root<BenchValidationModel>().Member("F" + index);
+    private SparsePath PathAt(int index) => SparsePath.Root<BenchValidationModel>().Member("F" + index);
 
     private static SparseConflict CreateConflict(SparsePath path) =>
-        new(
-            path,
-            SparseConflictKind.Reconciliation,
-            Optional<object?>.Missing,
-            Optional<object?>.Missing,
-            Optional<object?>.Missing,
-            "conflict"
-        );
+        new(path, SparseConflictKind.Reconciliation, Optional<object?>.Missing, Optional<object?>.Missing, Optional<object?>.Missing, "conflict");
 
     private SparseValidationStore<BenchValidationModel> FilledStore()
     {
@@ -190,6 +188,19 @@ public class ValidationStoreBenchmarks
                 var message = index == 0 && origin == 0 ? "same" : "e-" + index + "-" + origin;
                 store.SetErrors(PathAt(index), "origin-" + origin, [message]);
             }
+        }
+
+        return store;
+    }
+
+    private SparseValidationStore<BenchValidationModel> QueryStore()
+    {
+        var store = new SparseValidationStore<BenchValidationModel>();
+        var matchingPaths = Math.Max(1, PathCount / 100);
+        for (var index = 0; index < PathCount; index++)
+        {
+            var path = index < matchingPaths ? _queryPath.Member("F" + index) : SparsePath.Root<BenchValidationModel>().Member("Other" + index);
+            store.SetErrors(path, "origin-0", ["error-" + index]);
         }
 
         return store;

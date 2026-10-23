@@ -1,5 +1,6 @@
 using System.Collections;
 using System.ComponentModel;
+using System.Linq;
 using SparseTypes.Generated;
 #if NET6_0_OR_GREATER
 using System.Runtime.InteropServices;
@@ -24,7 +25,11 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     // Buckets index by path first, then origin, so exact single-path updates
     // touch only the origins at that path instead of sorting the whole store.
     private readonly Dictionary<SparsePath, Dictionary<string, List<object?>>> _buckets = new();
+    private readonly Dictionary<SparsePath, PathEntry> _pathEntries = new();
+    private readonly Dictionary<Type, HashSet<PathEntry>> _pathsByRoot = new();
+    private readonly TextNode _textRoot = new();
     private int _totalCount;
+    private long _nextPathOrder;
     private bool _disposed;
 
     /// <summary>Gets the root model type this store is bound to.</summary>
@@ -210,6 +215,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             // Capture affected paths once, reset storage once, then notify.
             var affected = SortedPathsWithErrorsLocked();
             _buckets.Clear();
+            ClearPathIndexLocked();
             _totalCount = 0;
             notifications = OrderedNotifications.ForPaths(affected);
             handler = ErrorsChanged;
@@ -287,6 +293,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
                 {
                     origins = new Dictionary<string, List<object?>>(StringComparer.Ordinal);
                     _buckets.Add(group.Path, origins);
+                    AddPathIndexLocked(group.Path);
                 }
 
                 if (!origins.TryGetValue(options.Origin, out var bucket))
@@ -326,7 +333,17 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         lock (_sync)
         {
             ThrowIfDisposed();
-            return _buckets.Keys.Any(stored => stored.Equals(path) || stored.StartsWith(path));
+            if (path.IsRoot)
+            {
+                return _pathsByRoot.TryGetValue(path.RootType, out var rootPaths) && rootPaths.Count > 0;
+            }
+
+            if (!TryGetTextNodeLocked(path.ToString(), out var node))
+            {
+                return false;
+            }
+
+            return HasTypedDescendantLocked(node, path);
         }
     }
 
@@ -344,9 +361,9 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         {
             ThrowIfDisposed();
             var result = new List<object?>();
-            foreach (var stored in SortedPathsLocked().Where(stored => stored.Equals(path) || stored.StartsWith(path)))
+            foreach (var entry in GetTypedSubtreeEntriesLocked(path))
             {
-                result.AddRange(GetExactErrorsLocked(stored));
+                result.AddRange(GetExactErrorsLocked(entry.Path));
             }
 
             return result;
@@ -367,7 +384,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         {
             ThrowIfDisposed();
             var result = new List<SparseValidationError>(_totalCount);
-            foreach (var path in SortedPathsLocked())
+            foreach (var path in SortedEntriesLocked().Select(static entry => entry.Path))
             {
                 foreach (var origin in SortedOriginsLocked(path))
                 {
@@ -399,9 +416,9 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             if (propertyName is not { Length: > 0 })
             {
                 var all = new List<object?>(_totalCount);
-                foreach (var path in SortedPathsLocked())
+                foreach (var entry in SortedEntriesLocked())
                 {
-                    all.AddRange(GetExactErrorsLocked(path));
+                    all.AddRange(GetExactErrorsLocked(entry.Path));
                 }
 
                 return all;
@@ -412,13 +429,23 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
                 return Array.Empty<object?>();
             }
 
-            var result = new List<object?>();
-            foreach (var path in SortedPathsLocked())
+            var entries = GetTypedSubtreeEntriesLocked(query);
+            var included = new HashSet<SparsePath>();
+            foreach (var entry in entries)
             {
-                if (path.Equals(query) || path.StartsWith(query) || (path.RootType == typeof(TModel) && PathTextMatches(path, propertyName)))
-                {
-                    result.AddRange(GetExactErrorsLocked(path));
-                }
+                included.Add(entry.Path);
+            }
+
+            if (TryGetTextNodeLocked(propertyName, out var textNode))
+            {
+                AddTextMatchesLocked(textNode, propertyName, included, entries);
+            }
+
+            SortEntries(entries);
+            var result = new List<object?>();
+            foreach (var entry in entries)
+            {
+                result.AddRange(GetExactErrorsLocked(entry.Path));
             }
 
             return result;
@@ -443,6 +470,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             // deduplicated ancestor notifications.
             var affected = SortedPathsWithErrorsLocked();
             _buckets.Clear();
+            ClearPathIndexLocked();
             _totalCount = 0;
             notifications = OrderedNotifications.ForPaths(affected);
             handler = ErrorsChanged;
@@ -481,6 +509,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
 
             origins = new Dictionary<string, List<object?>>(StringComparer.Ordinal);
             _buckets.Add(path, origins);
+            AddPathIndexLocked(path);
         }
 
         if (replacement.Count == 0)
@@ -516,6 +545,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         if (origins.Count == 0)
         {
             _buckets.Remove(path);
+            RemovePathIndexLocked(path);
         }
     }
 
@@ -528,6 +558,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             if (origins.Count == 0)
             {
                 _buckets.Remove(path);
+                RemovePathIndexLocked(path);
             }
         }
     }
@@ -536,6 +567,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     {
         if (_buckets.Remove(path, out var origins))
         {
+            RemovePathIndexLocked(path);
             foreach (var bucket in origins.Values)
             {
                 _totalCount -= bucket.Count;
@@ -561,6 +593,147 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
 
         return sorted;
     }
+
+    private void AddPathIndexLocked(SparsePath path)
+    {
+        if (_pathEntries.ContainsKey(path))
+        {
+            return;
+        }
+
+        var entry = new PathEntry(path, path.ToString(), _nextPathOrder++);
+        _pathEntries.Add(path, entry);
+        if (!_pathsByRoot.TryGetValue(path.RootType, out var rootPaths))
+        {
+            rootPaths = new HashSet<PathEntry>();
+            _pathsByRoot.Add(path.RootType, rootPaths);
+        }
+
+        rootPaths.Add(entry);
+        var node = _textRoot;
+        node.Entries.Add(entry);
+        foreach (var character in entry.Text)
+        {
+            if (!node.Children.TryGetValue(character, out var child))
+            {
+                child = new TextNode();
+                node.Children.Add(character, child);
+            }
+
+            node = child;
+            node.Entries.Add(entry);
+        }
+    }
+
+    private void RemovePathIndexLocked(SparsePath path)
+    {
+        if (!_pathEntries.Remove(path, out var entry))
+        {
+            return;
+        }
+
+        var rootPaths = _pathsByRoot[path.RootType];
+        rootPaths.Remove(entry);
+        if (rootPaths.Count == 0)
+        {
+            _pathsByRoot.Remove(path.RootType);
+        }
+
+        var nodes = new List<(TextNode Parent, char Character, TextNode Node)>(entry.Text.Length);
+        var current = _textRoot;
+        current.Entries.Remove(entry);
+        foreach (var character in entry.Text)
+        {
+            var child = current.Children[character];
+            nodes.Add((current, character, child));
+            current = child;
+            current.Entries.Remove(entry);
+        }
+
+        for (var index = nodes.Count - 1; index >= 0; index--)
+        {
+            var (parent, character, node) = nodes[index];
+            if (node.Entries.Count != 0)
+            {
+                break;
+            }
+
+            parent.Children.Remove(character);
+        }
+    }
+
+    private void ClearPathIndexLocked()
+    {
+        _pathEntries.Clear();
+        _pathsByRoot.Clear();
+        _textRoot.Clear();
+        _nextPathOrder = 0;
+    }
+
+    private bool TryGetTextNodeLocked(string text, out TextNode node)
+    {
+        node = _textRoot;
+        foreach (var character in text)
+        {
+            if (!node.Children.TryGetValue(character, out var child))
+            {
+                node = null!;
+                return false;
+            }
+
+            node = child;
+        }
+
+        return true;
+    }
+
+    private List<PathEntry> GetTypedSubtreeEntriesLocked(SparsePath path)
+    {
+        IEnumerable<PathEntry> candidates;
+        if (path.IsRoot)
+        {
+            candidates = _pathsByRoot.TryGetValue(path.RootType, out var rootPaths) ? rootPaths : [];
+        }
+        else if (TryGetTextNodeLocked(path.ToString(), out var node))
+        {
+            candidates = node.Entries;
+        }
+        else
+        {
+            return [];
+        }
+
+        var entries = new List<PathEntry>();
+        entries.AddRange(candidates.Where(entry => entry.Path.StartsWith(path)));
+
+        SortEntries(entries);
+        return entries;
+    }
+
+    private static bool HasTypedDescendantLocked(TextNode node, SparsePath path) => node.Entries.Any(entry => entry.Path.StartsWith(path));
+
+    private static void AddTextMatchesLocked(TextNode node, string propertyName, HashSet<SparsePath> included, List<PathEntry> entries) =>
+        entries.AddRange(
+            node.Entries.Where(entry =>
+                entry.Path.RootType == typeof(TModel) && PathTextMatches(entry.Path, propertyName) && included.Add(entry.Path)
+            )
+        );
+
+    private List<PathEntry> SortedEntriesLocked()
+    {
+        var entries = new List<PathEntry>(_pathEntries.Values);
+        SortEntries(entries);
+        return entries;
+    }
+
+    private static void SortEntries(List<PathEntry> entries) =>
+        entries.Sort(
+            static (left, right) =>
+            {
+                var order = string.CompareOrdinal(left.Text, right.Text);
+                return order != 0 ? order : left.Order.CompareTo(right.Order);
+            }
+        );
 
     private List<SparsePath> SortedPathsWithErrorsLocked()
     {
@@ -606,6 +779,25 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
 
         public SparsePath Path { get; }
         public List<string> Messages { get; } = new();
+    }
+
+    private sealed class PathEntry(SparsePath path, string text, long order)
+    {
+        public SparsePath Path { get; } = path;
+        public string Text { get; } = text;
+        public long Order { get; } = order;
+    }
+
+    private sealed class TextNode
+    {
+        public Dictionary<char, TextNode> Children { get; } = new();
+        public HashSet<PathEntry> Entries { get; } = new();
+
+        public void Clear()
+        {
+            Children.Clear();
+            Entries.Clear();
+        }
     }
 
     // Ordered, deduplicated ancestor notifications: wire-text identity stays

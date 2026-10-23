@@ -31,44 +31,35 @@ public class DictionaryTransitionProjectionBenchmarks
         _structural = _input.StructuralBetween();
         var expected =
             Shape == DictionaryChangeSetBetweenShape.AllEdits ? Size
-            : Shape
-                is DictionaryChangeSetBetweenShape.OneEdit
-                    or DictionaryChangeSetBetweenShape.Mixed
-                ? 1
+            : Shape is DictionaryChangeSetBetweenShape.OneEdit or DictionaryChangeSetBetweenShape.Mixed ? 1
             : 0;
         var changed = Shape != DictionaryChangeSetBetweenShape.NoOp;
-        if (
-            RepeatedView() != expected
-            || RepeatedLookup() != changed
-            || FirstView() != expected
-            || FirstLookup() != changed
-        )
+        if (RepeatedView() != expected || RepeatedLookup() != changed || FirstView() != expected || FirstLookup() != changed)
         {
-            throw new InvalidOperationException(
-                "Dictionary projections must preserve edited entries."
-            );
+            throw new InvalidOperationException("Dictionary projections must preserve edited entries.");
         }
     }
 
     [Benchmark]
-    public int RepeatedView() =>
-        Structural ? _structural.Servers.Edited.Count : _scalar.Scores.Edited.Count;
+    public int RepeatedView() => Structural ? _structural.Servers.Edited.Count : _scalar.Scores.Edited.Count;
 
     [Benchmark]
-    public bool RepeatedLookup() =>
-        Structural
-            ? _structural.Servers.GetChange("key-0").IsChanged
-            : _scalar.Scores.GetChange("key-0").IsChanged;
+    public bool RepeatedLookup() => Structural ? _structural.Servers.GetChange("key-0").IsChanged : _scalar.Scores.GetChange("key-0").IsChanged;
 
     [Benchmark]
-    public int FirstView() =>
-        Structural
-            ? _input.StructuralBetween().Servers.Edited.Count
-            : _input.ScalarBetween().Scores.Edited.Count;
+    public int FirstView() => Structural ? _input.StructuralBetween().Servers.Edited.Count : _input.ScalarBetween().Scores.Edited.Count;
 
     [Benchmark]
     public bool FirstLookup() =>
+        Structural ? _input.StructuralBetween().Servers.GetChange("key-0").IsChanged : _input.ScalarBetween().Scores.GetChange("key-0").IsChanged;
+
+    [Benchmark]
+    public int EmptyFirstView() =>
+        Structural ? _input.EmptyStructuralBetween().Servers.Edited.Count : _input.EmptyScalarBetween().Scores.Edited.Count;
+
+    [Benchmark]
+    public bool EmptyFirstLookup() =>
         Structural
-            ? _input.StructuralBetween().Servers.GetChange("key-0").IsChanged
-            : _input.ScalarBetween().Scores.GetChange("key-0").IsChanged;
+            ? _input.EmptyStructuralBetween().Servers.GetChange("missing").IsChanged
+            : _input.EmptyScalarBetween().Scores.GetChange("missing").IsChanged;
 }

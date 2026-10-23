@@ -513,7 +513,10 @@ internal sealed record SparseDescriptorDialect
         string SetDescriptorAccessType,
         string DescriptorShapeType,
         string DescriptorValueType,
-        string? PathType = null
+        string? PathType = null,
+        string? ArrayDescriptorKeyEqualsMember = null,
+        string? ArrayDescriptorKeyHashMember = null,
+        string? ArrayDescriptorTemporaryKeyMember = null
     )
     {
         this.DescriptorInterface = DescriptorInterface;
@@ -532,6 +535,9 @@ internal sealed record SparseDescriptorDialect
         this.DescriptorShapeType = DescriptorShapeType;
         this.DescriptorValueType = DescriptorValueType;
         this.PathType = PathType;
+        this.ArrayDescriptorKeyEqualsMember = ArrayDescriptorKeyEqualsMember;
+        this.ArrayDescriptorKeyHashMember = ArrayDescriptorKeyHashMember;
+        this.ArrayDescriptorTemporaryKeyMember = ArrayDescriptorTemporaryKeyMember;
     }
 
     public string DescriptorInterface { get; init; }
@@ -566,6 +572,15 @@ internal sealed record SparseDescriptorDialect
 
     /// <summary>Product-owned path type for descriptor paths, or null for the runtime-namespace default.</summary>
     public string? PathType { get; init; }
+
+    /// <summary>Optional product-owned access member for typed key equality.</summary>
+    public string? ArrayDescriptorKeyEqualsMember { get; init; }
+
+    /// <summary>Optional product-owned access member for typed key hashing.</summary>
+    public string? ArrayDescriptorKeyHashMember { get; init; }
+
+    /// <summary>Optional product-owned access member for temporary-key retrieval.</summary>
+    public string? ArrayDescriptorTemporaryKeyMember { get; init; }
 
     /// <summary>Resolves the descriptor path type, defaulting to the runtime namespace.</summary>
     /// <param name="runtimeNamespace">Runtime helper namespace.</param>

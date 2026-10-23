@@ -44,8 +44,7 @@ public sealed class CountingEnumerable : System.Collections.Generic.IEnumerable<
         return ((System.Collections.Generic.IEnumerable<string>)_values).GetEnumerator();
     }
 
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 /// <summary>Single-pass enumerable: the first enumeration drains it.</summary>
@@ -53,8 +52,7 @@ public sealed class SinglePassEnumerable : System.Collections.Generic.IEnumerabl
 {
     private readonly System.Collections.Generic.Queue<string> _queue;
 
-    public SinglePassEnumerable(params string[] values) =>
-        _queue = new System.Collections.Generic.Queue<string>(values);
+    public SinglePassEnumerable(params string[] values) => _queue = new System.Collections.Generic.Queue<string>(values);
 
     public System.Collections.Generic.IEnumerator<string> GetEnumerator()
     {
@@ -64,8 +62,7 @@ public sealed class SinglePassEnumerable : System.Collections.Generic.IEnumerabl
         }
     }
 
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }
 
 [SparseModel]
@@ -77,8 +74,7 @@ public partial class PureReadOnlyDictionarySessionModel
 
 /// <summary>Pure <see cref="IReadOnlyDictionary{TKey, TValue}"/> backing.</summary>
 /// <remarks>Implements only <c>IReadOnlyDictionary</c>, never <c>IDictionary</c>.</remarks>
-public sealed class PureReadOnlyDictionary
-    : System.Collections.Generic.IReadOnlyDictionary<string, int>
+public sealed class PureReadOnlyDictionary : System.Collections.Generic.IReadOnlyDictionary<string, int>
 {
     private readonly System.Collections.Generic.Dictionary<string, int> _inner;
 
@@ -97,13 +93,9 @@ public sealed class PureReadOnlyDictionary
 
     public bool ContainsKey(string key) => _inner.ContainsKey(key);
 
-    public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<
-        string,
-        int
-    >> GetEnumerator() => _inner.GetEnumerator();
+    public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string, int>> GetEnumerator() => _inner.GetEnumerator();
 
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
-        GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 
     public bool TryGetValue(string key, out int value) => _inner.TryGetValue(key, out value);
 }
@@ -150,10 +142,7 @@ public partial class NeutralSessionUnconstructablePocoModel
 #pragma warning disable SPF036
 public sealed class NeutralSessionUnconstructablePoco
 {
-    private NeutralSessionUnconstructablePoco(
-        string label,
-        NeutralSessionUnconstructablePoco? nested
-    )
+    private NeutralSessionUnconstructablePoco(string label, NeutralSessionUnconstructablePoco? nested)
     {
         Label = label;
         Nested = nested;
@@ -163,10 +152,7 @@ public sealed class NeutralSessionUnconstructablePoco
 
     public NeutralSessionUnconstructablePoco? Nested { get; }
 
-    public static NeutralSessionUnconstructablePoco Create(
-        string label,
-        NeutralSessionUnconstructablePoco? nested = null
-    ) => new(label, nested);
+    public static NeutralSessionUnconstructablePoco Create(string label, NeutralSessionUnconstructablePoco? nested = null) => new(label, nested);
 }
 #pragma warning restore SPF036
 
@@ -361,9 +347,7 @@ public sealed class NeutralEditSessionTests
             _ => new object()
         );
 
-        Should
-            .Throw<InvalidOperationException>(() => session.HasChanges)
-            .Message.ShouldBe("Unrelated failure.");
+        Should.Throw<InvalidOperationException>(() => session.HasChanges).Message.ShouldBe("Unrelated failure.");
     }
 
     [Test]
@@ -577,9 +561,7 @@ public sealed class NeutralEditSessionTests
         var model = new NeutralSessionModel { Name = "a" };
         var session = model.CreateEditSession();
         model.Name = "b";
-        var foreign = new NeutralSessionModel { Name = "other" }.CreateChangeSet(
-            new NeutralSessionModel { Name = "changed" }
-        );
+        var foreign = new NeutralSessionModel { Name = "other" }.CreateChangeSet(new NeutralSessionModel { Name = "changed" });
 
         Should.Throw<InvalidOperationException>(() => session.AcceptChanges(foreign));
 
@@ -646,17 +628,12 @@ public sealed class NeutralEditSessionTests
     [Test]
     public void HasChangesReportsDuplicateKeysWithoutHidingOtherInvalidOperations()
     {
-        var model = new DuplicateKeySessionModel
-        {
-            Items = [new DuplicateKeySessionItem { Id = "same" }],
-        };
+        var model = new DuplicateKeySessionModel { Items = [new DuplicateKeySessionItem { Id = "same" }] };
         var session = model.CreateEditSession();
         model.Items.Add(new DuplicateKeySessionItem { Id = "same" });
 
         session.HasChanges.ShouldBeTrue();
-        Should
-            .Throw<InvalidOperationException>(() => session.CreateChangeSet())
-            .Message.ShouldBe("Duplicate key in keyed collection.");
+        Should.Throw<InvalidOperationException>(() => session.CreateChangeSet()).Message.ShouldBe("Duplicate key in keyed collection.");
 
         var unrelated = EditSessionCore<
             NeutralSessionModel,
@@ -674,9 +651,7 @@ public sealed class NeutralEditSessionTests
             static current => new NeutralObservable(current)
         );
 
-        Should
-            .Throw<InvalidOperationException>(() => _ = unrelated.HasChanges)
-            .Message.ShouldBe("Unrelated failure.");
+        Should.Throw<InvalidOperationException>(() => _ = unrelated.HasChanges).Message.ShouldBe("Unrelated failure.");
 
         var isEmptyFailure = EditSessionCore<
             NeutralSessionModel,
@@ -694,22 +669,15 @@ public sealed class NeutralEditSessionTests
             static current => new NeutralObservable(current)
         );
 
-        Should
-            .Throw<InvalidOperationException>(() => _ = isEmptyFailure.HasChanges)
-            .Message.ShouldBe("Duplicate key in keyed collection.");
+        Should.Throw<InvalidOperationException>(() => _ = isEmptyFailure.HasChanges).Message.ShouldBe("Duplicate key in keyed collection.");
     }
 
     [Test]
     public void ObservableDuplicateKeyEditLeavesTheSessionRecoverable()
     {
-        var session = new DuplicateKeySessionModel
-        {
-            Items = [new DuplicateKeySessionItem { Id = "same" }],
-        }.CreateEditSession();
+        var session = new DuplicateKeySessionModel { Items = [new DuplicateKeySessionItem { Id = "same" }] }.CreateEditSession();
 
-        session.Observable.Items.Add(
-            new DuplicateItemObservable(new DuplicateKeySessionItem { Id = "same" })
-        );
+        session.Observable.Items.Add(new DuplicateItemObservable(new DuplicateKeySessionItem { Id = "same" }));
 
         session.HasChanges.ShouldBeTrue();
         session.Observable.Items.RemoveAt(1);
@@ -739,10 +707,7 @@ public sealed class NeutralEditSessionTests
         notifications[0].Child.IsEmpty.ShouldBeTrue();
         notifications[1].Name.IsChanged.ShouldBeFalse();
         notifications[1].Child.Value.IsChanged.ShouldBeTrue();
-        session
-            .EnumerateChangedPaths()
-            .Select(static path => path.ToString())
-            .ShouldBe(["Child.Value", "Name"]);
+        session.EnumerateChangedPaths().Select(static path => path.ToString()).ShouldBe(["Child.Value", "Name"]);
         session.Current.Name.ShouldBe("updated");
         session.Current.Child.Value.ShouldBe("nested");
     }
@@ -752,18 +717,13 @@ public sealed class NeutralEditSessionTests
     {
         var pure = new PureReadOnlyDictionarySessionModel
         {
-            Values = new PureReadOnlyDictionary(
-                new System.Collections.Generic.Dictionary<string, int> { ["a"] = 1 }
-            ),
+            Values = new PureReadOnlyDictionary(new System.Collections.Generic.Dictionary<string, int> { ["a"] = 1 }),
         };
         var pureView = pure.CreateEditSession().Current.Values;
         pureView.Keys.ShouldBe(["a"]);
         pureView["a"].ShouldBe(1);
 
-        var mutable = new PureReadOnlyDictionarySessionModel
-        {
-            Values = new System.Collections.Generic.Dictionary<string, int> { ["b"] = 2 },
-        };
+        var mutable = new PureReadOnlyDictionarySessionModel { Values = new System.Collections.Generic.Dictionary<string, int> { ["b"] = 2 } };
         var mutableView = mutable.CreateEditSession().Current.Values;
         mutableView["b"].ShouldBe(2);
     }
@@ -812,9 +772,7 @@ public sealed class NeutralEditSessionTests
     {
         // Single-pass sequences are unsupported: every read enumerates anew,
         // so a drained source reads back empty rather than replaying.
-        var view = new StreamingView(
-            new StreamingSessionModel { Items = new SinglePassEnumerable("a") }
-        ).Items;
+        var view = new StreamingView(new StreamingSessionModel { Items = new SinglePassEnumerable("a") }).Items;
         view.Count.ShouldBe(1);
         view.Count.ShouldBe(0);
     }
@@ -857,10 +815,7 @@ public sealed class NeutralEditSessionTests
     [Test]
     public void CurrentWrapsUnconstructableNestedPocosAndDictionaryKeys()
     {
-        var atomic = NeutralSessionUnconstructablePoco.Create(
-            "atomic",
-            NeutralSessionUnconstructablePoco.Create("nested")
-        );
+        var atomic = NeutralSessionUnconstructablePoco.Create("atomic", NeutralSessionUnconstructablePoco.Create("nested"));
         var key = NeutralSessionUnconstructablePoco.Create("key");
         var model = new NeutralSessionUnconstructablePocoModel
         {
@@ -890,6 +845,7 @@ public sealed class NeutralEditSessionTests
     {
         var model = new NeutralSessionModel();
         var snapshots = 0;
+        var comparisons = 0;
         var configuration = new EditSessionCoreConfiguration<
             NeutralSessionModel,
             NeutralSessionModel.Fragment,
@@ -904,12 +860,15 @@ public sealed class NeutralEditSessionTests
                 snapshots++;
                 return NeutralSessionModel.Fragment.From(current);
             },
-            Between = NeutralSessionModel.ChangeSet.Between,
+            Between = (before, after) =>
+            {
+                comparisons++;
+                return NeutralSessionModel.ChangeSet.Between(before, after);
+            },
             ToPatch = static changes => changes.ToPatch(),
             IsEmpty = static changes => changes.IsEmpty,
             AdvanceBaseline = static (changes, baseline) => changes.ApplyToBaseline(baseline),
-            ToObservable = static (current, changed, access) =>
-                new NeutralObservable(current, changed, access),
+            ToObservable = static (current, changed, access) => new NeutralObservable(current, changed, access),
             ToCurrent = static current => new NeutralView(current),
             EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(),
             RefreshObservable = static observable => observable.__SparseRefresh(),
@@ -924,14 +883,30 @@ public sealed class NeutralEditSessionTests
         >.Create(model, configuration);
         session.Observable.Name = "observable edit";
         var afterNotification = snapshots;
+        var afterNotificationComparisons = comparisons;
 
+        var changes = session.CreateChangeSet();
+        snapshots.ShouldBe(afterNotification);
+        comparisons.ShouldBe(afterNotificationComparisons + 1);
+        session.CreateChangeSet().ShouldBeSameAs(changes);
         session.HasChanges.ShouldBeTrue();
         session.HasChanges.ShouldBeTrue();
+        comparisons.ShouldBe(afterNotificationComparisons + 1);
         snapshots.ShouldBe(afterNotification);
 
+        var revision = session.BaselineRevision;
+        session.AcceptChanges(changes);
+        session.BaselineRevision.ShouldBe(revision + 1);
+        session.CreateChangeSet().IsEmpty.ShouldBeTrue();
+        session.CreateChangeSet().ShouldBeSameAs(session.CreateChangeSet());
+
+        session.Observable.Version = 1;
+        var afterNextNotification = snapshots;
         _ = session.Model;
         session.HasChanges.ShouldBeTrue();
-        snapshots.ShouldBe(afterNotification + 1);
+        snapshots.ShouldBe(afterNextNotification + 1);
+        session.CreateChangeSet();
+        snapshots.ShouldBe(afterNextNotification + 2);
     }
 
     [Test]
@@ -1008,9 +983,7 @@ public sealed class NeutralEditSessionTests
         var result = session.Reload(server);
 
         result.HasConflicts.ShouldBeTrue();
-        result.Conflicts.ShouldContain(conflict =>
-            conflict.PathText == nameof(NeutralSessionModel.Name)
-        );
+        result.Conflicts.ShouldContain(conflict => conflict.PathText == nameof(NeutralSessionModel.Name));
         ReferenceEquals(Raw(session), original).ShouldBeTrue();
         Raw(session).Name.ShouldBe("local");
         Raw(session).Version.ShouldBe(1);

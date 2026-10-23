@@ -131,6 +131,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
         internalCode.CloseBlock();
         EmitKeyedMutators(
             operations,
+            internalCode,
             member,
             patchName,
             elementType,
@@ -279,6 +280,7 @@ internal static class SparseKeyedSequenceSurfaceEmitter
     /// <remarks>With a null split the mutators stay instance members of the nested patch (legacy single-file emission).</remarks>
     internal static void EmitKeyedMutators(
         SharedIndentedBuilder code,
+        SharedIndentedBuilder internalCode,
         SparseMemberModel member,
         string patchName,
         string elementType,
@@ -591,6 +593,285 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             code.AppendLine("__orderTemp = null;");
         }
         code.CloseBlock();
+
+        EmitChangeSetConversionMutators(
+            internalCode,
+            member,
+            patchName,
+            elementType,
+            keyType,
+            editedValueType,
+            comparer,
+            sharedRemoval,
+            implementationNamespace,
+            split
+        );
+    }
+
+    private static void EmitChangeSetConversionMutators(
+        SharedIndentedBuilder code,
+        SparseMemberModel member,
+        string patchName,
+        string elementType,
+        string keyType,
+        string editedValueType,
+        string comparer,
+        string? sharedRemoval,
+        string? implementationNamespace,
+        SparseMemberOperationSplit? split
+    )
+    {
+        var relocated = split is not null;
+        var implementation = relocated ? split!.Operations : code;
+        var receiver = relocated ? "self." : string.Empty;
+        var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
+        var hasUnassigned = SparseKeyedCollectionEmitter.HasUnassignedKey(member);
+        var hasTemporaryKey = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
+        var tempOf = hasTemporaryKey ? SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member) : null;
+        var unassigned = hasUnassigned ? SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key") : null;
+
+        void Begin(string name, string parameters, string arguments)
+        {
+            if (split is null)
+            {
+                implementation.AppendLine("internal void " + name + "(" + parameters + ")");
+            }
+            else
+            {
+                code.AppendLine(
+                    "internal void " + name + "(" + parameters + ") => " + split.OperationsType + "." + name + "(this, " + arguments + ");"
+                );
+                implementation.AppendLine("internal static void " + name + "(" + patchName + " self, " + parameters + ")");
+            }
+
+            implementation.OpenBlock();
+            if (relocated)
+            {
+                AppendFieldAliases(implementation, member);
+            }
+        }
+
+        Begin(
+            "__SparseAddForChangeSet",
+            elementType
+                + " element, global::System.Collections.Generic.HashSet<"
+                + keyType
+                + "> addedKeys"
+                + (hasTemporaryKey ? ", global::System.Collections.Generic.HashSet<global::System.Guid> addedTemporaryKeys" : ""),
+            "element, addedKeys" + (hasTemporaryKey ? ", addedTemporaryKeys" : "")
+        );
+        implementation.AppendLine("if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));");
+        implementation.AppendLine(receiver + "EnsureGranular(\"Add\");");
+        implementation.AppendLine("var key = " + keyOf + "(element);");
+        if (hasUnassigned)
+        {
+            implementation.AppendLine(
+                "if (!"
+                    + unassigned
+                    + " && !addedKeys.Add(key)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection patch.\");"
+            );
+        }
+        else
+        {
+            implementation.AppendLine(
+                "if (!addedKeys.Add(key)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection patch.\");"
+            );
+        }
+
+        implementation.AppendLine(
+            "if (__edited is not null"
+                + (hasUnassigned ? " && !" + unassigned : "")
+                + " && __edited.ContainsKey(key!)) throw new global::System.InvalidOperationException(\"Key is already edited in this patch.\");"
+        );
+        if (hasTemporaryKey)
+        {
+            implementation.AppendLine(
+                "if ("
+                    + unassigned
+                    + ") { var __temporaryKey = "
+                    + tempOf
+                    + "(element); if (__temporaryKey.HasValue && __temporaryKey.Value != global::System.Guid.Empty && !addedTemporaryKeys.Add(__temporaryKey.Value)) throw new global::System.InvalidOperationException(\"Duplicate temporary key in keyed collection patch.\"); }"
+            );
+        }
+
+        if (hasUnassigned)
+        {
+            implementation.AppendLine(
+                sharedRemoval is null
+                    ? "if (!" + unassigned + " && __removed is not null) __SparseCancelRemoval(key);"
+                    : "if (!" + unassigned + " && __removed is not null) " + sharedRemoval + ".CancelRemoval(__removed!, ref __removedLookup, key);"
+            );
+        }
+        else
+        {
+            implementation.AppendLine(
+                sharedRemoval is null
+                    ? "if (__removed is not null) __SparseCancelRemoval(key);"
+                    : "if (__removed is not null) " + sharedRemoval + ".CancelRemoval(__removed!, ref __removedLookup, key);"
+            );
+        }
+
+        implementation.AppendLine("__added ??= new global::System.Collections.Generic.List<" + elementType + ">();");
+        implementation.AppendLine("__added.Add(element);");
+        implementation.CloseBlock();
+
+        Begin(
+            "__SparseRemoveForChangeSet",
+            keyType + " key, global::System.Collections.Generic.HashSet<" + keyType + "> addedKeys",
+            "key, addedKeys"
+        );
+        implementation.AppendLine(receiver + "EnsureGranular(\"Remove\");");
+        if (hasUnassigned)
+        {
+            implementation.AppendLine(
+                "if ("
+                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
+                    + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be removed by key.\");"
+            );
+        }
+
+        implementation.AppendLine("if (addedKeys.Contains(key) && __added is not null)");
+        implementation.OpenBlock();
+        implementation.AppendLine(
+            "for (var i = __added.Count - 1; i >= 0; i--) if ("
+                + comparer
+                + ".Equals("
+                + keyOf
+                + "(__added[i]), key)) { __added.RemoveAt(i); addedKeys.Remove(key); return; }"
+        );
+        implementation.CloseBlock();
+        implementation.AppendLine("if (__edited is not null) __edited.Remove(key);");
+        implementation.AppendLine("__removed ??= new global::System.Collections.Generic.List<" + keyType + ">();");
+        SparseDictionaryRemovalIndexEmitter.EmitAdd(implementation, comparer, keepReservedIndex: false, keyType, implementationNamespace);
+        implementation.CloseBlock();
+
+        if (hasTemporaryKey)
+        {
+            Begin(
+                "__SparseRemoveByTemporaryKeyForChangeSet",
+                "global::System.Guid temporaryKey, global::System.Collections.Generic.HashSet<global::System.Guid> addedTemporaryKeys, global::System.Collections.Generic.HashSet<global::System.Guid> removedTemporaryKeys",
+                "temporaryKey, addedTemporaryKeys, removedTemporaryKeys"
+            );
+            implementation.AppendLine(receiver + "EnsureGranular(\"RemoveByTemporaryKey\");");
+            implementation.AppendLine(
+                "if (temporaryKey == global::System.Guid.Empty) throw new global::System.ArgumentException(\"Temporary identity must not be empty.\", nameof(temporaryKey));"
+            );
+            implementation.AppendLine("if (addedTemporaryKeys.Contains(temporaryKey) && __added is not null)");
+            implementation.OpenBlock();
+            implementation.AppendLine(
+                "for (var i = __added.Count - 1; i >= 0; i--) if ("
+                    + tempOf
+                    + "(__added[i]) == temporaryKey) { __added.RemoveAt(i); addedTemporaryKeys.Remove(temporaryKey); return; }"
+            );
+            implementation.CloseBlock();
+            implementation.AppendLine("if (__editedTemp is not null) __editedTemp.Remove(temporaryKey);");
+            implementation.AppendLine(
+                "if (!removedTemporaryKeys.Add(temporaryKey)) throw new global::System.InvalidOperationException(\"Element is already removed in this patch.\");"
+            );
+            implementation.AppendLine("__removedTemp ??= new global::System.Collections.Generic.List<global::System.Guid>();");
+            implementation.AppendLine("__removedTemp.Add(temporaryKey);");
+            implementation.CloseBlock();
+        }
+
+        if (!SparseKeyedCollectionEmitter.HasElementPatch(member))
+        {
+            if (hasTemporaryKey)
+            {
+                Begin(
+                    "__SparseUpdateByTemporaryKeyForChangeSet",
+                    elementType
+                        + " element, global::System.Collections.Generic.HashSet<global::System.Guid> addedTemporaryKeys, global::System.Collections.Generic.HashSet<global::System.Guid> removedTemporaryKeys",
+                    "element, addedTemporaryKeys, removedTemporaryKeys"
+                );
+                implementation.AppendLine("if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));");
+                implementation.AppendLine(receiver + "EnsureGranular(\"UpdateByTemporaryKey\");");
+                implementation.AppendLine("var __temporaryKey = " + tempOf + "(element);");
+                implementation.AppendLine(
+                    "if (!__temporaryKey.HasValue || __temporaryKey.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"UpdateByTemporaryKey requires an unassigned element with a temporary identity.\");"
+                );
+                implementation.AppendLine(
+                    "if (removedTemporaryKeys.Contains(__temporaryKey.Value)) throw new global::System.InvalidOperationException(\"Cannot update a removed element. Add it again instead.\");"
+                );
+                implementation.AppendLine("if (addedTemporaryKeys.Contains(__temporaryKey.Value) && __added is not null)");
+                implementation.OpenBlock();
+                implementation.AppendLine(
+                    "for (var i = 0; i < __added.Count; i++) if ("
+                        + tempOf
+                        + "(__added[i]) == __temporaryKey.Value) { __added[i] = element; return; }"
+                );
+                implementation.CloseBlock();
+                implementation.AppendLine(
+                    "__editedTemp ??= new global::System.Collections.Generic.Dictionary<global::System.Guid, " + editedValueType + ">();"
+                );
+                implementation.AppendLine("__editedTemp[__temporaryKey.Value] = element;");
+                implementation.CloseBlock();
+            }
+
+            var updateParams =
+                elementType
+                + " element, global::System.Collections.Generic.HashSet<"
+                + keyType
+                + "> addedKeys"
+                + (
+                    hasTemporaryKey
+                        ? ", global::System.Collections.Generic.HashSet<global::System.Guid> addedTemporaryKeys, global::System.Collections.Generic.HashSet<global::System.Guid> removedTemporaryKeys"
+                        : ""
+                );
+            var updateArgs = "element, addedKeys" + (hasTemporaryKey ? ", addedTemporaryKeys, removedTemporaryKeys" : "");
+            Begin("__SparseUpdateForChangeSet", updateParams, updateArgs);
+            implementation.AppendLine("if ((object?)element is null) throw new global::System.ArgumentNullException(nameof(element));");
+            implementation.AppendLine(receiver + "EnsureGranular(\"Update\");");
+            implementation.AppendLine("var key = " + keyOf + "(element);");
+            if (hasTemporaryKey)
+            {
+                var temporaryUpdateArgs = "element, addedTemporaryKeys, removedTemporaryKeys";
+                implementation.AppendLine(
+                    "if ("
+                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
+                        + " && "
+                        + tempOf
+                        + "(element).HasValue) { "
+                        + (
+                            relocated
+                                ? split!.OperationsType + ".__SparseUpdateByTemporaryKeyForChangeSet(self, "
+                                : "__SparseUpdateByTemporaryKeyForChangeSet("
+                        )
+                        + temporaryUpdateArgs
+                        + "); return; }"
+                );
+            }
+            if (hasUnassigned)
+            {
+                implementation.AppendLine(
+                    "if ("
+                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "key")
+                        + ") throw new global::System.InvalidOperationException(\"An unassigned element cannot be updated by key; add it as a new item instead.\");"
+                );
+            }
+            var containsRemoved = sharedRemoval is null
+                ? "__SparseContainsRemoved(key)"
+                : sharedRemoval + ".ContainsRemoved(__removed!, __removedLookup, key)";
+            implementation.AppendLine(
+                "if (__removed is not null && "
+                    + containsRemoved
+                    + ") throw new global::System.InvalidOperationException(\"Cannot update a removed element. Add it again instead.\");"
+            );
+            implementation.AppendLine("if (addedKeys.Contains(key) && __added is not null)");
+            implementation.OpenBlock();
+            implementation.AppendLine(
+                "for (var i = 0; i < __added.Count; i++) if ("
+                    + comparer
+                    + ".Equals("
+                    + keyOf
+                    + "(__added[i]), key)) { __added[i] = element; return; }"
+            );
+            implementation.CloseBlock();
+            implementation.AppendLine(
+                "__edited ??= new global::System.Collections.Generic.Dictionary<" + keyType + ", " + editedValueType + ">(" + comparer + ");"
+            );
+            implementation.AppendLine("__edited[key] = element;");
+            implementation.CloseBlock();
+        }
     }
 
     /// <summary>Aliases nested keyed-patch fields by reference for relocated bodies.</summary>

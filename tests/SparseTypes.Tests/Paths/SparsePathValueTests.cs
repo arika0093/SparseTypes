@@ -61,6 +61,50 @@ public sealed class SparsePathValueTests
     }
 
     [Test]
+    public void PrefixPathsExposeOnlyTheirLogicalSegments()
+    {
+        var path = SparsePath.Root<Settings>().Member("Items").Key(42).Member("Name").At(3);
+        var prefix = SparseResolutionWorkspace.StagingKey(path, 3);
+        var expected = SparsePath.Root<Settings>().Member("Items").Key(42).Member("Name");
+
+        prefix.ShouldBe(expected);
+        prefix.GetHashCode().ShouldBe(expected.GetHashCode());
+        prefix.Depth.ShouldBe(3);
+        prefix
+            .Segments.Select(static segment => segment.Kind)
+            .ShouldBe(new[] { SparsePathSegmentKind.Member, SparsePathSegmentKind.Key, SparsePathSegmentKind.Member });
+        prefix.ToString().ShouldBe("Items[\"42\"].Name");
+        prefix.IsAncestorOf(path).ShouldBeTrue();
+        path.Parent.ShouldBe(SparsePath.Root<Settings>().Member("Items").Key(42).Member("Name"));
+
+        SparseResolutionWorkspace.StagingKey(path, 0).ShouldBe(SparsePath.Root<Settings>());
+        Should.Throw<ArgumentOutOfRangeException>(() => SparseResolutionWorkspace.StagingKey(path, path.Depth + 1));
+    }
+
+    [Test]
+    public void DeepPrefixAndTypedKeyIdentityArePreserved()
+    {
+        var path = SparsePath.Root<Settings>();
+        for (var index = 0; index < 32; index++)
+        {
+            path = path.Member("Member" + index);
+        }
+
+        var prefix = SparseResolutionWorkspace.StagingKey(path, 16);
+        prefix.Depth.ShouldBe(16);
+        prefix.Segments.Count.ShouldBe(16);
+        prefix.Segments[15].Name.ShouldBe("Member15");
+        prefix.ToString().ShouldBe(string.Join(".", Enumerable.Range(0, 16).Select(static index => "Member" + index)));
+
+        var integerKey = SparsePath.Root<Settings>().Member("Items").Key(42);
+        var stringKey = SparsePath.Root<Settings>().Member("Items").Key("42");
+        var integerKeyPrefix = SparseResolutionWorkspace.StagingKey(integerKey.Member("Name"), 2);
+        integerKeyPrefix.ShouldBe(integerKey);
+        integerKeyPrefix.ShouldNotBe(stringKey);
+        integerKeyPrefix.ToString().ShouldBe(stringKey.ToString());
+    }
+
+    [Test]
     public void SegmentViewsSupportDefaultAndIndependentEnumeration()
     {
         var empty = default(SparsePathSegments);

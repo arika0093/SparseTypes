@@ -6,11 +6,7 @@ public class KeyedTransitionProjectionBenchmarks
     [Params(16, 2048)]
     public int Size { get; set; }
 
-    [Params(
-        KeyedChangeSetBetweenShape.NoOp,
-        KeyedChangeSetBetweenShape.OneEdit,
-        KeyedChangeSetBetweenShape.AllEdits
-    )]
+    [Params(KeyedChangeSetBetweenShape.NoOp, KeyedChangeSetBetweenShape.OneEdit, KeyedChangeSetBetweenShape.AllEdits)]
     public KeyedChangeSetBetweenShape Shape { get; set; }
 
     private KeyedChangeSetBetweenBenchmarks _input = null!;
@@ -26,12 +22,7 @@ public class KeyedTransitionProjectionBenchmarks
             Shape == KeyedChangeSetBetweenShape.NoOp ? 0
             : Shape == KeyedChangeSetBetweenShape.OneEdit ? 1
             : Size;
-        if (
-            RepeatedView() != expected
-            || RepeatedLookup() != (expected > 0)
-            || FirstView() != expected
-            || FirstLookup() != (expected > 0)
-        )
+        if (RepeatedView() != expected || RepeatedLookup() != (expected > 0) || FirstView() != expected || FirstLookup() != (expected > 0))
         {
             throw new InvalidOperationException("Typed projections must preserve edited entries.");
         }
@@ -48,4 +39,10 @@ public class KeyedTransitionProjectionBenchmarks
 
     [Benchmark]
     public bool FirstLookup() => _input.Between().Items.GetChange("server-0").IsChanged;
+
+    [Benchmark]
+    public int EmptyFirstView() => _input.EmptyBetween().Items.Edited.Count;
+
+    [Benchmark]
+    public bool EmptyFirstLookup() => _input.EmptyBetween().Items.GetChange("missing").IsChanged;
 }

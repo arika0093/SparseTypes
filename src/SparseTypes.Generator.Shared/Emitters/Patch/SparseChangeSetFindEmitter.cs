@@ -59,12 +59,33 @@ internal static class SparseChangeSetFindEmitter
         }
         code.AppendLine("if (" + (target is null ? string.Empty : "self.") + "IsEmpty) return null;");
         AppendScalarLookup(code, members, propertyNames, modelType, target, recordType);
+        if (dialect.PathTraversal is not null)
+        {
+            AppendTraversalLookup(code, dialect, modelType, target, recordType);
+            code.CloseBlock();
+            AppendTypedFind(code, dialect, modelType, receiver, visibility, recordType, target);
+            return;
+        }
+
         code.AppendLine("foreach (var change in " + enumerate + ")");
         code.OpenBlock();
         code.AppendLine("if (change.Path.Equals(path)) return change;");
         code.CloseBlock();
         code.AppendLine("return null;");
         code.CloseBlock();
+        AppendTypedFind(code, dialect, modelType, receiver, visibility, recordType, target);
+    }
+
+    private static void AppendTypedFind(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? modelType,
+        string receiver,
+        string visibility,
+        string recordType,
+        SparseOperationTarget? target
+    )
+    {
         if (modelType is null)
         {
             return;
@@ -90,6 +111,43 @@ internal static class SparseChangeSetFindEmitter
         }
         code.AppendLine(target is null ? "return Find(path.Path);" : "return Find(self, path.Path);");
         code.CloseBlock();
+    }
+
+    private static void AppendTraversalLookup(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? modelType,
+        SparseOperationTarget? target,
+        string recordType
+    )
+    {
+        var traversal = dialect.PathTraversal!;
+        var rootModel = modelType ?? "global::System.Object";
+        var receiver = target is null ? string.Empty : "self.";
+        code.AppendLine("if (" + receiver + "__sparse_hasWhole)");
+        code.OpenBlock();
+        code.AppendLine(
+            "if (__SparseRootPath.Equals(path)) return __SparseCreateChangeInfo(path, "
+                + receiver
+                + "__sparse_wholeBefore, "
+                + receiver
+                + "__sparse_wholeAfter);"
+        );
+        code.AppendLine("return null;");
+        code.CloseBlock();
+        code.AppendLine("var __sparse_scratch = new " + SparseChangeSetTraversalEmitter.ScratchListType(traversal) + "();");
+        code.AppendLine(recordType + "? __sparse_found = null;");
+        code.AppendLine(
+            receiver
+                + "__SparseCollectInto((before, after, kind) => { var candidate = "
+                + traversal.PathFromSegments("typeof(" + rootModel + ")", "__sparse_scratch")
+                + "; if (!candidate.Equals(path)) return true; __sparse_found = new "
+                + recordType
+                + "(candidate, before, after, ("
+                + (dialect.TransitionContracts?.ChangeKindType ?? "ChangeKind")
+                + ")kind); return false; }, null, __sparse_scratch);"
+        );
+        code.AppendLine("return __sparse_found;");
     }
 
     private static void AppendScalarLookup(

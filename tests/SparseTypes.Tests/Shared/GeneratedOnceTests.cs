@@ -11,27 +11,12 @@ public sealed class GeneratedOnceTests
 {
     private static SparseEmissionFeatures Standalone() => SparseEmissionFeatures.Standalone;
 
-    private static SparseTypeModel ScalarType(string name) =>
-        new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
+    private static SparseTypeModel ScalarType(string name) => new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
 
     private static SparseMemberModel ScalarMember(int id, string name)
     {
-        var property = new SparsePropertyModel(
-            name,
-            ScalarType("global::System.String?"),
-            JsonPropertyName: name
-        );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        var property = new SparsePropertyModel(name, ScalarType("global::System.String?"), JsonPropertyName: name);
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static SparseMemberModel ListMember(int id, string name)
@@ -45,11 +30,7 @@ public sealed class GeneratedOnceTests
             null,
             UsesDefaultScalarEquality: true
         );
-        var property = new SparsePropertyModel(
-            name,
-            ScalarType("global::System.Collections.Generic.List<string>"),
-            JsonPropertyName: name
-        );
+        var property = new SparsePropertyModel(name, ScalarType("global::System.Collections.Generic.List<string>"), JsonPropertyName: name);
         var collection = new SparseCollectionInfo(
             SparseCollectionKind.List,
             SparseCloneCollectionKind.List,
@@ -61,27 +42,13 @@ public sealed class GeneratedOnceTests
             null,
             SparseKeyKind.None
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Append,
-            collection,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Append, collection, null, null, false, true);
     }
 
     private static SparseMemberModel KeyedMember(int id, string name)
     {
         var element = ScalarType("global::Ns.Item");
-        var property = new SparsePropertyModel(
-            name,
-            ScalarType("global::System.Collections.Generic.List<global::Ns.Item>"),
-            JsonPropertyName: name
-        );
+        var property = new SparsePropertyModel(name, ScalarType("global::System.Collections.Generic.List<global::Ns.Item>"), JsonPropertyName: name);
         var collection = new SparseCollectionInfo(
             SparseCollectionKind.List,
             SparseCloneCollectionKind.List,
@@ -93,49 +60,26 @@ public sealed class GeneratedOnceTests
             "global::System.Int32",
             SparseKeyKind.Property
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            collection,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, collection, null, null, false, true);
     }
 
-    private static SparseGenerationAnalysis Analysis(
-        bool isStruct,
-        ImmutableArray<SparseMemberModel> members
-    ) =>
+    private static SparseGenerationAnalysis Analysis(bool isStruct, ImmutableArray<SparseMemberModel> members) =>
         new(
-            new SparseModelInfo(
-                "Model",
-                "global::Ns.Model",
-                "Ns",
-                false,
-                isStruct,
-                false,
-                "Ns.Model.SparseTypes.g.cs",
-                null
-            ),
+            new SparseModelInfo("Model", "global::Ns.Model", "Ns", false, isStruct, false, "Ns.Model.SparseTypes.g.cs", null),
             members,
             ImmutableArray<SparsePocoCloneModel>.Empty,
             ImmutableArray<SparseStructuralModel>.Empty,
             ImmutableArray<SparseGeneratorDiagnostic>.Empty
         );
 
-    private static SparseGeneratedOncePlan Aggregate(
-        params ImmutableArray<SparseMemberModel>[] roots
-    )
+    private static SparseGeneratedOncePlan Aggregate(params ImmutableArray<SparseMemberModel>[] roots)
     {
         var analyses = roots.Select(members => Analysis(false, members)).ToImmutableArray();
         return SparseGeneratedCapabilityPlanner.Aggregate(
             analyses,
             ImmutableArray<SparsePromotedModel>.Empty,
             Standalone(),
+            false,
             true,
             true,
             CancellationToken.None
@@ -150,15 +94,52 @@ public sealed class GeneratedOnceTests
     }
 
     [Test]
+    public void ObservationCoordinatorRequiresExplicitContractAndEditSession()
+    {
+        var analysis = ImmutableArray.Create(Analysis(false, ImmutableArray.Create(ScalarMember(0, "Name"))));
+        var enabled = SparseGeneratedCapabilityPlanner.Aggregate(
+            analysis,
+            ImmutableArray<SparsePromotedModel>.Empty,
+            Standalone(),
+            true,
+            true,
+            true,
+            CancellationToken.None
+        );
+        enabled.Has(SparseGeneratedCapability.ObservationCoordinator).ShouldBeTrue();
+
+        var disabled = SparseGeneratedCapabilityPlanner.Aggregate(
+            analysis,
+            ImmutableArray<SparsePromotedModel>.Empty,
+            Standalone(),
+            false,
+            true,
+            true,
+            CancellationToken.None
+        );
+        disabled.Has(SparseGeneratedCapability.ObservationCoordinator).ShouldBeFalse();
+
+        var noSession = SparseGeneratedCapabilityPlanner.Aggregate(
+            ImmutableArray.Create(Analysis(true, ImmutableArray.Create(ScalarMember(0, "Name")))),
+            ImmutableArray<SparsePromotedModel>.Empty,
+            Standalone(),
+            true,
+            true,
+            true,
+            CancellationToken.None
+        );
+        noSession.Has(SparseGeneratedCapability.ObservationCoordinator).ShouldBeFalse();
+    }
+
+    [Test]
     public void StructRequestsNoEditSession()
     {
-        var analyses = ImmutableArray.Create(
-            Analysis(true, ImmutableArray.Create(ScalarMember(0, "Name")))
-        );
+        var analyses = ImmutableArray.Create(Analysis(true, ImmutableArray.Create(ScalarMember(0, "Name"))));
         var plan = SparseGeneratedCapabilityPlanner.Aggregate(
             analyses,
             ImmutableArray<SparsePromotedModel>.Empty,
             Standalone(),
+            false,
             true,
             true,
             CancellationToken.None
@@ -177,13 +158,12 @@ public sealed class GeneratedOnceTests
             EmitObservable: false,
             EmitJsonConverters: false
         );
-        var analyses = ImmutableArray.Create(
-            Analysis(false, ImmutableArray.Create(ScalarMember(0, "Name")))
-        );
+        var analyses = ImmutableArray.Create(Analysis(false, ImmutableArray.Create(ScalarMember(0, "Name"))));
         var plan = SparseGeneratedCapabilityPlanner.Aggregate(
             analyses,
             ImmutableArray<SparsePromotedModel>.Empty,
             features,
+            false,
             true,
             true,
             CancellationToken.None
@@ -232,7 +212,8 @@ public sealed class GeneratedOnceTests
             SparseGeneratedCapability.EditSession
                 | SparseGeneratedCapability.CloneKernels
                 | SparseGeneratedCapability.ReadOnlyAdapters
-                | SparseGeneratedCapability.RemovalIndex,
+                | SparseGeneratedCapability.RemovalIndex
+                | SparseGeneratedCapability.ObservationCoordinator,
             false,
             true
         );
@@ -250,6 +231,7 @@ public sealed class GeneratedOnceTests
         errors.ShouldContain(e => e.Contains("CloneKernels"));
         errors.ShouldContain(e => e.Contains("ReadOnlyAdapters"));
         errors.ShouldContain(e => e.Contains("RemovalIndex"));
+        errors.ShouldContain(e => e.Contains("ObservationCoordinator"));
     }
 
     [Test]
@@ -259,9 +241,7 @@ public sealed class GeneratedOnceTests
         var second = SparseGeneratedOnceEmitter.CloneKernelsHintName("Other.Generated");
         first.ShouldBe(second);
         first.ShouldBe("Generated.CloneKernels.g.cs");
-        SparseGeneratedOnceEmitter
-            .ReadOnlyAdaptersHintName("Acme.Generated")
-            .ShouldBe("Generated.ReadOnlyAdapters.g.cs");
+        SparseGeneratedOnceEmitter.ReadOnlyAdaptersHintName("Acme.Generated").ShouldBe("Generated.ReadOnlyAdapters.g.cs");
         SparseGeneratedOnceEmitter
             .ReadOnlyAdaptersHintName("Acme.Generated")
             .ShouldNotBe(SparseGeneratedOnceEmitter.RemovalIndexHintName("Acme.Generated"));
@@ -273,20 +253,9 @@ public sealed class GeneratedOnceTests
     [Test]
     public void DownstreamHelpersUseNoStandaloneRuntime()
     {
-        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels(
-            "Downstream.Generated",
-            false,
-            true,
-            CancellationToken.None
-        );
-        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-            "Downstream.Generated",
-            CancellationToken.None
-        );
-        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(
-            "Downstream.Generated",
-            CancellationToken.None
-        );
+        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", false, true, CancellationToken.None);
+        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters("Downstream.Generated", CancellationToken.None);
+        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex("Downstream.Generated", CancellationToken.None);
         foreach (var source in new[] { clone, adapters, removal })
         {
             source.ShouldContain("namespace Downstream.Generated");
@@ -305,23 +274,9 @@ public sealed class GeneratedOnceTests
     [Test]
     public void RenderedHelpersAreDeterministicAndCSharp9Clean()
     {
-        string RenderClone() =>
-            SparseGeneratedOnceEmitter.RenderCloneKernels(
-                "Downstream.Generated",
-                true,
-                false,
-                CancellationToken.None
-            );
-        string RenderAdapters() =>
-            SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-                "Downstream.Generated",
-                CancellationToken.None
-            );
-        string RenderRemoval() =>
-            SparseGeneratedOnceEmitter.RenderRemovalIndex(
-                "Downstream.Generated",
-                CancellationToken.None
-            );
+        string RenderClone() => SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", true, false, CancellationToken.None);
+        string RenderAdapters() => SparseGeneratedOnceEmitter.RenderReadOnlyAdapters("Downstream.Generated", CancellationToken.None);
+        string RenderRemoval() => SparseGeneratedOnceEmitter.RenderRemovalIndex("Downstream.Generated", CancellationToken.None);
         RenderClone().ShouldBe(RenderClone());
         RenderAdapters().ShouldBe(RenderAdapters());
         RenderRemoval().ShouldBe(RenderRemoval());
@@ -332,9 +287,7 @@ public sealed class GeneratedOnceTests
             CSharpSyntaxTree
                 .ParseText(source, parseOptions)
                 .GetDiagnostics()
-                .Where(static diagnostic =>
-                    diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error
-                )
+                .Where(static diagnostic => diagnostic.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
                 .ShouldBeEmpty();
             source.ShouldNotContain("record class ");
         }

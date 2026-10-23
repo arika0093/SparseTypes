@@ -38,24 +38,15 @@ public class DictionaryChangeSetBetweenBenchmarks
         var empty = Shape == DictionaryChangeSetBetweenShape.NoOp;
         var added =
             Shape == DictionaryChangeSetBetweenShape.ReplaceAll ? Size
-            : Shape
-                is DictionaryChangeSetBetweenShape.AddLast
-                    or DictionaryChangeSetBetweenShape.Mixed
-                ? 1
+            : Shape is DictionaryChangeSetBetweenShape.AddLast or DictionaryChangeSetBetweenShape.Mixed ? 1
             : 0;
         var removed =
             Shape == DictionaryChangeSetBetweenShape.ReplaceAll ? Size
-            : Shape
-                is DictionaryChangeSetBetweenShape.RemoveFirst
-                    or DictionaryChangeSetBetweenShape.Mixed
-                ? 1
+            : Shape is DictionaryChangeSetBetweenShape.RemoveFirst or DictionaryChangeSetBetweenShape.Mixed ? 1
             : 0;
         var edited =
             Shape == DictionaryChangeSetBetweenShape.AllEdits ? Size
-            : Shape
-                is DictionaryChangeSetBetweenShape.OneEdit
-                    or DictionaryChangeSetBetweenShape.Mixed
-                ? 1
+            : Shape is DictionaryChangeSetBetweenShape.OneEdit or DictionaryChangeSetBetweenShape.Mixed ? 1
             : 0;
         if (
             scalar.IsEmpty != empty
@@ -66,26 +57,13 @@ public class DictionaryChangeSetBetweenBenchmarks
             || structural.Servers.Added.Count != added
             || structural.Servers.Removed.Count != removed
             || structural.Servers.Edited.Count != edited
-            || !BenchScalarDictHolder
-                .Patch.Between(scalar.ToPatch().Apply(_scalarBefore), _scalarAfter)
-                .IsEmpty
-            || !BenchScalarDictHolder
-                .Patch.Between(scalar.Invert().ToPatch().Apply(_scalarAfter), _scalarBefore)
-                .IsEmpty
-            || !BenchStructuralDictHolder
-                .Patch.Between(structural.ToPatch().Apply(_structuralBefore), _structuralAfter)
-                .IsEmpty
-            || !BenchStructuralDictHolder
-                .Patch.Between(
-                    structural.Invert().ToPatch().Apply(_structuralAfter),
-                    _structuralBefore
-                )
-                .IsEmpty
+            || !BenchScalarDictHolder.Patch.Between(scalar.ToPatch().Apply(_scalarBefore), _scalarAfter).IsEmpty
+            || !BenchScalarDictHolder.Patch.Between(scalar.Invert().ToPatch().Apply(_scalarAfter), _scalarBefore).IsEmpty
+            || !BenchStructuralDictHolder.Patch.Between(structural.ToPatch().Apply(_structuralBefore), _structuralAfter).IsEmpty
+            || !BenchStructuralDictHolder.Patch.Between(structural.Invert().ToPatch().Apply(_structuralAfter), _structuralBefore).IsEmpty
         )
         {
-            throw new InvalidOperationException(
-                "Dictionary differences must preserve endpoints and invert correctly."
-            );
+            throw new InvalidOperationException("Dictionary differences must preserve endpoints and invert correctly.");
         }
     }
 
@@ -105,15 +83,7 @@ public class DictionaryChangeSetBetweenBenchmarks
     private Optional<BenchScalarDictHolder.Fragment?> ScalarState(bool after) =>
         Optional<BenchScalarDictHolder.Fragment?>.Present(
             BenchScalarDictHolder.Fragment.From(
-                new()
-                {
-                    Scores = Indices(after)
-                        .ToDictionary(
-                            index => Key(index, after),
-                            index => Value(index, after),
-                            StringComparer.Ordinal
-                        ),
-                }
+                new() { Scores = Indices(after).ToDictionary(index => Key(index, after), index => Value(index, after), StringComparer.Ordinal) }
             )
         );
 
@@ -139,29 +109,12 @@ public class DictionaryChangeSetBetweenBenchmarks
 
     private IEnumerable<int> Indices(bool after)
     {
-        var start =
-            after
-            && Shape
-                is DictionaryChangeSetBetweenShape.RemoveFirst
-                    or DictionaryChangeSetBetweenShape.Mixed
-                ? 1
-                : 0;
-        var end =
-            Size
-            + (
-                after
-                && Shape
-                    is DictionaryChangeSetBetweenShape.AddLast
-                        or DictionaryChangeSetBetweenShape.Mixed
-                    ? 1
-                    : 0
-            );
+        var start = after && Shape is DictionaryChangeSetBetweenShape.RemoveFirst or DictionaryChangeSetBetweenShape.Mixed ? 1 : 0;
+        var end = Size + (after && Shape is DictionaryChangeSetBetweenShape.AddLast or DictionaryChangeSetBetweenShape.Mixed ? 1 : 0);
         return Enumerable.Range(start, end - start);
     }
 
-    private string Key(int index, bool after) =>
-        (after && Shape == DictionaryChangeSetBetweenShape.ReplaceAll ? "replacement-" : "key-")
-        + index;
+    private string Key(int index, bool after) => (after && Shape == DictionaryChangeSetBetweenShape.ReplaceAll ? "replacement-" : "key-") + index;
 
     public static void ValidateInputs()
     {
@@ -175,10 +128,14 @@ public class DictionaryChangeSetBetweenBenchmarks
     }
 
     [Benchmark]
-    public BenchScalarDictHolder.ChangeSet ScalarBetween() =>
-        BenchScalarDictHolder.ChangeSet.Between(_scalarBefore, _scalarAfter);
+    public BenchScalarDictHolder.ChangeSet ScalarBetween() => BenchScalarDictHolder.ChangeSet.Between(_scalarBefore, _scalarAfter);
 
     [Benchmark]
     public BenchStructuralDictHolder.ChangeSet StructuralBetween() =>
         BenchStructuralDictHolder.ChangeSet.Between(_structuralBefore, _structuralAfter);
+
+    public BenchScalarDictHolder.ChangeSet EmptyScalarBetween() => BenchScalarDictHolder.ChangeSet.Between(_scalarBefore, _scalarBefore);
+
+    public BenchStructuralDictHolder.ChangeSet EmptyStructuralBetween() =>
+        BenchStructuralDictHolder.ChangeSet.Between(_structuralBefore, _structuralBefore);
 }

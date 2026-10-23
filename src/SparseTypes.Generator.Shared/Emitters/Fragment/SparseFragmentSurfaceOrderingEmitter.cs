@@ -193,25 +193,28 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         code.AppendLine("internal void __SparseWriteWritableTo(" + modelType + " model)");
         code.OpenBlock();
         code.AppendLine("if (model is null) throw new global::System.ArgumentNullException(nameof(model));");
-        if (!members.IsEmpty)
-        {
-            code.AppendLine("var __sparse_updated = ToModel();");
-        }
-
         foreach (var member in members)
         {
             var property = SparseNaming.EscapeIdentifier(member.Property.Name);
+            var source = "this." + property + ".Value!";
+            if (member.ChildModel is not null)
+            {
+                source = member.ChildIsReferenceType ? "this." + property + ".Value?.ToModel()!" : "this." + property + ".Value!.ToModel()";
+            }
+
+            code.AppendLine("if (this." + property + ".IsPresent)");
+            code.OpenBlock();
             if (member.Collection.Kind == SparseCollectionKind.List && member.Collection.CloneKind == SparseCloneCollectionKind.List)
             {
                 var listType = "global::System.Collections.Generic.List<" + member.Collection.ElementType.Name + ">";
                 code.AppendLine(
-                    "if (model." + property + " is " + listType + " __sparse_list" + member.Id + " && __sparse_updated." + property + " is not null)"
+                    "if (model." + property + " is " + listType + " __sparse_list" + member.Id + " && this." + property + ".Value is not null)"
                 );
                 code.OpenBlock();
                 code.AppendLine("__sparse_list" + member.Id + ".Clear();");
-                code.AppendLine("__sparse_list" + member.Id + ".AddRange(__sparse_updated." + property + ");");
+                code.AppendLine("__sparse_list" + member.Id + ".AddRange(this." + property + ".Value);");
                 code.CloseBlock();
-                code.AppendLine("else model." + property + " = __sparse_updated." + property + "!;");
+                code.AppendLine("else model." + property + " = " + source + ";");
             }
             else if (member.Collection.IsDictionary)
             {
@@ -228,8 +231,9 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                         + dictionaryType
                         + " __sparse_dict"
                         + member.Id
-                        + " && __sparse_updated."
+                        + " && this."
                         + property
+                        + ".Value"
                         + " is not null)"
                 );
                 code.OpenBlock();
@@ -237,8 +241,9 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                 code.AppendLine(
                     "foreach (var __sparse_pair"
                         + member.Id
-                        + " in __sparse_updated."
+                        + " in this."
                         + property
+                        + ".Value!"
                         + ") __sparse_dict"
                         + member.Id
                         + ".Add(__sparse_pair"
@@ -248,12 +253,13 @@ internal static class SparseFragmentSurfaceOrderingEmitter
                         + ".Value);"
                 );
                 code.CloseBlock();
-                code.AppendLine("else model." + property + " = __sparse_updated." + property + "!;");
+                code.AppendLine("else model." + property + " = " + source + ";");
             }
             else
             {
-                code.AppendLine("model." + property + " = __sparse_updated." + property + "!;");
+                code.AppendLine("model." + property + " = " + source + ";");
             }
+            code.CloseBlock();
         }
 
         code.CloseBlock();

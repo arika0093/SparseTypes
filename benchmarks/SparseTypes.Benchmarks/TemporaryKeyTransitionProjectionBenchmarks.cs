@@ -29,9 +29,7 @@ public class TemporaryKeyTransitionProjectionBenchmarks
         _after = new();
         for (var index = 0; index < Size; index++)
         {
-            var assigned =
-                Shape == TemporaryKeyProjectionShape.Assigned
-                || (Shape == TemporaryKeyProjectionShape.Mixed && index % 2 == 0);
+            var assigned = Shape == TemporaryKeyProjectionShape.Assigned || (Shape == TemporaryKeyProjectionShape.Mixed && index % 2 == 0);
             var temporaryKey = new Guid(index + 1, 0, 0, new byte[8]);
             var id = assigned ? index + 1 : 0;
             _before.Items.Add(
@@ -56,12 +54,8 @@ public class TemporaryKeyTransitionProjectionBenchmarks
             }
         }
         var changes = BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after);
-        var before = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(
-            BenchTemporaryPayloadHolder.Fragment.From(_before)
-        );
-        var after = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(
-            BenchTemporaryPayloadHolder.Fragment.From(_after)
-        );
+        var before = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(BenchTemporaryPayloadHolder.Fragment.From(_before));
+        var after = Optional<BenchTemporaryPayloadHolder.Fragment?>.Present(BenchTemporaryPayloadHolder.Fragment.From(_after));
         var expected =
             Shape == TemporaryKeyProjectionShape.Assigned ? Size
             : Shape == TemporaryKeyProjectionShape.Pending ? 1
@@ -70,30 +64,31 @@ public class TemporaryKeyTransitionProjectionBenchmarks
             FirstView() != expected
             || FirstLookup() != (Shape != TemporaryKeyProjectionShape.Pending)
             || FirstTemporaryLookup() != (Shape != TemporaryKeyProjectionShape.Assigned)
-            || JsonSerializer.Serialize(changes.ToPatch().Apply(before).Value!.ToModel())
-                != JsonSerializer.Serialize(_after)
-            || JsonSerializer.Serialize(changes.Invert().ToPatch().Apply(after).Value!.ToModel())
-                != JsonSerializer.Serialize(_before)
+            || JsonSerializer.Serialize(changes.ToPatch().Apply(before).Value!.ToModel()) != JsonSerializer.Serialize(_after)
+            || JsonSerializer.Serialize(changes.Invert().ToPatch().Apply(after).Value!.ToModel()) != JsonSerializer.Serialize(_before)
         )
         {
-            throw new InvalidOperationException(
-                "Typed projections must preserve assigned and temporary edits."
-            );
+            throw new InvalidOperationException("Typed projections must preserve assigned and temporary edits.");
         }
     }
 
     [Benchmark]
-    public int FirstView() =>
-        BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after).Items.Edited.Count;
+    public int FirstView() => BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after).Items.Edited.Count;
 
     [Benchmark]
-    public bool FirstLookup() =>
-        BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after).Items.GetChange(1).IsChanged;
+    public bool FirstLookup() => BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after).Items.GetChange(1).IsChanged;
 
     [Benchmark]
     public bool FirstTemporaryLookup() =>
-        BenchTemporaryPayloadHolder
-            .ChangeSet.Between(_before, _after)
-            .Items.GetTemporaryChange(_temporaryKey)
-            .IsChanged;
+        BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _after).Items.GetTemporaryChange(_temporaryKey).IsChanged;
+
+    [Benchmark]
+    public int EmptyFirstView() => BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _before).Items.Added.Count;
+
+    [Benchmark]
+    public bool EmptyFirstLookup() => BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _before).Items.GetChange(0).IsChanged;
+
+    [Benchmark]
+    public bool EmptyFirstTemporaryLookup() =>
+        BenchTemporaryPayloadHolder.ChangeSet.Between(_before, _before).Items.GetTemporaryChange(Guid.Empty).IsChanged;
 }

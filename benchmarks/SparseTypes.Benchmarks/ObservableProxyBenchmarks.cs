@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using BenchmarkDotNet.Attributes;
 using SparseTypes;
 
@@ -18,30 +19,19 @@ public class ObservableProxyBenchmarks
     private int[] _strides = null!;
     private int _noop;
 
-    private SparseObservableList<ObservableBenchChild, ObservableBenchChildView> _cachedList =
-        null!;
+    private SparseObservableList<ObservableBenchChild, ObservableBenchChildView> _cachedList = null!;
     private SparseObservableList<string, string> _scalarList = null!;
-    private SparseObservableDictionary<
-        string,
-        ObservableBenchChild,
-        ObservableBenchChildView
-    > _cachedDict = null!;
+    private SparseObservableDictionary<string, ObservableBenchChild, ObservableBenchChildView> _cachedDict = null!;
     private SparseObservableList<ObservableBenchChild, ObservableBenchChildView> _liveList = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _listModels = Enumerable
-            .Range(0, Size)
-            .Select(index => new ObservableBenchChild { Id = "id-" + index, Name = "n-" + index })
-            .ToList();
+        _listModels = Enumerable.Range(0, Size).Select(index => new ObservableBenchChild { Id = "id-" + index, Name = "n-" + index }).ToList();
         _listScalars = Enumerable.Range(0, Size).Select(index => "item-" + index).ToList();
         _dictModels = _listModels.ToDictionary(child => child.Id);
         _liveModels = new ObservableCollection<ObservableBenchChild>(_listModels.ToList());
-        _strides = Enumerable
-            .Range(0, 256)
-            .Select(step => (step * 7919) % Math.Max(Size, 1))
-            .ToArray();
+        _strides = Enumerable.Range(0, 256).Select(step => (step * 7919) % Math.Max(Size, 1)).ToArray();
 
         _cachedList = CreateCachedList(new List<ObservableBenchChild>(_listModels));
         _scalarList = new SparseObservableList<string, string>(
@@ -124,6 +114,48 @@ public class ObservableProxyBenchmarks
         return view.Count;
     }
 
+    [Benchmark(Description = "List range removal with all proxies cached")]
+    public int ListRangeRemove()
+    {
+        var models = new RangeObservableList<ObservableBenchChild>(_listModels);
+        var view = CreateCachedList(models);
+        Warm(view);
+
+        models.RemoveRange(0, Size / 2);
+
+        return view.Count;
+    }
+
+    [Benchmark(Description = "List range replacement with all proxies cached")]
+    public int ListRangeReplace()
+    {
+        var models = new RangeObservableList<ObservableBenchChild>(_listModels);
+        var view = CreateCachedList(models);
+        Warm(view);
+        var replacements = Enumerable.Range(0, Size / 2).Select(index => new ObservableBenchChild { Id = "replacement-" + index }).ToArray();
+
+        models.ReplaceRange(0, replacements);
+
+        return view.Count;
+    }
+
+    [Benchmark(Description = "Managed child edits with cached proxies")]
+    public int ManagedChildEdits()
+    {
+        var view = CreateCachedList(new ObservableCollection<ObservableBenchChild>(_listModels));
+        Warm(view);
+        var checksum = 0;
+
+        for (var index = 0; index < view.Count; index++)
+        {
+            var child = view[index];
+            child.Name = "edited-" + index;
+            checksum += child.Name.Length;
+        }
+
+        return checksum;
+    }
+
     [Benchmark(Description = "List reorder (move) with all proxies cached")]
     public int ListReorder()
     {
@@ -195,27 +227,21 @@ public class ObservableProxyBenchmarks
         return view.Count;
     }
 
-    private SparseObservableList<ObservableBenchChild, ObservableBenchChildView> CreateCachedList(
-        IList<ObservableBenchChild> models
-    ) =>
+    private SparseObservableList<ObservableBenchChild, ObservableBenchChildView> CreateCachedList(IList<ObservableBenchChild> models) =>
         new(
             models,
-            static (item, changed) =>
-                item is null ? null! : new ObservableBenchChildView(item, changed),
+            static (item, changed) => item is null ? null! : new ObservableBenchChildView(item, changed),
             static view => view.Target,
             () => _noop++,
             cacheReferences: true
         );
 
-    private SparseObservableDictionary<
-        string,
-        ObservableBenchChild,
-        ObservableBenchChildView
-    > CreateCachedDict(IDictionary<string, ObservableBenchChild> models) =>
+    private SparseObservableDictionary<string, ObservableBenchChild, ObservableBenchChildView> CreateCachedDict(
+        IDictionary<string, ObservableBenchChild> models
+    ) =>
         new(
             models,
-            static (item, changed) =>
-                item is null ? null! : new ObservableBenchChildView(item, changed),
+            static (item, changed) => item is null ? null! : new ObservableBenchChildView(item, changed),
             static view => view.Target,
             () => _noop++,
             cacheReferences: true
@@ -236,9 +262,7 @@ public class ObservableProxyBenchmarks
         Warm(live);
     }
 
-    private static void Warm(
-        SparseObservableList<ObservableBenchChild, ObservableBenchChildView> view
-    )
+    private static void Warm(SparseObservableList<ObservableBenchChild, ObservableBenchChildView> view)
     {
         for (var index = 0; index < view.Count; index++)
         {
@@ -246,11 +270,43 @@ public class ObservableProxyBenchmarks
         }
     }
 
-    private static void Warm(
-        SparseObservableDictionary<string, ObservableBenchChild, ObservableBenchChildView> view
-    )
+    private static void Warm(SparseObservableDictionary<string, ObservableBenchChild, ObservableBenchChildView> view)
     {
         foreach (var _ in view) { }
+    }
+
+    private sealed class RangeObservableList<T>(IEnumerable<T> items) : List<T>(items), INotifyCollectionChanged
+    {
+        public event NotifyCollectionChangedEventHandler? CollectionChanged;
+
+        public new void RemoveRange(int index, int count)
+        {
+            var removed = GetRange(index, count);
+            base.RemoveRange(index, count);
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, (System.Collections.IList)removed, index)
+            );
+        }
+
+        public void ReplaceRange(int index, IList<T> items)
+        {
+            var removed = GetRange(index, items.Count);
+            for (var offset = 0; offset < items.Count; offset++)
+            {
+                this[index + offset] = items[offset];
+            }
+
+            CollectionChanged?.Invoke(
+                this,
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Replace,
+                    (System.Collections.IList)items,
+                    (System.Collections.IList)removed,
+                    index
+                )
+            );
+        }
     }
 }
 

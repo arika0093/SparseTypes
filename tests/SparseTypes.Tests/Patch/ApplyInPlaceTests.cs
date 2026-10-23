@@ -1,3 +1,4 @@
+using System.Threading;
 using SparseTypes;
 
 namespace SparseTypes.Tests;
@@ -24,16 +25,26 @@ public partial class ImmutableOnlyWriteModel
     public ImmutableOnlyWriteModel(string constructorOnly) => ConstructorOnly = constructorOnly;
 }
 
+[SparseModel]
+public partial class MaterializationTrackingModel
+{
+    private static readonly AsyncLocal<int> ConstructorCallCount = new();
+
+    public static int ConstructorCalls => ConstructorCallCount.Value;
+
+    public string Value { get; set; } = string.Empty;
+
+    public MaterializationTrackingModel() => ConstructorCallCount.Value++;
+
+    public static void ResetConstructorCalls() => ConstructorCallCount.Value = 0;
+}
+
 public sealed class ApplyInPlaceTests
 {
     [Test]
     public void PatchAppliesWritableMembersWhenNoImmutableMemberIsIncluded()
     {
-        var model = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
+        var model = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
 
         var result = new SelectiveWriteModel.Patch { Mutable = "after" }.ApplyInPlace(model);
 
@@ -48,11 +59,7 @@ public sealed class ApplyInPlaceTests
     public void ImmutableOnlyModelReportsStructuredFailureWithoutChangingMembers()
     {
         var model = new ImmutableOnlyWriteModel("constructor value") { Initialized = "init value" };
-        var patch = new ImmutableOnlyWriteModel.Patch
-        {
-            Initialized = "new init value",
-            ConstructorOnly = "new constructor value",
-        };
+        var patch = new ImmutableOnlyWriteModel.Patch { Initialized = "new init value", ConstructorOnly = "new constructor value" };
 
         var result = patch.ApplyInPlace(model);
 
@@ -65,11 +72,7 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void PatchReturnsImmutableMemberFailuresWithoutPartiallyApplying()
     {
-        var model = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
+        var model = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
         var patch = new SelectiveWriteModel.Patch
         {
             Mutable = "after",
@@ -89,21 +92,9 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void ChangeSetAppliesWritableMembersWhenImmutableMembersAreUnchanged()
     {
-        var baseline = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
-        var edited = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "after",
-            Initialized = "init value",
-        };
-        var current = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
+        var baseline = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
+        var edited = new SelectiveWriteModel("constructor value") { Mutable = "after", Initialized = "init value" };
+        var current = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
         var changes = SelectiveWriteModel.ChangeSet.Between(baseline, edited);
 
         changes.TryApplyInPlace(current, out var conflicts).ShouldBeTrue();
@@ -114,37 +105,53 @@ public sealed class ApplyInPlaceTests
     }
 
     [Test]
+    public void ChangeSetDoesNotMaterializeAnUpdatedModelOnSuccessfulInPlaceApply()
+    {
+        MaterializationTrackingModel.ResetConstructorCalls();
+        var baseline = new MaterializationTrackingModel { Value = "before" };
+        var edited = new MaterializationTrackingModel { Value = "after" };
+        var current = new MaterializationTrackingModel { Value = "before" };
+        var changes = MaterializationTrackingModel.ChangeSet.Between(baseline, edited);
+        var constructorCallsBeforeApply = MaterializationTrackingModel.ConstructorCalls;
+
+        changes.TryApplyInPlace(current, out var conflicts).ShouldBeTrue();
+
+        conflicts.ShouldBeNull();
+        current.Value.ShouldBe("after");
+        MaterializationTrackingModel.ConstructorCalls.ShouldBe(constructorCallsBeforeApply);
+    }
+
+    [Test]
+    public void EditSessionAppliesChangesWithoutMaterializingAnUpdatedModel()
+    {
+        MaterializationTrackingModel.ResetConstructorCalls();
+        var baseline = new MaterializationTrackingModel { Value = "before" };
+        var edited = new MaterializationTrackingModel { Value = "after" };
+        var current = new MaterializationTrackingModel { Value = "before" };
+        var changes = MaterializationTrackingModel.ChangeSet.Between(baseline, edited);
+        var session = current.CreateEditSession();
+        var constructorCallsBeforeApply = MaterializationTrackingModel.ConstructorCalls;
+
+        session.TryApplyInPlace(changes, out var conflicts).ShouldBeTrue();
+
+        conflicts.ShouldBeNull();
+        current.Value.ShouldBe("after");
+        MaterializationTrackingModel.ConstructorCalls.ShouldBe(constructorCallsBeforeApply);
+    }
+
+    [Test]
     public void ChangeSetReportsImmutableOperationsWithoutPartiallyApplyingWritableMembers()
     {
-        var baseline = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
-        var edited = new SelectiveWriteModel("new constructor value")
-        {
-            Mutable = "after",
-            Initialized = "new init value",
-        };
-        var current = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
+        var baseline = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
+        var edited = new SelectiveWriteModel("new constructor value") { Mutable = "after", Initialized = "new init value" };
+        var current = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
         var changes = SelectiveWriteModel.ChangeSet.Between(baseline, edited);
 
         changes.TryApplyInPlace(current, out var conflicts).ShouldBeFalse();
         conflicts.ShouldNotBeNull();
-        conflicts
-            .Select(static conflict => conflict.PathText)
-            .OrderBy(static path => path)
-            .ShouldBe(["ConstructorOnly", "Initialized"]);
-        conflicts.ShouldAllBe(static conflict =>
-            conflict.Kind == SparseConflictKind.InPlaceWriteUnavailable
-        );
-        var initializedConflict = conflicts.Single(static conflict =>
-            conflict.PathText == "Initialized"
-        );
+        conflicts.Select(static conflict => conflict.PathText).OrderBy(static path => path).ShouldBe(["ConstructorOnly", "Initialized"]);
+        conflicts.ShouldAllBe(static conflict => conflict.Kind == SparseConflictKind.InPlaceWriteUnavailable);
+        var initializedConflict = conflicts.Single(static conflict => conflict.PathText == "Initialized");
         initializedConflict.BaseValue.IsPresent.ShouldBeTrue();
         initializedConflict.BaseValue.Value.ShouldBe("init value");
         initializedConflict.LocalValue.Value.ShouldBe("new init value");
@@ -157,21 +164,9 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void ChangeSetChecksBeforeStateBeforeWritingMixedModels()
     {
-        var baseline = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
-        var edited = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "after",
-            Initialized = "init value",
-        };
-        var current = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "concurrent",
-            Initialized = "init value",
-        };
+        var baseline = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
+        var edited = new SelectiveWriteModel("constructor value") { Mutable = "after", Initialized = "init value" };
+        var current = new SelectiveWriteModel("constructor value") { Mutable = "concurrent", Initialized = "init value" };
         var changes = SelectiveWriteModel.ChangeSet.Between(baseline, edited);
 
         changes.TryApplyInPlace(current, out var conflicts).ShouldBeFalse();
@@ -185,21 +180,9 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void ChangeSetKeepsRebasedWritableStateWhenAnImmutableOperationFails()
     {
-        var baseline = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
-        var edited = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "new init value",
-        };
-        var current = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "concurrent",
-            Initialized = "init value",
-        };
+        var baseline = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
+        var edited = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "new init value" };
+        var current = new SelectiveWriteModel("constructor value") { Mutable = "concurrent", Initialized = "init value" };
         var changes = SelectiveWriteModel.ChangeSet.Between(baseline, edited);
 
         changes.TryApplyInPlace(current, out var conflicts).ShouldBeFalse();
@@ -215,38 +198,21 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void ImmutableOnlyChangeSetReturnsStructuredFailuresAndChecksBeforeState()
     {
-        var baseline = new ImmutableOnlyWriteModel("constructor value")
-        {
-            Initialized = "init value",
-        };
-        var edited = new ImmutableOnlyWriteModel("new constructor value")
-        {
-            Initialized = "new init value",
-        };
+        var baseline = new ImmutableOnlyWriteModel("constructor value") { Initialized = "init value" };
+        var edited = new ImmutableOnlyWriteModel("new constructor value") { Initialized = "new init value" };
         var changes = ImmutableOnlyWriteModel.ChangeSet.Between(baseline, edited);
-        var current = new ImmutableOnlyWriteModel("constructor value")
-        {
-            Initialized = "init value",
-        };
+        var current = new ImmutableOnlyWriteModel("constructor value") { Initialized = "init value" };
 
         changes.TryApplyInPlace(current, out var immutableConflicts).ShouldBeFalse();
         immutableConflicts.ShouldNotBeNull();
-        immutableConflicts
-            .Select(static conflict => conflict.PathText)
-            .OrderBy(static path => path)
-            .ShouldBe(["ConstructorOnly", "Initialized"]);
+        immutableConflicts.Select(static conflict => conflict.PathText).OrderBy(static path => path).ShouldBe(["ConstructorOnly", "Initialized"]);
         current.Initialized.ShouldBe("init value");
         current.ConstructorOnly.ShouldBe("constructor value");
 
-        var concurrent = new ImmutableOnlyWriteModel("constructor value")
-        {
-            Initialized = "concurrent",
-        };
+        var concurrent = new ImmutableOnlyWriteModel("constructor value") { Initialized = "concurrent" };
         changes.TryApplyInPlace(concurrent, out var beforeStateConflicts).ShouldBeFalse();
         beforeStateConflicts.ShouldNotBeNull();
-        beforeStateConflicts.ShouldContain(static conflict =>
-            conflict.Kind == SparseConflictKind.Scalar
-        );
+        beforeStateConflicts.ShouldContain(static conflict => conflict.Kind == SparseConflictKind.Scalar);
         concurrent.Initialized.ShouldBe("concurrent");
         concurrent.ConstructorOnly.ShouldBe("constructor value");
     }
@@ -254,29 +220,15 @@ public sealed class ApplyInPlaceTests
     [Test]
     public void EditSessionReturnsImmutableChangeSetConflictsWithoutMutatingTheModel()
     {
-        var baseline = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
-        var edited = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "after",
-            Initialized = "new init value",
-        };
-        var model = new SelectiveWriteModel("constructor value")
-        {
-            Mutable = "before",
-            Initialized = "init value",
-        };
+        var baseline = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
+        var edited = new SelectiveWriteModel("constructor value") { Mutable = "after", Initialized = "new init value" };
+        var model = new SelectiveWriteModel("constructor value") { Mutable = "before", Initialized = "init value" };
         var changes = SelectiveWriteModel.ChangeSet.Between(baseline, edited);
         var session = model.CreateEditSession();
 
         session.TryApplyInPlace(changes, out var conflicts).ShouldBeFalse();
         conflicts.ShouldNotBeNull();
-        conflicts.ShouldContain(static conflict =>
-            conflict.Kind == SparseConflictKind.InPlaceWriteUnavailable
-        );
+        conflicts.ShouldContain(static conflict => conflict.Kind == SparseConflictKind.InPlaceWriteUnavailable);
         model.Mutable.ShouldBe("before");
         model.Initialized.ShouldBe("init value");
         model.ConstructorOnly.ShouldBe("constructor value");

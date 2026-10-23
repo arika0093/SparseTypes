@@ -21,6 +21,9 @@ internal static class SparseGeneratedOnceEmitter
     /// <summary>Simple name of the shared removal-index helper.</summary>
     public const string RemovalIndexTypeName = SparseGeneratedOnceNames.RemovalIndex;
 
+    /// <summary>Simple name of the shared field-state observation coordinator.</summary>
+    public const string ObservationCoordinatorTypeName = SparseGeneratedOnceObservationCoordinator.TypeName;
+
     /// <summary>Gets the stable hint name for the clone kernel source.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <returns>A stable unique hint name.</returns>
@@ -38,6 +41,12 @@ internal static class SparseGeneratedOnceEmitter
     /// <returns>A stable unique hint name.</returns>
     public static string RemovalIndexHintName(string implementationNamespace) =>
         SparseGeneratedOnceNames.RemovalIndexHintName(implementationNamespace);
+
+    /// <summary>Gets the stable hint name for the observation coordinator source.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <returns>A stable unique hint name.</returns>
+    public static string ObservationCoordinatorHintName(string implementationNamespace) =>
+        SparseGeneratedOnceObservationCoordinator.HintName(implementationNamespace);
 
     /// <summary>Gets the stable hint name for shared JSON codecs.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
@@ -91,6 +100,12 @@ internal static class SparseGeneratedOnceEmitter
     public static string RenderRemovalIndex(string implementationNamespace, CancellationToken cancellationToken) =>
         SparseGeneratedOnceRemovalIndex.BuildSource(implementationNamespace, cancellationToken);
 
+    /// <summary>Renders the shared model-independent field-state watcher coordinator.</summary>
+    /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
+    /// <param name="cancellationToken">Cooperative cancellation.</param>
+    /// <returns>A BCL-only generic coordinator source.</returns>
+    public static string RenderObservationCoordinator(string implementationNamespace, CancellationToken cancellationToken) =>
+        SparseGeneratedOnceObservationCoordinator.BuildSource(implementationNamespace, cancellationToken);
     /// <summary>Renders shared System.Text.Json codecs for fragment and payload converters.</summary>
     /// <param name="implementationNamespace">Owning generator implementation namespace.</param>
     /// <param name="dialect">Product runtime type vocabulary, or null for the BCL-only subset.</param>

@@ -412,6 +412,15 @@ public sealed class SparseArrayDescriptorAccess
     /// <summary>Gets or sets the item key resolver.</summary>
     public Func<int, object?>? GetItemKey { get; set; }
 
+    /// <summary>Gets or sets the temporary identity resolver for an item.</summary>
+    public Func<int, Guid?>? GetItemTemporaryKey { get; set; }
+
+    /// <summary>Gets or sets typed key equality for sequence lookup indexing.</summary>
+    public Func<object?, object?, bool>? KeyEquals { get; set; }
+
+    /// <summary>Gets or sets typed key hashing for sequence lookup indexing.</summary>
+    public Func<object?, int>? KeyHash { get; set; }
+
     /// <summary>Gets or sets the positional key lookup.</summary>
     public Func<object?, int>? IndexOfKey { get; set; }
 
@@ -427,6 +436,7 @@ public sealed class SparseArrayDescriptorAccess
 public sealed class SparseArrayDescriptor : IArrayDescriptor
 {
     private readonly SparseArrayDescriptorAccess _access;
+    private readonly SparseArrayDescriptorLookupIndex _lookupIndex;
 
     /// <summary>Creates a sequence descriptor with its declared item type and accessors.</summary>
     public SparseArrayDescriptor(
@@ -444,6 +454,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
         KeyType = keyType;
         KeyPropertyNames = Array.AsReadOnly((string[])(keyPropertyNames?.Clone() ?? Array.Empty<string>()));
         _access = access ?? throw new ArgumentNullException(nameof(access));
+        _lookupIndex = new SparseArrayDescriptorLookupIndex(_access);
     }
 
     /// <inheritdoc />
@@ -465,10 +476,10 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     public object? GetItemKey(int index) => _access.GetItemKey?.Invoke(index);
 
     /// <inheritdoc />
-    public int IndexOfKey(object? key) => _access.IndexOfKey?.Invoke(key) ?? -1;
+    public int IndexOfKey(object? key) => _lookupIndex.IndexOfKey(key);
 
     /// <inheritdoc />
-    public int IndexOfTemporaryKey(Guid temporaryKey) => _access.IndexOfTemporaryKey?.Invoke(temporaryKey) ?? -1;
+    public int IndexOfTemporaryKey(Guid temporaryKey) => _lookupIndex.IndexOfTemporaryKey(temporaryKey);
 
     /// <inheritdoc />
     public bool IsUnassignedKey(object? key) => _access.IsUnassignedKey?.Invoke(key) == true;

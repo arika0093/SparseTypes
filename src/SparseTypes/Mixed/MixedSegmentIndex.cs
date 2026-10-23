@@ -211,7 +211,7 @@ internal sealed class MixedSegmentIndex
     }
 
     /// <summary>Registers one member operation under its rendered path.</summary>
-    public void Insert(string path, string[] segments, MixedMemberOperation value)
+    public int Insert(string path, string[] segments, MixedMemberOperation value)
     {
         var node = WalkOrBuild(segments);
         var ordinal = _nextOrdinal++;
@@ -225,6 +225,8 @@ internal sealed class MixedSegmentIndex
             var heap = ancestor.Descendants ??= new OrdinalHeap();
             heap.Enqueue(ordinal);
         }
+
+        return ordinal;
     }
 
     /// <summary>Removes the entry registered at an exact path, if present.</summary>

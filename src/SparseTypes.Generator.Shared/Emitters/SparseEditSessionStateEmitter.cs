@@ -13,7 +13,8 @@ internal static class SparseEditSessionStateEmitter
         SharedIndentedBuilder code,
         string modelType,
         ImmutableArray<SparseMemberModel> members,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? implementationNamespace
     )
     {
         if (!HasStateSurface(dialect))
@@ -26,7 +27,7 @@ internal static class SparseEditSessionStateEmitter
         AppendFieldState(code, modelType, pathType, states, dialect);
         AppendStateSnapshot(code, states);
         AppendCollectionState(code, modelType, members, pathType, states);
-        AppendObserveMembers(code, modelType, pathType, states, dialect);
+        AppendObserveMembers(code, modelType, pathType, states, dialect, implementationNamespace);
     }
 
     private static void AppendStateSnapshot(SharedIndentedBuilder code, SparseStateContracts states)
@@ -43,7 +44,16 @@ internal static class SparseEditSessionStateEmitter
             "/// <remarks>Snapshot: derives one change set from the retained baseline and retains it for repeated point-in-time lookups. Live <c>FieldState</c> queries stay unnotified-mutation accurate; share the snapshot only for an explicitly captured generation.</remarks>"
         );
         code.AppendLine("/// <returns>A view serving repeated field queries without re-deriving the diff.</returns>");
-        code.AppendLine("public " + states.QueryViewType + " CaptureStateSnapshot() => new " + states.QueryViewType + "(CreateChangeSet());");
+        code.AppendLine(
+            "public "
+                + states.QueryViewType
+                + " CaptureStateSnapshot() => new "
+                + states.QueryViewType
+                + "("
+                + "_session."
+                + states.CreateChangeSetFromLiveModelMember
+                + "());"
+        );
     }
 
     private static void AppendFieldState(
@@ -71,7 +81,15 @@ internal static class SparseEditSessionStateEmitter
             code.AppendLine("if (path is null) throw new global::System.ArgumentNullException(nameof(path));");
         }
 
-        code.AppendLine("return " + states.StateQueryType + ".FieldState<" + modelType + ", TValue>(_session.CreateChangeSet(), path);");
+        code.AppendLine(
+            "return "
+                + states.StateQueryType
+                + ".FieldState<"
+                + modelType
+                + ", TValue>(_session."
+                + states.CreateChangeSetFromLiveModelMember
+                + "(), path);"
+        );
         code.CloseBlock();
         code.AppendLine("/// <summary>Queries the semantic field state at a model-agnostic path against the current baseline.</summary>");
         code.AppendLine(
@@ -86,7 +104,7 @@ internal static class SparseEditSessionStateEmitter
             code.AppendLine("if (path is null) throw new global::System.ArgumentNullException(nameof(path));");
         }
 
-        code.AppendLine("return " + states.StateQueryType + ".FieldState(_session.CreateChangeSet(), path);");
+        code.AppendLine("return " + states.StateQueryType + ".FieldState(_session." + states.CreateChangeSetFromLiveModelMember + "(), path);");
         code.CloseBlock();
     }
 
@@ -95,7 +113,8 @@ internal static class SparseEditSessionStateEmitter
         string modelType,
         string pathType,
         SparseStateContracts states,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? implementationNamespace
     )
     {
         if (!states.HasObservedField)
@@ -110,8 +129,8 @@ internal static class SparseEditSessionStateEmitter
         // single captured snapshot across every watcher in a dispatch
         // generation; without it each watcher keeps its live query.
         var coordinated = states.HasQueryView;
-        AppendObserveOverload(code, modelType, states, typedPath, "TValue", true, dialect, coordinated);
-        AppendObserveOverload(code, modelType, states, pathType, "object?", false, dialect, coordinated);
+        AppendObserveOverload(code, modelType, states, typedPath, "TValue", true, dialect, coordinated, implementationNamespace);
+        AppendObserveOverload(code, modelType, states, pathType, "object?", false, dialect, coordinated, implementationNamespace);
     }
 
     private static void AppendObserveOverload(
@@ -122,7 +141,8 @@ internal static class SparseEditSessionStateEmitter
         string valueType,
         bool typed,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        bool coordinated
+        bool coordinated,
+        string? implementationNamespace
     )
     {
         var kind = typed ? "a typed path" : "a model-agnostic path";
@@ -147,7 +167,7 @@ internal static class SparseEditSessionStateEmitter
 
         code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
         code.AppendLine("public " + watcherType + " ObserveField" + typeParameters);
-        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, true, coordinated);
+        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, true, coordinated, implementationNamespace);
         code.AppendLine("/// <summary>Observes the semantic field state at " + kind + " with binding notifications.</summary>");
         code.AppendLine("/// <remarks>Alias for <c>ObserveField</c>; both spellings return the same watcher.</remarks>");
         code.AppendLine("/// <param name=\"path\">The path to observe.</param>");
@@ -158,7 +178,7 @@ internal static class SparseEditSessionStateEmitter
 
         code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
         code.AppendLine("public " + watcherType + " WatchField" + typeParameters);
-        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, false, coordinated);
+        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, false, coordinated, implementationNamespace);
     }
 
     private static void AppendObserveBody(
@@ -170,7 +190,8 @@ internal static class SparseEditSessionStateEmitter
         bool typed,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         bool primary,
-        bool coordinated
+        bool coordinated,
+        string? implementationNamespace
     )
     {
         code.AppendLine("(" + pathParameterType + " path)");
@@ -188,15 +209,38 @@ internal static class SparseEditSessionStateEmitter
                 // is bound and falls back to the live model otherwise; the
                 // live query serves construction and explicit refreshes.
                 var snapshotQuery = typed ? "view.FieldState<" + modelType + ", " + valueType + ">(path)" : "view.FieldState(path)";
-                code.AppendLine(
-                    "var hooks = new "
-                        + states.ObservedFieldHooksType
-                        + "<"
-                        + valueType
-                        + "> { Query = () => FieldState(path), DispatchQuery = () => { var view = __observationView; return view is null ? FieldState(path) : "
-                        + snapshotQuery
-                        + "; }, Subscribe = handler => __ObservationSubscribe(handler), Unsubscribe = handler => __ObservationUnsubscribe(handler) };"
-                );
+                if (implementationNamespace is not null)
+                {
+                    var coordinator = SparseGeneratedOnceNames.QualifiedObservationCoordinator(implementationNamespace);
+                    code.AppendLine(
+                        "var coordinator = __observationCoordinator ??= new "
+                            + coordinator
+                            + "<"
+                            + states.QueryViewType
+                            + ">(handler => PropertyChanged += handler, handler => PropertyChanged -= handler, CaptureStateSnapshot);"
+                    );
+                    code.AppendLine(
+                        "var hooks = new "
+                            + states.ObservedFieldHooksType
+                            + "<"
+                            + valueType
+                            + "> { Query = () => FieldState(path), DispatchQuery = () => coordinator.Query(() => FieldState(path), view => "
+                            + snapshotQuery
+                            + "), Subscribe = coordinator.Subscribe, Unsubscribe = coordinator.Unsubscribe };"
+                    );
+                }
+                else
+                {
+                    code.AppendLine(
+                        "var hooks = new "
+                            + states.ObservedFieldHooksType
+                            + "<"
+                            + valueType
+                            + "> { Query = () => FieldState(path), DispatchQuery = () => { var view = __observationView; return view is null ? FieldState(path) : "
+                            + snapshotQuery
+                            + "; }, Subscribe = handler => __ObservationSubscribe(handler), Unsubscribe = handler => __ObservationUnsubscribe(handler) };"
+                    );
+                }
             }
             else
             {
@@ -227,10 +271,26 @@ internal static class SparseEditSessionStateEmitter
     // Private state trails every public session member to keep the
     // public-first generated member ordering; session emitters call this in
     // their private tail.
-    internal static void AppendObservationCoordinatorMembers(SharedIndentedBuilder code, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
+    internal static void AppendObservationCoordinatorMembers(
+        SharedIndentedBuilder code,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? implementationNamespace
+    )
     {
         if (dialect.StateContracts is not { HasObservedField: true, HasQueryView: true } states)
         {
+            return;
+        }
+
+        if (implementationNamespace is not null)
+        {
+            code.AppendLine(
+                "private "
+                    + SparseGeneratedOnceNames.QualifiedObservationCoordinator(implementationNamespace)
+                    + "<"
+                    + states.QueryViewType
+                    + ">? __observationCoordinator;"
+            );
             return;
         }
 
@@ -375,7 +435,9 @@ internal static class SparseEditSessionStateEmitter
                     + states.StateQueryType
                     + "."
                     + factory
-                    + "(_session.CreateChangeSet()."
+                    + "(_session."
+                    + states.CreateChangeSetFromLiveModelMember
+                    + "()."
                     + property
                     + ", collectionPath);"
             );

@@ -70,7 +70,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
                 if (ReferenceEquals(submitted, _lastReconciledSubmission))
                 {
                     SetBaseline(persistedBaseline);
-                    _lastObserved = persistedBaseline;
+                    SetObservedSnapshot(persistedBaseline);
                     RefreshAfterModelMutation();
                     error = null;
                     return true;
@@ -94,7 +94,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
                     if (_isEmpty(verifiedPending))
                     {
                         SetBaseline(persistedBaseline);
-                        _lastObserved = persistedBaseline;
+                        SetObservedSnapshot(persistedBaseline);
                         _lastReconciledSubmission = submitted;
                         RefreshAfterModelMutation();
                         error = null;
@@ -234,7 +234,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         SetBaseline(persistedBaseline);
         // Observe post-submit edits from the persisted baseline so the
         // published transition spans exactly what remains pending.
-        _lastObserved = persistedBaseline;
+        SetObservedSnapshot(persistedBaseline);
         _lastReconciledSubmission = submitted;
         RefreshAfterModelMutation();
         return true;
@@ -420,7 +420,7 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         }
 
         SetBaseline(persistedBaseline);
-        _lastObserved = persistedBaseline;
+        SetObservedSnapshot(persistedBaseline);
         _lastReconciledSubmission = submitted;
         RefreshAfterModelMutation();
         conflicts = null;

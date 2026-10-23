@@ -44,7 +44,7 @@ internal static class SparseChangeSetDictProjectionEmitter
         );
         code.AppendLine("if (!" + HasField(member) + ")");
         code.OpenBlock();
-        AppendEmptyReturn(code, member, trans, comparer);
+        AppendEmptyReturn(code, trans);
         code.CloseBlock();
         var wholeBefore = KeyedWholeBefore(member);
         var wholeAfter = KeyedWholeAfter(member);
@@ -123,33 +123,5 @@ internal static class SparseChangeSetDictProjectionEmitter
         code.AppendLine("return new " + trans + "(default, default, __added, __removed, __edited, __stored, false);");
     }
 
-    private static void AppendEmptyReturn(SharedIndentedBuilder code, SparseMemberModel member, string trans, string comparer)
-    {
-        var emptyEdited = (member.Collection.ValueType?.IsFragmentModel == true) ? ValueChangeSetOf(member) : ValueTypeOf(member);
-        code.AppendLine(
-            "return new "
-                + trans
-                + "(default, default, new global::System.Collections.Generic.Dictionary<"
-                + KeyTypeOf(member)
-                + ", "
-                + ValueTypeOf(member)
-                + ">("
-                + comparer
-                + "), new global::System.Collections.Generic.Dictionary<"
-                + KeyTypeOf(member)
-                + ", "
-                + ValueTypeOf(member)
-                + ">("
-                + comparer
-                + "), new global::System.Collections.Generic.Dictionary<"
-                + KeyTypeOf(member)
-                + ", "
-                + emptyEdited
-                + ">("
-                + comparer
-                + "), new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>(), true);"
-        );
-    }
+    private static void AppendEmptyReturn(SharedIndentedBuilder code, string trans) => code.AppendLine("return " + trans + ".__SparseEmpty;");
 }

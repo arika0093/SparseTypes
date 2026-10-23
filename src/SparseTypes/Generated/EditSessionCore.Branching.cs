@@ -142,7 +142,8 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
             _enumerateChangedPaths,
             _refreshObservable,
             _initialCacheObservableChanges,
-            _baselineToModel
+            _baselineToModel,
+            _tryApplyInPlace
         );
         branched.AdoptBranchRoot(rootId);
         return branched;

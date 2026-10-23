@@ -65,27 +65,7 @@ internal static class SparseChangeSetKeyedProjectionEmitter
         );
         code.AppendLine("if (!" + HasField(member) + ")");
         code.OpenBlock();
-        code.AppendLine(
-            "return new "
-                + trans
-                + "(default, default, new global::System.Collections.Generic.List<"
-                + elementType
-                + ">(), new global::System.Collections.Generic.List<"
-                + elementType
-                + ">(), new global::System.Collections.Generic.Dictionary<"
-                + keyType
-                + ", "
-                + elementCs
-                + ">("
-                + comparer
-                + "), new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(), new global::System.Collections.Generic.List<"
-                + keyType
-                + ">(), false, new global::System.Collections.Generic.List<"
-                + trans
-                + ".Item>(), true);"
-        );
+        code.AppendLine("return " + trans + ".__SparseEmpty;");
         code.CloseBlock();
         var wholeBefore = KeyedWholeBefore(member);
         var wholeAfter = KeyedWholeAfter(member);
