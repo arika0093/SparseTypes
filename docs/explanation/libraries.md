@@ -61,7 +61,7 @@ The requirements are the same as for `SparseTypes`.
 
 [![NuGet Version](https://img.shields.io/nuget/v/SparseTypes.Blazor?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes.Blazor/)
 
-Provides features for Blazor, including convenient headless UI components.
+Provides Blazor features, including headless UI components.
 
 * [Blazor headless components](../how-to/blazor-headless-components.md)
 * [Blazor edit form](../how-to/blazor-edit-form.md)
@@ -119,7 +119,7 @@ dotnet add package SparseTypes.OpenApi.AspNetCore
 
 Source-only generator infrastructure shared by `SparseTypes.Generator` and downstream generators.
 
-This package ships C# sources only — there is no runtime assembly and no `lib/` assets.
+This package ships C# sources only; there is no runtime assembly and no `lib/` assets.
 Referencing it compiles the shared sources into the consuming generator via `build/SparseTypes.Generator.Shared.props`
 (direct consumer only; no `buildTransitive/` propagation):
 
@@ -149,4 +149,4 @@ Consuming generators additionally need the same compile surface the sources were
 </ItemGroup>
 ```
 
-More details here: [README.md](../../src/SparseTypes.Generator.Shared/README.md)
+See [README.md](../../src/SparseTypes.Generator.Shared/README.md).

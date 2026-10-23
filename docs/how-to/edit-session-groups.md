@@ -84,4 +84,4 @@ group.AcceptChanges(submission, profileHandle);
 * **Server normalization**: Call `group.TryReconcile(submission, handle, persistedModel, out error)` to adopt server-modified properties without overwriting pending client edits.
 * **Keep baseline ownership in the group**: While a session is registered, acknowledge or reconcile it through the group. Generated sessions report direct baseline changes; custom sessions without `ISparseEditSessionWithBaselineRevision` must remain under exclusive group ownership.
 
-For deep dive into session group coordination and migration rules, see [Edit-session groups explanation](../explanation/edit-session-groups.md).
+See [Edit-session groups](../explanation/edit-session-groups.md) for session group coordination and migration rules.
