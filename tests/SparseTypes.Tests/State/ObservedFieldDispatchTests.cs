@@ -33,6 +33,79 @@ public sealed class ObservedFieldDispatchTests
         return field!.GetValue(coordinator);
     }
 
+    private static KeyedServerHolder Holder(int rows)
+    {
+        var holder = new KeyedServerHolder();
+        for (var index = 0; index < rows; index++)
+        {
+            holder.Items.Add(new KeyedServer { Id = "id-" + index, Name = "n-" + index });
+        }
+
+        return holder;
+    }
+
+    private static List<SparseObservedField<object?>> WatchMembers(KeyedServerHolder.EditSession session, int count)
+    {
+        // One stable member path watched through the model-agnostic spelling.
+        var path = SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items));
+        var watchers = new List<SparseObservedField<object?>>(count);
+        for (var index = 0; index < count; index++)
+        {
+            watchers.Add(session.ObserveField(path));
+        }
+
+        return watchers;
+    }
+
+    [Test]
+    public void ManyWatchersShareOneSnapshotPerGeneration()
+    {
+        const int rows = 200;
+        const int watchers = 100;
+        var singleModel = Holder(rows);
+        var singleSession = singleModel.CreateEditSession();
+        using var single = singleSession.ObserveField(SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items)));
+
+        var multiModel = Holder(rows);
+        var multiSession = multiModel.CreateEditSession();
+        var many = WatchMembers(multiSession, watchers);
+        try
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            var singleBefore = GC.GetAllocatedBytesForCurrentThread();
+            singleSession.Observable.Items[0].Name = "edit-0";
+            var singleBytes = GC.GetAllocatedBytesForCurrentThread() - singleBefore;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            var multiBefore = GC.GetAllocatedBytesForCurrentThread();
+            multiSession.Observable.Items[0].Name = "edit-0";
+            var multiBytes = GC.GetAllocatedBytesForCurrentThread() - multiBefore;
+
+            // One shared root snapshot/diff serves all watchers: a hundred
+            // independent diffs would scale the allocation a hundredfold.
+            multiBytes.ShouldBeLessThan(singleBytes * 10);
+
+            single.HasChanges.ShouldBeTrue();
+            foreach (var watcher in many)
+            {
+                watcher.HasChanges.ShouldBeTrue();
+            }
+        }
+        finally
+        {
+            foreach (var watcher in many)
+            {
+                watcher.Dispose();
+            }
+        }
+    }
+
     [Test]
     public void ReentrantEditDispatchesFreshGeneration()
     {
