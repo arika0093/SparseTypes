@@ -93,17 +93,24 @@
                         Disabled="@IsSaveApplying" @onclick="AddLine">Add</FluentButton>
                 </span>
             </div>
-            <div class="pg-roster-list">
-                <SparseCollection @ref="_lineCollection" TModel="PlaygroundOrderDto"
-                    TElement="PlaygroundOrderLineDto" Path="edit.Path.Lines">
-                    <RowTemplate Context="lineRow">
-                        <OrderLineRow Row="lineRow" LineCount="_draft.Lines.Count"
-                            Disabled="@IsSaveApplying" OnEditError="ShowCollectionEditError"
-                            OnEdited="OnDraftEdited" OnDragStarted="BeginLineDrag"
-                            OnDragEnded="EndLineDrag" OnDropAt="DropLine" />
-                    </RowTemplate>
-                </SparseCollection>
-            </div>
+            <SparseCollection @ref="_lineCollection" TModel="PlaygroundOrderDto"
+                TElement="PlaygroundOrderLineDto" Path="edit.Path.Lines">
+                <RowTemplate Context="lineRow">
+                    @if (lineRow.Index == 0)
+                    {
+                        <FluentSortableList @key="(_draft.Lines.Count, _lineSortableVersion)"
+                            TItem="SparseCollectionRow<PlaygroundOrderDto, PlaygroundOrderLineDto>"
+                            Items="@_lineCollection!.Rows.ToList()" Handle="true" Fallback="true"
+                            Sort="@(!IsSaveApplying)" Class="pg-roster-list" OnUpdate="OnLineSortableUpdate">
+                            <ItemTemplate Context="sortableRow">
+                                <OrderLineRow @key="sortableRow.UiKey" Row="sortableRow"
+                                    LineCount="_draft.Lines.Count" Disabled="@IsSaveApplying"
+                                    OnEditError="ShowCollectionEditError" OnEdited="OnDraftEdited" />
+                            </ItemTemplate>
+                        </FluentSortableList>
+                    }
+                </RowTemplate>
+            </SparseCollection>
             </SparseEdit>
             <div class="pg-legend pg-session-legend" aria-label="Edit highlight legend">
                 <span class="pg-lg"><span class="pg-sw pg-sw-add"></span>added</span>
@@ -265,7 +272,7 @@
     // Session-owned draft and baseline.
     private PlaygroundOrderDto.EditSession _session = null!;
     private SparseCollection<PlaygroundOrderDto, PlaygroundOrderLineDto>? _lineCollection;
-    private Guid? _draggedLineUiKey;
+    private int _lineSortableVersion;
     private PlaygroundOrderDto _liveDraft = null!;
     private PlaygroundOrderDto _baselineView = new();
     private int _draftBaseRevision;
@@ -724,40 +731,28 @@
         return Task.CompletedTask;
     }
 
-    private void BeginLineDrag(Guid uiKey)
+    private Task OnLineSortableUpdate(FluentSortableListEventArgs args)
     {
-        _draggedLineUiKey = IsSaveApplying ? null : uiKey;
-    }
-
-    private void EndLineDrag() => _draggedLineUiKey = null;
-
-    private Task DropLine(int targetIndex)
-    {
-        var sourceUiKey = _draggedLineUiKey;
-        _draggedLineUiKey = null;
-        if (
-            IsSaveApplying
-            || sourceUiKey is not { } uiKey
-            || _lineCollection is null
-            || targetIndex < 0
-            || targetIndex >= _lineCollection.Rows.Count
-        )
+        var rows = _lineCollection?.Rows;
+        if (IsSaveApplying || rows is null)
         {
             return Task.CompletedTask;
         }
 
-        var row = _lineCollection.Rows.FirstOrDefault(candidate => candidate.UiKey == uiKey);
-        if (row is null || row.Index == targetIndex)
+        var oldIndex = args.OldIndex;
+        var targetIndex = Math.Min(args.NewIndex, rows.Count - 1);
+        if (oldIndex < 0 || oldIndex >= rows.Count || targetIndex < 0 || oldIndex == targetIndex)
         {
             return Task.CompletedTask;
         }
 
-        if (!row.TryMoveTo(targetIndex, out var error))
+        if (!rows[oldIndex].TryMoveTo(targetIndex, out var error))
         {
-            _applyError = $"Could not reorder lines: {error}.";
+            _applyError = $"Could not reorder lines ({error}).";
             return Task.CompletedTask;
         }
 
+        _lineSortableVersion++;
         OnDraftEdited();
         return Task.CompletedTask;
     }

@@ -4,7 +4,7 @@
 
 @if (Index >= 0)
 {
-    <div class="@RowClass pg-task-row" @ondragover:preventDefault @ondrop="OnDrop">
+    <div class="@RowClass pg-task-row">
         <div class="pg-task-line-ef">
             <div class="pg-roster-field">
                 <span class="pg-mini notranslate" translate="no">Id <small>@(IsAdded ? "new" : "int")</small></span>
@@ -37,8 +37,7 @@
                 </div>
             </SparseField>
             <div class="pg-roster-actions pg-task-actions">
-                <span class="pg-drag sortable-grab" draggable="@(!Disabled)"
-                    @ondragstart="OnDragStart" @ondragend="OnDragEnd"
+                <span class="pg-drag sortable-grab"
                     style="@(Disabled ? "pointer-events: none;" : null)" title="Drag to reorder">⠿</span>
                 <FluentButton Appearance="ButtonAppearance.Default" Title="Move up"
                     Disabled="@(Disabled || Index == 0)" @onclick="() => MoveAsync(-1)">↑</FluentButton>
@@ -66,15 +65,6 @@
 
     [Parameter, EditorRequired]
     public EventCallback OnEdited { get; set; }
-
-    [Parameter]
-    public EventCallback<Guid> OnDragStarted { get; set; }
-
-    [Parameter]
-    public EventCallback OnDragEnded { get; set; }
-
-    [Parameter]
-    public EventCallback<int> OnDropAt { get; set; }
 
     private PlaygroundOrderLineDto Line => Row.Item;
     private int Index => Row.Index;
@@ -143,19 +133,4 @@
         await OnEdited.InvokeAsync();
     }
 
-    private Task OnDragStart()
-    {
-        if (Disabled)
-        {
-            return Task.CompletedTask;
-        }
-
-        return OnDragStarted.InvokeAsync(Row.UiKey);
-    }
-
-    private Task OnDragEnd() => OnDragEnded.InvokeAsync();
-
-    private Task OnDrop() => Disabled
-        ? Task.CompletedTask
-        : OnDropAt.InvokeAsync(Index);
 }
