@@ -80,7 +80,7 @@ public partial class Settings
             };
             PropertyChanged?.Invoke(this, args);
         }
-        internal global::SparseTypes.Generated.IDescriptorSet __SparseGetDescriptors_9615EEF7(global::SparseTypes.SparsePath pathPrefix) => global::SparseTypes.Generated.Settings_4B058728.DescriptorFactory.Create(this, pathPrefix);
+        internal global::SparseTypes.Generated.IDescriptorSet __SparseGetDescriptors_9615EEF7(global::SparseTypes.SparsePath pathPrefix) => global::Settings.EditSession.__SparseGetDescriptors(this, pathPrefix);
         private global::DatabaseSettings? __target_0;
         private global::DatabaseSettings.Observable? __proxy_0;
         private static readonly global::System.ComponentModel.PropertyChangedEventArgs __propertyChangedEventArgs0 = new global::System.ComponentModel.PropertyChangedEventArgs("Database");
@@ -121,7 +121,7 @@ public partial class Settings
         /// <summary>Gets the live model for trusted framework use without affecting the change cache.</summary>
         public global::Settings GetModelForFrameworkAccess() => _session.GetModelForFrameworkAccess();
         /// <summary>Gets descriptors bound to this session's observable model.</summary>
-        public global::SparseTypes.Generated.IDescriptorSet Descriptors => __descriptors ?? (__descriptors = global::SparseTypes.Generated.Settings_4B058728.DescriptorFactory.Create(Observable, global::SparseTypes.SparsePath.Root(typeof(global::Settings))));
+        public global::SparseTypes.Generated.IDescriptorSet Descriptors => __descriptors ?? (__descriptors = DescriptorFactory.Create(Observable, global::SparseTypes.SparsePath.Root(typeof(global::Settings))));
         /// <summary>Gets whether this session or any child session has pending changes.</summary>
         public bool HasChanges => _session.HasChanges || HasPendingChildSessions;
         /// <summary>Gets whether this session has changes apart from its registered child sessions.</summary>
@@ -160,7 +160,7 @@ public partial class Settings
         /// <summary>Creates a read-only snapshot of own changes owned by this session.</summary>
         /// <remarks>This does not accept or otherwise mutate registered child sessions, and it excludes their pending edits. Use <see cref="CreateChangeSet"/> for the child-aware submission preview.</remarks>
         /// <returns>This session's own pending change set.</returns>
-        public global::Settings.ChangeSet PreviewChangeSet() => _session.CreateChangeSet();
+        public global::Settings.ChangeSet PreviewChangeSet() => _session.CreateChangeSetFromLiveModel();
         bool global::SparseTypes.ISparseEditSessionWithChangeSet<global::Settings, global::Settings.ChangeSet>.IsEmpty(global::Settings.ChangeSet changes) => changes.IsEmpty;
         global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparsePath> global::SparseTypes.ISparseEditSessionWithChangeSet<global::Settings, global::Settings.ChangeSet>.EnumerateChangedPaths(global::Settings.ChangeSet changes) => changes.EnumerateChangedPaths();
         /// <summary>Creates a patch describing the pending changes.</summary>
@@ -176,7 +176,7 @@ public partial class Settings
         /// <returns>The live field state with presence-aware endpoints.</returns>
         public global::SparseTypes.SparseFieldState<TValue> FieldState<TValue>(global::SparseTypes.SparsePath<global::Settings, TValue> path)
         {
-            return global::SparseTypes.SparseStateQueries.FieldState<global::Settings, TValue>(_session.CreateChangeSet(), path);
+            return global::SparseTypes.SparseStateQueries.FieldState<global::Settings, TValue>(_session.CreateChangeSetFromLiveModel(), path);
         }
         /// <summary>Queries the semantic field state at a model-agnostic path against the current baseline.</summary>
         /// <remarks>Covers paths without a compile-time typed form, such as nested-model builders and missing or deleted members. Unknown paths report a clean state. See the typed overload for the exact/ancestor/descendant contract.</remarks>
@@ -184,12 +184,12 @@ public partial class Settings
         /// <returns>The live field state with boxed endpoints.</returns>
         public global::SparseTypes.SparseFieldState<object?> FieldState(global::SparseTypes.SparsePath path)
         {
-            return global::SparseTypes.SparseStateQueries.FieldState(_session.CreateChangeSet(), path);
+            return global::SparseTypes.SparseStateQueries.FieldState(_session.CreateChangeSetFromLiveModel(), path);
         }
         /// <summary>Captures one reusable state-query snapshot over the pending changes.</summary>
         /// <remarks>Snapshot: derives one change set from the retained baseline and retains it for repeated point-in-time lookups. Live <c>FieldState</c> queries stay unnotified-mutation accurate; share the snapshot only for an explicitly captured generation.</remarks>
         /// <returns>A view serving repeated field queries without re-deriving the diff.</returns>
-        public global::SparseTypes.SparseChangeSetQueryView CaptureStateSnapshot() => new global::SparseTypes.SparseChangeSetQueryView(CreateChangeSet());
+        public global::SparseTypes.SparseChangeSetQueryView CaptureStateSnapshot() => new global::SparseTypes.SparseChangeSetQueryView(_session.CreateChangeSetFromLiveModel());
         /// <summary>Queries the keyed or dictionary collection state at a root collection path.</summary>
         /// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session. Root collection members only; navigate the change set for nested collections and use <see cref="FieldState"/> for other members.</remarks>
         /// <param name="collectionPath">The root collection member path.</param>
@@ -207,7 +207,8 @@ public partial class Settings
         public global::SparseTypes.SparseObservedField<TValue> ObserveField<TValue>
         (global::SparseTypes.SparsePath<global::Settings, TValue> path)
         {
-            var hooks = new global::SparseTypes.SparseObservedFieldHooks<TValue> { Query = () => FieldState(path), DispatchQuery = () => { var view = __observationView; return view is null ? FieldState(path) : view.FieldState<global::Settings, TValue>(path); }, Subscribe = handler => __ObservationSubscribe(handler), Unsubscribe = handler => __ObservationUnsubscribe(handler) };
+            var coordinator = __observationCoordinator ??= new global::SparseTypes.Generated.SparseObservationCoordinator<global::SparseTypes.SparseChangeSetQueryView>(handler => PropertyChanged += handler, handler => PropertyChanged -= handler, CaptureStateSnapshot);
+            var hooks = new global::SparseTypes.SparseObservedFieldHooks<TValue> { Query = () => FieldState(path), DispatchQuery = () => coordinator.Query(() => FieldState(path), view => view.FieldState<global::Settings, TValue>(path)), Subscribe = coordinator.Subscribe, Unsubscribe = coordinator.Unsubscribe };
             return new global::SparseTypes.SparseObservedField<TValue>(path, hooks);
         }
         /// <summary>Observes the semantic field state at a typed path with binding notifications.</summary>
@@ -227,7 +228,8 @@ public partial class Settings
         public global::SparseTypes.SparseObservedField<object?> ObserveField
         (global::SparseTypes.SparsePath path)
         {
-            var hooks = new global::SparseTypes.SparseObservedFieldHooks<object?> { Query = () => FieldState(path), DispatchQuery = () => { var view = __observationView; return view is null ? FieldState(path) : view.FieldState(path); }, Subscribe = handler => __ObservationSubscribe(handler), Unsubscribe = handler => __ObservationUnsubscribe(handler) };
+            var coordinator = __observationCoordinator ??= new global::SparseTypes.Generated.SparseObservationCoordinator<global::SparseTypes.SparseChangeSetQueryView>(handler => PropertyChanged += handler, handler => PropertyChanged -= handler, CaptureStateSnapshot);
+            var hooks = new global::SparseTypes.SparseObservedFieldHooks<object?> { Query = () => FieldState(path), DispatchQuery = () => coordinator.Query(() => FieldState(path), view => view.FieldState(path)), Subscribe = coordinator.Subscribe, Unsubscribe = coordinator.Unsubscribe };
             return new global::SparseTypes.SparseObservedField<object?>(path, hooks);
         }
         /// <summary>Observes the semantic field state at a model-agnostic path with binding notifications.</summary>
@@ -543,7 +545,7 @@ public partial class Settings
         void global::SparseTypes.ISparseEditChildDraftHost<EditSession, global::SparseTypes.SparseConflict>.RefreshAfterChildDraftMutation() => _session.RefreshAfterExternalMutation();
         bool global::SparseTypes.ISparseEditChildDraftHost<EditSession, global::SparseTypes.SparseConflict>.TryAcceptChildDraft<TChild>(EditSession fork, global::SparseTypes.SparsePath path, global::System.Action<TChild, TChild> writeModelValue, out global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts) where TChild : class
         {
-            var changes = fork.CreateChangeSet();
+            var changes = fork._session.CreateChangeSetFromLiveModel();
             if (changes.IsEmpty) { conflicts = null; return true; }
             var rebased = changes.RebaseOnto(_session.GetModelForFrameworkAccess());
             if (rebased.HasConflicts) { conflicts = rebased.Conflicts; return false; }
@@ -556,7 +558,7 @@ public partial class Settings
         }
         bool global::SparseTypes.ISparseEditChildDraftHost<EditSession, global::SparseTypes.SparseConflict>.TryPreflightChildDraft<TChild>(EditSession fork, global::SparseTypes.SparsePath path, out global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts) where TChild : class
         {
-            var changes = fork.CreateChangeSet();
+            var changes = fork._session.CreateChangeSetFromLiveModel();
             if (changes.IsEmpty) { conflicts = null; return true; }
             var rebased = changes.RebaseOnto(_session.GetModelForFrameworkAccess());
             if (rebased.HasConflicts) { conflicts = rebased.Conflicts; return false; }
@@ -570,6 +572,7 @@ public partial class Settings
             writeModelValue(draftTarget, latestTarget);
             fork.AcceptChanges();
         }
+        internal static global::SparseTypes.Generated.IDescriptorSet __SparseGetDescriptors(global::Settings.Observable observable, global::SparseTypes.SparsePath pathPrefix) => DescriptorFactory.Create(observable, pathPrefix);
         internal EditSession(global::SparseTypes.Generated.EditSessionCore<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> session) { _session = session; }
         internal EditSession(global::Settings model, global::System.Action? onChanged) : this(model, model, onChanged) { }
         internal EditSession(global::Settings baseline, global::Settings current, global::System.Action? onChanged) { _session = global::SparseTypes.Generated.EditSessionCore<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView>.Create(baseline, current, __configuration, onChanged); }
@@ -611,7 +614,7 @@ public partial class Settings
             conflicts = null;
             return true;
         }
-        private static readonly global::SparseTypes.Generated.EditSessionCoreConfiguration<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> __configuration = new global::SparseTypes.Generated.EditSessionCoreConfiguration<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> { FromModel = global::Settings.Fragment.From, Between = global::Settings.ChangeSet.Between, ToPatch = static changes => changes.ToPatch(), IsEmpty = static changes => changes.IsEmpty, AdvanceBaseline = static (changes, baseline) => changes.ApplyToBaseline(baseline), ToObservable = (current, changed, rawModelAccess) => new global::Settings.Observable(current, changed, rawModelAccess), ToCurrent = static current => new global::Settings.ReadOnlyView(current), TryApplyTo = static (changes, current) => changes.TryApplyTo(current, out var updated, out var conflicts) ? (updated, null) : (null, conflicts), WriteModel = static (current, updated) => global::Settings.Fragment.From(updated).WriteTo(current), Invert = static changes => changes.Invert(), Rebase = static (changes, server) => changes.RebaseOnto(server), EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(), RefreshObservable = static observable => observable.__SparseRefresh(), BaselineToModel = static fragment => fragment.ToModel() };
+        private static readonly global::SparseTypes.Generated.EditSessionCoreConfiguration<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> __configuration = new global::SparseTypes.Generated.EditSessionCoreConfiguration<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> { FromModel = global::Settings.Fragment.From, Between = global::Settings.ChangeSet.Between, ToPatch = static changes => changes.ToPatch(), IsEmpty = static changes => changes.IsEmpty, AdvanceBaseline = static (changes, baseline) => changes.ApplyToBaseline(baseline), ToObservable = (current, changed, rawModelAccess) => new global::Settings.Observable(current, changed, rawModelAccess), ToCurrent = static current => new global::Settings.ReadOnlyView(current), TryApplyTo = static (changes, current) => changes.TryApplyTo(current, out var updated, out var conflicts) ? (updated, null) : (null, conflicts), TryApplyInPlace = static (changes, current) => { var succeeded = changes.TryApplyInPlace(current, out var conflicts); return (succeeded, conflicts); }, WriteModel = static (current, updated) => global::Settings.Fragment.From(updated).WriteTo(current), Invert = static changes => changes.Invert(), Rebase = static (changes, server) => changes.RebaseOnto(server), EnumerateChangedPaths = static changes => changes.EnumerateChangedPaths(), RefreshObservable = static observable => observable.__SparseRefresh(), BaselineToModel = static fragment => fragment.ToModel() };
         private readonly global::SparseTypes.Generated.EditSessionCore<global::Settings, global::Settings.Fragment, global::Settings.Patch, global::Settings.ChangeSet, global::Settings.Observable, global::Settings.ReadOnlyView> _session;
         private readonly global::SparseTypes.Generated.Settings_4B058728.SparsePaths<global::Settings> __paths = new global::SparseTypes.Generated.Settings_4B058728.SparsePaths<global::Settings>(global::SparseTypes.SparsePath.Root(typeof(global::Settings)));
         private global::SparseTypes.SparseEditHistoryCollection<global::Settings.ChangeSet>? __histories;
@@ -621,85 +624,20 @@ public partial class Settings
             __histories?.Clear();
             __ownedHistoryView?.Clear();
         }
-        private global::System.Collections.Generic.List<global::System.ComponentModel.PropertyChangedEventHandler>? __observationHandlers;
-        private global::System.ComponentModel.PropertyChangedEventHandler[]? __observationHandlerSnapshot;
-        private global::SparseTypes.SparseChangeSetQueryView? __observationView;
-        private bool __observationDispatching;
-        private bool __observationPending;
-        private void __ObservationSubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)
-        {
-            __observationHandlers ??= new global::System.Collections.Generic.List<global::System.ComponentModel.PropertyChangedEventHandler>();
-            if (__observationHandlers.Count == 0)
-            {
-                PropertyChanged += __ObservationInvalidated;
-            }
-            __observationHandlers.Add(handler);
-            __observationHandlerSnapshot = null;
-        }
-        private void __ObservationUnsubscribe(global::System.ComponentModel.PropertyChangedEventHandler handler)
-        {
-            if (__observationHandlers is null)
-            {
-                return;
-            }
-            if (__observationHandlers.Remove(handler))
-            {
-                __observationHandlerSnapshot = null;
-                if (__observationHandlers.Count == 0)
-                {
-                    PropertyChanged -= __ObservationInvalidated;
-                    __observationHandlers = null;
-                }
-            }
-        }
-        private void __ObservationInvalidated(object? sender, global::System.ComponentModel.PropertyChangedEventArgs e)
-        {
-            if (__observationDispatching)
-            {
-                __observationPending = true;
-                return;
-            }
-            __observationDispatching = true;
-            try
-            {
-                do
-                {
-                    __observationPending = false;
-                    var handlers = __observationHandlers;
-                    if (handlers is null || handlers.Count == 0)
-                    {
-                        break;
-                    }
-                    global::SparseTypes.SparseChangeSetQueryView view;
-                    try
-                    {
-                        view = CaptureStateSnapshot();
-                    }
-                    catch (global::System.InvalidOperationException)
-                    {
-                        break;
-                    }
-                    __observationView = view;
-                    try
-                    {
-                        var dispatch = __observationHandlerSnapshot ??= handlers.ToArray();
-                        foreach (var handler in dispatch)
-                        {
-                            handler(sender, e);
-                        }
-                    }
-                    finally
-                    {
-                        __observationView = null;
-                    }
-                } while (__observationPending);
-            }
-            finally
-            {
-                __observationDispatching = false;
-            }
-        }
+        private global::SparseTypes.Generated.SparseObservationCoordinator<global::SparseTypes.SparseChangeSetQueryView>? __observationCoordinator;
         private global::SparseTypes.Generated.IDescriptorSet? __descriptors;
+        /// <summary>Descriptor factory bound to the owning observable.</summary>
+        private static class DescriptorFactory
+        {
+            internal static global::SparseTypes.Generated.IDescriptorSet Create(global::Settings.Observable observable, global::SparseTypes.SparsePath pathPrefix)
+            {
+                return new global::SparseTypes.Generated.SparseDescriptorSet(new global::SparseTypes.Generated.IDescriptor[]
+                {
+                    new global::SparseTypes.Generated.SparseDescriptor("Database", pathPrefix.Member("Database"), typeof(global::DatabaseSettings), true, true, global::System.Array.Empty<global::System.Attribute>(), () => observable.Database, value => { if (value is null) { observable.Database = null; return true; } if (value is global::DatabaseSettings.Observable proxy) { observable.Database = proxy; return true; } if (!global::SparseTypes.Generated.SparseDescriptorValue.TryGet<global::DatabaseSettings>(value, out var model)) return false; observable.Database = new global::DatabaseSettings.Observable(model); return true; }, () => { var current = observable.Database; if ((object?)current is null) return null; var captured = current.__SparseTarget; var inner = current.__SparseGetDescriptors_7C0CFA12(pathPrefix.Member("Database")); return global::SparseTypes.Generated.SparseDescriptorSet.Guarded(inner, () => { var live = observable.Database; if ((object?)live is null) return false; return global::System.Object.ReferenceEquals(live.__SparseTarget, captured); }); }, null, null, typeof(global::DatabaseSettings.Observable), null, new global::SparseTypes.Generated.SparseDescriptorShape { HasChild = true, ChildType = typeof(global::DatabaseSettings), HasArray = false, ArrayItemType = null, ArrayItemNullable = false, HasDictionary = false, DictionaryKeyType = null, DictionaryValueType = null, DictionaryValueNullable = false, HasSet = false, SetItemType = null, SetItemNullable = false }, false, false, () => (object?)observable.__model.Database),
+                    new global::SparseTypes.Generated.SparseDescriptor("Label", pathPrefix.Member("Label"), typeof(string), true, true, global::System.Array.Empty<global::System.Attribute>(), () => observable.Label, value => { if (!global::SparseTypes.Generated.SparseDescriptorValue.TryGet<string?>(value, out var typed)) return false; observable.Label = typed; return true; }, null, null, null, typeof(string), null, new global::SparseTypes.Generated.SparseDescriptorShape { HasChild = false, ChildType = null, HasArray = false, ArrayItemType = null, ArrayItemNullable = false, HasDictionary = false, DictionaryKeyType = null, DictionaryValueType = null, DictionaryValueNullable = false, HasSet = false, SetItemType = null, SetItemNullable = false }, false, false, () => (object?)observable.__model.Label),
+                });
+            }
+        }
     }
     /// <summary>Metadata for 'global::Settings' change payloads.</summary>
     public static class PayloadJson
@@ -858,9 +796,14 @@ public partial class Settings
         internal void __SparseWriteWritableTo(global::Settings model)
         {
             if (model is null) throw new global::System.ArgumentNullException(nameof(model));
-            var __sparse_updated = ToModel();
-            model.Database = __sparse_updated.Database!;
-            model.Label = __sparse_updated.Label!;
+            if (this.Database.IsPresent)
+            {
+                model.Database = this.Database.Value?.ToModel()!;
+            }
+            if (this.Label.IsPresent)
+            {
+                model.Label = this.Label.Value!;
+            }
         }
         private Fragment(Fragment source, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context)
         {
@@ -1434,18 +1377,26 @@ public partial class Settings
         internal __Internal_9615EEF7.Core_9615EEF7 ToPayloadCore(bool redactBefores) => __Core.ToPayloadCore(this, redactBefores);
         /// <summary>Collects flattened transitions into the caller's sink (enumeration infrastructure).</summary>
         /// <param name="__sparse_sink">Receives boxed endpoints plus the change-kind index for each leaf.</param>
+        /// <param name="__sparse_path_sink">Receives paths without projecting or boxing endpoints.</param>
         /// <param name="__sparse_scratch">Push/pop segment buffer owned by the root enumeration.</param>
-        internal void __SparseCollectInto(global::System.Action<global::SparseTypes.Optional<object?>, global::SparseTypes.Optional<object?>, int> __sparse_sink, global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment> __sparse_scratch)
+        internal bool __SparseCollectInto(global::System.Func<global::SparseTypes.Optional<object?>, global::SparseTypes.Optional<object?>, int, bool>? __sparse_sink, global::System.Func<global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment>, bool>? __sparse_path_sink, global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment> __sparse_scratch)
         {
             if (__sparse_hasWhole)
             {
-                    __sparse_sink((__sparse_wholeBefore.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeBefore.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeAfter.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeAfter.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeBefore.IsPresent == __sparse_wholeAfter.IsPresent ? (int)ChangeKind.Changed : __sparse_wholeBefore.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added));
-                    return;
+                    if (__sparse_path_sink is not null)
+                    {
+                        if (!__sparse_path_sink(__sparse_scratch)) return false;
+                    }
+                    else if (!__sparse_sink!((__sparse_wholeBefore.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeBefore.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeAfter.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeAfter.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeBefore.IsPresent == __sparse_wholeAfter.IsPresent ? (int)ChangeKind.Changed : __sparse_wholeBefore.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added)))
+                    {
+                        return false;
+                    }
+                    return true;
             }
             if (!Database.IsEmpty)
             {
                     __sparse_scratch.Add(global::SparseTypes.SparsePathSegment.Member("Database"));
-                    Database.__SparseCollectInto(__sparse_sink, __sparse_scratch);
+                    if (!Database.__SparseCollectInto(__sparse_sink, __sparse_path_sink, __sparse_scratch)) return false;
                     __sparse_scratch.RemoveAt(__sparse_scratch.Count - 1);
             }
             if (Label.IsChanged)
@@ -1454,10 +1405,18 @@ public partial class Settings
                     if (value1.IsChanged)
                     {
                             __sparse_scratch.Add(global::SparseTypes.SparsePathSegment.Member("Label"));
-                            __sparse_sink((value1.Before.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.Before.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.After.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.After.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.Before.IsPresent == value1.After.IsPresent ? (int)ChangeKind.Changed : value1.Before.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added));
+                            if (__sparse_path_sink is not null)
+                            {
+                                if (!__sparse_path_sink(__sparse_scratch)) return false;
+                            }
+                            else if (!__sparse_sink!((value1.Before.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.Before.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.After.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.After.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.Before.IsPresent == value1.After.IsPresent ? (int)ChangeKind.Changed : value1.Before.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added)))
+                            {
+                                return false;
+                            }
                             __sparse_scratch.RemoveAt(__sparse_scratch.Count - 1);
                     }
             }
+            return true;
         }
         private readonly bool __sparse_hasWhole;
         private global::SparseTypes.Optional<Fragment?> __sparse_wholeBefore => __sparse_wholeBeforeOptional;
@@ -1882,10 +1841,10 @@ public partial class Settings
                 var __patch = __toApply.ToPatch();
                 var __applied = __patch.Apply(__state);
                 if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException("The rebased change does not produce a non-null model root. Use the presence-aware Fragment/Optional API for root presence transitions.");
-                var __updatedModel = __applied.Value.ToModel();
                 var __sparse_inPlaceResult = __patch.ApplyInPlace(current);
                 if (!__sparse_inPlaceResult.Succeeded)
                 {
+                    var __updatedModel = __applied.Value.ToModel();
                     var __sparse_inPlaceConflicts = new global::System.Collections.Generic.List<global::SparseTypes.SparseConflict>();
                     conflicts = global::System.Array.AsReadOnly(__sparse_inPlaceConflicts.ToArray());
                     return false;
@@ -1964,7 +1923,7 @@ public partial class Settings
                     return changes;
                 }
                 var __sparse_scratch = new global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment>();
-                self.__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => changes.Add(new global::SparseTypes.Generated.SparseChangeRecord(new global::SparseTypes.SparsePath(typeof(global::Settings), __sparse_scratch), __sparse_before, __sparse_after, (global::SparseTypes.Generated.SparseChangeKind)__sparse_kind)), __sparse_scratch);
+                self.__SparseCollectInto((__sparse_before, __sparse_after, __sparse_kind) => { changes.Add(new global::SparseTypes.Generated.SparseChangeRecord(new global::SparseTypes.SparsePath(typeof(global::Settings), __sparse_scratch), __sparse_before, __sparse_after, (global::SparseTypes.Generated.SparseChangeKind)__sparse_kind)); return true; }, null, __sparse_scratch);
                 return changes;
             }
             /// <summary>Finds the entry at exactly the given path, or null when absent.</summary>
@@ -1983,11 +1942,15 @@ public partial class Settings
                         }
                     }
                 }
-                foreach (var change in EnumerateChanges(self))
+                if (self.__sparse_hasWhole)
                 {
-                    if (change.Path.Equals(path)) return change;
+                    if (__SparseRootPath.Equals(path)) return __SparseCreateChangeInfo(path, self.__sparse_wholeBefore, self.__sparse_wholeAfter);
+                    return null;
                 }
-                return null;
+                var __sparse_scratch = new global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment>();
+                global::SparseTypes.Generated.SparseChangeRecord? __sparse_found = null;
+                self.__SparseCollectInto((before, after, kind) => { var candidate = new global::SparseTypes.SparsePath(typeof(global::Settings), __sparse_scratch); if (!candidate.Equals(path)) return true; __sparse_found = new global::SparseTypes.Generated.SparseChangeRecord(candidate, before, after, (global::SparseTypes.Generated.SparseChangeKind)kind); return false; }, null, __sparse_scratch);
+                return __sparse_found;
             }
             /// <summary>Finds the entry at exactly the given typed path, or null when absent.</summary>
             /// <remarks>Exact paths only; ancestors and descendants never match. The path root and value types are checked at compile time.</remarks>
@@ -1997,25 +1960,27 @@ public partial class Settings
             }
             /// <summary>Enumerates changed member paths, descending through nested models.</summary>
             /// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>
-            /// <param name="self">The change set to enumerate.</param>
             /// <returns>The changed member paths.</returns>
+            /// <param name="self">The change set to inspect.</param>
             internal static global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparsePath> EnumerateChangedPaths(ChangeSet self)
             {
-                if (self.IsEmpty)
+                if (self.IsEmpty) return global::System.Array.Empty<global::SparseTypes.SparsePath>();
+                var __sparse_changed_paths = new global::System.Collections.Generic.List<global::SparseTypes.SparsePath>();
+                var __sparse_path_texts = new global::System.Collections.Generic.Dictionary<global::SparseTypes.SparsePath, string>();
+                if (self.__sparse_hasWhole)
                 {
-                    return global::System.Array.Empty<global::SparseTypes.SparsePath>();
+                    var rootPath = __SparseRootPath;
+                    __sparse_path_texts.Add(rootPath, rootPath.ToString());
+                    __sparse_changed_paths.Add(rootPath);
+                    return __sparse_changed_paths.AsReadOnly();
                 }
-                var paths = new global::System.Collections.Generic.List<global::SparseTypes.SparsePath>();
-                var seen = new global::System.Collections.Generic.HashSet<global::SparseTypes.SparsePath>();
-                foreach (var change in EnumerateChanges(self))
+                var __sparse_path_scratch = new global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment>();
+                self.__SparseCollectInto(null, __sparse_segments => { var path = new global::SparseTypes.SparsePath(typeof(global::Settings), __sparse_segments); if (!__sparse_path_texts.ContainsKey(path)) { __sparse_path_texts.Add(path, path.ToString()); __sparse_changed_paths.Add(path); } return true; }, __sparse_path_scratch);
+                if (__sparse_changed_paths.Count > 1)
                 {
-                    if (seen.Add(change.Path)) paths.Add(change.Path);
+                    __sparse_changed_paths.Sort((left, right) => global::System.StringComparer.Ordinal.Compare(__sparse_path_texts[left], __sparse_path_texts[right]));
                 }
-                if (paths.Count > 1)
-                {
-                    paths.Sort(static (left, right) => global::System.StringComparer.Ordinal.Compare(left.ToString(), right.ToString()));
-                }
-                return paths.AsReadOnly();
+                return __sparse_changed_paths.AsReadOnly();
             }
             /// <summary>Begins path-based resolution of a rebase result against the authoritative current state.</summary>
             internal static ChangeSet.Resolution BeginResolution(global::SparseTypes.RebaseResult<ChangeSet> rebase, global::SparseTypes.Optional<Fragment?> current) => new ChangeSet.Resolution(rebase, current);
@@ -2410,11 +2375,7 @@ public partial class Settings
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
         public string? Version { get; set; }
         /// <summary>Gets or sets the typed model change.</summary>
-        public __Internal_9615EEF7.ModelChange_9615EEF7? Change
-        {
-            get => FromLegacyChanges(Changes);
-            set => Changes = ToLegacyChanges(value);
-        }
+        public __Internal_9615EEF7.ModelChange_9615EEF7? Change { get => GetTypedChange(); set => SetTypedChange(value); }
         /// <summary>Converts this validated envelope to a complete change set.</summary>
         /// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref="ToPatch"/> instead.</remarks>
         /// <returns>The validated change set.</returns>
@@ -2462,7 +2423,7 @@ public partial class Settings
         public static ChangePayload FromPatch(global::Settings.Patch patch)
         {
             if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));
-            return new ChangePayload { Version = "0.1", Changes = __Internal_9615EEF7.Core_9615EEF7.FromPatchCore(patch).Changes };
+            return new ChangePayload { Version = "0.1", Change = __Internal_9615EEF7.Core_9615EEF7.FromPatchCore(patch).GetTypedChange() };
         }
         internal static __Internal_9615EEF7.ModelChange_9615EEF7? FromLegacyChanges(global::System.Collections.Generic.List<__Internal_9615EEF7.Change_9615EEF7>? changes)
         {
@@ -2677,26 +2638,6 @@ public static partial class SettingsExtensions_9615EEF7
     {
         if (session is null) throw new global::System.ArgumentNullException(nameof(session));
         return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit);
-    }
-}
-
-namespace SparseTypes.Generated
-{
-    /// <summary>Live descriptor bindings for one model.</summary>
-    public partial class Settings_4B058728
-    {
-        /// <summary>Descriptor factory bound to the owning observable.</summary>
-        internal static class DescriptorFactory
-        {
-            internal static global::SparseTypes.Generated.IDescriptorSet Create(global::Settings.Observable observable, global::SparseTypes.SparsePath pathPrefix)
-            {
-                return new global::SparseTypes.Generated.SparseDescriptorSet(new global::SparseTypes.Generated.IDescriptor[]
-                {
-                    new global::SparseTypes.Generated.SparseDescriptor("Database", pathPrefix.Member("Database"), typeof(global::DatabaseSettings), true, true, global::System.Array.Empty<global::System.Attribute>(), () => observable.Database, value => { if (value is null) { observable.Database = null; return true; } if (value is global::DatabaseSettings.Observable proxy) { observable.Database = proxy; return true; } if (!global::SparseTypes.Generated.SparseDescriptorValue.TryGet<global::DatabaseSettings>(value, out var model)) return false; observable.Database = new global::DatabaseSettings.Observable(model); return true; }, () => { var current = observable.Database; if ((object?)current is null) return null; var captured = current.__SparseTarget; var inner = current.__SparseGetDescriptors_7C0CFA12(pathPrefix.Member("Database")); return global::SparseTypes.Generated.SparseDescriptorSet.Guarded(inner, () => { var live = observable.Database; if ((object?)live is null) return false; return global::System.Object.ReferenceEquals(live.__SparseTarget, captured); }); }, null, null, typeof(global::DatabaseSettings.Observable), null, new global::SparseTypes.Generated.SparseDescriptorShape { HasChild = true, ChildType = typeof(global::DatabaseSettings), HasArray = false, ArrayItemType = null, ArrayItemNullable = false, HasDictionary = false, DictionaryKeyType = null, DictionaryValueType = null, DictionaryValueNullable = false, HasSet = false, SetItemType = null, SetItemNullable = false }, false, false, () => (object?)observable.__model.Database),
-                    new global::SparseTypes.Generated.SparseDescriptor("Label", pathPrefix.Member("Label"), typeof(string), true, true, global::System.Array.Empty<global::System.Attribute>(), () => observable.Label, value => { if (!global::SparseTypes.Generated.SparseDescriptorValue.TryGet<string?>(value, out var typed)) return false; observable.Label = typed; return true; }, null, null, null, typeof(string), null, new global::SparseTypes.Generated.SparseDescriptorShape { HasChild = false, ChildType = null, HasArray = false, ArrayItemType = null, ArrayItemNullable = false, HasDictionary = false, DictionaryKeyType = null, DictionaryValueType = null, DictionaryValueNullable = false, HasSet = false, SetItemType = null, SetItemNullable = false }, false, false, () => (object?)observable.__model.Label),
-                });
-            }
-        }
     }
 }
 
@@ -3030,7 +2971,27 @@ namespace SparseTypes.Generated
                 }
                 /// <summary>Gets or sets the member changes carried by this core.</summary>
                 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal global::System.Collections.Generic.List<Change_9615EEF7>? Changes { get; set; }
+                internal __Internal_9615EEF7.ModelChange_9615EEF7? TypedChange { get; set; }
+                internal global::System.Collections.Generic.List<Change_9615EEF7>? LegacyChangesStorage { get; set; }
+                internal global::System.Collections.Generic.List<Change_9615EEF7>? Changes
+                {
+                    get => LegacyChangesStorage ?? global::Settings.ChangePayload.ToLegacyChanges(TypedChange);
+                    set { LegacyChangesStorage = value; TypedChange = null; }
+                }
+                internal __Internal_9615EEF7.ModelChange_9615EEF7? GetTypedChange()
+                {
+                    if (TypedChange is null && LegacyChangesStorage is not null)
+                    {
+                        TypedChange = global::Settings.ChangePayload.FromLegacyChanges(LegacyChangesStorage);
+                        LegacyChangesStorage = null;
+                    }
+                    return TypedChange;
+                }
+                internal void SetTypedChange(__Internal_9615EEF7.ModelChange_9615EEF7? value)
+                {
+                    TypedChange = value;
+                    LegacyChangesStorage = null;
+                }
                 internal global::Settings.ChangeSet ToChangeSetCore() => global::Settings.ChangeSet.FromPayloadCore(this);
                 internal global::Settings.Patch ToPatchCore() => global::Settings.ChangeSet.PatchFromPayloadCore(this);
                 internal static Core_9615EEF7 FromPatchCore(global::Settings.Patch patch) => patch.ToChangePayloadCore();
@@ -3323,8 +3284,7 @@ namespace SparseTypes.Generated
             internal static __Internal_9615EEF7.Core_9615EEF7 ReadCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
             {
                 __Internal_9615EEF7.ModelChange_9615EEF7 change = ReadModelChange(ref reader, options);
-                var payload = new ChangePayload { Change = change };
-                return new __Internal_9615EEF7.Core_9615EEF7 { Changes = payload.Changes };
+                return new __Internal_9615EEF7.Core_9615EEF7 { TypedChange = change };
             }
 
             /// <summary>Writes a nested model change.</summary>
@@ -3332,8 +3292,7 @@ namespace SparseTypes.Generated
             internal static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, __Internal_9615EEF7.Core_9615EEF7? value, global::System.Text.Json.JsonSerializerOptions options)
             {
                 if (value is null) { writer.WriteNullValue(); return; }
-                var payload = new ChangePayload { Changes = value.Changes };
-                var change = payload.Change ?? throw new global::System.Text.Json.JsonException("A model change is required.");
+                var change = value.GetTypedChange() ?? throw new global::System.Text.Json.JsonException("A model change is required.");
                 WriteModelChange(writer, change, options);
             }
 

@@ -296,7 +296,7 @@ namespace SparseTypes.Generated
             }
             if (!hasState) throw new global::System.Text.Json.JsonException("An endpoint must contain a state.");
             if (state != global::SparseTypes.ChangePayloadState.Value && hasValue) throw new global::System.Text.Json.JsonException("A value-free endpoint must not contain a value property.");
-            if (state == global::SparseTypes.ChangePayloadState.Value && (!hasValue || (!typeof(TValue).IsValueType && value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
+            if (state == global::SparseTypes.ChangePayloadState.Value && (!hasValue || (!typeof(TValue).IsValueType && value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
             return new global::SparseTypes.ChangePayloadEndpoint<TValue> { State = state, Value = value };
         }
 
@@ -304,7 +304,7 @@ namespace SparseTypes.Generated
         {
             if (value is null) { writer.WriteNullValue(); return; }
             value.Validate();
-            if (value.State == global::SparseTypes.ChangePayloadState.Value && ((!typeof(TValue).IsValueType && value.Value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value.Value, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
+            if (value.State == global::SparseTypes.ChangePayloadState.Value && ((!typeof(TValue).IsValueType && value.Value is null) || (global::System.Nullable.GetUnderlyingType(typeof(TValue)) is not null && global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value.Value!, default!)))) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
             if (value.State != global::SparseTypes.ChangePayloadState.Missing && value.State != global::SparseTypes.ChangePayloadState.Null && value.State != global::SparseTypes.ChangePayloadState.Value && value.State != global::SparseTypes.ChangePayloadState.Redacted) throw new global::System.Text.Json.JsonException("Unknown endpoint state.");
             writer.WriteStartObject();
             writer.WriteString(global::SparseTypes.ChangePayloadWire.StateProperty, global::SparseTypes.ChangePayloadWire.ToToken(value.State));

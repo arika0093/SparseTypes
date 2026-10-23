@@ -78,7 +78,10 @@ feed="$(realpath "${package_directory}")"
 
 # Use a fresh cache to avoid stale packages with the same version.
 isolated_packages="$(mktemp -d)"
-trap 'rm -rf "${isolated_packages}"' EXIT
+generated_snapshot="$(mktemp -d)"
+compiler_generated="$(mktemp -d)"
+cp -a docs/generated-code/. "${generated_snapshot}/"
+trap 'rm -rf "${isolated_packages}" "${generated_snapshot}" "${compiler_generated}"' EXIT
 if command -v cygpath >/dev/null 2>&1; then
     export NUGET_PACKAGES="$(cygpath -w "${isolated_packages}")"
 else
@@ -90,6 +93,9 @@ framework="net10.0"
 dotnet build "${fixture_csproj}" \
     --configuration Release --framework "${framework}" \
     -p:SparseTypesPackageVersion="${version}" \
+    -p:CompilerGeneratedFilesOutputPath="${compiler_generated}" \
+    -p:ReadmeGeneratedCodeDirectory="${generated_snapshot}" \
+    --no-incremental \
     -p:RestoreAdditionalProjectSources="${feed}"
 assets_file="${fixture_dir}/obj/project.assets.json"
 if [[ ! -f "${assets_file}" ]]; then
@@ -108,6 +114,12 @@ output="$(dotnet "${fixture_dir}/bin/Release/${framework}/PackageSparse.Readme.C
 echo "${output}"
 if [[ "${output}" != *"SparseTypes README consumer passed."* ]]; then
     echo "SparseTypes README fixture did not reach its success marker on '${framework}'." >&2
+    exit 1
+fi
+
+if ! diff -ru docs/generated-code "${generated_snapshot}"; then
+    echo "README generated-code snapshots are out of date. Regenerate them with:" >&2
+    echo "  dotnet build ${fixture_csproj} --configuration Release --framework ${framework}" >&2
     exit 1
 fi
 
