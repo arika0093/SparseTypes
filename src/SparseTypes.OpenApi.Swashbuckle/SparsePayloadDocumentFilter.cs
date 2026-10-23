@@ -1,123 +1,144 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using Microsoft.OpenApi;
+using SparseTypes.OpenApi.Internal;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace SparseTypes.OpenApi.Swashbuckle;
 
-internal sealed class SparsePayloadDocumentFilter(System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets) : IDocumentFilter
+internal sealed class SparsePayloadDocumentFilter(
+    System.Collections.Generic.IEnumerable<SparsePayloadSchemaSet> schemaSets,
+    SparseSchemaNameRegistry registry
+) : IDocumentFilter
 {
     public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
     {
+        var sets = schemaSets.ToArray();
+        var versions = sets.Select(static set => set.OpenApiVersion).Distinct().ToArray();
+        if (versions.Length != 1)
+        {
+            throw new InvalidOperationException("Swashbuckle payload registrations must use one OpenAPI schema version per document.");
+        }
+
+        var version = versions[0];
+        var schemas = sets.SelectMany(static set => set.GetSchemas()).ToArray();
+        SparseOpenApiSchemaParser.ValidateReferences(schemas, version);
+        var availableTypes = schemas.Select(static schema => schema.Type).ToHashSet();
+        var missing = sets.SelectMany(static set => set.Bundle.RequiredExternalSchemaTypes)
+            .Distinct()
+            .FirstOrDefault(missing => !availableTypes.Contains(missing));
+        if (missing is not null)
+        {
+            throw new InvalidOperationException($"SparseTypes payload schemas require an explicit external schema for leaf type '{missing}'.");
+        }
+
         var names = new Dictionary<string, Type>(StringComparer.Ordinal);
         swaggerDoc.Components ??= new OpenApiComponents();
         swaggerDoc.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
-        foreach (var descriptor in schemaSets.SelectMany(static set => set.Schemas))
+        foreach (var set in sets)
         {
-            var type = descriptor.Type;
-            var generated =
-                descriptor.JsonSchema == "{}"
-                    ? context.SchemaGenerator.GenerateSchema(type, context.SchemaRepository)
-                    : ParseSchema(descriptor.JsonSchema, swaggerDoc);
-            var name = descriptor.Name;
-            if (names.TryGetValue(name, out var previousType))
+            foreach (var descriptor in set.GetSchemas())
             {
-                if (previousType == type)
+                var type = descriptor.Type;
+                var jsonSchema = version == OpenApiSpecVersion.OpenApi3_0 ? descriptor.OpenApi30JsonSchema : descriptor.OpenApi31JsonSchema;
+                var generated = SparseOpenApiSchemaParser.Parse(jsonSchema, version, swaggerDoc);
+                var namesForSchema = new HashSet<string>(StringComparer.Ordinal) { descriptor.Name };
+                var foundSchemaKey = context.SchemaRepository.TryLookupByType(type, out var schemaKey);
+                var repositoryName = foundSchemaKey ? schemaKey?.Id : null;
+                var recordedName = registry.GetEffectiveName(type);
+                var effectiveName = recordedName ?? repositoryName;
+
+                if (!string.IsNullOrWhiteSpace(effectiveName))
                 {
-                    continue;
+                    namesForSchema.Add(effectiveName);
                 }
 
-                throw new InvalidOperationException($"SparseTypes schema name collision for '{type}'.");
-            }
-            names.Add(name, type);
-            // Reserve the curated name so later generator passes resolve the
-            // same component instead of registering a duplicate entry.
-            if (!context.SchemaRepository.TryLookupByType(type, out _))
-            {
-                context.SchemaRepository.RegisterType(type, name);
-            }
-
-            // Endpoints that take a ChangePayload register the same stable
-            // component during document generation. The curated schema wins
-            // so the document stays consistent with the registered metadata.
-            swaggerDoc.Components.Schemas[name] = generated;
-        }
-        // Reflection reports the wire string enums (state/kind) as integers.
-        // Rewrite them to string enums so the document matches the JSON bytes.
-        SparsePayloadEnumSchemas.FixDocument(swaggerDoc);
-    }
-
-    private static OpenApiSchema ParseSchema(string jsonSchema, OpenApiDocument document)
-    {
-        using var json = JsonDocument.Parse(jsonSchema);
-        return (OpenApiSchema)ConvertSchema(json.RootElement, document);
-    }
-
-    private static IOpenApiSchema ConvertSchema(JsonElement source, OpenApiDocument document)
-    {
-        if (source.TryGetProperty("$ref", out var reference))
-        {
-            var path = reference.GetString()!;
-            return new OpenApiSchemaReference(path[(path.LastIndexOf('/') + 1)..], document);
-        }
-
-        var schema = new OpenApiSchema();
-        if (source.TryGetProperty("type", out var type))
-        {
-            schema.Type = type.GetString() switch
-            {
-                "object" => JsonSchemaType.Object,
-                "array" => JsonSchemaType.Array,
-                "string" => JsonSchemaType.String,
-                "integer" => JsonSchemaType.Integer,
-                "number" => JsonSchemaType.Number,
-                "boolean" => JsonSchemaType.Boolean,
-                _ => null,
-            };
-        }
-
-        if (source.TryGetProperty("properties", out var properties))
-        {
-            foreach (var property in properties.EnumerateObject())
-            {
-                (schema.Properties ??= new Dictionary<string, IOpenApiSchema>())[property.Name] = ConvertSchema(property.Value, document);
-            }
-        }
-
-        if (source.TryGetProperty("items", out var items))
-        {
-            schema.Items = ConvertSchema(items, document);
-        }
-
-        if (source.TryGetProperty("oneOf", out var oneOf))
-        {
-            foreach (var variant in oneOf.EnumerateArray())
-            {
-                (schema.OneOf ??= new List<IOpenApiSchema>()).Add(ConvertSchema(variant, document));
-            }
-        }
-
-        if (source.TryGetProperty("discriminator", out var discriminator))
-        {
-            schema.Discriminator = new OpenApiDiscriminator
-            {
-                PropertyName = discriminator.GetProperty("propertyName").GetString()!,
-                Mapping = discriminator
-                    .GetProperty("mapping")
-                    .EnumerateObject()
-                    .ToDictionary(
-                        static item => item.Name,
-                        item =>
+                foreach (var name in namesForSchema)
+                {
+                    if (names.TryGetValue(name, out var previousType))
+                    {
+                        if (previousType != type)
                         {
-                            var path = item.Value.GetString()!;
-                            return new OpenApiSchemaReference(path[(path.LastIndexOf('/') + 1)..], document);
-                        },
-                        StringComparer.Ordinal
-                    ),
-            };
+                            throw new InvalidOperationException($"SparseTypes schema name collision '{name}': '{previousType}' and '{type}'.");
+                        }
+                    }
+                    else
+                    {
+                        names.Add(name, type);
+                    }
+
+                    // Keep the generated identity for internal refs while
+                    // replacing endpoint-generated IDs only for payload types.
+                    swaggerDoc.Components.Schemas[name] = generated;
+                }
+            }
         }
-        return schema;
+    }
+}
+
+internal sealed class SparsePayloadSchemaSet
+{
+    public SparsePayloadSchemaSet(
+        SparseTypes.SparsePayloadSchemaBundle bundle,
+        OpenApiSpecVersion openApiVersion,
+        IReadOnlyList<SparseTypes.SparsePayloadSchema> externalSchemas
+    )
+    {
+        Bundle = bundle ?? throw new ArgumentNullException(nameof(bundle));
+        ExternalSchemas = CopySchemas(externalSchemas);
+        ValidateExternalSchemas(Bundle, ExternalSchemas);
+        OpenApiVersion = openApiVersion;
+    }
+
+    public SparseTypes.SparsePayloadSchemaBundle Bundle { get; }
+
+    public IReadOnlyList<SparseTypes.SparsePayloadSchema> ExternalSchemas { get; }
+
+    public OpenApiSpecVersion OpenApiVersion { get; }
+
+    public IEnumerable<SparseTypes.SparsePayloadSchema> GetSchemas()
+    {
+        var bundleSchemas = OpenApiVersion == OpenApiSpecVersion.OpenApi3_0 ? Bundle.OpenApi30Schemas : Bundle.OpenApi31Schemas;
+        return bundleSchemas.Concat(ExternalSchemas);
+    }
+
+    public IReadOnlyList<SparseTypes.SparsePayloadSchema> GetAllSchemas()
+    {
+        return Bundle.OpenApi31Schemas.Concat(ExternalSchemas).ToArray();
+    }
+
+    private static IReadOnlyList<SparseTypes.SparsePayloadSchema> CopySchemas(IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
+    {
+        ArgumentNullException.ThrowIfNull(schemas);
+        var copy = new SparseTypes.SparsePayloadSchema[schemas.Count];
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var types = new HashSet<Type>();
+        for (var index = 0; index < schemas.Count; index++)
+        {
+            var schema = schemas[index] ?? throw new ArgumentException("Schema lists must not contain null entries.", nameof(schemas));
+            if (!names.Add(schema.Name) || !types.Add(schema.Type))
+            {
+                throw new ArgumentException("Schema lists must not contain duplicate names or CLR types.", nameof(schemas));
+            }
+
+            copy[index] = schema;
+        }
+
+        return Array.AsReadOnly(copy);
+    }
+
+    private static void ValidateExternalSchemas(
+        SparseTypes.SparsePayloadSchemaBundle bundle,
+        IReadOnlyList<SparseTypes.SparsePayloadSchema> externalSchemas
+    )
+    {
+        var generatedNames = new HashSet<string>(bundle.OpenApi31Schemas.Select(static schema => schema.Name), StringComparer.Ordinal);
+        var generatedTypes = new HashSet<Type>(bundle.OpenApi31Schemas.Select(static schema => schema.Type));
+        var conflict = externalSchemas.FirstOrDefault(schema => generatedNames.Contains(schema.Name) || generatedTypes.Contains(schema.Type));
+        if (conflict is not null)
+        {
+            throw new ArgumentException($"External schema '{conflict.Name}' conflicts with a generated payload schema.", nameof(externalSchemas));
+        }
     }
 }

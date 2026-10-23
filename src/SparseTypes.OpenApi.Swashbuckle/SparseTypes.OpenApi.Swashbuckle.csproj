@@ -15,4 +15,7 @@
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../SparseTypes.OpenApi.AspNetCore/Internal/SparseOpenApiSchemaParser.cs" Link="Internal/SparseOpenApiSchemaParser.cs" />
+  </ItemGroup>
 </Project>

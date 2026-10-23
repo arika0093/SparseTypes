@@ -1,22 +1,7 @@
 # SparseTypes.OpenApi.AspNetCore
 
-Register a generated `ChangePayload` with ASP.NET Core OpenAPI:
+Register the model's generated schema bundle with `builder.Services.AddSparseOpenApi(Order.PayloadJson.Schema)`. The bundle includes the envelope and generated schemas for nested models, so separate registrations are unnecessary.
 
-<!-- illustrative: Replace Order with a model generated in your application. -->
-```csharp
-builder.Services.AddOpenApi();
-builder.Services.AddSparseOpenApi<Order.ChangePayload>();
-
-var app = builder.Build();
-app.MapOpenApi();
-```
-
-The registration adds the payload and its generated change variants to `components.schemas`, including types that no endpoint uses. Schema component names come from the model's namespace and generated type role, so they stay stable across builds. When a payload references another model (for example a keyed line collection), register that model's payload too so its change schemas use the same stable names:
-
-<!-- illustrative: Replace Order and OrderLine with models generated in your application. -->
-```csharp
-builder.Services.AddSparseOpenApi<Order.ChangePayload>();
-builder.Services.AddSparseOpenApi<OrderLine.ChangePayload>();
-```
+The adapter selects each document's OpenAPI 3.0 or 3.1 schema. Check `Order.PayloadJson.Schema.RequiredExternalSchemaTypes` for leaf types that need application-provided schemas, then pass `SparsePayloadSchema` descriptors as the second argument to `AddSparseOpenApi`. A descriptor contains separate JSON schema strings for OpenAPI 3.0 and 3.1. The adapter does not infer missing schemas from CLR types.
 
 This package targets .NET 10. Add `SparseTypes` to the project so its source generator can create the `ChangePayload` schema metadata.

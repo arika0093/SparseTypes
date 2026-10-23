@@ -16,11 +16,8 @@ builder.Services.AddHealthChecks();
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
 builder.Services.AddOpenApi();
 
-// Register every payload whose types can appear in the document: the lines
-// reference OrderLineDto members through the keyed item wrapper.
-builder.Services.AddSparseOpenApi<OrderDto.ChangePayload>();
-builder.Services.AddSparseOpenApi<OrderLineDto.ChangePayload>();
-builder.Services.AddSparseOpenApi<AddressDto.ChangePayload>();
+// The OrderDto bundle includes schemas for its nested address and line models.
+builder.Services.AddSparseOpenApi(OrderDto.PayloadJson.Schema);
 var app = builder.Build();
 app.Services.ValidateSparseEntityMappers<SampleDbContext>();
 SampleDbInitializer.Initialize(app.Services);

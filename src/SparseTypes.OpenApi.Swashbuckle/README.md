@@ -1,19 +1,7 @@
 # SparseTypes.OpenApi.Swashbuckle
 
-Register a generated `ChangePayload` with Swashbuckle:
+Register the model's generated schema bundle with `builder.Services.AddSparseOpenApi(Order.PayloadJson.Schema)`. This overload selects OpenAPI 3.0. Pass `OpenApiSpecVersion.OpenApi3_1` as the second argument when Swashbuckle emits OpenAPI 3.1.
 
-<!-- illustrative: Replace Order with a model generated in your application. -->
-```csharp
-builder.Services.AddSwaggerGen();
-builder.Services.AddSparseOpenApi<Order.ChangePayload>();
-```
-
-The registration adds the payload and its generated change variants to `components.schemas`, including types that no endpoint uses. Schema component names come from the model's namespace and generated type role, so they stay stable across builds. When a payload references another model (for example a keyed line collection), register that model's payload too so its change schemas use the same stable names:
-
-<!-- illustrative: Replace Order and OrderLine with models generated in your application. -->
-```csharp
-builder.Services.AddSparseOpenApi<Order.ChangePayload>();
-builder.Services.AddSparseOpenApi<OrderLine.ChangePayload>();
-```
+The bundle includes the envelope and generated schemas for nested models, so separate registrations are unnecessary. Check `Order.PayloadJson.Schema.RequiredExternalSchemaTypes` for leaf types that need application-provided schemas, then pass `SparsePayloadSchema` descriptors to the overload that accepts an external schema list. Each descriptor contains separate JSON schema strings for OpenAPI 3.0 and 3.1. The adapter does not infer missing schemas from CLR types.
 
 This package targets .NET 10. Add `SparseTypes` to the project so its source generator can create the `ChangePayload` schema metadata.
