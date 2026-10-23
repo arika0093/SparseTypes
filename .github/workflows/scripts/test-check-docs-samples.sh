@@ -69,6 +69,13 @@ root="${tmp_base}/baseline"
 write_baseline "${root}"
 expect_pass "baseline control" "${root}"
 
+# Formatting changes in the canonical C# fixture do not drift from Markdown.
+root="${tmp_base}/formatting-only"
+write_baseline "${root}"
+sed -i 's/var value = 1;/var value =\
+    1;/' "${root}/fixture.cs"
+expect_pass "formatting-only C# change" "${root}"
+
 # (a) New guide with an unregistered runnable sample fails without a shell edit.
 root="${tmp_base}/unknown-marker"
 write_baseline "${root}"

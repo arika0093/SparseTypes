@@ -115,6 +115,141 @@ def normalize(lines):
     return kept
 
 
+def csharp_tokens(lines):
+    """Return C# tokens while discarding formatting whitespace."""
+    text = "\n".join(lines)
+    tokens = []
+    index = 0
+    operators = (
+        ">>>=",
+        "??=",
+        "<<=",
+        ">>=",
+        ">>>",
+        "?.",
+        "?[",
+        "=>",
+        "==",
+        "!=",
+        "<=",
+        ">=",
+        "++",
+        "--",
+        "&&",
+        "||",
+        "??",
+        "+=",
+        "-=",
+        "*=",
+        "/=",
+        "%=",
+        "&=",
+        "|=",
+        "^=",
+        "<<",
+        ">>",
+        "::",
+        "..",
+    )
+
+    while index < len(text):
+        character = text[index]
+        if character.isspace():
+            index += 1
+            continue
+        if text.startswith("//", index):
+            end = text.find("\n", index)
+            if end == -1:
+                end = len(text)
+            tokens.append(text[index:end].strip())
+            index = end
+            continue
+        if text.startswith("/*", index):
+            end = text.find("*/", index + 2)
+            if end == -1:
+                tokens.append(text[index:].strip())
+                break
+            tokens.append(text[index : end + 2].strip())
+            index = end + 2
+            continue
+
+        literal_end = csharp_literal_end(text, index)
+        if literal_end is not None:
+            tokens.append(text[index:literal_end])
+            index = literal_end
+            continue
+
+        if character == "@" and index + 1 < len(text) and (text[index + 1].isalpha() or text[index + 1] == "_"):
+            index += 1
+            character = text[index]
+        if character == "_" or character.isalpha() or ord(character) >= 128:
+            end = index + 1
+            while end < len(text) and (text[end] == "_" or text[end].isalnum() or ord(text[end]) >= 128):
+                end += 1
+            tokens.append(text[index:end])
+            index = end
+            continue
+        if character.isdigit():
+            end = index + 1
+            while end < len(text) and (text[end].isalnum() or text[end] in "._"):
+                end += 1
+            tokens.append(text[index:end])
+            index = end
+            continue
+
+        operator = next((candidate for candidate in operators if text.startswith(candidate, index)), None)
+        if operator is not None:
+            tokens.append(operator)
+            index += len(operator)
+        else:
+            tokens.append(character)
+            index += 1
+    return [
+        token
+        for position, token in enumerate(tokens)
+        if not (
+            token == ","
+            and position + 1 < len(tokens)
+            and tokens[position + 1] in ("}", "]")
+            and (position == 0 or tokens[position - 1] != "[")
+        )
+    ]
+
+
+def csharp_literal_end(text, index):
+    """Find one C# string or character literal, including interpolated forms."""
+    prefix_end = index
+    while prefix_end < len(text) and text[prefix_end] in "$@":
+        prefix_end += 1
+    if prefix_end >= len(text) or text[prefix_end] not in "\"'":
+        return None
+    quote = text[prefix_end]
+    if quote == "'" and prefix_end != index:
+        return None
+
+    quote_end = prefix_end
+    while quote_end < len(text) and text[quote_end] == quote:
+        quote_end += 1
+    quote_count = quote_end - prefix_end
+    if quote == '"' and quote_count >= 3:
+        delimiter = '"' * quote_count
+        closing = text.find(delimiter, quote_end)
+        return len(text) if closing == -1 else closing + quote_count
+
+    verbatim = "@" in text[index:prefix_end]
+    cursor = quote_end
+    while cursor < len(text):
+        if quote == '"' and verbatim and text.startswith('""', cursor):
+            cursor += 2
+        elif text[cursor] == quote:
+            return cursor + 1
+        elif text[cursor] == "\\" and not verbatim:
+            cursor += 2
+        else:
+            cursor += 1
+    return len(text)
+
+
 def coverage(argv):
     if len(argv) < 3:
         print("Usage: check-docs-samples.py --coverage <guide> <id> [<id> ...]")
@@ -173,7 +308,7 @@ def main(argv):
             continue
         expected = normalize(fixture_blocks[sample_id])
         actual = normalize(md_blocks[sample_id])
-        if actual != expected:
+        if actual != expected and csharp_tokens(actual) != csharp_tokens(expected):
             print(
                 "Docs sample drift [%s]: guide block differs from fixture region."
                 % sample_id
@@ -644,7 +779,9 @@ def registry_check(argv):
                 normalize(scan.blocks[kind][sample_id]),
                 normalize(flat),
             )
-            if mismatch is not None:
+            if mismatch is not None and csharp_tokens(normalize(scan.blocks[kind][sample_id])) != csharp_tokens(
+                normalize(flat)
+            ):
                 errors.extend(mismatch)
             if not is_model_id(sample_id):
                 if not any(
