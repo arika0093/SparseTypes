@@ -467,4 +467,48 @@ public sealed class ChangePayloadValidateTests
             )
         );
     }
+
+    [Test]
+    public void MalformedBatchValidationAllocatesFewerExceptionsThanThrown()
+    {
+        // A batch with many value-free violations must collect ordinary
+        // validation records without one throw/catch cycle per endpoint.
+        var payload = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
+            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"redacted"},"after":{"state":"value","value":"x"}}]}"""
+        )!;
+        var change = payload.Changes!.Single();
+        var before = (ChangePayloadEndpoint<string>)change.GetType().GetProperty("Before")!.GetValue(change)!;
+        before.Value = "smuggled";
+        payload.Changes = Enumerable.Repeat(change, 64).ToList();
+        payload.Validate().IsValid.ShouldBeFalse();
+
+        var baseline = MeasureAllocations(() =>
+        {
+            for (var i = 0; i < 64; i++)
+            {
+                try
+                {
+                    throw new InvalidOperationException();
+                }
+                catch (InvalidOperationException)
+                {
+                    // One exception storm per endpoint: the previous shape.
+                }
+            }
+        });
+        var validated = MeasureAllocations(() => payload.Validate());
+
+        validated.ShouldBeGreaterThan(0);
+        validated.ShouldBeLessThan(baseline);
+    }
+
+    private static long MeasureAllocations(System.Action action)
+    {
+        System.GC.Collect();
+        System.GC.WaitForPendingFinalizers();
+        System.GC.Collect();
+        var before = System.GC.GetAllocatedBytesForCurrentThread();
+        action();
+        return System.GC.GetAllocatedBytesForCurrentThread() - before;
+    }
 }
