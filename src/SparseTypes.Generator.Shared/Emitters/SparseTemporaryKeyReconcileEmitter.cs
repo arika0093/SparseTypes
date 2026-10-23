@@ -4,17 +4,22 @@ namespace SparseTypes.Generator.Shared;
 /// <remarks>Builds the temporary-to-permanent correlation between a submitted model and its authoritative persisted counterpart.</remarks>
 internal static class SparseTemporaryKeyReconcileEmitter
 {
-    internal static void AppendReconcileHelpers(
+    internal static void AppendReconcilerClass(
         SharedIndentedBuilder code,
         string modelType,
         string runtimeNamespace,
         System.Collections.Immutable.ImmutableArray<SparseMemberModel> members,
-        bool modelIsReferenceType = true
+        bool modelIsReferenceType,
+        string typeName,
+        System.Func<string, string> reconcilerTypeName
     )
     {
+        code.AppendLine("internal static class " + typeName);
+        code.OpenBlock();
         SparseTemporaryKeyCollectEmitter.AppendBuildTempMap(code, modelType, members);
-        SparseTemporaryKeyCollectEmitter.AppendCollectTempMap(code, modelType, members);
-        AppendRetargetTemps(code, modelType, runtimeNamespace, members, modelIsReferenceType);
+        SparseTemporaryKeyCollectEmitter.AppendCollectTempMap(code, modelType, members, reconcilerTypeName);
+        AppendRetargetTemps(code, modelType, runtimeNamespace, members, modelIsReferenceType, reconcilerTypeName);
+        code.CloseBlock();
     }
 
     private static void AppendRetargetTemps(
@@ -22,7 +27,8 @@ internal static class SparseTemporaryKeyReconcileEmitter
         string modelType,
         string runtimeNamespace,
         System.Collections.Immutable.ImmutableArray<SparseMemberModel> members,
-        bool modelIsReferenceType
+        bool modelIsReferenceType,
+        System.Func<string, string> reconcilerTypeName
     )
     {
         code.AppendLine("/// <summary>Assigns mapped temporary identities into the live model.</summary>");
@@ -77,7 +83,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         {
             if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
-                AppendKeyedRetarget(code, runtimeNamespace, member, modelIsReferenceType);
+                AppendKeyedRetarget(code, runtimeNamespace, member, modelIsReferenceType, reconcilerTypeName);
             }
             else if (
                 member.ChildModel is not null
@@ -85,7 +91,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
                 && member.ChildModel.Value.IsFragmentModel
             )
             {
-                AppendNestedRetarget(code, member, runtimeNamespace, modelIsReferenceType);
+                AppendNestedRetarget(code, member, runtimeNamespace, modelIsReferenceType, reconcilerTypeName);
             }
         }
         code.AppendLine("return null;");
@@ -185,7 +191,13 @@ internal static class SparseTemporaryKeyReconcileEmitter
         }
     }
 
-    private static void AppendKeyedRetarget(SharedIndentedBuilder code, string runtimeNamespace, SparseMemberModel member, bool modelIsReferenceType)
+    private static void AppendKeyedRetarget(
+        SharedIndentedBuilder code,
+        string runtimeNamespace,
+        SparseMemberModel member,
+        bool modelIsReferenceType,
+        System.Func<string, string> reconcilerTypeName
+    )
     {
         var elementType = member.Collection.ElementType.NonNullableName;
         var keyType = member.Collection.KeyTypeName ?? "object?";
@@ -369,7 +381,13 @@ internal static class SparseTemporaryKeyReconcileEmitter
             code.AppendLine(
                 "var __elemScope = __collectionScope + \"[\" + __i.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \"]\";"
             );
-            code.AppendLine("var __recurseError = " + elementType + ".__SparseRetargetTemps(" + eUse + ", null, null, map, null, __elemScope);");
+            code.AppendLine(
+                "var __recurseError = "
+                    + reconcilerTypeName(elementType)
+                    + ".__SparseRetargetTemps("
+                    + eUse
+                    + ", null, null, map, null, __elemScope);"
+            );
             code.AppendLine("if (__recurseError is not null) return __Fail(__recurseError);");
         }
         code.AppendLine("__working[__write++] = __working[__i]" + (elementRef2 ? "!" : "") + ";");
@@ -430,7 +448,13 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.CloseBlock();
     }
 
-    private static void AppendNestedRetarget(SharedIndentedBuilder code, SparseMemberModel member, string runtimeNamespace, bool modelIsReferenceType)
+    private static void AppendNestedRetarget(
+        SharedIndentedBuilder code,
+        SparseMemberModel member,
+        string runtimeNamespace,
+        bool modelIsReferenceType,
+        System.Func<string, string> reconcilerTypeName
+    )
     {
         var childType = member.ChildModel!.Value.NonNullableName;
         var childFrag = childType + ".Fragment";
@@ -482,7 +506,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         {
             code.AppendLine(
                 "var __dropError = "
-                    + childType
+                    + reconcilerTypeName(childType)
                     + ".__SparseRetargetTemps("
                     + childLive
                     + ", __childSub, __childPer, map, __childPending, __childScope"
@@ -496,7 +520,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         code.OpenBlock();
         code.AppendLine(
             "var __addError = "
-                + childType
+                + reconcilerTypeName(childType)
                 + ".__SparseRetargetTemps("
                 + childLive
                 + ", __childSub, __childPer, map, __childPending, __childScope"
@@ -530,7 +554,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         {
             code.AppendLine(
                 "var __childError = "
-                    + childType
+                    + reconcilerTypeName(childType)
                     + ".__SparseRetargetTemps("
                     + childLive
                     + ", __childSub, __childPer, map, __childPending, __childScope"

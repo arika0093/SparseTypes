@@ -55,16 +55,16 @@ public sealed class ShapeValidationTests
     [Test]
     public void ReservedCollisions_UsesCallerProvidedNames()
     {
-        var members = ImmutableArray.Create(ScalarMember(0, "Name"), ScalarMember(1, "JsonConverter"), ScalarMember(2, "FragmentJsonConverter"));
+        var members = ImmutableArray.Create(ScalarMember(0, "Name"), ScalarMember(1, "FragmentBuilder"), ScalarMember(2, "PayloadJson"));
         SparseShapeValidation
-            .FindFirstReservedNameCollision(members, ImmutableArray.Create("JsonConverter", "FragmentJsonConverter"))
-            .ShouldBe("JsonConverter");
+            .FindFirstReservedNameCollision(members, ImmutableArray.Create("FragmentBuilder", "PayloadJson"))
+            .ShouldBe("FragmentBuilder");
         SparseShapeValidation
             .FindReservedNameCollisions(
                 members.Select(static member => member.Property.Name),
-                ImmutableArray.Create("JsonConverter", "FragmentJsonConverter")
+                ImmutableArray.Create("FragmentBuilder", "PayloadJson")
             )
-            .ShouldBe(["JsonConverter", "FragmentJsonConverter"]);
+            .ShouldBe(["FragmentBuilder", "PayloadJson"]);
     }
 
     [Test]
@@ -142,7 +142,7 @@ public sealed class ShapeValidationTests
         contract.Members.Select(static member => member.ClrName).ShouldBe(["JsonIgnored", "TransportIgnored", "Visible"]);
         contract.TransportMembers.Select(static member => member.ClrName).ShouldBe(["JsonIgnored", "Visible"]);
         contract.JsonMembers.Select(static member => member.ClrName).ShouldBe(["Visible"]);
-        contract.RootChangeOperations.ShouldBe([SparsePayloadOperationKind.Update, SparsePayloadOperationKind.Replace]);
+        contract.ModelChangeOperations.ShouldBe([SparsePayloadOperationKind.Update, SparsePayloadOperationKind.Replace]);
         contract.EndpointStates.ShouldBe([
             SparsePayloadEndpointState.Missing,
             SparsePayloadEndpointState.Null,
@@ -150,7 +150,7 @@ public sealed class ShapeValidationTests
             SparsePayloadEndpointState.Value,
         ]);
         contract.DtoRoles.ShouldBe([
-            SparsePayloadDtoRole.Snapshot,
+            SparsePayloadDtoRole.Root,
             SparsePayloadDtoRole.MembersDelta,
             SparsePayloadDtoRole.ModelChange,
             SparsePayloadDtoRole.CollectionChange,

@@ -39,7 +39,7 @@ public sealed partial class SparseTypesGenerator
             .Select(
                 static (input, _) =>
                     input.Right
-                    && (Configuration.EffectiveEmissionFeatures.EmitJsonConverters || Configuration.EffectiveEmissionFeatures.EmitChangePayload)
+                    && Configuration.EffectiveEmissionFeatures.EmitPayloadJson
                     && input.Left.HasSystemTextJson
                     && !input.Left.SupportsV1Wire
                         ? "The referenced System.Text.Json API surface lacks "

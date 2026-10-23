@@ -137,7 +137,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             RebasePolicyType: "global::SparseTypes.FragmentRebasePolicy",
             RebasePolicyField: static member => "__sparse_rebase_policy_" + member.Id,
             InPlaceWriteUnavailableKindMemberName: "InPlaceWriteUnavailable",
-            PayloadImplementationContainerPrefix: "__Internal",
+            PayloadImplementationContainerPrefix: "SerializeObjects",
             PathType: "global::SparseTypes.SparsePath",
             PathIsValueType: true,
             TypedPathInterfaceType: "global::SparseTypes.ISparseTypedPath",
@@ -185,6 +185,13 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
             PayloadSchemaBundleType = "global::SparseTypes.SparsePayloadSchemaBundle",
             PayloadSchemaNamesType = "global::SparseTypes.SparsePayloadSchemaNames",
+            PayloadSchemaBundleOptionsType = "global::SparseTypes.SparsePayloadSchemaBundleOptions",
+            PayloadSchemaIdentityType = "global::SparseTypes.SparsePayloadSchemaIdentity",
+            PayloadSchemaOptionsSchema30MemberName = "Schema30",
+            PayloadSchemaOptionsSchema31MemberName = "Schema31",
+            PayloadSchemaOptionsIdentitiesMemberName = "SchemaIdentities",
+            PayloadSchemaOptionsExternalTypesMemberName = "RequiredExternalSchemaTypes",
+            PayloadSchemaOptionsDependenciesMemberName = "Dependencies",
             OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
 #if SPARSE_FRAGMENTS
             EmitPatchRebase = false,
@@ -263,8 +270,6 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 "ChangePayload",
                 "SparsePath",
                 "SparsePaths",
-                "JsonConverter",
-                "FragmentJsonConverter",
                 "PayloadJson",
 #endif
             "ApplyTo",
@@ -282,7 +287,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 
     private static SparseEmissionFeatures CreateEmissionFeatures() =>
 #if SPARSE_FRAGMENTS
-        new(EmitChangeSet: false, EmitChangePayload: false, EmitObservable: false, EmitJsonConverters: false, EmitFragmentOrigins: false);
+        new(EmitChangeSet: false, EmitChangePayload: false, EmitObservable: false, EmitPayloadJson: false, EmitFragmentOrigins: false);
 #else
         new(EmitFragmentOrigins: true);
 #endif
@@ -290,7 +295,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
     /// <summary>Whether the product feature selection can emit any JSON converter family.</summary>
     /// <remarks>Shared JSON codec content follows this flag so compilations without JSON families keep empty shells.</remarks>
     private static bool EmitsJsonFamily() =>
-        Configuration.EffectiveEmissionFeatures.EmitJsonConverters || Configuration.EffectiveEmissionFeatures.EmitChangePayload;
+        Configuration.EffectiveEmissionFeatures.EmitPayloadJson && Configuration.EffectiveEmissionFeatures.EmitChangePayload;
 
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)

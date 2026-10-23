@@ -184,7 +184,7 @@ public sealed class DownstreamPolicyTests
         text.ShouldContain("partial class ChangeSet");
         text.ShouldContain("ChangePayload");
         text.ShouldContain("public sealed class Observable");
-        text.ShouldContain("FragmentJsonConverter");
+        text.ShouldContain("PayloadJsonConverter");
         text.ShouldContain("public ChangePayload ToPayload()");
         // The mixed partition seam owns the baseline-free ToPatchCore even for
         // standalone defaults.
@@ -195,7 +195,7 @@ public sealed class DownstreamPolicyTests
     [Test]
     public void FeatureSelection_OmitsDeselectedFamilies()
     {
-        var features = new SparseEmissionFeatures(EmitObservable: false, EmitChangePayload: false, EmitJsonConverters: false);
+        var features = new SparseEmissionFeatures(EmitObservable: false, EmitChangePayload: false, EmitPayloadJson: false);
         var text = BuildSource(DownstreamConfig(DownstreamDialect(), features), SecretMembers());
 
         text.ShouldContain("partial class Patch");
@@ -206,7 +206,7 @@ public sealed class DownstreamPolicyTests
         text.ShouldNotContain("ChangePayloadCore");
         text.ShouldNotContain("public sealed class ChangePayload");
         text.ShouldNotContain("ToPayload");
-        text.ShouldNotContain("FragmentJsonConverter");
+        text.ShouldNotContain("PayloadJsonConverter");
     }
 
     [Test]
@@ -264,7 +264,12 @@ public sealed class DownstreamPolicyTests
         var text = BuildSource(DownstreamConfig(dialect), SecretMembers());
 
         // The redacted member travels without its before-state.
-        CountOccurrences(text, "{ Before = ").ShouldBe(3);
+        var secretStart = text.IndexOf("change.Members!.Secret = new ", StringComparison.Ordinal);
+        secretStart.ShouldBeGreaterThanOrEqualTo(0);
+        var secretEnd = text.IndexOf("};", secretStart, StringComparison.Ordinal);
+        var secretAssignment = text[secretStart..secretEnd];
+        secretAssignment.ShouldContain("After =");
+        secretAssignment.ShouldNotContain("Before =");
         text.ShouldContain("{ After = ");
         // A redacted payload never rebuilds a complete ChangeSet.
         text.ShouldContain("is redacted and cannot be converted to a complete ChangeSet");

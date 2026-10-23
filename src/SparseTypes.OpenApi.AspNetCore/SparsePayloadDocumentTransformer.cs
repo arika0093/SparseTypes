@@ -28,7 +28,11 @@ internal sealed class SparsePayloadDocumentTransformer(
         }
 
         var sets = schemaSets.ToArray();
-        var schemas = sets.SelectMany(set => set.GetSchemas(version)).ToArray();
+        var dialect =
+            version == OpenApiSpecVersion.OpenApi3_0
+                ? SparseTypes.SparsePayloadSchemaDialect.OpenApi30
+                : SparseTypes.SparsePayloadSchemaDialect.OpenApi31;
+        var schemas = sets.SelectMany(set => set.GetSchemas(dialect)).ToArray();
         SparseOpenApiSchemaParser.ValidateReferences(schemas, version);
         var availableTypes = schemas.Select(static schema => schema.Type).ToHashSet();
         var missing = sets.SelectMany(static set => set.Bundle.RequiredExternalSchemaTypes)
@@ -92,14 +96,23 @@ internal sealed class SparsePayloadSchemaSet
 
     public IEnumerable<SparseTypes.SparsePayloadSchema> GetSchemas(OpenApiSpecVersion version)
     {
-        var bundleSchemas = version == OpenApiSpecVersion.OpenApi3_0 ? Bundle.OpenApi30Schemas : Bundle.OpenApi31Schemas;
+        var dialect =
+            version == OpenApiSpecVersion.OpenApi3_0
+                ? SparseTypes.SparsePayloadSchemaDialect.OpenApi30
+                : SparseTypes.SparsePayloadSchemaDialect.OpenApi31;
+        return GetSchemas(dialect);
+    }
+
+    public IEnumerable<SparseTypes.SparsePayloadSchema> GetSchemas(SparseTypes.SparsePayloadSchemaDialect dialect)
+    {
+        var bundleSchemas = Bundle.GetSchemas(dialect);
         return bundleSchemas.Concat(ExternalSchemas);
     }
 
-    public IReadOnlyList<SparseTypes.SparsePayloadSchema> GetAllSchemas()
-    {
-        return Bundle.OpenApi31Schemas.Concat(ExternalSchemas).ToArray();
-    }
+    public IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> GetAllIdentities() =>
+        Bundle
+            .SchemaIdentities.Concat(ExternalSchemas.Select(static schema => new SparseTypes.SparsePayloadSchemaIdentity(schema.Type, schema.Name)))
+            .ToArray();
 
     private static IReadOnlyList<SparseTypes.SparsePayloadSchema> CopySchemas(IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
     {
@@ -126,8 +139,8 @@ internal sealed class SparsePayloadSchemaSet
         IReadOnlyList<SparseTypes.SparsePayloadSchema> externalSchemas
     )
     {
-        var generatedNames = new HashSet<string>(bundle.OpenApi31Schemas.Select(static schema => schema.Name), StringComparer.Ordinal);
-        var generatedTypes = new HashSet<Type>(bundle.OpenApi31Schemas.Select(static schema => schema.Type));
+        var generatedNames = new HashSet<string>(bundle.SchemaIdentities.Select(static schema => schema.Name), StringComparer.Ordinal);
+        var generatedTypes = new HashSet<Type>(bundle.SchemaIdentities.Select(static schema => schema.Type));
         var conflict = externalSchemas.FirstOrDefault(schema => generatedNames.Contains(schema.Name) || generatedTypes.Contains(schema.Type));
         if (conflict is not null)
         {

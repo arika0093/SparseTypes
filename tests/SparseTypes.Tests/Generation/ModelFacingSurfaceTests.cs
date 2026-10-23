@@ -123,7 +123,10 @@ public sealed class ModelFacingSurfaceTests
         }
 
         nested.Where(static name => name.EndsWith("FragmentOperations", StringComparison.Ordinal)).ShouldBeEmpty();
-        nested.Where(static name => name.EndsWith("FragmentJsonConverter", StringComparison.Ordinal)).ShouldBeEmpty();
+        foreach (var internalHelper in new[] { "__SparseBuildTempMap", "__SparseCollectTempMap", "__SparseRetargetTemps" })
+        {
+            model.GetMembers(internalHelper).ShouldBeEmpty();
+        }
         foreach (var expected in new[] { "Fragment", "Patch", "ChangeSet", "ChangePayload", "PayloadJson" })
         {
             nested.ShouldContain(expected);
@@ -144,19 +147,29 @@ public sealed class ModelFacingSurfaceTests
                 nested.ShouldNotContain(unexpected);
             }
         }
-        // FragmentBuilder lives in the per-model Generated container.
+        // FragmentBuilder is a model-specific top-level generated type.
         compilation
-            .GetSymbolsWithName("FragmentBuilder")
+            .GetSymbolsWithName(static name => name.EndsWith("FragmentBuilder", StringComparison.Ordinal))
             .OfType<INamedTypeSymbol>()
             .Where(static symbol => symbol.ContainingNamespace.ToDisplayString().StartsWith("SparseTypes.Generated", StringComparison.Ordinal))
+            .Where(static symbol => symbol.ContainingType is null)
+            .ShouldNotBeEmpty();
+        compilation
+            .GetSymbolsWithName(static name => name.EndsWith("SparsePaths", StringComparison.Ordinal))
+            .OfType<INamedTypeSymbol>()
+            .Where(static symbol => symbol.ContainingNamespace.ToDisplayString().StartsWith("SparseTypes.Generated", StringComparison.Ordinal))
+            .Where(static symbol => symbol.ContainingType is null)
             .ShouldNotBeEmpty();
 
-        // The public converter accessor is the Fragment serialization surface.
+        // Payload JSON remains available without adding a Fragment JSON converter.
         var fragment = model.GetTypeMembers("Fragment").ShouldHaveSingleItem();
-        var jsonConverter = fragment.GetMembers("JsonConverter").OfType<IPropertySymbol>().ShouldHaveSingleItem();
-        jsonConverter.DeclaredAccessibility.ShouldBe(Accessibility.Public);
-        jsonConverter.IsStatic.ShouldBeTrue();
-        jsonConverter.Type.ToDisplayString().ShouldContain("JsonConverter");
+        fragment.GetMembers("JsonConverter").ShouldBeEmpty();
+        var generatedSource = string.Join("\n", compilation.SyntaxTrees.Skip(1).Select(static tree => tree.GetText().ToString()));
+        generatedSource.ShouldNotContain("EditorBrowsableState.Always");
+        generatedSource.ShouldContain("PayloadJsonConverter");
+        generatedSource.ShouldNotContain("JsonConverter<Fragment>");
+        generatedSource.ShouldContain("ObserveField(global::SparseTypes.SparsePath path)");
+        generatedSource.ShouldContain("public sealed class EditSession :\n");
 
         if (expectSessionFamily)
         {

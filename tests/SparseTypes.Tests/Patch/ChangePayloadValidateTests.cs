@@ -125,19 +125,13 @@ public sealed class ChangePayloadValidateTests
     }
 
     [Test]
-    public void NullChangesAndNullAndDuplicateMembersFail()
+    public void MissingChangeAndDuplicateWireMembersFail()
     {
-        var nullChanges = new Settings.ChangePayload { Version = "0.1", Changes = null };
-        var nullResult = nullChanges.Validate();
+        var missingChange = new Settings.ChangePayload { Version = "0.1", Change = null };
+        var nullResult = missingChange.Validate();
         nullResult.IsValid.ShouldBeFalse();
         nullResult.Errors.ShouldHaveSingleItem();
         nullResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Changes);
-
-        var nullEntry = Settings.ChangeSet.Between(SettingsState("a", 1), SettingsState("b", 1)).ToPayload();
-        nullEntry.Changes!.Add(null!);
-        var nullEntryResult = nullEntry.Validate();
-        nullEntryResult.IsValid.ShouldBeFalse();
-        nullEntryResult.Errors.Select(static error => error.Kind).ShouldBe([ChangePayloadValidationKind.Changes]);
 
         Should.Throw<JsonException>(() =>
             PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
@@ -265,7 +259,7 @@ public sealed class ChangePayloadValidateTests
             );
 
         var payload = KeyedServerHolder.ChangeSet.Between(State("a", "b"), State("b", "a")).ToPayload();
-        var change = payload.Changes!.Single();
+        var change = payload.Change!.Members!.Items!;
         SetDtoProperty(change, "BeforeOrder", null);
         SetDtoProperty(change, "AfterOrder", null);
 
@@ -298,7 +292,7 @@ public sealed class ChangePayloadValidateTests
                 )
             )
             .ToPayload();
-        var change = payload.Changes!.Single();
+        var change = payload.Change!.Members!.Items!;
         SetDtoProperty(change, "BeforeOrder", new List<int>());
         SetDtoProperty(change, "AfterOrder", new List<int> { 0 });
         SetDtoProperty(change, "TempBeforeOrder", new List<Guid>());
@@ -469,17 +463,15 @@ public sealed class ChangePayloadValidateTests
     }
 
     [Test]
-    public void MalformedBatchValidationAllocatesFewerExceptionsThanThrown()
+    public void MalformedPayloadValidationAllocatesFewerExceptionsThanThrown()
     {
         // A batch with many value-free violations must collect ordinary
         // validation records without one throw/catch cycle per endpoint.
         var payload = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","changes":[{"member":"Label","before":{"state":"redacted"},"after":{"state":"value","value":"x"}}]}"""
+            """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"x"}}}}}"""
         )!;
-        var change = payload.Changes!.Single();
-        var before = (ChangePayloadEndpoint<string>)change.GetType().GetProperty("Before")!.GetValue(change)!;
+        var before = payload.Change!.Members!.Label!.Before!;
         before.Value = "smuggled";
-        payload.Changes = Enumerable.Repeat(change, 64).ToList();
         payload.Validate().IsValid.ShouldBeFalse();
 
         var baseline = MeasureAllocations(() =>

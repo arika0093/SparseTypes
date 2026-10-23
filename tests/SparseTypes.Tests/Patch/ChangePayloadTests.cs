@@ -53,19 +53,19 @@ public sealed class ChangePayloadTests
         json.ShouldContain("\"state\":\"value\"");
         json.ShouldContain("\"version\":\"0.1\"");
         restored.Version.ShouldBe("0.1");
-        restored.Changes!.ShouldHaveSingleItem();
-        restored.Changes![0].GetType().Name.ShouldStartWith("Change");
+        var memberChange = restored.Change!.Members!.Label!;
+        memberChange.GetType().Name.ShouldStartWith("Change");
         // Stage 3: typed DTOs live in the per-model implementation
         // namespace; the envelope facade stays nested in the model.
         typeof(Settings)
             .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
-            .Where(static type => type.Name.StartsWith("__Internal_", StringComparison.Ordinal))
+            .Where(static type => type.Name.EndsWith("SerializeObjects", StringComparison.Ordinal))
             .ShouldBeEmpty();
         var payloadContainer = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
-        payloadContainer.Name.ShouldStartWith("__Internal_");
-        restored.Changes![0].GetType().DeclaringType.ShouldBe(payloadContainer);
-        var endpointProperty = restored.Changes![0].GetType().GetProperty("After")!;
-        var endpoint = endpointProperty.GetValue(restored.Changes![0])!;
+        payloadContainer.Name.ShouldEndWith("SerializeObjects");
+        memberChange.GetType().DeclaringType.ShouldBe(payloadContainer);
+        var endpointProperty = memberChange.GetType().GetProperty("After")!;
+        var endpoint = endpointProperty.GetValue(memberChange)!;
         var endpointType = endpoint.GetType();
         endpointType.GetProperty("State")!.GetValue(endpoint)!.ToString().ShouldBe("Value");
         endpointType.GetProperty("Value")!.GetValue(endpoint).ShouldBe("after");
@@ -102,7 +102,7 @@ public sealed class ChangePayloadTests
         var payload = Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Missing, after).ToPayload();
         var json = PayloadJsonTestSupport.Serialize(payload);
 
-        payload.Changes.ShouldHaveSingleItem();
+        payload.Change!.Kind.ToString().ShouldBe("Replace");
         json.ShouldContain("\"change\":{\"kind\":\"replace\"");
         json.ShouldContain("\"label\"");
         json.ShouldContain("\"state\":\"missing\"");
@@ -385,7 +385,7 @@ public sealed class ChangePayloadTests
     }
 
     [Test]
-    public void Payload_RejectsUnsupportedVersionsAndDuplicateMemberChanges()
+    public void Payload_RejectsUnsupportedVersionsAndInvalidReplacementShape()
     {
         var payload = new Settings.ChangePayload { Version = "0.2" };
         Should.Throw<ArgumentException>(() => payload.ToChangeSet());
@@ -397,9 +397,11 @@ public sealed class ChangePayloadTests
             Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("before") }),
             Optional<Settings.Fragment?>.Present(new Settings.Fragment { Label = Optional<string?>.Present("after") })
         );
-        var duplicate = source.ToPayload();
-        duplicate.Changes!.Add(duplicate.Changes![0]);
-        Should.Throw<ArgumentException>(() => duplicate.ToChangeSet());
+        var invalidReplacement = Settings
+            .ChangeSet.Between(Optional<Settings.Fragment?>.Missing, Optional<Settings.Fragment?>.Present(new Settings.Fragment()))
+            .ToPayload();
+        invalidReplacement.Change!.After = null;
+        Should.Throw<ArgumentException>(() => invalidReplacement.ToChangeSet());
     }
 
     [Test]
@@ -445,7 +447,8 @@ public sealed class ChangePayloadTests
         json.ShouldBe("""{"version":"0.1","change":{"kind":"update","members":{}}}""");
         var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
         restored.Version.ShouldBe("0.1");
-        restored.Changes!.ShouldBeEmpty();
+        restored.Change!.Members!.Label.ShouldBeNull();
+        restored.Change.Members.RetryCount.ShouldBeNull();
     }
 
     [Test]

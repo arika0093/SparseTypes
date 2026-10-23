@@ -42,7 +42,7 @@ public partial class Settings
 
 `[SparseIgnore]` can be inherited with a property declaration and is supported on promoted nested models. It cannot be used on a key or on required, init-only, or non-defaulted constructor-bound properties ([`SPF022`](analyzer.md#spf022-sparseignore-on-key), [`SPF023`](analyzer.md#spf023-sparseignore-on-unsupported-property)). Use `[SparseIgnore]` to remove a member from the generated surface entirely.
 
-By contrast, `[JsonIgnore]` leaves the property on the generated model for local merging, patching, and diffing, but excludes it from `Fragment` JSON and the payload JSON projection. The neutral payload keeps its change; serializing a payload that contains the member throws `JsonException` before writing bytes. `[SparseTransportIgnore]` excludes a member from every payload format and makes `ToPayload()` and `ChangePayload.FromPatch()` reject changes to it. If a property should neither travel nor be tracked as a sparse member, use `[SparseIgnore]`.
+By contrast, `[JsonIgnore]` leaves the property on the generated model for local merging, patching, and diffing, but excludes it from the payload JSON contract. The neutral payload keeps its change; serializing a payload that contains the member throws `JsonException` before writing bytes. `[SparseTransportIgnore]` excludes a member from every payload format and makes `ToPayload()` and `ChangePayload.FromPatch()` reject changes to it. If a property should neither travel nor be tracked as a sparse member, use `[SparseIgnore]`.
 
 Most members need no merge configuration: `MergeMode.Default` resolves to `Deep` for nested generated models and to `Replace` for scalars and ordinary collections. Add `[SparseMerge]` only when you want different behavior (see [Merge strategies](../explanation/merge-strategies.md)):
 
@@ -123,7 +123,7 @@ Every element type in an element-patched structural collection must declare iden
 
 * Prefer a parameterless constructor; constructor-bound properties (including `init` and `required`) resolve by name-and-type matching.
 * Members marked `[JsonIgnore(Condition = JsonIgnoreCondition.Always)]` are excluded from JSON conversion; members that would collide on the same JSON wire name fail during analysis ([`SPF021`](analyzer.md#spf021-duplicate-json-property-name)) rather than at runtime.
-* Members named `JsonConverter` or `FragmentJsonConverter` collide with the generated JSON converter ([`SPF009`](analyzer.md#spf009-member-conflicts-with-generated-api)): rename the member.
+* Members named `PayloadJson` collide with the generated payload JSON helper ([`SPF009`](analyzer.md#spf009-member-conflicts-with-generated-api)): rename the member.
 * `From` and `Diff` reject cycles with a path-naming `NotSupportedException`, while `DeepClone` preserves them (see [Clone & ownership](../explanation/cloning-and-ownership.md)).
 
 ## Language Version

@@ -182,7 +182,7 @@ public partial class Settings
 * Message: `Member '{0}' conflicts with a name reserved by the generated API`
 * Cause: A model member or directly nested type uses a name injected into the
   annotated model: `Fragment`, `FragmentBuilder`, `Patch`, `ChangeSet`,
-  `ChangePayload`, `JsonConverter`, `FragmentJsonConverter`, or one of the
+  `ChangePayload`, `PayloadJson`, or one of the
   generated member/method names (`Empty`, `IsEmpty`, `Merge`, `ApplyChanges`,
   `Diff`, `DeepClone`, `From`, `ToModel`, `ToBuilder`, `Build`, `ApplyTo`,
   `TryApplyTo`, `WriteTo`, `ApplyInPlace`, `ApplyInPlaceResult`).

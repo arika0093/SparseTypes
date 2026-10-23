@@ -40,7 +40,7 @@ Builders and typed navigation helpers reside in a per-model container under `Spa
 | Init-only or constructor-bound member | Snapshot construction can succeed even when in-place edits cannot write that member. Check result/capability APIs. |
 | Reachable supported partial nested type | Receives promoted model companions without its own SparseModel attribute. |
 | Keyed collection or dictionary | Generates shape-specific patch, transition, and path members. |
-| System.Text.Json referenced | Emits payload serialization support and Fragment JSON converter integration. See [optional JSON support](change-payload.md#optional-json-support). |
+| System.Text.Json referenced | Emits optional `ChangePayload` JSON serialization support. `Fragment` has no dedicated JSON converter. See [optional JSON support](change-payload.md#optional-json-support). |
 
 ## Name collisions
 

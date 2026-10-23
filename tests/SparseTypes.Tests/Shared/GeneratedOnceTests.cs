@@ -156,7 +156,7 @@ public sealed class GeneratedOnceTests
             EmitChangeSet: false,
             EmitChangePayload: false,
             EmitObservable: false,
-            EmitJsonConverters: false
+            EmitPayloadJson: false
         );
         var analyses = ImmutableArray.Create(Analysis(false, ImmutableArray.Create(ScalarMember(0, "Name"))));
         var plan = SparseGeneratedCapabilityPlanner.Aggregate(
@@ -223,7 +223,7 @@ public sealed class GeneratedOnceTests
             EmitChangeSet: false,
             EmitChangePayload: false,
             EmitObservable: false,
-            EmitJsonConverters: false
+            EmitPayloadJson: false
         );
         var errors = SparseGeneratedCapabilityPlanner.Validate(plan, features);
         errors.ShouldNotBeEmpty();

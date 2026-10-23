@@ -36,8 +36,13 @@ internal sealed class SparseFragmentCoreEmitter
 
     public string MergeStrategyField(SparseMemberModel member) => _declaration.MergeStrategyField(member);
 
-    public void AppendBuilder(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string accessibility = "public") =>
-        _declaration.AppendBuilder(code, members, accessibility);
+    public void AppendBuilder(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        string accessibility = "public",
+        string typeName = "FragmentBuilder",
+        string fragmentTypeName = "Fragment"
+    ) => _declaration.AppendBuilder(code, members, accessibility, typeName, fragmentTypeName);
 
     public static void AppendDeclaration(
         SharedIndentedBuilder code,
@@ -89,9 +94,6 @@ internal sealed class SparseFragmentCoreEmitter
 
     public static void AppendDeepClonePublicFacade(SharedIndentedBuilder code, string modelType, string operationsType) =>
         SparseFragmentCloneEmitter.AppendDeepClonePublicFacade(code, modelType, operationsType);
-
-    public static void AppendDeepCloneInternalFacade(SharedIndentedBuilder code, string modelType, string operationsType) =>
-        SparseFragmentCloneEmitter.AppendDeepCloneInternalFacade(code, modelType, operationsType);
 
     public void AppendPocoCloneHelper(
         SharedIndentedBuilder code,

@@ -28,7 +28,6 @@
 | `T.Patch ToPatch()` | Converts present contributions to commands; missing members are untouched, not removal commands. |
 | `Fragment DeepClone()` | Clones supported mutable values. |
 | `ToBuilder()` | Creates mutable builder storage initialized from this Fragment. |
-| `static JsonConverter<Fragment> JsonConverter` | Generated when JSON support is available. The generated type also has converter integration for ordinary serialization. |
 
 Fragment instances expose init-only member storage, but storing a mutable reference does not freeze the referenced object. Direct initialization, merge, patch, and materialization do not all create independent graphs. Use From or DeepClone for ownership isolation; see [cloning and ownership](../explanation/cloning-and-ownership.md).
 

@@ -35,7 +35,8 @@ internal static class SparseChangeSetEmitter
         SparseOperationTarget? target = null,
         bool modelIsReferenceType = true,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
-        SparsePayloadContract? payloadContract = null
+        SparsePayloadContract? payloadContract = null,
+        SharedIndentedBuilder? jsonCodecBuilder = null
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -184,7 +185,8 @@ internal static class SparseChangeSetEmitter
                     implementationNamespace: implementationNamespace,
                     containerAccessibility: accessibility,
                     payloadJsonPocos: payloadJsonPocos,
-                    payloadContract: payloadContract
+                    payloadContract: payloadContract,
+                    emitTopLevelJsonCodecs: true
                 );
             }
             else
@@ -196,7 +198,9 @@ internal static class SparseChangeSetEmitter
                     modelType,
                     ignoredSettablePropertyNames,
                     payloadJsonPocos: payloadJsonPocos,
-                    payloadContract: payloadContract
+                    payloadContract: payloadContract,
+                    jsonCodecBuilder: jsonCodecBuilder,
+                    emitTopLevelJsonCodecs: jsonCodecBuilder is not null
                 );
             }
         }

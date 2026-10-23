@@ -20,6 +20,9 @@ internal sealed class SparseFragmentExpressions(
     /// <summary>Optional runtime factory for a disposable clone-context scope.</summary>
     public string? CloneContextScopeFactory { get; init; }
 
+    /// <summary>Optional resolver for split child-model clone operations.</summary>
+    public Func<string, string?>? ModelCloneOperationsTypeName { get; init; }
+
     /// <summary>Emits a clone context whose lifetime covers the enclosing generated operation.</summary>
     /// <param name="code">Target source builder.</param>
     /// <param name="referenceComparer">Runtime type providing the unscoped context factory.</param>
@@ -113,6 +116,14 @@ internal sealed class SparseFragmentExpressions(
     {
         if (type.IsFragmentModel)
         {
+            var operationsType = ModelCloneOperationsTypeName?.Invoke(type.NonNullableName);
+            if (operationsType is not null)
+            {
+                return type.IsReferenceType
+                    ? $"{access} is null ? default! : {operationsType}.DeepClone({access}, {CloneContext})"
+                    : $"{operationsType}.DeepClone(({type.Name}){access}, {CloneContext})";
+            }
+
             return type.IsReferenceType
                 ? $"{access} is null ? default! : (({type.Name}){access}).DeepClone({CloneContext})"
                 : $"(({type.Name}){access}).DeepClone({CloneContext})";
@@ -136,6 +147,14 @@ internal sealed class SparseFragmentExpressions(
     {
         if (member.ChildModel is not null && !member.ChildIsStructural)
         {
+            var operationsType = ModelCloneOperationsTypeName?.Invoke(member.ChildModel.Value.NonNullableName);
+            if (operationsType is not null)
+            {
+                return member.ChildIsReferenceType
+                    ? $"{access} is null ? null! : {operationsType}.DeepClone({access}, {CloneContext})"
+                    : $"{operationsType}.DeepClone(({member.Property.Type.Name}){access}, {CloneContext})";
+            }
+
             return member.ChildIsReferenceType
                 ? $"{access} is null ? null! : {access}.DeepClone({CloneContext})"
                 : $"(({member.Property.Type.Name}){access}).DeepClone({CloneContext})";

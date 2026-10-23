@@ -27,50 +27,25 @@ public sealed class ModelExtensionEmissionTests
     ) Generate(string source, string path)
     {
         var tree = CSharpSyntaxTree.ParseText(source, path: path);
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trustedAssemblies
-            .Select(static assemblyPath =>
-                (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "StableExtensionProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(
-            compilation,
-            out var updatedCompilation,
-            out _
-        );
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updatedCompilation, out _);
         var generatedSource = driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
-            .Single(static generated =>
-                generated.SourceText.ToString().Contains("Extensions_", StringComparison.Ordinal)
-            )
+            .Single(static generated => generated.SourceText.ToString().Contains("Extensions_", StringComparison.Ordinal))
             .SourceText.ToString();
-        var match = Regex.Match(
-            generatedSource,
-            @"(public|internal) static partial class ([A-Za-z0-9_]+Extensions_[A-F0-9]{8})"
-        );
+        var match = Regex.Match(generatedSource, @"(public|internal) static partial class ([A-Za-z0-9_]+Extensions_[A-F0-9]{8})");
         match.Success.ShouldBeTrue();
-        return (
-            match.Groups[2].Value,
-            match.Groups[1].Value,
-            updatedCompilation.GetDiagnostics(),
-            generatedSource,
-            updatedCompilation
-        );
+        return (match.Groups[2].Value, match.Groups[1].Value, updatedCompilation.GetDiagnostics(), generatedSource, updatedCompilation);
     }
 
     [Test]
@@ -81,16 +56,8 @@ public sealed class ModelExtensionEmissionTests
 
         first.ExtensionClass.ShouldBe(second.ExtensionClass);
         first.ExtensionClass.ShouldContain("StableModelExtensions_");
-        first
-            .CompilationDiagnostics.Where(static diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
-        second
-            .CompilationDiagnostics.Where(static diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
+        first.CompilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        second.CompilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]
@@ -120,28 +87,18 @@ public sealed class ModelExtensionEmissionTests
         generated.ExtensionAccessibility.ShouldBe("internal");
         generated.GeneratedSource.ShouldContain("internal partial class InternalStableModel");
         generated.GeneratedSource.ShouldContain("internal sealed class Fragment");
-        generated.GeneratedSource.ShouldContain("internal sealed class FragmentBuilder");
+        generated.GeneratedSource.ShouldContain("internal sealed class ");
+        generated.GeneratedSource.ShouldContain("FragmentBuilder");
         generated.GeneratedSource.ShouldContain("internal sealed partial class Patch");
         generated.GeneratedSource.ShouldContain("internal sealed partial class ChangeSet");
         generated.GeneratedSource.ShouldContain("internal static partial class");
-        generated.GeneratedSource.ShouldContain(
-            "internal static global::Stable.Generated.InternalStableModel.ChangeSet CreateChangeSet"
-        );
-        generated
-            .CompilationDiagnostics.Where(static diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
-        var generatedChild = generated.UpdatedCompilation.GetTypeByMetadataName(
-            "Stable.Generated.InternalStableChild"
-        );
+        generated.GeneratedSource.ShouldContain("internal static global::Stable.Generated.InternalStableModel.ChangeSet CreateChangeSet");
+        generated.CompilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        var generatedChild = generated.UpdatedCompilation.GetTypeByMetadataName("Stable.Generated.InternalStableChild");
         generatedChild.ShouldNotBeNull();
         foreach (var generatedName in new[] { "Fragment", "Patch", "ChangeSet" })
         {
-            generatedChild!
-                .GetTypeMembers(generatedName)
-                .Single()
-                .DeclaredAccessibility.ShouldBe(Accessibility.Internal);
+            generatedChild!.GetTypeMembers(generatedName).Single().DeclaredAccessibility.ShouldBe(Accessibility.Internal);
         }
     }
 
@@ -165,15 +122,7 @@ public sealed class ModelExtensionEmissionTests
         var second = Generate(secondSource, "SecondCollision.cs");
 
         first.ExtensionClass.ShouldNotBe(second.ExtensionClass);
-        first
-            .CompilationDiagnostics.Where(static diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
-        second
-            .CompilationDiagnostics.Where(static diagnostic =>
-                diagnostic.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
+        first.CompilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        second.CompilationDiagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 }

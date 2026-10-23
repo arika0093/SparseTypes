@@ -49,18 +49,18 @@ internal static class SparseChangeSetPayloadValidateEmitter
         code.AppendLine("if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));");
         code.AppendLine("if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));");
         code.AppendLine(
-            "if (Changes is null) { errors.Add(new "
+            "if (TypedChange is null) { errors.Add(new "
                 + error
                 + " { Kind = "
                 + kind
-                + ".Changes, Path = pathPrefix, Message = \"Payload changes must not be null.\" }); return; }"
+                + ".Changes, Path = pathPrefix, Message = \"A model change is required.\" }); return; }"
         );
         AppendWholeValidate(code, members, dialect, modelType, runtime, error, kind);
         foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             code.AppendLine("bool __validateSeen" + member.Id + " = false;");
         }
-        code.AppendLine("foreach (var change in Changes)");
+        code.AppendLine("foreach (var change in EnumerateChanges())");
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
@@ -122,10 +122,11 @@ internal static class SparseChangeSetPayloadValidateEmitter
         _ = members;
         _ = dialect;
         _ = runtime;
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadName(modelType, "RootChange");
+        var changeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
         var rootPath = "pathPrefix + \"$root\"";
-        code.AppendLine("if (Changes.Count == 1 && Changes[0] is " + rootChange + " whole)");
+        code.AppendLine("if (TypedChange!.Kind == " + changeKind + ".Replace)");
         code.OpenBlock();
+        code.AppendLine("var whole = TypedChange!;");
         code.AppendLine(
             "if (whole.Before is null || whole.After is null) { errors.Add(new "
                 + error

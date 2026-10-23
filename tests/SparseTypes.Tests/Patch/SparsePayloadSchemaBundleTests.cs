@@ -33,6 +33,69 @@ public sealed class SparsePayloadSchemaBundleTests
     }
 
     [Test]
+    public void BundleAcceptsNamedOptionsForDialectSchemaSets()
+    {
+        var root = typeof(SparsePayloadSchemaBundleTests);
+        var schema30 = new SparsePayloadSchema(root, "Payload", "{\"type\":\"object\"}");
+        var schema31 = new SparsePayloadSchema(root, "Payload", "{\"type\":\"object\"}");
+
+        var bundle = new SparsePayloadSchemaBundle(
+            root,
+            new SparsePayloadSchemaBundleOptions
+            {
+                Schema30 = () => [schema30],
+                Schema31 = () => [schema31],
+                SchemaIdentities = [new(root, "Payload")],
+                RequiredExternalSchemaTypes = [typeof(decimal)],
+            }
+        );
+
+        bundle.RootSchemaName.ShouldBe("Payload");
+        bundle.OpenApi30Schemas.Select(static item => item.JsonSchema).ShouldBe([schema30.OpenApi30JsonSchema]);
+        bundle.OpenApi31Schemas.Select(static item => item.JsonSchema).ShouldBe([schema31.OpenApi31JsonSchema]);
+        bundle.RequiredExternalSchemaTypes.ShouldBe([typeof(decimal)]);
+    }
+
+    [Test]
+    public void BundleMaterializesOnlyTheRequestedDialect()
+    {
+        var root = typeof(SparsePayloadSchemaBundleTests);
+        var schema = new SparsePayloadSchema(root, "Payload", "{\"type\":\"object\"}");
+        var schema30Calls = 0;
+        var schema31Calls = 0;
+        var bundle = new SparsePayloadSchemaBundle(
+            root,
+            new SparsePayloadSchemaBundleOptions
+            {
+                Schema30 = () =>
+                {
+                    schema30Calls++;
+                    return [schema];
+                },
+                Schema31 = () =>
+                {
+                    schema31Calls++;
+                    return [schema];
+                },
+                SchemaIdentities = [new(root, "Payload")],
+            }
+        );
+
+        bundle.SchemaIdentities.Count.ShouldBe(1);
+        schema30Calls.ShouldBe(0);
+        schema31Calls.ShouldBe(0);
+
+        bundle.GetSchemas(SparsePayloadSchemaDialect.OpenApi30).Count.ShouldBe(1);
+        schema30Calls.ShouldBe(1);
+        schema31Calls.ShouldBe(0);
+
+        bundle.GetSchemas(SparsePayloadSchemaDialect.OpenApi30).Count.ShouldBe(1);
+        schema30Calls.ShouldBe(1);
+        bundle.GetSchemas(SparsePayloadSchemaDialect.OpenApi31).Count.ShouldBe(1);
+        schema31Calls.ShouldBe(1);
+    }
+
+    [Test]
     public void BundleRejectsDuplicateNamesMissingRootsAndGeneratedExternalTypes()
     {
         var root = typeof(SparsePayloadSchemaBundleTests);

@@ -99,14 +99,17 @@ internal sealed class SparsePayloadSchemaSet
 
     public IEnumerable<SparseTypes.SparsePayloadSchema> GetSchemas()
     {
-        var bundleSchemas = OpenApiVersion == OpenApiSpecVersion.OpenApi3_0 ? Bundle.OpenApi30Schemas : Bundle.OpenApi31Schemas;
-        return bundleSchemas.Concat(ExternalSchemas);
+        var dialect =
+            OpenApiVersion == OpenApiSpecVersion.OpenApi3_0
+                ? SparseTypes.SparsePayloadSchemaDialect.OpenApi30
+                : SparseTypes.SparsePayloadSchemaDialect.OpenApi31;
+        return Bundle.GetSchemas(dialect).Concat(ExternalSchemas);
     }
 
-    public IReadOnlyList<SparseTypes.SparsePayloadSchema> GetAllSchemas()
-    {
-        return Bundle.OpenApi31Schemas.Concat(ExternalSchemas).ToArray();
-    }
+    public IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> GetAllIdentities() =>
+        Bundle
+            .SchemaIdentities.Concat(ExternalSchemas.Select(static schema => new SparseTypes.SparsePayloadSchemaIdentity(schema.Type, schema.Name)))
+            .ToArray();
 
     private static IReadOnlyList<SparseTypes.SparsePayloadSchema> CopySchemas(IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
     {
@@ -133,8 +136,8 @@ internal sealed class SparsePayloadSchemaSet
         IReadOnlyList<SparseTypes.SparsePayloadSchema> externalSchemas
     )
     {
-        var generatedNames = new HashSet<string>(bundle.OpenApi31Schemas.Select(static schema => schema.Name), StringComparer.Ordinal);
-        var generatedTypes = new HashSet<Type>(bundle.OpenApi31Schemas.Select(static schema => schema.Type));
+        var generatedNames = new HashSet<string>(bundle.SchemaIdentities.Select(static schema => schema.Name), StringComparer.Ordinal);
+        var generatedTypes = new HashSet<Type>(bundle.SchemaIdentities.Select(static schema => schema.Type));
         var conflict = externalSchemas.FirstOrDefault(schema => generatedNames.Contains(schema.Name) || generatedTypes.Contains(schema.Type));
         if (conflict is not null)
         {

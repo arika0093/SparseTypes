@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace SparseTypes.Generator.Shared;
 
@@ -15,7 +16,7 @@ internal static class SparseChangeSetPayloadShapeEmitter
         string? implementationNamespace
     )
     {
-        var snapshotType = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Snapshot");
+        var rootType = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Root");
         var deltaType = SparseChangeSetPayloadEmitter.PayloadName(modelType, "MembersDelta");
         var modelChangeType = SparseChangeSetPayloadEmitter.PayloadName(modelType, "ModelChange");
         var kindType = SparseChangeSetPayloadEmitter.PayloadName(modelType, "ModelChangeKind");
@@ -68,7 +69,7 @@ internal static class SparseChangeSetPayloadShapeEmitter
 
         code.AppendLine("/// <summary>Snapshot value of a model's transportable members.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine("public sealed class " + snapshotType);
+        code.AppendLine("public sealed class " + rootType);
         code.OpenBlock();
         foreach (var member in members.Select(static contractMember => contractMember.Member))
         {
@@ -76,6 +77,128 @@ internal static class SparseChangeSetPayloadShapeEmitter
             AppendPropertyDoc(code, "Gets or sets the snapshot endpoint for " + member.Property.Name + ".");
             code.AppendLine("public " + endpoint + "<" + valueType + ">? " + SparseNaming.EscapeIdentifier(member.Property.Name) + " { get; set; }");
         }
+        var readableMembers = members
+            .Select(static contractMember => contractMember.Member)
+            .Where(member => !member.Property.IsTransportIgnored && dialect.GetTransport(member.Property.Name) != SparseMemberTransport.WriteOnly)
+            .ToImmutableArray();
+        code.AppendLine("/// <summary>Builds a snapshot from a fragment.</summary>");
+        code.AppendLine("/// <param name=\"value\">The fragment to snapshot.</param>");
+        code.AppendLine("/// <returns>The generated snapshot.</returns>");
+        code.AppendLine("public static " + rootType + " FromFragment(Fragment value)");
+        code.OpenBlock();
+        code.AppendLine("if (value is null) throw new global::System.ArgumentNullException(nameof(value));");
+        code.AppendLine("var result = new " + rootType + "();");
+        SparseChangeSetPayloadSnapshotEmitter.AppendFromFragmentMembers(
+            code,
+            readableMembers,
+            endpoint,
+            dialect.RuntimeNamespace,
+            dialect,
+            modelType,
+            redactFlagged: false,
+            implementationNamespace
+        );
+        code.AppendLine("return result;");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Converts this snapshot to a fragment.</summary>");
+        code.AppendLine("/// <returns>The converted fragment.</returns>");
+        code.AppendLine("public Fragment ToFragment()");
+        code.OpenBlock();
+        foreach (var member in readableMembers)
+        {
+            var property = SparseNaming.EscapeIdentifier(member.Property.Name);
+            var endpointName = "this." + property;
+            var path = SymbolDisplay.FormatLiteral(member.Property.Name, true);
+            if (SparseChangeSetBasicsEmitter.IsNested(member))
+            {
+                var childRoot = SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
+                    dialect,
+                    member.ChildModel!.Value.NonNullableName,
+                    "Root",
+                    implementationNamespace
+                );
+                var childFragment = member.ChildFragmentType + "?";
+                code.AppendLine(
+                    "if ("
+                        + endpointName
+                        + "?.State == "
+                        + dialect.RuntimeNamespace
+                        + "ChangePayloadState.Redacted) throw new global::System.ArgumentException(\"A redacted root member cannot convert to a fragment.\", "
+                        + SymbolDisplay.FormatLiteral(member.Property.Name, true)
+                        + ");"
+                );
+                code.AppendLine(
+                    "var member"
+                        + member.Id
+                        + " = "
+                        + endpointName
+                        + "?.ToOptional() ?? "
+                        + dialect.RuntimeNamespace
+                        + "Optional<"
+                        + childRoot
+                        + "?>.Missing;"
+                );
+                code.AppendLine(
+                    dialect.RuntimeNamespace
+                        + "Optional<"
+                        + childFragment
+                        + "> rootMember"
+                        + member.Id
+                        + " = !member"
+                        + member.Id
+                        + ".IsPresent ? "
+                        + dialect.RuntimeNamespace
+                        + "Optional<"
+                        + childFragment
+                        + ">.Missing : "
+                        + dialect.RuntimeNamespace
+                        + "Optional<"
+                        + childFragment
+                        + ">.Present(member"
+                        + member.Id
+                        + ".Value is null ? null : member"
+                        + member.Id
+                        + ".Value.ToFragment());"
+                );
+            }
+            else
+            {
+                var valueType = SparseChangeSetBasicsEmitter.FragmentValueType(member);
+                code.AppendLine(
+                    "if ("
+                        + endpointName
+                        + "?.State == "
+                        + dialect.RuntimeNamespace
+                        + "ChangePayloadState.Redacted) throw new global::System.ArgumentException(\"A redacted root member cannot convert to a fragment.\", "
+                        + path
+                        + ");"
+                );
+                code.AppendLine(
+                    dialect.RuntimeNamespace
+                        + "Optional<"
+                        + valueType
+                        + "> rootMember"
+                        + member.Id
+                        + " = "
+                        + endpointName
+                        + " is null ? "
+                        + dialect.RuntimeNamespace
+                        + "Optional<"
+                        + valueType
+                        + ">.Missing : "
+                        + endpointName
+                        + ".ToOptional();"
+                );
+            }
+        }
+        code.AppendLine("return new Fragment");
+        code.OpenBlock();
+        foreach (var member in readableMembers)
+        {
+            code.AppendLine(SparseNaming.EscapeIdentifier(member.Property.Name) + " = rootMember" + member.Id + ",");
+        }
+        code.Unindent().AppendLine("};");
+        code.CloseBlock();
         code.CloseBlock();
         code.AppendLine();
 
@@ -101,9 +224,9 @@ internal static class SparseChangeSetPayloadShapeEmitter
         AppendPropertyDoc(code, "Gets or sets the optional member operations for an update.");
         code.AppendLine("public " + deltaType + "? Members { get; set; }");
         AppendPropertyDoc(code, "Gets or sets the before snapshot for a replacement.");
-        code.AppendLine("public " + endpoint + "<" + snapshotType + ">? Before { get; set; }");
+        code.AppendLine("public " + endpoint + "<" + rootType + ">? Before { get; set; }");
         AppendPropertyDoc(code, "Gets or sets the after snapshot for a replacement.");
-        code.AppendLine("public " + endpoint + "<" + snapshotType + ">? After { get; set; }");
+        code.AppendLine("public " + endpoint + "<" + rootType + ">? After { get; set; }");
         code.CloseBlock();
         code.AppendLine();
     }
@@ -111,179 +234,7 @@ internal static class SparseChangeSetPayloadShapeEmitter
     internal static void AppendChangeProperty(SharedIndentedBuilder code, string modelChangeType)
     {
         AppendPropertyDoc(code, "Gets or sets the typed model change.");
-        code.AppendLine("public " + modelChangeType + "? Change { get => GetTypedChange(); set => SetTypedChange(value); }");
-    }
-
-    internal static void AppendFacadeBridge(
-        SharedIndentedBuilder code,
-        ImmutableArray<SparsePayloadMemberContract> members,
-        string endpoint,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType
-    )
-    {
-        var changeType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Change");
-        var rootType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Root");
-        var rootChangeType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "RootChange");
-        var snapshotType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Snapshot");
-        var deltaType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "MembersDelta");
-        var modelChangeType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChange");
-        var kindType = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
-
-        code.AppendLine(
-            "internal static " + modelChangeType + "? FromLegacyChanges(global::System.Collections.Generic.List<" + changeType + ">? changes)"
-        );
-        code.OpenBlock();
-        code.AppendLine("if (changes is null) return null;");
-        code.AppendLine("if (changes.Count == 1 && changes[0] is " + rootChangeType + " whole)");
-        code.OpenBlock();
-        code.AppendLine(
-            "return new "
-                + modelChangeType
-                + " { Kind = "
-                + kindType
-                + ".Replace, Before = MapRootEndpointToSnapshot(whole.Before), After = MapRootEndpointToSnapshot(whole.After) };"
-        );
-        code.CloseBlock();
-        code.AppendLine("var members = new " + deltaType + "();");
-        code.AppendLine("foreach (var change in changes)");
-        code.OpenBlock();
-        code.AppendLine("switch (change)");
-        code.OpenBlock();
-        foreach (var member in members.Select(static contractMember => contractMember.Member))
-        {
-            var memberType = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", member.Id);
-            var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendLine("case " + memberType + " member" + member.Id + ":");
-            code.AppendLine(
-                "if (members."
-                    + property
-                    + " is not null) throw new global::System.ArgumentException(\"A model update cannot contain duplicate member changes.\", nameof(changes));"
-            );
-            code.AppendLine("members." + property + " = member" + member.Id + ";");
-            code.AppendLine("break;");
-        }
-        code.AppendLine("default: throw new global::System.ArgumentException(\"A model update contains an unknown change.\", nameof(changes));");
-        code.CloseBlock();
-        code.CloseBlock();
-        code.AppendLine("return new " + modelChangeType + " { Kind = " + kindType + ".Update, Members = members };");
-        code.CloseBlock();
-        code.AppendLine();
-
-        code.AppendLine(
-            "internal static global::System.Collections.Generic.List<" + changeType + ">? ToLegacyChanges(" + modelChangeType + "? change)"
-        );
-        code.OpenBlock();
-        code.AppendLine("if (change is null) return null;");
-        code.AppendLine("if (change.Kind == " + kindType + ".Replace)");
-        code.OpenBlock();
-        code.AppendLine(
-            "if (change.Members is not null) throw new global::System.ArgumentException(\"A replacement cannot contain member changes.\", nameof(change));"
-        );
-        code.AppendLine(
-            "if (change.Before is null || change.After is null) throw new global::System.ArgumentException(\"A replacement requires both endpoints.\", nameof(change));"
-        );
-        code.AppendLine(
-            "return new global::System.Collections.Generic.List<"
-                + changeType
-                + "> { new "
-                + rootChangeType
-                + " { Before = MapSnapshotEndpointToRoot(change.Before), After = MapSnapshotEndpointToRoot(change.After) } };"
-        );
-        code.CloseBlock();
-        code.AppendLine("if (change.Kind != " + kindType + ".Update) throw new global::System.ArgumentOutOfRangeException(nameof(change));");
-        code.AppendLine(
-            "if (change.Before is not null || change.After is not null) throw new global::System.ArgumentException(\"An update cannot contain replacement endpoints.\", nameof(change));"
-        );
-        code.AppendLine(
-            "if (change.Members is null) throw new global::System.ArgumentException(\"An update requires a members object.\", nameof(change));"
-        );
-        code.AppendLine("var changes = new global::System.Collections.Generic.List<" + changeType + ">();");
-        foreach (var member in members.Select(static contractMember => contractMember.Member))
-        {
-            var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendLine("if (change.Members." + property + " is not null) changes.Add(change.Members." + property + ");");
-        }
-        code.AppendLine("return changes;");
-        code.CloseBlock();
-        code.AppendLine();
-
-        code.AppendLine(
-            "internal static " + endpoint + "<" + snapshotType + ">? MapRootEndpointToSnapshot(" + endpoint + "<" + rootType + ">? endpointValue)"
-        );
-        code.OpenBlock();
-        code.AppendLine("if (endpointValue is null) return null;");
-        code.AppendLine(
-            "return new "
-                + endpoint
-                + "<"
-                + snapshotType
-                + "> { State = endpointValue.State, Value = endpointValue.Value is null ? null : SnapshotFromRoot(endpointValue.Value) };"
-        );
-        code.CloseBlock();
-        code.AppendLine();
-
-        code.AppendLine(
-            "internal static " + endpoint + "<" + rootType + ">? MapSnapshotEndpointToRoot(" + endpoint + "<" + snapshotType + ">? endpointValue)"
-        );
-        code.OpenBlock();
-        code.AppendLine("if (endpointValue is null) return null;");
-        code.AppendLine(
-            "return new "
-                + endpoint
-                + "<"
-                + rootType
-                + "> { State = endpointValue.State, Value = endpointValue.Value is null ? null : RootFromSnapshot(endpointValue.Value) };"
-        );
-        code.CloseBlock();
-        code.AppendLine();
-
-        code.AppendLine("internal static " + snapshotType + " SnapshotFromRoot(" + rootType + " root)");
-        code.OpenBlock();
-        code.AppendLine("if (root is null) throw new global::System.ArgumentNullException(nameof(root));");
-        code.AppendLine(
-            "if (root.Members is null) throw new global::System.ArgumentException(\"A snapshot must contain its member collection.\", nameof(root));"
-        );
-        code.AppendLine("var snapshot = new " + snapshotType + "();");
-        code.AppendLine("foreach (var member in root.Members)");
-        code.OpenBlock();
-        code.AppendLine("switch (member)");
-        code.OpenBlock();
-        foreach (var member in members.Select(static contractMember => contractMember.Member))
-        {
-            var memberType = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", member.Id);
-            var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendLine("case " + memberType + " member" + member.Id + ":");
-            code.AppendLine(
-                "if (snapshot."
-                    + property
-                    + " is not null) throw new global::System.ArgumentException(\"A snapshot cannot contain duplicate members.\", nameof(root));"
-            );
-            code.AppendLine("snapshot." + property + " = member" + member.Id + ".Value;");
-            code.AppendLine("break;");
-        }
-        code.AppendLine("default: throw new global::System.ArgumentException(\"A snapshot contains an unknown member.\", nameof(root));");
-        code.CloseBlock();
-        code.CloseBlock();
-        code.AppendLine("return snapshot;");
-        code.CloseBlock();
-        code.AppendLine();
-
-        code.AppendLine("internal static " + rootType + " RootFromSnapshot(" + snapshotType + " snapshot)");
-        code.OpenBlock();
-        code.AppendLine("if (snapshot is null) throw new global::System.ArgumentNullException(nameof(snapshot));");
-        code.AppendLine("var root = new " + rootType + "();");
-        foreach (var member in members.Select(static contractMember => contractMember.Member))
-        {
-            var memberType = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", member.Id);
-            var property = SparseNaming.EscapeIdentifier(member.Property.Name);
-            code.AppendLine(
-                "if (snapshot." + property + " is not null) root.Members.Add(new " + memberType + " { Value = snapshot." + property + " });"
-            );
-        }
-        code.AppendLine("return root;");
-        code.CloseBlock();
-        code.AppendLine();
+        code.AppendLine("public " + modelChangeType + "? Change { get => TypedChange; set => TypedChange = value; }");
     }
 
     private static string MemberValueType(

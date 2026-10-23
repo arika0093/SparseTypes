@@ -74,6 +74,7 @@ internal static class SparseEditSessionHistoryEmitter
     internal static void AppendLifecycleMembers(
         SharedIndentedBuilder code,
         string modelType,
+        string reconcilerType,
         string conflictType,
         string rebaseResultType,
         HistoryBinding? history,
@@ -83,7 +84,15 @@ internal static class SparseEditSessionHistoryEmitter
     {
         if (history is null)
         {
-            AppendLegacyLifecycleMembers(code, modelType, conflictType, rebaseResultType, reconcileConflictExpression, acceptChildrenFirst);
+            AppendLegacyLifecycleMembers(
+                code,
+                modelType,
+                reconcilerType,
+                conflictType,
+                rebaseResultType,
+                reconcileConflictExpression,
+                acceptChildrenFirst
+            );
             return;
         }
 
@@ -174,15 +183,23 @@ internal static class SparseEditSessionHistoryEmitter
 
         code.AppendLine(
             "var reconciled = _session.TryReconcile(submitted, persisted, static (s, p) => "
-                + modelType
+                + reconcilerType
                 + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
-                + modelType
+                + reconcilerType
                 + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), out error);"
         );
         code.AppendLine("if (reconciled) __SparseClearHistories();");
         code.AppendLine("return reconciled;");
         code.CloseBlock();
-        AppendTryReconcileAndApply(code, modelType, conflictType, reconcileConflictExpression, clearHistories: true, acceptChildrenFirst);
+        AppendTryReconcileAndApply(
+            code,
+            modelType,
+            reconcilerType,
+            conflictType,
+            reconcileConflictExpression,
+            clearHistories: true,
+            acceptChildrenFirst
+        );
         AppendHistoryFactory(code, modelType, conflictType, history);
         if (history.HasOwnedHistory)
         {
@@ -408,6 +425,7 @@ internal static class SparseEditSessionHistoryEmitter
     private static void AppendLegacyLifecycleMembers(
         SharedIndentedBuilder code,
         string modelType,
+        string reconcilerType,
         string conflictType,
         string rebaseResultType,
         string? reconcileConflictExpression,
@@ -475,9 +493,9 @@ internal static class SparseEditSessionHistoryEmitter
             );
             code.AppendLine(
                 "return _session.TryReconcile(submitted, persisted, static (s, p) => "
-                    + modelType
+                    + reconcilerType
                     + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
-                    + modelType
+                    + reconcilerType
                     + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), out error);"
             );
             code.CloseBlock();
@@ -486,19 +504,28 @@ internal static class SparseEditSessionHistoryEmitter
         {
             code.AppendLine(
                 "=> _session.TryReconcile(submitted, persisted, static (s, p) => "
-                    + modelType
+                    + reconcilerType
                     + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
-                    + modelType
+                    + reconcilerType
                     + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), out error);"
             );
         }
 
-        AppendTryReconcileAndApply(code, modelType, conflictType, reconcileConflictExpression, clearHistories: false, acceptChildrenFirst);
+        AppendTryReconcileAndApply(
+            code,
+            modelType,
+            reconcilerType,
+            conflictType,
+            reconcileConflictExpression,
+            clearHistories: false,
+            acceptChildrenFirst
+        );
     }
 
     private static void AppendTryReconcileAndApply(
         SharedIndentedBuilder code,
         string modelType,
+        string reconcilerType,
         string conflictType,
         string? reconcileConflictExpression,
         bool clearHistories,
@@ -541,9 +568,9 @@ internal static class SparseEditSessionHistoryEmitter
 
         code.AppendLine(
             "var reconciled = _session.TryReconcileAndApply(submitted, persisted, static (s, p) => "
-                + modelType
+                + reconcilerType
                 + ".__SparseBuildTempMap(s, p), static (live, submittedAfter, persisted, map, pending) => "
-                + modelType
+                + reconcilerType
                 + ".__SparseRetargetTemps(live, submittedAfter, persisted, map!, pending, \"\"), static error => "
                 + reconcileConflictExpression
                 + ", out conflicts);"

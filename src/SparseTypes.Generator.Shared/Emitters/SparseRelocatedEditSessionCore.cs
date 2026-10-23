@@ -133,7 +133,7 @@ internal static class SparseRelocatedEditSessionCore
         );
         // Sessions already raise PropertyChanged with the standard signature.
         sessionBases += ", global::System.ComponentModel.INotifyPropertyChanged";
-        code.AppendLine("public sealed class " + sessionSimple + " : " + sessionBases);
+        SparseEditSessionEmitter.AppendSessionDeclaration(code, sessionSimple, sessionBases);
         code.OpenBlock();
         // Public surface first; internal constructors and private state follow.
         code.AppendLine("/// <summary>Gets the bindable proxy over the live model.</summary>");
@@ -229,6 +229,7 @@ internal static class SparseRelocatedEditSessionCore
         SparseEditSessionHistoryEmitter.AppendLifecycleMembers(
             code,
             modelType,
+            SparseGeneratedPlacement.GetTemporaryKeyReconcilerTypeName(model, config, code.CancellationToken),
             conflictType,
             rebaseResultType,
             historyBinding,
@@ -282,6 +283,27 @@ internal static class SparseRelocatedEditSessionCore
                 config
             );
         }
+        code.AppendLine("/// <summary>Creates an edit session for the specified model.</summary>");
+        code.AppendLine("/// <param name=\"model\">The live model.</param>");
+        code.AppendLine("/// <param name=\"onChanged\">Callback invoked after a committed change.</param>");
+        code.AppendLine(
+            "public " + sessionSimple + "(" + modelType + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
+        );
+        code.AppendLine("/// <summary>Creates an edit session with an explicit baseline and current model.</summary>");
+        code.AppendLine("/// <param name=\"baseline\">The model state used as the baseline.</param>");
+        code.AppendLine("/// <param name=\"current\">The live model.</param>");
+        code.AppendLine("/// <param name=\"onChanged\">Callback invoked after a committed change.</param>");
+        code.AppendLine(
+            "public "
+                + sessionSimple
+                + "("
+                + modelType
+                + " baseline, "
+                + modelType
+                + " current, global::System.Action? onChanged) { _session = "
+                + core
+                + ".Create(baseline, current, __configuration, onChanged); }"
+        );
         if (config.DescriptorDialect is { } descriptorBridgeDialect && config.EffectiveEmissionFeatures.EmitObservable)
         {
             code.AppendLine(
@@ -295,20 +317,6 @@ internal static class SparseRelocatedEditSessionCore
             );
         }
         SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
-        code.AppendLine(
-            "internal " + sessionSimple + "(" + modelType + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
-        );
-        code.AppendLine(
-            "internal "
-                + sessionSimple
-                + "("
-                + modelType
-                + " baseline, "
-                + modelType
-                + " current, global::System.Action? onChanged) { _session = "
-                + core
-                + ".Create(baseline, current, __configuration, onChanged); }"
-        );
         if (hasChildSessionSurface)
         {
             SparseEditSessionChildEmitter.AppendChildDraftPrivateMembers(

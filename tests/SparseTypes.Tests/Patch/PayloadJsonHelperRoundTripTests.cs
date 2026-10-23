@@ -134,8 +134,14 @@ public sealed class PayloadJsonHelperRoundTripTests
         typeof(JsonHelperScalar.PayloadJson).GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
         typeof(JsonHelperScalar.PayloadJson).GetProperty("Default")!.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull();
         typeof(JsonHelperScalar.PayloadJson).GetNestedType("PayloadJsonResolver", BindingFlags.NonPublic).ShouldBeNull();
-        typeof(JsonHelperScalar.ChangePayload)
-            .BaseType!.DeclaringType!.GetNestedType("PayloadJsonResolver", BindingFlags.NonPublic)!
+        var container = typeof(JsonHelperScalar.ChangePayload).BaseType!.DeclaringType!;
+        container.GetNestedType(container.Name + "PayloadJsonConverter", BindingFlags.NonPublic).ShouldBeNull();
+        container.GetNestedType(container.Name + "PayloadJsonResolver", BindingFlags.NonPublic).ShouldBeNull();
+        var converter = typeof(JsonHelperScalar).Assembly.GetTypes().Single(type => type.Name == container.Name + "PayloadJsonConverter");
+        converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
+        typeof(JsonHelperScalar)
+            .Assembly.GetTypes()
+            .Single(type => type.Name == container.Name + "PayloadJsonResolver")
             .GetCustomAttribute<EditorBrowsableAttribute>()!
             .State.ShouldBe(EditorBrowsableState.Never);
     }

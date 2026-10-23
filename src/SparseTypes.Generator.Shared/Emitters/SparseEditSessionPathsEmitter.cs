@@ -15,7 +15,7 @@ internal static class SparseEditSessionPathsEmitter
 
     /// <summary>Resolves the session Paths builder type for one model.</summary>
     /// <remarks>
-    /// Relocated builders live in the per-model implementation container;
+    /// Relocated builders live beside the per-model implementation container;
     /// single-file emission keeps them nested in the model.
     /// </remarks>
     /// <param name="model">Owning model.</param>
@@ -24,19 +24,7 @@ internal static class SparseEditSessionPathsEmitter
     /// <returns>The qualified root builder type.</returns>
     internal static string GetPathsType(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
-        var root = SparseGeneratedPlacement.TryGetImplementationNamespace(config);
-        if (root is null)
-        {
-            return "SparsePaths<" + model.ModelTypeName + ">";
-        }
-
-        return "global::"
-            + root
-            + "."
-            + SparseGeneratedPlacement.GetImplementationContainer(model, cancellationToken)
-            + ".SparsePaths<"
-            + model.ModelTypeName
-            + ">";
+        return SparseGeneratedPlacement.GetSparsePathsTypeName(model, config, cancellationToken) + "<" + model.ModelTypeName + ">";
     }
 
     /// <summary>Resolves the opt-in provider base for one session, or empty when disabled.</summary>

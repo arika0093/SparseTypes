@@ -41,7 +41,7 @@ public sealed class MixedPayloadTests
         json.ShouldContain("\"state\":\"redacted\"");
 
         var restored = DeserializeSettings(json);
-        var change = restored.Changes!.Single();
+        var change = restored.Change!.Members!.Label!;
         var before = (ChangePayloadEndpoint<string?>)change.GetType().GetProperty("Before")!.GetValue(change)!;
         before.IsRedacted.ShouldBeTrue();
     }

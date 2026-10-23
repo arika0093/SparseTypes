@@ -45,7 +45,7 @@ public partial class ReferenceItem
 
 ## Interactions
 
-`SparseIgnore` excludes a member from the generated surface. `SparseTransportIgnore` keeps the member locally but rejects payload export when that member changes. `System.Text.Json.Serialization.JsonIgnoreAttribute` is JSON-specific: it excludes Fragment JSON, but the neutral payload retains the change and the JSON codec rejects serializing that payload instead of silently dropping it.
+`SparseIgnore` excludes a member from the generated surface. `SparseTransportIgnore` keeps the member locally but rejects payload export when that member changes. `System.Text.Json.Serialization.JsonIgnoreAttribute` is JSON-specific: the neutral payload retains the change, but the JSON codec rejects serializing that payload instead of silently dropping it.
 
 `SparseMerge` controls layering and collection semantics. `SparseCompare` controls semantic equality. `SparseRebasePolicy` handles concurrent changes; configuring a merge mode does not grant unconditional overwrite permission during rebase.
 

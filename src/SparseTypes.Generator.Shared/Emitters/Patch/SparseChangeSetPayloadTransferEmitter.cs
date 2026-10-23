@@ -46,8 +46,9 @@ internal static class SparseChangeSetPayloadTransferEmitter
         var endpoint = runtime + "ChangePayloadEndpoint";
         var payloadCore = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
         var payloadRoot = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Root");
-        var payloadChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Change");
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "RootChange");
+        var payloadModelChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChange");
+        var payloadMembersDelta = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "MembersDelta");
+        var payloadChangeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
         var versionLiteral = SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true);
         if (target is not null)
         {
@@ -60,8 +61,8 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("internal static ChangePayload ToPayload(ChangeSet self)");
             code.OpenBlock();
-            AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "self.IsEmpty");
-            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Changes = ToPayloadChanges(self, false) };");
+            AppendEmptyPayloadFastPath(code, payloadModelChange, payloadMembersDelta, payloadChangeKind, versionLiteral, "self.IsEmpty");
+            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Change = ToPayloadChange(self, false) };");
             code.CloseBlock();
         }
         else
@@ -70,11 +71,11 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("public ChangePayload ToPayload()");
             code.OpenBlock();
-            AppendEmptyPayloadFastPath(code, payloadChange, versionLiteral, "IsEmpty");
-            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Changes = ToPayloadChanges(false) };");
+            AppendEmptyPayloadFastPath(code, payloadModelChange, payloadMembersDelta, payloadChangeKind, versionLiteral, "IsEmpty");
+            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Change = ToPayloadChange(false) };");
             code.CloseBlock();
         }
-        code.AppendLine("/// <summary>Builds the transport changes for this change set.</summary>");
+        code.AppendLine("/// <summary>Builds the typed transport change for this change set.</summary>");
         code.AppendLine(
             "/// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>"
         );
@@ -84,12 +85,11 @@ internal static class SparseChangeSetPayloadTransferEmitter
         }
 
         code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
-        code.AppendLine("/// <returns>The transport changes.</returns>");
+        code.AppendLine("/// <returns>The typed transport change.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
-                + "global::System.Collections.Generic.List<"
-                + payloadChange
-                + "> ToPayloadChanges("
+                + payloadModelChange
+                + " ToPayloadChange("
                 + (target is null ? string.Empty : "ChangeSet self, ")
                 + "bool redactBefores)"
         );
@@ -100,11 +100,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
         }
         SparseChangePayloadPatchSyncEmitter.AppendTransportIgnoreGuard(code, members);
         code.AppendLine(
-            "var changes = new global::System.Collections.Generic.List<"
-                + payloadChange
-                + ">"
-                + (members.Length <= MaxPrecountedMembers ? "(__sparse_hasWhole ? 1 : " + PayloadCapacity(members) + ")" : "()")
-                + ";"
+            "var change = new " + payloadModelChange + " { Kind = " + payloadChangeKind + ".Update, Members = new " + payloadMembersDelta + "() };"
         );
         code.AppendLine("if (__sparse_hasWhole)");
         code.OpenBlock();
@@ -119,11 +115,12 @@ internal static class SparseChangeSetPayloadTransferEmitter
         else
         {
             code.AppendLine(
-                "changes.Add(new "
-                    + rootChange
-                    + " { Before = __SparsePayloadRoot(__sparse_wholeBefore, redactBefores), After = __SparsePayloadRootAfter(__sparse_wholeAfter) });"
+                "return new "
+                    + payloadModelChange
+                    + " { Kind = "
+                    + payloadChangeKind
+                    + ".Replace, Before = __SparsePayloadRoot(__sparse_wholeBefore, redactBefores), After = __SparsePayloadRootAfter(__sparse_wholeAfter) };"
             );
-            code.AppendLine("return changes;");
         }
         code.CloseBlock();
 
@@ -138,13 +135,15 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 code.AppendLine("if (" + SparseChangeSetBasicsEmitter.NestedField(member) + " is not null)");
                 code.OpenBlock();
                 code.AppendLine(
-                    "changes.Add(new "
+                    "change.Members!."
+                        + SparseNaming.EscapeIdentifier(member.Property.Name)
+                        + " = new "
                         + variant
                         + " { Nested = "
                         + SparseChangeSetBasicsEmitter.NestedField(member)
                         + "!.ToPayloadCore("
                         + redact
-                        + ") });"
+                        + ") };"
                 );
                 code.CloseBlock();
             }
@@ -264,7 +263,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     }
                 }
                 code.CloseBlock();
-                code.AppendLine("changes.Add(entry);");
+                code.AppendLine("change.Members!." + SparseNaming.EscapeIdentifier(member.Property.Name) + " = entry;");
                 code.CloseBlock();
             }
             else
@@ -276,7 +275,9 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 if (dialect.GetTransport(member.Property.Name) == SparseMemberTransport.Full)
                 {
                     code.AppendLine(
-                        "changes.Add(new "
+                        "change.Members!."
+                            + SparseNaming.EscapeIdentifier(member.Property.Name)
+                            + " = new "
                             + variant
                             + " { Before = ("
                             + SparseChangeSetBasicsEmitter.BeforeField(member)
@@ -298,7 +299,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                             + valueType
                             + ">.FromOptional("
                             + SparseChangeSetBasicsEmitter.AfterField(member)
-                            + ") });"
+                            + ") };"
                     );
                 }
                 else
@@ -306,7 +307,9 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     // Transport policy: the before-state stays undisclosed and
                     // the after-state travels alone. Never fabricate a missing.
                     code.AppendLine(
-                        "changes.Add(new "
+                        "change.Members!."
+                            + SparseNaming.EscapeIdentifier(member.Property.Name)
+                            + " = new "
                             + variant
                             + " { After = "
                             + endpoint
@@ -314,13 +317,13 @@ internal static class SparseChangeSetPayloadTransferEmitter
                             + valueType
                             + ">.FromOptional("
                             + SparseChangeSetBasicsEmitter.AfterField(member)
-                            + ") });"
+                            + ") };"
                     );
                 }
                 code.CloseBlock();
             }
         }
-        code.AppendLine("return changes;");
+        code.AppendLine("return change;");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <summary>Builds the transport core for this change set.</summary>");
@@ -338,7 +341,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 + (target is null ? string.Empty : "ChangeSet self, ")
                 + "bool redactBefores) => new "
                 + payloadCore
-                + " { Changes = ToPayloadChanges("
+                + " { TypedChange = ToPayloadChange("
                 + (target is null ? string.Empty : "self, ")
                 + "redactBefores) };"
         );
@@ -382,7 +385,7 @@ internal static class SparseChangeSetPayloadTransferEmitter
                     + payloadRoot
                     + ">.Present("
                     + payloadRoot
-                    + ".FromFragment(value.Value, redactBefores)));"
+                    + ".FromFragment(value.Value)));"
             );
         }
         code.CloseBlock();
@@ -420,37 +423,28 @@ internal static class SparseChangeSetPayloadTransferEmitter
         code.CloseBlock();
     }
 
-    private static void AppendEmptyPayloadFastPath(SharedIndentedBuilder code, string payloadChange, string versionLiteral, string isEmptyExpression)
+    private static void AppendEmptyPayloadFastPath(
+        SharedIndentedBuilder code,
+        string payloadModelChange,
+        string payloadMembersDelta,
+        string payloadChangeKind,
+        string versionLiteral,
+        string isEmptyExpression
+    )
     {
         code.AppendLine("if (" + isEmptyExpression + ")");
         code.OpenBlock();
         code.AppendLine(
             "return new ChangePayload { Version = "
                 + versionLiteral
-                + ", Changes = new global::System.Collections.Generic.List<"
-                + payloadChange
-                + ">() };"
+                + ", Change = new "
+                + payloadModelChange
+                + " { Kind = "
+                + payloadChangeKind
+                + ".Update, Members = new "
+                + payloadMembersDelta
+                + "() } };"
         );
         code.CloseBlock();
     }
-
-    private static string PayloadCapacity(ImmutableArray<SparseMemberModel> members) =>
-        string.Join(
-            " + ",
-            members
-                .Where(static member => !member.Property.IsTransportIgnored)
-                .Select(static member =>
-                    "("
-                    + (
-                        SparseChangeSetBasicsEmitter.IsNested(member)
-                            ? SparseChangeSetBasicsEmitter.NestedField(member) + " is not null"
-                            : SparseChangeSetBasicsEmitter.HasField(member)
-                    )
-                    + " ? 1 : 0)"
-                )
-                .DefaultIfEmpty("0")
-        );
-
-    // Wide sparse models lose time when every flag is counted before emission.
-    private const int MaxPrecountedMembers = 5;
 }

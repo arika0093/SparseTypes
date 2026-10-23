@@ -12,7 +12,7 @@ internal sealed record SparseEmissionFeatures
         bool EmitChangeSet = true,
         bool EmitChangePayload = true,
         bool EmitObservable = true,
-        bool EmitJsonConverters = true,
+        bool? EmitPayloadJson = null,
         bool EmitFragmentOrigins = false
     )
     {
@@ -21,7 +21,7 @@ internal sealed record SparseEmissionFeatures
         this.EmitChangeSet = EmitChangeSet;
         this.EmitChangePayload = EmitChangePayload;
         this.EmitObservable = EmitObservable;
-        this.EmitJsonConverters = EmitJsonConverters;
+        this.EmitPayloadJson = EmitPayloadJson ?? EmitChangePayload;
         this.EmitFragmentOrigins = EmitFragmentOrigins;
     }
 
@@ -40,8 +40,8 @@ internal sealed record SparseEmissionFeatures
     /// <summary>Whether the bindable <c>Observable</c> proxy is emitted.</summary>
     public bool EmitObservable { get; init; }
 
-    /// <summary>Whether the <c>FragmentJsonConverter</c> helpers are emitted.</summary>
-    public bool EmitJsonConverters { get; init; }
+    /// <summary>Whether the <c>ChangePayload</c> JSON serializer artifacts are emitted.</summary>
+    public bool EmitPayloadJson { get; init; }
 
     /// <summary>Whether fragments carry optional origin attribution through merge with origin query APIs.</summary>
     public bool EmitFragmentOrigins { get; init; }
@@ -76,11 +76,6 @@ internal sealed record SparseEmissionFeatures
                 errors.Add("EmitObservable requires EmitFragment.");
             }
 
-            if (EmitJsonConverters)
-            {
-                errors.Add("EmitJsonConverters requires EmitFragment.");
-            }
-
             if (EmitFragmentOrigins)
             {
                 errors.Add("EmitFragmentOrigins requires EmitFragment.");
@@ -94,6 +89,10 @@ internal sealed record SparseEmissionFeatures
         if (EmitChangePayload && !EmitChangeSet)
         {
             errors.Add("EmitChangePayload requires EmitChangeSet.");
+        }
+        if (EmitPayloadJson && !EmitChangePayload)
+        {
+            errors.Add("EmitPayloadJson requires EmitChangePayload.");
         }
 
         return errors.ToImmutable();

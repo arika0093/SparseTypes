@@ -25,18 +25,19 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         SparseDownstreamPolicy.ThrowOnInvalidTransport(members, dialect);
         var runtime = dialect.RuntimeNamespace;
         var payloadRoot = SparseChangeSetPayloadEmitter.PayloadName(modelType, "Root");
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadName(modelType, "RootChange");
         var prefix = SparseNaming.PatchApiPrefix(members.Select(static member => member.Property.Name));
         var strict = dialect.EffectiveRebasePolicy.RedactedBefore == SparseRedactedBeforeBehavior.StrictFail;
         code.AppendLine("/// <summary>Projects this payload to a baseline-free patch.</summary>");
         code.AppendLine("/// <returns>The baseline-free patch.</returns>");
         code.AppendLine("internal Patch ToPatchCore()");
         code.OpenBlock();
-        code.AppendLine("if (Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(Changes));");
-        code.AppendLine("if (Changes.Count == 1 && Changes[0] is " + rootChange + " whole)");
+        code.AppendLine("if (TypedChange is null) throw new global::System.ArgumentException(\"A model change is required.\", nameof(TypedChange));");
+        var modelChangeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
+        code.AppendLine("if (TypedChange.Kind == " + modelChangeKind + ".Replace)");
         code.OpenBlock();
+        code.AppendLine("var whole = TypedChange;");
         code.AppendLine(
-            "if (whole.Before is null || whole.After is null) throw new global::System.ArgumentException(\"A whole-root payload must contain both endpoints.\", nameof(Changes));"
+            "if (whole.Before is null || whole.After is null) throw new global::System.ArgumentException(\"A whole-root payload must contain both endpoints.\", nameof(TypedChange));"
         );
         if (strict && SparseDownstreamPolicy.HasAnyNonFullPolicy(dialect))
         {
@@ -50,7 +51,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         }
         code.CloseBlock();
         code.AppendLine("var patch = new Patch();");
-        code.AppendLine("foreach (var change in Changes)");
+        code.AppendLine("foreach (var change in EnumerateChanges())");
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
@@ -60,7 +61,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         }
 
         code.AppendLine(
-            "default: throw new global::System.ArgumentException(\"Payload contains a null or unknown change variant.\", nameof(Changes));"
+            "default: throw new global::System.ArgumentException(\"Payload contains a null or unknown change variant.\", nameof(TypedChange));"
         );
         code.CloseBlock();
         code.CloseBlock();
@@ -144,7 +145,9 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLine("case " + variant + " item:");
         if (IsNested(member))
         {
-            code.AppendLine("if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(Changes));");
+            code.AppendLine(
+                "if (item.Nested is null) throw new global::System.ArgumentException(\"Nested payload is required.\", nameof(TypedChange));"
+            );
             code.AppendLine("patch." + name + " = item.Nested.ToPatchCore();");
             code.AppendLine("break;");
             return;
@@ -162,7 +165,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         if (dialect.GetTransport(member.Property.Name) == SparseMemberTransport.Full)
         {
             code.AppendLine(
-                "if (item.Before is null || item.After is null) throw new global::System.ArgumentException(\"Both transition endpoints are required.\", nameof(Changes));"
+                "if (item.Before is null || item.After is null) throw new global::System.ArgumentException(\"Both transition endpoints are required.\", nameof(TypedChange));"
             );
             code.AppendLine("var __after" + id + " = item.After.ToOptional();");
             code.AppendLine(
@@ -175,16 +178,16 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         // Transport policy: project the requested after-state without
         // historical comparison, unless the strict policy refuses instead.
         code.AppendLine(
-            "if (item.Before is not null) throw new global::System.ArgumentException(\"A redacted member must omit its before-state.\", nameof(Changes));"
+            "if (item.Before is not null) throw new global::System.ArgumentException(\"A redacted member must omit its before-state.\", nameof(TypedChange));"
         );
         code.AppendLine(
-            "if (item.After is null) throw new global::System.ArgumentException(\"A redacted member requires an after-state.\", nameof(Changes));"
+            "if (item.After is null) throw new global::System.ArgumentException(\"A redacted member requires an after-state.\", nameof(TypedChange));"
         );
         code.AppendLine("var __redactedAfter" + id + " = item.After.ToOptional();");
         code.AppendLine(
             "if (!__redactedAfter"
                 + id
-                + ".IsPresent) throw new global::System.ArgumentException(\"A redacted member requires an after-state.\", nameof(Changes));"
+                + ".IsPresent) throw new global::System.ArgumentException(\"A redacted member requires an after-state.\", nameof(TypedChange));"
         );
         if (strict)
         {
@@ -217,7 +220,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         // Materialize canonical transition locals from the DTO, then reuse the
         // shared member projection so payload and ChangeSet paths cannot drift.
         code.AppendLine(
-            "if (item.Items is null) throw new global::System.ArgumentException(\"Payload item changes must not be null.\", nameof(Changes));"
+            "if (item.Items is null) throw new global::System.ArgumentException(\"Payload item changes must not be null.\", nameof(TypedChange));"
         );
         code.AppendLine("bool " + HasField(member) + " = true;");
         code.AppendLine("bool " + KeyedWholeFlag(member) + " = item.Before is not null || item.After is not null;");
@@ -235,7 +238,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLine("if (" + KeyedWholeFlag(member) + ")");
         code.OpenBlock();
         code.AppendLine(
-            "if (item.Before is null || item.After is null || item.Items.Count != 0) throw new global::System.ArgumentException(\"A whole collection payload must contain both endpoints and no item changes.\", nameof(Changes));"
+            "if (item.Before is null || item.After is null || item.Items.Count != 0) throw new global::System.ArgumentException(\"A whole collection payload must contain both endpoints and no item changes.\", nameof(TypedChange));"
         );
         code.AppendLine(KeyedWholeBefore(member) + " = item.Before.ToOptional();");
         code.AppendLine(KeyedWholeAfter(member) + " = item.After.ToOptional();");
@@ -248,7 +251,7 @@ internal static class SparseChangeSetPayloadProjectionEmitter
         code.AppendLine("foreach (var __payloadPatchDto" + id + " in item.Items)");
         code.OpenBlock();
         code.AppendLine(
-            "if (__payloadPatchDto" + id + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(Changes));"
+            "if (__payloadPatchDto" + id + " is null) throw new global::System.ArgumentException(\"Payload item is required.\", nameof(TypedChange));"
         );
         code.AppendLine("__payloadPatchItems" + id + ".Add(" + modelType + ".ChangeSet.__SparsePayloadItem" + id + "(__payloadPatchDto" + id + "));");
         code.CloseBlock();

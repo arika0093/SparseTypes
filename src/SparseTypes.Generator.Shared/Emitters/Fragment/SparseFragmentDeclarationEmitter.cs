@@ -139,11 +139,17 @@ internal sealed class SparseFragmentDeclarationEmitter(
         }
     }
 
-    public void AppendBuilder(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, string accessibility = "public")
+    public void AppendBuilder(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        string accessibility = "public",
+        string typeName = "FragmentBuilder",
+        string fragmentTypeName = "Fragment"
+    )
     {
         code.CancellationToken.ThrowIfCancellationRequested();
         code.AppendLine("/// <summary>A mutable builder for a generated fragment.</summary>");
-        code.AppendLine(accessibility + " sealed class FragmentBuilder");
+        code.AppendLine(accessibility + " sealed class " + typeName);
         code.OpenBlock();
         // Public surface first: staged references, construction, then Build.
         // The seeding constructor and backing fields trail as internals.
@@ -166,12 +172,12 @@ internal sealed class SparseFragmentDeclarationEmitter(
 
         code.AppendLine();
         code.AppendLine("/// <summary>Initializes a new empty builder.</summary>");
-        code.AppendLine("public FragmentBuilder() { }");
+        code.AppendLine("public " + typeName + "() { }");
         code.AppendLine("/// <summary>Builds the staged fragment.</summary>");
         code.AppendLine("/// <returns>The built fragment.</returns>");
         if (OriginEmitter is null)
         {
-            code.AppendLine("public Fragment Build() => new()");
+            code.AppendLine("public " + fragmentTypeName + " Build() => new()");
         }
         else
         {
@@ -192,7 +198,7 @@ internal sealed class SparseFragmentDeclarationEmitter(
         }
 
         code.Unindent().AppendLine("};");
-        code.AppendLine("internal FragmentBuilder(Fragment fragment)");
+        code.AppendLine("internal " + typeName + "(" + fragmentTypeName + " fragment)");
         code.OpenBlock();
         foreach (var member in members)
         {

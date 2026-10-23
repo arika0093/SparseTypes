@@ -204,9 +204,9 @@ Companion types are emitted as nested types on the `[SparseModel]` class, while 
 
 | Nested in `Model` | Emitted in `SparseTypes.Generated.<Container>` |
 | --- | --- |
-| `Model.Fragment` (and `Model.SparsePath`) | `<Container>.FragmentBuilder`, `<Container>.SparsePaths<TRoot>` |
-| `Model.Patch`, `Model.ChangeSet`, `Model.ChangePayload` | Wire DTOs (`__Internal_<hash>`) and operation kernels (`FragmentOperations`, `PatchOperations`, `ChangeSetOperations`) |
+| `Model.Fragment` (and `Model.SparsePath`) | `<Container>FragmentBuilder`, `<Container>SparsePaths<TRoot>` |
+| `Model.Patch`, `Model.ChangeSet`, `Model.ChangePayload`, `Model.PayloadJson` | Payload DTOs and operation kernels (`FragmentOperations`, `PatchOperations`, `ChangeSetOperations`) |
 | `Model.EditSession` (`Model.SparseEditSession` if `EditSession` collides) | `<Container>.DescriptorFactory` |
-| `Model.Observable` (`Model.SparseObservable` if `Observable` collides), `Model.ReadOnlyView` | `<Container>FragmentJsonConverter` |
+| `Model.Observable` (`Model.SparseObservable` if `Observable` collides), `Model.ReadOnlyView` | — |
 
 If a model declares a member named `Observable` or `EditSession`, the generator renames the nested companion type to `SparseObservable` or `SparseEditSession`. Member names `Fragment`, `Patch`, `ChangeSet`, `ChangePayload`, or `SparsePath` report diagnostic [SPF009](analyzer.md#spf009-member-conflicts-with-generated-api).

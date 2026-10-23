@@ -20,12 +20,7 @@ public class ChangeSetJsonBenchmarks
     [Params(16, 2048)]
     public int Size { get; set; }
 
-    [Params(
-        ChangeSetJsonShape.Missing,
-        ChangeSetJsonShape.Null,
-        ChangeSetJsonShape.Scalar,
-        ChangeSetJsonShape.Collection
-    )]
+    [Params(ChangeSetJsonShape.Missing, ChangeSetJsonShape.Null, ChangeSetJsonShape.Scalar, ChangeSetJsonShape.Collection)]
     public ChangeSetJsonShape Shape { get; set; }
 
     private readonly JsonSerializerOptions _options = new()
@@ -52,37 +47,11 @@ public class ChangeSetJsonBenchmarks
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             PropertyNameCaseInsensitive = true,
         };
-        var alternateJson = JsonSerializer.SerializeToUtf8Bytes(
-            _change.ToPayload(),
-            alternateOptions
-        );
-        Validate(
-            JsonSerializer
-                .Deserialize<BenchChangeSetRebaseRecord.ChangePayload>(
-                    alternateJson,
-                    alternateOptions
-                )!
-                .ToChangeSet()
-        );
+        var alternateJson = JsonSerializer.SerializeToUtf8Bytes(_change.ToPayload(), alternateOptions);
+        Validate(JsonSerializer.Deserialize<BenchChangeSetRebaseRecord.ChangePayload>(alternateJson, alternateOptions)!.ToChangeSet());
         if (!Serialize().SequenceEqual(_json))
         {
             throw new InvalidOperationException("Payload serialization must remain deterministic.");
-        }
-
-        ReadEmptyFragment(BenchJsonCaseNames.Fragment.JsonConverter, _options);
-        AssertNameCollision(BenchJsonCaseNames.Fragment.JsonConverter, alternateOptions);
-        var namingPolicy = new BenchCountingJsonNamingPolicy();
-        var collisionOptions = new JsonSerializerOptions
-        {
-            TypeInfoResolver = _options.TypeInfoResolver,
-            PropertyNamingPolicy = namingPolicy,
-        };
-        AssertNameCollision(BenchChangeSetRebaseRecord.Fragment.JsonConverter, collisionOptions);
-        if (namingPolicy.Calls != 2)
-        {
-            throw new InvalidOperationException(
-                "Name validation must stop at the first collision."
-            );
         }
 
         using var document = JsonDocument.Parse(_json);
@@ -141,47 +110,11 @@ public class ChangeSetJsonBenchmarks
                     {
                         Label = "base",
                         Counter = step,
-                        Values = Enumerable
-                            .Range(0, Size)
-                            .Select(value =>
-                                Shape == ChangeSetJsonShape.Collection ? value + step : value
-                            )
-                            .ToList(),
+                        Values = Enumerable.Range(0, Size).Select(value => Shape == ChangeSetJsonShape.Collection ? value + step : value).ToList(),
                     }
                 )
             ),
         };
-
-    private static void ReadEmptyFragment<T>(
-        JsonConverter<T> converter,
-        JsonSerializerOptions options
-    )
-    {
-        var reader = new Utf8JsonReader(new byte[] { (byte)'{', (byte)'}' });
-        reader.Read();
-        converter.Read(ref reader, typeof(T), options);
-    }
-
-    private static void AssertNameCollision<T>(
-        JsonConverter<T> converter,
-        JsonSerializerOptions options
-    )
-    {
-        try
-        {
-            ReadEmptyFragment(converter, options);
-        }
-        catch (JsonException error)
-            when (error.Message.StartsWith(
-                    "Multiple fragment members map to the same JSON property name.",
-                    StringComparison.Ordinal
-                )
-            )
-        {
-            return;
-        }
-        throw new InvalidOperationException("Colliding JSON names must be rejected.");
-    }
 
     private void Validate(BenchChangeSetRebaseRecord.ChangeSet change)
     {
@@ -193,9 +126,7 @@ public class ChangeSetJsonBenchmarks
             || change.IsEmpty != (Shape is ChangeSetJsonShape.Missing or ChangeSetJsonShape.Null)
         )
         {
-            throw new InvalidOperationException(
-                "ChangeSet JSON must preserve root presence and emptiness."
-            );
+            throw new InvalidOperationException("ChangeSet JSON must preserve root presence and emptiness.");
         }
 
         var fragment = actual.GetValueOrDefault();
@@ -211,9 +142,7 @@ public class ChangeSetJsonBenchmarks
                 || !actualValues.SequenceEqual(expectedValues)
             )
             {
-                throw new InvalidOperationException(
-                    "ChangeSet JSON must preserve scalar and collection values."
-                );
+                throw new InvalidOperationException("ChangeSet JSON must preserve scalar and collection values.");
             }
         }
     }
@@ -223,37 +152,5 @@ public class ChangeSetJsonBenchmarks
 
     [Benchmark]
     public BenchChangeSetRebaseRecord.ChangeSet Deserialize() =>
-        JsonSerializer
-            .Deserialize<BenchChangeSetRebaseRecord.ChangePayload>(_json, _options)!
-            .ToChangeSet();
-}
-
-[SparseModel]
-public partial class BenchJsonCaseNames
-{
-    [JsonPropertyName("Name")]
-    public int First { get; set; }
-
-    [JsonPropertyName("name")]
-    public int Second { get; set; }
-
-    [JsonIgnore]
-    public int Ignored { get; set; }
-}
-
-[SparseModel]
-public partial class BenchJsonSingleName
-{
-    public int Value { get; set; }
-}
-
-public sealed class BenchCountingJsonNamingPolicy : JsonNamingPolicy
-{
-    public int Calls { get; private set; }
-
-    public override string ConvertName(string name)
-    {
-        Calls++;
-        return "same";
-    }
+        JsonSerializer.Deserialize<BenchChangeSetRebaseRecord.ChangePayload>(_json, _options)!.ToChangeSet();
 }

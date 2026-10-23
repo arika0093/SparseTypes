@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -123,71 +122,6 @@ public sealed class AotScalarTests
         await Assert.That(missingJson.Contains("\"state\":\"missing\"")).IsTrue();
         var missingRestored = JsonSerializer.Deserialize(missingJson, PayloadScalars.PayloadJson.Default)!.ToChangeSet();
         await Assert.That(PayloadScalars.Patch.Between(missingRestored.ToPatch().Apply(before), removed).IsEmpty).IsTrue();
-    }
-
-    [Test]
-    public async Task FragmentConverterRoundTripsScalarsWithoutMetadata()
-    {
-        var options = new JsonSerializerOptions();
-        var fragment = PayloadScalars.Fragment.From(ScalarModel());
-
-        string json;
-        using (var stream = new MemoryStream())
-        {
-            using (var writer = new Utf8JsonWriter(stream))
-            {
-                PayloadScalars.Fragment.JsonConverter.Write(writer, fragment, options);
-            }
-
-            json = Encoding.UTF8.GetString(stream.ToArray());
-        }
-
-        await Assert.That(json.Contains("\"LongValue\":-9000000000000000000")).IsTrue();
-        await Assert.That(json.Contains("\"ByteEnum\":1")).IsTrue();
-
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var reader = new Utf8JsonReader(bytes);
-        reader.Read();
-        var restored = PayloadScalars.Fragment.JsonConverter.Read(ref reader, typeof(PayloadScalars.Fragment), options)!;
-        await Assert
-            .That(
-                PayloadScalars
-                    .Patch.Between(Optional<PayloadScalars.Fragment?>.Present(restored), Optional<PayloadScalars.Fragment?>.Present(fragment))
-                    .IsEmpty
-            )
-            .IsTrue();
-    }
-
-    [Test]
-    public async Task FragmentConverterPreservesExplicitNullWithoutMetadata()
-    {
-        var options = new JsonSerializerOptions();
-        var fragment = new PayloadScalars.Fragment
-        {
-            NullableInt = Optional<int?>.Present(null),
-            NullableByteEnum = Optional<ScalarByte?>.Present(null),
-        };
-
-        string json;
-        using (var stream = new MemoryStream())
-        {
-            using (var writer = new Utf8JsonWriter(stream))
-            {
-                PayloadScalars.Fragment.JsonConverter.Write(writer, fragment, options);
-            }
-
-            json = Encoding.UTF8.GetString(stream.ToArray());
-        }
-
-        await Assert.That(json.Contains("\"NullableInt\":null")).IsTrue();
-
-        var bytes = Encoding.UTF8.GetBytes(json);
-        var reader = new Utf8JsonReader(bytes);
-        reader.Read();
-        var restored = PayloadScalars.Fragment.JsonConverter.Read(ref reader, typeof(PayloadScalars.Fragment), options)!;
-        await Assert.That(restored.NullableInt.IsPresent).IsTrue();
-        await Assert.That(restored.NullableInt.Value is null).IsTrue();
-        await Assert.That(restored.NullableByteEnum.IsPresent).IsTrue();
     }
 
     [Test]

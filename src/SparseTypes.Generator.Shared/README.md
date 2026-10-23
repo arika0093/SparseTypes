@@ -224,8 +224,8 @@ static `StagingKey` factory. Leave it null to keep the per-choice copies.
 ## Emission features
 
 `SparseEmissionFeatures` selects which generated families appear for a model:
-`Fragment`, `Patch`, `ChangeSet`, `ChangePayload`, `Observable`, and JSON
-converters. Set it on `SparseGeneratorConfig.EmissionFeatures`. The standalone
+`Fragment`, `Patch`, `ChangeSet`, `ChangePayload`, `Observable`, and payload
+JSON support. Set it on `SparseGeneratorConfig.EmissionFeatures`. The standalone
 default emits every family except fragment origins; downstream products opt out
 explicitly so unused public APIs are not generated. Selections are validated before emission:
 a patch requires its fragment, a change set requires its patch, and a payload
@@ -326,7 +326,7 @@ generator host's dependencies. `SparseGeneratorConfig.StjCapabilities` carries
 it (null keeps the historical full surface for products that never probe), and
 `SparsePatchDialect.StjCapabilities` propagates it to emitters that only
 receive the dialect. `EffectiveEmitJson` intersects the snapshot with
-`EmitJsonConverters`. When the surface is absent or partial, emitters drop
+`EmitPayloadJson`. When the surface is absent or partial, emitters drop
 every `System.Text.Json` token and keep the serializer-independent `Fragment`,
 `Patch`, `ChangeSet`, and payload CLR projections. A present-but-partial
 surface with JSON families requested reports the missing APIs through the
@@ -337,7 +337,7 @@ attributes.
 
 Covered scalar and enum endpoint values never need options metadata.
 `SparseJsonScalarShapes` emits one shared set of context-free codecs into
-every fragment converter, payload converter, and standalone endpoint bridge:
+payload converters and standalone endpoint bridges:
 the common BCL scalars (`sbyte` through `ulong`, `float`, `double`,
 `decimal`, `bool`, `char`, `string`, `Guid`, `DateTime`, `DateTimeOffset`),
 their nullable counterparts, and enums with every CLR-valid underlying
@@ -561,12 +561,10 @@ prefix (`SparseObservable`, `SparseEditSession`); a user-nested
 
 With an explicit namespace, each model also emits a payload/operations
 implementation source, `<sanitized>_<hash>.Implementation.g.cs`, in that
-namespace. It carries the typed `ChangePayload` DTO container
-(`__Internal_<hash>` with its `Core`/`Root`/`Change`/item variants) and the
-`FragmentJsonConverter` bodies. The surface keeps the public `ChangePayload`
-facade and a thin private converter shell that derives from the implementation
-converter, plus a file alias resolving the container name. Cross-model payload
-references use the qualified `global::<ns>.__Internal_<hash>` form. The
+namespace. It carries the typed `ChangePayload` DTO container and payload JSON
+converter bodies. The surface keeps the public `ChangePayload` facade and a
+file alias resolving the container name. Cross-model payload references use a
+qualified generated container name. The
 `"0.1"` wire format, redacted/missing/null/value distinctions, validation, and
 `JsonIgnore` rules are unchanged.
 

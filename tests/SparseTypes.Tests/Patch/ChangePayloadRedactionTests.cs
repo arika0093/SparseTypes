@@ -79,7 +79,8 @@ public sealed class ChangePayloadRedactionTests
 
         // The regular transition and the baseline-free command share one
         // envelope.
-        payload.Changes!.Count.ShouldBe(2);
+        (payload.Change!.Members!.DisplayName is null ? 0 : 1).ShouldBe(1);
+        (payload.Change.Members.Password is null ? 0 : 1).ShouldBe(1);
         json.ShouldContain("\"version\":\"0.1\"");
         json.ShouldContain("\"state\":\"redacted\"");
         // The undisclosed before-state never travels; the desired after-state
@@ -166,7 +167,7 @@ public sealed class ChangePayloadRedactionTests
         var json = PayloadJsonTestSupport.Serialize(payload);
 
         payload.Version.ShouldBe("0.1");
-        payload.Changes.ShouldHaveSingleItem();
+        payload.Change!.Members!.Password.ShouldNotBeNull();
         json.ShouldBe(
             """{"version":"0.1","change":{"kind":"update","members":{"password":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"after-password"}}}}}"""
         );
@@ -178,7 +179,8 @@ public sealed class ChangePayloadRedactionTests
         updated.Password.ShouldBe("after-password");
 
         var empty = PayloadRoundTrip(RedactedAccount.ChangePayload.FromPatch(new()));
-        empty.Changes.ShouldBeEmpty();
+        empty.Change!.Members!.DisplayName.ShouldBeNull();
+        empty.Change.Members.Password.ShouldBeNull();
         empty.ToChangeSet().IsEmpty.ShouldBeTrue();
     }
 

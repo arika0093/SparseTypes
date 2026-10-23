@@ -551,8 +551,8 @@ public sealed class SparseGeneratorDiagnosticTests
     }
 
     [Test]
-    [Arguments("JsonConverter")]
-    [Arguments("FragmentJsonConverter")]
+    [Arguments("FragmentBuilder")]
+    [Arguments("PayloadJson")]
     [Arguments("ChangeSet")]
     [Arguments("ChangePayload")]
     public void Spf009_NameCollisionReportsErrorWithNoSource(string memberName)
@@ -591,9 +591,9 @@ public sealed class SparseGeneratorDiagnosticTests
     }
 
     [Test]
-    public void Spf009_HashedInternalContainerCollisionReportsErrorWithNoSource()
+    public void Spf009_SerializationContainerCollisionReportsErrorWithNoSource()
     {
-        const string modelTypeName = "global::CollisionModel";
+        const string modelTypeName = "CollisionModel";
         const uint offsetBasis = 2166136261;
         const uint prime = 16777619;
         var hash = offsetBasis;
@@ -602,7 +602,7 @@ public sealed class SparseGeneratorDiagnosticTests
             hash = unchecked((hash ^ character) * prime);
         }
 
-        var nestedTypeName = "__Internal_" + hash.ToString("X8");
+        var nestedTypeName = "CollisionModel_" + hash.ToString("X8") + "SerializeObjects";
         var source = """
             using SparseTypes;
             [SparseModel]

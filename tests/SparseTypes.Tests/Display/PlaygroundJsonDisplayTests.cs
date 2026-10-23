@@ -108,10 +108,7 @@ public sealed class PlaygroundJsonDisplayTests
             PortValue = 9000,
             PluginsOp = PatchKind.Remove,
         }.Build();
-        return PlaygroundSettings.ChangeSet.FromPatch(
-            Optional<PlaygroundSettings.Fragment?>.Present(baseline),
-            patch
-        );
+        return PlaygroundSettings.ChangeSet.FromPatch(Optional<PlaygroundSettings.Fragment?>.Present(baseline), patch);
     }
 
     // STJ indents with Environment.NewLine while raw literals carry the
@@ -196,14 +193,12 @@ public sealed class PlaygroundJsonDisplayTests
     public void MaskedSummaryHidesPasswordWithoutMutatingTheModel()
     {
         var model = EscapedModel();
-        PlaygroundJson
-            .WriteMaskedSettingsSummary(model)
-            .ShouldContain("\"Password\": \"[masked]\"");
+        PlaygroundJson.WriteMaskedSettingsSummary(model).ShouldContain("\"Password\": \"[masked]\"");
         model.Password.ShouldBe("s3cret!");
     }
 
     [Test]
-    public void FragmentJsonKeepsCanonicalOrderAndAbsentVersusNull()
+    public void FragmentProjectionUsesTheGeneratedModelJsonContext()
     {
         var lower = FragmentEditState.LowerDefaults().Build();
         var higher = FragmentEditState.HigherDefaults().Build();
@@ -225,13 +220,15 @@ public sealed class PlaygroundJsonDisplayTests
                       "Plugins": [
                         "base-plugin",
                         "extra-plugin"
-                      ]
+                      ],
+                      "Tags": [],
+                      "Tasks": []
                     }
                     """
                 )
             );
 
-        // Sparse layers omit absent members but keep explicit nulls in order.
+        // The display serializes the resolved model projection, not sparse member presence.
         PlaygroundJson
             .WriteFragment(higher)
             .ReplaceLineEndings("\n")
@@ -239,13 +236,18 @@ public sealed class PlaygroundJsonDisplayTests
                 Normalize(
                     """
                     {
+                      "Enabled": true,
+                      "RetryCount": 3,
                       "Label": null,
                       "Nested": {
+                        "Host": "localhost",
                         "Port": 8080
                       },
                       "Plugins": [
                         "extra-plugin"
-                      ]
+                      ],
+                      "Tags": [],
+                      "Tasks": []
                     }
                     """
                 )
@@ -289,9 +291,7 @@ public sealed class PlaygroundJsonDisplayTests
             """;
         var before = RosterDefaults.Before();
         Normalize(PlaygroundJson.WriteRosterModel(before)).ShouldBe(Normalize(golden));
-        Normalize(PlaygroundJson.WriteRosterFragment(PlaygroundRoster.Fragment.From(before)))
-            .ReplaceLineEndings("\n")
-            .ShouldBe(Normalize(golden));
+        Normalize(PlaygroundJson.WriteRosterFragment(PlaygroundRoster.Fragment.From(before))).ReplaceLineEndings("\n").ShouldBe(Normalize(golden));
     }
 
     [Test]
@@ -362,25 +362,18 @@ public sealed class PlaygroundJsonDisplayTests
     public void ChangePayloadRoundTripSurvivesPayloadSerialization()
     {
         var changes = SettingsChanges();
-        var imported = PlaygroundJson.ReadSettingsChangeSet(
-            PlaygroundJson.WriteSettingsChangeSet(changes)
-        );
+        var imported = PlaygroundJson.ReadSettingsChangeSet(PlaygroundJson.WriteSettingsChangeSet(changes));
         imported.IsEmpty.ShouldBe(changes.IsEmpty);
 
         var baseline = FragmentEditState.LowerDefaults().Build();
-        PlaygroundJson
-            .WriteFragment(baseline.Apply(imported.ToPatch()))
-            .ShouldBe(PlaygroundJson.WriteFragment(baseline.Apply(changes.ToPatch())));
+        PlaygroundJson.WriteFragment(baseline.Apply(imported.ToPatch())).ShouldBe(PlaygroundJson.WriteFragment(baseline.Apply(changes.ToPatch())));
     }
 
     [Test]
     public void RepeatedDisplaySerializationIsStableAcrossThreads()
     {
         var model = EscapedModel();
-        var merged = FragmentEditState
-            .LowerDefaults()
-            .Build()
-            .Merge(FragmentEditState.HigherDefaults().Build());
+        var merged = FragmentEditState.LowerDefaults().Build().Merge(FragmentEditState.HigherDefaults().Build());
         var expectedModel = PlaygroundJson.WriteModel(model);
         var expectedFragment = PlaygroundJson.WriteFragment(merged);
         var expectedChanges = PlaygroundJson.WriteSettingsChangeSet(SettingsChanges());
@@ -398,7 +391,7 @@ public sealed class PlaygroundJsonDisplayTests
     }
 
     [Test]
-    public void OptionFactoriesReturnIndependentInstances()
+    public void ChangeSetOptionsFactoryReturnsIndependentInstances()
     {
         var first = PlaygroundJson.ChangeSetOptions();
         var second = PlaygroundJson.ChangeSetOptions();
@@ -406,13 +399,8 @@ public sealed class PlaygroundJsonDisplayTests
         first.WriteIndented = false;
         second.WriteIndented.ShouldBeTrue();
 
-        var fragments = PlaygroundJson.FragmentOptions();
-        fragments.ShouldNotBeSameAs(PlaygroundJson.FragmentOptions());
-
         // Cached display paths ignore factory mutations.
-        PlaygroundJson
-            .WriteSettingsChangeSet(SettingsChanges())
-            .ShouldContain("\"version\": \"0.1\"");
+        PlaygroundJson.WriteSettingsChangeSet(SettingsChanges()).ShouldContain("\"version\": \"0.1\"");
     }
 
     [Test]

@@ -18,26 +18,6 @@ public partial class NamingWidget
 }
 
 [SparseModel]
-public partial class WideDispatchWidget
-{
-    public int Alpha { get; set; }
-    public int Bravo { get; set; }
-    public int Charlie { get; set; }
-    public int Delta { get; set; }
-    public int Echo { get; set; }
-
-    [System.Text.Json.Serialization.JsonPropertyName("fixedName")]
-    public int Explicit { get; set; }
-
-    [System.Text.Json.Serialization.JsonIgnore]
-    [System.Text.Json.Serialization.JsonPropertyName("Alpha_1")]
-    public int IgnoredAlias { get; set; }
-
-    [System.Text.Json.Serialization.JsonIgnore]
-    public int Hidden { get; set; }
-}
-
-[SparseModel]
 public partial class TransportPolicyWidget
 {
     [System.Text.Json.Serialization.JsonIgnore]
@@ -111,166 +91,8 @@ public partial class JsonExcludedKeyedHolder
     public global::System.Collections.Generic.List<JsonExcludedKeyedItem> Items { get; set; } = new();
 }
 
-public sealed class CountingSuffixNamingPolicy : JsonNamingPolicy
-{
-    public string Suffix { get; set; } = "_1";
-
-    public int ConversionCount { get; private set; }
-
-    public void ResetCount() => ConversionCount = 0;
-
-    public override string ConvertName(string name)
-    {
-        ConversionCount++;
-        return name + Suffix;
-    }
-}
-
-public sealed class DuplicateNameNamingPolicy : JsonNamingPolicy
-{
-    public override string ConvertName(string name) => "duplicate";
-}
-
 public sealed class FragmentAndChangeSetJsonTests
 {
-    [Test]
-    public void WideFragmentReadBuildsEffectiveNamesOnceAndHonorsVisiblePriority()
-    {
-        var namingPolicy = new CountingSuffixNamingPolicy();
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = namingPolicy,
-            PropertyNameCaseInsensitive = true,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        var reader = new System.Text.Json.Utf8JsonReader(
-            System.Text.Encoding.UTF8.GetBytes(
-                """{"alpha_1":1,"Bravo_1":2,"Charlie_1":3,"Delta_1":4,"Echo_1":5,"fixedName":6,"hidden_1":7,"unknown":{"nested":true}}"""
-            )
-        );
-        reader.Read().ShouldBeTrue();
-
-        var fragment = WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
-
-        namingPolicy.ConversionCount.ShouldBe(6);
-        fragment.Alpha.Value.ShouldBe(1);
-        fragment.Bravo.Value.ShouldBe(2);
-        fragment.Charlie.Value.ShouldBe(3);
-        fragment.Delta.Value.ShouldBe(4);
-        fragment.Echo.Value.ShouldBe(5);
-        fragment.Explicit.Value.ShouldBe(6);
-        fragment.IgnoredAlias.IsPresent.ShouldBeFalse();
-        fragment.Hidden.IsPresent.ShouldBeFalse();
-
-        namingPolicy.Suffix = "_2";
-        namingPolicy.ResetCount();
-        var nextReader = new System.Text.Json.Utf8JsonReader(
-            System.Text.Encoding.UTF8.GetBytes("""{"Alpha_1":8,"Bravo_1":9,"Charlie_1":10,"Delta_1":11,"Echo_1":12,"fixedName":13,"Hidden_1":14}""")
-        );
-        nextReader.Read().ShouldBeTrue();
-
-        var next = WideDispatchWidget.Fragment.JsonConverter.Read(ref nextReader, typeof(WideDispatchWidget.Fragment), options)!;
-
-        namingPolicy.ConversionCount.ShouldBe(0);
-        next.Alpha.Value.ShouldBe(8);
-        next.Explicit.Value.ShouldBe(13);
-        next.Hidden.IsPresent.ShouldBeFalse();
-    }
-
-    [Test]
-    public void CustomNamingPolicyResultsAreCachedPerOptionsInstance()
-    {
-        var namingPolicy = new CountingSuffixNamingPolicy();
-        var firstOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = namingPolicy,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        firstOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
-        firstOptions.MakeReadOnly();
-
-        ReadWideFragment("""{"Alpha_1":1}""", firstOptions).Alpha.Value.ShouldBe(1);
-        namingPolicy.ConversionCount.ShouldBe(6);
-
-        namingPolicy.Suffix = "_2";
-        ReadWideFragment("""{"Bravo_1":2}""", firstOptions).Bravo.Value.ShouldBe(2);
-        ReadWideFragment("""{"Bravo_2":3}""", firstOptions).Bravo.IsPresent.ShouldBeFalse();
-        namingPolicy.ConversionCount.ShouldBe(6);
-
-        var secondOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = namingPolicy,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        secondOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
-        secondOptions.MakeReadOnly();
-        ReadWideFragment("""{"Bravo_2":4}""", secondOptions).Bravo.Value.ShouldBe(4);
-        namingPolicy.ConversionCount.ShouldBe(12);
-
-        var fragment = new WideDispatchWidget.Fragment { Alpha = Optional<int>.Present(3), Explicit = Optional<int>.Present(4) };
-        var firstJson = JsonSerializer.Serialize(fragment, firstOptions);
-        var secondJson = JsonSerializer.Serialize(fragment, secondOptions);
-
-        firstJson.ShouldContain("\"Alpha_1\"");
-        firstJson.ShouldContain("\"fixedName\"");
-        secondJson.ShouldContain("\"Alpha_2\"");
-        namingPolicy.ConversionCount.ShouldBe(12);
-    }
-
-    [Test]
-    public void WideFragmentReadRejectsVisibleCollisionsAndDisallowedUnknownNames()
-    {
-        var collisionOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = new DuplicateNameNamingPolicy(),
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        Should.Throw<JsonException>(() => ReadWideFragment("{}", collisionOptions));
-
-        var duplicateWriteOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = new DuplicateNameNamingPolicy(),
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        duplicateWriteOptions.Converters.Add(WideDispatchWidget.Fragment.JsonConverter);
-        var duplicateJson = JsonSerializer.Serialize(
-            new WideDispatchWidget.Fragment { Alpha = Optional<int>.Present(1), Bravo = Optional<int>.Present(2) },
-            duplicateWriteOptions
-        );
-        duplicateJson.Split("\"duplicate\"", StringSplitOptions.None).Length.ShouldBe(3);
-
-        var strictOptions = new JsonSerializerOptions
-        {
-            UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        Should.Throw<JsonException>(() => ReadWideFragment("""{"unknown":{"nested":true}}""", strictOptions));
-    }
-
-    private static WideDispatchWidget.Fragment ReadWideFragment(string json, JsonSerializerOptions options)
-    {
-        var reader = new System.Text.Json.Utf8JsonReader(System.Text.Encoding.UTF8.GetBytes(json));
-        reader.Read();
-        return WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
-    }
-
-    [Test]
-    public void FragmentWireNamesRoundTrip()
-    {
-        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        options.Converters.Add(NamingWidget.Fragment.JsonConverter);
-
-        var fragment = new NamingWidget.Fragment { Value = Optional<string?>.Present("v"), Slash = Optional<int>.Present(7) };
-        var json = JsonSerializer.Serialize(fragment, options);
-        json.ShouldContain("customName");
-        json.ShouldContain("a/b");
-
-        var back = JsonSerializer.Deserialize<NamingWidget.Fragment>(json, options)!;
-        back.Value.Value.ShouldBe("v");
-        back.Slash.Value.ShouldBe(7);
-        back.Plain.IsPresent.ShouldBeFalse();
-    }
-
     [Test]
     public void ChangeSetRoundTripsWithExplicitWireNames()
     {
@@ -303,130 +125,6 @@ public sealed class FragmentAndChangeSetJsonTests
     }
 
     [Test]
-    public void CachedIndexDoesNotGoStaleWhenSharedOptionsAreMutated()
-    {
-        // Each options instance owns its snapshot, and a mutable options
-        // instance changing policies must rebuild before it is locked.
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        // Unknown-only reads skip member lookup, so the options stay mutable
-        // while these repeated reads exercise the cached camelCase index.
-        ReadWideFragment("""{"unknown":1}""", options).Alpha.IsPresent.ShouldBeFalse();
-        ReadWideFragment("""{"unknown":2}""", options).Alpha.IsPresent.ShouldBeFalse();
-
-        options.PropertyNamingPolicy = null;
-        var identity = ReadWideFragment("""{"Alpha":3,"fixedName":4}""", options);
-        identity.Alpha.Value.ShouldBe(3);
-        identity.Explicit.Value.ShouldBe(4);
-        ReadWideFragment("""{"Alpha":5}""", options).Alpha.Value.ShouldBe(5);
-    }
-
-    [Test]
-    public void CachedIndexKeysCaseHandlingAcrossOptionsInstances()
-    {
-        var sensitive = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        var insensitive = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            PropertyNameCaseInsensitive = true,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        for (var i = 0; i < 3; i++)
-        {
-            ReadWideFragment("""{"ALPHA":1}""", sensitive).Alpha.IsPresent.ShouldBeFalse();
-            ReadWideFragment("""{"ALPHA":2}""", insensitive).Alpha.Value.ShouldBe(2);
-        }
-    }
-
-    [Test]
-    public void CachedIndexSurvivesAlternatingOptionsInstances()
-    {
-        var camel = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        var identity = new JsonSerializerOptions { TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver() };
-        for (var i = 0; i < 3; i++)
-        {
-            ReadWideFragment("""{"alpha":1}""", camel).Alpha.Value.ShouldBe(1);
-            ReadWideFragment("""{"Alpha":2}""", identity).Alpha.Value.ShouldBe(2);
-        }
-    }
-
-    [Test]
-    public void ConcurrentReadsShareTheCachedIndex()
-    {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        System.Threading.Tasks.Parallel.For(0, 64, _ => ReadWideFragment("""{"alpha":1,"fixedName":2}""", options).Alpha.Value.ShouldBe(1));
-    }
-
-    [Test]
-    public void CachedReadsAvoidPerReadIndexAllocations()
-    {
-        var cachedOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-        };
-        const string cachedPayload = """{"alpha":1,"bravo":2,"charlie":3,"delta":4,"echo":5,"fixedName":6}""";
-        for (var i = 0; i < 10; i++)
-        {
-            ReadWideFragment(cachedPayload, cachedOptions);
-        }
-
-        var cachedOptionsPerRead = Enumerable.Repeat(cachedOptions, 200).ToArray();
-        var cachedBytes = MeasureWideReadBytes(cachedPayload, cachedOptionsPerRead);
-
-        var namingPolicy = new CountingSuffixNamingPolicy();
-        var uncachedOptionsPerRead = Enumerable
-            .Range(0, 200)
-            .Select(_ => new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = namingPolicy,
-                TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver(),
-            })
-            .ToArray();
-        const string uncachedPayload = """{"Alpha_1":1,"Bravo_1":2,"Charlie_1":3,"Delta_1":4,"Echo_1":5,"fixedName":6}""";
-        var uncachedBytes = MeasureWideReadBytes(uncachedPayload, uncachedOptionsPerRead);
-        cachedBytes.ShouldBeLessThan(uncachedBytes);
-        cachedBytes.ShouldBeLessThan(uncachedBytes);
-    }
-
-    private static long MeasureWideReadBytes(string json, JsonSerializerOptions[] optionsPerRead)
-    {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        System.GC.Collect();
-        System.GC.WaitForPendingFinalizers();
-        System.GC.Collect();
-        var before = System.GC.GetAllocatedBytesForCurrentThread();
-        foreach (var options in optionsPerRead)
-        {
-            ReadWideFragment(bytes, options);
-        }
-
-        return System.GC.GetAllocatedBytesForCurrentThread() - before;
-    }
-
-    private static WideDispatchWidget.Fragment ReadWideFragment(byte[] json, JsonSerializerOptions options)
-    {
-        var reader = new System.Text.Json.Utf8JsonReader(json);
-        reader.Read();
-        return WideDispatchWidget.Fragment.JsonConverter.Read(ref reader, typeof(WideDispatchWidget.Fragment), options)!;
-    }
-
-    [Test]
     public void JsonIgnorePreservesNeutralPayloadButFailsJsonSerialization()
     {
         Optional<NamingWidget.Fragment?> State(NamingWidget model) => Optional<NamingWidget.Fragment?>.Present(NamingWidget.Fragment.From(model));
@@ -450,7 +148,7 @@ public sealed class FragmentAndChangeSetJsonTests
         var ignoredOnly = NamingWidget.ChangeSet.Between(before, after);
         ignoredOnly.IsEmpty.ShouldBeFalse();
         var payload = ignoredOnly.ToPayload();
-        payload.Changes.ShouldHaveSingleItem();
+        payload.Change!.Members!.Plain.ShouldNotBeNull();
         payload.ToChangeSet().IsEmpty.ShouldBeFalse();
         Should.Throw<JsonException>(() => JsonSerializer.Serialize(payload, NamingWidget.PayloadJson.Default));
         var output = new ArrayBufferWriter<byte>();
@@ -481,13 +179,15 @@ public sealed class FragmentAndChangeSetJsonTests
                 }
             )
         );
-        mixed.ToPayload().Changes!.Count.ShouldBe(2);
+        var mixedPayload = mixed.ToPayload();
+        mixedPayload.Change!.Members!.Value.ShouldNotBeNull();
+        mixedPayload.Change.Members.Plain.ShouldNotBeNull();
         Should.Throw<JsonException>(() => JsonSerializer.Serialize(mixed.ToPayload(), NamingWidget.PayloadJson.Default));
 
         var patchPayload = NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Plain = 3 });
-        patchPayload.Changes.ShouldHaveSingleItem();
+        patchPayload.Change!.Members!.Plain.ShouldNotBeNull();
         Should.Throw<JsonException>(() => JsonSerializer.Serialize(patchPayload, NamingWidget.PayloadJson.Default));
-        NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Value = "b" }).Changes.ShouldHaveSingleItem();
+        NamingWidget.ChangePayload.FromPatch(new NamingWidget.Patch { Value = "b" }).Change!.Members!.Value.ShouldNotBeNull();
     }
 
     [Test]
@@ -566,7 +266,7 @@ public sealed class FragmentAndChangeSetJsonTests
         patchError.Message.ShouldContain("TransportExcluded");
 
         var visiblePayload = TransportPolicyWidget.ChangePayload.FromPatch(new TransportPolicyWidget.Patch { Visible = 1 });
-        visiblePayload.Changes.ShouldHaveSingleItem();
+        visiblePayload.Change!.Members!.Visible.ShouldNotBeNull();
         const string transportExcludedInput =
             """{"version":"0.1","change":{"kind":"update","members":{"transportExcluded":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""";
         Should.Throw<JsonException>(() =>

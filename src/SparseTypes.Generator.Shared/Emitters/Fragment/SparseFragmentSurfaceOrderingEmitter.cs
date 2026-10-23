@@ -15,10 +15,6 @@ internal static class SparseFragmentSurfaceOrderingEmitter
     /// <param name="runtime">Runtime dialect.</param>
     /// <param name="patchDialect">Patch dialect.</param>
     /// <param name="features">Emission features.</param>
-    /// <param name="implementationBuilder">Implementation target.</param>
-    /// <param name="jsonConverterQualifiedName">Qualified converter name.</param>
-    /// <param name="jsonConverterSimpleName">Simple converter name.</param>
-    /// <param name="generatedAccessibility">Fragment accessibility.</param>
     internal static void AppendFragmentPublicTail(
         SharedIndentedBuilder code,
         string modelType,
@@ -26,12 +22,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         bool modelIsReferenceType,
         SparseRuntimeDialect runtime,
         SparseFragmentPatchEmitter.SparsePatchDialect patchDialect,
-        SparseEmissionFeatures features,
-        SharedIndentedBuilder? implementationBuilder,
-        string? jsonConverterQualifiedName,
-        string? jsonConverterSimpleName,
-        string generatedAccessibility,
-        string? implementationNamespace = null
+        SparseEmissionFeatures features
     )
     {
         var writableMembers = members.Where(static member => !member.Property.IsReadOnly && !member.Property.IsInitOnly).ToImmutableArray();
@@ -48,43 +39,7 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         code.AppendLine("/// <summary>Creates a mutable builder seeded from this fragment.</summary>");
         code.AppendLine("/// <returns>The seeded builder.</returns>");
         code.AppendLine("public FragmentBuilder ToBuilder() => new(this);");
-        // JSON converters need both the requested family and a compatible
-        // probed compilation surface.
-        if (features.EmitJsonConverters && patchDialect.EmitJson)
-        {
-            if (implementationBuilder is not null && jsonConverterQualifiedName is not null && jsonConverterSimpleName is not null)
-            {
-                SparseFragmentJsonEmitter.AppendStandaloneFragmentJsonFacade(code, jsonConverterQualifiedName);
-                SparseFragmentJsonEmitter.AppendConverter(
-                    implementationBuilder,
-                    members,
-                    runtime.OptionalType,
-                    isStandalone: true,
-                    converterClassName: jsonConverterSimpleName,
-                    converterAccessibility: "internal",
-                    sealedConverter: false,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver,
-                    sharedCodecsReference: SharedCodecsReference(implementationBuilder, implementationNamespace)
-                );
-                implementationBuilder.AppendLine();
-            }
-            else
-            {
-                SparseFragmentJsonEmitter.AppendStandaloneFragmentJson(
-                    code,
-                    members,
-                    runtime.OptionalType,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
-                );
-            }
-        }
     }
-
-    /// <summary>Shared codec reference for split-mode converters, or null for legacy single-file output.</summary>
-    private static string? SharedCodecsReference(SharedIndentedBuilder? implementationBuilder, string? implementationNamespace) =>
-        implementationBuilder is not null && implementationNamespace is not null
-            ? SparseGeneratedOnceNames.QualifiedJsonCodecs(implementationNamespace)
-            : null;
 
     /// <summary>Emits split-mode Fragment surface in public-first order.</summary>
     /// <remarks>Facade overloads keep public members ahead of internal bridges.</remarks>
@@ -99,13 +54,8 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         SparseRuntimeDialect runtime,
         SparseFragmentPatchEmitter.SparsePatchDialect patchDialect,
         SparseEmissionFeatures features,
-        SharedIndentedBuilder? implementationBuilder,
-        string? jsonConverterQualifiedName,
-        string? jsonConverterSimpleName,
-        string generatedAccessibility,
         string operationsType,
-        bool canApplyPatchInPlace,
-        string? implementationNamespace = null
+        bool canApplyPatchInPlace
     )
     {
         core.AppendDiff(code, modelType, members, modelIsReferenceType, operationsType);
@@ -124,35 +74,6 @@ internal static class SparseFragmentSurfaceOrderingEmitter
         code.AppendLine("/// <summary>Creates a mutable builder seeded from this fragment.</summary>");
         code.AppendLine("/// <returns>The seeded builder.</returns>");
         code.AppendLine("public FragmentBuilder ToBuilder() => new(this);");
-        if (features.EmitJsonConverters && patchDialect.EmitJson)
-        {
-            if (implementationBuilder is not null && jsonConverterQualifiedName is not null && jsonConverterSimpleName is not null)
-            {
-                SparseFragmentJsonEmitter.AppendStandaloneFragmentJsonAccessor(code, jsonConverterQualifiedName);
-                SparseFragmentJsonEmitter.AppendConverter(
-                    implementationBuilder,
-                    members,
-                    runtime.OptionalType,
-                    isStandalone: true,
-                    converterClassName: jsonConverterSimpleName,
-                    converterAccessibility: "internal",
-                    sealedConverter: false,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver,
-                    sharedCodecsReference: SharedCodecsReference(implementationBuilder, implementationNamespace)
-                );
-                implementationBuilder.AppendLine();
-            }
-            else
-            {
-                SparseFragmentJsonEmitter.AppendStandaloneFragmentJson(
-                    code,
-                    members,
-                    runtime.OptionalType,
-                    emitFastPaths: patchDialect.EffectiveStjCapabilities.SupportsPayloadJsonResolver
-                );
-            }
-        }
-
         // Internal group trails the public tail.
         core.AppendMemberCaches(
             code,

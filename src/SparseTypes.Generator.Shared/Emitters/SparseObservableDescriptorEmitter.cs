@@ -68,7 +68,7 @@ internal static class SparseObservableDescriptorEmitter
                 + ", "
                 + (canWrite ? "true" : "false")
                 + ", "
-                + context.Attributes(member)
+                + SparseDescriptorEmissionContext.Attributes(member)
                 + ", "
                 + getValue
                 + ", "

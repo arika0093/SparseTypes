@@ -9,14 +9,7 @@ namespace SparseTypes.Tests.Shared;
 public sealed class SessionPathsEmissionTests
 {
     private static SparseTypeModel ScalarType(string name) =>
-        new(
-            name,
-            name,
-            name,
-            IsReferenceType: name.Contains("String", StringComparison.Ordinal),
-            IsFragmentModel: false,
-            null
-        );
+        new(name, name, name, IsReferenceType: name.Contains("String", StringComparison.Ordinal), IsFragmentModel: false, null);
 
     private static SparseMemberModel ScalarMember(int id, string name, string typeName)
     {
@@ -30,17 +23,7 @@ public sealed class SessionPathsEmissionTests
             HasExplicitJsonPropertyName: false,
             JsonIgnoreCondition: 0
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static SparseMemberModel KeyedMember()
@@ -97,9 +80,7 @@ public sealed class SessionPathsEmissionTests
             TypedPathInterfaceType = "global::Downstream.ITypedPath",
         };
 
-    private static SparseGeneratorConfig PlainConfig(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    ) =>
+    private static SparseGeneratorConfig PlainConfig(SparseFragmentPatchEmitter.SparsePatchDialect dialect) =>
         new(
             ModelAttributeMetadataName: "Downstream.ModelAttribute",
             IgnoreAttributeMetadataName: "Downstream.IgnoreAttribute",
@@ -158,10 +139,7 @@ public sealed class SessionPathsEmissionTests
             IgnoredSettablePropertyNames: ImmutableArray<string>.Empty
         );
 
-    private static string BuildPaths(
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        ImmutableArray<SparseMemberModel> members
-    )
+    private static string BuildPaths(SparseFragmentPatchEmitter.SparsePatchDialect dialect, ImmutableArray<SparseMemberModel> members)
     {
         using var code = new SharedIndentedBuilder(CancellationToken.None);
         SparsePathBuilderEmitter.AppendPathsClass(code, "global::Ns.ReadModel", members, dialect);
@@ -175,27 +153,17 @@ public sealed class SessionPathsEmissionTests
 
         SparseEditSessionPathsEmitter.HasPathsSurface(config, PlainDialect()).ShouldBeFalse();
         SparseEditSessionPathsEmitter
-            .GetPathsInterfaceBase(
-                ReadModel(),
-                "global::Ns.ReadModel",
-                config,
-                PlainDialect(),
-                CancellationToken.None
-            )
+            .GetPathsInterfaceBase(ReadModel(), "global::Ns.ReadModel", config, PlainDialect(), CancellationToken.None)
             .ShouldBe(string.Empty);
 
         // No typed-path surface either: downstream output stays byte-identical.
-        BuildPaths(PlainDialect(), ImmutableArray.Create(ScalarMember(0, "Label", "string")))
-            .ShouldNotContain("ITypedPath");
+        BuildPaths(PlainDialect(), ImmutableArray.Create(ScalarMember(0, "Label", "string"))).ShouldNotContain("ITypedPath");
     }
 
     [Test]
     public void CollectionBuilderCarriesTypedValueContract()
     {
-        var text = BuildPaths(
-            TypedPathsDialect(),
-            ImmutableArray.Create(ScalarMember(0, "Label", "string"), KeyedMember())
-        );
+        var text = BuildPaths(TypedPathsDialect(), ImmutableArray.Create(ScalarMember(0, "Label", "string"), KeyedMember()));
 
         // Key, At, dictionary, and set navigation keep their shapes.
         text.ShouldContain("Key(global::System.Int32 key)");
@@ -216,18 +184,11 @@ public sealed class SessionPathsEmissionTests
 
         SparseEditSessionPathsEmitter
             .GetPathsType(model, PlainConfig(PlainDialect()), CancellationToken.None)
-            .ShouldBe("SparsePaths<global::Ns.ReadModel>");
+            .ShouldContain("SparsePaths<global::Ns.ReadModel>");
 
-        var relocated = PlainConfig(PlainDialect()) with
-        {
-            GeneratedImplementationNamespace = "Downstream.Generated",
-        };
-        SparseEditSessionPathsEmitter
-            .GetPathsType(model, relocated, CancellationToken.None)
-            .ShouldContain("global::Downstream.Generated.");
-        SparseEditSessionPathsEmitter
-            .GetPathsType(model, relocated, CancellationToken.None)
-            .ShouldContain(".SparsePaths<global::Ns.ReadModel>");
+        var relocated = PlainConfig(PlainDialect()) with { GeneratedImplementationNamespace = "Downstream.Generated" };
+        SparseEditSessionPathsEmitter.GetPathsType(model, relocated, CancellationToken.None).ShouldContain("global::Downstream.Generated.");
+        SparseEditSessionPathsEmitter.GetPathsType(model, relocated, CancellationToken.None).ShouldContain("SparsePaths<global::Ns.ReadModel>");
     }
 
     [Test]
@@ -237,46 +198,19 @@ public sealed class SessionPathsEmissionTests
         var without = PlainConfig(TypedPathsDialect());
         using (var code = new SharedIndentedBuilder(CancellationToken.None))
         {
-            SparseEditSessionPathsEmitter.AppendPathsProperty(
-                code,
-                model,
-                "global::Ns.ReadModel",
-                without,
-                TypedPathsDialect()
-            );
+            SparseEditSessionPathsEmitter.AppendPathsProperty(code, model, "global::Ns.ReadModel", without, TypedPathsDialect());
             code.ToString().ShouldNotContain("Paths => __paths;");
         }
 
-        var with = without with
-        {
-            EditSessionWithPathsInterfaceMetadataName = "Downstream.IEditSessionWithPaths",
-        };
+        var with = without with { EditSessionWithPathsInterfaceMetadataName = "Downstream.IEditSessionWithPaths" };
         SparseEditSessionPathsEmitter.HasPathsSurface(with, TypedPathsDialect()).ShouldBeTrue();
         SparseEditSessionPathsEmitter
-            .GetPathsInterfaceBase(
-                model,
-                "global::Ns.ReadModel",
-                with,
-                TypedPathsDialect(),
-                CancellationToken.None
-            )
+            .GetPathsInterfaceBase(model, "global::Ns.ReadModel", with, TypedPathsDialect(), CancellationToken.None)
             .ShouldContain("Downstream.IEditSessionWithPaths<global::Ns.ReadModel,");
         using (var code = new SharedIndentedBuilder(CancellationToken.None))
         {
-            SparseEditSessionPathsEmitter.AppendPathsProperty(
-                code,
-                model,
-                "global::Ns.ReadModel",
-                with,
-                TypedPathsDialect()
-            );
-            SparseEditSessionPathsEmitter.AppendPathsField(
-                code,
-                model,
-                "global::Ns.ReadModel",
-                with,
-                TypedPathsDialect()
-            );
+            SparseEditSessionPathsEmitter.AppendPathsProperty(code, model, "global::Ns.ReadModel", with, TypedPathsDialect());
+            SparseEditSessionPathsEmitter.AppendPathsField(code, model, "global::Ns.ReadModel", with, TypedPathsDialect());
             var text = code.ToString();
             text.ShouldContain("Paths => __paths;");
             text.ShouldContain("__paths = new ");

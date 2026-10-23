@@ -23,37 +23,34 @@ public partial class EnumerableTemporaryParentBaselineModel
 
 public sealed class TemporaryEnumerableReconcileTests
 {
+    private static (Dictionary<(string Scope, Guid Temp), object?>? Map, string? Error) BuildTempMap<TModel>(TModel submitted, TModel persisted)
+    {
+        var method = typeof(TModel)
+            .Assembly.GetTypes()
+            .Select(static type =>
+                type.GetMethod("__SparseBuildTempMap", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+            )
+            .Where(static candidate => candidate is not null)
+            .Single(candidate => candidate!.GetParameters()[0].ParameterType == typeof(TModel))!;
+        return ((Dictionary<(string Scope, Guid Temp), object?>? Map, string? Error))method.Invoke(null, [submitted, persisted])!;
+    }
+
     [Test]
     public void TemporaryCorrelationIndexesPersistedEnumerableOnceForManyRows()
     {
-        var identities = Enumerable
-            .Range(1, 1_000)
-            .Select(id => (Id: id, TemporaryId: Guid.NewGuid()))
-            .ToArray();
+        var identities = Enumerable.Range(1, 1_000).Select(id => (Id: id, TemporaryId: Guid.NewGuid())).ToArray();
         var submitted = new EnumerableTemporaryBaselineModel
         {
-            Lines = identities.Select(static item => new TempOrderLine
-            {
-                TemporaryId = item.TemporaryId,
-            }),
+            Lines = identities.Select(static item => new TempOrderLine { TemporaryId = item.TemporaryId }),
         };
         var persisted = new EnumerableTemporaryBaselineModel
         {
             Lines = new SinglePassEnumerable<TempOrderLine>(
-                identities
-                    .Reverse()
-                    .Select(static item => new TempOrderLine
-                    {
-                        Id = item.Id,
-                        TemporaryId = item.TemporaryId,
-                    })
+                identities.Reverse().Select(static item => new TempOrderLine { Id = item.Id, TemporaryId = item.TemporaryId })
             ),
         };
 
-        var (map, error) = EnumerableTemporaryBaselineModel.__SparseBuildTempMap(
-            submitted,
-            persisted
-        );
+        var (map, error) = BuildTempMap(submitted, persisted);
 
         error.ShouldBeNull();
         map.ShouldNotBeNull();
@@ -67,10 +64,7 @@ public sealed class TemporaryEnumerableReconcileTests
     [Test]
     public void AssignedParentCorrelationIndexesEachPersistedCollectionOnce()
     {
-        var parents = Enumerable
-            .Range(1, 100)
-            .Select(id => (Id: id, TemporaryId: Guid.NewGuid()))
-            .ToArray();
+        var parents = Enumerable.Range(1, 100).Select(id => (Id: id, TemporaryId: Guid.NewGuid())).ToArray();
         var submitted = new EnumerableTemporaryParentBaselineModel
         {
             Parents = parents.Select(static parent => new EnumerableTemporaryParent
@@ -88,29 +82,20 @@ public sealed class TemporaryEnumerableReconcileTests
                     {
                         Id = parent.Id,
                         Children = new SinglePassEnumerable<TempOrderLine>([
-                            new TempOrderLine
-                            {
-                                Id = parent.Id + 1,
-                                TemporaryId = parent.TemporaryId,
-                            },
+                            new TempOrderLine { Id = parent.Id + 1, TemporaryId = parent.TemporaryId },
                         ]),
                     })
             ),
         };
 
-        var (map, error) = EnumerableTemporaryParentBaselineModel.__SparseBuildTempMap(
-            submitted,
-            persisted
-        );
+        var (map, error) = BuildTempMap(submitted, persisted);
 
         error.ShouldBeNull();
         map.ShouldNotBeNull();
         map.Count.ShouldBe(parents.Length);
         foreach (var parent in parents)
         {
-            (
-                (TempOrderLine)map[($"Parents[{parent.Id}].Children", parent.TemporaryId)]!
-            ).Id.ShouldBe(parent.Id + 1);
+            ((TempOrderLine)map[($"Parents[{parent.Id}].Children", parent.TemporaryId)]!).Id.ShouldBe(parent.Id + 1);
         }
     }
 
@@ -119,10 +104,7 @@ public sealed class TemporaryEnumerableReconcileTests
     [Arguments(true)]
     public void EnumerableReconcileRetainsLocalAdditionAfterItsPredecessor(bool listBacked)
     {
-        var model = new EnumerableTemporaryBaselineModel
-        {
-            Lines = Storage([new() { Id = 7, Name = "existing" }], listBacked),
-        };
+        var model = new EnumerableTemporaryBaselineModel { Lines = Storage([new() { Id = 7, Name = "existing" }], listBacked) };
         var session = model.CreateEditSession();
         var pending = new TempOrderLine { TemporaryId = Guid.NewGuid(), Name = "submitted" };
         model.Lines = Storage([.. model.Lines, pending], listBacked);
@@ -151,9 +133,7 @@ public sealed class TemporaryEnumerableReconcileTests
 
         error.ShouldBeNull();
         model.Lines.Select(item => item.Id).ShouldBe([7, 8, 0, 9]);
-        model
-            .Lines.Select(item => item.Name)
-            .ShouldBe(["server existing", "edited", "local", "server added"]);
+        model.Lines.Select(item => item.Name).ShouldBe(["server existing", "edited", "local", "server added"]);
         model.Lines.ElementAt(2).TemporaryId.ShouldBe(local.TemporaryId);
         session.HasChanges.ShouldBeTrue();
     }
@@ -182,7 +162,6 @@ public sealed class TemporaryEnumerableReconcileTests
             return _items.GetEnumerator();
         }
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
-            GetEnumerator();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

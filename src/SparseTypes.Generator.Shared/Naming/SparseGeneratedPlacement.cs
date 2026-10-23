@@ -17,6 +17,62 @@ internal static class SparseGeneratedPlacement
     /// <summary>Simple name of the per-model change-set operation container.</summary>
     public const string ChangeSetOperationsSimpleName = "ChangeSetOperations";
 
+    /// <summary>Gets the model-specific public FragmentBuilder type name.</summary>
+    public static string GetFragmentBuilderSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        GetImplementationContainer(model, cancellationToken) + "FragmentBuilder";
+
+    /// <summary>Gets the model-specific public SparsePaths type name.</summary>
+    public static string GetSparsePathsSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        GetImplementationContainer(model, cancellationToken) + "SparsePaths";
+
+    /// <summary>Gets the qualified top-level SparsePaths type for one model.</summary>
+    public static string GetSparsePathsTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
+    {
+        var root = TryGetImplementationNamespace(config) ?? (model.IsGlobalNamespace ? string.Empty : model.Namespace);
+        var prefix = root.Length == 0 ? "global::" : "global::" + root + ".";
+        return prefix + GetSparsePathsSimpleName(model, cancellationToken);
+    }
+
+    /// <summary>Gets the qualified top-level FragmentBuilder type for one model.</summary>
+    public static string GetFragmentBuilderTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
+    {
+        var root = TryGetImplementationNamespace(config) ?? (model.IsGlobalNamespace ? string.Empty : model.Namespace);
+        var prefix = root.Length == 0 ? "global::" : "global::" + root + ".";
+        return prefix + GetFragmentBuilderSimpleName(model, cancellationToken);
+    }
+
+    /// <summary>Gets the model-specific temporary-key reconciliation helper name.</summary>
+    public static string GetTemporaryKeyReconcilerSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
+        GetImplementationContainer(model, cancellationToken) + "TemporaryKeyReconciler";
+
+    /// <summary>Gets the qualified model-specific temporary-key reconciliation helper type.</summary>
+    public static string GetTemporaryKeyReconcilerTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
+    {
+        var root = TryGetImplementationNamespace(config) ?? (model.IsGlobalNamespace ? string.Empty : model.Namespace);
+        var prefix = root.Length == 0 ? "global::" : "global::" + root + ".";
+        return prefix + GetTemporaryKeyReconcilerSimpleName(model, cancellationToken);
+    }
+
+    /// <summary>Gets a child model's qualified temporary-key reconciliation helper type.</summary>
+    public static string GetTemporaryKeyReconcilerTypeNameForQualifiedName(
+        string qualifiedTypeName,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        var root = TryGetImplementationNamespace(config);
+        if (root is not null)
+        {
+            return "global::" + root + "." + GetContainerForQualifiedName(qualifiedTypeName, cancellationToken) + "TemporaryKeyReconciler";
+        }
+
+        var identity = QualifiedIdentity(qualifiedTypeName);
+        var separator = identity.LastIndexOf('.');
+        var modelNamespace = separator < 0 ? string.Empty : identity.Substring(0, separator);
+        var prefix = modelNamespace.Length == 0 ? "global::" : "global::" + modelNamespace + ".";
+        return prefix + GetContainerForQualifiedName(qualifiedTypeName, cancellationToken) + "TemporaryKeyReconciler";
+    }
+
     /// <summary>Gets the configured implementation namespace, or null when disabled.</summary>
     /// <param name="config">Owning generator configuration.</param>
     /// <returns>The explicit namespace, or null for single-file emission.</returns>
@@ -123,13 +179,18 @@ internal static class SparseGeneratedPlacement
         return root is null ? null : "global::" + root + "." + GetFragmentOperationsSimpleName(model, cancellationToken);
     }
 
-    /// <summary>Gets the simple per-model fragment JSON converter type name.</summary>
-    /// <remarks>Shares the implementation-container identity root so the converter.</remarks>
-    /// <param name="model">Model identity.</param>
-    /// <param name="cancellationToken">Cooperative cancellation.</param>
-    /// <returns>A valid C# type name unique per model identity.</returns>
-    public static string GetFragmentJsonConverterSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
-        GetImplementationContainer(model, cancellationToken) + "FragmentJsonConverter";
+    /// <summary>Gets a qualified child model's fragment operations type name, or null for single-file emission.</summary>
+    public static string? GetFragmentOperationsTypeNameForQualifiedName(
+        string qualifiedTypeName,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        var root = TryGetImplementationNamespace(config);
+        return root is null
+            ? null
+            : "global::" + root + "." + GetContainerForQualifiedName(qualifiedTypeName, cancellationToken) + "FragmentOperations";
+    }
 
     /// <summary>Gets the qualified payload container name for split emission.</summary>
     /// <remarks>Single-file emission keeps the legacy nested simple name.</remarks>
@@ -161,6 +222,30 @@ internal static class SparseGeneratedPlacement
         var identity = QualifiedIdentity(qualifiedTypeName);
         var container = SparseNaming.Sanitize(identity, cancellationToken) + "_" + SparseNaming.GetStableTypeHash(identity, cancellationToken);
         return char.IsLetter(container[0]) || container[0] == '_' ? container : "_" + container;
+    }
+
+    /// <summary>Gets a child model's top-level Paths type name from its qualified type name.</summary>
+    public static string GetSparsePathsSimpleNameForQualifiedName(string qualifiedTypeName, CancellationToken cancellationToken) =>
+        GetContainerForQualifiedName(qualifiedTypeName, cancellationToken) + "SparsePaths";
+
+    /// <summary>Gets the qualified top-level SparsePaths type for a child model.</summary>
+    public static string GetSparsePathsTypeNameForQualifiedName(
+        string qualifiedTypeName,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken
+    )
+    {
+        var root = TryGetImplementationNamespace(config);
+        if (root is not null)
+        {
+            return "global::" + root + "." + GetSparsePathsSimpleNameForQualifiedName(qualifiedTypeName, cancellationToken);
+        }
+
+        var identity = QualifiedIdentity(qualifiedTypeName);
+        var separator = identity.LastIndexOf('.');
+        var modelNamespace = separator < 0 ? string.Empty : identity.Substring(0, separator);
+        var prefix = modelNamespace.Length == 0 ? "global::" : "global::" + modelNamespace + ".";
+        return prefix + GetSparsePathsSimpleNameForQualifiedName(qualifiedTypeName, cancellationToken);
     }
 
     /// <summary>Gets the model-nested observable reference.</summary>

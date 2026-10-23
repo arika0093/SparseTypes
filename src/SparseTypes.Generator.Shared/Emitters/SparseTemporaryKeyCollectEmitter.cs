@@ -35,7 +35,8 @@ internal static class SparseTemporaryKeyCollectEmitter
     internal static void AppendCollectTempMap(
         SharedIndentedBuilder code,
         string modelType,
-        System.Collections.Immutable.ImmutableArray<SparseMemberModel> members
+        System.Collections.Immutable.ImmutableArray<SparseMemberModel> members,
+        System.Func<string, string> reconcilerTypeName
     )
     {
         code.AppendLine("/// <summary>Collects temporary correlations for this model into a shared map.</summary>");
@@ -54,7 +55,7 @@ internal static class SparseTemporaryKeyCollectEmitter
         {
             if (SparseChangeSetBasicsEmitter.IsKeyed(member) && member.Collection.ElementType.IsFragmentModel)
             {
-                AppendKeyedCollect(code, member);
+                AppendKeyedCollect(code, member, reconcilerTypeName);
             }
             else if (
                 member.ChildModel is not null
@@ -62,14 +63,14 @@ internal static class SparseTemporaryKeyCollectEmitter
                 && member.ChildModel.Value.IsFragmentModel
             )
             {
-                AppendNestedCollect(code, member);
+                AppendNestedCollect(code, member, reconcilerTypeName);
             }
         }
         code.AppendLine("return null;");
         code.CloseBlock();
     }
 
-    private static void AppendKeyedCollect(SharedIndentedBuilder code, SparseMemberModel member)
+    private static void AppendKeyedCollect(SharedIndentedBuilder code, SparseMemberModel member, System.Func<string, string> reconcilerTypeName)
     {
         var elementType = member.Collection.ElementType.NonNullableName;
         var keyType = member.Collection.KeyTypeName ?? "object?";
@@ -173,7 +174,13 @@ internal static class SparseTemporaryKeyCollectEmitter
             code.AppendLine("map[(__collectionScope" + member.Id + ", __st.Value)] = (object?)" + foundUse + ";");
             code.AppendLine("var __elemScope" + member.Id + " = __collectionScope" + member.Id + " + \"[\" + __st.Value.ToString(\"D\") + \"]\";");
             code.AppendLine(
-                "var __childError = " + elementType + ".__SparseCollectTempMap(__s, " + foundUse + ", map, __elemScope" + member.Id + ");"
+                "var __childError = "
+                    + reconcilerTypeName(elementType)
+                    + ".__SparseCollectTempMap(__s, "
+                    + foundUse
+                    + ", map, __elemScope"
+                    + member.Id
+                    + ");"
             );
             code.AppendLine("if (__childError is not null) return __childError;");
             code.CloseBlock();
@@ -239,7 +246,13 @@ internal static class SparseTemporaryKeyCollectEmitter
                     + ".Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"]\", \"\\\\]\") + \"]\";"
             );
             code.AppendLine(
-                "var __nestedError = " + elementType + ".__SparseCollectTempMap(__s, " + matchUse + ", map, __assignedScope" + member.Id + ");"
+                "var __nestedError = "
+                    + reconcilerTypeName(elementType)
+                    + ".__SparseCollectTempMap(__s, "
+                    + matchUse
+                    + ", map, __assignedScope"
+                    + member.Id
+                    + ");"
             );
             code.AppendLine("if (__nestedError is not null) return __nestedError;");
             code.CloseBlock();
@@ -336,7 +349,7 @@ internal static class SparseTemporaryKeyCollectEmitter
         }
     }
 
-    private static void AppendNestedCollect(SharedIndentedBuilder code, SparseMemberModel member)
+    private static void AppendNestedCollect(SharedIndentedBuilder code, SparseMemberModel member, System.Func<string, string> reconcilerTypeName)
     {
         var childType = member.ChildModel!.Value.NonNullableName;
         var prop = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -350,7 +363,9 @@ internal static class SparseTemporaryKeyCollectEmitter
             code.AppendLine("if (__sub is not null && __per is not null)");
             code.OpenBlock();
             code.AppendLine("var __nestedScope" + member.Id + " = string.IsNullOrEmpty(__scope) ? \"" + prop + "\" : __scope + \"." + prop + "\";");
-            code.AppendLine("var __nestedError = " + childType + ".__SparseCollectTempMap(__sub, __per, map, __nestedScope" + member.Id + ");");
+            code.AppendLine(
+                "var __nestedError = " + reconcilerTypeName(childType) + ".__SparseCollectTempMap(__sub, __per, map, __nestedScope" + member.Id + ");"
+            );
             code.AppendLine("if (__nestedError is not null) return __nestedError;");
             code.CloseBlock();
             code.CloseBlock();
@@ -364,7 +379,11 @@ internal static class SparseTemporaryKeyCollectEmitter
             code.OpenBlock();
             code.AppendLine("var __nestedScope" + member.Id + " = string.IsNullOrEmpty(__scope) ? \"" + prop + "\" : __scope + \"." + prop + "\";");
             code.AppendLine(
-                "var __nestedError = " + childType + ".__SparseCollectTempMap(__sub.Value, __per.Value, map, __nestedScope" + member.Id + ");"
+                "var __nestedError = "
+                    + reconcilerTypeName(childType)
+                    + ".__SparseCollectTempMap(__sub.Value, __per.Value, map, __nestedScope"
+                    + member.Id
+                    + ");"
             );
             code.AppendLine("if (__nestedError is not null) return __nestedError;");
             code.CloseBlock();
@@ -376,7 +395,7 @@ internal static class SparseTemporaryKeyCollectEmitter
             code.AppendLine("var __nestedScope" + member.Id + " = string.IsNullOrEmpty(__scope) ? \"" + prop + "\" : __scope + \"." + prop + "\";");
             code.AppendLine(
                 "var __nestedError = "
-                    + childType
+                    + reconcilerTypeName(childType)
                     + ".__SparseCollectTempMap(submitted."
                     + prop
                     + ", persisted."

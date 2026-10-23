@@ -67,20 +67,19 @@ public sealed class PayloadImplementationSplitTests
 
         // Facades stay model-facing.
         merged.ShouldContain("class ChangePayload");
-        merged.ShouldContain("FragmentJsonConverter");
-        // The public Fragment accessor forwards directly to the implementation converter.
-        merged.ShouldContain("public static global::System.Text.Json.Serialization.JsonConverter<Fragment> JsonConverter");
+        merged.ShouldNotContain("FragmentJsonConverter");
         // The DTO hierarchy stays model-facing; converter bodies live in generated source.
-        merged.ShouldContain("static partial class __Internal_");
-        merged.ShouldContain("public class Core_");
-        merged.ShouldContain("public sealed class Root_");
+        merged.ShouldContain("static partial class SplitParent_");
+        merged.ShouldContain("SerializeObjects");
+        merged.ShouldContain("public class Core");
+        merged.ShouldContain("public sealed class Root");
         merged.ShouldContain("PayloadJsonConverter");
         merged.ShouldContain("PayloadJsonResolver");
         var allSources = string.Concat(sources.Values);
-        allSources.ShouldContain(": global::System.Text.Json.Serialization.JsonConverter<Fragment>");
-        allSources.ShouldContain("public override Fragment Read(");
+        allSources.ShouldContain(": global::System.Text.Json.Serialization.JsonConverter<global::SplitParent.ChangePayload>");
+        allSources.ShouldContain("public override global::SplitParent.ChangePayload? Read(");
         // Container references resolve through the shared file alias.
-        merged.ShouldContain("using __Internal_");
+        merged.ShouldContain("using SplitParent_");
     }
 
     [Test]
@@ -93,16 +92,18 @@ public sealed class PayloadImplementationSplitTests
         var merged = sources[mergedHint];
 
         merged.ShouldContain("namespace SparseTypes.Generated");
-        merged.ShouldContain("static partial class __Internal_");
-        merged.ShouldContain("public class Core_");
-        merged.ShouldContain("public sealed class Root_");
+        merged.ShouldContain("static partial class SplitParent_");
+        merged.ShouldContain("SerializeObjects");
+        merged.ShouldContain("public class Core");
+        merged.ShouldContain("public sealed class Root");
         merged.ShouldContain("PayloadJsonConverter");
         merged.ShouldContain("PayloadJsonResolver");
-        merged.ShouldContain("FragmentJsonConverter");
-        merged.ShouldContain("public override Fragment Read(");
+        merged.ShouldNotContain("FragmentJsonConverter");
+        merged.ShouldContain("public override global::SplitParent.ChangePayload? Read(");
         merged.ShouldContain("public override void Write(");
         // Nested child payloads resolve to the implementation namespace.
-        merged.ShouldContain("global::SparseTypes.Generated.__Internal_");
+        merged.ShouldContain("global::SparseTypes.Generated.SplitChild_");
+        merged.ShouldContain("SerializeObjects");
         // The generated model change uses a typed update/replacement contract.
         merged.ShouldContain("\"members\"");
         merged.ShouldContain("\"kind\"");

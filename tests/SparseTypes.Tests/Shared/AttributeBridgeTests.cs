@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SparseTypes.Generator;
@@ -8,8 +7,8 @@ using SparseTypes.Generator.Shared;
 
 namespace SparseTypes.Tests.Shared;
 
-// Verify attribute bridges are emitted on the surface and referenced by
-// descriptor factories, regardless of descriptor dialect.
+// Verify descriptor factories can materialize member attributes without
+// exposing generated bridges on model types.
 public sealed class AttributeBridgeTests
 {
     private const string AttributeExpression = "new global::System.ComponentModel.DescriptionAttribute(\"bridge-probe\")";
@@ -121,15 +120,14 @@ public sealed class AttributeBridgeTests
         BuildSplit(config, members).Surface;
 
     [Test]
-    public void SurfaceAndFactoryAgreeOnBridgeNames()
+    public void DescriptorFactoryOwnsAttributeExpressionsWithoutModelBridges()
     {
         var config = ProductConfigWithoutDescriptors();
         var members = AttributedMembers();
         var surface = BuildSurface(config, members);
-        surface.ShouldContain("internal static global::System.Attribute[] __SparseAttributes_0()");
+        surface.ShouldNotContain("__SparseAttributes_");
 
-        // The descriptor factory calls back into the same model-local bridge
-        // the surface defines instead of inlining private attribute types.
+        // The nested factory can access model-private attribute types directly.
         var factoryConfig = ProductConfig();
         var factory = SparseDescriptorFactoryEmitter.BuildFactorySource(
             BridgeModel(),
@@ -138,11 +136,12 @@ public sealed class AttributeBridgeTests
             CancellationToken.None,
             factoryConfig.RuntimeDialect!.Namespace
         );
-        factory.ShouldContain("ReadModel.__SparseAttributes_0()");
+        factory.ShouldContain("new global::System.Attribute[]");
+        factory.ShouldNotContain("__SparseAttributes_");
     }
 
     [Test]
-    public void DescriptorFactoryEmitsItsSignatureReceiversAndAttributeBridgesDirectly()
+    public void DescriptorFactoryEmitsItsSignatureReceiversAndAttributeExpressionsDirectly()
     {
         var config = ProductConfig();
         var source = SparseDescriptorFactoryEmitter.BuildFactorySource(
@@ -154,7 +153,8 @@ public sealed class AttributeBridgeTests
         );
 
         source.ShouldContain("Create(");
-        source.ShouldContain("ReadModel.__SparseAttributes_0()");
+        source.ShouldContain("new global::System.Attribute[]");
+        source.ShouldNotContain("__SparseAttributes_");
         source.ShouldContain("observable.Label");
         source.ShouldContain("observable.__model.Label");
         source.ShouldNotContain("__SparseGetDescriptors_");
@@ -195,22 +195,10 @@ public sealed class AttributeBridgeTests
         );
         implementations.ShouldNotBeEmpty();
 
-        // Every bridge call in the implementation outputs must resolve to a
-        // bridge the surface defines; otherwise the compilation below fails.
-        var defined = new HashSet<string>(
-            Regex
-                .Matches(surface, @"__SparseAttributes_(\d+)\(\) =>", RegexOptions.None, TimeSpan.FromSeconds(1))
-                .Select(static match => match.Groups[1].Value)
-        );
-        var referenced = implementations
-            .SelectMany(static source =>
-                Regex
-                    .Matches(source.Source, @"__SparseAttributes_(\d+)\(\)", RegexOptions.None, TimeSpan.FromSeconds(1))
-                    .Select(static match => match.Groups[1].Value)
-            )
-            .Distinct()
-            .ToArray();
-        referenced.ShouldBeSubsetOf(defined);
+        surface.ShouldNotContain("__SparseAttributes_");
+        implementations
+            .Select(static source => source.Source)
+            .ShouldAllBe(static text => !text.Contains("__SparseAttributes_", StringComparison.Ordinal));
 
         var cores = SparseEditSessionEmitter.RenderCoreSources(config.EditSessionDialect!, config.RuntimeDialect!, config.PatchDialect!.Value);
         var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(config)!;

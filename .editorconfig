@@ -24,3 +24,7 @@ csharp_style_namespace_declarations = file_scoped:error
 # Sonar S104: Files should not have too many lines of code.
 dotnet_diagnostic.S104.severity = error
 
+[*.g.cs]
+# Generated output favours compact single-statement bodies over hand-written style rules.
+csharp_prefer_braces = false:suggestion
+dotnet_diagnostic.IDE0011.severity = none

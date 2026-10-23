@@ -704,7 +704,7 @@ A `[JsonIgnore]` member remains part of the neutral payload produced by `ToPaylo
 
 The base package does not depend on `System.Text.Json`. JSON attributes, converters, and the endpoint bridge are generated only when the consuming compilation references a compatible API set. `Fragment`, `Patch`, `ChangeSet`, and the `ChangePayload` CLR projections (`ToPayload`, `FromPatch`, `ToPatch`, `ToChangeSet`) work without it. A compilation with a partial API set gets the same omission plus a diagnostic that names the missing members.
 
-The payload codec is generated from the wire contract and does not use polymorphic serializer attributes. It needs `JsonSerializer`, `JsonConverter<T>`, `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`/`JsonIgnoreCondition`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonTypeInfo`, `JsonSerializerOptions.GetTypeInfo`, and the scalar codec members called by generated converters. Generated fragment converters also use `JsonUnmappedMemberHandling.Disallow` when available. A partial `System.Text.Json` reference omits JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with missing API names; a compilation with no reference stays silent and builds the serializer-independent core.
+The payload codec is generated from the wire contract and does not use polymorphic serializer attributes. It needs `JsonSerializer`, `JsonConverter<T>`, `JsonPropertyName`, `JsonPropertyOrder`, `JsonIgnore`/`JsonIgnoreCondition`, `Utf8JsonReader`, `Utf8JsonWriter`, `JsonTokenType`, `JsonTypeInfo`, `JsonSerializerOptions.GetTypeInfo`, and the scalar codec members called by generated converters. A partial `System.Text.Json` reference omits JSON artifacts and reports [SPF028](analyzer.md#spf028-invalid-downstream-emission-plan) with missing API names; a compilation with no reference stays silent and builds the serializer-independent core.
 
 The scalar-set payload from the earlier section serializes through the generated resolver like this:
 
@@ -733,8 +733,8 @@ NativeAOT and trimmed applications need serializer metadata at build time. Confi
 </PropertyGroup>
 ```
 
-Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes outside the generated leaf contract (polymorphic `object`/interface members, custom converters, extension data, and other [SPF036](analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata) shapes). Payload shapes resolve through the generated `T.PayloadJson.Default` entry point, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration, and ordinary custom objects use the generated leaf codecs. Fragment serialization uses the same fast paths for those shapes.
-The following endpoint, root-snapshot, key, and collection-element types round-trip with the generated resolver alone; fragment converters cover the same set, so `Fragment` JSON needs no registration for these shapes either.
+Declare a source-generated `JsonSerializerContext` next to the models only for custom value shapes outside the generated leaf contract (polymorphic `object`/interface members, custom converters, extension data, and other [SPF036](analyzer.md#spf036-custom-leaf-type-needs-external-json-metadata) shapes). Payload shapes resolve through the generated `T.PayloadJson.Default` entry point, so the context never registers `T.ChangePayload`. Primitive, enum, and collection endpoint values use the generated fast paths and need no registration, and ordinary custom objects use the generated leaf codecs. `Fragment` does not have a generated JSON converter; serialize its model projection when a JSON view is needed.
+The following endpoint, root-snapshot, key, and collection-element types round-trip with the generated resolver alone.
 
 | Category | Covered types | Wire encoding |
 | --- | --- | --- |

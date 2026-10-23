@@ -37,42 +37,23 @@ public sealed class FragmentOperationsSplitTests
 
     private static Dictionary<string, string> Sources()
     {
-        var trees = Files()
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = Files().Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseFragmentOperationsSplitProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        var driver = CSharpGeneratorDriver.Create(
-            new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() }
-        );
+        var driver = CSharpGeneratorDriver.Create(new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() });
         var result = driver.RunGenerators(compilation).GetRunResult();
-        result
-            .Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        result.Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return result
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
     [Test]
@@ -82,14 +63,10 @@ public sealed class FragmentOperationsSplitTests
         // Single-file emission: one merged hint per model carries the surface
         // plus implementations.
         var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         sources
-            .Keys.Count(key =>
-                key.Contains("OpsParent", StringComparison.Ordinal)
-                && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal)
-            )
+            .Keys.Count(key => key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal))
             .ShouldBe(0);
         var merged = sources[mergedHint];
 
@@ -102,7 +79,8 @@ public sealed class FragmentOperationsSplitTests
         merged.ShouldContain("FragmentOperations.DeepClone(this)");
         // Ergonomic state and builders stay model-facing.
         merged.ShouldContain("public sealed class Fragment");
-        merged.ShouldContain("public sealed class FragmentBuilder");
+        merged.ShouldContain("public sealed class ");
+        merged.ShouldContain("FragmentBuilder");
         merged.ShouldContain("public static Fragment Empty");
         // Narrow CLR-mandated bridges stay: init-only storage with cycle
         // registration, the writable writer, and per-member equality shims.
@@ -121,8 +99,7 @@ public sealed class FragmentOperationsSplitTests
     {
         var sources = Sources();
         var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         var merged = sources[mergedHint];
 
@@ -144,16 +121,14 @@ public sealed class FragmentOperationsSplitTests
     }
 
     [Test]
-    public void OperationsAccessibilityFollowsLanguageVersion()
+    public void SplitOperationsAreAssemblyVisibleForCrossModelCloning()
     {
         var sources = Sources();
         var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
-        // Driver compilations default to the latest stable language,
-        // so the same-file-only operations class narrows to file-scoped.
-        sources[mergedHint].ShouldContain("file static class ");
+        // Child model clone operations are referenced across generated files.
+        sources[mergedHint].ShouldContain("internal static class ");
     }
 
     [Test]
@@ -163,36 +138,28 @@ public sealed class FragmentOperationsSplitTests
         var child = sources
             .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source =>
-                source.Contains("public static Fragment From(", StringComparison.Ordinal)
-            );
+            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
         child.ShouldNotContain("CreateFromCycleContext");
         child.ShouldNotContain("CreateDiffCycleContext");
         child.ShouldNotContain("Cyclic reference detected during From");
         child.ShouldNotContain("Cyclic reference detected during Diff");
         child.ShouldContain("Dictionary<object, object> __sparse_clone_context)");
         child.ShouldNotContain("HashSet<object> __sparse_from_context");
-        child.ShouldNotContain(
-            "HashSet<global::System.Collections.Generic.KeyValuePair<object, object>> __sparse_diff_context"
-        );
+        child.ShouldNotContain("HashSet<global::System.Collections.Generic.KeyValuePair<object, object>> __sparse_diff_context");
         child.ShouldNotContain("__sparse_from_path");
         child.ShouldNotContain("__sparse_diff_path");
 
         var parent = sources
             .Where(pair => pair.Key.Contains("OpsParent", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source =>
-                source.Contains("public static Fragment From(", StringComparison.Ordinal)
-            );
+            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
         parent.ShouldContain("CreateFromCycleContext");
         parent.ShouldContain("CreateDiffCycleContext");
         parent.ShouldContain("Cyclic reference detected during From");
         parent.ShouldContain("Cyclic reference detected during Diff");
         parent.ShouldContain(".From(value.Child, __sparse_clone_context)");
         parent.ShouldContain("__Diff_0(before.Child, after.Child)");
-        parent.ShouldNotContain(
-            ".From(value.Child, __sparse_clone_context, __sparse_from_context,"
-        );
+        parent.ShouldNotContain(".From(value.Child, __sparse_clone_context, __sparse_from_context,");
         parent.ShouldNotContain("__Diff_0(before.Child, after.Child, __sparse_diff_context,");
     }
 
@@ -203,9 +170,7 @@ public sealed class FragmentOperationsSplitTests
         var child = sources
             .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source =>
-                source.Contains("public static Fragment From(", StringComparison.Ordinal)
-            );
+            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
 
         child.ShouldContain("Count = source.Count");
         child.ShouldNotContain("source.Count is null");

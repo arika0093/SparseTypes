@@ -40,7 +40,7 @@ Here, `T` means a model with SparseTypes support, not an actual generic type par
 
 The member tables cover the application-facing types named on each page. Overloads with the same purpose are grouped, with their different inputs identified. Routine inherited .NET members and synthesized record equality members are not repeated.
 
-Public accessibility alone does not make a type an application entry point. `CompilerServices`, operation kernels, descriptor construction delegates, session hooks, and generated `__Internal_*` wire types support generated code or custom framework adapters. Prefer the model-facing APIs and descriptor interfaces; do not copy hashed generated type names into application code.
+Public accessibility alone does not make a type an application entry point. `CompilerServices`, operation kernels, descriptor construction delegates, session hooks, and generated serialization-object types support generated code or custom framework adapters. Prefer the model-facing APIs and descriptor interfaces; do not copy implementation type names into application code.
 
 `SparseTypes.Generator.Shared` serves authors of other source generators. Its configuration and dialect contracts are documented in its [consumer README](../../src/SparseTypes.Generator.Shared/README.md), separately from this application API reference.
 

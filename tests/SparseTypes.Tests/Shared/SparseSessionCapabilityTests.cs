@@ -391,6 +391,11 @@ public sealed class SparseSessionCapabilityTests
         }
     }
 
-    private static string DeclarationLine(string source) =>
-        source.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries).First(static line => line.Contains("public sealed class EditSession : "));
+    private static string DeclarationLine(string source)
+    {
+        var lines = source.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        var declarationStart = Array.FindIndex(lines, static line => line.Contains("public sealed class EditSession :", StringComparison.Ordinal));
+        declarationStart.ShouldBeGreaterThanOrEqualTo(0);
+        return string.Join(" ", lines.Skip(declarationStart).TakeWhile(static line => !line.Contains("{", StringComparison.Ordinal)));
+    }
 }

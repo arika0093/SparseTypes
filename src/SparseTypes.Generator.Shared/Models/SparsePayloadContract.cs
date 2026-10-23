@@ -31,7 +31,7 @@ internal enum SparsePayloadEndpointState
 
 internal enum SparsePayloadDtoRole
 {
-    Snapshot,
+    Root,
     MembersDelta,
     ModelChange,
     CollectionChange,
@@ -131,7 +131,7 @@ internal sealed record SparsePayloadContract
 
     public ImmutableArray<string> ModelDependencies { get; init; } = ImmutableArray<string>.Empty;
 
-    public ImmutableArray<SparsePayloadOperationKind> RootChangeOperations { get; init; } = ImmutableArray<SparsePayloadOperationKind>.Empty;
+    public ImmutableArray<SparsePayloadOperationKind> ModelChangeOperations { get; init; } = ImmutableArray<SparsePayloadOperationKind>.Empty;
 
     public ImmutableArray<SparsePayloadEndpointState> EndpointStates { get; init; } = ImmutableArray<SparsePayloadEndpointState>.Empty;
 
@@ -155,7 +155,7 @@ internal sealed record SparsePayloadContract
         && SparseSequence.Equal(TransportMembers, other.TransportMembers)
         && SparseSequence.Equal(JsonMembers, other.JsonMembers)
         && SparseSequence.Equal(ModelDependencies, other.ModelDependencies)
-        && SparseSequence.Equal(RootChangeOperations, other.RootChangeOperations)
+        && SparseSequence.Equal(ModelChangeOperations, other.ModelChangeOperations)
         && SparseSequence.Equal(EndpointStates, other.EndpointStates)
         && SparseSequence.Equal(DtoRoles, other.DtoRoles)
         && IgnoreUnknownMembers == other.IgnoreUnknownMembers
@@ -174,7 +174,7 @@ internal sealed record SparsePayloadContract
         hash = unchecked(hash * 31 + SparseSequence.Hash(TransportMembers));
         hash = unchecked(hash * 31 + SparseSequence.Hash(JsonMembers));
         hash = unchecked(hash * 31 + SparseSequence.Hash(ModelDependencies));
-        hash = unchecked(hash * 31 + SparseSequence.Hash(RootChangeOperations));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(ModelChangeOperations));
         hash = unchecked(hash * 31 + SparseSequence.Hash(EndpointStates));
         hash = unchecked(hash * 31 + SparseSequence.Hash(DtoRoles));
         hash = unchecked(hash * 31 + (IgnoreUnknownMembers ? 1 : 0));
@@ -222,7 +222,7 @@ internal sealed record SparsePayloadContract
             TransportMembers = transportMembers,
             JsonMembers = jsonMembers,
             ModelDependencies = dependencies,
-            RootChangeOperations = ImmutableArray.Create(SparsePayloadOperationKind.Update, SparsePayloadOperationKind.Replace),
+            ModelChangeOperations = ImmutableArray.Create(SparsePayloadOperationKind.Update, SparsePayloadOperationKind.Replace),
             EndpointStates = ImmutableArray.Create(
                 SparsePayloadEndpointState.Missing,
                 SparsePayloadEndpointState.Null,
@@ -230,7 +230,7 @@ internal sealed record SparsePayloadContract
                 SparsePayloadEndpointState.Value
             ),
             DtoRoles = ImmutableArray.Create(
-                SparsePayloadDtoRole.Snapshot,
+                SparsePayloadDtoRole.Root,
                 SparsePayloadDtoRole.MembersDelta,
                 SparsePayloadDtoRole.ModelChange,
                 SparsePayloadDtoRole.CollectionChange,

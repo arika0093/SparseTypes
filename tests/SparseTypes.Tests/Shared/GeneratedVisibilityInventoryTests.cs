@@ -39,29 +39,18 @@ public sealed class GeneratedVisibilityInventoryTests
     private static Compilation RunProbe()
     {
         var tree = CSharpSyntaxTree.ParseText(ProbeSource, path: "Models.cs");
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
+        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "VisibilityProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return updated;
     }
 
@@ -88,10 +77,7 @@ public sealed class GeneratedVisibilityInventoryTests
         var container = symbol.ContainingType;
         while (container is not null)
         {
-            if (
-                container.DeclaredAccessibility == Accessibility.Private
-                || container.DeclaredAccessibility == Accessibility.NotApplicable
-            )
+            if (container.DeclaredAccessibility == Accessibility.Private || container.DeclaredAccessibility == Accessibility.NotApplicable)
             {
                 return "Private";
             }
@@ -125,38 +111,19 @@ public sealed class GeneratedVisibilityInventoryTests
 
         var core = patch.GetTypeMembers("__Core").FirstOrDefault();
         core.ShouldNotBeNull("Patch.__Core must exist for state-bound algorithms.");
-        core!.DeclaredAccessibility.ShouldBe(
-            Accessibility.Private,
-            "Patch.__Core must be private (state-bound, no cross-type seam)."
-        );
+        core!.DeclaredAccessibility.ShouldBe(Accessibility.Private, "Patch.__Core must be private (state-bound, no cross-type seam).");
 
         // Top-level storage is private; cross-family callers use typed APIs or
         // the narrow __Sparse* bridges below, never direct fields.
-        var fields = patch
-            .GetMembers()
-            .Where(static m =>
-                m.Name.StartsWith("__sparse_patch_member_", StringComparison.Ordinal)
-            )
-            .ToArray();
+        var fields = patch.GetMembers().Where(static m => m.Name.StartsWith("__sparse_patch_member_", StringComparison.Ordinal)).ToArray();
         fields.ShouldNotBeEmpty();
         foreach (var field in fields)
         {
-            field.DeclaredAccessibility.ShouldBe(
-                Accessibility.Private,
-                $"Patch storage {field.Name} must be private."
-            );
+            field.DeclaredAccessibility.ShouldBe(Accessibility.Private, $"Patch storage {field.Name} must be private.");
         }
 
         // Documented narrow seams: Patch<->ChangeSet, payload, collection.
-        foreach (
-            var bridge in new[]
-            {
-                "__SparseIsEmpty",
-                "__SparseSet",
-                "__SparseSetNull",
-                "__SparseRemove",
-            }
-        )
+        foreach (var bridge in new[] { "__SparseIsEmpty", "__SparseSet", "__SparseSetNull", "__SparseRemove" })
         {
             var member = patch.GetMembers(bridge).FirstOrDefault();
             member.ShouldNotBeNull($"Bridge {bridge} must exist.");
@@ -184,25 +151,15 @@ public sealed class GeneratedVisibilityInventoryTests
                 continue;
             }
 
-            member.DeclaredAccessibility.ShouldBe(
-                Accessibility.Private,
-                $"ChangeSet storage {name} must be private."
-            );
+            member.DeclaredAccessibility.ShouldBe(Accessibility.Private, $"ChangeSet storage {name} must be private.");
         }
 
         // Canonical constructor is private; only __Core builds instances.
-        var ctors = changeSet
-            .GetMembers(".ctor")
-            .OfType<IMethodSymbol>()
-            .Where(static c => c.Parameters.Length > 3)
-            .ToArray();
+        var ctors = changeSet.GetMembers(".ctor").OfType<IMethodSymbol>().Where(static c => c.Parameters.Length > 3).ToArray();
         ctors.ShouldNotBeEmpty();
         foreach (var ctor in ctors)
         {
-            ctor.DeclaredAccessibility.ShouldBe(
-                Accessibility.Private,
-                "Canonical ChangeSet constructor must be private."
-            );
+            ctor.DeclaredAccessibility.ShouldBe(Accessibility.Private, "Canonical ChangeSet constructor must be private.");
         }
     }
 
@@ -220,9 +177,7 @@ public sealed class GeneratedVisibilityInventoryTests
         var patchOps = allTypes.Where(static t => t.Name == "PatchOperations").ToArray();
         var changeSetOps = allTypes.Where(static t => t.Name == "ChangeSetOperations").ToArray();
         patchOps.ShouldBeEmpty("No external PatchOperations may remain (moved to Patch.__Core).");
-        changeSetOps.ShouldBeEmpty(
-            "No external ChangeSetOperations may remain (moved to ChangeSet.__Core)."
-        );
+        changeSetOps.ShouldBeEmpty("No external ChangeSetOperations may remain (moved to ChangeSet.__Core).");
     }
 
     [Test]
@@ -243,9 +198,7 @@ public sealed class GeneratedVisibilityInventoryTests
 
         // Observable bridges (DescriptorFactory/EditSession): inter-model
         // descriptor and session boundaries, retained as necessary seams.
-        var observable =
-            root.GetTypeMembers("Observable").FirstOrDefault()
-            ?? root.GetTypeMembers("SparseObservable").FirstOrDefault();
+        var observable = root.GetTypeMembers("Observable").FirstOrDefault() ?? root.GetTypeMembers("SparseObservable").FirstOrDefault();
         if (observable is not null)
         {
             foreach (var name in new[] { "__SparseTarget", "__SparseRefresh", "__Raise" })
@@ -260,14 +213,20 @@ public sealed class GeneratedVisibilityInventoryTests
             }
         }
 
-        // Model attribute bridges (impl reading model-private attributes):
-        // same-assembly factory seam, minimum internal.
-        var bridges = root.GetMembers()
-            .Where(static m => m.Name.StartsWith("__SparseAttributes_", StringComparison.Ordinal))
-            .ToArray();
-        foreach (var bridge in bridges)
+        root.GetMembers().Where(static m => m.Name.StartsWith("__SparseAttributes_", StringComparison.Ordinal)).ShouldBeEmpty();
+    }
+
+    [Test]
+    public void ModelCloneContextBridgeLivesOutsideModelTypes()
+    {
+        var compilation = RunProbe();
+        foreach (var name in new[] { "ProbeRoot", "ProbeChild", "ProbeItem" })
         {
-            EffectiveAccessibility(bridge).ShouldBe("Internal");
+            var cloneBridges = RequireRoot(compilation, name)
+                .GetMembers("DeepClone")
+                .OfType<IMethodSymbol>()
+                .Where(static method => method.Parameters.Length > 0);
+            cloneBridges.ShouldBeEmpty($"{name} must not expose an internal clone-context bridge.");
         }
     }
 }

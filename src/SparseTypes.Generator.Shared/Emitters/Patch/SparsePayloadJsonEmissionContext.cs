@@ -9,6 +9,7 @@ internal sealed record PayloadJsonEmissionContext(
     SparseFragmentPatchEmitter.SparsePatchDialect Dialect,
     string ModelType,
     string? ImplementationNamespace,
+    bool EmitTopLevelCodecs,
     string Runtime,
     string ContainerAlias,
     string ConverterName,
@@ -25,8 +26,9 @@ internal sealed record PayloadJsonEmissionContext(
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string? modelType,
         string? implementationNamespace,
+        bool emitTopLevelCodecs = false,
         System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
-    ) => TryCreate(SparsePayloadContract.Create(members), dialect, modelType, implementationNamespace, pocos);
+    ) => TryCreate(SparsePayloadContract.Create(members), dialect, modelType, implementationNamespace, emitTopLevelCodecs, pocos);
 
     /// <summary>Creates the emission context from the canonical payload contract.</summary>
     public static PayloadJsonEmissionContext? TryCreate(
@@ -34,6 +36,7 @@ internal sealed record PayloadJsonEmissionContext(
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string? modelType,
         string? implementationNamespace,
+        bool emitTopLevelCodecs = false,
         System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel> pocos = default
     )
     {
@@ -55,10 +58,11 @@ internal sealed record PayloadJsonEmissionContext(
             dialect,
             modelType,
             implementationNamespace,
+            emitTopLevelCodecs,
             runtime,
             containerAlias,
-            "PayloadJsonConverter",
-            "PayloadJsonResolver",
+            emitTopLevelCodecs ? containerAlias + "PayloadJsonConverter" : "PayloadJsonConverter",
+            emitTopLevelCodecs ? containerAlias + "PayloadJsonResolver" : "PayloadJsonResolver",
             pocos.IsDefault ? System.Collections.Immutable.ImmutableArray<SparsePayloadJsonPocoModel>.Empty : pocos,
             supportsJson
         )
@@ -68,27 +72,48 @@ internal sealed record PayloadJsonEmissionContext(
     }
 
     /// <summary>Qualified DTO type for the current model.</summary>
-    public string Dto(string suffix) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
+    public string Dto(string suffix) => ContainerReference(ModelType) + "." + SparseChangeSetPayloadEmitter.PayloadName(ModelType, suffix);
 
     /// <summary>Documented composition entry point for diagnostics.</summary>
     /// <remarks>Points custom-type failures at the model-facing JSON helper.</remarks>
     public string ResolverReference => ModelType + ".PayloadJson.Resolver";
 
     /// <summary>Qualified member DTO type for the current model.</summary>
-    public string MemberDto(string suffix, int id) => ContainerAlias + "." + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
+    public string MemberDto(string suffix, int id) =>
+        ContainerReference(ModelType) + "." + SparseChangeSetPayloadEmitter.PayloadMemberName(ModelType, suffix, id);
 
     /// <summary>Qualified child DTO type.</summary>
     public string ChildDto(string childModel, string suffix) =>
         SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(Dialect, childModel, suffix, ImplementationNamespace);
 
     /// <summary>Qualified converter implementation for a model's payload.</summary>
-    public string ConverterReference(string modelType)
-    {
-        return ImplementationContainerReference(modelType) + "." + ConverterName;
-    }
+    public string ConverterReference(string modelType) => JsonCodecTypeReference(modelType, "PayloadJsonConverter");
 
     /// <summary>Qualified resolver implementation for the current model.</summary>
-    public string ResolverTypeReference => ImplementationContainerReference(ModelType) + "." + ResolverName;
+    public string ResolverTypeReference => JsonCodecTypeReference(ModelType, "PayloadJsonResolver");
+
+    private string JsonCodecTypeReference(string modelType, string name)
+    {
+        if (!EmitTopLevelCodecs)
+        {
+            return ImplementationContainerReference(modelType) + "." + name;
+        }
+
+        var implementationNamespace = ImplementationNamespace;
+        if (implementationNamespace is null)
+        {
+            var identity = modelType.StartsWith("global::", System.StringComparison.Ordinal) ? modelType.Substring("global::".Length) : modelType;
+            var separator = identity.LastIndexOf('.');
+            implementationNamespace = separator < 0 ? string.Empty : identity.Substring(0, separator);
+        }
+
+        var prefix = implementationNamespace.Length == 0 ? "global::" : "global::" + implementationNamespace + ".";
+        var container = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(Dialect, modelType);
+        return prefix + (name.StartsWith(container, System.StringComparison.Ordinal) ? name : container + name);
+    }
+
+    private string ContainerReference(string modelType) =>
+        EmitTopLevelCodecs && ImplementationNamespace is null ? modelType + "." + ContainerAlias : ContainerAlias;
 
     private string ImplementationContainerReference(string modelType)
     {

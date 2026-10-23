@@ -33,7 +33,7 @@ internal static class SparsePathBuilderEmitter
     )
     {
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
-        var rootBuilder = (pathsTypePrefix ?? "") + "SparsePaths<" + modelType + ">";
+        var rootBuilder = (pathsTypePrefix ?? "SparsePaths") + "<" + modelType + ">";
         code.AppendLine("/// <summary>Typed path navigation for '" + modelType + "'.</summary>");
         code.AppendLine(
             "/// <remarks>For example <c>Order.SparsePath.Items.Key(id).Price</c>. Converts implicitly to the model-agnostic path for storage and lookup.</remarks>"
@@ -54,7 +54,9 @@ internal static class SparsePathBuilderEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         System.Func<string, string>? qualifyChildPaths = null,
         SparseModelInfo? model = null,
-        SparseGeneratorConfig? config = null
+        SparseGeneratorConfig? config = null,
+        string pathsTypeName = "SparsePaths",
+        string accessibility = "public"
     )
     {
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
@@ -87,12 +89,14 @@ internal static class SparsePathBuilderEmitter
         {
             pathInterface = " : " + typedPathInterface + "<TRoot, " + modelType + ">";
         }
-        code.AppendLine((dialect.PathIsValueType ? "public readonly struct " : "public sealed class ") + "SparsePaths<TRoot>" + pathInterface);
+        code.AppendLine(
+            accessibility + (dialect.PathIsValueType ? " readonly struct " : " sealed class ") + pathsTypeName + "<TRoot>" + pathInterface
+        );
         code.OpenBlock();
         // Public-first order: conversion and member navigation precede the
         // internal constructor, and the private backing field trails both.
         code.AppendLine("/// <summary>Converts this builder to its model-agnostic path.</summary>");
-        code.AppendLine("public static implicit operator " + pathType + "(SparsePaths<TRoot> paths) => paths._path;");
+        code.AppendLine("public static implicit operator " + pathType + "(" + pathsTypeName + "<TRoot> paths) => paths._path;");
         if (dialect.TypedPathInterfaceType is { Length: > 0 })
         {
             code.AppendLine("/// <summary>Gets the model-agnostic path.</summary>");
@@ -125,7 +129,7 @@ internal static class SparsePathBuilderEmitter
             AppendChildEditSessionFactory(code, modelType, childPathsType, childPathInterface, childSessionType, pathType);
         }
 
-        code.AppendLine("internal SparsePaths(" + pathType + " path) => _storedPath = path;");
+        code.AppendLine("internal " + pathsTypeName + "(" + pathType + " path) => _storedPath = path;");
         AppendPathStorage(code, pathType, "", dialect.PathIsValueType);
         code.CloseBlock();
     }
@@ -184,7 +188,8 @@ internal static class SparsePathBuilderEmitter
             var child = member.ChildModel!.Value;
             if (child.IsFragmentModel && !member.ChildIsStructural)
             {
-                var builder = (qualifyChildPaths?.Invoke(child.NonNullableName) ?? child.NonNullableName) + ".SparsePaths<TRoot>";
+                var childPaths = qualifyChildPaths?.Invoke(child.NonNullableName);
+                var builder = childPaths is null ? child.NonNullableName + ".SparsePaths<TRoot>" : childPaths + "<TRoot>";
                 code.AppendLine("/// <summary>Gets the path builder for '" + name + "'.</summary>");
                 code.AppendLine("public " + builder + " " + name + " => new " + builder + "(" + access + ");");
                 return;
@@ -321,7 +326,8 @@ internal static class SparsePathBuilderEmitter
     {
         if (element.IsFragmentModel)
         {
-            return (qualifyChildPaths?.Invoke(element.NonNullableName) ?? element.NonNullableName) + ".SparsePaths<TRoot>";
+            var childPaths = qualifyChildPaths?.Invoke(element.NonNullableName);
+            return childPaths is null ? element.NonNullableName + ".SparsePaths<TRoot>" : childPaths + "<TRoot>";
         }
 
         return SparseFragmentPatchEmitter.GetTypedPathType(dialect, "TRoot", element.Name);

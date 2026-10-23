@@ -234,23 +234,6 @@ internal sealed class SparseFragmentCloneEmitter
         code.AppendIndent().Append("public ").Append(modelType).AppendLine(" DeepClone() => " + operationsType + ".DeepClone(this);");
     }
 
-    /// <summary>Emits the internal model DeepClone facade trailing public nested types.</summary>
-    /// <param name="code">Target builder.</param>
-    /// <param name="modelType">Model type name.</param>
-    /// <param name="operationsType">Operations class qualifying the delegate.</param>
-    public static void AppendDeepCloneInternalFacade(SharedIndentedBuilder code, string modelType, string operationsType)
-    {
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendIndent()
-            .Append("internal ")
-            .Append(modelType)
-            .AppendLine(
-                " DeepClone(global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context) => "
-                    + operationsType
-                    + ".DeepClone(this, __sparse_clone_context);"
-            );
-    }
-
     /// <summary>Emits the public operations DeepClone preceding internal helpers.</summary>
     /// <param name="code">Target builder.</param>
     /// <param name="modelType">Model type name.</param>

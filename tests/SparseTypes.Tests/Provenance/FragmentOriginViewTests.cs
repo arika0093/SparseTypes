@@ -51,9 +51,7 @@ public sealed class FragmentOriginViewTests
     public void EnumerateOrigins_OrdersTagsByEffectiveEnumeration()
     {
         var entries = Layered().EnumerateOrigins().ToArray();
-        var tags = entries
-            .Where(entry => entry.Path.ToString().StartsWith("Tags[", StringComparison.Ordinal))
-            .ToArray();
+        var tags = entries.Where(entry => entry.Path.ToString().StartsWith("Tags[", StringComparison.Ordinal)).ToArray();
 
         // The set carries one entry per effective element; positions follow
         // the effective enumeration order at query time.
@@ -66,9 +64,7 @@ public sealed class FragmentOriginViewTests
     {
         var effective = Layered();
 
-        effective
-            .TryGetOrigin(SparsePath.Parse<OriginSettings>("Missing"), out var missing)
-            .ShouldBeFalse();
+        effective.TryGetOrigin(SparsePath.Parse<OriginSettings>("Missing"), out var missing).ShouldBeFalse();
         missing.ShouldBeNull();
         effective.GetOrigin(SparsePath.Parse<OriginSettings>("Missing")).ShouldBeNull();
         // Member-level reads over mixed collections report Unknown.
@@ -81,16 +77,9 @@ public sealed class FragmentOriginViewTests
     {
         var effective = Layered();
 
-        effective
-            .TryGetOrigin(OriginSettings.SparsePath.Child.Host, out var hostOrigin)
-            .ShouldBeTrue();
+        effective.TryGetOrigin(OriginSettings.SparsePath.Child.Host, out var hostOrigin).ShouldBeTrue();
         hostOrigin.ShouldBe("defaults");
-        effective
-            .TryGetOrigin(
-                SparsePath.Root<OriginSettings>().Member(nameof(OriginSettings.Plugins)).At(1),
-                out var pluginOrigin
-            )
-            .ShouldBeTrue();
+        effective.TryGetOrigin(SparsePath.Root<OriginSettings>().Member(nameof(OriginSettings.Plugins)).At(1), out var pluginOrigin).ShouldBeTrue();
         pluginOrigin.ShouldBe("tenant");
     }
 
@@ -111,9 +100,7 @@ public sealed class FragmentOriginViewTests
     [Test]
     public void GetByOrigin_UnknownGroupHoldsUnattributedValues()
     {
-        var merged = new OriginSettings.Fragment { Theme = "plain" }.Merge(
-            new OriginSettings.Fragment("tenant") { Logging = true }
-        );
+        var merged = new OriginSettings.Fragment { Theme = "plain" }.Merge(new OriginSettings.Fragment("tenant") { Logging = true });
 
         var unknown = merged.GetByOrigin(null);
 
@@ -128,10 +115,7 @@ public sealed class FragmentOriginViewTests
         var groups = Layered().SplitByOrigin();
 
         // First-seen order follows member order: Child.Host carries defaults.
-        groups
-            .Select(group => group.Origin)
-            .ToArray()
-            .ShouldBe(new string?[] { "defaults", "tenant" });
+        groups.Select(group => group.Origin).ToArray().ShouldBe(new string?[] { "defaults", "tenant" });
         groups[0].Fragment.Logging.Value.ShouldBeTrue();
         groups[1].Fragment.Theme.Value.ShouldBe("dark");
     }
@@ -176,25 +160,6 @@ public sealed class FragmentOriginViewTests
     }
 
     [Test]
-    public void Origins_DoNotLeakIntoFragmentJson()
-    {
-        var options = new JsonSerializerOptions();
-        options.Converters.Add(OriginSettings.Fragment.JsonConverter);
-
-        var plain = new OriginSettings.Fragment { Theme = "a" };
-        var attributed = new OriginSettings.Fragment("tenant") { Theme = "a" };
-
-        var plainJson = JsonSerializer.Serialize(plain, options);
-        var attributedJson = JsonSerializer.Serialize(attributed, options);
-
-        attributedJson.ShouldBe(plainJson);
-        var restored = JsonSerializer.Deserialize<OriginSettings.Fragment>(attributedJson, options);
-        restored.ShouldNotBeNull();
-        restored!.Origin.ShouldBeNull();
-        restored.Theme.Value.ShouldBe("a");
-    }
-
-    [Test]
     public void Origins_DoNotChangeChangePayloadJson()
     {
         var first = new OriginSettings.Fragment("one") { Theme = "a" };
@@ -204,18 +169,12 @@ public sealed class FragmentOriginViewTests
 
         var attributedJson = JsonSerializer.Serialize(
             OriginSettings
-                .ChangeSet.Between(
-                    Optional<OriginSettings.Fragment?>.Present(first),
-                    Optional<OriginSettings.Fragment?>.Present(second)
-                )
+                .ChangeSet.Between(Optional<OriginSettings.Fragment?>.Present(first), Optional<OriginSettings.Fragment?>.Present(second))
                 .ToPayload()
         );
         var plainJson = JsonSerializer.Serialize(
             OriginSettings
-                .ChangeSet.Between(
-                    Optional<OriginSettings.Fragment?>.Present(plainFirst),
-                    Optional<OriginSettings.Fragment?>.Present(plainSecond)
-                )
+                .ChangeSet.Between(Optional<OriginSettings.Fragment?>.Present(plainFirst), Optional<OriginSettings.Fragment?>.Present(plainSecond))
                 .ToPayload()
         );
 

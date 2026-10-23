@@ -166,8 +166,8 @@ internal static class SparseEditSessionStateEmitter
         }
 
         code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
-        code.AppendLine("public " + watcherType + " ObserveField" + typeParameters);
-        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, true, coordinated, implementationNamespace);
+        code.AppendLine("public " + watcherType + " ObserveField" + typeParameters + "(" + pathParameterType + " path)");
+        AppendObserveBody(code, modelType, states, valueType, typed, dialect, true, coordinated, implementationNamespace);
         code.AppendLine("/// <summary>Observes the semantic field state at " + kind + " with binding notifications.</summary>");
         code.AppendLine("/// <remarks>Alias for <c>ObserveField</c>; both spellings return the same watcher.</remarks>");
         code.AppendLine("/// <param name=\"path\">The path to observe.</param>");
@@ -177,14 +177,13 @@ internal static class SparseEditSessionStateEmitter
         }
 
         code.AppendLine("/// <returns>A disposable watcher bound to this session.</returns>");
-        code.AppendLine("public " + watcherType + " WatchField" + typeParameters);
-        AppendObserveBody(code, modelType, pathParameterType, states, valueType, typed, dialect, false, coordinated, implementationNamespace);
+        code.AppendLine("public " + watcherType + " WatchField" + typeParameters + "(" + pathParameterType + " path)");
+        AppendObserveBody(code, modelType, states, valueType, typed, dialect, false, coordinated, implementationNamespace);
     }
 
     private static void AppendObserveBody(
         SharedIndentedBuilder code,
         string modelType,
-        string pathParameterType,
         SparseStateContracts states,
         string valueType,
         bool typed,
@@ -194,7 +193,6 @@ internal static class SparseEditSessionStateEmitter
         string? implementationNamespace
     )
     {
-        code.AppendLine("(" + pathParameterType + " path)");
         code.OpenBlock();
         if (!dialect.PathIsValueType)
         {

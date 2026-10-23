@@ -45,6 +45,54 @@ public sealed class SparsePayloadSchema
 
     /// <summary>Gets the OpenAPI 3.1 JSON Schema document.</summary>
     public string OpenApi31JsonSchema { get; }
+
+    /// <summary>Gets the JSON Schema document selected for a bundle dialect.</summary>
+    /// <param name="dialect">The OpenAPI dialect requested by the consumer.</param>
+    /// <returns>The dialect-specific JSON Schema document.</returns>
+    public string GetJsonSchema(SparsePayloadSchemaDialect dialect) =>
+        dialect switch
+        {
+            SparsePayloadSchemaDialect.OpenApi30 => OpenApi30JsonSchema,
+            SparsePayloadSchemaDialect.OpenApi31 => OpenApi31JsonSchema,
+            _ => throw new ArgumentOutOfRangeException(nameof(dialect), dialect, "Unsupported OpenAPI schema dialect."),
+        };
+
+    internal SparsePayloadSchema ForDialect(SparsePayloadSchemaDialect dialect)
+    {
+        var jsonSchema = GetJsonSchema(dialect);
+        return new SparsePayloadSchema(Type, Name, jsonSchema);
+    }
+}
+
+/// <summary>Identifies an OpenAPI schema dialect supported by SparseTypes.</summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
+public enum SparsePayloadSchemaDialect
+{
+    /// <summary>OpenAPI 3.0 schema rules.</summary>
+    OpenApi30,
+
+    /// <summary>OpenAPI 3.1 schema rules.</summary>
+    OpenApi31,
+}
+
+/// <summary>Identifies a generated schema component without constructing its JSON document.</summary>
+[System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
+public sealed class SparsePayloadSchemaIdentity
+{
+    /// <summary>Creates a schema identity.</summary>
+    /// <param name="type">The CLR type represented by the schema.</param>
+    /// <param name="name">The stable component name.</param>
+    public SparsePayloadSchemaIdentity(Type type, string name)
+    {
+        Type = type ?? throw new ArgumentNullException(nameof(type));
+        Name = string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("A schema name is required.", nameof(name)) : name;
+    }
+
+    /// <summary>Gets the CLR type represented by the schema.</summary>
+    public Type Type { get; }
+
+    /// <summary>Gets the stable component name.</summary>
+    public string Name { get; }
 }
 
 /// <summary>Creates deterministic OpenAPI component names for CLR types.</summary>

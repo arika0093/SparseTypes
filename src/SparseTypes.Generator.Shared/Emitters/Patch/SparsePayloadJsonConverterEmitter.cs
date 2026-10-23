@@ -7,9 +7,12 @@ internal static class SparsePayloadJsonConverterEmitter
     internal static void AppendConverter(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var members = context.Contract.JsonMembers.Select(static member => member.Member).ToArray();
+        var changePayloadType = context.ModelType + ".ChangePayload";
         code.AppendLine("/// <summary>Trim-safe JSON converter for this model's change payload.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine("internal sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<ChangePayload>");
+        code.AppendLine(
+            "internal sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<" + changePayloadType + ">"
+        );
         code.OpenBlock();
         AppendPayload(code, context);
         SparsePayloadJsonPreflightEmitter.AppendPreflight(code, context);
@@ -35,10 +38,13 @@ internal static class SparsePayloadJsonConverterEmitter
 
     private static void AppendPayload(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
+        var changePayloadType = context.ModelType + ".ChangePayload";
         code.AppendLine("/// <inheritdoc />");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public override ChangePayload? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
+            "public override "
+                + changePayloadType
+                + "? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
@@ -71,13 +77,15 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine(
             "if (!hasVersion || !hasChange || change is null) throw new global::System.Text.Json.JsonException(\"A payload requires version and change properties.\");"
         );
-        code.AppendLine("return new ChangePayload { Version = version, Change = change };");
+        code.AppendLine("return new " + changePayloadType + " { Version = version, Change = change };");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <inheritdoc />");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, ChangePayload? value, global::System.Text.Json.JsonSerializerOptions options)"
+            "public override void Write(global::System.Text.Json.Utf8JsonWriter writer, "
+                + changePayloadType
+                + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
@@ -117,7 +125,7 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.OpenBlock();
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLine("var change = value.GetTypedChange() ?? throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
+        code.AppendLine("var change = value.TypedChange ?? throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
         code.AppendLine("WriteModelChange(writer, change, options);");
         code.CloseBlock();
         code.AppendLine();
@@ -125,14 +133,13 @@ internal static class SparsePayloadJsonConverterEmitter
 
     private static void AppendRoot(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
-        var root = context.Dto("Root");
-        var snapshot = context.Dto("Snapshot");
+        var snapshot = context.Dto("Root");
         code.AppendLine("/// <summary>Reads a typed model snapshot.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal static "
                 + snapshot
-                + " ReadSnapshot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
+                + " ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
         code.AppendLine(
@@ -197,7 +204,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("/// <summary>Writes a typed model snapshot.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "internal static void WriteSnapshot(global::System.Text.Json.Utf8JsonWriter writer, "
+            "internal static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, "
                 + snapshot
                 + "? value, global::System.Text.Json.JsonSerializerOptions options)"
         );
@@ -229,37 +236,13 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();
-
-        code.AppendLine("/// <summary>Reads a legacy internal root from its typed snapshot wire form.</summary>");
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine(
-            "internal static "
-                + root
-                + " ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
-        );
-        code.OpenBlock();
-        code.AppendLine("return " + context.ModelType + ".ChangePayload.RootFromSnapshot(ReadSnapshot(ref reader, options));");
-        code.CloseBlock();
-        code.AppendLine();
-        code.AppendLine("/// <summary>Writes a legacy internal root using its typed snapshot wire form.</summary>");
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
-        code.AppendLine(
-            "internal static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, "
-                + root
-                + "? value, global::System.Text.Json.JsonSerializerOptions options)"
-        );
-        code.OpenBlock();
-        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
-        code.AppendLine("WriteSnapshot(writer, " + context.ModelType + ".ChangePayload.SnapshotFromRoot(value), options);");
-        code.CloseBlock();
-        code.AppendLine();
     }
 
     private static void AppendDispatch(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
     {
         var modelChange = context.Dto("ModelChange");
         var kindType = context.Dto("ModelChangeKind");
-        var snapshot = context.Dto("Snapshot");
+        var snapshot = context.Dto("Root");
         var delta = context.Dto("MembersDelta");
 
         code.AppendLine(
@@ -298,12 +281,10 @@ internal static class SparsePayloadJsonConverterEmitter
         code.CloseBlock();
         code.AppendLine("else if (name == \"members\") { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }");
         code.AppendLine(
-            "else if (name == \"before\") { change.Before = ReadEndpoint<"
-                + snapshot
-                + ">(ref reader, options, ReadSnapshot, null); hasBefore = true; }"
+            "else if (name == \"before\") { change.Before = ReadEndpoint<" + snapshot + ">(ref reader, options, ReadRoot, null); hasBefore = true; }"
         );
         code.AppendLine(
-            "else if (name == \"after\") { change.After = ReadEndpoint<" + snapshot + ">(ref reader, options, ReadSnapshot, null); hasAfter = true; }"
+            "else if (name == \"after\") { change.After = ReadEndpoint<" + snapshot + ">(ref reader, options, ReadRoot, null); hasAfter = true; }"
         );
         code.AppendLine("else reader.Skip();");
         code.CloseBlock();
@@ -390,8 +371,8 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine(
             "if (change.Members is not null || change.Before is null || change.After is null) throw new global::System.Text.Json.JsonException(\"A replacement requires both endpoints and no members object.\");"
         );
-        code.AppendLine("writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options, WriteSnapshot);");
-        code.AppendLine("writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options, WriteSnapshot);");
+        code.AppendLine("writer.WritePropertyName(\"before\"); WriteEndpoint(writer, change.Before, options, WriteRoot);");
+        code.AppendLine("writer.WritePropertyName(\"after\"); WriteEndpoint(writer, change.After, options, WriteRoot);");
         code.CloseBlock();
         code.AppendLine("else if (change.Kind == " + kindType + ".Update)");
         code.OpenBlock();

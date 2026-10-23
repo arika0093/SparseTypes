@@ -3,13 +3,10 @@ using SparseTypes.Generator.Shared;
 namespace SparseTypes.Tests.Shared;
 
 /// <summary>Certifies explicit JSON feature overrides against probed STJ surfaces.</summary>
-/// <remarks>A downstream product disables JSON by selecting out of the <c>EmitJsonConverters</c> family.</remarks>
+/// <remarks>A downstream product disables payload JSON by selecting out of the <c>EmitPayloadJson</c> family.</remarks>
 public sealed class StjEmissionOverrideTests
 {
-    private static SparseGeneratorConfig MinimalConfig(
-        SparseEmissionFeatures? emissionFeatures,
-        SparseStjCapabilities? stjCapabilities
-    ) =>
+    private static SparseGeneratorConfig MinimalConfig(SparseEmissionFeatures? emissionFeatures, SparseStjCapabilities? stjCapabilities) =>
         new(
             ModelAttributeMetadataName: "SparseTypes.SparseModelAttribute",
             IgnoreAttributeMetadataName: "SparseTypes.SparseIgnoreAttribute",
@@ -49,17 +46,13 @@ public sealed class StjEmissionOverrideTests
     [Test]
     public void DefaultSelectionEmitsJsonWithFullSurface()
     {
-        MinimalConfig(emissionFeatures: null, stjCapabilities: SparseStjCapabilities.All)
-            .EffectiveEmitJson.ShouldBeTrue();
+        MinimalConfig(emissionFeatures: null, stjCapabilities: SparseStjCapabilities.All).EffectiveEmitJson.ShouldBeTrue();
     }
 
     [Test]
     public void ExplicitJsonOptOutSuppressesBridgeEvenWithFullSurface()
     {
-        MinimalConfig(
-            emissionFeatures: new SparseEmissionFeatures(EmitJsonConverters: false),
-            stjCapabilities: SparseStjCapabilities.All
-        )
+        MinimalConfig(emissionFeatures: new SparseEmissionFeatures(EmitPayloadJson: false), stjCapabilities: SparseStjCapabilities.All)
             .EffectiveEmitJson.ShouldBeFalse();
     }
 
@@ -67,7 +60,7 @@ public sealed class StjEmissionOverrideTests
     public void ExplicitJsonOptOutRemainsDisabledWithPartialCapabilities()
     {
         MinimalConfig(
-            emissionFeatures: new SparseEmissionFeatures(EmitJsonConverters: false),
+            emissionFeatures: new SparseEmissionFeatures(EmitPayloadJson: false),
             stjCapabilities: SparseStjCapabilities.All with
             {
                 HasJsonPropertyOrder = false,
@@ -79,20 +72,13 @@ public sealed class StjEmissionOverrideTests
     [Test]
     public void PartialSurfaceSuppressesJsonEvenWhenRequested()
     {
-        MinimalConfig(
-            emissionFeatures: null,
-            stjCapabilities: SparseStjCapabilities.All with
-            {
-                HasJsonPropertyOrder = false,
-            }
-        )
+        MinimalConfig(emissionFeatures: null, stjCapabilities: SparseStjCapabilities.All with { HasJsonPropertyOrder = false })
             .EffectiveEmitJson.ShouldBeFalse();
     }
 
     [Test]
     public void AbsentSurfaceSuppressesJsonEvenWhenRequested()
     {
-        MinimalConfig(emissionFeatures: null, stjCapabilities: SparseStjCapabilities.None)
-            .EffectiveEmitJson.ShouldBeFalse();
+        MinimalConfig(emissionFeatures: null, stjCapabilities: SparseStjCapabilities.None).EffectiveEmitJson.ShouldBeFalse();
     }
 }

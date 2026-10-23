@@ -7,8 +7,7 @@ namespace SparseTypes.Tests.Shared;
 // and Per-Model responsibilities.
 public sealed class ThreeLayerOwnershipTests
 {
-    private static SparseTypeModel ScalarType(string name) =>
-        new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
+    private static SparseTypeModel ScalarType(string name) => new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
 
     private static SparseMemberModel ScalarMember(int id, string name, string typeName)
     {
@@ -22,17 +21,7 @@ public sealed class ThreeLayerOwnershipTests
             HasExplicitJsonPropertyName: false,
             JsonIgnoreCondition: 0
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static SparseMemberModel SetMember(int id, string name)
@@ -68,22 +57,10 @@ public sealed class ThreeLayerOwnershipTests
             null,
             SparseKeyKind.None
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.SetUnion,
-            collection,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.SetUnion, collection, null, null, false, true);
     }
 
-    private static SparseFragmentPatchEmitter.SparsePatchDialect Dialect(
-        string prefix = "DownstreamInternal"
-    ) =>
+    private static SparseFragmentPatchEmitter.SparsePatchDialect Dialect(string prefix = "DownstreamInternal") =>
         new(
             "global::Downstream.",
             "__sparse_whole",
@@ -97,13 +74,7 @@ public sealed class ThreeLayerOwnershipTests
             "global::Downstream.DownstreamConflictKind",
             static payload => "global::Downstream.DownstreamRebase<" + payload + ">",
             static member =>
-                member.ChildFragmentType is null
-                    ? "Patch"
-                    : member.ChildFragmentType.Replace(
-                        ".Fragment",
-                        ".Patch",
-                        StringComparison.Ordinal
-                    ),
+                member.ChildFragmentType is null ? "Patch" : member.ChildFragmentType.Replace(".Fragment", ".Patch", StringComparison.Ordinal),
             static member => "global::Downstream.Delta_" + member.Id,
             PayloadImplementationContainerPrefix: prefix
         );
@@ -118,11 +89,7 @@ public sealed class ThreeLayerOwnershipTests
             "global::Downstream.Mergers",
             "global::Downstream.Optional"
         );
-        var text = expressions.ValueEqualityExpression(
-            ScalarMember(0, "Name", "global::System.String?"),
-            "__left",
-            "__right"
-        );
+        var text = expressions.ValueEqualityExpression(ScalarMember(0, "Name", "global::System.String?"), "__left", "__right");
         text.ShouldContain("global::Downstream.Comparers.AreEqual(__left, __right)");
         text.ShouldNotContain("global::SparseTypes");
     }
@@ -148,22 +115,13 @@ public sealed class ThreeLayerOwnershipTests
     public void PayloadContainerPrefixHasNoImplicitFallback()
     {
         Should.Throw<InvalidOperationException>(() =>
-            SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
-                Dialect(prefix: null!),
-                "global::Ns.Model"
-            )
+            SparseChangeSetPayloadEmitter.RequirePayloadContainerName(Dialect(prefix: null!), "global::Ns.Model")
         );
         Should.Throw<InvalidOperationException>(() =>
-            SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
-                Dialect(prefix: "  "),
-                "global::Ns.Model"
-            )
+            SparseChangeSetPayloadEmitter.RequirePayloadContainerName(Dialect(prefix: "  "), "global::Ns.Model")
         );
-        var container = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(
-            Dialect(),
-            "global::Ns.Model"
-        );
-        container.ShouldStartWith("DownstreamInternal_");
+        var container = SparseChangeSetPayloadEmitter.RequirePayloadContainerName(Dialect(), "global::Ns.Model");
+        container.ShouldEndWith("DownstreamInternal");
         container.ShouldNotContain("SparseTypes");
     }
 
@@ -178,7 +136,7 @@ public sealed class ThreeLayerOwnershipTests
             EmitChangeSet: true,
             EmitChangePayload: true,
             EmitObservable: true,
-            EmitJsonConverters: true
+            EmitPayloadJson: true
         );
         coherent.ValidateDependencies().Length.ShouldBe(0);
         var patchWithoutFragment = new SparseEmissionFeatures(
@@ -187,21 +145,17 @@ public sealed class ThreeLayerOwnershipTests
             EmitChangeSet: false,
             EmitChangePayload: false,
             EmitObservable: false,
-            EmitJsonConverters: false
+            EmitPayloadJson: false
         );
-        patchWithoutFragment
-            .ValidateDependencies()
-            .ShouldContain("EmitPatch requires EmitFragment.");
+        patchWithoutFragment.ValidateDependencies().ShouldContain("EmitPatch requires EmitFragment.");
         var payloadWithoutChangeSet = new SparseEmissionFeatures(
             EmitFragment: true,
             EmitPatch: true,
             EmitChangeSet: false,
             EmitChangePayload: true,
             EmitObservable: false,
-            EmitJsonConverters: false
+            EmitPayloadJson: false
         );
-        payloadWithoutChangeSet
-            .ValidateDependencies()
-            .ShouldContain("EmitChangePayload requires EmitChangeSet.");
+        payloadWithoutChangeSet.ValidateDependencies().ShouldContain("EmitChangePayload requires EmitChangeSet.");
     }
 }

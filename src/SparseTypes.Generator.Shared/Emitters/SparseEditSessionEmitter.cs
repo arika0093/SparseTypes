@@ -227,7 +227,7 @@ internal static class SparseEditSessionEmitter
         );
         // Sessions already raise PropertyChanged with the standard signature.
         sessionBases += ", global::System.ComponentModel.INotifyPropertyChanged";
-        code.AppendLine("public sealed class " + sessionSimple + " : " + sessionBases);
+        AppendSessionDeclaration(code, sessionSimple, sessionBases);
         code.OpenBlock();
         // Public surface first; internal constructors and private state follow.
         code.AppendLine("/// <summary>Gets the bindable proxy over the live model.</summary>");
@@ -237,6 +237,7 @@ internal static class SparseEditSessionEmitter
             code.AppendLine("/// <summary>Gets the revision of the retained baseline.</summary>");
             code.AppendLine("public long BaselineRevision => _session.BaselineRevision;");
         }
+
         code.AppendLine("/// <summary>Gets the read-only view over the live model.</summary>");
         code.AppendLine("public " + modelType + "." + readOnlyView + " Current => _session.Current;");
         if (modelAccessorInterfaceMetadataName is not null)
@@ -319,6 +320,7 @@ internal static class SparseEditSessionEmitter
         SparseEditSessionHistoryEmitter.AppendLifecycleMembers(
             code,
             modelType,
+            SparseGeneratedPlacement.GetTemporaryKeyReconcilerTypeName(model, config, code.CancellationToken),
             conflictType,
             rebaseResultType,
             historyBinding,
@@ -372,12 +374,18 @@ internal static class SparseEditSessionEmitter
                 config
             );
         }
-        SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
+        code.AppendLine("/// <summary>Creates an edit session for the specified model.</summary>");
+        code.AppendLine("/// <param name=\"model\">The live model.</param>");
+        code.AppendLine("/// <param name=\"onChanged\">Callback invoked after a committed change.</param>");
         code.AppendLine(
-            "internal " + sessionSimple + "(" + modelType + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
+            "public " + sessionSimple + "(" + modelType + " model, global::System.Action? onChanged) : this(model, model, onChanged) { }"
         );
+        code.AppendLine("/// <summary>Creates an edit session with an explicit baseline and current model.</summary>");
+        code.AppendLine("/// <param name=\"baseline\">The model state used as the baseline.</param>");
+        code.AppendLine("/// <param name=\"current\">The live model.</param>");
+        code.AppendLine("/// <param name=\"onChanged\">Callback invoked after a committed change.</param>");
         code.AppendLine(
-            "internal "
+            "public "
                 + sessionSimple
                 + "("
                 + modelType
@@ -387,6 +395,7 @@ internal static class SparseEditSessionEmitter
                 + core
                 + ".Create(baseline, current, __configuration, onChanged); }"
         );
+        SparseEditSessionChildEmitter.AppendForkMergeCoreConstructor(code, core, sessionSimple);
         if (hasChildSessionSurface)
         {
             SparseEditSessionChildEmitter.AppendChildDraftPrivateMembers(
@@ -438,6 +447,33 @@ internal static class SparseEditSessionEmitter
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine();
+    }
+
+    internal static void AppendSessionDeclaration(SharedIndentedBuilder code, string sessionSimple, string sessionBases)
+    {
+        code.AppendLine("public sealed class " + sessionSimple + " :");
+        code.Indent();
+        var start = 0;
+        var genericDepth = 0;
+        for (var index = 0; index < sessionBases.Length; index++)
+        {
+            if (sessionBases[index] == '<')
+            {
+                genericDepth++;
+            }
+            else if (sessionBases[index] == '>')
+            {
+                genericDepth--;
+            }
+            else if (sessionBases[index] == ',' && genericDepth == 0)
+            {
+                code.AppendLine(sessionBases.Substring(start, index - start).Trim() + ",");
+                start = index + 1;
+            }
+        }
+
+        code.AppendLine(sessionBases.Substring(start).Trim());
+        code.Unindent();
     }
 
     private static string ReadTemplate(string resourceName)

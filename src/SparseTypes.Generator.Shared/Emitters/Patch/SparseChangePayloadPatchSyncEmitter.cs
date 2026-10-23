@@ -80,7 +80,9 @@ internal static class SparseChangePayloadPatchSyncEmitter
     )
     {
         var core = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
-        var change = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Change");
+        var modelChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChange");
+        var membersDelta = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "MembersDelta");
+        var modelChangeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
         code.AppendLine("/// <summary>Builds a baseline-free command core from this patch.</summary>");
         code.AppendLine(
             "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>"
@@ -104,13 +106,13 @@ internal static class SparseChangePayloadPatchSyncEmitter
             SparseFragmentPatchCoreEmitter.AppendPatchSelfAliases(code, members, dialect);
         }
         AppendIgnoredPatchGuard(code, members, dialect);
-        code.AppendLine("var changes = new global::System.Collections.Generic.List<" + change + ">();");
+        code.AppendLine("var change = new " + modelChange + " { Kind = " + modelChangeKind + ".Update, Members = new " + membersDelta + "() };");
         foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendCoreFromPatchMember(code, member, dialect, modelType, implementationNamespace);
         }
 
-        code.AppendLine("return new " + core + " { Changes = changes };");
+        code.AppendLine("return new " + core + " { TypedChange = change };");
         code.CloseBlock();
     }
 
@@ -209,19 +211,21 @@ internal static class SparseChangePayloadPatchSyncEmitter
                     + id
                     + " is not null && !nestedPatch"
                     + id
-                    + ".__SparseIsEmpty()) changes.Add(new "
+                    + ".__SparseIsEmpty()) change.Members!."
+                    + SparseNaming.EscapeIdentifier(member.Property.Name)
+                    + " = new "
                     + change
                     + " { Nested = "
                     + childCore
                     + ".FromPatchCore(nestedPatch"
                     + id
-                    + ") });"
+                    + ") };"
             );
             code.CloseBlock();
         }
         else if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
         {
-            AppendCoreFromPatchCollection(code, dialect, modelType, id, field);
+            AppendCoreFromPatchCollection(code, dialect, modelType, id, field, SparseNaming.EscapeIdentifier(member.Property.Name));
         }
         else
         {
@@ -257,7 +261,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
                     + state
                     + ".Missing };"
             );
-            code.AppendLine("changes.Add(entry" + id + ");");
+            code.AppendLine("change.Members!." + SparseNaming.EscapeIdentifier(member.Property.Name) + " = entry" + id + ";");
             code.CloseBlock();
             code.CloseBlock();
         }
@@ -268,7 +272,8 @@ internal static class SparseChangePayloadPatchSyncEmitter
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
         string modelType,
         int id,
-        string field
+        string field,
+        string propertyName
     )
     {
         var change = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(dialect, modelType, "Change", id);
@@ -278,7 +283,7 @@ internal static class SparseChangePayloadPatchSyncEmitter
         code.OpenBlock();
         code.AppendLine("var entry" + id + " = new " + change + "();");
         code.AppendLine("collection" + id + ".__SparseExportChangePayload(entry" + id + ");");
-        code.AppendLine("changes.Add(entry" + id + ");");
+        code.AppendLine("change.Members!." + propertyName + " = entry" + id + ";");
         code.CloseBlock();
         code.CloseBlock();
     }
@@ -293,7 +298,6 @@ internal static class SparseChangePayloadPatchSyncEmitter
     )
     {
         var core = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "RootChange");
         var runtime = dialect.RuntimeNamespace;
         var state = runtime + "ChangePayloadState";
         code.AppendLine("/// <summary>Projects a validated command core to a baseline-free patch.</summary>");
@@ -304,17 +308,13 @@ internal static class SparseChangePayloadPatchSyncEmitter
         code.OpenBlock();
         code.AppendLine("if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));");
         code.AppendLine(
-            "if (payload.Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(payload));"
+            "if (payload.TypedChange is null) throw new global::System.ArgumentException(\"A model change is required.\", nameof(payload));"
         );
         code.AppendLine("var patch = new Patch();");
-        code.AppendLine("foreach (var change in payload.Changes)");
+        var modelChangeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
+        code.AppendLine("if (payload.TypedChange.Kind == " + modelChangeKind + ".Replace)");
         code.OpenBlock();
-        code.AppendLine("switch (change)");
-        code.OpenBlock();
-        code.AppendLine("case " + rootChange + " whole:");
-        code.AppendLine(
-            "if (payload.Changes.Count != 1) throw new global::System.ArgumentException(\"A whole-root payload must be the only change.\", nameof(payload));"
-        );
+        code.AppendLine("var whole = payload.TypedChange;");
         code.AppendLine(
             "if (whole.Before is null || whole.After is null) throw new global::System.ArgumentException(\"A whole-root payload must contain both endpoints.\", nameof(payload));"
         );
@@ -324,9 +324,14 @@ internal static class SparseChangePayloadPatchSyncEmitter
                 + ".Redacted) throw new global::System.ArgumentException(\"A payload after-state must be observable.\", nameof(payload));"
         );
         code.AppendLine("var wholeAfter = __SparsePayloadFragment(whole.After);");
-        code.AppendLine("if (!wholeAfter.IsPresent) { var wholePatch = new Patch(); wholePatch.__SparseRemove(); return wholePatch; }");
-        code.AppendLine("if (wholeAfter.Value is null) { var wholePatch = new Patch(); wholePatch.__SparseSetNull(); return wholePatch; }");
+        code.AppendLine("if (!wholeAfter.IsPresent) { patch.__SparseRemove(); return patch; }");
+        code.AppendLine("if (wholeAfter.Value is null) { patch.__SparseSetNull(); return patch; }");
         code.AppendLine("return new Patch(wholeAfter.Value);");
+        code.CloseBlock();
+        code.AppendLine("foreach (var change in payload.EnumerateChanges())");
+        code.OpenBlock();
+        code.AppendLine("switch (change)");
+        code.OpenBlock();
         foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendPatchFromCoreMember(code, member, dialect, modelType, runtime, state);

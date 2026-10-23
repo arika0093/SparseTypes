@@ -195,7 +195,14 @@ internal static class SparseFragmentPatchEmitter
         string? PayloadSchemaDescriptorType = null,
         string? PayloadSchemaBundleType = null,
         string? PayloadSchemaNamesType = null,
-        bool EmitPatchRebase = true
+        bool EmitPatchRebase = true,
+        string? PayloadSchemaBundleOptionsType = null,
+        string? PayloadSchemaIdentityType = null,
+        string? PayloadSchemaOptionsSchema30MemberName = null,
+        string? PayloadSchemaOptionsSchema31MemberName = null,
+        string? PayloadSchemaOptionsIdentitiesMemberName = null,
+        string? PayloadSchemaOptionsExternalTypesMemberName = null,
+        string? PayloadSchemaOptionsDependenciesMemberName = null
     )
     {
         /// <summary>Optional factory for a validation scope.</summary>
@@ -331,7 +338,8 @@ internal static class SparseFragmentPatchEmitter
         bool canApplyChangeSetInPlace = false,
         bool modelIsReferenceType = true,
         ImmutableArray<SparsePayloadJsonPocoModel> payloadJsonPocos = default,
-        SparsePayloadContract? payloadContract = null
+        SparsePayloadContract? payloadContract = null,
+        SharedIndentedBuilder? jsonCodecBuilder = null
     )
     {
         var plan = features ?? SparseEmissionFeatures.Standalone;
@@ -429,7 +437,8 @@ internal static class SparseFragmentPatchEmitter
                 target,
                 modelIsReferenceType,
                 payloadJsonPocos,
-                payloadContract
+                payloadContract,
+                jsonCodecBuilder
             );
         }
     }

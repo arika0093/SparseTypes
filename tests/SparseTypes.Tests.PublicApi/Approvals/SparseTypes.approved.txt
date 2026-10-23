@@ -1020,15 +1020,39 @@ namespace SparseTypes
         public string OpenApi30JsonSchema { get; }
         public string OpenApi31JsonSchema { get; }
         public System.Type Type { get; }
+        public string GetJsonSchema(SparseTypes.SparsePayloadSchemaDialect dialect) { }
     }
     public sealed class SparsePayloadSchemaBundle
     {
+        public SparsePayloadSchemaBundle(System.Type rootType, SparseTypes.SparsePayloadSchemaBundleOptions options) { }
         public SparsePayloadSchemaBundle(System.Type rootType, System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> openApi30Schemas, System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> openApi31Schemas, System.Collections.Generic.IReadOnlyList<System.Type> requiredExternalSchemaTypes, System.Collections.Generic.IReadOnlyList<System.Func<SparseTypes.SparsePayloadSchemaBundle>>? dependencies = null) { }
         public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> OpenApi30Schemas { get; }
         public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> OpenApi31Schemas { get; }
         public System.Collections.Generic.IReadOnlyList<System.Type> RequiredExternalSchemaTypes { get; }
         public string RootSchemaName { get; }
         public System.Type RootType { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> SchemaIdentities { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema> GetSchemas(SparseTypes.SparsePayloadSchemaDialect dialect) { }
+    }
+    public sealed class SparsePayloadSchemaBundleOptions
+    {
+        public SparsePayloadSchemaBundleOptions() { }
+        public System.Collections.Generic.IReadOnlyList<System.Func<SparseTypes.SparsePayloadSchemaBundle>> Dependencies { get; init; }
+        public System.Collections.Generic.IReadOnlyList<System.Type> RequiredExternalSchemaTypes { get; init; }
+        public System.Func<System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema>> Schema30 { get; init; }
+        public System.Func<System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchema>> Schema31 { get; init; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> SchemaIdentities { get; init; }
+    }
+    public enum SparsePayloadSchemaDialect
+    {
+        OpenApi30 = 0,
+        OpenApi31 = 1,
+    }
+    public sealed class SparsePayloadSchemaIdentity
+    {
+        public SparsePayloadSchemaIdentity(System.Type type, string name) { }
+        public string Name { get; }
+        public System.Type Type { get; }
     }
     public static class SparsePayloadSchemaNames
     {

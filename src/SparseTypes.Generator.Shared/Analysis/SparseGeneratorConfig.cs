@@ -239,7 +239,7 @@ internal sealed record SparseGeneratorConfig
 
     /// <summary>Whether generated JSON artifacts may be emitted for this configuration.</summary>
     /// <remarks>Emission also requires V1 wire-format support.</remarks>
-    public bool EffectiveEmitJson => EffectiveEmissionFeatures.EmitJsonConverters && EffectiveStjCapabilities.SupportsV1Wire;
+    public bool EffectiveEmitJson => EffectiveEmissionFeatures.EmitPayloadJson && EffectiveStjCapabilities.SupportsV1Wire;
 
     public SparseMergeModeMap EffectiveMergeModeMap => MergeModeMap;
 

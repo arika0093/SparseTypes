@@ -63,7 +63,7 @@ public static class SparseOpenApiServiceCollectionExtensions
             });
         }
 
-        registry.Add(schemaSet.GetAllSchemas());
+        registry.Add(schemaSet.GetAllIdentities());
     }
 }
 
@@ -81,7 +81,7 @@ internal sealed class SparseSchemaNameRegistry
 
     /// <summary>Adds curated names and rejects inconsistent type or name collisions.</summary>
     /// <param name="schemas">The generated payload schemas.</param>
-    public void Add(IReadOnlyList<SparseTypes.SparsePayloadSchema> schemas)
+    public void Add(IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> schemas)
     {
         ArgumentNullException.ThrowIfNull(schemas);
         foreach (var schema in schemas)

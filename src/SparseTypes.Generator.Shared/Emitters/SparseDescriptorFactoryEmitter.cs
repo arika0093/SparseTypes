@@ -29,7 +29,7 @@ internal static class SparseDescriptorFactoryEmitter
             members,
             runtimeNamespace,
             dialect,
-            SparseDescriptorEmissionContext.ForFactory(model.ModelTypeName, observableType)
+            SparseDescriptorEmissionContext.ForFactory(observableType)
         );
         var body = innerBuilder.ToString();
         code.AppendLine("/// <summary>Descriptor factory bound to the owning observable.</summary>");

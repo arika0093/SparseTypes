@@ -20,19 +20,50 @@ internal static class SparsePayloadSchemaEmitter
         var descriptors = BuildDescriptors(context, schema);
         var descriptorType = context.Dialect.PayloadSchemaDescriptorType!;
         var bundleType = context.Dialect.PayloadSchemaBundleType!;
+        var optionsType = context.Dialect.PayloadSchemaBundleOptionsType;
+        var identityType = context.Dialect.PayloadSchemaIdentityType;
+        var schema30Member = context.Dialect.PayloadSchemaOptionsSchema30MemberName;
+        var schema31Member = context.Dialect.PayloadSchemaOptionsSchema31MemberName;
+        var identitiesMember = context.Dialect.PayloadSchemaOptionsIdentitiesMemberName;
+        var externalTypesMember = context.Dialect.PayloadSchemaOptionsExternalTypesMemberName;
+        var dependenciesMember = context.Dialect.PayloadSchemaOptionsDependenciesMemberName;
+        if (
+            optionsType is null
+            || identityType is null
+            || schema30Member is null
+            || schema31Member is null
+            || identitiesMember is null
+            || externalTypesMember is null
+            || dependenciesMember is null
+        )
+        {
+            throw new InvalidOperationException("Payload schema option types and member names must be configured when emitting payload schemas.");
+        }
 
         code.AppendLine("/// <summary>Gets the generated OpenAPI 3.0 and 3.1 payload schema bundle.</summary>");
         code.AppendLine("public static " + bundleType + " Schema { get; } = new " + bundleType + "(");
         code.Indent();
         code.AppendLine("typeof(ChangePayload),");
+        code.AppendLine("new " + optionsType);
+        code.OpenBlock();
+        code.Append(schema30Member).Append(" = static () => ");
         AppendDescriptorArray(code, descriptorType, descriptors, schema, openApi31: false);
         code.AppendLine(",");
+        code.Append(schema31Member).Append(" = static () => ");
         AppendDescriptorArray(code, descriptorType, descriptors, schema, openApi31: true);
         code.AppendLine(",");
-        code.Append("new global::System.Type[] { ");
+        code.Append(identitiesMember).Append(" = new ").Append(identityType).Append("[] { ");
+        code.Append(
+            string.Join(
+                ", ",
+                descriptors.Select(descriptor => "new(typeof(" + descriptor.Type + "), " + SymbolDisplay.FormatLiteral(descriptor.Name, true) + ")")
+            )
+        );
+        code.AppendLine(" },");
+        code.Append(externalTypesMember).Append(" = new global::System.Type[] { ");
         code.Append(string.Join(", ", schema.ExternalTypes.Select(static type => "typeof(" + type + ")")));
         code.AppendLine(" },");
-        code.Append("new global::System.Func<" + bundleType + ">[] { ");
+        code.Append(dependenciesMember).Append(" = new global::System.Func<" + bundleType + ">[] { ");
         code.Append(
             string.Join(
                 ", ",
@@ -42,6 +73,7 @@ internal static class SparsePayloadSchemaEmitter
             )
         );
         code.AppendLine(" }");
+        code.CloseBlock();
         code.Unindent();
         code.AppendLine(");");
     }
@@ -72,7 +104,7 @@ internal static class SparsePayloadSchemaEmitter
     {
         var descriptors = new List<SchemaDescriptor>();
         var modelChange = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "ModelChange");
-        var snapshot = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "Snapshot");
+        var snapshot = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "Root");
         var membersDelta = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "MembersDelta");
         descriptors.Add(
             new SchemaDescriptor(
@@ -93,7 +125,7 @@ internal static class SparsePayloadSchemaEmitter
         descriptors.Add(
             new SchemaDescriptor(
                 snapshot,
-                SchemaComponentName(context.ModelType, "Snapshot"),
+                SchemaComponentName(context.ModelType, "Root"),
                 BuildSnapshotSchema(context, schema, openApi31: false),
                 BuildSnapshotSchema(context, schema, openApi31: true)
             )
@@ -183,7 +215,7 @@ internal static class SparsePayloadSchemaEmitter
                     (
                         "before",
                         Endpoint(
-                            schema.Reference(snapshot, SchemaComponentName(context.ModelType, "Snapshot")),
+                            schema.Reference(snapshot, SchemaComponentName(context.ModelType, "Root")),
                             includeRedacted: true,
                             allowNull: true,
                             openApi31
@@ -192,7 +224,7 @@ internal static class SparsePayloadSchemaEmitter
                     (
                         "after",
                         Endpoint(
-                            schema.Reference(snapshot, SchemaComponentName(context.ModelType, "Snapshot")),
+                            schema.Reference(snapshot, SchemaComponentName(context.ModelType, "Root")),
                             includeRedacted: false,
                             allowNull: true,
                             openApi31
@@ -346,10 +378,10 @@ internal static class SparsePayloadSchemaEmitter
                 SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
                     context.Dialect,
                     valueType.NonNullableName,
-                    "Snapshot",
+                    "Root",
                     context.ImplementationNamespace
                 ),
-                SchemaComponentName(valueType.NonNullableName, "Snapshot")
+                SchemaComponentName(valueType.NonNullableName, "Root")
             )
             : schema.TypeSchema(valueType.NonNullableName);
         var properties = new List<(string, string)>
@@ -425,8 +457,8 @@ internal static class SparsePayloadSchemaEmitter
         {
             var child = member.ChildModel!.Value.NonNullableName;
             return schema.Reference(
-                SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(context.Dialect, child, "Snapshot", context.ImplementationNamespace),
-                SchemaComponentName(child, "Snapshot")
+                SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(context.Dialect, child, "Root", context.ImplementationNamespace),
+                SchemaComponentName(child, "Root")
             );
         }
 
@@ -456,10 +488,10 @@ internal static class SparsePayloadSchemaEmitter
                 SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
                     context.Dialect,
                     valueType.NonNullableName,
-                    "Snapshot",
+                    "Root",
                     context.ImplementationNamespace
                 ),
-                SchemaComponentName(valueType.NonNullableName, "Snapshot")
+                SchemaComponentName(valueType.NonNullableName, "Root")
             );
         }
 

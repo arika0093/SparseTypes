@@ -68,7 +68,8 @@ internal static class SparseModelAnalyzer
             if (!string.IsNullOrWhiteSpace(containerPrefix))
             {
                 reservedNames = reservedNames.Add(
-                    containerPrefix + "_" + SparseNaming.GetStableTypeHash(SparseNaming.NonNullableTypeName(model), cancellationToken)
+                    SparseGeneratedPlacement.GetContainerForQualifiedName(SparseNaming.NonNullableTypeName(model), cancellationToken)
+                        + containerPrefix
                 );
             }
         }
@@ -84,7 +85,7 @@ internal static class SparseModelAnalyzer
 
         // Statically provable duplicate JSON wire names fail here instead of
         // surfacing as runtime converter errors in generated code.
-        var hasPayloadJson = config.EffectiveEmissionFeatures.EmitChangePayload && config.EffectiveEmissionFeatures.EmitJsonConverters;
+        var hasPayloadJson = config.EffectiveEmissionFeatures.EmitChangePayload && config.EffectiveEmissionFeatures.EmitPayloadJson;
         var duplicateWireNames = hasPayloadJson
             ? SparseShapeValidation.FindDuplicatePayloadWireNames(payloadContract)
             : SparseShapeValidation.FindDuplicateWireNames(memberModels);

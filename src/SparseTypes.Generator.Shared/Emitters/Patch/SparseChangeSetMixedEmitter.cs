@@ -18,7 +18,6 @@ internal static class SparseChangeSetMixedEmitter
     )
     {
         var payloadCore = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
-        var rootChange = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "RootChange");
         if (target is not null)
         {
             // Payload DTO bridges keep calling through the facade.
@@ -88,9 +87,9 @@ internal static class SparseChangeSetMixedEmitter
         code.AppendLine("blindSets = new Patch();");
         code.AppendLine("blindPaths = new global::System.Collections.Generic.List<string>();");
         code.AppendLine(
-            "if (payload.Changes is null) throw new global::System.ArgumentException(\"Payload changes must not be null.\", nameof(payload));"
+            "if (payload.TypedChange is null) throw new global::System.ArgumentException(\"A model change is required.\", nameof(payload));"
         );
-        AppendWholePartition(code, members, dialect, modelType, rootChange);
+        AppendWholePartition(code, members, dialect, modelType);
         foreach (var member in members.Where(static member => !member.Property.IsTransportIgnored))
         {
             AppendPartitionLocals(code, member, dialect, members);
@@ -99,7 +98,7 @@ internal static class SparseChangeSetMixedEmitter
         {
             code.AppendLine("bool __payloadSeen" + member.Id + " = false;");
         }
-        code.AppendLine("foreach (var change in payload.Changes)");
+        code.AppendLine("foreach (var change in payload.EnumerateChanges())");
         code.OpenBlock();
         code.AppendLine("switch (change)");
         code.OpenBlock();
@@ -291,12 +290,13 @@ internal static class SparseChangeSetMixedEmitter
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType,
-        string rootChange
+        string? modelType
     )
     {
-        code.AppendLine("if (payload.Changes.Count == 1 && payload.Changes[0] is " + rootChange + " whole)");
+        var changeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
+        code.AppendLine("if (payload.TypedChange!.Kind == " + changeKind + ".Replace)");
         code.OpenBlock();
+        code.AppendLine("var whole = payload.TypedChange!;");
         code.AppendLine(
             "if (whole.Before is null || whole.After is null) throw new global::System.ArgumentException(\"A whole-root payload must contain both endpoints.\", nameof(payload));"
         );
@@ -316,16 +316,7 @@ internal static class SparseChangeSetMixedEmitter
         code.AppendLine("var __wholeAfter = whole.After.ToOptional();");
         code.AppendLine("if (!__wholeAfter.IsPresent) blindSets.__SparseRemove();");
         code.AppendLine("else if (__wholeAfter.Value is null) blindSets.__SparseSetNull();");
-        if (modelType is null)
-        {
-            code.AppendLine(
-                "else throw new global::System.ArgumentException(\"A whole-root blind set requires a model-typed envelope.\", nameof(payload));"
-            );
-        }
-        else
-        {
-            code.AppendLine("else blindSets.__SparseSet(__wholeAfter.Value.ToFragment().ToModel());");
-        }
+        code.AppendLine("else blindSets.__SparseSet(__wholeAfter.Value.ToFragment().ToModel());");
         code.AppendLine("blindPaths.Add(pathPrefix + \"$root\");");
         code.AppendLine("return new ChangeSet(false, default, default, " + SparseChangeSetBasicsEmitter.MemberEmptyTail(members) + ");");
         code.CloseBlock();

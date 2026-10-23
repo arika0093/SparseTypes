@@ -7,15 +7,9 @@ namespace SparseTypes.Tests.Shared;
 /// <summary>Shared-emitter compatibility fixture.</summary>
 public sealed class ChangeSetDialectFixtureTests
 {
-    private static SparseTypeModel ScalarType(string name) =>
-        new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
+    private static SparseTypeModel ScalarType(string name) => new(name, name, name, IsReferenceType: true, IsFragmentModel: false, null);
 
-    private static SparseMemberModel ScalarMember(
-        int id,
-        string name,
-        string typeName,
-        bool initOnly = false
-    )
+    private static SparseMemberModel ScalarMember(int id, string name, string typeName, bool initOnly = false)
     {
         var property = new SparsePropertyModel(
             name,
@@ -27,17 +21,7 @@ public sealed class ChangeSetDialectFixtureTests
             HasExplicitJsonPropertyName: false,
             JsonIgnoreCondition: 0
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Replace,
-            SparseCollectionInfo.Unsupported,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Replace, SparseCollectionInfo.Unsupported, null, null, false, true);
     }
 
     private static SparseMemberModel NestedMember(int id, string name)
@@ -106,17 +90,7 @@ public sealed class ChangeSetDialectFixtureTests
             null,
             SparseKeyKind.None
         );
-        return new SparseMemberModel(
-            id,
-            property,
-            null,
-            SparseMergeModes.Append,
-            collection,
-            null,
-            null,
-            false,
-            true
-        );
+        return new SparseMemberModel(id, property, null, SparseMergeModes.Append, collection, null, null, false, true);
     }
 
     private static SparseMemberModel KeyedMember()
@@ -151,9 +125,7 @@ public sealed class ChangeSetDialectFixtureTests
     {
         var key = ScalarType("global::System.Int32");
         var value = ScalarType("global::System.String");
-        var dictionary = ScalarType(
-            "global::System.Collections.Generic.Dictionary<global::System.Int32, global::System.String>"
-        );
+        var dictionary = ScalarType("global::System.Collections.Generic.Dictionary<global::System.Int32, global::System.String>");
         var collection = new SparseCollectionInfo(
             SparseCollectionKind.Unsupported,
             SparseCloneCollectionKind.Dictionary,
@@ -179,11 +151,7 @@ public sealed class ChangeSetDialectFixtureTests
     }
 
     private static ImmutableArray<SparseMemberModel> FixtureMembers() =>
-        ImmutableArray.Create(
-            ScalarMember(0, "Name", "global::System.String?"),
-            NestedMember(2, "Child"),
-            AppendMember(5, "Tags")
-        );
+        ImmutableArray.Create(ScalarMember(0, "Name", "global::System.String?"), NestedMember(2, "Child"), AppendMember(5, "Tags"));
 
     private static SparseFragmentPatchEmitter.SparsePatchDialect DownstreamDialect() =>
         new(
@@ -199,21 +167,12 @@ public sealed class ChangeSetDialectFixtureTests
             "global::Downstream.DownstreamConflictKind",
             static payload => "global::Downstream.DownstreamRebase<" + payload + ">",
             static member =>
-                member.ChildFragmentType is null
-                    ? "Patch"
-                    : member.ChildFragmentType.Replace(
-                        ".Fragment",
-                        ".Patch",
-                        StringComparison.Ordinal
-                    ),
+                member.ChildFragmentType is null ? "Patch" : member.ChildFragmentType.Replace(".Fragment", ".Patch", StringComparison.Ordinal),
             static member => "global::Downstream.Delta_" + member.Id,
             PayloadImplementationContainerPrefix: "DownstreamInternal"
         );
 
-    private static string EmitChangeSet(
-        ImmutableArray<SparseMemberModel> members,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
-    )
+    private static string EmitChangeSet(ImmutableArray<SparseMemberModel> members, SparseFragmentPatchEmitter.SparsePatchDialect dialect)
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
         SparseChangeSetEmitter.AppendChangeSet(code, members, dialect, "global::Ns.Model");
@@ -237,9 +196,7 @@ public sealed class ChangeSetDialectFixtureTests
             }
         );
         var text = code.ToString();
-        text.ShouldContain(
-            "global::Downstream.RentKeys<global::System.Int32>(count, static capacity =>"
-        );
+        text.ShouldContain("global::Downstream.RentKeys<global::System.Int32>(count, static capacity =>");
         text.ShouldContain("var seen = keyScope.Keys;");
         text.ShouldContain("if (!seen.Add(k))");
         text.ShouldNotContain("global::SparseTypes");
@@ -290,13 +247,7 @@ public sealed class ChangeSetDialectFixtureTests
     [Test]
     public void Downstream_PayloadVersionIsDialectOwned()
     {
-        var text = EmitChangeSet(
-            FixtureMembers(),
-            DownstreamDialect() with
-            {
-                ChangePayloadVersion = "9.9",
-            }
-        );
+        var text = EmitChangeSet(FixtureMembers(), DownstreamDialect() with { ChangePayloadVersion = "9.9" });
         text.ShouldContain("\"9.9\"");
         text.ShouldNotContain("\"0.1\"");
         text.ShouldNotContain("global::SparseTypes");
@@ -306,11 +257,7 @@ public sealed class ChangeSetDialectFixtureTests
     public void Downstream_KeyedCollectionPatchContainsNoSparseTypesRuntime()
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseKeyedSequenceSurfaceEmitter.EmitKeyedSequencePatch(
-            code,
-            KeyedMember(),
-            DownstreamDialect()
-        );
+        SparseKeyedSequenceSurfaceEmitter.EmitKeyedSequencePatch(code, KeyedMember(), DownstreamDialect());
         var text = code.ToString();
         text.ShouldNotContain("global::SparseTypes");
         text.ShouldContain("global::Downstream.DownstreamRebase<ItemsPatch>");
@@ -331,11 +278,7 @@ public sealed class ChangeSetDialectFixtureTests
         keyedText.ShouldContain("Invert(");
 
         var dictionaryCode = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryPatchEmitter.EmitDictionaryPatch(
-            dictionaryCode,
-            DictionaryMember(),
-            dialect
-        );
+        SparseDictionaryPatchEmitter.EmitDictionaryPatch(dictionaryCode, DictionaryMember(), dialect);
         var dictionaryText = dictionaryCode.ToString();
         dictionaryText.ShouldNotContain("Rebase(");
         dictionaryText.ShouldContain("Between(");
@@ -347,11 +290,7 @@ public sealed class ChangeSetDialectFixtureTests
     public void Downstream_DictionaryPatchContainsNoSparseTypesRuntime()
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseDictionaryPatchEmitter.EmitDictionaryPatch(
-            code,
-            DictionaryMember(),
-            DownstreamDialect()
-        );
+        SparseDictionaryPatchEmitter.EmitDictionaryPatch(code, DictionaryMember(), DownstreamDialect());
         var text = code.ToString();
         text.ShouldNotContain("global::SparseTypes");
         text.ShouldContain("global::Downstream.DownstreamRebase<ValuesPatch>");
@@ -363,12 +302,7 @@ public sealed class ChangeSetDialectFixtureTests
     public void Downstream_FullPatchContainsNoSparseTypesRuntime()
     {
         var code = new SharedIndentedBuilder(CancellationToken.None);
-        SparseFragmentPatchEmitter.AppendPatch(
-            code,
-            "global::Ns.Model",
-            FixtureMembers(),
-            dialect: DownstreamDialect()
-        );
+        SparseFragmentPatchEmitter.AppendPatch(code, "global::Ns.Model", FixtureMembers(), dialect: DownstreamDialect());
         var text = code.ToString();
         text.ShouldNotContain("global::SparseTypes");
         text.ShouldContain("global::Downstream.Optional<");
@@ -392,12 +326,7 @@ public sealed class ChangeSetDialectFixtureTests
             {
                 EmitPatchRebase = false,
             },
-            features: new SparseEmissionFeatures(
-                EmitChangeSet: false,
-                EmitChangePayload: false,
-                EmitObservable: false,
-                EmitJsonConverters: false
-            )
+            features: new SparseEmissionFeatures(EmitChangeSet: false, EmitChangePayload: false, EmitObservable: false, EmitPayloadJson: false)
         );
 
         var text = code.ToString();
@@ -465,13 +394,7 @@ public sealed class ChangeSetDialectFixtureTests
     [Test]
     public void Downstream_RebaseOptionsDeriveFromRuntimeNamespace()
     {
-        var text = EmitChangeSet(
-            ImmutableArray.Create(
-                ScalarMember(1, "Name", "global::System.String?"),
-                PolicyMember()
-            ),
-            DownstreamDialect()
-        );
+        var text = EmitChangeSet(ImmutableArray.Create(ScalarMember(1, "Name", "global::System.String?"), PolicyMember()), DownstreamDialect());
         text.ShouldNotContain("global::SparseTypes");
         text.ShouldContain("global::Downstream.ChangePayloadRebaseOptions? options = null");
         text.ShouldContain("global::Downstream.SparseRebaseMode");
@@ -484,10 +407,7 @@ public sealed class ChangeSetDialectFixtureTests
     public void Downstream_RebaseNamingIsDialectOwned()
     {
         var text = EmitChangeSet(
-            ImmutableArray.Create(
-                ScalarMember(1, "Name", "global::System.String?"),
-                PolicyMember()
-            ),
+            ImmutableArray.Create(ScalarMember(1, "Name", "global::System.String?"), PolicyMember()),
             DownstreamDialect() with
             {
                 RebaseOptionsType = "global::Downstream.DeltaOptions",
@@ -506,26 +426,13 @@ public sealed class ChangeSetDialectFixtureTests
     [Test]
     public void ImmutableInPlaceConflictKindComesFromTheDialect()
     {
-        var members = ImmutableArray.Create(
-            ScalarMember(9, "Immutable", "global::System.String?", initOnly: true)
-        );
-        var dialect = DownstreamDialect() with
-        {
-            InPlaceWriteUnavailableKindMemberName = "ImmutableUpdateNotAllowed",
-        };
+        var members = ImmutableArray.Create(ScalarMember(9, "Immutable", "global::System.String?", initOnly: true));
+        var dialect = DownstreamDialect() with { InPlaceWriteUnavailableKindMemberName = "ImmutableUpdateNotAllowed" };
         var code = new SharedIndentedBuilder(CancellationToken.None);
 
-        SparseChangeSetEmitter.AppendChangeSet(
-            code,
-            members,
-            dialect,
-            "global::Ns.Model",
-            default,
-            canApplyInPlace: true
-        );
+        SparseChangeSetEmitter.AppendChangeSet(code, members, dialect, "global::Ns.Model", default, canApplyInPlace: true);
 
-        code.ToString()
-            .ShouldContain("global::Downstream.DownstreamConflictKind.ImmutableUpdateNotAllowed");
+        code.ToString().ShouldContain("global::Downstream.DownstreamConflictKind.ImmutableUpdateNotAllowed");
         code.ToString().ShouldContain("TryApplyInPlace(");
         code.ToString().ShouldNotContain("global::SparseTypes.SparseConflictKind");
     }

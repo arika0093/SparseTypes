@@ -42,15 +42,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                         + "?>.Redacted() : "
                         + SnapshotValueExpression(endpoint, runtime, childRoot + "?", "member" + member.Id, childCall)
                     : SnapshotValueExpression(endpoint, runtime, childRoot + "?", "member" + member.Id, childCall);
-                code.AppendLine(
-                    "if (member"
-                        + member.Id
-                        + ".IsPresent) result.Members.Add(new "
-                        + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", member.Id)
-                        + " { Value = "
-                        + valueExpression
-                        + " });"
-                );
+                code.AppendLine("if (member" + member.Id + ".IsPresent) result." + property + " = " + valueExpression + ";");
             }
             else
             {
@@ -70,15 +62,7 @@ internal static class SparseChangeSetPayloadSnapshotEmitter
                         + property
                         + ")"
                     : endpoint + "<" + valueType + ">.FromOptional(value." + property + ")";
-                code.AppendLine(
-                    "if (value."
-                        + property
-                        + ".IsPresent) result.Members.Add(new "
-                        + SparseChangeSetPayloadEmitter.PayloadMemberName(modelType, "Change", member.Id)
-                        + " { Value = "
-                        + valueExpression
-                        + " });"
-                );
+                code.AppendLine("if (value." + property + ".IsPresent) result." + property + " = " + valueExpression + ";");
             }
         }
     }

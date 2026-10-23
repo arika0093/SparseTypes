@@ -438,7 +438,7 @@ internal static class SparseEditSessionChildEmitter
 
     /// <summary>Appends the core-backed constructor used by fork merges.</summary>
     internal static void AppendForkMergeCoreConstructor(SharedIndentedBuilder code, string core, string sessionSimple) =>
-        code.AppendLine("internal " + sessionSimple + "(" + core + " session) { _session = session; }");
+        code.AppendLine("private " + sessionSimple + "(" + core + " session) { _session = session; }");
 
     /// <summary>Appends the public child-session API.</summary>
     internal static void AppendChildSessionApiMembers(

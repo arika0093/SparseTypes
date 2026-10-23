@@ -155,9 +155,9 @@ public sealed class ChangePayloadWireTests
     {
         var container = typeof(KeyedServerHolder.ChangePayload).BaseType!.DeclaringType!;
         var roles = container.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic);
-        var collectionRole = roles.Single(static type => type.Name.StartsWith("CollectionChange_", StringComparison.Ordinal));
-        var itemRole = roles.Single(static type => type.Name.StartsWith("ItemOperation_", StringComparison.Ordinal));
-        var membersDelta = roles.Single(static type => type.Name.StartsWith("MembersDelta_", StringComparison.Ordinal));
+        var collectionRole = roles.Single(static type => type.Name.StartsWith("CollectionChange", StringComparison.Ordinal));
+        var itemRole = roles.Single(static type => type.Name.StartsWith("ItemOperation", StringComparison.Ordinal));
+        var membersDelta = roles.Single(static type => type.Name.StartsWith("MembersDelta", StringComparison.Ordinal));
         var collectionChange = membersDelta.GetProperty("Items")!.PropertyType;
         var itemOperation = collectionChange.GetProperty("Items")!.PropertyType.GetGenericArguments()[0];
 

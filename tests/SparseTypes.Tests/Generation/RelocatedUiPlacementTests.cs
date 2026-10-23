@@ -196,9 +196,8 @@ public sealed class RelocatedUiPlacementTests
         // Member access in code follows the factory parameter.
         factory.ShouldContain("observable.observable");
         factory.ShouldContain("observable.pathPrefix");
-        // The attribute literal survives verbatim on the surface bridge.
-        var surface = all.Values.First(text => text.Contains("__SparseAttributes_", StringComparison.Ordinal));
-        surface.ShouldContain("\"call this.foo; child ref global::Reloc.Probe.TrickyChild.Observable; use __model.bar\"");
+        // The attribute literal survives verbatim in the descriptor factory.
+        factory.ShouldContain("\"call this.foo; child ref global::Reloc.Probe.TrickyChild.Observable; use __model.bar\"");
         foreach (var text in all.Values)
         {
             text.ShouldNotContain("\"call observable.foo");
@@ -236,7 +235,7 @@ public sealed class RelocatedUiPlacementTests
     }
 
     [Test]
-    public void PrivateAttributesUseModelBridgesInTheFactory()
+    public void FactoryCanAccessPrivateModelAttributesWithoutBridges()
     {
         const string source = """
             using SparseTypes;
@@ -262,10 +261,8 @@ public sealed class RelocatedUiPlacementTests
         var (compilation, _, all) = Generate(source);
         compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         var factory = all.Values.First(text => text.Contains("private static class DescriptorFactory", StringComparison.Ordinal));
-        factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_0()");
-        factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_1()");
-        factory.ShouldContain("global::Reloc.Probe.AttributedModel.__SparseAttributes_2()");
-        var surface = all.Values.First(text => text.Contains("__SparseAttributes_0()", StringComparison.Ordinal));
-        surface.ShouldContain("escaped \\\" quote");
+        factory.ShouldContain("global::Reloc.Probe.AttributedModel.LabelAttribute");
+        factory.ShouldContain("escaped \\\" quote");
+        all.Values.ShouldAllBe(static text => !text.Contains("__SparseAttributes_", StringComparison.Ordinal));
     }
 }

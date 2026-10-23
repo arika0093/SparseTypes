@@ -249,7 +249,7 @@ public sealed class GeneratedApiApprovalTests
         {
             model
                 .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(static type => type.Name.StartsWith("__Internal_", StringComparison.Ordinal))
+                .Where(static type => type.Name.EndsWith("SerializeObjects", StringComparison.Ordinal))
                 .ShouldBeEmpty();
         }
 
@@ -280,44 +280,11 @@ public sealed class GeneratedApiApprovalTests
         }
 
         var scalarContainer = typeof(CatalogScalar).GetNestedType("ChangePayload")!.BaseType!.DeclaringType!;
-        scalarContainer.Name.ShouldStartWith("__Internal_");
+        scalarContainer.Name.ShouldEndWith("SerializeObjects");
         var scalarMemberChange = scalarContainer
             .GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)
-            .Single(static type => type.Name.StartsWith("Change0_", StringComparison.Ordinal));
+            .Single(static type => type.Name == "Change0");
         scalarMemberChange.DeclaringType.ShouldBe(scalarContainer);
-    }
-
-    [Test]
-    public void FragmentJsonConverterShellForwardsToImplementation()
-    {
-        var converter = typeof(CatalogScalar.Fragment)
-            .GetProperty("JsonConverter", BindingFlags.Public | BindingFlags.Static)!
-            .GetValue(null)!
-            .GetType();
-        converter.Namespace.ShouldBe("SparseTypes.Generated");
-        converter.IsNotPublic.ShouldBeTrue();
-        converter.Name.ShouldContain("FragmentJsonConverter");
-    }
-
-    [Test]
-    public void FragmentJsonConverterIsPrivateImplementationDetail()
-    {
-        var converter = typeof(CatalogScalar.Fragment)
-            .GetProperty("JsonConverter", BindingFlags.Public | BindingFlags.Static)!
-            .GetValue(null)!
-            .GetType();
-        converter.IsPublic.ShouldBeFalse();
-        converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
-
-        var operationsTypes = typeof(CatalogScalar)
-            .Assembly.GetTypes()
-            .Where(static type => type.Name.EndsWith("FragmentOperations", StringComparison.Ordinal))
-            .ToArray();
-        operationsTypes.ShouldNotBeEmpty();
-        foreach (var operationsType in operationsTypes)
-        {
-            operationsType.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
-        }
     }
 
     [Test]
@@ -348,16 +315,19 @@ public sealed class GeneratedApiApprovalTests
             helper.GetCustomAttribute<EditorBrowsableAttribute>().ShouldBeNull($"Expected {helper.Name} to stay discoverable.");
             var changePayload = model.GetNestedType("ChangePayload");
             changePayload.ShouldNotBeNull();
-            changePayload!.GetCustomAttribute<EditorBrowsableAttribute>(inherit: false)!.State.ShouldBe(EditorBrowsableState.Always);
+            changePayload!.GetCustomAttribute<EditorBrowsableAttribute>(inherit: false).ShouldBeNull();
+            changePayload.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
             helper.GetProperty("Default")!.PropertyType.ShouldBe(typeof(JsonTypeInfo<>).MakeGenericType(changePayload!));
             helper.GetProperty("Resolver")!.PropertyType.ShouldBe(typeof(IJsonTypeInfoResolver));
 
             var container = changePayload.BaseType!.DeclaringType!;
-            var converter = container.GetNestedType("PayloadJsonConverter", BindingFlags.Public | BindingFlags.NonPublic)!;
-            converter.IsNestedAssembly.ShouldBeTrue();
+            var converter = model.Assembly.GetTypes().Single(type => type.Name == container.Name + "PayloadJsonConverter");
+            converter.DeclaringType.ShouldBeNull();
+            converter.IsNotPublic.ShouldBeTrue();
             converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
-            var resolver = container.GetNestedType("PayloadJsonResolver", BindingFlags.Public | BindingFlags.NonPublic)!;
-            resolver.IsNestedAssembly.ShouldBeTrue();
+            var resolver = model.Assembly.GetTypes().Single(type => type.Name == container.Name + "PayloadJsonResolver");
+            resolver.DeclaringType.ShouldBeNull();
+            resolver.IsNotPublic.ShouldBeTrue();
             resolver.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
             changePayload.GetProperty("Version")!.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
             changePayload.GetProperty("Change").ShouldNotBeNull();
