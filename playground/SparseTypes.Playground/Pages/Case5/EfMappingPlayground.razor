@@ -1357,7 +1357,13 @@
                 _db,
                 resolved,
                 order => order.Id == orderId,
-                new SessionPipelineAdapter(_session, submitted),
+                // The session was rebased onto the same current snapshot the
+                // resolution builds against (see RecoverFromConflict), so the
+                // resolved transition reconciles directly. Substituting the
+                // original submission here (as SessionPipelineAdapter does for
+                // the non-conflict path) would validate its stale Before
+                // images against the rebased baseline and fail deterministically.
+                _session,
                 beforeSave: (save, _) =>
                 {
                     PlaygroundConcurrency.EnsureCurrentRevision(SharedOptions, orderId, expectedRevision);
