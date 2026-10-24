@@ -229,7 +229,7 @@ test("case 5 keeps the saved entity diff fixed during later real-time edits", as
 });
 
 test("case 5 refreshes conflict choices when the dialog revision becomes stale", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
   await page.getByText("Simulate another user editing before save", { exact: true }).click();
   await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
@@ -273,13 +273,24 @@ test("case 5 refreshes conflict choices when the dialog revision becomes stale",
   // Freeze the simulation so a further tick cannot stale the refreshed
   // resolution again. The dialog is modal, so toggle through a synthetic
   // event instead of a hit-tested click. Then let one interval elapse so an
-  // in-flight tick can land; afterwards the store is stable, so re-apply
-  // only when the dialog is still open.
+  // in-flight tick can land; afterwards the store is stable.
   await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).dispatchEvent("click");
   await page.waitForTimeout(11_000);
-  if ((await conflictDialog.locator("dialog[open]").count()) > 0) {
-    await fluentButton(conflictDialog, "Use captured value").first().click();
+  // A tick can still land between the refresh above and the apply below
+  // (the freeze races the 10-second timer, and an in-flight tick may land
+  // during the wait), resetting the choices again. Retry the re-select plus
+  // apply sequence until the dialog closes, matching real user behavior
+  // when real-time edits keep arriving during resolution.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if ((await conflictDialog.locator("dialog[open]").count()) === 0) {
+      break;
+    }
+    const pressed = await fluentButton(conflictDialog, "Use captured value").first().getAttribute("aria-pressed");
+    if (pressed !== "true") {
+      await fluentButton(conflictDialog, "Use captured value").first().click();
+    }
     await fluentButton(conflictDialog, "Apply resolutions").click();
+    await page.waitForTimeout(2_000);
   }
   await expect(conflictDialog.locator("dialog[open]")).toBeHidden({ timeout: 10_000 });
   await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-local-customer")).toBeVisible();

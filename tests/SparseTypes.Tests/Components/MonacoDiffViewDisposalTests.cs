@@ -347,7 +347,7 @@ public sealed class MonacoDiffViewDisposalTests
     {
         // Bound test hangs generously: overloaded CI runners stall renderer
         // dispatch and timer callbacks, so a tight deadline turns scheduling
-        // jitter into a TimeoutException. The workflow's --timeout 10m still
+        // jitter into a TimeoutException. The workflow's --timeout 20m still
         // bounds the whole run.
         var deadline = DateTime.UtcNow.AddSeconds(30);
         while (!ready())
