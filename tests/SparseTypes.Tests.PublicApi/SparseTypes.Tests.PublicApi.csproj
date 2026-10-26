@@ -12,7 +12,7 @@
       GetExportedTypes reflection can load the CodeFixProvider base chain
       (Microsoft.CodeAnalysis.Workspaces 4.3.0.0). The generator itself keeps
       PrivateAssets="all" so no consumer payload changes. -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.3.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.9.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/SparseTypes.Core/SparseTypes.Core.csproj" />
