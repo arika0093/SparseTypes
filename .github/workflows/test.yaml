@@ -65,9 +65,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -76,10 +74,6 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-
-      - name: Restore .NET tools
-        if: matrix.os == 'ubuntu-latest'
-        run: dotnet tool restore
 
       - name: Restore unit test dependencies
         run: dotnet restore tests/SparseTypes.Tests/SparseTypes.Tests.csproj
@@ -147,9 +141,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -200,9 +192,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -254,9 +244,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -330,9 +318,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6
@@ -378,9 +364,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          dotnet-version: 10.0.x
 
       - name: Cache NuGet packages
         uses: actions/cache@v6

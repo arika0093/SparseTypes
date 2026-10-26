@@ -8,6 +8,8 @@
     <!-- Probe compilations use C# 12 syntax. The generator keeps its older Roslyn baseline for consumers. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
+    <!-- Newer meta-analyzers avoid the costly RS1022 scan of every generated test type. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
     <ProjectReference Include="../../src/SparseTypes/SparseTypes.csproj" />
     <ProjectReference
