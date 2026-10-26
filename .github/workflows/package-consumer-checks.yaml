@@ -1,0 +1,80 @@
+name: Package consumer checks
+
+on:
+  workflow_call:
+    inputs:
+      package-artifact:
+        description: Artifact containing the package bytes to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.check }}
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: Runtime consumer
+            script: verify-package-sparse-consumer.sh
+            dotnet-versions: |
+              6.0.x
+              8.0.x
+              9.0.x
+              10.0.x
+          - check: Fragments consumer
+            script: verify-package-fragments-consumer.sh
+            dotnet-versions: |
+              6.0.x
+              8.0.x
+              9.0.x
+              10.0.x
+          - check: C# 9.0 consumer
+            script: verify-package-langversion-consumer.sh
+            dotnet-versions: 10.0.x
+          - check: Stale same-version isolation
+            script: verify-package-stale-isolation.sh
+            dotnet-versions: 10.0.x
+          - check: Shared source-only consumer
+            script: verify-package-shared-consumer.sh
+            dotnet-versions: 10.0.x
+          - check: README samples
+            script: verify-sparsetypes-readme.sh
+            dotnet-versions: 10.0.x
+          - check: Documentation samples
+            script: verify-docs-samples.sh
+            dotnet-versions: 10.0.x
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ matrix.dotnet-versions }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Download packages
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.package-artifact }}
+          path: artifacts
+
+      - name: Verify packages
+        env:
+          VERIFY_SCRIPT: ${{ matrix.script }}
+        run: bash "./.github/workflows/scripts/$VERIFY_SCRIPT" artifacts

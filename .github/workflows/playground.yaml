@@ -56,8 +56,8 @@ jobs:
         with:
           path: dist/wwwroot
 
+  # E2E publishes its own site and can start alongside the Pages build.
   e2e:
-    needs: build
     uses: ./.github/workflows/playground-e2e.yaml
 
   deploy:

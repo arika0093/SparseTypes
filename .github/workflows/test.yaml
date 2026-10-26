@@ -104,19 +104,6 @@ jobs:
           -- --timeout 20m --report-trx --coverage --coverage-settings tests/coverage.config
           --coverage-output coverage.cobertura.xml --coverage-output-format cobertura
 
-      - name: Restore Fragments tests
-        run: dotnet restore tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
-
-      - name: Build Fragments tests
-        run: dotnet build tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj --no-restore --configuration Release
-
-      - name: Run Fragments tests
-        run: >
-          dotnet test tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
-          --no-build --no-restore --configuration Release --framework net10.0
-          --results-directory TestResults/fragments --no-progress
-          -- --timeout 20m --report-trx
-
       - name: Upload coverage report
         if: matrix.os == 'ubuntu-latest' && !cancelled()
         uses: actions/upload-artifact@v7
@@ -135,6 +122,64 @@ jobs:
             TestResults/**/*.trx
             TestResults/**/*.xml
             tests/**/TestResults/**/*.trx
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # Fragments tests build independently of the full runtime and Playground.
+  fragments:
+    if: >-
+      github.workflow != 'Strict tests' ||
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # PR fast path: Linux only. Main/dispatch/release-caller: full matrix.
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.props', '**/*.targets', 'global.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore Fragments tests
+        run: dotnet restore tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
+
+      - name: Build Fragments tests
+        run: dotnet build tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj --no-restore --configuration Release
+
+      - name: Run Fragments tests
+        run: >
+          dotnet test tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
+          --no-build --no-restore --configuration Release --framework net10.0
+          --results-directory TestResults/fragments --no-progress
+          -- --timeout 20m --report-trx
+
+      - name: Upload failure Fragments artifacts
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v7
+        with:
+          name: strict-fragments-results-${{ matrix.os }}
+          path: |
+            TestResults/fragments/**/*.trx
+            TestResults/fragments/**/*.xml
           if-no-files-found: ignore
           retention-days: 7
 
@@ -193,7 +238,7 @@ jobs:
 
   # Pack once, verify integrity, then test consumers, README, and docs against
   # those same package bytes. One OS is sufficient for packaging.
-  package-consumers:
+  packages:
     if: >-
       github.workflow != 'Strict tests' ||
       github.event_name != 'pull_request' ||
@@ -210,9 +255,7 @@ jobs:
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: |
-            6.0.x
             8.0.x
-            9.0.x
             10.0.x
 
       - name: Cache NuGet packages
@@ -238,34 +281,36 @@ jobs:
           dotnet pack src/SparseTypes.Generator.Shared/SparseTypes.Generator.Shared.csproj
           --configuration Release --output artifacts
 
-      - name: Verify docs enforcement probes
-        # Maintained negative probes for the docs sample enforcement.
-        # Static only: no pack needed, so this runs before the consumer gates.
-        run: bash ./.github/workflows/scripts/test-check-docs-samples.sh
-
       - name: Verify packed target assets
         run: bash ./.github/workflows/scripts/verify-packages.sh artifacts
 
-      - name: Verify packed package consumer
-        run: bash ./.github/workflows/scripts/verify-package-sparse-consumer.sh artifacts
+      - name: Upload packages for consumer checks
+        uses: actions/upload-artifact@v7
+        with:
+          name: strict-test-packages
+          path: artifacts/*.nupkg
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Verify packed Fragments package consumer
-        run: bash ./.github/workflows/scripts/verify-package-fragments-consumer.sh artifacts
+  package-consumers:
+    needs: packages
+    uses: ./.github/workflows/package-consumer-checks.yaml
+    with:
+      package-artifact: strict-test-packages
 
-      - name: Verify C# 9.0 language-version consumer
-        run: bash ./.github/workflows/scripts/verify-package-langversion-consumer.sh artifacts
+  docs-enforcement:
+    if: >-
+      github.workflow != 'Strict tests' ||
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
-      - name: Verify stale same-version isolation
-        run: bash ./.github/workflows/scripts/verify-package-stale-isolation.sh artifacts
-
-      - name: Verify Shared source-only package consumer
-        run: bash ./.github/workflows/scripts/verify-package-shared-consumer.sh artifacts
-
-      - name: Verify README samples against packed packages
-        run: bash ./.github/workflows/scripts/verify-sparsetypes-readme.sh artifacts
-
-      - name: Verify docs samples against packed packages
-        run: bash ./.github/workflows/scripts/verify-docs-samples.sh artifacts
+      - name: Verify docs enforcement probes
+        run: bash ./.github/workflows/scripts/test-check-docs-samples.sh
 
   # .NET Framework 4.8 compatibility gate for the packed core package. The net48
   # consumer runs on Windows; Blazor and net10 TUnit tests are excluded.
