@@ -38,29 +38,18 @@ public sealed class SessionPathsCompileNegativeTests
     private static Compilation RunProbe()
     {
         var tree = CSharpSyntaxTree.ParseText(ProbeSource, path: "Models.cs");
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "PathsNegativeProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return updated;
     }
 
@@ -99,11 +88,7 @@ public sealed class SessionPathsCompileNegativeTests
             }
             """;
         var tree = CSharpSyntaxTree.ParseText(snippet, path: "Positive.cs");
-        probe
-            .AddSyntaxTrees(tree)
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        probe.AddSyntaxTrees(tree).GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]

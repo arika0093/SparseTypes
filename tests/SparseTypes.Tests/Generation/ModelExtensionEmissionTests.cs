@@ -28,8 +28,8 @@ public sealed class ModelExtensionEmissionTests
     {
         var tree = CSharpSyntaxTree.ParseText(source, path: path);
         var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)TestMetadataReferences.FromFile(assemblyPath)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "StableExtensionProbe",
             [tree],

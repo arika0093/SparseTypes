@@ -119,9 +119,7 @@ public sealed class ReadOnlyViewAdapterRetentionTests
         var perModel = GeneratedSources()
             .Where(static pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Where(static source =>
-                source.Contains("__sparse_cache_Rows", StringComparison.Ordinal)
-            )
+            .Where(static source => source.Contains("__sparse_cache_Rows", StringComparison.Ordinal))
             .ToArray();
         perModel.ShouldHaveSingleItem();
         var text = perModel[0];
@@ -158,34 +156,20 @@ public sealed class ReadOnlyViewAdapterRetentionTests
                 path: "Models.cs"
             ),
         };
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "RetentionEmissionProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        var driver = CSharpGeneratorDriver
-            .Create([new SparseTypesGenerator().AsSourceGenerator()])
-            .RunGenerators(compilation);
+        var driver = CSharpGeneratorDriver.Create([new SparseTypesGenerator().AsSourceGenerator()]).RunGenerators(compilation);
         var generated = driver.GetRunResult();
         return generated
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 }

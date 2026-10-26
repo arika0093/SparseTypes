@@ -19,50 +19,30 @@ public sealed class PromotedIncrementalTests
             DriverResult
                 .Results.SelectMany(static result => result.GeneratedSources)
                 .GroupBy(static source => source.HintName)
-                .ToDictionary(
-                    static group => group.Key,
-                    static group => group.First().SourceText.ToString(),
-                    StringComparer.Ordinal
-                );
+                .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
 
         public ImmutableArray<Diagnostic> SpfDiagnostics() =>
-            DriverResult
-                .Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-                .ToImmutableArray();
+            DriverResult.Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ToImmutableArray();
     }
 
     private static CSharpCompilation CreateCompilation(Dictionary<string, string> files)
     {
-        var trees = files
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparsePromotedInvalidationProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
     private static GeneratorDriver CreateTrackedDriver() =>
         CSharpGeneratorDriver.Create(
             new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() },
-            driverOptions: new GeneratorDriverOptions(
-                IncrementalGeneratorOutputKind.None,
-                trackIncrementalGeneratorSteps: true
-            )
+            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true)
         );
 
     private static Probe Run(Dictionary<string, string> files)
@@ -83,14 +63,9 @@ public sealed class PromotedIncrementalTests
         return new Probe(driver, compilation, driverResult, driverResult.Results.Single());
     }
 
-    private static IReadOnlyList<IncrementalStepRunReason> TrackedReasons(
-        GeneratorRunResult result,
-        string trackingName
-    ) =>
+    private static IReadOnlyList<IncrementalStepRunReason> TrackedReasons(GeneratorRunResult result, string trackingName) =>
         result.TrackedSteps.TryGetValue(trackingName, out var steps)
-            ? steps
-                .SelectMany(static step => step.Outputs.Select(static output => output.Reason))
-                .ToArray()
+            ? steps.SelectMany(static step => step.Outputs.Select(static output => output.Reason)).ToArray()
             : Array.Empty<IncrementalStepRunReason>();
 
     private static string SharedSource(string typeName = "InvShared") =>
@@ -154,8 +129,7 @@ public sealed class PromotedIncrementalTests
     private static string PromotedHintFor(Dictionary<string, string> sources, string typeName)
     {
         var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal)
-            && key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)
+            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)
         );
         match.ShouldNotBeNull($"expected a promoted source for '{typeName}'");
         return match;
@@ -164,8 +138,7 @@ public sealed class PromotedIncrementalTests
     private static string SurfaceHintFor(Dictionary<string, string> sources, string typeName)
     {
         var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         match.ShouldNotBeNull($"expected a surface source for '{typeName}'");
         return match;
@@ -176,8 +149,7 @@ public sealed class PromotedIncrementalTests
         // Single-file emission: each model owns one merged hint carrying the
         // surface plus implementations.
         var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal)
-            && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
         );
         match.ShouldNotBeNull($"expected a merged source for '{typeName}'");
         return match;
@@ -198,27 +170,19 @@ public sealed class PromotedIncrementalTests
         var beforeSources = before.Sources();
         var promotedHint = PromotedHintFor(beforeSources, "InvShared");
 
-        var after = Rerun(
-            before,
-            "Root1.cs",
-            RootSourceWithExtra("InvRoot1", "public int EditMarker { get; set; }")
-        );
+        var after = Rerun(before, "Root1.cs", RootSourceWithExtra("InvRoot1", "public int EditMarker { get; set; }"));
         after.SpfDiagnostics().ShouldBeEmpty();
         var afterSources = after.Sources();
 
         // Same hint set: no promoted file is added or removed.
-        afterSources
-            .Keys.OrderBy(static key => key)
-            .ShouldBe(beforeSources.Keys.OrderBy(static key => key));
+        afterSources.Keys.OrderBy(static key => key).ShouldBe(beforeSources.Keys.OrderBy(static key => key));
         // The shared promoted output is byte-identical.
         afterSources[promotedHint].ShouldBe(beforeSources[promotedHint]);
         // Untouched roots are byte-identical; the edited root reflects the
         // edit.
         foreach (var root in new[] { "InvRoot2", "InvRoot3" })
         {
-            var hints = afterSources
-                .Keys.Where(key => key.Contains(root, StringComparison.Ordinal))
-                .ToArray();
+            var hints = afterSources.Keys.Where(key => key.Contains(root, StringComparison.Ordinal)).ToArray();
             hints.Length.ShouldBe(1);
             foreach (var hint in hints)
             {
@@ -243,29 +207,17 @@ public sealed class PromotedIncrementalTests
         var before = Run(files);
         before.SpfDiagnostics().ShouldBeEmpty();
 
-        var after = Rerun(
-            before,
-            "Root1.cs",
-            RootSourceWithExtra("InvRoot1", "public int EditMarker { get; set; }")
-        );
+        var after = Rerun(before, "Root1.cs", RootSourceWithExtra("InvRoot1", "public int EditMarker { get; set; }"));
 
         // The keyed promoted aggregation isolates the edit: dedup and emit
         // inputs are value-equal, so those stages must not recompute.
-        foreach (
-            var stage in new[]
-            {
-                "SparseTypesGenerator.PromotedDedup",
-                "SparseTypesGenerator.Promoted",
-            }
-        )
+        foreach (var stage in new[] { "SparseTypesGenerator.PromotedDedup", "SparseTypesGenerator.Promoted" })
         {
             var reasons = TrackedReasons(after.GeneratorResult, stage);
             reasons.ShouldNotBeEmpty($"expected tracking data for '{stage}'");
             reasons
                 .All(static reason => reason == IncrementalStepRunReason.Cached)
-                .ShouldBeTrue(
-                    $"expected '{stage}' to stay cached after an unrelated edit, got: {string.Join(", ", reasons)}"
-                );
+                .ShouldBeTrue($"expected '{stage}' to stay cached after an unrelated edit, got: {string.Join(", ", reasons)}");
         }
     }
 
@@ -288,40 +240,26 @@ public sealed class PromotedIncrementalTests
         var after = Rerun(
             before,
             "Root1.cs",
-            KeyedRootSource("InvKeyedRoot1")
-                .Replace(
-                    "public List<PromotedLine>",
-                    "public  List<PromotedLine>",
-                    StringComparison.Ordinal
-                )
+            KeyedRootSource("InvKeyedRoot1").Replace("public List<PromotedLine>", "public  List<PromotedLine>", StringComparison.Ordinal)
         );
         after.SpfDiagnostics().ShouldBeEmpty();
         after.Sources()[promotedHint].ShouldBe(beforeSources[promotedHint]);
 
-        var analysisReasons = TrackedReasons(
-            after.GeneratorResult,
-            "SparseTypesGenerator.Analysis"
-        );
+        var analysisReasons = TrackedReasons(after.GeneratorResult, "SparseTypesGenerator.Analysis");
         analysisReasons.ShouldNotBeEmpty("expected tracked analysis results");
         analysisReasons
-            .All(static reason =>
-                reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged
-            )
+            .All(static reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged)
             .ShouldBeTrue(
                 $"expected keyed collection analysis to remain value-equal after a semantic no-op, got: {string.Join(", ", analysisReasons)}"
             );
 
-        foreach (
-            var stage in new[] { "SparseTypesGenerator.Output", "SparseTypesGenerator.Promoted" }
-        )
+        foreach (var stage in new[] { "SparseTypesGenerator.Output", "SparseTypesGenerator.Promoted" })
         {
             var reasons = TrackedReasons(after.GeneratorResult, stage);
             reasons.ShouldNotBeEmpty($"expected tracking data for '{stage}'");
             reasons
                 .All(static reason => reason == IncrementalStepRunReason.Cached)
-                .ShouldBeTrue(
-                    $"expected keyed collection '{stage}' to stay cached after a semantic no-op, got: {string.Join(", ", reasons)}"
-                );
+                .ShouldBeTrue($"expected keyed collection '{stage}' to stay cached after a semantic no-op, got: {string.Join(", ", reasons)}");
         }
 
         var changedKey = Rerun(before, "Line.cs", KeyedLineSource("LineId"));
@@ -329,16 +267,11 @@ public sealed class PromotedIncrementalTests
         var changedSources = changedKey.Sources();
         changedSources[promotedHint].ShouldNotBe(beforeSources[promotedHint]);
         changedSources[promotedHint].ShouldContain("LineId");
-        var changedReasons = TrackedReasons(
-            changedKey.GeneratorResult,
-            "SparseTypesGenerator.Output"
-        );
+        var changedReasons = TrackedReasons(changedKey.GeneratorResult, "SparseTypesGenerator.Output");
         changedReasons.ShouldNotBeEmpty();
         changedReasons
             .Any(static reason => reason != IncrementalStepRunReason.Cached)
-            .ShouldBeTrue(
-                $"expected key metadata changes to invalidate output, got: {string.Join(", ", changedReasons)}"
-            );
+            .ShouldBeTrue($"expected key metadata changes to invalidate output, got: {string.Join(", ", changedReasons)}");
     }
 
     [Test]
@@ -370,9 +303,7 @@ public sealed class PromotedIncrementalTests
 
         // Hint set is stable (deterministic hint names) but the promoted
         // content follows the shared type edit.
-        afterSources
-            .Keys.OrderBy(static key => key)
-            .ShouldBe(beforeSources.Keys.OrderBy(static key => key));
+        afterSources.Keys.OrderBy(static key => key).ShouldBe(beforeSources.Keys.OrderBy(static key => key));
         afterSources[promotedHint].ShouldNotBe(beforeSources[promotedHint]);
         afterSources[promotedHint].ShouldContain("C");
 
@@ -380,9 +311,7 @@ public sealed class PromotedIncrementalTests
         // Each explicit root emits one merged file.
         foreach (var root in new[] { "InvRoot1", "InvRoot2" })
         {
-            var hints = afterSources
-                .Keys.Where(key => key.Contains(root, StringComparison.Ordinal))
-                .ToArray();
+            var hints = afterSources.Keys.Where(key => key.Contains(root, StringComparison.Ordinal)).ToArray();
             hints.Length.ShouldBe(1);
             foreach (var hint in hints)
             {
@@ -395,9 +324,7 @@ public sealed class PromotedIncrementalTests
         reasons.ShouldNotBeEmpty();
         reasons
             .Any(static reason => reason != IncrementalStepRunReason.Cached)
-            .ShouldBeTrue(
-                $"expected promoted emit to recompute after a shared-type edit, got: {string.Join(", ", reasons)}"
-            );
+            .ShouldBeTrue($"expected promoted emit to recompute after a shared-type edit, got: {string.Join(", ", reasons)}");
     }
 
     [Test]
@@ -422,28 +349,17 @@ public sealed class PromotedIncrementalTests
 
         // The shared type gets its single merged file, never a promoted
         // duplicate.
-        sources
-            .Keys.Count(key => key.Contains("InvExplicitShared", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Any(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal))
-            .ShouldBeFalse();
-        sources
-            .Keys.Any(key => key.Contains("InvExplicitRoot1", StringComparison.Ordinal))
-            .ShouldBeTrue();
-        sources
-            .Keys.Any(key => key.Contains("InvExplicitRoot2", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Keys.Count(key => key.Contains("InvExplicitShared", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Any(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)).ShouldBeFalse();
+        sources.Keys.Any(key => key.Contains("InvExplicitRoot1", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Keys.Any(key => key.Contains("InvExplicitRoot2", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
     public void ManyRoots_SharingOnePromotedType_GenerateDeterministically()
     {
         const int rootCount = 50;
-        var files = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Shared.cs"] = SharedSource("InvScaleShared"),
-        };
+        var files = new Dictionary<string, string>(StringComparer.Ordinal) { ["Shared.cs"] = SharedSource("InvScaleShared") };
         for (var index = 0; index < rootCount; index++)
         {
             files[$"Root{index}.cs"] = RootSource($"InvScaleRoot{index}", "InvScaleShared");
@@ -457,18 +373,14 @@ public sealed class PromotedIncrementalTests
         // Deterministic across runs: identical hint sets and identical bytes.
         var firstSources = first.Sources();
         var secondSources = second.Sources();
-        secondSources
-            .Keys.OrderBy(static key => key)
-            .ShouldBe(firstSources.Keys.OrderBy(static key => key));
+        secondSources.Keys.OrderBy(static key => key).ShouldBe(firstSources.Keys.OrderBy(static key => key));
         foreach (var hint in firstSources.Keys)
         {
             secondSources[hint].ShouldBe(firstSources[hint]);
         }
 
         // One promoted file shared by all roots, plus one file per root.
-        firstSources
-            .Keys.Count(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal))
-            .ShouldBe(1);
+        firstSources.Keys.Count(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)).ShouldBe(1);
         var promotedHint = PromotedHintFor(firstSources, "InvScaleShared");
 
         // An unrelated single-root edit preserves the shared promoted bytes.
@@ -514,9 +426,7 @@ public sealed class PromotedIncrementalTests
         var cold = Run(files);
         cold.SpfDiagnostics().ShouldBeEmpty();
         var coldSources = cold.Sources();
-        coldSources
-            .Keys.Count(key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .ShouldBe(rootCount);
+        coldSources.Keys.Count(key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBe(rootCount);
 
         var edited = Rerun(
             cold,
@@ -534,14 +444,8 @@ public sealed class PromotedIncrementalTests
         );
         edited.SpfDiagnostics().ShouldBeEmpty();
         var editedSources = edited.Sources();
-        editedSources
-            .Keys.OrderBy(static key => key)
-            .ShouldBe(coldSources.Keys.OrderBy(static key => key));
-        foreach (
-            var hint in coldSources.Keys.Where(key =>
-                !key.Contains("InvEnvelopeRoot3", StringComparison.Ordinal)
-            )
-        )
+        editedSources.Keys.OrderBy(static key => key).ShouldBe(coldSources.Keys.OrderBy(static key => key));
+        foreach (var hint in coldSources.Keys.Where(key => !key.Contains("InvEnvelopeRoot3", StringComparison.Ordinal)))
         {
             editedSources[hint].ShouldBe(coldSources[hint]);
         }

@@ -39,9 +39,9 @@ public sealed class StjOptionalGenerationTests
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         var references = trusted
             .Where(path => includeStj || !Path.GetFileName(path).StartsWith("System.Text.Json", StringComparison.Ordinal))
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
+            .Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path))
             .ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return references;
     }
 

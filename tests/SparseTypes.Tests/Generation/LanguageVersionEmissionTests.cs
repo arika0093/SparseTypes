@@ -43,35 +43,18 @@ public sealed class LanguageVersionEmissionTests
     private static ImmutableArray<string> Generate()
     {
         var tree = CSharpSyntaxTree.ParseText(ModelSource, path: "Probe.cs");
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trustedAssemblies
-            .Select(static assemblyPath =>
-                (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)TestMetadataReferences.FromFile(assemblyPath)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "LangVersionProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(
-            compilation,
-            out var updatedCompilation,
-            out _
-        );
-        updatedCompilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updatedCompilation, out _);
+        updatedCompilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         return driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
@@ -103,9 +86,7 @@ public sealed class LanguageVersionEmissionTests
         foreach (var source in sources)
         {
             // File-scoped namespaces need C# 10; the C# 9 floor uses blocks.
-            Regex
-                .IsMatch(source, @"(?m)^namespace\s+.+;\s*$")
-                .ShouldBeFalse();
+            Regex.IsMatch(source, @"(?m)^namespace\s+.+;\s*$").ShouldBeFalse();
             // The "record class" spelling needs C# 10; C# 9 uses "record".
             source.ShouldNotContain("record class ");
         }

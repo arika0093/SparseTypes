@@ -14,25 +14,16 @@ public sealed class SparseTypesCodeFixTests
     private static AdhocWorkspace CreateWorkspace(string source, out Document document)
     {
         var workspace = new AdhocWorkspace();
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var project = workspace
             .CurrentSolution.AddProject("FixProbe", "FixProbe", LanguageNames.CSharp)
             .WithCompilationOptions(
-                new CSharpCompilationOptions(
-                    OutputKind.DynamicallyLinkedLibrary
-                ).WithNullableContextOptions(NullableContextOptions.Enable)
+                new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
             )
             .WithParseOptions(new CSharpParseOptions(LanguageVersion.Preview))
-            .WithMetadataReferences(references);
+            .WithMetadataReferences(references.Distinct());
         document = project.AddDocument("Probe.cs", source);
         return workspace;
     }
@@ -52,12 +43,7 @@ public sealed class SparseTypesCodeFixTests
         var provider = new SparseTypesCodeFixProvider();
         provider.FixableDiagnosticIds.ShouldContain(expectedId);
         var actions = new List<CodeAction>();
-        var context = new CodeFixContext(
-            document,
-            target,
-            (action, _) => actions.Add(action),
-            CancellationToken.None
-        );
+        var context = new CodeFixContext(document, target, (action, _) => actions.Add(action), CancellationToken.None);
         await provider.RegisterCodeFixesAsync(context);
         actions.ShouldNotBeEmpty($"expected a code fix for {expectedId}");
         var operations = await actions[0].GetOperationsAsync(CancellationToken.None);
@@ -70,30 +56,18 @@ public sealed class SparseTypesCodeFixTests
     {
         var fixedSource = await ApplyFirstFixAsync(source, expectedId);
         var tree = CSharpSyntaxTree.ParseText(fixedSource);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "FixVerify",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
-        driver
-            .GetRunResult()
-            .Diagnostics.Where(d => d.Id == expectedId)
-            .ShouldBeEmpty($"fixed source still reports {expectedId}:\n{fixedSource}");
+        driver.GetRunResult().Diagnostics.Where(d => d.Id == expectedId).ShouldBeEmpty($"fixed source still reports {expectedId}:\n{fixedSource}");
     }
 
     [Test]
@@ -357,23 +331,14 @@ public sealed class SparseTypesCodeFixTests
         // SPF032 is a warning; generation continues, so the fix only needs to
         // clear the warning itself.
         var tree = CSharpSyntaxTree.ParseText(fixedSource);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "FixVerifyTemp",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);

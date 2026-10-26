@@ -59,25 +59,15 @@ public sealed class ThreeLayerCertificationTests
 
     private static CSharpCompilation CreateCompilation(Dictionary<string, string> files)
     {
-        var trees = files
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseThreeLayerCertProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
@@ -86,29 +76,16 @@ public sealed class ThreeLayerCertificationTests
         var compilation = CreateCompilation(files);
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
-        driver
-            .GetRunResult()
-            .Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        driver.GetRunResult().Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         return driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
     private static Dictionary<string, string> FullFixture() =>
-        Run(
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["Scalar.cs"] = ScalarModel,
-                ["Keyed.cs"] = KeyedModel,
-            }
-        );
+        Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel, ["Keyed.cs"] = KeyedModel });
 
     private static string SharedSource(Dictionary<string, string> sources, string family) =>
         sources.Single(pair => pair.Key.Contains(family, StringComparison.Ordinal)).Value;
@@ -133,9 +110,7 @@ public sealed class ThreeLayerCertificationTests
     [Test]
     public void OwnershipTable_EveryFacadeMemberHasARuntimeLayerOwner()
     {
-        var methods = typeof(SparseFragmentRuntime).GetMethods(
-            BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly
-        );
+        var methods = typeof(SparseFragmentRuntime).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
         methods.Length.ShouldBe(42);
         var names = methods.Select(static method => method.Name).ToImmutableArray();
         names.Distinct().Count().ShouldBe(26);
@@ -143,20 +118,15 @@ public sealed class ThreeLayerCertificationTests
         string Family(string name) =>
             name switch
             {
-                "AreEqual" or "AreSequenceEqual" or "AreSetEqual" or "AreDictionaryEqual" =>
-                    "equality",
-                "MergeAppendList" or "MergeDistinctArray" or "MergeDistinctList" or "MergeSet" =>
-                    "merge",
+                "AreEqual" or "AreSequenceEqual" or "AreSetEqual" or "AreDictionaryEqual" => "equality",
+                "MergeAppendList" or "MergeDistinctArray" or "MergeDistinctList" or "MergeSet" => "merge",
                 "TryRebaseAppend"
                 or "TryRebaseSetUnion"
                 or "TryRebaseSequenceAppend"
                 or "TryRebaseSequenceAppendArray"
                 or "TryRebaseSequenceSetUnion"
                 or "TryRebaseSequenceSetUnionArray" => "rebase",
-                "CreateCloneContext"
-                or "RentCloneContext"
-                or "CreateFromCycleContext"
-                or "CreateDiffCycleContext" => "clone",
+                "CreateCloneContext" or "RentCloneContext" or "CreateFromCycleContext" or "CreateDiffCycleContext" => "clone",
                 "EnsureUniqueKeys" or "KeyOrderEquals" or "RentKeyValidation" => "keyed",
                 "TryExplainCollectionProvenance" or "TryExplainSetProvenance" => "provenance",
                 "MergeAppendOrigins" or "MergeSetUnionOrigins" or "MergeSetOrigins" => "provenance",
@@ -164,9 +134,7 @@ public sealed class ThreeLayerCertificationTests
             };
         names.Select(Family).ShouldNotContain("unclassified");
         names.Where(name => Family(name) == "equality").Select(Family).ShouldNotBeEmpty();
-        methods
-            .All(static method => method.DeclaringType == typeof(SparseFragmentRuntime))
-            .ShouldBeTrue();
+        methods.All(static method => method.DeclaringType == typeof(SparseFragmentRuntime)).ShouldBeTrue();
     }
 
     // Ownership table, Generated-Once rows.
@@ -174,21 +142,11 @@ public sealed class ThreeLayerCertificationTests
     public void OwnershipTable_GeneratedOnceFamiliesAreInternalBclOnlyAndEmittedOnce()
     {
         var sources = FullFixture();
-        sources
-            .Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal))
-            .ShouldBe(1);
-        sources
-            .Keys.Count(key => key.EndsWith("Generated.JsonPayloadCodecs.g.cs", StringComparison.Ordinal))
-            .ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(key => key.EndsWith("Generated.JsonPayloadCodecs.g.cs", StringComparison.Ordinal)).ShouldBe(1);
 
         foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "RemovalIndex", "JsonPayloadCodecs" })
         {
@@ -200,11 +158,7 @@ public sealed class ThreeLayerCertificationTests
             source.ShouldNotContain("public sealed class Sparse");
             // Product-neutral: shared-to-shared references stay inside the
             // owning namespace; no runtime type is ever named.
-            foreach (
-                var line in source
-                    .Split('\n')
-                    .Where(line => line.Contains("global::SparseTypes"))
-            )
+            foreach (var line in source.Split('\n').Where(line => line.Contains("global::SparseTypes")))
             {
                 line.ShouldContain("global::" + SharedNamespace + ".");
             }
@@ -403,16 +357,11 @@ public sealed class ThreeLayerCertificationTests
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var stream = new MemoryStream();
         updated.Emit(stream).Success.ShouldBeTrue();
         var consumer = global::System.Reflection.Assembly.Load(stream.ToArray());
-        consumer
-            .GetType("SparseTypes.Generated.SparseCloneKernels")!
-            .IsNotPublic.ShouldBeTrue();
+        consumer.GetType("SparseTypes.Generated.SparseCloneKernels")!.IsNotPublic.ShouldBeTrue();
         consumer
             .GetExportedTypes()
             .Where(static type =>
@@ -428,18 +377,8 @@ public sealed class ThreeLayerCertificationTests
     [Test]
     public void PortableSetView_MatchesTheD7011dbGating()
     {
-        var modern = SparseGeneratedOnceEmitter.RenderCloneKernels(
-            "Downstream.Generated",
-            false,
-            true,
-            CancellationToken.None
-        );
-        var portable = SparseGeneratedOnceEmitter.RenderCloneKernels(
-            "Downstream.Generated",
-            true,
-            false,
-            CancellationToken.None
-        );
+        var modern = SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", false, true, CancellationToken.None);
+        var portable = SparseGeneratedOnceEmitter.RenderCloneKernels("Downstream.Generated", true, false, CancellationToken.None);
         modern.ShouldNotContain("IReadOnlySet<");
         modern.ShouldNotContain("__SparseReadOnlySet<T>");
         portable.ShouldContain("__SparseReadOnlySet<T>");
@@ -450,14 +389,8 @@ public sealed class ThreeLayerCertificationTests
             {
                 modern,
                 portable,
-                SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-                    "Downstream.Generated",
-                    CancellationToken.None
-                ),
-                SparseGeneratedOnceEmitter.RenderRemovalIndex(
-                    "Downstream.Generated",
-                    CancellationToken.None
-                ),
+                SparseGeneratedOnceEmitter.RenderReadOnlyAdapters("Downstream.Generated", CancellationToken.None),
+                SparseGeneratedOnceEmitter.RenderRemovalIndex("Downstream.Generated", CancellationToken.None),
             }
         )
         {
@@ -501,10 +434,7 @@ public sealed class ThreeLayerCertificationTests
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var stream = new MemoryStream();
         updated.Emit(stream).Success.ShouldBeTrue();
         var consumerBytes = stream.ToArray();
@@ -542,15 +472,9 @@ public sealed class ThreeLayerCertificationTests
         checkSource.ShouldNotContain("RemovalIndex");
         checkSource.ShouldNotContain("EditSessionCore");
         var checkTree = CSharpSyntaxTree.ParseText(checkSource, path: "ConsumerCheck.cs");
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var checkReferences = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        checkReferences.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var checkReferences = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        checkReferences.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         checkReferences.Add(MetadataReference.CreateFromImage(consumerBytes));
         var checkCompilation = CSharpCompilation.Create(
             "ConsumerCheck",
@@ -558,10 +482,7 @@ public sealed class ThreeLayerCertificationTests
             checkReferences,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
-        checkCompilation
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        checkCompilation.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var checkStream = new MemoryStream();
         checkCompilation.Emit(checkStream).Success.ShouldBeTrue();
         var checkAssembly = global::System.Reflection.Assembly.Load(checkStream.ToArray());
@@ -580,11 +501,7 @@ public sealed class ThreeLayerCertificationTests
         AppDomain.CurrentDomain.AssemblyResolve += resolver;
         try
         {
-            checkAssembly
-                .GetType("ConsumerCheck")!
-                .GetMethod("Run")!
-                .Invoke(null, null)
-                .ShouldBe("b:x:b");
+            checkAssembly.GetType("ConsumerCheck")!.GetMethod("Run")!.Invoke(null, null).ShouldBe("b:x:b");
         }
         finally
         {
@@ -605,12 +522,7 @@ public sealed class ThreeLayerCertificationTests
             + "        public string Label { get; set; } = \"\";\n"
             + "        public List<string> Tags { get; set; } = new();\n"
             + "    }\n}\n";
-        var one = Run(
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["M1.cs"] = CollectionModel("CertModelOne"),
-            }
-        );
+        var one = Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["M1.cs"] = CollectionModel("CertModelOne") });
         var four = Run(
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -628,13 +540,9 @@ public sealed class ThreeLayerCertificationTests
         SharedSource(one, "CloneKernels").Length.ShouldBeGreaterThan(0);
         one.Keys.ShouldContain(SharedSourceKey(four, "CloneKernels"));
 
-        static long TotalBytes(Dictionary<string, string> sources) =>
-            sources.Values.Sum(static source => (long)source.Length);
+        static long TotalBytes(Dictionary<string, string> sources) => sources.Values.Sum(static source => (long)source.Length);
         TotalBytes(four).ShouldBeLessThan(4 * TotalBytes(one));
-        four.Values.Sum(source =>
-                source.Split('\n').Count(line => line.Contains("class SparseCloneKernels"))
-            )
-            .ShouldBe(1);
+        four.Values.Sum(source => source.Split('\n').Count(line => line.Contains("class SparseCloneKernels"))).ShouldBe(1);
     }
 
     // Minimum language floor: every emitted source (shared, per-model,
@@ -658,25 +566,10 @@ public sealed class ThreeLayerCertificationTests
 
     private static string ExecuteHelperProbe(string implementationNamespace)
     {
-        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels(
-            implementationNamespace,
-            false,
-            true,
-            CancellationToken.None
-        );
-        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(
-            implementationNamespace,
-            CancellationToken.None
-        );
-        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(
-            implementationNamespace,
-            CancellationToken.None
-        );
-        var payloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
-            implementationNamespace,
-            emitCodecs: true,
-            CancellationToken.None
-        );
+        var clone = SparseGeneratedOnceEmitter.RenderCloneKernels(implementationNamespace, false, true, CancellationToken.None);
+        var adapters = SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(implementationNamespace, CancellationToken.None);
+        var removal = SparseGeneratedOnceEmitter.RenderRemovalIndex(implementationNamespace, CancellationToken.None);
+        var payloadCodecs = SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(implementationNamespace, emitCodecs: true, CancellationToken.None);
         foreach (var source in new[] { clone, adapters, removal, payloadCodecs })
         {
             source.ShouldNotContain("SparseTypes");
@@ -710,22 +603,15 @@ public sealed class ThreeLayerCertificationTests
             CSharpSyntaxTree.ParseText(removal, path: "Removal.g.cs"),
             CSharpSyntaxTree.ParseText(probe, path: "Probe.cs"),
         };
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToArray();
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToArray();
         var compilation = CSharpCompilation.Create(
             "CertDownstreamProbe",
             trees,
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
         using var stream = new MemoryStream();
         compilation.Emit(stream).Success.ShouldBeTrue();
         var assembly = global::System.Reflection.Assembly.Load(stream.ToArray());

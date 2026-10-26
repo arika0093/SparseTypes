@@ -11,42 +11,26 @@ public sealed class GeneratedOnceRemovalIndexTests
 {
     private static CSharpCompilation CreateCompilation(Dictionary<string, string> files)
     {
-        var trees = files
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseRemovalOnceProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
     private static Dictionary<string, string> GeneratedSources(CSharpCompilation compilation)
     {
-        var driver = CSharpGeneratorDriver
-            .Create([new SparseTypesGenerator().AsSourceGenerator()])
-            .RunGenerators(compilation);
+        var driver = CSharpGeneratorDriver.Create([new SparseTypesGenerator().AsSourceGenerator()]).RunGenerators(compilation);
         return driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
-            .ToDictionary(
-                static group => group.Key,
-                static group => group.First().SourceText.ToString(),
-                StringComparer.Ordinal
-            );
+            .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
     [Test]
@@ -81,19 +65,14 @@ public sealed class GeneratedOnceRemovalIndexTests
             )
         );
 
-        var shared = sources
-            .Where(pair => pair.Key.EndsWith(".RemovalIndex.g.cs", StringComparison.Ordinal))
-            .ToArray();
+        var shared = sources.Where(pair => pair.Key.EndsWith(".RemovalIndex.g.cs", StringComparison.Ordinal)).ToArray();
         shared.ShouldHaveSingleItem();
         var text = shared[0].Value;
         text.ShouldContain("class " + SparseGeneratedOnceNames.RemovalIndex + "<TKey>");
         CountOccurrences(text, "AddRemoval(").ShouldBe(1);
         CountOccurrences(text, "ContainsRemoved(").ShouldBe(1);
 
-        var perModel = sources
-            .Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .Select(pair => pair.Value)
-            .ToArray();
+        var perModel = sources.Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
         perModel.Length.ShouldBe(3);
         foreach (var model in perModel)
         {
@@ -108,25 +87,15 @@ public sealed class GeneratedOnceRemovalIndexTests
     [Test]
     public void SharedRemovalIndexSourceCompilesCleanly()
     {
-        var source = SparseGeneratedOnceRemovalIndex.BuildSource(
-            "SparseTypes.Generated",
-            CancellationToken.None
-        );
-        var compilation = CreateCompilation(
-            new Dictionary<string, string> { ["Shared.cs"] = source }
-        );
-        compilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        var source = SparseGeneratedOnceRemovalIndex.BuildSource("SparseTypes.Generated", CancellationToken.None);
+        var compilation = CreateCompilation(new Dictionary<string, string> { ["Shared.cs"] = source });
+        compilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]
     public void RemovalRequirementsDetectKeyedShapes()
     {
-        SparseGeneratedOnceRequirements
-            .ForRemovalIndex(ImmutableArray<SparseMemberModel>.Empty)
-            .NeedsRemovalIndex.ShouldBeFalse();
+        SparseGeneratedOnceRequirements.ForRemovalIndex(ImmutableArray<SparseMemberModel>.Empty).NeedsRemovalIndex.ShouldBeFalse();
     }
 
     private static int CountOccurrences(string text, string needle)

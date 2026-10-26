@@ -40,8 +40,8 @@ public sealed class GeneratedVisibilityInventoryTests
     {
         var tree = CSharpSyntaxTree.ParseText(ProbeSource, path: "Models.cs");
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "VisibilityProbe",
             [tree],

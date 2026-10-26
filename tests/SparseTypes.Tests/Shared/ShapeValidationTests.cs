@@ -16,8 +16,8 @@ public sealed class ShapeValidationTests
     {
         var tree = CSharpSyntaxTree.ParseText(source);
         var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseShapeProbe",
             [tree],

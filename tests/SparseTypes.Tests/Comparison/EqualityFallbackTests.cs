@@ -13,8 +13,7 @@ public sealed class EqualityFallbackTests
     {
         private readonly HashSet<T> _inner;
 
-        public FallbackSet(IEnumerable<T> items, IEqualityComparer<T>? comparer = null) =>
-            _inner = new HashSet<T>(items, comparer);
+        public FallbackSet(IEnumerable<T> items, IEqualityComparer<T>? comparer = null) => _inner = new HashSet<T>(items, comparer);
 
         public int Count => _inner.Count;
 
@@ -59,8 +58,7 @@ public sealed class EqualityFallbackTests
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private sealed class FallbackDictionary<TKey, TValue>(IDictionary<TKey, TValue> inner)
-        : IReadOnlyDictionary<TKey, TValue>
+    private sealed class FallbackDictionary<TKey, TValue>(IDictionary<TKey, TValue> inner) : IReadOnlyDictionary<TKey, TValue>
         where TKey : notnull
     {
         private readonly Dictionary<TKey, TValue> _inner = new(
@@ -100,22 +98,12 @@ public sealed class EqualityFallbackTests
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private static bool Equal(object? left, object? right) =>
-        SparseFragmentRuntime.AreEqual(left, right);
+    private static bool Equal(object? left, object? right) => SparseFragmentRuntime.AreEqual(left, right);
 
-    private static FallbackSet<string> Strings(params string[] items) =>
-        new(items, StringComparer.OrdinalIgnoreCase);
+    private static FallbackSet<string> Strings(params string[] items) => new(items, StringComparer.OrdinalIgnoreCase);
 
-    private static FallbackDictionary<string, int> Numbers(
-        params (string Key, int Value)[] entries
-    ) =>
-        new(
-            entries.ToDictionary(
-                static entry => entry.Key,
-                static entry => entry.Value,
-                StringComparer.OrdinalIgnoreCase
-            )
-        );
+    private static FallbackDictionary<string, int> Numbers(params (string Key, int Value)[] entries) =>
+        new(entries.ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.OrdinalIgnoreCase));
 
     [Test]
     public void ErasedReadOnlySetUsesOrderedSequenceSemantics()
@@ -225,12 +213,8 @@ public sealed class EqualityFallbackTests
     [Test]
     public void CustomReadOnlyDictionary_DifferentComparersAreUnequalInBothDirections()
     {
-        var ignoreCase = new FallbackDictionary<string, int>(
-            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["a"] = 1 }
-        );
-        var ordinal = new FallbackDictionary<string, int>(
-            new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 1 }
-        );
+        var ignoreCase = new FallbackDictionary<string, int>(new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["a"] = 1 });
+        var ordinal = new FallbackDictionary<string, int>(new Dictionary<string, int>(StringComparer.Ordinal) { ["a"] = 1 });
 
         Equal(ignoreCase, ordinal).ShouldBeTrue();
         Equal(ordinal, ignoreCase).ShouldBeTrue();
@@ -240,11 +224,7 @@ public sealed class EqualityFallbackTests
     public void CustomReadOnlyDictionary_MatchesStandardDictionaryRegardlessOfOrder()
     {
         var custom = Numbers(("first", 1), ("second", 2));
-        var standard = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["SECOND"] = 2,
-            ["FIRST"] = 1,
-        };
+        var standard = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["SECOND"] = 2, ["FIRST"] = 1 };
 
         Equal(custom, standard).ShouldBeFalse();
         Equal(standard, custom).ShouldBeFalse();
@@ -302,9 +282,7 @@ public sealed class EqualityFallbackTests
                 """,
         };
         var compilation = CreateCompilation(files);
-        var driver = CSharpGeneratorDriver
-            .Create(new SparseTypesGenerator())
-            .RunGenerators(compilation);
+        var driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator()).RunGenerators(compilation);
         var sources = driver
             .GetRunResult()
             .Results.SelectMany(static result => result.GeneratedSources)
@@ -320,25 +298,15 @@ public sealed class EqualityFallbackTests
 
     private static CSharpCompilation CreateCompilation(Dictionary<string, string> files)
     {
-        var trees = files
-            .Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key))
-            .ToArray();
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseFallbackTypedProbe",
             trees,
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 }

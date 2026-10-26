@@ -7,55 +7,30 @@ namespace SparseTypes.Tests.Diagnostics;
 
 public sealed class ConstructorBindingTests
 {
-    private static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        ImmutableArray<GeneratedSourceResult> Sources
-    ) Run(string source)
+    private static (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> Sources) Run(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseConstructorBindingProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
-        return (
-            runResult.Diagnostics,
-            runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray()
-        );
+        return (runResult.Diagnostics, runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray());
     }
 
-    private static void ShouldHaveNoSpfDiagnostics(
-        ImmutableArray<Diagnostic> diagnostics,
-        ImmutableArray<GeneratedSourceResult> sources
-    )
+    private static void ShouldHaveNoSpfDiagnostics(ImmutableArray<Diagnostic> diagnostics, ImmutableArray<GeneratedSourceResult> sources)
     {
         // SPF026 is an informational note for constructor-bound members;
         // only errors indicate a behavior change here.
-        diagnostics
-            .Where(d =>
-                d.Id.StartsWith("SPF", StringComparison.Ordinal)
-                && d.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        sources.Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]

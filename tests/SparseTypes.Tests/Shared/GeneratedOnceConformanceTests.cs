@@ -117,7 +117,7 @@ public sealed class GeneratedOnceConformanceTests
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         // No SparseTypes runtime reference: the probe proves the
         // downstream dialect stands on BCL contracts alone.
-        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToArray();
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToArray();
         var compilation = CSharpCompilation.Create(
             "DownstreamOnceProbe",
             trees,

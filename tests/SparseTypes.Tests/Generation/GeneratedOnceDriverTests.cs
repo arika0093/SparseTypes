@@ -37,8 +37,8 @@ public sealed class GeneratedOnceDriverTests
     {
         var trees = files.Select(pair => CSharpSyntaxTree.ParseText(pair.Value, path: pair.Key)).ToArray();
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparseGeneratedOnceProbe",
             trees,
@@ -560,8 +560,8 @@ public sealed class GeneratedOnceDriverTests
             path: "ConsumerCheck.cs"
         );
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var checkReferences = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        checkReferences.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var checkReferences = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        checkReferences.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         checkReferences.Add(MetadataReference.CreateFromImage(stream.ToArray()));
         var checkCompilation = CSharpCompilation.Create(
             "ConsumerCheck",

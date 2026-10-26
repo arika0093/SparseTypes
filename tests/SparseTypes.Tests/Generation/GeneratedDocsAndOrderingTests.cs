@@ -113,38 +113,21 @@ public sealed class GeneratedDocsAndOrderingTests
         }
         """;
 
-    private static readonly string[] XmlDocIds =
-    [
-        "CS1570",
-        "CS1572",
-        "CS1573",
-        "CS1574",
-        "CS1584",
-        "CS1591",
-        "CS1712",
-    ];
+    private static readonly string[] XmlDocIds = ["CS1570", "CS1572", "CS1573", "CS1574", "CS1584", "CS1591", "CS1712"];
 
     private static readonly Lazy<Compilation> Probe = new(Generate);
 
     private static Compilation Generate()
     {
         var tree = CSharpSyntaxTree.ParseText(ProbeSource);
-        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trusted
-            .Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "GeneratedContractProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
@@ -163,15 +146,12 @@ public sealed class GeneratedDocsAndOrderingTests
             .RemoveAllSyntaxTrees()
             .AddSyntaxTrees(
                 compilation.SyntaxTrees.Select(tree =>
-                    tree.FilePath.EndsWith(".g.cs")
-                        ? CSharpSyntaxTree.ParseText(tree.GetText(), options, path: tree.FilePath)
-                        : tree
+                    tree.FilePath.EndsWith(".g.cs") ? CSharpSyntaxTree.ParseText(tree.GetText(), options, path: tree.FilePath) : tree
                 )
             );
     }
 
-    private static string Report(IReadOnlyList<string> violations) =>
-        violations.Count + " violation(s):\n" + string.Join("\n", violations.Take(10));
+    private static string Report(IReadOnlyList<string> violations) => violations.Count + " violation(s):\n" + string.Join("\n", violations.Take(10));
 
     // Explicit interface implementations carry public API without modifiers.
     private static bool IsExplicitImplementation(MemberDeclarationSyntax member) =>
@@ -240,10 +220,7 @@ public sealed class GeneratedDocsAndOrderingTests
             PropertyDeclarationSyntax property => property.Identifier.Text,
             IndexerDeclarationSyntax => "this",
             EventDeclarationSyntax evt => evt.Identifier.Text,
-            BaseFieldDeclarationSyntax field => string.Join(
-                ",",
-                field.Declaration.Variables.Select(static v => v.Identifier.Text)
-            ),
+            BaseFieldDeclarationSyntax field => string.Join(",", field.Declaration.Variables.Select(static v => v.Identifier.Text)),
             TypeDeclarationSyntax type => type.Identifier.Text,
             DelegateDeclarationSyntax del => del.Identifier.Text,
             _ => member.Kind().ToString(),
@@ -274,9 +251,7 @@ public sealed class GeneratedDocsAndOrderingTests
     {
         WithDocDiagnostics(Probe.Value)
             .GetDiagnostics()
-            .Where(static diagnostic =>
-                diagnostic.Severity is DiagnosticSeverity.Warning or DiagnosticSeverity.Error
-            )
+            .Where(static diagnostic => diagnostic.Severity is DiagnosticSeverity.Warning or DiagnosticSeverity.Error)
             .Where(diagnostic => XmlDocIds.Contains(diagnostic.Id))
             .Select(static diagnostic => diagnostic.ToString())
             .ToList()
@@ -290,12 +265,7 @@ public sealed class GeneratedDocsAndOrderingTests
         var paramMismatches = new List<string>();
         foreach (var tree in GeneratedTrees(Probe.Value))
         {
-            foreach (
-                var member in tree.GetRoot()
-                    .DescendantNodes()
-                    .OfType<TypeDeclarationSyntax>()
-                    .SelectMany(static type => type.Members)
-            )
+            foreach (var member in tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>().SelectMany(static type => type.Members))
             {
                 if (!IsEffectivelyPublic(member))
                 {
@@ -310,9 +280,7 @@ public sealed class GeneratedDocsAndOrderingTests
 
                 if (member is BaseMethodDeclarationSyntax method)
                 {
-                    var declared = method
-                        .ParameterList.Parameters.Select(static p => p.Identifier.Text)
-                        .ToHashSet(StringComparer.Ordinal);
+                    var declared = method.ParameterList.Parameters.Select(static p => p.Identifier.Text).ToHashSet(StringComparer.Ordinal);
                     var documented = Regex
                         .Matches(docs, "<param name=\"([^\"]+)\"")
                         .Select(static match => match.Groups[1].Value)
@@ -399,9 +367,7 @@ public sealed class GeneratedDocsAndOrderingTests
         computedGetterSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");
 
         var customConstructorSource = GeneratedTrees(Probe.Value)
-            .Single(tree =>
-                tree.FilePath.Contains("ProbeCustomConstructor", StringComparison.Ordinal)
-            )
+            .Single(tree => tree.FilePath.Contains("ProbeCustomConstructor", StringComparison.Ordinal))
             .GetText()
             .ToString();
         customConstructorSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");

@@ -23,24 +23,21 @@ public sealed class ComparisonIndexTests
 
     private static SparseGeneratorConfig Configuration =>
         (SparseGeneratorConfig)(
-            typeof(SparseTypesGenerator)
-                .GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)
-                ?.GetValue(null) ?? throw new InvalidOperationException("Missing generator configuration.")
+            typeof(SparseTypesGenerator).GetField("Configuration", BindingFlags.NonPublic | BindingFlags.Static)?.GetValue(null)
+            ?? throw new InvalidOperationException("Missing generator configuration.")
         );
 
     private static CSharpCompilation CreateCompilation(params string[] sources)
     {
         var trees = sources.Select((source, index) => CSharpSyntaxTree.ParseText(source, path: $"File{index}.cs")).ToArray();
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location));
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "ComparisonIndexProbe",
             trees,
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(
-                NullableContextOptions.Enable
-            )
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 

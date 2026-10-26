@@ -424,8 +424,8 @@ public sealed class DownstreamPolicyTests
             }
             """;
         var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)TestMetadataReferences.FromFile(assemblyPath)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "DownstreamReadWriteProbe",
             [CSharpSyntaxTree.ParseText(generated, path: "Generated.cs"), CSharpSyntaxTree.ParseText(models, path: "Models.cs")],

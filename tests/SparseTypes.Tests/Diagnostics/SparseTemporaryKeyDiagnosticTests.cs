@@ -9,43 +9,25 @@ namespace SparseTypes.Tests.Diagnostics;
 /// <remarks>A keyed element type may declare exactly one parameterless <c>[SparseTemporaryKey]</c> property of type <c>Guid?</c>.</remarks>
 public sealed class SparseTemporaryKeyDiagnosticTests
 {
-    private static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        ImmutableArray<GeneratedSourceResult> Sources
-    ) Run(string source)
+    private static (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> Sources) Run(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseTemporaryKeyDiagnosticsProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
-        return (
-            runResult.Diagnostics,
-            runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray()
-        );
+        return (runResult.Diagnostics, runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray());
     }
 
-    private static void AssertSpfErrorIds(
-        ImmutableArray<Diagnostic> diagnostics,
-        params string[] expectedIds
-    )
+    private static void AssertSpfErrorIds(ImmutableArray<Diagnostic> diagnostics, params string[] expectedIds)
     {
         var actual = diagnostics
             .Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
@@ -53,16 +35,10 @@ public sealed class SparseTemporaryKeyDiagnosticTests
             .OrderBy(static id => id)
             .ToArray();
         actual.ShouldBe(expectedIds.OrderBy(static id => id).ToArray());
-        foreach (
-            var diagnostic in diagnostics.Where(d =>
-                d.Id.StartsWith("SPF", StringComparison.Ordinal)
-            )
-        )
+        foreach (var diagnostic in diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)))
         {
             diagnostic.Severity.ShouldBe(DiagnosticSeverity.Error);
-            diagnostic.Descriptor.HelpLinkUri.ShouldStartWith(
-                "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf"
-            );
+            diagnostic.Descriptor.HelpLinkUri.ShouldStartWith("https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf");
         }
     }
 
@@ -88,10 +64,7 @@ public sealed class SparseTemporaryKeyDiagnosticTests
         """;
 
     private static string WithHolder(string element) =>
-        "using SparseTypes;\nusing System;\nusing System.Collections.Generic;\n"
-        + element
-        + "\n"
-        + HolderTail;
+        "using SparseTypes;\nusing System;\nusing System.Collections.Generic;\n" + element + "\n" + HolderTail;
 
     [Test]
     public void ValidDeclarationProducesNoDiagnostics()
@@ -119,9 +92,7 @@ public sealed class SparseTemporaryKeyDiagnosticTests
             }
             """;
         var (diagnostics, sources) = Run(WithHolder(element));
-        diagnostics
-            .Where(d => d.Id is "SPF031" or "SPF032")
-            .ShouldBeEmpty("init-only temporary identity keeps a valid declaration shape");
+        diagnostics.Where(d => d.Id is "SPF031" or "SPF032").ShouldBeEmpty("init-only temporary identity keeps a valid declaration shape");
         AssertSpfErrorIds(diagnostics, ["SPF008"]);
         sources.ShouldBeEmpty();
     }
@@ -186,8 +157,7 @@ public sealed class SparseTemporaryKeyDiagnosticTests
     {
         var declaration = kind switch
         {
-            "privateSetter" =>
-                "[SparseTemporaryKey]\npublic Guid? TemporaryId { get; private set; }",
+            "privateSetter" => "[SparseTemporaryKey]\npublic Guid? TemporaryId { get; private set; }",
             "getterOnly" => "[SparseTemporaryKey]\npublic Guid? TemporaryId { get; }",
             _ => "[SparseTemporaryKey]\npublic static Guid? TemporaryId { get; set; }",
         };
@@ -310,9 +280,7 @@ public sealed class SparseTemporaryKeyDiagnosticTests
         warning.Descriptor.HelpLinkUri.ShouldBe(
             "https://github.com/arika0093/SparseTypes/blob/main/docs/reference/analyzer.md#spf032-temporary-key-property-initializer"
         );
-        diagnostics
-            .Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Id != "SPF032")
-            .ShouldBeEmpty();
+        diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Id != "SPF032").ShouldBeEmpty();
         sources.ShouldNotBeEmpty();
     }
 }

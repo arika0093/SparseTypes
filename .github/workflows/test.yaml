@@ -88,11 +88,21 @@ jobs:
         run: dotnet build tests/SparseTypes.Tests/SparseTypes.Tests.csproj --no-restore --configuration Release
 
       - name: Run unit tests
+        if: matrix.os != 'ubuntu-latest'
         run: >
           dotnet test tests/SparseTypes.Tests/SparseTypes.Tests.csproj
           --no-build --no-restore --configuration Release --framework net10.0
           --results-directory TestResults --no-progress
           -- --timeout 20m --report-trx
+
+      - name: Run unit tests with coverage
+        if: matrix.os == 'ubuntu-latest'
+        run: >
+          dotnet test tests/SparseTypes.Tests/SparseTypes.Tests.csproj
+          --no-build --no-restore --configuration Release --framework net10.0
+          --results-directory TestResults/coverage --no-progress
+          -- --timeout 20m --report-trx --coverage --coverage-settings tests/coverage.config
+          --coverage-output coverage.cobertura.xml --coverage-output-format cobertura
 
       - name: Restore Fragments tests
         run: dotnet restore tests/SparseTypes.Fragments.Tests/SparseTypes.Fragments.Tests.csproj
@@ -106,15 +116,6 @@ jobs:
           --no-build --no-restore --configuration Release --framework net10.0
           --results-directory TestResults/fragments --no-progress
           -- --timeout 20m --report-trx
-
-      - name: Collect code coverage (observation)
-        if: matrix.os == 'ubuntu-latest'
-        run: >
-          dotnet test tests/SparseTypes.Tests/SparseTypes.Tests.csproj
-          --no-build --no-restore --configuration Release --framework net10.0
-          --results-directory TestResults/coverage --no-progress
-          -- --timeout 20m --coverage --coverage-settings tests/coverage.config
-          --coverage-output coverage.cobertura.xml --coverage-output-format cobertura
 
       - name: Upload coverage report
         if: matrix.os == 'ubuntu-latest' && !cancelled()

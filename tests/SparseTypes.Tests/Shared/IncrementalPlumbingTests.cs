@@ -8,9 +8,7 @@ namespace SparseTypes.Tests.Shared;
 /// <summary>Location snapshots, multi-argument diagnostic payloads and IsExternalInit.</summary>
 public sealed class IncrementalPlumbingTests
 {
-    private static SparseCollectionInfo KeyedCollection(
-        ImmutableArray<string> keyPropertyNames = default
-    ) =>
+    private static SparseCollectionInfo KeyedCollection(ImmutableArray<string> keyPropertyNames = default) =>
         new(
             SparseCollectionKind.List,
             SparseCloneCollectionKind.List,
@@ -40,12 +38,7 @@ public sealed class IncrementalPlumbingTests
         left.ShouldNotBe(left with { Kind = SparseCollectionKind.Array });
         left.ShouldNotBe(left with { CloneKind = SparseCloneCollectionKind.Array });
         left.ShouldNotBe(left with { ElementType = left.ElementType with { Name = "OtherItem" } });
-        left.ShouldNotBe(
-            left with
-            {
-                ValueType = new SparseTypeModel("Value", "Value", "Value", true, false, null),
-            }
-        );
+        left.ShouldNotBe(left with { ValueType = new SparseTypeModel("Value", "Value", "Value", true, false, null) });
         left.ShouldNotBe(left with { NamedTypeDefinition = "OtherList<T>" });
         left.ShouldNotBe(left with { Semantic = SparseCollectionSemantic.ScalarSequence });
         left.ShouldNotBe(left with { KeyTypeName = "long" });
@@ -67,9 +60,7 @@ public sealed class IncrementalPlumbingTests
         var tree = CSharpSyntaxTree.ParseText("class Probe { }", path: "Probe.cs");
         var location = tree.GetRoot()
             .DescendantTokens()
-            .First(static token =>
-                token.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ClassKeyword)
-            )
+            .First(static token => token.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ClassKeyword))
             .GetLocation();
         var snapshot = SparseLocationSnapshot.Capture(location);
         snapshot.HasValue.ShouldBeTrue();
@@ -90,16 +81,8 @@ public sealed class IncrementalPlumbingTests
     [Test]
     public void Payload_ComparesByIdLocationAndArguments()
     {
-        var left = new SparseDiagnosticPayload(
-            "SPF021",
-            new SparseLocationSnapshot("A.cs", 1, 2),
-            ImmutableArray.Create<string?>("dup", "extra")
-        );
-        var same = new SparseDiagnosticPayload(
-            "SPF021",
-            new SparseLocationSnapshot("A.cs", 1, 2),
-            ImmutableArray.Create<string?>("dup", "extra")
-        );
+        var left = new SparseDiagnosticPayload("SPF021", new SparseLocationSnapshot("A.cs", 1, 2), ImmutableArray.Create<string?>("dup", "extra"));
+        var same = new SparseDiagnosticPayload("SPF021", new SparseLocationSnapshot("A.cs", 1, 2), ImmutableArray.Create<string?>("dup", "extra"));
         var reordered = left with { Arguments = ImmutableArray.Create<string?>("extra", "dup") };
         var renamed = left with { DescriptorId = "SPF009" };
 
@@ -134,16 +117,8 @@ public sealed class IncrementalPlumbingTests
     [Test]
     public void Diagnostic_SupportsMultipleArguments()
     {
-        var first = new SparseGeneratorDiagnostic(
-            "X",
-            null,
-            ImmutableArray.Create<string?>("one", "two")
-        );
-        var second = new SparseGeneratorDiagnostic(
-            "X",
-            null,
-            ImmutableArray.Create<string?>("one", "two")
-        );
+        var first = new SparseGeneratorDiagnostic("X", null, ImmutableArray.Create<string?>("one", "two"));
+        var second = new SparseGeneratorDiagnostic("X", null, ImmutableArray.Create<string?>("one", "two"));
         first.ShouldBe(second);
         first.GetHashCode().ShouldBe(second.GetHashCode());
         first.Argument1.ShouldBe("one");
@@ -158,12 +133,8 @@ public sealed class IncrementalPlumbingTests
         var references = new List<MetadataReference>();
         if (withReferences)
         {
-            var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-                Path.PathSeparator
-            );
-            references.AddRange(
-                tpa.Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
-            );
+            var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+            references.AddRange(tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)));
         }
 
         return CSharpCompilation.Create(
@@ -186,9 +157,7 @@ public sealed class IncrementalPlumbingTests
 
         // The shared framework ships a public marker: no emission needed.
         var framework = CreateCompilation("class Probe { }", withReferences: true);
-        framework
-            .GetTypeByMetadataName("System.Runtime.CompilerServices.IsExternalInit")
-            .ShouldNotBeNull();
+        framework.GetTypeByMetadataName("System.Runtime.CompilerServices.IsExternalInit").ShouldNotBeNull();
         SparseExternalInit.ShouldEmitIsExternalInit(framework, configured: true).ShouldBeFalse();
         SparseExternalInit.ShouldEmitIsExternalInit(framework, configured: false).ShouldBeFalse();
     }

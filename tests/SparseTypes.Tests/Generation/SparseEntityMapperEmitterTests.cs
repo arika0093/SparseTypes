@@ -95,30 +95,18 @@ public sealed class SparseEntityMapperEmitterTests
         }
         """;
 
-    private static CSharpCompilation ProbeCompilation(
-        string source,
-        params MetadataReference[] additionalReferences
-    )
+    private static CSharpCompilation ProbeCompilation(string source, params MetadataReference[] additionalReferences)
     {
         var tree = CSharpSyntaxTree.ParseText(StubUsings + source + Stubs);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         references.AddRange(additionalReferences);
         return CSharpCompilation.Create(
             "SparseEntityMapperProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
@@ -138,25 +126,14 @@ public sealed class SparseEntityMapperEmitterTests
         return (runResult.Diagnostics, sources);
     }
 
-    private static string RenderDirect(
-        string source,
-        string mapperMetadataName,
-        params MetadataReference[] additionalReferences
-    )
+    private static string RenderDirect(string source, string mapperMetadataName, params MetadataReference[] additionalReferences)
     {
         var compilation = ProbeCompilation(source, additionalReferences);
         var mapper = compilation.GetTypeByMetadataName(mapperMetadataName);
         mapper.ShouldNotBeNull($"probe mapper '{mapperMetadataName}' should resolve");
         var result = SparseEntityMapperEmitter.RenderMapper(mapper!, CancellationToken.None);
-        var diagnostics = string.Join(
-            ",",
-            result.Diagnostics.Select(static d =>
-                d.DescriptorId + ":" + d.Arguments.FirstOrDefault()
-            )
-        );
-        (result.Source ?? string.Empty).ShouldNotBeEmpty(
-            $"companion should emit (hint={result.HintName}, diagnostics=[{diagnostics}])"
-        );
+        var diagnostics = string.Join(",", result.Diagnostics.Select(static d => d.DescriptorId + ":" + d.Arguments.FirstOrDefault()));
+        (result.Source ?? string.Empty).ShouldNotBeEmpty($"companion should emit (hint={result.HintName}, diagnostics=[{diagnostics}])");
         return result.Source ?? string.Empty;
     }
 
@@ -214,21 +191,11 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var sources = RenderDirect(source, "Probe.OrderMapper");
-        sources.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
-        sources.ShouldContain(
-            "builder.Object(static dto => dto.Address, static entity => entity.Address, static child =>"
-        );
-        sources.ShouldContain(
-            "child.Member(static dto => dto.Street, static entity => entity.Street);"
-        );
-        sources.ShouldContain(
-            "child.Member(static dto => dto.City, static entity => entity.City);"
-        );
-        sources.ShouldContain(
-            "builder.DeclareCollection(static dto => dto.Lines, static entity => entity.Lines);"
-        );
+        sources.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
+        sources.ShouldContain("builder.Object(static dto => dto.Address, static entity => entity.Address, static child =>");
+        sources.ShouldContain("child.Member(static dto => dto.Street, static entity => entity.Street);");
+        sources.ShouldContain("child.Member(static dto => dto.City, static entity => entity.City);");
+        sources.ShouldContain("builder.DeclareCollection(static dto => dto.Lines, static entity => entity.Lines);");
         // Path-scoped conventional element defaults ride alongside the marker.
         sources.ShouldContain("builder.DeclareCollectionElement<");
         sources.ShouldContain("LineDto,");
@@ -241,12 +208,8 @@ public sealed class SparseEntityMapperEmitterTests
 
         // The full driver pipeline emits the same companion through discovery.
         var (diagnostics, driverSources) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
-        driverSources.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
+        driverSources.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
     }
 
     [Test]
@@ -309,9 +272,7 @@ public sealed class SparseEntityMapperEmitterTests
         var match = diagnostics.Single(static d => d.Id == "SPF033");
         match.GetMessage().ShouldContain("OrderDto.Count");
         sources.ShouldNotContain("dto.Count");
-        sources.ShouldContain(
-            "builder.Member(static dto => dto.Label, static entity => entity.Label);"
-        );
+        sources.ShouldContain("builder.Member(static dto => dto.Label, static entity => entity.Label);");
     }
 
     [Test]
@@ -350,9 +311,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, sources) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         sources.ShouldContain("child.Ignore(static dto => dto.Id);");
         sources.ShouldContain("child.Member(static dto => dto.Qty, static entity => entity.Qty);");
         sources.ShouldNotContain("dto => dto.Id, static entity => entity.Id");
@@ -389,16 +348,10 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var sources = RenderDirect(source, "Probe.OrderMapper");
-        sources.ShouldContain(
-            "builder.Member(static dto => dto.Own, static entity => entity.Own);"
-        );
-        sources.ShouldContain(
-            "builder.Member(static dto => dto.Base, static entity => entity.Base);"
-        );
+        sources.ShouldContain("builder.Member(static dto => dto.Own, static entity => entity.Own);");
+        sources.ShouldContain("builder.Member(static dto => dto.Base, static entity => entity.Base);");
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
     }
 
     [Test]
@@ -428,9 +381,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.ProtectedInternal, static entity => entity.ProtectedInternal);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.ProtectedInternal, static entity => entity.ProtectedInternal);");
         emitted.ShouldNotContain("PrivateProtected");
         CompileEmitted(source, emitted);
     }
@@ -459,12 +410,8 @@ public sealed class SparseEntityMapperEmitterTests
             """;
         var externalReference = ExternalBaseTypesReference();
         var emitted = RenderDirect(source, "Probe.OrderMapper", externalReference);
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Inherited, static entity => entity.Inherited);"
-        );
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Own, static entity => entity.Own);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Inherited, static entity => entity.Inherited);");
+        emitted.ShouldContain("builder.Member(static dto => dto.Own, static entity => entity.Own);");
         emitted.ShouldNotContain("ProtectedInternal");
         emitted.ShouldNotContain("PrivateProtected");
         CompileEmitted(source, emitted, externalReference);
@@ -496,9 +443,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, sources) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         sources.ShouldNotContain("dto.Code");
     }
 
@@ -528,9 +473,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, sources) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         sources.ShouldNotContain("dto.Code");
     }
 
@@ -560,10 +503,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (onMissingDiagnostics, _) = RunDriver(onMissingSource);
-        onMissingDiagnostics
-            .Single(static d => d.Id == "SPF033")
-            .GetMessage()
-            .ShouldContain("OrderDto.Code");
+        onMissingDiagnostics.Single(static d => d.Id == "SPF033").GetMessage().ShouldContain("OrderDto.Code");
 
         const string allowWriteSource = """
             using SparseTypes.EntityFrameworkCore;
@@ -588,10 +528,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (allowWriteDiagnostics, _) = RunDriver(allowWriteSource);
-        allowWriteDiagnostics
-            .Single(static d => d.Id == "SPF033")
-            .GetMessage()
-            .ShouldContain("OrderDto.Code");
+        allowWriteDiagnostics.Single(static d => d.Id == "SPF033").GetMessage().ShouldContain("OrderDto.Code");
     }
 
     [Test]
@@ -620,10 +557,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Single(static d => d.Id == "SPF033")
-            .GetMessage()
-            .ShouldContain("OrderDto.Code");
+        diagnostics.Single(static d => d.Id == "SPF033").GetMessage().ShouldContain("OrderDto.Code");
     }
 
     [Test]
@@ -658,9 +592,7 @@ public sealed class SparseEntityMapperEmitterTests
         // Nothing is provable, so no SPF033 fires and runtime plan validation
         // remains the backstop.
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
     }
 
     [Test]
@@ -686,9 +618,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, sources) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
         emitted.ShouldContain("dto.@event");
         emitted.ShouldContain("entity.@event");
@@ -720,13 +650,9 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Due, static entity => entity.Due);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Due, static entity => entity.Due);");
         CompileEmitted(source, emitted);
     }
 
@@ -807,13 +733,9 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
         emitted.ShouldNotContain("Secret");
 
         // Compile fixture: the emitted companion must build with the probe.
@@ -849,9 +771,7 @@ public sealed class SparseEntityMapperEmitterTests
         match.Severity.ShouldBe(DiagnosticSeverity.Error);
         match.GetMessage().ShouldContain("Secret");
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
         emitted.ShouldNotContain("entity.Secret");
 
         // Compile fixture: the emitted companion must build with the probe.
@@ -908,27 +828,15 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
         // Public, inherited, init-only (read-only selectors) and same-assembly
         // internal members keep their defaults, including nested objects.
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Base, static entity => entity.Base);"
-        );
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Label, static entity => entity.Label);"
-        );
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.InternalNote, static entity => entity.InternalNote);"
-        );
-        emitted.ShouldContain(
-            "builder.Object(static dto => dto.Address, static entity => entity.Address, static child =>"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
+        emitted.ShouldContain("builder.Member(static dto => dto.Base, static entity => entity.Base);");
+        emitted.ShouldContain("builder.Member(static dto => dto.Label, static entity => entity.Label);");
+        emitted.ShouldContain("builder.Member(static dto => dto.InternalNote, static entity => entity.InternalNote);");
+        emitted.ShouldContain("builder.Object(static dto => dto.Address, static entity => entity.Address, static child =>");
         // Protected/private DTO members and getter-only computed members stay
         // unmapped without invalid selectors.
         emitted.ShouldNotContain("Guarded");
@@ -972,40 +880,21 @@ public sealed class SparseEntityMapperEmitterTests
         sources.ShouldNotContain("dto.Code");
     }
 
-    private static void CompileEmitted(
-        string source,
-        string emitted,
-        params MetadataReference[] additionalReferences
-    )
+    private static void CompileEmitted(string source, string emitted, params MetadataReference[] additionalReferences)
     {
         var tree = CSharpSyntaxTree.ParseText(StubUsings + source + Stubs + emitted);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         references.AddRange(additionalReferences);
         var compilation = CSharpCompilation.Create(
             "SparseEntityMapperCompileProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        var errors = compilation
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ToArray();
-        compilation
-            .GetDiagnostics()
-            .Where(static d => d.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        var errors = compilation.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ToArray();
+        compilation.GetDiagnostics().Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     private static MetadataReference ExternalBaseTypesReference()
@@ -1027,27 +916,19 @@ public sealed class SparseEntityMapperEmitterTests
                 }
             }
             """;
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trustedAssemblies.Select(path =>
-            (MetadataReference)MetadataReference.CreateFromFile(path)
-        );
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trustedAssemblies.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path));
         var compilation = CSharpCompilation.Create(
             "SparseEntityMapperExternalTypes",
             [CSharpSyntaxTree.ParseText(source)],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         using var image = new MemoryStream();
         var result = compilation.Emit(image);
         if (!result.Success)
         {
-            throw new InvalidOperationException(
-                string.Join(Environment.NewLine, result.Diagnostics)
-            );
+            throw new InvalidOperationException(string.Join(Environment.NewLine, result.Diagnostics));
         }
 
         return MetadataReference.CreateFromImage(image.ToArray());
@@ -1271,13 +1152,9 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "builder.Member(static dto => dto.Notes, static entity => entity.Notes);"
-        );
+        emitted.ShouldContain("builder.Member(static dto => dto.Notes, static entity => entity.Notes);");
         // The bridge keeps the defaults-only scope inert without calling
         // Configure.
         emitted.ShouldContain("_ = builder;");
@@ -1311,13 +1188,9 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var (diagnostics, _) = RunDriver(source);
-        diagnostics
-            .Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
+        diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         var emitted = RenderDirect(source, "Probe.OrderMapper");
-        emitted.ShouldContain(
-            "IEntityModelMapping<global::Probe.OrderEntity, global::Probe.OrderDto>.Configure"
-        );
+        emitted.ShouldContain("IEntityModelMapping<global::Probe.OrderEntity, global::Probe.OrderDto>.Configure");
         emitted.ShouldContain("__sparse_map_scope");
         emitted.ShouldContain("lock (__sparse_map_lock)");
         emitted.ShouldContain("Configure();");
@@ -1356,9 +1229,7 @@ public sealed class SparseEntityMapperEmitterTests
         );
         sources.ShouldContain("var mapping = new OrderMapper();");
         // The generated bridge owns the mapping contract and Map scope.
-        sources.ShouldContain(
-            "IEntityModelMapping<global::Probe.OrderEntity, global::Probe.OrderDto>"
-        );
+        sources.ShouldContain("IEntityModelMapping<global::Probe.OrderEntity, global::Probe.OrderDto>");
         sources.ShouldContain(
             "private global::SparseTypes.EntityFrameworkCore.SparseEntityMapBuilder<global::Probe.OrderEntity, global::Probe.OrderDto> Map"
         );
@@ -1449,9 +1320,7 @@ public sealed class SparseEntityMapperEmitterTests
             }
             """;
         var sources = RenderDirect(source, "Probe.PlaygroundOrderMapper");
-        sources.ShouldContain(
-            "> Create(global::Microsoft.EntityFrameworkCore.Metadata.IModel model)"
-        );
+        sources.ShouldContain("> Create(global::Microsoft.EntityFrameworkCore.Metadata.IModel model)");
         CompileEmitted(source, sources);
     }
 }

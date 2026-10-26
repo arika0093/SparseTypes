@@ -141,9 +141,9 @@ public sealed class TransitionContractTests
         var tree = CSharpSyntaxTree.ParseText(source);
         var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
         var references = trustedAssemblies
-            .Select(static assemblyPath => (MetadataReference)MetadataReference.CreateFromFile(assemblyPath))
-            .Append(MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location))
-            .Append(MetadataReference.CreateFromFile(typeof(Settings).Assembly.Location));
+            .Select(static assemblyPath => (MetadataReference)TestMetadataReferences.FromFile(assemblyPath))
+            .Append(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location))
+            .Append(TestMetadataReferences.FromFile(typeof(Settings).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "TypedChangeSetCompileProbe",
             [tree],

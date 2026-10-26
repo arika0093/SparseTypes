@@ -8,37 +8,22 @@ namespace SparseTypes.Tests.Diagnostics;
 
 public sealed class CloneCycleAnalysisTests
 {
-    private static (
-        ImmutableArray<Diagnostic> Diagnostics,
-        ImmutableArray<GeneratedSourceResult> Sources
-    ) Run(string source)
+    private static (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> Sources) Run(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "SparseCloneCycleProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
-        return (
-            runResult.Diagnostics,
-            runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray()
-        );
+        return (runResult.Diagnostics, runResult.Results.SelectMany(static r => r.GeneratedSources).ToImmutableArray());
     }
 
     private static string ChainSource(int depth)
@@ -53,12 +38,8 @@ public sealed class CloneCycleAnalysisTests
             builder.AppendLine("[SparseModel]");
             builder.AppendLine($"public partial class ChainNode{level:00}");
             builder.AppendLine("{");
-            builder.AppendLine(
-                $"    public ChainNode{(level + 1):00} Left {{ get; set; }} = null!;"
-            );
-            builder.AppendLine(
-                $"    public ChainNode{(level + 1):00} Right {{ get; set; }} = null!;"
-            );
+            builder.AppendLine($"    public ChainNode{(level + 1):00} Left {{ get; set; }} = null!;");
+            builder.AppendLine($"    public ChainNode{(level + 1):00} Right {{ get; set; }} = null!;");
             builder.AppendLine("}");
         }
         builder.AppendLine("[SparseModel]");
@@ -69,22 +50,12 @@ public sealed class CloneCycleAnalysisTests
         return builder.ToString();
     }
 
-    private static void ShouldHaveNoSpfDiagnostics(
-        ImmutableArray<Diagnostic> diagnostics,
-        ImmutableArray<GeneratedSourceResult> sources
-    )
+    private static void ShouldHaveNoSpfDiagnostics(ImmutableArray<Diagnostic> diagnostics, ImmutableArray<GeneratedSourceResult> sources)
     {
         // SPF026 is an informational note for constructor-bound members;
         // only errors indicate a behavior change here.
-        diagnostics
-            .Where(d =>
-                d.Id.StartsWith("SPF", StringComparison.Ordinal)
-                && d.Severity == DiagnosticSeverity.Error
-            )
-            .ShouldBeEmpty();
-        sources
-            .Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        sources.Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -93,10 +64,7 @@ public sealed class CloneCycleAnalysisTests
     [Arguments(12)]
     [Arguments(16)]
     [Timeout(120_000)]
-    public void DeepSharedChain_CompletesWithoutDiagnostics(
-        int depth,
-        CancellationToken cancellationToken
-    )
+    public void DeepSharedChain_CompletesWithoutDiagnostics(int depth, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var (diagnostics, sources) = Run(ChainSource(depth));
@@ -116,9 +84,7 @@ public sealed class CloneCycleAnalysisTests
 
     [Test]
     [Timeout(120_000)]
-    public void WideDiamondWithRepeatedTopLevelProperties_CompletesWithoutDiagnostics(
-        CancellationToken cancellationToken
-    )
+    public void WideDiamondWithRepeatedTopLevelProperties_CompletesWithoutDiagnostics(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var builder = new StringBuilder();
@@ -230,10 +196,7 @@ public sealed class CloneCycleAnalysisTests
         sources.ShouldBeEmpty();
     }
 
-    private static ImmutableArray<Diagnostic> Spf008ForProperty(
-        ImmutableArray<Diagnostic> diagnostics,
-        string propertyName
-    )
+    private static ImmutableArray<Diagnostic> Spf008ForProperty(ImmutableArray<Diagnostic> diagnostics, string propertyName)
     {
         var matches = diagnostics
             .Where(d =>
@@ -241,9 +204,7 @@ public sealed class CloneCycleAnalysisTests
                 && d.Severity == DiagnosticSeverity.Error
                 && d.GetMessage().Contains(propertyName, StringComparison.Ordinal)
                 && d.Location.IsInSource
-                && d.Location.SourceTree!.GetText()
-                    .ToString(d.Location.SourceSpan)
-                    .Contains(propertyName, StringComparison.Ordinal)
+                && d.Location.SourceTree!.GetText().ToString(d.Location.SourceSpan).Contains(propertyName, StringComparison.Ordinal)
             )
             .ToImmutableArray();
         return matches;

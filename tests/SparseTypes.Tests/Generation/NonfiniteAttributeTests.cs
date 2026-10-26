@@ -75,32 +75,19 @@ public sealed class NonfiniteAttributeTests
     public void GeneratedAttributesUseFieldReferencesAndCompile()
     {
         var tree = CSharpSyntaxTree.ParseText(ProbeSource, path: "Probe.cs");
-        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = trustedAssemblies
-            .Select(static assemblyPath =>
-                (MetadataReference)MetadataReference.CreateFromFile(assemblyPath)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
-        references.Add(MetadataReference.CreateFromFile(typeof(NonfiniteProbeAttribute).Assembly.Location));
+        var trustedAssemblies = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = trustedAssemblies.Select(static assemblyPath => (MetadataReference)TestMetadataReferences.FromFile(assemblyPath)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
+        references.Add(TestMetadataReferences.FromFile(typeof(NonfiniteProbeAttribute).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "NonfiniteProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
-        updated
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        updated.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
 
         var sources = driver
             .GetRunResult()

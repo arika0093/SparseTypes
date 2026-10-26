@@ -14,9 +14,7 @@ public sealed class StructuralPolicyTests
     private const string MergeBase = "SparseTypes.FragmentMergeStrategy<T>";
     private const string CloneSafe = "SparseTypes.SparseCloneReferenceSafeAttribute";
 
-    private static SparseGeneratorConfig CreateConfig(
-        SparseStructuralPolicy policy = SparseStructuralPolicy.AtomicReplace
-    ) =>
+    private static SparseGeneratorConfig CreateConfig(SparseStructuralPolicy policy = SparseStructuralPolicy.AtomicReplace) =>
         new(
             ModelAttributeMetadataName: ModelAttribute,
             IgnoreAttributeMetadataName: "SparseTypes.SparseIgnoreAttribute",
@@ -58,8 +56,7 @@ public sealed class StructuralPolicyTests
 
     private static SparseGeneratorConfig AtomicConfig() => CreateConfig();
 
-    private static SparseGeneratorConfig HostsConfig() =>
-        CreateConfig(SparseStructuralPolicy.StructuralHosts);
+    private static SparseGeneratorConfig HostsConfig() => CreateConfig(SparseStructuralPolicy.StructuralHosts);
 
     private const string Source = """
         using SparseTypes;
@@ -85,38 +82,24 @@ public sealed class StructuralPolicyTests
     private static CSharpCompilation CreateCompilation(string source)
     {
         var tree = CSharpSyntaxTree.ParseText(source);
-        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(
-            Path.PathSeparator
-        );
-        var references = tpa.Select(path =>
-                (MetadataReference)MetadataReference.CreateFromFile(path)
-            )
-            .ToList();
-        references.Add(
-            MetadataReference.CreateFromFile(typeof(SparseModelAttribute).Assembly.Location)
-        );
+        var tpa = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
+        var references = tpa.Select(path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseModelAttribute).Assembly.Location));
         return CSharpCompilation.Create(
             "SparsePolicyProbe",
             [tree],
             references,
-            new CSharpCompilationOptions(
-                OutputKind.DynamicallyLinkedLibrary
-            ).WithNullableContextOptions(NullableContextOptions.Enable)
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
     }
 
     private static INamedTypeSymbol GetRoot(string source, string name = "PolicyRoot") =>
-        CreateCompilation(source).GetTypeByMetadataName(name)
-        ?? throw new InvalidOperationException($"Type '{name}' not found.");
+        CreateCompilation(source).GetTypeByMetadataName(name) ?? throw new InvalidOperationException($"Type '{name}' not found.");
 
     [Test]
     public void AtomicPolicy_KeepsNestedNonPartialPocoAtomic()
     {
-        var analysis = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            AtomicConfig(),
-            CancellationToken.None
-        );
+        var analysis = SparseModelAnalyzer.Analyze(GetRoot(Source), AtomicConfig(), CancellationToken.None);
         analysis.Diagnostics.ShouldBeEmpty();
         analysis.StructuralModels.ShouldBeEmpty();
         var nested = analysis.Members.Single(member => member.Property.Name == "Nested");
@@ -130,11 +113,7 @@ public sealed class StructuralPolicyTests
     [Test]
     public void StructuralHostsPolicy_GeneratesHostsForNestedPoco()
     {
-        var analysis = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            HostsConfig(),
-            CancellationToken.None
-        );
+        var analysis = SparseModelAnalyzer.Analyze(GetRoot(Source), HostsConfig(), CancellationToken.None);
         analysis.Diagnostics.ShouldBeEmpty();
         analysis.StructuralModels.Length.ShouldBe(1);
         analysis.StructuralModels[0].ValueTypeName.ShouldContain("PolicyNested");
@@ -148,22 +127,12 @@ public sealed class StructuralPolicyTests
     [Test]
     public void BothPolicies_PromoteNestedPartials()
     {
-        var atomic = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            AtomicConfig(),
-            CancellationToken.None
-        );
-        var hosts = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            HostsConfig(),
-            CancellationToken.None
-        );
+        var atomic = SparseModelAnalyzer.Analyze(GetRoot(Source), AtomicConfig(), CancellationToken.None);
+        var hosts = SparseModelAnalyzer.Analyze(GetRoot(Source), HostsConfig(), CancellationToken.None);
         atomic.PromotedModels.Length.ShouldBe(1);
         hosts.PromotedModels.Length.ShouldBe(1);
         atomic.PromotedModels[0].Model.Name.ShouldBe("PolicyPartial");
-        hosts
-            .PromotedModels[0]
-            .Model.ModelTypeName.ShouldBe(atomic.PromotedModels[0].Model.ModelTypeName);
+        hosts.PromotedModels[0].Model.ModelTypeName.ShouldBe(atomic.PromotedModels[0].Model.ModelTypeName);
         // Promoted member semantics are policy-independent.
         hosts.PromotedModels[0].Members.ShouldBe(atomic.PromotedModels[0].Members);
     }
@@ -195,43 +164,21 @@ public sealed class StructuralPolicyTests
         analysis.Diagnostics.ShouldBeEmpty();
         analysis.Members.Select(static member => member.Property.Name).ShouldBe(["Child", "Name"]);
         analysis.PromotedModels.Length.ShouldBe(1);
-        analysis
-            .PromotedModels[0]
-            .Members.Select(static member => member.Property.Name)
-            .ShouldBe(["First", "Last"]);
+        analysis.PromotedModels[0].Members.Select(static member => member.Property.Name).ShouldBe(["First", "Last"]);
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
-        driver = driver.RunGeneratorsAndUpdateCompilation(
-            compilation,
-            out var updatedCompilation,
-            out var generatorDiagnostics
-        );
-        generatorDiagnostics
-            .Where(static diagnostic => diagnostic.Id is "SPF007" or "SPF008")
-            .ShouldBeEmpty();
-        updatedCompilation
-            .GetDiagnostics()
-            .Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-            .ShouldBeEmpty();
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updatedCompilation, out var generatorDiagnostics);
+        generatorDiagnostics.Where(static diagnostic => diagnostic.Id is "SPF007" or "SPF008").ShouldBeEmpty();
+        updatedCompilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
     }
 
     [Test]
     public void BothPolicies_ShareCloneHelperMechanics()
     {
-        var atomic = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            AtomicConfig(),
-            CancellationToken.None
-        );
-        var hosts = SparseModelAnalyzer.Analyze(
-            GetRoot(Source),
-            AtomicConfig(),
-            CancellationToken.None
-        );
+        var atomic = SparseModelAnalyzer.Analyze(GetRoot(Source), AtomicConfig(), CancellationToken.None);
+        var hosts = SparseModelAnalyzer.Analyze(GetRoot(Source), AtomicConfig(), CancellationToken.None);
         hosts.PocoCloneModels.Length.ShouldBe(atomic.PocoCloneModels.Length);
-        hosts
-            .PocoCloneModels[0]
-            .CloneHelperName.ShouldBe(atomic.PocoCloneModels[0].CloneHelperName);
+        hosts.PocoCloneModels[0].CloneHelperName.ShouldBe(atomic.PocoCloneModels[0].CloneHelperName);
     }
 
     [Test]
@@ -255,14 +202,8 @@ public sealed class StructuralPolicyTests
             }
             """;
         var compilation = CreateCompilation(twoRoots);
-        var analyses = new[]
-        {
-            compilation.GetTypeByMetadataName("PolicyRootOne")!,
-            compilation.GetTypeByMetadataName("PolicyRootTwo")!,
-        }
-            .Select(static symbol =>
-                SparseModelAnalyzer.Analyze(symbol, AtomicConfig(), CancellationToken.None)
-            )
+        var analyses = new[] { compilation.GetTypeByMetadataName("PolicyRootOne")!, compilation.GetTypeByMetadataName("PolicyRootTwo")! }
+            .Select(static symbol => SparseModelAnalyzer.Analyze(symbol, AtomicConfig(), CancellationToken.None))
             .ToImmutableArray();
         analyses.All(static analysis => analysis.Model.HasValue).ShouldBeTrue();
 
@@ -280,21 +221,12 @@ public sealed class StructuralPolicyTests
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGenerators(compilation);
         var runResult = driver.GetRunResult();
-        runResult
-            .Diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal))
-            .ShouldBeEmpty();
-        var sources = runResult
-            .Results.SelectMany(static r => r.GeneratedSources)
-            .Select(static s => s.SourceText.ToString())
-            .ToArray();
+        runResult.Diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
+        var sources = runResult.Results.SelectMany(static r => r.GeneratedSources).Select(static s => s.SourceText.ToString()).ToArray();
         sources.ShouldNotBeEmpty();
-        sources
-            .All(static source => !source.Contains("__SparseStructural_", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.All(static source => !source.Contains("__SparseStructural_", StringComparison.Ordinal)).ShouldBeTrue();
         // The promoted partial still receives first-class APIs.
-        sources
-            .Any(static source => source.Contains("PolicyPartial", StringComparison.Ordinal))
-            .ShouldBeTrue();
+        sources.Any(static source => source.Contains("PolicyPartial", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]
@@ -416,27 +348,17 @@ public sealed class StructuralPolicyTests
         analysis.Diagnostics.ShouldBeEmpty();
         var model = analysis.Model ?? throw new InvalidOperationException("Expected a model.");
         model.HintName.ShouldEndWith(".Downstream.g.cs");
-        analysis
-            .Members.Single(member => member.Property.Name == "Values")
-            .MergeMode.ShouldBe(SparseMergeModes.Append);
-        var attributeItems = analysis.Members.Single(member =>
-            member.Property.Name == "AttributeItems"
-        );
+        analysis.Members.Single(member => member.Property.Name == "Values").MergeMode.ShouldBe(SparseMergeModes.Append);
+        var attributeItems = analysis.Members.Single(member => member.Property.Name == "AttributeItems");
         attributeItems.Collection.IsKeyedSequence.ShouldBeTrue();
         attributeItems.Collection.KeyPropertyNames.ShouldBe(ImmutableArray.Create("Code"));
-        var interfaceItems = analysis.Members.Single(member =>
-            member.Property.Name == "InterfaceItems"
-        );
+        var interfaceItems = analysis.Members.Single(member => member.Property.Name == "InterfaceItems");
         interfaceItems.Collection.IsKeyedSequence.ShouldBeTrue();
         interfaceItems.Collection.KeyTypeName.ShouldBe("int");
         analysis.StructuralModels.Single().HostName.ShouldStartWith("__DownstreamHost_");
         var promoted = analysis.PromotedModels.Single();
         SparseFragmentEmitter
-            .GetPromotedHintName(
-                promoted.Model,
-                config.PromotedHintNameSuffix,
-                CancellationToken.None
-            )
+            .GetPromotedHintName(promoted.Model, config.PromotedHintNameSuffix, CancellationToken.None)
             .ShouldEndWith(".DownstreamPromoted.g.cs");
 
         var runtimeDialect = new SparseRuntimeDialect(

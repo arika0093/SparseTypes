@@ -233,8 +233,8 @@ public sealed class AttributeBridgeTests
             .Append(CSharpSyntaxTree.ParseText(stub, path: "Models.cs"))
             .ToArray();
         var trusted = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator);
-        var references = trusted.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path)).ToList();
-        references.Add(MetadataReference.CreateFromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
+        var references = trusted.Select(static path => (MetadataReference)TestMetadataReferences.FromFile(path)).ToList();
+        references.Add(TestMetadataReferences.FromFile(typeof(SparseTypes.Optional<>).Assembly.Location));
         var compilation = CSharpCompilation.Create(
             "NoDescriptorBridgeProbe",
             trees,
