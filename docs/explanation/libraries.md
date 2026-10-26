@@ -44,19 +44,6 @@ dotnet add package SparseTypes.Fragments
 
 `SparseTypes.Fragments` does not generate `ChangeSet`, patch `Rebase`, JSON payloads or converters, observable views, edit sessions, or history APIs. Its requirements are the same as for `SparseTypes`.
 
-## `SparseTypes.Core`
-
-[![NuGet Version](https://img.shields.io/nuget/v/SparseTypes.Core?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes.Core/)
-
-Shared runtime contracts and helpers used by `SparseTypes` and `SparseTypes.Fragments`. Both product packages depend on Core and provide their own generator. Most applications should install one of those products instead of referencing Core directly.
-
-Core targets `netstandard2.0`, `net6.0`, and `net10.0`, with the same public API on every target. It has no source generator.
-
-### Requirements
-
-The requirements are the same as for `SparseTypes`.
-
-
 ## `SparseTypes.Blazor`
 
 [![NuGet Version](https://img.shields.io/nuget/v/SparseTypes.Blazor?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes.Blazor/)
@@ -112,6 +99,11 @@ dotnet add package SparseTypes.OpenApi.AspNetCore
 ```
 
 ## For library developers
+### `SparseTypes.Core`
+
+[![NuGet Version](https://img.shields.io/nuget/v/SparseTypes.Core?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes.Core/)
+
+Shared runtime contracts and helpers used by `SparseTypes` and `SparseTypes.Fragments`. Both product packages depend on Core and provide their own generator. Most applications should install one of those products instead of referencing Core directly.
 
 ### `SparseTypes.Generator.Shared`
 
