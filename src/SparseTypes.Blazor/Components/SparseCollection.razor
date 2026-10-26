@@ -1,0 +1,21 @@
+@typeparam TModel where TModel : class
+@typeparam TElement where TElement : class
+
+@if (QueryError is not null)
+{
+    @if (ErrorContent is not null)
+    {
+        @ErrorContent(QueryError)
+    }
+}
+else if (Rows.Count == 0)
+{
+    @EmptyContent
+}
+else if (RowTemplate is not null)
+{
+    @foreach (var row in Rows)
+    {
+        @SparseCollectionRowHost.Render(row.UiKey, RowTemplate(row))
+    }
+}

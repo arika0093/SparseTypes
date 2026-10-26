@@ -1,0 +1,7 @@
+@typeparam TModel where TModel : class
+@typeparam TValue
+
+@if (_field is not null && ChildContent is not null)
+{
+    @ChildContent(_field)
+}

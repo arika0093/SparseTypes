@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor;
 
@@ -10,7 +9,7 @@ namespace SparseTypes.Blazor;
 /// <remarks><c>TModel</c> and <c>TValue</c> infer from <see cref="Path"/>, so no explicit <c>TValue</c> or per-model Blazor context is needed.</remarks>
 /// <typeparam name="TModel">The root session model type.</typeparam>
 /// <typeparam name="TValue">The addressed value type.</typeparam>
-public sealed class SparseField<TModel, TValue> : ComponentBase, IDisposable
+public sealed partial class SparseField<TModel, TValue> : ComponentBase, IDisposable
     where TModel : class
 {
     private ISparseEditScope<TModel>? _boundScope;
@@ -117,15 +116,6 @@ public sealed class SparseField<TModel, TValue> : ComponentBase, IDisposable
         }
 
         return SparseSessionInterop.TryFieldState(session, _binding!.TypedPath, out state, out error);
-    }
-
-    /// <inheritdoc />
-    protected override void BuildRenderTree(RenderTreeBuilder builder)
-    {
-        if (_field is not null && ChildContent is not null)
-        {
-            builder.AddContent(0, ChildContent(_field));
-        }
     }
 
     /// <inheritdoc />

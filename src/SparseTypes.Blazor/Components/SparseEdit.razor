@@ -1,0 +1,15 @@
+@typeparam TModel where TModel : class
+@typeparam TPaths where TPaths : ISparseTypedPath<TModel, TModel>
+
+@{
+    var context = _context;
+    var content = ChildContent;
+}
+
+@if (context is not null && content is not null)
+{
+    @* Replace old row fields before cascading a replacement session. *@
+    <CascadingValue TValue="ISparseEditScope<TModel>" Value="context" @key="context">
+        @content(context)
+    </CascadingValue>
+}

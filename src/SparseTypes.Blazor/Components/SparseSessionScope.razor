@@ -1,0 +1,11 @@
+@typeparam TModel where TModel : class
+
+<CascadingValue TValue="SparseChildEditMode?" Value="_effectiveMode" Name="@ModeCascadeName">
+    <CascadingValue TValue="SparsePassThroughStateScope" Value="_scopeContext?.StateScope" Name="@StateScopeCascadeName">
+        <CascadingValue TValue="ISparseEditSession<TModel>" Value="Session">
+            <CascadingValue TValue="SparseSessionScopeContext<TModel>" Value="_scopeContext">
+                @ChildContent
+            </CascadingValue>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>

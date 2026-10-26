@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor;
 
@@ -9,7 +8,7 @@ namespace SparseTypes.Blazor;
 /// <remarks>Declares only <see cref="Session"/> and <see cref="ChildContent"/>.</remarks>
 /// <typeparam name="TModel">The live editable model type.</typeparam>
 /// <typeparam name="TPaths">The concrete generated root path builder type.</typeparam>
-public sealed class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
+public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
 {
@@ -54,30 +53,6 @@ public sealed class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
         {
             _context?.RefreshStateSnapshotForParameterUpdate();
         }
-    }
-
-    /// <inheritdoc />
-    protected override void BuildRenderTree(RenderTreeBuilder builder)
-    {
-        var context = _context;
-        var content = ChildContent;
-        if (context is null || content is null)
-        {
-            return;
-        }
-
-        // No markup of its own: only the scope cascade, so rendering stays
-        // layout, CSS, and vendor neutral.
-        builder.OpenComponent<CascadingValue<ISparseEditScope<TModel>>>(0);
-        // Replace the subtree before a new session reaches fields for removed rows.
-        builder.SetKey(context);
-        builder.AddAttribute(1, nameof(CascadingValue<ISparseEditScope<TModel>>.Value), context);
-        builder.AddAttribute(
-            2,
-            nameof(CascadingValue<ISparseEditScope<TModel>>.ChildContent),
-            (RenderFragment)(cascade => cascade.AddContent(0, content(context)))
-        );
-        builder.CloseComponent();
     }
 
     /// <inheritdoc />

@@ -1,13 +1,12 @@
 using System.ComponentModel;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor;
 
 /// <summary>Cascades the active edit session and refreshes the subtree when the session reports changes.</summary>
 /// <remarks>The scope renders no markup of its own.</remarks>
 /// <typeparam name="TModel">The live editable model type.</typeparam>
-public sealed class SparseSessionScope<TModel> : ComponentBase, IDisposable
+public sealed partial class SparseSessionScope<TModel> : ComponentBase, IDisposable
     where TModel : class
 {
     internal const string ModeCascadeName = "SparseSessionScope.Mode";
@@ -84,61 +83,6 @@ public sealed class SparseSessionScope<TModel> : ComponentBase, IDisposable
         }
 
         return effectiveMode;
-    }
-
-    /// <inheritdoc />
-    protected override void BuildRenderTree(RenderTreeBuilder builder)
-    {
-        builder.OpenComponent<CascadingValue<SparseChildEditMode?>>(0);
-        builder.AddAttribute(1, nameof(CascadingValue<SparseChildEditMode?>.Value), _effectiveMode);
-        builder.AddAttribute(2, nameof(CascadingValue<SparseChildEditMode?>.Name), ModeCascadeName);
-        builder.AddAttribute(
-            3,
-            nameof(CascadingValue<SparseChildEditMode?>.ChildContent),
-            (RenderFragment)(
-                modeBuilder =>
-                {
-                    modeBuilder.OpenComponent<CascadingValue<SparsePassThroughStateScope?>>(0);
-                    modeBuilder.AddAttribute(1, nameof(CascadingValue<SparsePassThroughStateScope?>.Value), _scopeContext?.StateScope);
-                    modeBuilder.AddAttribute(2, nameof(CascadingValue<SparsePassThroughStateScope?>.Name), StateScopeCascadeName);
-                    modeBuilder.AddAttribute(
-                        3,
-                        nameof(CascadingValue<SparsePassThroughStateScope?>.ChildContent),
-                        (RenderFragment)(
-                            stateScopeBuilder =>
-                            {
-                                stateScopeBuilder.OpenComponent<CascadingValue<ISparseEditSession<TModel>>>(0);
-                                stateScopeBuilder.AddAttribute(1, nameof(CascadingValue<ISparseEditSession<TModel>>.Value), Session);
-                                stateScopeBuilder.AddAttribute(
-                                    2,
-                                    nameof(CascadingValue<ISparseEditSession<TModel>>.ChildContent),
-                                    (RenderFragment)(
-                                        sessionBuilder =>
-                                        {
-                                            sessionBuilder.OpenComponent<CascadingValue<SparseSessionScopeContext<TModel>?>>(0);
-                                            sessionBuilder.AddAttribute(
-                                                1,
-                                                nameof(CascadingValue<SparseSessionScopeContext<TModel>?>.Value),
-                                                _scopeContext
-                                            );
-                                            sessionBuilder.AddAttribute(
-                                                2,
-                                                nameof(CascadingValue<SparseSessionScopeContext<TModel>?>.ChildContent),
-                                                ChildContent
-                                            );
-                                            sessionBuilder.CloseComponent();
-                                        }
-                                    )
-                                );
-                                stateScopeBuilder.CloseComponent();
-                            }
-                        )
-                    );
-                    modeBuilder.CloseComponent();
-                }
-            )
-        );
-        builder.CloseComponent();
     }
 
     /// <inheritdoc />

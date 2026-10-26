@@ -1,24 +1,15 @@
 using System.ComponentModel;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor;
 
 /// <summary>Enumerates a session collection and assigns stable Blazor keys to its typed row template.</summary>
 /// <typeparam name="TModel">The root edit-session model type.</typeparam>
 /// <typeparam name="TElement">The collection element model type.</typeparam>
-public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposable
+public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, IDisposable
     where TModel : class
     where TElement : class
 {
-    private sealed class KeyedRowHost : ComponentBase
-    {
-        [Parameter]
-        public RenderFragment? ChildContent { get; set; }
-
-        protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddContent(0, ChildContent);
-    }
-
     private readonly Dictionary<TElement, Guid> _identityByItem = new(ReferenceEqualityComparer.Instance);
     private readonly HashSet<TElement> _itemsInRender = new(ReferenceEqualityComparer.Instance);
     private readonly Dictionary<SparsePathSegment, Guid> _identityByPath = [];
@@ -201,46 +192,6 @@ public sealed class SparseCollection<TModel, TElement> : ComponentBase, IDisposa
         }
 
         RefreshRows();
-    }
-
-    /// <inheritdoc />
-    protected override void BuildRenderTree(RenderTreeBuilder builder)
-    {
-        var queryError = QueryError;
-        if (queryError is not null)
-        {
-            if (ErrorContent is not null)
-            {
-                builder.AddContent(0, ErrorContent(queryError));
-            }
-
-            return;
-        }
-
-        var rowTemplate = RowTemplate;
-        if (Rows.Count == 0)
-        {
-            if (EmptyContent is not null)
-            {
-                builder.AddContent(0, EmptyContent);
-            }
-
-            return;
-        }
-
-        if (rowTemplate is null)
-        {
-            return;
-        }
-
-        for (var index = 0; index < Rows.Count; index++)
-        {
-            var row = Rows[index];
-            builder.OpenComponent<KeyedRowHost>(0);
-            builder.SetKey(row.UiKey);
-            builder.AddAttribute(1, nameof(KeyedRowHost.ChildContent), rowTemplate(row));
-            builder.CloseComponent();
-        }
     }
 
     /// <inheritdoc />

@@ -1,0 +1,35 @@
+@typeparam TParent where TParent : class
+@typeparam TChild where TChild : class
+@typeparam TChildPaths where TChildPaths : ISparseTypedPath<TChild, TChild>
+@typeparam TConflict where TConflict : class
+@typeparam TChildSession where TChildSession : ISparseEditSessionWithPaths<TChild, TChildPaths>
+
+@{
+    var content = ChildContent;
+}
+
+@if (content is not null)
+{
+    // A descendant can render after its retained context was disposed.
+    var context = TryResolveCurrentContext();
+    @if (context is not null)
+    {
+        <CascadingValue TValue="SparseChildEditMode?" Value="context.DescendantScopeContext.Mode" Name="@(SparseSessionScope<TChild>.ModeCascadeName)">
+            <CascadingValue TValue="SparsePassThroughStateScope" Value="context.DescendantScopeContext.StateScope" Name="@(SparseSessionScope<TChild>.StateScopeCascadeName)">
+                <CascadingValue TValue="ISparseEditSession<TChild>" Value="context.Session">
+                    <CascadingValue TValue="SparseSessionScopeContext<TChild>" Value="context.DescendantScopeContext">
+                        <SparseEdit TModel="TChild" TPaths="TChildPaths" Session="context.Session" Context="edit">
+                            @{
+                                var current = TryResolveCurrentContext();
+                            }
+                            @if (current is not null)
+                            {
+                                @content(current)
+                            }
+                        </SparseEdit>
+                    </CascadingValue>
+                </CascadingValue>
+            </CascadingValue>
+        </CascadingValue>
+    }
+}
