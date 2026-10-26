@@ -158,6 +158,29 @@ test("ef mapping saves an order edit and resets a later draft", async ({ page })
   await expect(notes).toHaveValue("first order");
 });
 
+test("ef mapping reseeds after saving added lines", async ({ page }) => {
+  await openCase(page, "ef-mapping", "EF Core: ChangeSet to tracked entity");
+  const rows = page.locator(".pg-roster-list .pg-roster-row");
+  await expect(rows).toHaveCount(2);
+
+  await fluentButton(page, "Add").click();
+  await fluentButton(page, "Add").click();
+  await expect(rows).toHaveCount(4);
+  await fluentButton(page, "Save").first().click();
+  const saveDialog = page.locator(".pg-submit-preview-dialog");
+  await expect(saveDialog.locator("dialog[open]")).toBeVisible();
+  await fluentButton(saveDialog, "Save").click();
+  await expect(saveDialog.locator("dialog[open]")).toHaveCount(0);
+  await expect(page.getByRole("table", { name: "Modified EF properties" })).toBeVisible();
+
+  await fluentButton(page, "Reseed").click();
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0).locator(".pg-roster-field").filter({ hasText: "Product" }).locator("input")).toHaveValue("Espresso");
+  await expect(rows.nth(1).locator(".pg-roster-field").filter({ hasText: "Product" }).locator("input")).toHaveValue("Croissant");
+  await fluentButton(page, "Add").click();
+  await expect(rows).toHaveCount(3);
+});
+
 test("concurrent editing enables simulation by default and gates real-time edits", async ({ page }) => {
   await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
   const options = page.locator(".pg-case5-rebase-options");

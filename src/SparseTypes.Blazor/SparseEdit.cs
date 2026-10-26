@@ -69,6 +69,8 @@ public sealed class SparseEdit<TModel, TPaths> : ComponentBase, IDisposable
         // No markup of its own: only the scope cascade, so rendering stays
         // layout, CSS, and vendor neutral.
         builder.OpenComponent<CascadingValue<ISparseEditScope<TModel>>>(0);
+        // Replace the subtree before a new session reaches fields for removed rows.
+        builder.SetKey(context);
         builder.AddAttribute(1, nameof(CascadingValue<ISparseEditScope<TModel>>.Value), context);
         builder.AddAttribute(
             2,
