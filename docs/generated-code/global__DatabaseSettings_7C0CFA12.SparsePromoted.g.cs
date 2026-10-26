@@ -2237,6 +2237,7 @@ public partial class DatabaseSettings
     }
 
     /// <summary>Serializable envelope carrying the validated transition for transport.</summary>
+    [global::System.Text.Json.Serialization.JsonConverter(typeof(global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter))]
     public sealed class ChangePayload : DatabaseSettings_8807E705SerializeObjects.Core
     {
         /// <summary>Gets or sets the provisional wire version token.</summary>
@@ -2634,7 +2635,7 @@ namespace SparseTypes.Generated
     }
     /// <summary>Trim-safe JSON converter for this model's change payload.</summary>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    internal sealed class DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter : global::System.Text.Json.Serialization.JsonConverter<global::DatabaseSettings.ChangePayload>
+    public sealed class DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter : global::System.Text.Json.Serialization.JsonConverter<global::DatabaseSettings.ChangePayload>
     {
         /// <inheritdoc />
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]

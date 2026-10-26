@@ -306,7 +306,7 @@ public sealed class GeneratedApiApprovalTests
     public void NestedPayloadJsonHelpersExposeDefaultAndResolver()
     {
         // The discoverable model-nested helper exposes JsonTypeInfo and the
-        // resolver interface while implementation types stay hidden.
+        // resolver interface; attributed converters also support external contexts.
         foreach (var model in FixtureModels)
         {
             var helper = model.GetNestedType("PayloadJson");
@@ -323,7 +323,9 @@ public sealed class GeneratedApiApprovalTests
             var container = changePayload.BaseType!.DeclaringType!;
             var converter = model.Assembly.GetTypes().Single(type => type.Name == container.Name + "PayloadJsonConverter");
             converter.DeclaringType.ShouldBeNull();
-            converter.IsNotPublic.ShouldBeTrue();
+            converter.IsPublic.ShouldBeTrue();
+            changePayload.GetCustomAttribute<JsonConverterAttribute>()!.ConverterType.ShouldBe(converter);
+            converter.GetConstructor(Type.EmptyTypes).ShouldNotBeNull();
             converter.GetCustomAttribute<EditorBrowsableAttribute>()!.State.ShouldBe(EditorBrowsableState.Never);
             var resolver = model.Assembly.GetTypes().Single(type => type.Name == container.Name + "PayloadJsonResolver");
             resolver.DeclaringType.ShouldBeNull();

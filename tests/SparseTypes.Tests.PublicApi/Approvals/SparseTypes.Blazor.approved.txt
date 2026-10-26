@@ -74,7 +74,7 @@ namespace SparseTypes.Blazor
         public SparseTypes.ISparseChildEditPath<TParent, TChild, TChildPaths, TChildSession>? Path { get; set; }
         [Microsoft.AspNetCore.Components.CascadingParameter]
         public SparseTypes.Blazor.SparseSessionScopeContext<TParent>? ScopeContext { get; set; }
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) { }
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder @__builder) { }
         protected override void OnParametersSet() { }
     }
     public sealed class SparseCollectionRow<TModel, TElement>
@@ -114,7 +114,7 @@ namespace SparseTypes.Blazor
         public SparseTypes.Blazor.ISparseEditScope<TModel>? Scope { get; set; }
         [Microsoft.AspNetCore.Components.CascadingParameter]
         public SparseTypes.Blazor.SparseSessionScopeContext<TModel>? SessionScopeContext { get; set; }
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) { }
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder @__builder) { }
         public void Dispose() { }
         protected override void OnParametersSet() { }
         public bool TryAdd(TElement item, out SparseTypes.SparseCollectionEditError error) { }
@@ -195,7 +195,7 @@ namespace SparseTypes.Blazor
         public Microsoft.AspNetCore.Components.RenderFragment<SparseTypes.Blazor.SparseEditContext<TModel, TPaths>>? ChildContent { get; set; }
         [Microsoft.AspNetCore.Components.Parameter]
         public SparseTypes.ISparseEditSessionWithPaths<TModel, TPaths>? Session { get; set; }
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) { }
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder @__builder) { }
         public void Dispose() { }
         protected override void OnParametersSet() { }
     }
@@ -264,7 +264,7 @@ namespace SparseTypes.Blazor
         public SparseTypes.Blazor.ISparseEditScope<TModel>? Scope { get; set; }
         [Microsoft.AspNetCore.Components.CascadingParameter]
         public SparseTypes.Blazor.SparseSessionScopeContext<TModel>? SessionScopeContext { get; set; }
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) { }
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder @__builder) { }
         public void Dispose() { }
         protected override void OnParametersSet() { }
     }
@@ -302,8 +302,13 @@ namespace SparseTypes.Blazor
         public SparseTypes.Blazor.SparseSessionScopeContext<TModel>? ScopeContext { get; }
         [Microsoft.AspNetCore.Components.Parameter]
         public SparseTypes.ISparseEditSession<TModel>? Session { get; set; }
-        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) { }
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder @__builder) { }
         public void Dispose() { }
         protected override void OnParametersSet() { }
+    }
+    public class _Imports
+    {
+        public _Imports() { }
+        protected void Execute() { }
     }
 }

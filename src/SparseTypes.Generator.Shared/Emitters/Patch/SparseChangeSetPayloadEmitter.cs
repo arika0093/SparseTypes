@@ -106,7 +106,7 @@ internal static class SparseChangeSetPayloadEmitter
             code.OpenBlock();
         }
 
-        SparsePayloadJsonConverterEmitter.AppendConverter(code, context);
+        SparsePayloadJsonConverterEmitter.AppendConverter(code, context, containerAccessibility);
         SparsePayloadJsonResolverEmitter.AppendResolver(code, context);
         if (nestInContainer)
         {

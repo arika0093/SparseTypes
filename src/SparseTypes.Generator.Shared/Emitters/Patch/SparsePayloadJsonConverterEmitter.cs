@@ -4,14 +4,19 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparsePayloadJsonConverterEmitter
 {
     /// <summary>Emits the converter inside the payload implementation container.</summary>
-    internal static void AppendConverter(SharedIndentedBuilder code, PayloadJsonEmissionContext context)
+    internal static void AppendConverter(SharedIndentedBuilder code, PayloadJsonEmissionContext context, string accessibility)
     {
         var members = context.Contract.JsonMembers.Select(static member => member.Member).ToArray();
         var changePayloadType = context.ModelType + ".ChangePayload";
         code.AppendLine("/// <summary>Trim-safe JSON converter for this model's change payload.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
-            "internal sealed class " + context.ConverterName + " : global::System.Text.Json.Serialization.JsonConverter<" + changePayloadType + ">"
+            accessibility
+                + " sealed class "
+                + context.ConverterName
+                + " : global::System.Text.Json.Serialization.JsonConverter<"
+                + changePayloadType
+                + ">"
         );
         code.OpenBlock();
         AppendPayload(code, context);

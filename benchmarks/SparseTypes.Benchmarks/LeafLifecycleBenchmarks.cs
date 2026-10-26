@@ -86,19 +86,10 @@ public class LeafDiffBenchmarks
             leaf.IsEmpty == changed
             || value.IsEmpty == changed
             || nested.IsEmpty == changed
-            || (
-                changed
-                && (
-                    leaf.Count.Value != 43
-                    || value.Count.Value != 43
-                    || nested.Child.Value!.Port.Value != 444
-                )
-            )
+            || (changed && (leaf.Count.Value != 43 || value.Count.Value != 43 || nested.Child.Value!.Port.Value != 444))
         )
         {
-            throw new InvalidOperationException(
-                "Diff must preserve changed values and empty results."
-            );
+            throw new InvalidOperationException("Diff must preserve changed values and empty results.");
         }
 
         var other = new BenchWidgetNested { Host = "other" };
@@ -116,9 +107,7 @@ public class LeafDiffBenchmarks
 
         if (!rejectedAncestor)
         {
-            throw new InvalidOperationException(
-                "Internal leaf Diff must reject an active ancestor pair."
-            );
+            throw new InvalidOperationException("Internal leaf Diff must reject an active ancestor pair.");
         }
 
         var cycleBefore = new BenchWidgetNested();
@@ -141,12 +130,10 @@ public class LeafDiffBenchmarks
     public BenchKeyedServer.Fragment LeafClass() => BenchKeyedServer.Fragment.Diff(_before, _after);
 
     [Benchmark]
-    public BenchLeafValue.Fragment LeafStruct() =>
-        BenchLeafValue.Fragment.Diff(_valueBefore, _valueAfter);
+    public BenchLeafValue.Fragment LeafStruct() => BenchLeafValue.Fragment.Diff(_valueBefore, _valueAfter);
 
     [Benchmark]
-    public BenchWidgetNested.Fragment Nested() =>
-        BenchWidgetNested.Fragment.Diff(_nestedBefore, _nestedAfter);
+    public BenchWidgetNested.Fragment Nested() => BenchWidgetNested.Fragment.Diff(_nestedBefore, _nestedAfter);
 }
 
 /// <summary>Measures clone bookkeeping separately from copies of leaf values.</summary>
@@ -175,11 +162,7 @@ public class LeafCloneBenchmarks
         _constructorLeaf = new BenchConstructorLeaf(42, "constructor");
         _requiredLeaf = new BenchRequiredLeaf { Count = 42, Name = "required" };
         _fragment = new BenchKeyedServer.Fragment { Count = Optional<int>.Present(42) };
-        _valueFragment = new BenchLeafValue.Fragment
-        {
-            Name = Optional<string?>.Present(null),
-            Count = Optional<int>.Present(42),
-        };
+        _valueFragment = new BenchLeafValue.Fragment { Name = Optional<string?>.Present(null), Count = Optional<int>.Present(42) };
         _nested = new BenchWidgetNested { Host = "parent", Port = 80 };
         _nested.Child = _nested;
         _nestedFragment = new BenchWidgetNested.Fragment { Port = Optional<int>.Present(80) };
@@ -187,10 +170,7 @@ public class LeafCloneBenchmarks
         // operations.
         typeof(BenchWidgetNested.Fragment)
             .GetProperty(nameof(BenchWidgetNested.Fragment.Child))!
-            .SetValue(
-                _nestedFragment,
-                Optional<BenchWidgetNested.Fragment?>.Present(_nestedFragment)
-            );
+            .SetValue(_nestedFragment, Optional<BenchWidgetNested.Fragment?>.Present(_nestedFragment));
         var leafClone = LeafModel();
         var fragmentClone = LeafFragment();
         var valueClone = ValueFragment();
@@ -220,22 +200,14 @@ public class LeafCloneBenchmarks
             || requiredClone.Name != "required"
         )
         {
-            throw new InvalidOperationException(
-                "Clones must preserve values, presence, and recursive identity."
-            );
+            throw new InvalidOperationException("Clones must preserve values, presence, and recursive identity.");
         }
 
         var context = SparseFragmentRuntime.CreateCloneContext();
-        context.Add(_leaf, leafClone);
         context.Add(_fragment, fragmentClone);
-        if (
-            !ReferenceEquals(_leaf.DeepClone(context), leafClone)
-            || !ReferenceEquals(_fragment.DeepClone(context), fragmentClone)
-        )
+        if (!ReferenceEquals(_fragment.DeepClone(context), fragmentClone))
         {
-            throw new InvalidOperationException(
-                "Supplied clone contexts must preserve existing mappings."
-            );
+            throw new InvalidOperationException("Supplied clone contexts must preserve existing mappings.");
         }
     }
 

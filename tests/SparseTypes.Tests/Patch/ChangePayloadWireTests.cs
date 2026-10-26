@@ -129,7 +129,7 @@ public sealed class ChangePayloadWireTests
     }
 
     [Test]
-    public void PayloadDtosDoNotExposeReflectionJsonAttributes()
+    public void PayloadEnvelopeSelectsConverterWithoutAnnotatingEndpoints()
     {
         var container = typeof(Settings.ChangePayload).BaseType!.DeclaringType!;
 
@@ -146,7 +146,10 @@ public sealed class ChangePayloadWireTests
         {
             property.GetCustomAttribute<JsonConverterAttribute>().ShouldBeNull();
         }
-        typeof(Settings.ChangePayload).GetCustomAttribute<JsonConverterAttribute>().ShouldBeNull();
+        var converterType = typeof(Settings.ChangePayload).GetCustomAttribute<JsonConverterAttribute>()!.ConverterType!;
+        converterType.IsVisible.ShouldBeTrue();
+        typeof(JsonConverter<Settings.ChangePayload>).IsAssignableFrom(converterType).ShouldBeTrue();
+        converterType.GetConstructor(Type.EmptyTypes).ShouldNotBeNull();
         Settings.PayloadJson.Default.ShouldNotBeNull();
     }
 

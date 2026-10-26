@@ -90,6 +90,12 @@ namespace SparseTypes.Generated
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment value) { }
         }
     }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+    }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogDictionaries, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogDictionaries>, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogDictionaries>
     {
         public bool CanWriteModelValueInPlace { get; }
@@ -213,6 +219,12 @@ namespace SparseTypes.Generated
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment value) { }
         }
     }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+    }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogImmutable, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogImmutable>, SparseTypes.GeneratedApiFixtures.CatalogImmutable.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogImmutable>
     {
         public bool CanWriteModelValueInPlace { get; }
@@ -319,6 +331,12 @@ namespace SparseTypes.Generated
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment value) { }
         }
     }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+    }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem>, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem>
     {
         public bool CanWriteModelValueInPlace { get; }
@@ -412,6 +430,12 @@ namespace SparseTypes.Generated
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment ToFragment() { }
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment value) { }
         }
+    }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
     }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster>, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster>
     {
@@ -555,6 +579,12 @@ namespace SparseTypes.Generated
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment value) { }
         }
     }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+    }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogNested, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogNested>, SparseTypes.GeneratedApiFixtures.CatalogNested.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogNested>
     {
         public bool CanWriteModelValueInPlace { get; }
@@ -673,6 +703,12 @@ namespace SparseTypes.Generated
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment ToFragment() { }
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment value) { }
         }
+    }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
     }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration>, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration>
     {
@@ -801,6 +837,12 @@ namespace SparseTypes.Generated
             public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjects.Root FromFragment(SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment value) { }
         }
     }
+    public sealed class SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjectsPayloadJsonConverter : System.Text.Json.Serialization.JsonConverter<SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload>
+    {
+        public SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjectsPayloadJsonConverter() { }
+        public override SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload? Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload? value, System.Text.Json.JsonSerializerOptions options) { }
+    }
     public readonly struct SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSparsePaths<TRoot> : SparseTypes.ISparseChildEditPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogScalar, SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogScalar>, SparseTypes.GeneratedApiFixtures.CatalogScalar.EditSession>, SparseTypes.ISparseTypedPath<TRoot, SparseTypes.GeneratedApiFixtures.CatalogScalar>
     {
         public bool CanWriteModelValueInPlace { get; }
@@ -834,6 +876,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.Dictionary<string, int> Scores { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogDictionaries> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogDictionaries DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjects.Core
         {
             public ChangePayload() { }
@@ -1126,6 +1169,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public int[]? Tags { get; init; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogImmutable> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogImmutable DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjects.Core
         {
             public ChangePayload() { }
@@ -1321,6 +1365,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public string Title { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjects.Core
         {
             public ChangePayload() { }
@@ -1514,6 +1559,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> Items { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SparsePaths<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjects.Core
         {
             public ChangePayload() { }
@@ -1774,6 +1820,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogPoco?> MetadataItems { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogNested> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogNested DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjects.Core
         {
             public ChangePayload() { }
@@ -2016,6 +2063,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public string EnumerateChanges { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjects.Core
         {
             public ChangePayload() { }
@@ -2218,6 +2266,7 @@ namespace SparseTypes.GeneratedApiFixtures
         public int? Retry { get; set; }
         public static SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSparsePaths<SparseTypes.GeneratedApiFixtures.CatalogScalar> SparsePath { get; }
         public SparseTypes.GeneratedApiFixtures.CatalogScalar DeepClone() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjectsPayloadJsonConverter?))]
         public sealed class ChangePayload : SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjects.Core
         {
             public ChangePayload() { }
