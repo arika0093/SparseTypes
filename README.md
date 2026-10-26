@@ -53,7 +53,7 @@ Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`.
 
 <!-- sample: readme-quickstart -->
 ```csharp
-#:package SparseTypes@*
+#:package SparseTypes@*-*
 
 using SparseTypes;
 
