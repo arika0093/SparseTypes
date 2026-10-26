@@ -479,7 +479,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
-    private async void OnPayloadClick(object sender, RoutedEventArgs e)
+    private void OnPayloadClick(object sender, RoutedEventArgs e)
     {
         var session = Session;
         if (session is null || IsBusy)
@@ -494,11 +494,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        string wire;
-        using (var content = JsonContent.Create(submitted.ToPayload()))
-        {
-            wire = await content.ReadAsStringAsync();
-        }
+        string wire = JsonSerializer.Serialize(
+            submitted.ToPayload(),
+            OrderDto.PayloadJson.Default
+        );
 
         var pretty = JsonSerializer.Serialize(
             JsonDocument.Parse(wire),
@@ -841,7 +840,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         // The token records the version observed at read time and guards the
         // write against a concurrent writer, even for disjoint edits.
         request.Headers.TryAddWithoutValidation("If-Match", version.ToString());
-        request.Content = JsonContent.Create(payload);
+        request.Content = JsonContent.Create(payload, OrderDto.PayloadJson.Default);
         return await _client.SendAsync(request);
     }
 

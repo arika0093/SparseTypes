@@ -11,7 +11,9 @@ builder.Services.AddDbContext<SampleDbContext>(options =>
         builder.Configuration.GetConnectionString("orders") ?? "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=orders"
     )
 );
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+    options.JsonSerializerOptions.TypeInfoResolverChain.Add(OrderDto.PayloadJson.Resolver)
+);
 builder.Services.AddHealthChecks();
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
 builder.Services.AddOpenApi();
