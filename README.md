@@ -145,7 +145,7 @@ With [`ChangePayload`](docs/reference/change-payload.md) and [`Rebase`](docs/exp
 Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/SparseTypes/):
 
 ```shell
-dotnet add package SparseTypes
+dotnet add package SparseTypes --prerelease
 ```
 
 We also provide several other libraries. For details, see [here](docs/explanation/libraries.md).

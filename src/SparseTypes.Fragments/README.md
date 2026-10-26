@@ -2,8 +2,6 @@
 
 `SparseTypes.Fragments` generates presence-aware `Fragment` and `Patch` types for models annotated with `[SparseModel]`. Its generator is included in the package.
 
-Add the package with `dotnet add package SparseTypes.Fragments`.
-
 The package provides Fragment conversion, merging, diffing, change application, and deep cloning. Patches support application, `Between`, `Compose`, and baseline-relative `Invert`, including nested and supported collection members.
 
 The package does not generate `ChangeSet`, patch `Rebase`, JSON payloads or converters, observable views, edit sessions, or history APIs. It is intended for in-process use.

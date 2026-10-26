@@ -2,10 +2,6 @@
 
 Blazor edit sessions for SparseTypes with semantic change tracking.
 
-```sh
-dotnet add package SparseTypes.Blazor
-```
-
 ```csharp
 var session = order.CreateEditSession();
 var editContext = session.CreateEditContext();

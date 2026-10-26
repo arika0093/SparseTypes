@@ -9,7 +9,7 @@ The following libraries are available.
 Provides core editing and type-safe change-tracking functionality without depending on a specific framework.
 
 ```bash
-dotnet add package SparseTypes
+dotnet add package SparseTypes --prerelease
 ```
 
 ### Requirements
@@ -36,7 +36,7 @@ dotnet add package SparseTypes
 Generates `Fragment` and `Patch` types and their in-memory operations. It includes fragment conversion, merge, diff, change application, deep cloning, and patch application, `Between`, `Compose`, and baseline-relative `Invert`.
 
 ```bash
-dotnet add package SparseTypes.Fragments
+dotnet add package SparseTypes.Fragments --prerelease
 ```
 
 > [!NOTE]
@@ -54,7 +54,7 @@ Provides Blazor features, including headless UI components.
 * [Blazor edit form](../how-to/blazor-edit-form.md)
 
 ```bash
-dotnet add package SparseTypes.Blazor
+dotnet add package SparseTypes.Blazor --prerelease
 ```
 
 ### Requirements
@@ -75,7 +75,7 @@ Provides functionality for applying, discarding, and mapping changes on entities
 * [EF Core Mapping](../how-to/efcore-mapping.md)
 
 ```bash
-dotnet add package SparseTypes.EntityFrameworkCore
+dotnet add package SparseTypes.EntityFrameworkCore --prerelease
 ```
 
 ### Requirements
@@ -94,8 +94,8 @@ These extensions expose `ChangePayload` correctly in OpenAPI documents.
 * [OpenAPI integration](../how-to/openapi.md)
 
 ```bash
-dotnet add package SparseTypes.OpenApi.AspNetCore
-# dotnet add package SparseTypes.OpenApi.Swashbuckle
+dotnet add package SparseTypes.OpenApi.AspNetCore --prerelease
+# dotnet add package SparseTypes.OpenApi.Swashbuckle --prerelease
 ```
 
 ## For library developers
