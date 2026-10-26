@@ -1,4 +1,4 @@
-# Case 4: Edit session
+# Edit session
 
 This folder contains the edit-session page, task model, and sample code. `TaskListEditor` and `TaskRow` keep task-list editing separate from session history and submission.
 
@@ -20,4 +20,4 @@ Adds, drag reorders, removals, row moves, and id renames go through `Session.Edi
 
 Scalar, nested, and task-row inputs render through `SparseEdit Session` plus typed `SparseField` contexts over `Session.Paths`, with session-owned history enabled once via `EnableHistory`. The edit root supplies the `EditContext`, refresh, and history surface, so the page keeps no handwritten field bindings, no keyed binding rebuilds, and no `ChangeSet`/`EditContext` prop drilling: rows read highlights from their own field state (`IsChanged`) and share one parent-captured collection snapshot for added and reordered rows. The submit preview builds from the session `ChangeSet` snapshot taken when submission is requested. None of these reach past the typed surface into raw descriptors.
 
-Case 3 stays on direct list mutation on purpose. Its roster editor owns no session and reports changes through a manual callback, while the facade needs session descriptors plus the batch runner. Migrating it would mean adopting a session first, which is out of scope here.
+The keyed list sample stays on direct list mutation on purpose. Its roster editor owns no session and reports changes through a manual callback, while the facade needs session descriptors plus the batch runner. Migrating it would mean adopting a session first, which is out of scope here.

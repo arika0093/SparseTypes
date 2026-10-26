@@ -130,7 +130,7 @@ test("diff models return to baseline after leaving a case", async ({ page }) => 
   test.setTimeout(240_000);
   await loadHome(page);
 
-  await openCase(page, "case-2", "Typed patch applied to the merged fragment");
+  await openCase(page, "patch", "Typed patch applied to the merged fragment");
   const ownedModelUris = await settledDiffModelUris(page);
   const caseCount = await liveDiffModelCount(page, ownedModelUris);
   expect(caseCount).toBe(ownedModelUris.length);
@@ -147,7 +147,7 @@ test("repeated in-app route cycles release diff-owned models", async ({ page }) 
   const baseline = await liveDiffModelCount(page, baselineUris);
   expect(baseline).toBe(0);
 
-  await openCase(page, "case-2", "Typed patch applied to the merged fragment");
+  await openCase(page, "patch", "Typed patch applied to the merged fragment");
   let currentModelUris = await settledDiffModelUris(page);
   expect(await liveDiffModelCount(page, currentModelUris)).toBe(currentModelUris.length);
 
@@ -155,7 +155,7 @@ test("repeated in-app route cycles release diff-owned models", async ({ page }) 
     await navigateInApp(page, "not-found", "Not Found");
     expect(await liveDiffModelCount(page, currentModelUris)).toBe(baseline);
 
-    await navigateInApp(page, "case-2", "Typed patch applied to the merged fragment");
+    await navigateInApp(page, "patch", "Typed patch applied to the merged fragment");
     currentModelUris = await settledDiffModelUris(page);
     expect(await liveDiffModelCount(page, currentModelUris)).toBe(currentModelUris.length);
   }

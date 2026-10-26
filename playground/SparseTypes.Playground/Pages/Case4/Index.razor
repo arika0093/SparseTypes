@@ -1,25 +1,24 @@
-@page "/case-4"
+@page "/undo-redo"
 @using SparseTypes.Playground.Components
 
-<PageTitle>04 Undo / Redo — SparseTypes Playground</PageTitle>
+<PageTitle>Undo / Redo — SparseTypes Playground</PageTitle>
 
 <section class="pg-section">
     <div class="pg-section-heading">
-        <span class="pg-section-number">04</span>
         <h2>EditSession with Undo/Redo</h2>
-        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case4" Label="Case 4 source on GitHub" />
+        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case4" Label="Undo/Redo source on GitHub" />
     </div>
     <FluentTabs Orientation="Orientation.Horizontal" Class="pg-section-tabs-inline">
-        <FluentTab Header="Playground" Id="section-4-playground">
+        <FluentTab Header="Playground" Id="section-undo-redo-playground">
             <div class="pg-section-content">
                 <p class="pg-hint">Edit the observable model, inspect its changes, then submit, reset, or undo and redo. Password starts empty, and password edits are excluded from Undo/Redo.</p>
                 <EditSessionUndoRedo />
             </div>
         </FluentTab>
-        <FluentTab Header="Codes" Id="section-4-codes">
+        <FluentTab Header="Codes" Id="section-undo-redo-codes">
             <CodeSamples />
         </FluentTab>
     </FluentTabs>
 </section>
 
-<CasePager PrevHref="case-3" PrevLabel="03 Keyed list" NextHref="case-5" NextLabel="05 EF Core mapping" />
+<CasePager PrevHref="keyed-list" PrevLabel="Keyed list" NextHref="ef-mapping" NextLabel="EF Core mapping" />

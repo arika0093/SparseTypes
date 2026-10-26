@@ -1,25 +1,24 @@
-@page "/case-5"
+@page "/ef-mapping"
 @using SparseTypes.Playground.Components
 
-<PageTitle>05 EF Core mapping — SparseTypes Playground</PageTitle>
+<PageTitle>EF Core mapping — SparseTypes Playground</PageTitle>
 
 <section class="pg-section">
     <div class="pg-section-heading">
-        <span class="pg-section-number">05</span>
         <h2>EF Core: ChangeSet to tracked entity</h2>
-        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case5" Label="Case 5 source on GitHub" />
+        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case5" Label="EF mapping source on GitHub" />
     </div>
     <FluentTabs Orientation="Orientation.Horizontal" Class="pg-section-tabs-inline">
-        <FluentTab Header="Playground" Id="section-5-playground">
+        <FluentTab Header="Playground" Id="section-ef-mapping-playground">
             <div class="pg-section-content">
-                <p class="pg-hint">Submit a snapshot, optionally wait 10 seconds and keep editing during the delay, then re-fetch the in-memory entity without losing newer draft edits.</p>
+                <p class="pg-hint">Submit a snapshot, then re-fetch the in-memory entity without losing draft edits.</p>
                 <EfMappingPlayground />
             </div>
         </FluentTab>
-        <FluentTab Header="Codes" Id="section-5-codes">
+        <FluentTab Header="Codes" Id="section-ef-mapping-codes">
             <CodeSamples />
         </FluentTab>
     </FluentTabs>
 </section>
 
-<CasePager PrevHref="case-4" PrevLabel="04 Undo / Redo" NextHref="case-6" NextLabel="06 Sessions" />
+<CasePager PrevHref="undo-redo" PrevLabel="Undo / Redo" NextHref="concurrent-editing" NextLabel="Concurrent editing" />

@@ -12,7 +12,7 @@ internal static class PlaygroundEfPresentation
         string Property,
         string Before,
         string After
-    )> CollectModifiedRows(PlaygroundEfContext db)
+    )> CollectModifiedRows(DbContext db)
     {
         var rows =
             new List<(string Entity, string State, string Property, string Before, string After)>();

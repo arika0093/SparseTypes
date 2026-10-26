@@ -3,7 +3,7 @@ using System.Globalization;
 namespace SparseTypes.Playground.Models;
 
 /// <summary>Deterministic prefixed numeric ID allocation for the playground editors.</summary>
-/// <remarks>Case 3 and Case 4 previously retried random IDs in a finite namespace, which slows down as the namespace fills and never returns when it is full. Checking candidates against the reserved set terminates by construction.</remarks>
+/// <remarks>The keyed-list and undo-redo samples previously retried random IDs in a finite namespace, which slows down as the namespace fills and never returns when it is full. Checking candidates against the reserved set terminates by construction.</remarks>
 public static class PlaygroundIds
 {
     /// <summary>Allocates the first free <c>prefix + n</c> ID outside the reserved set.</summary>

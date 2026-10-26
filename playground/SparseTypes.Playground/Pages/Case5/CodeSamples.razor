@@ -1,21 +1,21 @@
 @using SparseTypes.Playground.Components
 
 <div class="pg-code-samples">
-    <p class="pg-hint">These examples focus on mapping, saving a captured ChangeSet, and reconciling the live draft. The playground also handles revision conflicts, per-field resolution, and optional server updates.</p>
+    <p class="pg-hint">These examples focus on mapping, saving a captured ChangeSet, and reconciling the live draft.</p>
     <FluentTabs Orientation="Orientation.Vertical">
-        <FluentTab Header="Mapper" Id="code-5-mapper">
+        <FluentTab Header="Mapper" Id="code-ef-mapper">
             <MonacoView Content="@EfMapperCode" Language="csharp" Height="330px" />
         </FluentTab>
-        <FluentTab Header="Shapes" Id="code-5-shapes">
+        <FluentTab Header="Shapes" Id="code-ef-shapes">
             <MonacoView Content="@EfShapesCode" Language="csharp" Height="360px" />
         </FluentTab>
-        <FluentTab Header="Save" Id="code-5-save">
+        <FluentTab Header="Save" Id="code-ef-save">
             <MonacoView Content="@EfSaveCode" Language="csharp" Height="300px" />
         </FluentTab>
-        <FluentTab Header="Reconcile" Id="code-5-reconcile">
+        <FluentTab Header="Reconcile" Id="code-ef-reconcile">
             <MonacoView Content="@EfReconcileCode" Language="csharp" Height="240px" />
         </FluentTab>
-        <FluentTab Header="Inspect changes" Id="code-5-inspect">
+        <FluentTab Header="Inspect changes" Id="code-ef-inspect">
             <MonacoView Content="@EfInspectCode" Language="csharp" Height="330px" />
         </FluentTab>
     </FluentTabs>

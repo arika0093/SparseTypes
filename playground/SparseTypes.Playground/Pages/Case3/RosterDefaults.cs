@@ -2,7 +2,7 @@ using SparseTypes.Playground.Models;
 
 namespace SparseTypes.Playground.Pages.Case3;
 
-/// <summary>Default Case 3 rosters, constructed directly as generated models.</summary>
+/// <summary>Default keyed-list rosters, constructed directly as generated models.</summary>
 public static class RosterDefaults
 {
     /// <summary>Creates the default before roster.</summary>

@@ -2,7 +2,7 @@ using SparseTypes;
 
 namespace SparseTypes.Playground.Models;
 
-/// <summary>Keyed task edited in Case 4.</summary>
+/// <summary>Keyed task edited in the undo-redo sample.</summary>
 [SparseModel]
 public partial class PlaygroundTask
 {

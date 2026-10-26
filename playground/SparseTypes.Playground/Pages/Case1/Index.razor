@@ -1,18 +1,17 @@
-@page "/case-1"
+@page "/layers"
 @using SparseTypes
 @using SparseTypes.Playground.Models
 @using SparseTypes.Playground.Components
 
-<PageTitle>01 Layers merge — SparseTypes Playground</PageTitle>
+<PageTitle>Layers merge — SparseTypes Playground</PageTitle>
 
 <section class="pg-section">
     <div class="pg-section-heading">
-        <span class="pg-section-number">01</span>
         <h2>Layers: merge Lower + Higher</h2>
-        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case1" Label="Case 1 source on GitHub" />
+        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case1" Label="Layers source on GitHub" />
     </div>
     <FluentTabs Orientation="Orientation.Horizontal" Class="pg-section-tabs-inline" Overflow>
-        <FluentTab Header="Playground" Id="section-1-playground">
+        <FluentTab Header="Playground" Id="section-layers-playground">
             <div class="pg-section-content">
                 <p class="pg-hint">Only present members of the higher layer override. Untick a member to leave it <em>missing</em> so the lower layer's value survives. Plugins appends; Tags keeps distinct entries.</p>
                 <div class="pg-grid pg-grid-trio">
@@ -65,13 +64,13 @@
                 </div>
             </div>
         </FluentTab>
-        <FluentTab Header="Codes" Id="section-1-codes">
+        <FluentTab Header="Codes" Id="section-layers-codes">
             <CodeSamples />
         </FluentTab>
     </FluentTabs>
 </section>
 
-<CasePager PrevHref="/" PrevLabel="Overview" NextHref="case-2" NextLabel="02 Typed patch" />
+<CasePager PrevHref="/" PrevLabel="Overview" NextHref="patch" NextLabel="Typed patch" />
 
 @code {
     private FragmentEditState Lower = FragmentEditState.LowerDefaults(includeTags: true);

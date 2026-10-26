@@ -41,7 +41,7 @@
 
         <FluentTabs ActiveTabId="@_activeSectionTab" ActiveTabIdChanged="OnSectionTabChanged"
             Orientation="Orientation.Horizontal" Class="pg-section-tabs-inline pg-catalog-section-tabs">
-            <FluentTab Id="case-6-overview">
+            <FluentTab Id="enterprise-overview">
                 <HeaderTemplate>
                     <span class="pg-catalog-tab-label">1. Overview</span>
                     @if (HasChildChanges(EnterpriseCatalogItem.SparsePath.Overview))
@@ -55,7 +55,7 @@
                     </div>
                 </ChildContent>
             </FluentTab>
-            <FluentTab Id="case-6-commercial">
+            <FluentTab Id="enterprise-commercial">
                 <HeaderTemplate>
                     <span class="pg-catalog-tab-label">2. Commercial</span>
                     @if (HasChildChanges(EnterpriseCatalogItem.SparsePath.Commercial))
@@ -69,7 +69,7 @@
                     </div>
                 </ChildContent>
             </FluentTab>
-            <FluentTab Id="case-6-operations">
+            <FluentTab Id="enterprise-operations">
                 <HeaderTemplate>
                     <span class="pg-catalog-tab-label">3. Operations</span>
                     @if (HasChildChanges(EnterpriseCatalogItem.SparsePath.Operations))
@@ -83,7 +83,7 @@
                     </div>
                 </ChildContent>
             </FluentTab>
-            <FluentTab Id="case-6-workflow">
+            <FluentTab Id="enterprise-workflow">
                 <HeaderTemplate>
                     <span class="pg-catalog-tab-label">4. Workflow</span>
                     @if (HasChildChanges(EnterpriseCatalogItem.SparsePath.Workflow))
@@ -98,7 +98,7 @@
                     </div>
                 </ChildContent>
             </FluentTab>
-            <FluentTab Id="case-6-work-masters">
+            <FluentTab Id="enterprise-work-masters">
                 <HeaderTemplate>
                     <span class="pg-catalog-tab-label">5. Work masters</span>
                     @if (_model.Workflow.Steps.Any(step =>
@@ -179,7 +179,7 @@
 </FluentDialog>
 
 @code {
-    private const string MasterTabPrefix = "case-6-master-";
+    private const string MasterTabPrefix = "enterprise-master-";
 
     private EnterpriseCatalogItem _model = null!;
     private EnterpriseCatalogItem.EditSession _session = null!;
@@ -191,7 +191,7 @@
     private bool _sectionDraftsEnabled = true;
     private IReadOnlyList<ChangePreviewRow> _changeRows = [];
     private string? _error;
-    private string _activeSectionTab = "case-6-overview";
+    private string _activeSectionTab = "enterprise-overview";
     private string _activeMasterTab = string.Empty;
 
     private bool HasChanges => _session.HasOwnChanges;

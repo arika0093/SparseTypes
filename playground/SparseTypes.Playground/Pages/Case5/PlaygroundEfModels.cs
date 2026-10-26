@@ -5,7 +5,7 @@ using SparseTypes.EntityFrameworkCore;
 
 namespace SparseTypes.Playground.Models;
 
-/// <summary>Order DTO for Case 5. Knows nothing about EF Core.</summary>
+/// <summary>Order DTO for the EF mapping sample. Knows nothing about EF Core.</summary>
 [SparseModel]
 public partial class PlaygroundOrderDto
 {

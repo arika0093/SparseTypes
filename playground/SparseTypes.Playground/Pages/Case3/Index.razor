@@ -1,18 +1,17 @@
-@page "/case-3"
+@page "/keyed-list"
 @using SparseTypes
 @using SparseTypes.Playground.Models
 @using SparseTypes.Playground.Components
 
-<PageTitle>03 Keyed list — SparseTypes Playground</PageTitle>
+<PageTitle>Keyed list — SparseTypes Playground</PageTitle>
 
 <section class="pg-section">
     <div class="pg-section-heading">
-        <span class="pg-section-number">03</span>
         <h2>Keyed list: List&lt;Quest&gt;</h2>
-        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case3" Label="Case 3 source on GitHub" />
+        <GitHubLink Href="https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case3" Label="Keyed list source on GitHub" />
     </div>
     <FluentTabs Orientation="Orientation.Horizontal" Class="pg-section-tabs-inline" Overflow>
-        <FluentTab Header="Playground" Id="section-3-playground">
+        <FluentTab Header="Playground" Id="section-keyed-list-playground">
             <div class="pg-section-content">
                 <p class="pg-hint">Outer <em>List&lt;Quest&gt;</em> patches by <em>Id</em> key; inner <em>Scores</em> replaces the whole list.</p>
                 <div class="pg-legend" aria-label="Edit highlight legend">
@@ -73,13 +72,13 @@
                 </div>
             </div>
         </FluentTab>
-        <FluentTab Header="Codes" Id="section-3-codes">
+        <FluentTab Header="Codes" Id="section-keyed-list-codes">
             <CodeSamples />
         </FluentTab>
     </FluentTabs>
 </section>
 
-<CasePager PrevHref="case-2" PrevLabel="02 Typed patch" NextHref="case-4" NextLabel="04 Undo / Redo" />
+<CasePager PrevHref="patch" PrevLabel="Typed patch" NextHref="undo-redo" NextLabel="Undo / Redo" />
 
 @code {
     private PlaygroundRoster RosterBefore = RosterDefaults.Before();

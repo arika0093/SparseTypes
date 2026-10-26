@@ -1,6 +1,6 @@
 namespace SparseTypes.Playground.Pages.Case5;
 
-/// <summary>Lazy JSON panes for the Case 5 EF mapping playground.</summary>
+/// <summary>Lazy JSON panes for the EF mapping playground.</summary>
 /// <remarks>Entity, baseline and draft outputs have different invalidation sources: the tracked entity changes on explicit save/reload events, the baseline view changes when the persisted DTO is adopted, and the draft changes on every draft edit. Each pane serializes at most once between its own invalidations, so presentation-only renders reuse all three.</remarks>
 public sealed class Case5Preview
 {

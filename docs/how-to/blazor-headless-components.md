@@ -156,7 +156,7 @@ rather than mutating the list directly. This keeps mutations in the session's
 notification and history pipeline. The component exposes removed baseline
 items for a removal preview; ordinary row enumeration contains only current
 items. See [UI framework integration](../explanation/ui-frameworks.md#navigating-typed-paths-and-editing-collections)
-for collection operation limits and [Case 5](https://arika0093.github.io/SparseTypes/case-5)
+for collection operation limits and [EF mapping](https://arika0093.github.io/SparseTypes/ef-mapping)
 for a complete keyed-list editor.
 
 For detailed session observer specifications, see [Edit session state and observers reference](../reference/edit-session-state.md).

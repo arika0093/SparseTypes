@@ -98,7 +98,7 @@ changed display. Mode changes are rejected while child edits are pending.
 `SparseChildEdit` and `SparseChildEditDefault` connect a section to this scope;
 they are UI components, while `OpenChildSession` is the framework-neutral API.
 
-Case 6 of the [playground](https://arika0093.github.io/SparseTypes/case-6)
+Enterprise editing of the [playground](https://arika0093.github.io/SparseTypes/enterprise-editing)
 shows separate section drafts, nested keyed editors, and a root save preview.
 The group coordinator is a separate feature for submissions across distinct
 models; see [Edit-session groups](edit-session-groups.md).

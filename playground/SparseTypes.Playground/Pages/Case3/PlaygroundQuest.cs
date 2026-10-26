@@ -2,7 +2,7 @@ using SparseTypes;
 
 namespace SparseTypes.Playground.Models;
 
-/// <summary>Keyed quest edited in Case 3; the roster patches this list by <see cref="Id"/>.</summary>
+/// <summary>Keyed quest edited in the keyed-list sample; the roster patches this list by <see cref="Id"/>.</summary>
 [SparseModel]
 public partial class PlaygroundQuest
 {
@@ -20,7 +20,7 @@ public partial class PlaygroundQuest
     public List<int> Scores { get; set; } = new();
 }
 
-/// <summary>Holder for the keyed quest list edited in Case 3.</summary>
+/// <summary>Holder for the keyed quest list edited in the keyed-list sample.</summary>
 [SparseModel]
 public partial class PlaygroundRoster
 {

@@ -1,6 +1,6 @@
 namespace SparseTypes.Playground.Pages.Case3;
 
-/// <summary>Converts the Case 3 score-list text field to and from integer lists.</summary>
+/// <summary>Converts the keyed-list score-list text field to and from integer lists.</summary>
 public static class IntListText
 {
     /// <summary>Formats scores for the text field.</summary>

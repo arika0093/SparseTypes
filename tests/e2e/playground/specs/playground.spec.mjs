@@ -53,16 +53,17 @@ async function openCase(page, route, heading) {
   await expect(page.getByRole("heading", { name: heading })).toBeVisible();
 }
 
-test("landing page and every case load by their direct URL", async ({ page }) => {
+test("landing page and every sample loads by direct URL", async ({ page }) => {
   test.setTimeout(150_000);
   const routes = [
     { path: "", title: "SparseTypes Playground", heading: "SparseTypes" },
-    { path: "case-1", title: "01 Layers merge — SparseTypes Playground", heading: "Layers: merge Lower + Higher" },
-    { path: "case-2", title: "02 Typed patch — SparseTypes Playground", heading: "Typed patch applied to the merged fragment" },
-    { path: "case-3", title: "03 Keyed list — SparseTypes Playground", heading: "Keyed list: List<Quest>" },
-    { path: "case-4", title: "04 Undo / Redo — SparseTypes Playground", heading: "EditSession with Undo/Redo" },
-    { path: "case-5", title: "05 EF Core mapping — SparseTypes Playground", heading: "EF Core: ChangeSet to tracked entity" },
-    { path: "case-6", title: "06 Enterprise master editing — SparseTypes Playground", heading: "Enterprise master editing with child sessions" },
+    { path: "layers", title: "Layers merge — SparseTypes Playground", heading: "Layers: merge Lower + Higher" },
+    { path: "patch", title: "Typed patch — SparseTypes Playground", heading: "Typed patch applied to the merged fragment" },
+    { path: "keyed-list", title: "Keyed list — SparseTypes Playground", heading: "Keyed list: List<Quest>" },
+    { path: "undo-redo", title: "Undo / Redo — SparseTypes Playground", heading: "EditSession with Undo/Redo" },
+    { path: "ef-mapping", title: "EF Core mapping — SparseTypes Playground", heading: "EF Core: ChangeSet to tracked entity" },
+    { path: "concurrent-editing", title: "Concurrent editing — SparseTypes Playground", heading: "Concurrent editing: simulate another user" },
+    { path: "enterprise-editing", title: "Enterprise master editing — SparseTypes Playground", heading: "Enterprise master editing with child sessions" },
   ];
 
   for (const route of routes) {
@@ -72,8 +73,8 @@ test("landing page and every case load by their direct URL", async ({ page }) =>
   }
 });
 
-test("case 1 edits a layer, updates the merged fragment, and resets it", async ({ page }) => {
-  await openCase(page, "case-1", "Layers: merge Lower + Higher");
+test("layers edits a layer, updates the merged fragment, and resets it", async ({ page }) => {
+  await openCase(page, "layers", "Layers: merge Lower + Higher");
   const label = page.locator('input[placeholder="label text"]').first();
 
   await enterText(label, "e2e-lower-label");
@@ -82,8 +83,8 @@ test("case 1 edits a layer, updates the merged fragment, and resets it", async (
   await expect(label).toHaveValue("default");
 });
 
-test("case 2 edits and resets a patch, then imports its ChangePayload", async ({ page }) => {
-  await openCase(page, "case-2", "Typed patch applied to the merged fragment");
+test("patch edits and resets a patch, then imports its ChangePayload", async ({ page }) => {
+  await openCase(page, "patch", "Typed patch applied to the merged fragment");
   const label = page.locator('input[placeholder="label text"]');
 
   await enterText(label, "e2e-patch-label");
@@ -99,8 +100,8 @@ test("case 2 edits and resets a patch, then imports its ChangePayload", async ({
   await fluentButton(importDialog, "Close").click();
 });
 
-test("case 3 adds and reorders quests, then restores the baseline", async ({ page }) => {
-  await openCase(page, "case-3", "Keyed list: List<Quest>");
+test("keyed list adds and reorders quests, then restores the baseline", async ({ page }) => {
+  await openCase(page, "keyed-list", "Keyed list: List<Quest>");
   const rows = page.locator(".pg-grid-trio .pg-roster-list").nth(1).locator(".pg-roster-row");
   const afterCard = page.locator(".pg-grid-trio .pg-fluent-card").nth(1);
   const initialCount = await rows.count();
@@ -117,8 +118,8 @@ test("case 3 adds and reorders quests, then restores the baseline", async ({ pag
   await expect(firstTitle).toHaveValue(initialFirstTitle);
 });
 
-test("case 4 supports undo, redo, submit, and reset", async ({ page }) => {
-  await openCase(page, "case-4", "EditSession with Undo/Redo");
+test("undo redo supports undo, redo, submit, and reset", async ({ page }) => {
+  await openCase(page, "undo-redo", "EditSession with Undo/Redo");
   const label = page.locator('.pg-edit-fields input[placeholder="label"]');
 
   await enterText(label, "e2e-submitted-label");
@@ -140,8 +141,8 @@ test("case 4 supports undo, redo, submit, and reset", async ({ page }) => {
   await expect(label).toHaveValue("e2e-submitted-label");
 });
 
-test("case 5 saves an order edit and resets a later draft", async ({ page }) => {
-  await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
+test("ef mapping saves an order edit and resets a later draft", async ({ page }) => {
+  await openCase(page, "ef-mapping", "EF Core: ChangeSet to tracked entity");
   const customer = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Customer" }).locator("input").first();
 
   await enterText(customer, "e2e-customer");
@@ -157,8 +158,8 @@ test("case 5 saves an order edit and resets a later draft", async ({ page }) => 
   await expect(notes).toHaveValue("first order");
 });
 
-test("case 5 gates and orders the real-time edit simulation", async ({ page }) => {
-  await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
+test("concurrent editing enables simulation by default and gates real-time edits", async ({ page }) => {
+  await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
   const options = page.locator(".pg-case5-rebase-options");
   const checkboxes = options.locator("fluent-checkbox");
   const simulateAnotherUser = checkboxes.nth(1);
@@ -171,11 +172,12 @@ test("case 5 gates and orders the real-time edit simulation", async ({ page }) =
   expect(simulateIndex).toBeGreaterThanOrEqual(0);
   expect(conflictIndex).toBeGreaterThan(simulateIndex);
   expect(realTimeIndex).toBeGreaterThan(conflictIndex);
-  await expect(simulateRealTime).toHaveAttribute("disabled", "");
-  await simulateAnotherUser.click();
+  // Simulation is on by default, so real-time edits start enabled.
   await expect(simulateRealTime).not.toHaveAttribute("disabled");
   await simulateAnotherUser.click();
   await expect(simulateRealTime).toHaveAttribute("disabled", "");
+  await simulateAnotherUser.click();
+  await expect(simulateRealTime).not.toHaveAttribute("disabled");
 
   const githubIcon = page.locator(".pg-gh svg");
   await expect.poll(() => githubIcon.evaluate(icon =>
@@ -183,22 +185,21 @@ test("case 5 gates and orders the real-time edit simulation", async ({ page }) =
   )).toBe(true);
 });
 
-test("case 5 keeps the saved entity diff fixed during later real-time edits", async ({ page }) => {
+test("concurrent editing keeps the saved entity diff fixed during later real-time edits", async ({ page }) => {
   test.setTimeout(45_000);
-  await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
-  await page.getByText("Simulate another user editing before save", { exact: true }).click();
+  await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
   await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
 
   const notices = page.locator(".pg-case5-update-notice");
   const initialNotice = notices.first();
   await expect(initialNotice).toBeVisible({ timeout: 20_000 });
   const remoteNoticeColor = await initialNotice.evaluate(notice => getComputedStyle(notice).color);
-  const total = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Total" }).locator("input").first();
-  await enterText(total, "9876.54");
+  const notes = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Notes" }).locator("input").first();
+  await enterText(notes, "e2e-concurrent-notes");
   await fluentButton(page, "Save").first().click();
   const saveDialog = page.locator(".pg-submit-preview-dialog");
   await fluentButton(saveDialog, "Save").click();
-  await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("9876.54")).toBeVisible();
+  await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-concurrent-notes")).toBeVisible();
   const customer = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Customer" }).locator("input").first();
   const serverCustomer = await page.evaluate(() => {
     const entityModel = window.monaco.editor.getModels()
@@ -215,7 +216,7 @@ test("case 5 keeps the saved entity diff fixed during later real-time edits", as
   const savedEntity = await page.evaluate(() =>
     window.monaco.editor.getModels()
       .map(model => model.getValue())
-      .filter(value => value.includes('"Total": 9876.54') && value.includes('"Revision":'))
+      .filter(value => value.includes('"Notes": "e2e-concurrent-notes"') && value.includes('"Revision":'))
       .at(-1),
   );
   expect(savedEntity).toBeTruthy();
@@ -228,10 +229,9 @@ test("case 5 keeps the saved entity diff fixed during later real-time edits", as
   savedEntity)).toBe(true);
 });
 
-test("case 5 refreshes conflict choices when the dialog revision becomes stale", async ({ page }) => {
+test("concurrent editing refreshes conflict choices when the dialog revision becomes stale", async ({ page }) => {
   test.setTimeout(180_000);
-  await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
-  await page.getByText("Simulate another user editing before save", { exact: true }).click();
+  await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
   await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
 
   const notices = page.locator(".pg-case5-update-notice");
@@ -296,16 +296,13 @@ test("case 5 refreshes conflict choices when the dialog revision becomes stale",
   await expect(page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-local-customer")).toBeVisible();
 });
 
-test("case 5 keeps a focused added row across key assignment", async ({ page }) => {
-  await openCase(page, "case-5", "EF Core: ChangeSet to tracked entity");
-  const rows = page.locator(".pg-task-row");
-  const initialCount = await rows.count();
+test("concurrent editing keeps a focused field across delayed apply", async ({ page }) => {
+  await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
+  // Turn the default-on simulation off so the delayed save applies cleanly.
+  await page.getByText("Simulate another user editing before save", { exact: true }).click();
+  const customer = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Customer" }).locator("input").first();
 
-  await page.locator('fluent-button[title="Add a random line"]').click();
-  await expect(rows).toHaveCount(initialCount + 1);
-  const addedRow = rows.last();
-  const product = addedRow.locator(".pg-roster-field").nth(1).locator("input").first();
-  await enterText(product, "e2e-pending-product");
+  await enterText(customer, "e2e-pending-customer");
   await page.getByText("Wait 10 seconds before applying save", { exact: true }).click();
 
   await fluentButton(page, "Save").first().click();
@@ -313,29 +310,28 @@ test("case 5 keeps a focused added row across key assignment", async ({ page }) 
   await fluentButton(saveDialog, "Save").click();
   await expect(page.getByRole("status").getByText("Save is pending")).toBeVisible();
 
-  await product.focus();
-  await product.press("End");
-  await product.pressSequentially("-after-submit");
-  await expect(product).toHaveValue("e2e-pending-product-after-submit");
-  await expect(product).toBeFocused();
-  await expect(addedRow.locator(".pg-roster-field").first().locator("input").first()).toHaveValue("#new");
+  await customer.focus();
+  await customer.press("End");
+  await customer.pressSequentially("-after-submit");
+  await expect(customer).toHaveValue("e2e-pending-customer-after-submit");
+  await expect(customer).toBeFocused();
 
   await expect
     .poll(
-      () => addedRow.locator(".pg-roster-field").first().locator("input").first().inputValue(),
+      () => page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-pending-customer-after-submit").count(),
       { timeout: 20_000 },
     )
-    .not.toBe("#new");
-  await expect(product).toHaveValue("e2e-pending-product-after-submit");
-  await expect(product).toBeFocused();
+    .toBeGreaterThan(0);
+  await expect(customer).toHaveValue("e2e-pending-customer-after-submit");
+  await expect(customer).toBeFocused();
 });
 
-test("case 6 accepts a section draft and saves the catalog", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise accepts a section draft and saves the catalog", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   const itemCode = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).locator("input").first();
 
   await enterText(itemCode, "e2e-item-code");
-  await fluentButton(page.locator("#case-6-overview-panel"), "Save section draft").click();
+  await fluentButton(page.locator("#enterprise-overview-panel"), "Save section draft").click();
   await expect(page.getByText("Section draft saved to the catalog session.")).toBeVisible();
   await fluentButton(page, "Save").first().click();
 
@@ -346,13 +342,13 @@ test("case 6 accepts a section draft and saves the catalog", async ({ page }) =>
   await expect(itemCode).toHaveValue("e2e-item-code");
 });
 
-test("case 6 keeps a post-save edit as a new pending draft", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise keeps a post-save edit as a new pending draft", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   const itemCode = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).locator("input").first();
   const reviewDialog = page.locator(".pg-catalog-review-dialog");
 
   await enterText(itemCode, "e2e-item-code");
-  await fluentButton(page.locator("#case-6-overview-panel"), "Save section draft").click();
+  await fluentButton(page.locator("#enterprise-overview-panel"), "Save section draft").click();
   await expect(page.getByText("Section draft saved to the catalog session.")).toBeVisible();
   await fluentButton(page, "Save").first().click();
   await expect(reviewDialog.locator("dialog[open]")).toBeVisible();
@@ -366,7 +362,7 @@ test("case 6 keeps a post-save edit as a new pending draft", async ({ page }) =>
   await page.getByText("1. Overview", { exact: true }).click();
   await expect(itemCode).toBeVisible();
   await enterText(itemCode, "e2e-item-code-v2");
-  await fluentButton(page.locator("#case-6-overview-panel"), "Save section draft").click();
+  await fluentButton(page.locator("#enterprise-overview-panel"), "Save section draft").click();
   await expect(page.getByText("Section draft saved to the catalog session.")).toBeVisible();
   await fluentButton(page, "Save").first().click();
   await expect(reviewDialog.locator("dialog[open]")).toBeVisible();
@@ -375,12 +371,12 @@ test("case 6 keeps a post-save edit as a new pending draft", async ({ page }) =>
   await expect(itemCode).toHaveValue("e2e-item-code-v2");
 });
 
-test("case 6 clears section draft markers but keeps catalog changes pending", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise clears section draft markers but keeps catalog changes pending", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   const draftToggle = page.locator(".pg-catalog-draft-mode fluent-checkbox");
   const itemCode = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).locator("input").first();
   const itemCodeRow = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).first();
-  const overviewPanel = page.locator("#case-6-overview-panel");
+  const overviewPanel = page.locator("#enterprise-overview-panel");
 
   await enterText(itemCode, "e2e-marked-code");
   await expect(page.locator(".pg-catalog-tab-badge").filter({ hasText: "Edited" }).first()).toBeVisible();
@@ -406,13 +402,13 @@ test("case 6 clears section draft markers but keeps catalog changes pending", as
   await expect(draftToggle).not.toHaveAttribute("disabled", "");
 });
 
-test("case 6 highlights work-master fields and badges in pass-through mode", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise highlights work-master fields and badges in pass-through mode", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   const draftToggle = page.locator(".pg-catalog-draft-mode fluent-checkbox");
   await draftToggle.click();
 
   await page.getByText("5. Work masters", { exact: true }).click();
-  const masterPanel = page.locator("#case-6-master-cut-panel");
+  const masterPanel = page.locator("#enterprise-master-cut-panel");
   const equipmentRow = masterPanel.locator(".pg-edit-fields .pg-row").filter({ hasText: "Equipment" });
   await enterText(equipmentRow.locator("input").first(), "e2e-equipment");
 
@@ -425,8 +421,8 @@ test("case 6 highlights work-master fields and badges in pass-through mode", asy
   );
 });
 
-test("case 6 only marks added workflow rows until an existing row moves", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise only marks added workflow rows until an existing row moves", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("4. Workflow", { exact: true }).click();
   const rows = page.locator("#case6-workflow .pg-roster-row");
   const initialCount = await rows.count();
@@ -450,8 +446,8 @@ test("case 6 only marks added workflow rows until an existing row moves", async 
   await expect(addedRow).toHaveClass(/pg-added/);
 });
 
-test("case 6 synchronizes work-master tabs after removing a workflow step", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise synchronizes work-master tabs after removing a workflow step", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("Enable section drafts", { exact: true }).click();
   await page.getByText("4. Workflow", { exact: true }).click();
   const rows = page.locator("#case6-workflow .pg-roster-row");
@@ -480,8 +476,8 @@ test("case 6 synchronizes work-master tabs after removing a workflow step", asyn
   await expect(page.getByRole("tab", { name: "Assembly" })).toHaveCount(0);
 });
 
-test("case 6 keeps work masters unchanged while workflow edits are a draft", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise keeps work masters unchanged while workflow edits are a draft", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("4. Workflow", { exact: true }).click();
   const rows = page.locator("#case6-workflow .pg-roster-row");
 
@@ -498,7 +494,7 @@ test("case 6 keeps work masters unchanged while workflow edits are a draft", asy
   await expect(page.getByRole("tab", { name: "Visual inspection" })).toHaveCount(0);
 
   await page.getByText("4. Workflow", { exact: true }).click();
-  await fluentButton(page.locator("#case-6-workflow-panel"), "Discard section draft").click();
+  await fluentButton(page.locator("#enterprise-workflow-panel"), "Discard section draft").click();
   await expect(rows.filter({ hasText: "Assembly" })).toHaveCount(1);
   await expect(rows.filter({ hasText: "Visual inspection" })).toHaveCount(0);
   await page.getByText("5. Work masters", { exact: true }).click();
@@ -506,10 +502,10 @@ test("case 6 keeps work masters unchanged while workflow edits are a draft", asy
   await expect(page.getByRole("tab", { name: "Visual inspection" })).toHaveCount(0);
 });
 
-test("case 6 saves and resets a work-master draft", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise saves and resets a work-master draft", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("5. Work masters", { exact: true }).click();
-  const masterPanel = page.locator("#case-6-master-cut-panel");
+  const masterPanel = page.locator("#enterprise-master-cut-panel");
   const workCenterRow = masterPanel.locator(".pg-edit-fields .pg-row").filter({ hasText: "WorkCenter" });
   const workCenter = workCenterRow.locator("input").first();
 
@@ -526,11 +522,11 @@ test("case 6 saves and resets a work-master draft", async ({ page }) => {
   await expect(page.locator(".pg-catalog-header .pg-has-changes-badge")).toHaveText("No committed changes");
 });
 
-test("case 6 passes through a workflow insertion and creates its work master", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise passes through a workflow insertion and creates its work master", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("Enable section drafts", { exact: true }).click();
   const itemCode = page
-    .locator("#case-6-overview-panel .pg-edit-fields .pg-row")
+    .locator("#enterprise-overview-panel .pg-edit-fields .pg-row")
     .filter({ hasText: "ItemCode" })
     .locator("input")
     .first();
@@ -558,7 +554,7 @@ test("case 6 passes through a workflow insertion and creates its work master", a
     .getByRole("heading", { name: "Visual inspection master" })
     .locator("xpath=following-sibling::p/code")
     .textContent();
-  const masterPanel = page.locator(`#case-6-master-${stepId}-panel`);
+  const masterPanel = page.locator(`#enterprise-master-${stepId}-panel`);
   await expect(
     masterPanel.locator(".pg-edit-fields .pg-row").filter({ hasText: "WorkCenter" }).locator("input").first(),
   ).toHaveValue("QC-04");
@@ -576,8 +572,8 @@ test("case 6 passes through a workflow insertion and creates its work master", a
   await expect(addedRow).not.toHaveClass(/pg-added/);
 });
 
-test("case 6 catalog undo and redo refresh pass-through markers", async ({ page }) => {
-  await openCase(page, "case-6", "Enterprise master editing with child sessions");
+test("enterprise catalog undo and redo refresh pass-through markers", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
   await page.getByText("Enable section drafts", { exact: true }).click();
   const itemCode = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).locator("input").first();
   const itemCodeRow = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "ItemCode" }).first();

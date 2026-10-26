@@ -3,7 +3,7 @@ using SparseTypes.Playground.Pages;
 
 namespace SparseTypes.Playground.Pages.Case1;
 
-/// <summary>One memoized preview generation for the Case 1 layers page.</summary>
+/// <summary>One memoized preview generation for the layers page.</summary>
 /// <remarks>Lower/higher fragments build at most once per generation and every presentation derives from those shared instances, so reading several panes (or the same pane twice) never repeats model transforms or serialization. The page drops the whole generation on any input change; presentation-only renders reuse it.</remarks>
 public sealed class Case1Preview
 {

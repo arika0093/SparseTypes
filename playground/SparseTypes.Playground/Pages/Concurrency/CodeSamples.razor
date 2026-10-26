@@ -1,0 +1,59 @@
+@using SparseTypes.Playground.Components
+
+<div class="pg-code-samples">
+    <p class="pg-hint">These examples focus on simulating a concurrent write, rebasing the submitted ChangeSet, and resolving per-path conflicts.</p>
+    <FluentTabs Orientation="Orientation.Vertical">
+        <FluentTab Header="Simulate" Id="code-concurrent-simulate">
+            <MonacoView Content="@SimulateCode" Language="csharp" Height="300px" />
+        </FluentTab>
+        <FluentTab Header="Rebase" Id="code-concurrent-rebase">
+            <MonacoView Content="@RebaseCode" Language="csharp" Height="300px" />
+        </FluentTab>
+        <FluentTab Header="Resolve" Id="code-concurrent-resolve">
+            <MonacoView Content="@ResolveCode" Language="csharp" Height="300px" />
+        </FluentTab>
+    </FluentTabs>
+</div>
+
+@code {
+    private const string SimulateCode = """
+        // Another user writes through a separate DbContext before the save.
+        using var otherUserDb = new ConcurrentOrderContext(options);
+        var otherUserOrder = otherUserDb.Orders.Single(order => order.Id == orderId);
+        otherUserOrder.CustomerName = PlaygroundRandom.CreateDifferentCustomerName(
+            otherUserOrder.CustomerName);
+        otherUserOrder.Revision++;
+        otherUserDb.SaveChanges();
+        """;
+
+    private const string RebaseCode = """
+        var submittedRebase = submitted.RebaseOnto(current);
+        if (submittedRebase.HasConflicts)
+        {
+            // Ask the user to choose per path; otherwise retry the rebased
+            // submission and merge post-submit edits back afterwards.
+            return;
+        }
+
+        var outcome = await mapper.PipelineExecuteAsync(
+            db,
+            submittedRebase.Rebased,
+            order => order.Id == orderId,
+            new SessionPipelineAdapter(session, submitted));
+        """;
+
+    private const string ResolveCode = """
+        var resolution = ConcurrentOrderDto.ChangeSet.BeginResolution(
+            submittedRebase,
+            current);
+        resolution.UseIncoming(customerPath); // or UseCurrent(customerPath)
+        if (resolution.TryBuild(out var resolved, out var failure))
+        {
+            var outcome = await mapper.PipelineExecuteAsync(
+                db,
+                resolved,
+                order => order.Id == orderId,
+                session);
+        }
+        """;
+}

@@ -3,7 +3,7 @@ using SparseTypes.Playground.Pages;
 
 namespace SparseTypes.Playground.Pages.Case4;
 
-/// <summary>One memoized preview generation for the Case 4 session page.</summary>
+/// <summary>One memoized preview generation for the undo-redo session page.</summary>
 /// <remarks>The current-model summary and the pending change set derive at most once per generation, so reading several panes (or the same pane twice) never repeats serialization or change-set capture. The page drops the whole generation on every session notification; explicit submit snapshots stay independent and frozen.</remarks>
 public sealed class Case4Preview
 {

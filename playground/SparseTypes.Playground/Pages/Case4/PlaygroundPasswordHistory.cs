@@ -3,7 +3,7 @@ using SparseTypes.Playground.Models;
 
 namespace SparseTypes.Playground.Pages.Case4;
 
-/// <summary>Creates the Case 4 edit history without retaining password changes.</summary>
+/// <summary>Creates the undo-redo edit history without retaining password changes.</summary>
 public static class PlaygroundPasswordHistory
 {
     /// <summary>Creates a history that replays every changed member except <see cref="PlaygroundSettings.Password"/>.</summary>
