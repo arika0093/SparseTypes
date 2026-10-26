@@ -36,6 +36,14 @@ internal static class SparseChangeSetPayloadEmitter
         var payloadChange = PayloadName(modelType, "Change");
         var contract = payloadContract ?? SparsePayloadContract.Create(members);
         var variants = contract.TransportMembers.Select(static member => member.Member).ToArray();
+        var payloadJson = PayloadJsonEmissionContext.TryCreate(
+            contract,
+            dialect,
+            modelType,
+            implementationNamespace,
+            emitTopLevelJsonCodecs,
+            payloadJsonPocos
+        );
 
         if (emitContainers)
         {
@@ -53,7 +61,7 @@ internal static class SparseChangeSetPayloadEmitter
 
         if (emitFacade)
         {
-            AppendChangePayloadFacadeBlock(code, members, dialect, modelType);
+            AppendChangePayloadFacadeBlock(code, members, dialect, modelType, payloadJson);
         }
 
         if (emitContainers)
@@ -68,14 +76,6 @@ internal static class SparseChangeSetPayloadEmitter
                 variants,
                 implementationNamespace,
                 containerAccessibility
-            );
-            var payloadJson = PayloadJsonEmissionContext.TryCreate(
-                contract,
-                dialect,
-                modelType,
-                implementationNamespace,
-                emitTopLevelJsonCodecs,
-                payloadJsonPocos
             );
             if (payloadJson is { SupportsJson: true })
             {
@@ -195,10 +195,17 @@ internal static class SparseChangeSetPayloadEmitter
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? modelType
+        string? modelType,
+        PayloadJsonEmissionContext? payloadJson
     )
     {
         code.AppendLine("/// <summary>Serializable envelope carrying the validated transition for transport.</summary>");
+        if (payloadJson is { SupportsJson: true })
+        {
+            code.AppendLine(
+                "[global::System.Text.Json.Serialization.JsonConverter(typeof(" + payloadJson.ConverterReference(payloadJson.ModelType) + "))]"
+            );
+        }
         code.AppendLine("public sealed class ChangePayload : " + PayloadTypeName(dialect, modelType, "Core"));
         code.OpenBlock();
         code.AppendLine("/// <summary>Gets or sets the provisional wire version token.</summary>");

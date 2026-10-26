@@ -172,7 +172,8 @@ internal static class SparseChangeSetEmitter
                     emitFacade: true,
                     implementationNamespace: implementationNamespace,
                     payloadJsonPocos: payloadJsonPocos,
-                    payloadContract: payloadContract
+                    payloadContract: payloadContract,
+                    emitTopLevelJsonCodecs: true
                 );
                 SparseChangeSetPayloadEmitter.AppendPayload(
                     implementationBuilder,

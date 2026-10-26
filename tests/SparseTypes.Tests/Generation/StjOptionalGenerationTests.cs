@@ -362,6 +362,7 @@ public sealed class StjOptionalGenerationTests
         merged.ShouldNotContain("JsonDerivedType");
         merged.ShouldContain("JsonUnmappedMemberHandling");
         merged.ShouldContain("PayloadJsonConverter");
+        merged.ShouldContain("[global::System.Text.Json.Serialization.JsonConverter(typeof(");
         merged.ShouldContain("public static class PayloadJson");
 
         CombinedCompilationHasNoErrors(compilation, sources);
@@ -382,6 +383,7 @@ public sealed class StjOptionalGenerationTests
         merged.ShouldNotContain("ChangePayloadEndpointJsonConverter");
         merged.ShouldNotContain("ChangePayloadItemKindJsonConverter");
         merged.ShouldNotContain("internal sealed class PayloadJsonConverter");
+        merged.ShouldNotContain("[global::System.Text.Json.Serialization.JsonConverter(typeof(");
 
         CombinedCompilationHasNoErrors(compilation, sources);
     }

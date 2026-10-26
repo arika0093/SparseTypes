@@ -58,6 +58,29 @@ public partial class ScalarLedger
 
 public sealed class ScalarPayloadJsonTests
 {
+    [Test]
+    public void PayloadRoundTripsWithoutSerializerContext()
+    {
+        var patch = ScalarLedger.Patch.Between(
+            Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger())),
+            Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(Ledger()))
+        );
+        var payload = ScalarLedger.ChangePayload.FromPatch(patch);
+        var json = JsonSerializer.Serialize(payload);
+
+        json.ShouldBe(PayloadJsonTestSupport.Serialize(payload));
+        var restored = JsonSerializer.Deserialize<ScalarLedger.ChangePayload>(json)!;
+        var replayed = restored.ToPatch().Apply(Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger())));
+        ScalarLedger.Patch.Between(replayed, Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(Ledger()))).IsEmpty.ShouldBeTrue();
+        JsonSerializer.Deserialize<ScalarLedger.ChangePayload>("null").ShouldBeNull();
+    }
+
+    [Test]
+    public void PayloadWithoutSerializerContextRejectsMalformedEnvelope()
+    {
+        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<ScalarLedger.ChangePayload>("{}"));
+    }
+
     private static ScalarLedger Ledger() =>
         new()
         {
