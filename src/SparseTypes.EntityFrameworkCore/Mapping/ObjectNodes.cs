@@ -123,6 +123,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
     where TEntityChild : class
 {
     private readonly Func<TDto, TDtoChild?> _dtoGetter;
+    private readonly SparseSnapshotConverter<TDtoChild> _snapshotConverter = new();
     private readonly Func<TEntity, TEntityChild?> _entityGetter;
     private readonly Action<TEntity, TEntityChild?> _entitySetter;
     private readonly SparseEntityMapBuilderBase _childRegistrations;
@@ -132,7 +133,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
     private EntityPlanBase _childPlan = null!;
     private bool _navigationNullable;
     private bool _navigationOwned;
-    private ConstructorInfo? _childConstructor;
+    private Func<TEntityChild>? _createChild;
 
     public ObjectNode(
         Expression<Func<TDto, TDtoChild?>> dto,
@@ -208,7 +209,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         session.ClaimNavigation(level.EntityType, NavigationName, DtoName);
         _navigationNullable = ReadNavigationNullability(navigation);
         _navigationOwned = navigation.ForeignKey.IsOwnership;
-        _childConstructor = ResolveConstructor(childEntityType.ClrType, DtoName);
+        _createChild = ReflectionAccessCompiler.CreateFactory<TEntityChild>(ResolveConstructor(childEntityType.ClrType, DtoName));
         if (!_childRegistrations.HasExplicitDefaultMissing)
         {
             _childRegistrations.InheritDefaultMissing(level.Registrations.DefaultMissing);
@@ -621,37 +622,13 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         });
     }
 
-    private static bool TryResolveAfterSnapshot(SparseTypes.Generated.SparseChangeRecord whole, out TDtoChild? snapshot)
-    {
-        if (whole.After.Value is TDtoChild direct)
-        {
-            snapshot = direct;
-            return true;
-        }
-
-        // The model-independent projection may carry the generated Fragment
-        // instead of the DTO itself; convert through its public ToModel().
-        var value = whole.After.Value;
-        if (value is not null)
-        {
-            var toModel = value
-                .GetType()
-                .GetMethod("ToModel", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, Type.EmptyTypes, null);
-            if (toModel is not null && typeof(TDtoChild).IsAssignableFrom(toModel.ReturnType))
-            {
-                snapshot = (TDtoChild?)toModel.Invoke(value, null);
-                return snapshot is not null;
-            }
-        }
-
-        snapshot = null;
-        return false;
-    }
+    private bool TryResolveAfterSnapshot(SparseTypes.Generated.SparseChangeRecord whole, out TDtoChild? snapshot) =>
+        _snapshotConverter.TryConvert(whole.After.Value, out snapshot);
 
     private void ValidateChildOnProspective(PlanApplyState state, ISparseChangeSet child)
     {
         var prospective =
-            (TEntityChild?)_childConstructor!.Invoke(null)
+            _createChild!()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 state.DisplayPath(DtoName),
@@ -677,7 +654,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
     private void ValidateWholesaleOnProspective(DbContext context, string displayPath, TDtoChild snapshot, CollectionScopePath parentScope)
     {
         var prospective =
-            (TEntityChild?)_childConstructor!.Invoke(null)
+            _createChild!()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 displayPath,
@@ -788,7 +765,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         }
 
         var created =
-            (TEntityChild?)_childConstructor!.Invoke(null)
+            _createChild!()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 DtoName,

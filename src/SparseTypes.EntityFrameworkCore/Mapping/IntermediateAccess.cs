@@ -10,6 +10,8 @@ namespace SparseTypes.EntityFrameworkCore.Mapping;
 /// <remarks>Compiled once per plan so flattened writes reach the navigation's own EF entry instead of the root entry.</remarks>
 internal sealed class IntermediateAccess
 {
+    private readonly Func<object> _create;
+
     private IntermediateAccess(
         Func<object, object?> getter,
         Action<object, object?> setter,
@@ -20,7 +22,7 @@ internal sealed class IntermediateAccess
     {
         Getter = getter;
         Setter = setter;
-        Constructor = constructor;
+        _create = ReflectionAccessCompiler.CreateFactory<object>(constructor);
         NavigationName = navigationName;
         Owned = owned;
         TargetType = constructor.DeclaringType ?? throw new InvalidOperationException();
@@ -29,8 +31,6 @@ internal sealed class IntermediateAccess
     public Func<object, object?> Getter { get; }
 
     public Action<object, object?> Setter { get; }
-
-    public ConstructorInfo Constructor { get; }
 
     public string NavigationName { get; }
 
@@ -122,11 +122,11 @@ internal sealed class IntermediateAccess
     /// <summary>Creates a missing intermediate instance.</summary>
     public object Create(string dtoPath)
     {
-        return Constructor.Invoke(null)
+        return _create()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 dtoPath,
-                $"The parameterless constructor of '{Constructor.DeclaringType?.Name}' returned null."
+                $"The parameterless constructor of '{TargetType.Name}' returned null."
             );
     }
 }

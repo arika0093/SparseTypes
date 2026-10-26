@@ -956,8 +956,9 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
             );
         }
 
+        var create = ReflectionAccessCompiler.CreateFactory<TEntityChild>(constructor);
         return _ =>
-            (TEntityChild)constructor.Invoke(null)
+            create()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 null,

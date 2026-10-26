@@ -266,7 +266,7 @@ internal static class SparseTypeMetadataCache
                 && property.GetCustomAttribute<SparseKeyAttribute>(inherit: true) is not null
             )
             {
-                return new KeyReaderInfo { GetKey = property.GetValue, KeyType = property.PropertyType };
+                return new KeyReaderInfo { GetKey = SparsePropertyReader.Create(property), KeyType = property.PropertyType };
             }
         }
 
@@ -283,7 +283,7 @@ internal static class SparseTypeMetadataCache
                 && property.GetCustomAttribute<SparseTemporaryKeyAttribute>(inherit: true) is not null
             )
             {
-                return property.GetValue;
+                return SparsePropertyReader.Create(property);
             }
         }
 
