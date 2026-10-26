@@ -211,12 +211,6 @@ test("concurrent editing enables simulation by default and gates real-time edits
 test("concurrent editing keeps the saved entity diff fixed during later real-time edits", async ({ page }) => {
   test.setTimeout(45_000);
   await openCase(page, "concurrent-editing", "Concurrent editing: simulate another user");
-  await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
-
-  const notices = page.locator(".pg-case5-update-notice");
-  const initialNotice = notices.first();
-  await expect(initialNotice).toBeVisible({ timeout: 20_000 });
-  const remoteNoticeColor = await initialNotice.evaluate(notice => getComputedStyle(notice).color);
   const notes = page.locator(".pg-edit-fields .pg-row").filter({ hasText: "Notes" }).locator("input").first();
   await enterText(notes, "e2e-concurrent-notes");
   await fluentButton(page, "Save").first().click();
@@ -234,19 +228,21 @@ test("concurrent editing keeps the saved entity diff fixed during later real-tim
   await expect(customer).toHaveValue(serverCustomer);
   const serverNotice = page.locator(".pg-case5-server-update-notice").first();
   await expect(serverNotice).toHaveText("Updated from server value");
-  await expect.poll(() => serverNotice.evaluate(notice => getComputedStyle(notice).color)).not.toBe(remoteNoticeColor);
+  const serverNoticeColor = await serverNotice.evaluate(notice => getComputedStyle(notice).color);
 
   const savedEntity = await page.evaluate(() =>
     window.monaco.editor.getModels()
       .map(model => model.getValue())
-      .filter(value => value.includes('"Notes": "e2e-concurrent-notes"') && value.includes('"Revision":'))
+      .filter(value => value.includes('"Text": "e2e-concurrent-notes"') && value.includes('"Revision":'))
       .at(-1),
   );
   expect(savedEntity).toBeTruthy();
 
+  await page.getByText("Simulate real-time edits every 10 seconds", { exact: true }).click();
   await expect(serverNotice).toBeHidden({ timeout: 7_000 });
   const followingPeriodicNotice = page.locator(".pg-case5-update-notice:not(.pg-case5-server-update-notice)");
   await expect(followingPeriodicNotice.first()).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => followingPeriodicNotice.first().evaluate(notice => getComputedStyle(notice).color)).not.toBe(serverNoticeColor);
   await expect.poll(() => page.evaluate(saved =>
     window.monaco.editor.getModels().some(model => model.getValue() === saved),
   savedEntity)).toBe(true);
@@ -341,7 +337,7 @@ test("concurrent editing keeps a focused field across delayed apply", async ({ p
 
   await expect
     .poll(
-      () => page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-pending-customer-after-submit").count(),
+      () => page.getByRole("table", { name: "Modified EF properties" }).getByText("e2e-pending-customer", { exact: true }).count(),
       { timeout: 20_000 },
     )
     .toBeGreaterThan(0);

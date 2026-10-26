@@ -39,7 +39,7 @@
                     <div class="pg-row pg-session-field @(customer.IsChanged ? "pg-changed" : "")">
                         <span class="pg-name notranslate" translate="no">@ChangedDot(customer.IsChanged)Customer <small>string</small></span>
                         <div class="pg-case5-field-control">
-                            <FluentTextInput Value="@customer.Value" Disabled="@IsSaveApplying"
+                            <FluentTextInput Value="@customer.Value" Immediate="true" Disabled="@IsSaveApplying"
                                 ValueChanged="@(v => EditFieldAsync(customer, v))" />
                             @if (_serverCustomerUpdated)
                             {
@@ -60,7 +60,7 @@
                     <div class="pg-row pg-session-field @(notes.IsChanged ? "pg-changed" : "")">
                         <span class="pg-name notranslate" translate="no">@ChangedDot(notes.IsChanged)Notes <small>string</small></span>
                         <div class="pg-case5-field-control">
-                            <FluentTextInput Value="@notes.Value" Disabled="@IsSaveApplying"
+                            <FluentTextInput Value="@notes.Value" Immediate="true" Disabled="@IsSaveApplying"
                                 ValueChanged="@(v => EditFieldAsync(notes, v))" />
                             @if (_serverNotesUpdated)
                             {
