@@ -131,6 +131,8 @@ public sealed class ModelFacingSurfaceTests
         {
             nested.ShouldContain(expected);
         }
+        var changeSet = model.GetTypeMembers("ChangeSet").ShouldHaveSingleItem();
+        changeSet.GetTypeMembers("ChangeKind").ShouldBeEmpty();
         // UI/editing types nest in the model; structs skip the session family.
         nested.ShouldContain("ReadOnlyView");
         if (expectSessionFamily)
@@ -173,6 +175,13 @@ public sealed class ModelFacingSurfaceTests
         // Payload JSON remains available without adding a Fragment JSON converter.
         var fragment = model.GetTypeMembers("Fragment").ShouldHaveSingleItem();
         fragment.GetMembers("JsonConverter").ShouldBeEmpty();
+        compilation
+            .GetTypeByMetadataName("SparseTypes.Generated.SparseChangeRecord")!
+            .GetMembers("Kind")
+            .OfType<IPropertySymbol>()
+            .ShouldHaveSingleItem()
+            .Type.ToDisplayString()
+            .ShouldBe("SparseTypes.Generated.SparseChangeKind");
         var generatedSource = string.Join("\n", compilation.SyntaxTrees.Skip(1).Select(static tree => tree.GetText().ToString()));
         generatedSource.ShouldNotContain("EditorBrowsableState.Always");
         generatedSource.ShouldContain("PayloadJsonConverter");

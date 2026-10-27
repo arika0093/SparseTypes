@@ -46,11 +46,11 @@ public sealed class ChangeSetTraversalTests
         var entries = ResNestedRoot.ChangeSet.Between(before, after).EnumerateChanges().ToList();
         entries.Count.ShouldBe(2);
         entries[0].PathText.ShouldBe("Customer.Name");
-        entries[0].Kind.ShouldBe(ResNestedRoot.ChangeSet.ChangeKind.Changed);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[0].Before.Value.ShouldBe("ann");
         entries[0].After.Value.ShouldBe("bob");
         entries[1].PathText.ShouldBe("Label");
-        entries[1].Kind.ShouldBe(ResNestedRoot.ChangeSet.ChangeKind.Changed);
+        entries[1].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[1].Before.Value.ShouldBe("before");
         entries[1].After.Value.ShouldBe("after");
     }
@@ -78,7 +78,7 @@ public sealed class ChangeSetTraversalTests
         var entries = ResNestedRoot.ChangeSet.Between(before, after).EnumerateChanges().ToList();
         entries.ShouldHaveSingleItem();
         entries[0].PathText.ShouldBe("Customer");
-        entries[0].Kind.ShouldBe(ResNestedRoot.ChangeSet.ChangeKind.Added);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
     }
 
     [Test]
@@ -94,12 +94,12 @@ public sealed class ChangeSetTraversalTests
 
         var texts = entries.Select(static entry => entry.PathText).ToList();
         Describe(texts).ShouldBe("Items[\"b\"].Price;Items[\"c\"];Items[\"a\"];Items");
-        entries[0].Kind.ShouldBe(ResRoster.ChangeSet.ChangeKind.Changed);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[0].Before.Value.ShouldBe(2m);
         entries[0].After.Value.ShouldBe(20m);
-        entries[1].Kind.ShouldBe(ResRoster.ChangeSet.ChangeKind.Added);
-        entries[2].Kind.ShouldBe(ResRoster.ChangeSet.ChangeKind.Removed);
-        entries[3].Kind.ShouldBe(ResRoster.ChangeSet.ChangeKind.Order);
+        entries[1].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
+        entries[2].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
+        entries[3].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Order);
     }
 
     [Test]
@@ -123,9 +123,9 @@ public sealed class ChangeSetTraversalTests
 
         var texts = entries.Select(static entry => entry.PathText).ToList();
         Describe(texts).ShouldBe("Scores[\"c\"];Scores[\"a\"];Scores[\"b\"]");
-        entries[0].Kind.ShouldBe(ResDict.ChangeSet.ChangeKind.Added);
-        entries[1].Kind.ShouldBe(ResDict.ChangeSet.ChangeKind.Removed);
-        entries[2].Kind.ShouldBe(ResDict.ChangeSet.ChangeKind.Changed);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
+        entries[1].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
+        entries[2].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[2].Before.Value.ShouldBe(2);
         entries[2].After.Value.ShouldBe(20);
     }
@@ -151,9 +151,9 @@ public sealed class ChangeSetTraversalTests
 
         entries.Count.ShouldBe(2);
         entries[0].PathText.ShouldBe("Labels[\"z\"]");
-        entries[0].Kind.ShouldBe(ResLabels.ChangeSet.ChangeKind.Added);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         entries[1].PathText.ShouldBe("Labels[\"x\"]");
-        entries[1].Kind.ShouldBe(ResLabels.ChangeSet.ChangeKind.Removed);
+        entries[1].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
     }
 
     [Test]
@@ -193,14 +193,14 @@ public sealed class ChangeSetTraversalTests
             .Path.ShouldBe(
                 SparsePath.Root<TempOrderHolder>().Member("Lines").Key(1).Member("Name")
             );
-        entries[0].Kind.ShouldBe(TempOrderHolder.ChangeSet.ChangeKind.Changed);
+        entries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[1]
             .Path.ShouldBe(
                 SparsePath.Root<TempOrderHolder>().Member("Lines").TemporaryKey(temporary)
             );
-        entries[1].Kind.ShouldBe(TempOrderHolder.ChangeSet.ChangeKind.Added);
+        entries[1].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         entries[2].PathText.ShouldBe("Lines");
-        entries[2].Kind.ShouldBe(TempOrderHolder.ChangeSet.ChangeKind.Order);
+        entries[2].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Order);
     }
 
     [Test]

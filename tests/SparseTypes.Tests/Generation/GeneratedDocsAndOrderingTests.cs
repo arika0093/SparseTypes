@@ -346,6 +346,48 @@ public sealed class GeneratedDocsAndOrderingTests
         Regex.Matches(docs, @"/// <summary>").Count.ShouldBe(1);
         docs.ShouldContain("Derives the canonical baseline-aware diff between two states.");
         docs.ShouldNotContain("Deep-clones a retained whole-root fragment.");
+
+        var cloneRoot = core.GetMembers("__SparseCloneRoot").OfType<IMethodSymbol>().ShouldHaveSingleItem();
+        var cloneDocs = ((MethodDeclarationSyntax)cloneRoot.DeclaringSyntaxReferences.Single().GetSyntax()).GetLeadingTrivia().ToFullString();
+        Regex.Matches(cloneDocs, @"/// <summary>").Count.ShouldBe(1);
+        cloneDocs.ShouldContain("Deep-clones a retained whole-root fragment.");
+    }
+
+    [Test]
+    public void ChangeSetCoreRebaseOntoHasOnlyItsOwnSummary()
+    {
+        var changeSet = Probe.Value.GetTypeByMetadataName("GeneratedContract.Probe.ProbeScalar+ChangeSet");
+        changeSet.ShouldNotBeNull();
+        var core = changeSet!.GetTypeMembers("__Core").ShouldHaveSingleItem();
+        var rebaseOnto = core
+            .GetMembers("RebaseOnto")
+            .OfType<IMethodSymbol>()
+            .Single(method => method.DeclaredAccessibility == Accessibility.Internal && method.Parameters[1].Type.Name == "Optional");
+        var docs = ((MethodDeclarationSyntax)rebaseOnto.DeclaringSyntaxReferences.Single().GetSyntax()).GetLeadingTrivia().ToFullString();
+
+        Regex.Matches(docs, @"/// <summary>").Count.ShouldBe(1);
+        docs.ShouldContain("Rebases this change onto a newer state without requiring the original baseline.");
+        docs.ShouldNotContain("Whether the given dotted path is redacted-before under the supplied options.");
+        docs.ShouldNotContain("Whether strict rebase rejects redacted-before members.");
+    }
+
+    [Test]
+    public void GeneratedMembersHaveNoDuplicateSummaryElements()
+    {
+        var violations = new List<string>();
+        foreach (var tree in GeneratedTrees(Probe.Value))
+        {
+            foreach (var member in tree.GetRoot().DescendantNodes().OfType<MemberDeclarationSyntax>())
+            {
+                var docs = member.GetLeadingTrivia().ToFullString();
+                if (Regex.Matches(docs, @"///\s*<summary\b", RegexOptions.CultureInvariant).Count > 1)
+                {
+                    violations.Add(LocationOf(tree, member) + " " + MemberLabel(member));
+                }
+            }
+        }
+
+        violations.ShouldBeEmpty(Report(violations));
     }
 
     [Test]

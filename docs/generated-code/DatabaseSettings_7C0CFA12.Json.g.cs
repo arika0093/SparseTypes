@@ -7,7 +7,6 @@ using ChangeSet = global::DatabaseSettings.ChangeSet;
 using Fragment = global::DatabaseSettings.Fragment;
 using ChangePayload = global::DatabaseSettings.ChangePayload;
 using ApplyInPlaceResult = global::DatabaseSettings.Patch.ApplyInPlaceResult;
-using ChangeKind = global::DatabaseSettings.ChangeSet.ChangeKind;
 
 namespace SparseTypes.Generated
 {

@@ -198,7 +198,7 @@ public sealed class RebaseResolutionTests
         resolution.Remove(member);
         resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
         var entry = resolved!.EnumerateChanges().Single();
-        entry.Kind.ShouldBe(ResLabels.ChangeSet.ChangeKind.Removed);
+        entry.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
     }
 
     [Test]
@@ -214,7 +214,7 @@ public sealed class RebaseResolutionTests
         nullResolution.TryBuild(out var nullResolved, out _).ShouldBeTrue();
         var nullEntry = nullResolved!.Find(ResOrder.SparsePath.Note);
         nullEntry.ShouldNotBeNull();
-        nullEntry!.Kind.ShouldBe(ResOrder.ChangeSet.ChangeKind.Changed);
+        nullEntry!.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         nullEntry.After.IsPresent.ShouldBeTrue();
         nullEntry.After.Value.ShouldBeNull();
 
@@ -225,7 +225,7 @@ public sealed class RebaseResolutionTests
         missingResolution.TryBuild(out var missingResolved, out _).ShouldBeTrue();
         var missingEntry = missingResolved!.Find(ResOrder.SparsePath.Note);
         missingEntry.ShouldNotBeNull();
-        missingEntry!.Kind.ShouldBe(ResOrder.ChangeSet.ChangeKind.Removed);
+        missingEntry!.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
         missingEntry.After.IsPresent.ShouldBeFalse();
     }
 

@@ -862,13 +862,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class DetailsTransition : SparseTypes.ISparseDictionaryChange<string, SparseTypes.GeneratedApiFixtures.CatalogScalar, SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet>, System.Collections.Generic.IEnumerable<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet.DetailsTransition.Item>, System.Collections.IEnumerable
             {
                 public System.Collections.Generic.IReadOnlyDictionary<string, SparseTypes.GeneratedApiFixtures.CatalogScalar> Added { get; }
@@ -1173,13 +1166,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class Resolution : SparseTypes.SparseRebaseResolution<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet>
             {
                 public Resolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogImmutable current) { }
@@ -1387,13 +1373,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class Resolution : SparseTypes.SparseRebaseResolution<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet>
             {
                 public Resolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current) { }
@@ -1597,13 +1576,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class ItemsTransition : SparseTypes.ISparseKeyedChange<string, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet>, System.Collections.Generic.IEnumerable<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet.ItemsTransition.Item>, System.Collections.IEnumerable
             {
                 public System.Collections.Generic.IReadOnlyList<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> Added { get; }
@@ -1879,13 +1851,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class Resolution : SparseTypes.SparseRebaseResolution<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet>
             {
                 public Resolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogNested current) { }
@@ -2141,13 +2106,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class Resolution : SparseTypes.SparseRebaseResolution<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet>
             {
                 public Resolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current) { }
@@ -2364,13 +2322,6 @@ namespace SparseTypes.GeneratedApiFixtures
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload payload) { }
-            public static class ChangeKind
-            {
-                public const SparseTypes.Generated.SparseChangeKind Added = 1;
-                public const SparseTypes.Generated.SparseChangeKind Changed = 0;
-                public const SparseTypes.Generated.SparseChangeKind Order = 3;
-                public const SparseTypes.Generated.SparseChangeKind Removed = 2;
-            }
             public sealed class LabelsTransition : SparseTypes.ISparseValueChange<System.Collections.Generic.ISet<string>>
             {
                 public System.Collections.Generic.IReadOnlyList<string> Added { get; }

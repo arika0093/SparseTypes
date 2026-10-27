@@ -148,7 +148,7 @@ Each facade operation resolves the live collection through the session descripto
 For generic UI builders, logs, and diagnostics, the session provides two reflection-free inspection seams:
 
 * `session.Descriptors` exposes per-member metadata, live get/set accessors, and source property attributes (see [Descriptors reference](../reference/descriptors.md)).
-* `ChangeSet.EnumerateChanges()` flattens a transition into `ChangeInfo` rows (`SparsePath`, before/after values, and `ChangeKind`), and `session.EnumerateChangedPaths()` lists modified paths.
+* `ChangeSet.EnumerateChanges()` flattens a transition into `SparseChangeRecord` rows (`SparsePath`, before/after values, and `SparseChangeKind`), and `session.EnumerateChangedPaths()` lists modified paths.
 
 For cross-framework validation outside Blazor, `SparseValidationStore<TModel>` implements `INotifyDataErrorInfo` and records errors by typed `SparsePath` and origin, allowing server errors, rebase conflicts (`AddConflicts`), and local validation rules to coexist independently.
 
@@ -263,4 +263,3 @@ var session = model.CreateEditSession(
     onChanged: () => SaveCommand.NotifyCanExecuteChanged());
 DataContext = session.Observable;
 ```
-

@@ -126,14 +126,14 @@ public sealed class ChangeSetTests
 
         var entries = Settings.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[Settings.SparsePath.Label].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
+        entries[Settings.SparsePath.Label].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[Settings.SparsePath.Label].Before.Value.ShouldBe("before");
         entries[Settings.SparsePath.Label].After.IsPresent.ShouldBeTrue();
         entries[Settings.SparsePath.Label].After.Value.ShouldBeNull();
-        entries[Settings.SparsePath.RetryCount].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
+        entries[Settings.SparsePath.RetryCount].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         entries[Settings.SparsePath.RetryCount].Before.IsPresent.ShouldBeFalse();
         entries[Settings.SparsePath.RetryCount].After.Value.ShouldBe(3);
-        entries[Settings.SparsePath.Nested.Host].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
+        entries[Settings.SparsePath.Nested.Host].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[Settings.SparsePath.Nested.Host].Before.Value.ShouldBe("host-before");
         entries[Settings.SparsePath.Nested.Host].After.Value.ShouldBe("host-after");
     }
@@ -174,11 +174,11 @@ public sealed class ChangeSetTests
         );
         var entries = KeyedServerHolder.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[KeyedServerHolder.SparsePath.Items.Key("a")].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Added);
-        entries[KeyedServerHolder.SparsePath.Items.Key("c")].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Removed);
+        entries[KeyedServerHolder.SparsePath.Items.Key("a")].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
+        entries[KeyedServerHolder.SparsePath.Items.Key("c")].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
         entries[KeyedServerHolder.SparsePath.Items.Key("b").Name].Before.Value.ShouldBe("before");
         entries[KeyedServerHolder.SparsePath.Items.Key("b").Name].After.Value.ShouldBe("after");
-        entries[KeyedServerHolder.SparsePath.Items].Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Order);
+        entries[KeyedServerHolder.SparsePath.Items].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Order);
         ((IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].Before.Value!).ShouldBe(["b", "c"]);
         ((IReadOnlyList<string>)entries[KeyedServerHolder.SparsePath.Items].After.Value!).ShouldBe(["a", "b"]);
     }
@@ -212,18 +212,18 @@ public sealed class ChangeSetTests
         var addedEntries = added.EnumerateChanges().ToList();
         addedEntries.ShouldHaveSingleItem();
         addedEntries[0].PathText.ShouldBe("$root");
-        addedEntries[0].Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
+        addedEntries[0].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         added.EnumerateChangedPaths().Select(static path => path.ToString()).ShouldBe(["$root"]);
 
         // Present-null -> missing reads as Removed.
         var removed = Settings.ChangeSet.Between(nullState, missing);
         removed.IsEmpty.ShouldBeFalse();
-        removed.EnumerateChanges().Single().Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Removed);
+        removed.EnumerateChanges().Single().Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
 
         // Present-null -> present-value reads as Changed.
         var valued = Settings.ChangeSet.Between(nullState, value);
         valued.IsEmpty.ShouldBeFalse();
-        valued.EnumerateChanges().Single().Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
+        valued.EnumerateChanges().Single().Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
 
         // Nested whole-child presence transitions are not dropped: the child
         // root entry appears under the parent member path.

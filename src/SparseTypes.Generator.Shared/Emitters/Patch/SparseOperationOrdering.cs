@@ -99,7 +99,7 @@ internal static class SparseOperationOrdering
             {
                 var signature = line.Kind is LineKind.Public or LineKind.Internal or LineKind.Private;
                 var topLevel = line.TrimmedStart - start == topIndent;
-                if (blockStart < 0 || (topLevel && (signature || (line.Kind == LineKind.Documentation && hasSignature))))
+                if (blockStart < 0 || (topLevel && hasSignature && (signature || line.Kind == LineKind.Documentation)))
                 {
                     if (blockStart >= 0)
                     {

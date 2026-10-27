@@ -69,7 +69,8 @@ internal static class SparseChangeSetTraversalEmitter
         ImmutableArray<SparseMemberModel> members,
         Dictionary<int, string> propertyNames,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         code.AppendLine("/// <summary>Collects flattened transitions into the caller's sink (enumeration infrastructure).</summary>");
@@ -94,7 +95,7 @@ internal static class SparseChangeSetTraversalEmitter
             code,
             BoxValue(optionalObject, "__sparse_wholeBefore.IsPresent", "__sparse_wholeBefore.Value"),
             BoxValue(optionalObject, "__sparse_wholeAfter.IsPresent", "__sparse_wholeAfter.Value"),
-            KindOf("__sparse_wholeBefore", "__sparse_wholeAfter")
+            KindOf("__sparse_wholeBefore", "__sparse_wholeAfter", kindType)
         );
         code.AppendLine("return true;");
         code.Unindent();
@@ -130,19 +131,19 @@ internal static class SparseChangeSetTraversalEmitter
             }
             else if (IsKeyed(member))
             {
-                AppendKeyedCollect(code, member, property, literal, optionalObject, traversal);
+                AppendKeyedCollect(code, member, property, literal, optionalObject, traversal, kindType);
             }
             else if (IsDict(member))
             {
-                AppendDictionaryCollect(code, member, property, literal, optionalObject, traversal);
+                AppendDictionaryCollect(code, member, property, literal, optionalObject, traversal, kindType);
             }
             else if (IsSet(member))
             {
-                AppendSetCollect(code, member, setTransition, literal, optionalObject, traversal);
+                AppendSetCollect(code, member, setTransition, literal, optionalObject, traversal, kindType);
             }
             else
             {
-                AppendValueCollect(code, property, literal, "value" + member.Id, optionalObject, traversal);
+                AppendValueCollect(code, property, literal, "value" + member.Id, optionalObject, traversal, kindType);
             }
 
             code.Unindent();
@@ -178,14 +179,20 @@ internal static class SparseChangeSetTraversalEmitter
     private static string BoxValue(string optionalObject, string check, string value) =>
         "(" + check + " ? " + optionalObject + ".Present((object?)" + value + ") : " + optionalObject + ".Missing)";
 
-    private static string KindOf(string beforeSource, string afterSource) =>
+    private static string KindOf(string beforeSource, string afterSource, string kindType) =>
         "("
         + beforeSource
         + ".IsPresent == "
         + afterSource
-        + ".IsPresent ? (int)ChangeKind.Changed : "
+        + ".IsPresent ? (int)"
+        + kindType
+        + ".Changed : "
         + beforeSource
-        + ".IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added)";
+        + ".IsPresent ? (int)"
+        + kindType
+        + ".Removed : (int)"
+        + kindType
+        + ".Added)";
 
     private static void AppendLeafChange(
         SharedIndentedBuilder code,
@@ -193,7 +200,8 @@ internal static class SparseChangeSetTraversalEmitter
         string segment,
         string source,
         string beforeMember,
-        string afterMember
+        string afterMember,
+        string kindType
     )
     {
         AppendPush(code, segment);
@@ -201,7 +209,7 @@ internal static class SparseChangeSetTraversalEmitter
             code,
             BoxValue(optionalObject, source + "." + beforeMember + ".IsPresent", source + "." + beforeMember + ".Value"),
             BoxValue(optionalObject, source + "." + afterMember + ".IsPresent", source + "." + afterMember + ".Value"),
-            KindOf(source + "." + beforeMember, source + "." + afterMember)
+            KindOf(source + "." + beforeMember, source + "." + afterMember, kindType)
         );
         AppendPop(code);
     }
@@ -212,14 +220,15 @@ internal static class SparseChangeSetTraversalEmitter
         string literal,
         string local,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         code.AppendLine("var " + local + " = " + property + ";");
         code.AppendLine("if (" + local + ".IsChanged)");
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), local, "Before", "After");
+        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), local, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
     }
@@ -237,7 +246,8 @@ internal static class SparseChangeSetTraversalEmitter
         string property,
         string literal,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         var transition = "__sparse_keyed_transition_" + member.Id;
@@ -248,7 +258,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.AppendLine("if (" + transition + ".Before.IsPresent || " + transition + ".After.IsPresent)");
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After");
+        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
         code.AppendLine("else");
@@ -285,7 +295,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.AppendLine("if (" + item + ".IsAdded || " + item + ".IsRemoved)");
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After");
+        AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
         code.AppendLine("if (" + item + ".IsEdited)");
@@ -303,7 +313,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.Indent();
         code.AppendLine("var " + order + " = " + optionalObject + ".Present(" + transition + ".BeforeOrder);");
         code.AppendLine("var " + order + "After = " + optionalObject + ".Present(" + transition + ".AfterOrder);");
-        AppendSinkBoxed(code, order, order + "After", "(int)ChangeKind.Order");
+        AppendSinkBoxed(code, order, order + "After", "(int)" + kindType + ".Order");
         code.Unindent();
         code.CloseBlock();
         AppendPop(code);
@@ -317,7 +327,8 @@ internal static class SparseChangeSetTraversalEmitter
         string property,
         string literal,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         var transition = "__sparse_dictionary_transition_" + member.Id;
@@ -328,7 +339,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.OpenBlock();
         code.Indent();
         AppendPush(code, traversal.MemberSegment(literal));
-        AppendDictionaryItemsCollect(code, member, KeyedItems(member), optionalObject, traversal);
+        AppendDictionaryItemsCollect(code, member, KeyedItems(member), optionalObject, traversal, kindType);
         AppendPop(code);
         code.Unindent();
         code.CloseBlock();
@@ -341,14 +352,14 @@ internal static class SparseChangeSetTraversalEmitter
         code.AppendLine("if (" + transition + ".Before.IsPresent || " + transition + ".After.IsPresent)");
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After");
+        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
         code.Indent();
         AppendPush(code, traversal.MemberSegment(literal));
-        AppendDictionaryItemsCollect(code, member, transition, optionalObject, traversal);
+        AppendDictionaryItemsCollect(code, member, transition, optionalObject, traversal, kindType);
         AppendPop(code);
         code.Unindent();
         code.CloseBlock();
@@ -361,7 +372,8 @@ internal static class SparseChangeSetTraversalEmitter
         SparseMemberModel member,
         string items,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         var item = "__sparse_dictionary_item_" + member.Id;
@@ -373,7 +385,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.AppendLine("if (" + item + ".IsAdded || " + item + ".IsRemoved)");
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After");
+        AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
         code.AppendLine("if (" + item + ".IsEdited)");
@@ -387,7 +399,7 @@ internal static class SparseChangeSetTraversalEmitter
         }
         else
         {
-            AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After");
+            AppendLeafChange(code, optionalObject, itemPath, item, "Before", "After", kindType);
         }
 
         code.Unindent();
@@ -402,7 +414,8 @@ internal static class SparseChangeSetTraversalEmitter
         string transition,
         string literal,
         string optionalObject,
-        SparsePathTraversalContracts traversal
+        SparsePathTraversalContracts traversal,
+        string kindType
     )
     {
         // Set-element membership deltas at audit granularity, matching the
@@ -422,7 +435,7 @@ internal static class SparseChangeSetTraversalEmitter
         );
         code.OpenBlock();
         code.Indent();
-        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After");
+        AppendLeafChange(code, optionalObject, traversal.MemberSegment(literal), transition, "Before", "After", kindType);
         code.Unindent();
         code.CloseBlock();
         code.AppendLine("else");
@@ -434,7 +447,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.OpenBlock();
         code.Indent();
         AppendPush(code, traversal.KeySegment(added));
-        AppendSinkBoxed(code, optionalObject + ".Missing", optionalObject + ".Present((object?)" + added + ")", "(int)ChangeKind.Added");
+        AppendSinkBoxed(code, optionalObject + ".Missing", optionalObject + ".Present((object?)" + added + ")", "(int)" + kindType + ".Added");
         AppendPop(code);
         code.Unindent();
         code.CloseBlock();
@@ -442,7 +455,7 @@ internal static class SparseChangeSetTraversalEmitter
         code.OpenBlock();
         code.Indent();
         AppendPush(code, traversal.KeySegment(removed));
-        AppendSinkBoxed(code, optionalObject + ".Present((object?)" + removed + ")", optionalObject + ".Missing", "(int)ChangeKind.Removed");
+        AppendSinkBoxed(code, optionalObject + ".Present((object?)" + removed + ")", optionalObject + ".Missing", "(int)" + kindType + ".Removed");
         AppendPop(code);
         code.Unindent();
         code.CloseBlock();

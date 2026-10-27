@@ -139,11 +139,11 @@ public sealed class SparseKeyedDictChangeSetTests
         var after = DState(new Dictionary<string, int> { ["edit"] = 3, ["add"] = 4 });
         var entries = ScalarDictHolder.ChangeSet.Between(before, after).EnumerateChanges().ToDictionary(static change => change.Path);
 
-        entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Changed);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].Before.Value.ShouldBe(1);
         entries[ScalarDictHolder.SparsePath.Scores.Key("edit")].After.Value.ShouldBe(3);
-        entries[ScalarDictHolder.SparsePath.Scores.Key("add")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Added);
-        entries[ScalarDictHolder.SparsePath.Scores.Key("remove")].Kind.ShouldBe(ScalarDictHolder.ChangeSet.ChangeKind.Removed);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("add")].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
+        entries[ScalarDictHolder.SparsePath.Scores.Key("remove")].Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
     }
 
     [Test]

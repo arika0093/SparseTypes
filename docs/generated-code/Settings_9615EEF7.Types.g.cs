@@ -7,7 +7,6 @@ using ChangeSet = global::Settings.ChangeSet;
 using Fragment = global::Settings.Fragment;
 using ChangePayload = global::Settings.ChangePayload;
 using ApplyInPlaceResult = global::Settings.Patch.ApplyInPlaceResult;
-using ChangeKind = global::Settings.ChangeSet.ChangeKind;
 public partial class Settings
 {
     /// <summary>Bindable proxy over the live model instance. No state is copied.</summary>
@@ -1029,8 +1028,6 @@ public partial class Settings
             }
             /// <summary>Model-rooted path factory for rebase conflicts.</summary>
             internal static readonly global::SparseTypes.SparsePath __SparseRootPath = global::SparseTypes.SparsePath.Root(typeof(global::Settings));
-            /// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>
-            /// <summary>Whether strict rebase rejects redacted-before members.</summary>
             /// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>
             internal static global::SparseTypes.RebaseResult<Patch> Rebase(global::SparseTypes.Optional<Fragment?> baseState, Patch local, global::SparseTypes.Optional<Fragment?> currentState, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
@@ -1173,7 +1170,9 @@ public partial class Settings
             };
             private static global::SparseTypes.Optional<object?> __SparseState(global::SparseTypes.Optional<Fragment?> state) => state.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)state.Value) : global::SparseTypes.Optional<object?>.Missing;
             private static global::SparseTypes.Optional<object?> __SparseMember<T>(global::SparseTypes.Optional<T> value) => value.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value.Value) : global::SparseTypes.Optional<object?>.Missing;
+            /// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>
             private static bool __SparseIsRedacted(global::SparseTypes.ChangePayloadRebaseOptions? options, string path) => options is not null && options.IsRedactedBefore(path);
+            /// <summary>Whether strict rebase rejects redacted-before members.</summary>
             private static bool __SparseRejectsRedacted(global::SparseTypes.ChangePayloadRebaseOptions? options) => options is not null && options.RejectChangesWithRedactedBeforeValuesDuringRebase;
         }
     }
@@ -1327,18 +1326,6 @@ public partial class Settings
         public global::DatabaseSettings.ChangeSet Database => __Core.__SparseGet_0(this);
         /// <summary>Gets the typed transition for member 'Label'.</summary>
         public global::SparseTypes.SparseValueTransition<string?> Label => __Core.__SparseGet_1(this);
-        /// <summary>Named change-kind values for compatibility with earlier generated APIs.</summary>
-        public static class ChangeKind
-        {
-            /// <summary>A value changed while remaining present.</summary>
-            public const global::SparseTypes.Generated.SparseChangeKind Changed = global::SparseTypes.Generated.SparseChangeKind.Changed;
-            /// <summary>A value was added.</summary>
-            public const global::SparseTypes.Generated.SparseChangeKind Added = global::SparseTypes.Generated.SparseChangeKind.Added;
-            /// <summary>A value was removed.</summary>
-            public const global::SparseTypes.Generated.SparseChangeKind Removed = global::SparseTypes.Generated.SparseChangeKind.Removed;
-            /// <summary>A keyed collection order changed.</summary>
-            public const global::SparseTypes.Generated.SparseChangeKind Order = global::SparseTypes.Generated.SparseChangeKind.Order;
-        }
         /// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>
         public global::System.Collections.Generic.IEnumerable<global::SparseTypes.Generated.SparseChangeRecord> EnumerateChanges() => __Core.EnumerateChanges(this);
         /// <summary>Finds the entry at exactly the given path, or null when absent.</summary>
@@ -1423,7 +1410,7 @@ public partial class Settings
                     {
                         if (!__sparse_path_sink(__sparse_scratch)) return false;
                     }
-                    else if (!__sparse_sink!((__sparse_wholeBefore.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeBefore.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeAfter.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeAfter.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeBefore.IsPresent == __sparse_wholeAfter.IsPresent ? (int)ChangeKind.Changed : __sparse_wholeBefore.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added)))
+                    else if (!__sparse_sink!((__sparse_wholeBefore.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeBefore.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeAfter.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)__sparse_wholeAfter.Value) : global::SparseTypes.Optional<object?>.Missing), (__sparse_wholeBefore.IsPresent == __sparse_wholeAfter.IsPresent ? (int)global::SparseTypes.Generated.SparseChangeKind.Changed : __sparse_wholeBefore.IsPresent ? (int)global::SparseTypes.Generated.SparseChangeKind.Removed : (int)global::SparseTypes.Generated.SparseChangeKind.Added)))
                     {
                         return false;
                     }
@@ -1445,7 +1432,7 @@ public partial class Settings
                             {
                                 if (!__sparse_path_sink(__sparse_scratch)) return false;
                             }
-                            else if (!__sparse_sink!((value1.Before.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.Before.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.After.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.After.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.Before.IsPresent == value1.After.IsPresent ? (int)ChangeKind.Changed : value1.Before.IsPresent ? (int)ChangeKind.Removed : (int)ChangeKind.Added)))
+                            else if (!__sparse_sink!((value1.Before.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.Before.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.After.IsPresent ? global::SparseTypes.Optional<object?>.Present((object?)value1.After.Value) : global::SparseTypes.Optional<object?>.Missing), (value1.Before.IsPresent == value1.After.IsPresent ? (int)global::SparseTypes.Generated.SparseChangeKind.Changed : value1.Before.IsPresent ? (int)global::SparseTypes.Generated.SparseChangeKind.Removed : (int)global::SparseTypes.Generated.SparseChangeKind.Added)))
                             {
                                 return false;
                             }
@@ -1675,8 +1662,6 @@ public partial class Settings
                 }
                 return true;
             }
-            /// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>
-            /// <summary>Whether strict rebase rejects redacted-before members.</summary>
             /// <summary>Rebases this change onto a newer state without requiring the original baseline.</summary>
             internal static global::SparseTypes.RebaseResult<ChangeSet> RebaseOnto(ChangeSet self, global::SparseTypes.Optional<Fragment?> current, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
@@ -2193,7 +2178,6 @@ public partial class Settings
             }
             /// <summary>Builds the transport core for this change set.</summary>
             internal static Settings_4B058728SerializeObjects.Core ToPayloadCore(ChangeSet self, bool redactBefores) => new Settings_4B058728SerializeObjects.Core { TypedChange = ToPayloadChange(self, redactBefores) };
-            /// <summary>Builds an undisclosed-free after snapshot for a whole-root change.</summary>
             /// <summary>Converts a validated envelope to a complete change set.</summary>
             internal static ChangeSet FromPayload(ChangePayload payload)
             {
@@ -2314,8 +2298,11 @@ public partial class Settings
                 return new ChangeSet(false, default, default, __payloadNested0, __payloadBefore1, __payloadAfter1, __payloadHas1);
             }
             private static readonly ChangeSet __sparse_empty = new ChangeSet(false, default, default, null, default, default, false);
+            /// <summary>Deep-clones a retained whole-root fragment.</summary>
             private static global::SparseTypes.Optional<Fragment?> __SparseCloneRoot(global::SparseTypes.Optional<Fragment?> value) => !value.IsPresent || value.Value is null ? value : global::SparseTypes.Optional<Fragment?>.Present(value.Value!.DeepClone());
+            /// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>
             private static bool __SparseIsRedacted(global::SparseTypes.ChangePayloadRebaseOptions? options, string path) => options is not null && options.IsRedactedBefore(path);
+            /// <summary>Whether strict rebase rejects redacted-before members.</summary>
             private static bool __SparseRejectsRedacted(global::SparseTypes.ChangePayloadRebaseOptions? options) => options is not null && options.RejectChangesWithRedactedBeforeValuesDuringRebase;
             private static global::SparseTypes.Generated.SparseChangeRecord __SparseCreateChangeInfo<T>(global::SparseTypes.SparsePath path, global::SparseTypes.Optional<T> before, global::SparseTypes.Optional<T> after)
             {
@@ -2329,6 +2316,7 @@ public partial class Settings
                 if (redactBefores) return global::SparseTypes.ChangePayloadEndpoint<Settings_4B058728SerializeObjects.Root>.Redacted();
                 return global::SparseTypes.ChangePayloadEndpoint<Settings_4B058728SerializeObjects.Root>.FromOptional(global::SparseTypes.Optional<Settings_4B058728SerializeObjects.Root>.Present(Settings_4B058728SerializeObjects.Root.FromFragment(value.Value)));
             }
+            /// <summary>Builds an undisclosed-free after snapshot for a whole-root change.</summary>
             private static global::SparseTypes.ChangePayloadEndpoint<Settings_4B058728SerializeObjects.Root> __SparsePayloadRootAfter(global::SparseTypes.Optional<Fragment?> value)
             {
                 if (!value.IsPresent) return global::SparseTypes.ChangePayloadEndpoint<Settings_4B058728SerializeObjects.Root>.FromOptional(global::SparseTypes.Optional<Settings_4B058728SerializeObjects.Root>.Missing);

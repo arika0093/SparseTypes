@@ -128,7 +128,7 @@ public sealed class SparsePathNavigationTests
 
         var order = changes.Find(KeyedServerHolder.SparsePath.Items);
         order.ShouldNotBeNull();
-        order!.Kind.ShouldBe(KeyedServerHolder.ChangeSet.ChangeKind.Order);
+        order!.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Order);
 
         var missingRoot = SparsePath.Root<KeyedServerHolder>().Member("Missing");
         changes.Find(missingRoot).ShouldBeNull();

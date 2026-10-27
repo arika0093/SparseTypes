@@ -25,10 +25,6 @@ internal static class SparseChangeSetEnumeratorEmitter
         {
             AppendChangeInfoTypes(code, optionalObject, pathType);
         }
-        else
-        {
-            AppendChangeKindCompatibilityFacade(code, kindType);
-        }
         if (target is not null)
         {
             var ops = target.ChangeSetOperations;
@@ -70,7 +66,8 @@ internal static class SparseChangeSetEnumeratorEmitter
 
         ComputePublicNames(members, out var propertyNames, out _);
         var optionalObject = dialect.RuntimeNamespace + "Optional<object?>";
-        SparseChangeSetTraversalEmitter.AppendCollect(code, members, propertyNames, optionalObject, dialect.PathTraversal);
+        var kindType = dialect.TransitionContracts?.ChangeKindType ?? "ChangeKind";
+        SparseChangeSetTraversalEmitter.AppendCollect(code, members, propertyNames, optionalObject, dialect.PathTraversal, kindType);
     }
 
     private static void AppendMethodShellStub(SharedIndentedBuilder code, SparseOperationTarget target, string recordType)
@@ -121,22 +118,6 @@ internal static class SparseChangeSetEnumeratorEmitter
         code.AppendLine("After = after;");
         code.AppendLine("Kind = kind;");
         code.CloseBlock();
-        code.CloseBlock();
-    }
-
-    private static void AppendChangeKindCompatibilityFacade(SharedIndentedBuilder code, string kindType)
-    {
-        code.AppendLine("/// <summary>Named change-kind values for compatibility with earlier generated APIs.</summary>");
-        code.AppendLine("public static class ChangeKind");
-        code.OpenBlock();
-        code.AppendLine("/// <summary>A value changed while remaining present.</summary>");
-        code.AppendLine("public const " + kindType + " Changed = " + kindType + ".Changed;");
-        code.AppendLine("/// <summary>A value was added.</summary>");
-        code.AppendLine("public const " + kindType + " Added = " + kindType + ".Added;");
-        code.AppendLine("/// <summary>A value was removed.</summary>");
-        code.AppendLine("public const " + kindType + " Removed = " + kindType + ".Removed;");
-        code.AppendLine("/// <summary>A keyed collection order changed.</summary>");
-        code.AppendLine("public const " + kindType + " Order = " + kindType + ".Order;");
         code.CloseBlock();
     }
 

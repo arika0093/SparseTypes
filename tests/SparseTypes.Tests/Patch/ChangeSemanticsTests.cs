@@ -359,14 +359,14 @@ public sealed class ChangeSemanticsTests
         changes
             .Find(SetTransitionModel.SparsePath.Values.Element("add"))
             .ShouldNotBeNull()
-            .Kind.ShouldBe(SetTransitionModel.ChangeSet.ChangeKind.Added);
+            .Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         entries[SetTransitionModel.SparsePath.Values.Element("add")]
-            .Kind.ShouldBe(SetTransitionModel.ChangeSet.ChangeKind.Added);
+            .Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
         entries[SetTransitionModel.SparsePath.Values.Element("add")]
             .Before.IsPresent.ShouldBeFalse();
         entries[SetTransitionModel.SparsePath.Values.Element("add")].After.Value.ShouldBe("add");
         entries[SetTransitionModel.SparsePath.Values.Element("remove")]
-            .Kind.ShouldBe(SetTransitionModel.ChangeSet.ChangeKind.Removed);
+            .Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Removed);
         entries[SetTransitionModel.SparsePath.Values.Element("remove")]
             .Before.Value.ShouldBe("remove");
         entries[SetTransitionModel.SparsePath.Values.Element("remove")]

@@ -145,13 +145,10 @@ internal static class SparseModelOperationAliases
         {
             aliases.Add(new KeyValuePair<string, string>("ApplyInPlaceResult", modelType + ".Patch.ApplyInPlaceResult"));
         }
-        if (plan.EmitChangeSet)
+        if (plan.EmitChangeSet && dialect.TransitionContracts is null)
         {
             aliases.Add(new KeyValuePair<string, string>("ChangeKind", modelType + ".ChangeSet.ChangeKind"));
-            if (dialect.TransitionContracts is null)
-            {
-                aliases.Add(new KeyValuePair<string, string>("ChangeInfo", modelType + ".ChangeSet.ChangeInfo"));
-            }
+            aliases.Add(new KeyValuePair<string, string>("ChangeInfo", modelType + ".ChangeSet.ChangeInfo"));
         }
         foreach (var member in members.Where(member => plan.EmitPatch && SparseKeyedCollectionEmitter.IsCollectionPatch(member)))
         {

@@ -7,7 +7,6 @@ using ChangeSet = global::Settings.ChangeSet;
 using Fragment = global::Settings.Fragment;
 using ChangePayload = global::Settings.ChangePayload;
 using ApplyInPlaceResult = global::Settings.Patch.ApplyInPlaceResult;
-using ChangeKind = global::Settings.ChangeSet.ChangeKind;
 
 namespace SparseTypes.Generated
 {

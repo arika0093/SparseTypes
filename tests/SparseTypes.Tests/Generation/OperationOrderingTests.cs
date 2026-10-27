@@ -22,7 +22,7 @@ public sealed class OperationOrderingTests
     )]
     [Arguments(
         "    /// doc\n    private int C;\n    /// next\n    public int A;\n",
-        "    public int A;\n    /// doc\n    /// next\n    private int C;\n"
+        "    /// next\n    public int A;\n    /// doc\n    private int C;\n"
     )]
     [Arguments(
         "    private class C\n    {\n        public int P;\n        /// nested\n    }\n    internal int B;\n",

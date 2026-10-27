@@ -64,11 +64,11 @@ public sealed class ChangeSetFindTests
         label.Before.Value.ShouldBe("before");
         label.After.IsPresent.ShouldBeTrue();
         label.After.Value.ShouldBeNull();
-        label.Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Changed);
+        label.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Changed);
         var retry = changes.Find(Settings.SparsePath.RetryCount).ShouldNotBeNull();
         retry.Before.IsPresent.ShouldBeFalse();
         retry.After.Value.ShouldBe(4);
-        retry.Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
+        retry.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
     }
 
     [Test]
@@ -85,7 +85,7 @@ public sealed class ChangeSetFindTests
                 SparsePath.Root<FindSetMember>().Member(nameof(FindSetMember.Labels)).Key("after")
             )
             .ShouldNotBeNull();
-        added.Kind.ShouldBe(FindSetMember.ChangeSet.ChangeKind.Added);
+        added.Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
     }
 
     [Test]
@@ -101,7 +101,7 @@ public sealed class ChangeSetFindTests
         added
             .Find(SparsePath.Root<Settings>())
             .ShouldNotBeNull()
-            .Kind.ShouldBe(Settings.ChangeSet.ChangeKind.Added);
+            .Kind.ShouldBe(SparseTypes.Generated.SparseChangeKind.Added);
     }
 
     [Test]
