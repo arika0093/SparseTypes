@@ -38,7 +38,7 @@ else
 fi
 cp "${fixture_csproj}" "${fixture_dir}/Program.cs" "${work}/"
 
-for framework in netstandard2.0 net6.0 net8.0 net9.0 net10.0; do
+for framework in netstandard2.0 ${SPARSE_CONSUMER_FRAMEWORKS:-net6.0 net8.0 net9.0 net10.0}; do
     dotnet build "${work}/PackageSparse.Fragments.Consumer.csproj" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesFragmentsPackageVersion="${version}" \

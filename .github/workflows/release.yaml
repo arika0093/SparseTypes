@@ -89,6 +89,9 @@ jobs:
 
   strict-test:
     uses: ./.github/workflows/test.yaml
+    with:
+      # Release validation keeps the full multi-OS matrix and TFM list.
+      full-matrix: true
 
   # Verify the candidate in isolated jobs before publishing the same bytes.
   candidate-consumers:

@@ -7,6 +7,11 @@ on:
         description: Artifact containing the package bytes to verify
         required: true
         type: string
+      slim-frameworks:
+        description: Limit Runtime/Fragments consumer loops to oldest+newest TFMs (net6.0 net10.0). The release gate runs the full interim list.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -77,4 +82,7 @@ jobs:
       - name: Verify packages
         env:
           VERIFY_SCRIPT: ${{ matrix.script }}
+          # Empty means "script default" (full TFM list). Only the Runtime and
+          # Fragments scripts read this variable.
+          SPARSE_CONSUMER_FRAMEWORKS: ${{ inputs.slim-frameworks && 'net6.0 net10.0' || '' }}
         run: bash "./.github/workflows/scripts/$VERIFY_SCRIPT" artifacts

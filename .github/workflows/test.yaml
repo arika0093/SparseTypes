@@ -2,6 +2,12 @@ name: Strict tests
 
 on:
   workflow_call:
+    inputs:
+      full-matrix:
+        description: Run unit, fragments, and NativeAOT checks on the full multi-OS matrix (release gate). Direct pushes and PRs run ubuntu-only.
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     # Version-bump pushes are validated by release.yaml, which invokes this
@@ -11,9 +17,21 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full-matrix:
+        description: Run unit, fragments, and NativeAOT checks on the full multi-OS matrix.
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
+
+# Cancel superseded PR runs so rapid pushes do not pile up redundant matrices.
+# Main and release validation are never cancelled.
+concurrency:
+  group: strict-tests-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Run direct and called workflows, skipping Dependabot PRs already checked by
 # their caller.
@@ -101,8 +119,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # PR fast path: Linux only. Main/dispatch/release-caller: full matrix.
-        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+        # Slim by default (ubuntu-only). The release gate re-runs this matrix in full via full-matrix: true.
+        os: ${{ inputs.full-matrix && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -176,8 +194,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # PR fast path: Linux only. Main/dispatch/release-caller: full matrix.
-        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+        # Slim by default (ubuntu-only). The release gate re-runs this matrix in full via full-matrix: true.
+        os: ${{ inputs.full-matrix && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
@@ -338,6 +356,8 @@ jobs:
     uses: ./.github/workflows/package-consumer-checks.yaml
     with:
       package-artifact: strict-test-packages
+      # Everyday CI covers oldest+newest TFMs; the release gate runs the full list.
+      slim-frameworks: ${{ !inputs.full-matrix }}
 
   docs-enforcement:
     if: >-
@@ -405,8 +425,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # PR fast path: Linux only. Main/dispatch/release-caller: full matrix.
-        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') }}
+        # Slim by default (ubuntu-only). The release gate re-runs this matrix in full via full-matrix: true.
+        os: ${{ inputs.full-matrix && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]') || fromJSON('["ubuntu-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository

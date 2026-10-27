@@ -70,7 +70,7 @@ assert_candidate_resolved() {
     fi
 }
 
-for framework in net6.0 net8.0 net9.0 net10.0; do
+for framework in ${SPARSE_CONSUMER_FRAMEWORKS:-net6.0 net8.0 net9.0 net10.0}; do
     dotnet build "${fixture_csproj}" \
         --configuration Release --framework "${framework}" \
         -p:SparseTypesPackageVersion="${version}" \
