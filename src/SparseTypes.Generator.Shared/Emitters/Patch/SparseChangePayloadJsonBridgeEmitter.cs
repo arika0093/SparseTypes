@@ -160,7 +160,9 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.CloseBlock();
         code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
-        SparseJsonScalarShapes.AppendScalarHelpers(code, "TScalar");
+        SparseJsonScalarShapes.AppendScalarHelpers(code, "TScalar", suffix: "Base");
+        code.AppendLine();
+        SparsePayloadJsonScalarShapes.Append(code, "TScalar", "private", "Base", string.Empty);
         AppendValueTypeTypeInfo(code);
         code.CloseBlock();
         code.AppendLine();

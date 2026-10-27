@@ -373,7 +373,7 @@ internal static class SparsePayloadSchemaEmitter
                 ),
                 SchemaComponentName(valueType.NonNullableName, "Root")
             )
-            : schema.TypeSchema(valueType.NonNullableName);
+            : schema.TypeSchema(valueType);
         var properties = new List<(string, string)>
         {
             ("key", key),
@@ -467,7 +467,7 @@ internal static class SparsePayloadSchemaEmitter
             return Object(("type", String("array")), ("items", ItemValueSchema(context, schema, member.Collection.ElementType)));
         }
 
-        return schema.TypeSchema(member.Property.Type.NonNullableName);
+        return schema.TypeSchema(member.Property.Type);
     }
 
     private static string ItemValueSchema(PayloadJsonEmissionContext context, SchemaBuilder schema, SparseTypeModel valueType)
@@ -485,7 +485,7 @@ internal static class SparsePayloadSchemaEmitter
             );
         }
 
-        return schema.TypeSchema(valueType.NonNullableName);
+        return schema.TypeSchema(valueType);
     }
 
     private static string Endpoint(string valueSchema, bool includeRedacted, bool allowNull, bool openApi31)
@@ -699,13 +699,39 @@ internal static class SparsePayloadSchemaEmitter
                 or "System.UInt16"
                 or "System.Int32"
                 or "System.UInt32" => Object(("type", String("integer")), ("format", String("int32"))),
-                "long" or "ulong" or "System.Int64" or "System.UInt64" => Object(("type", String("integer")), ("format", String("int64"))),
+                "long" or "System.Int64" => Object(
+                    ("type", String("string")),
+                    ("pattern", String("^-?(0|[1-9][0-9]*)$")),
+                    ("x-sparse-type", String("int64"))
+                ),
+                "ulong" or "System.UInt64" => Object(
+                    ("type", String("string")),
+                    ("pattern", String("^(0|[1-9][0-9]*)$")),
+                    ("x-sparse-type", String("uint64"))
+                ),
                 "float" or "System.Single" => Object(("type", String("number")), ("format", String("float"))),
                 "double" or "System.Double" => Object(("type", String("number")), ("format", String("double"))),
-                "decimal" or "System.Decimal" => Object(("type", String("number"))),
+                "decimal" or "System.Decimal" => Object(
+                    ("type", String("string")),
+                    ("pattern", String("^-?(0|[1-9][0-9]*)(\\.[0-9]+)?$")),
+                    ("x-sparse-type", String("decimal"))
+                ),
                 "char" or "System.Char" => Object(("type", String("string")), ("minLength", "1"), ("maxLength", "1")),
-                "System.Guid" => Object(("type", String("string")), ("format", String("uuid"))),
-                "System.DateTime" or "System.DateTimeOffset" => Object(("type", String("string")), ("format", String("date-time"))),
+                "System.Guid" => Object(
+                    ("type", String("string")),
+                    ("format", String("uuid")),
+                    ("pattern", String("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"))
+                ),
+                "System.DateTime" => Object(
+                    ("type", String("string")),
+                    ("pattern", String("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{7}(Z)?$")),
+                    ("x-sparse-type", String("date-time-utc-or-unspecified"))
+                ),
+                "System.DateTimeOffset" => Object(
+                    ("type", String("string")),
+                    ("pattern", String("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{7}(Z|[+-]\\d{2}:\\d{2})$")),
+                    ("x-sparse-type", String("date-time-offset"))
+                ),
                 "System.DateOnly" => Object(("type", String("string")), ("format", String("date"))),
                 "System.TimeOnly" => Object(("type", String("string")), ("format", String("time"))),
                 "System.TimeSpan" => Object(("type", String("string")), ("format", String("duration"))),
@@ -721,6 +747,19 @@ internal static class SparsePayloadSchemaEmitter
             var type = TypeExpression(typeName);
             _externalTypes.Add(type);
             return Reference(type);
+        }
+
+        internal string TypeSchema(SparseTypeModel type)
+        {
+            if (
+                type.EnumUnderlyingTypeName is string underlyingTypeName
+                && (NormalizeTypeName(underlyingTypeName) is "long" or "ulong" or "System.Int64" or "System.UInt64")
+            )
+            {
+                return TypeSchema(underlyingTypeName);
+            }
+
+            return TypeSchema(type.NonNullableName);
         }
 
         internal string SourceExpression(string json, bool openApi31)

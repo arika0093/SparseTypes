@@ -98,25 +98,25 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine(
             "private static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value) => "
                 + shared
-                + ".TryReadScalar(ref reader, out value);"
+                + ".TryReadPayloadScalar(ref reader, out value);"
         );
         code.AppendLine();
         code.AppendLine(
             "private static TValue? ReadScalarEnum<TValue>(ref global::System.Text.Json.Utf8JsonReader reader) => "
                 + shared
-                + ".ReadScalarEnum<TValue>(ref reader);"
+                + ".ReadPayloadScalarEnum<TValue>(ref reader);"
         );
         code.AppendLine();
         code.AppendLine(
             "private static bool TryWriteScalar<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value) => "
                 + shared
-                + ".TryWriteScalar(writer, value);"
+                + ".TryWritePayloadScalar(writer, value);"
         );
         code.AppendLine();
         code.AppendLine(
             "private static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value) => "
                 + shared
-                + ".WriteScalarEnum(writer, value);"
+                + ".WritePayloadScalarEnum(writer, value);"
         );
         code.AppendLine();
         code.AppendLine("private static TKey ParseMapKey<TKey>(string name) => " + shared + ".ParseMapKey<TKey>(name);");
@@ -374,7 +374,9 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine("writer.WriteEndArray();");
         code.CloseBlock();
         code.AppendLine();
-        SparseJsonScalarShapes.AppendScalarHelpers(code, "TValue");
+        SparseJsonScalarShapes.AppendScalarHelpers(code, "TValue", suffix: "Base");
+        code.AppendLine();
+        SparsePayloadJsonScalarShapes.Append(code, "TValue", "private", "Base", string.Empty);
         SparseJsonScalarShapes.AppendMapKeyHelpers(code);
     }
 }

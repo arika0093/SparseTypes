@@ -88,7 +88,7 @@ public sealed class AotScalarTests
         );
 
         var json = SerializePayload(PayloadScalars.ChangeSet.Between(before, after).ToPayload(), PayloadScalars.PayloadJson.Default);
-        await Assert.That(json.Contains("\"value\":123456789012345")).IsTrue();
+        await Assert.That(json.Contains("\"value\":\"123456789012345\"")).IsTrue();
         await Assert.That(json.Contains("\"value\":42")).IsTrue();
 
         var restored = JsonSerializer.Deserialize(json, PayloadScalars.PayloadJson.Default)!.ToChangeSet();
@@ -176,7 +176,7 @@ public sealed class AotScalarTests
         );
 
         var editJson = SerializePayload(PayloadLongKeyHolder.ChangeSet.Between(before, edited).ToPayload(), PayloadLongKeyHolder.PayloadJson.Default);
-        await Assert.That(editJson.Contains("\"key\":7")).IsTrue();
+        await Assert.That(editJson.Contains("\"key\":\"7\"")).IsTrue();
         await Assert.That(editJson.Contains("\"kind\":\"update\"")).IsTrue();
         var editRestored = JsonSerializer.Deserialize(editJson, PayloadLongKeyHolder.PayloadJson.Default)!.ToChangeSet();
         await Assert.That(PayloadLongKeyHolder.Patch.Between(editRestored.ToPatch().Apply(before), edited).IsEmpty).IsTrue();

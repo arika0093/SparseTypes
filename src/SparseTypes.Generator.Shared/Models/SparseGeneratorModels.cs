@@ -18,7 +18,10 @@ internal readonly record struct SparseTypeModel(
     bool UsesDefaultScalarEquality = false,
     string? ObservableTypeName = null,
     string? ReadOnlyViewTypeName = null,
-    string? PocoReadOnlyViewKey = null
+    string? PocoReadOnlyViewKey = null,
+    string? EnumUnderlyingTypeName = null,
+    string? PayloadSchemaShape = null,
+    bool IsNullable = false
 );
 
 internal readonly record struct SparsePropertyModel(

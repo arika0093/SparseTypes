@@ -46,6 +46,8 @@ internal static class SparseGeneratedOnceJsonCodecs
             AppendRuntimeHelpers(code, dialect.Value);
         }
 
+        code.AppendLine();
+        SparsePayloadJsonScalarShapes.Append(code, "TValue", "internal", string.Empty, "Payload");
         code.CloseBlock();
         code.CloseBlock();
         return code.ToString();
@@ -203,7 +205,7 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.AppendLine("hasValue = true;");
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
         code.AppendLine("else if (rootReader is not null) value = rootReader(ref reader, options);");
-        code.AppendLine("else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
+        code.AppendLine("else if (TryReadPayloadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
         code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, getTypeInfo(options));");
         code.CloseBlock();
         code.AppendLine("else");
@@ -260,7 +262,7 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.AppendLine("writer.WritePropertyName(" + wire + ".ValueProperty);");
         code.AppendLine("if (rootWriter is not null) rootWriter(writer, value.Value!, options);");
         code.AppendLine(
-            "else if (!TryWriteScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, getTypeInfo(options));"
+            "else if (!TryWritePayloadScalar(writer, value.Value!)) global::System.Text.Json.JsonSerializer.Serialize(writer, value.Value!, getTypeInfo(options));"
         );
         code.CloseBlock();
         code.AppendLine("writer.WriteEndObject();");
@@ -273,7 +275,7 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.AppendLine(
             "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException(\"Malformed key.\");"
         );
-        code.AppendLine("if (TryReadScalar<TKey>(ref reader, out var scalarKey)) return scalarKey!;");
+        code.AppendLine("if (TryReadPayloadScalar<TKey>(ref reader, out var scalarKey)) return scalarKey!;");
         code.AppendLine("return global::System.Text.Json.JsonSerializer.Deserialize<TKey>(ref reader, getTypeInfo(options))!;");
         code.CloseBlock();
         code.AppendLine();
@@ -281,7 +283,9 @@ internal static class SparseGeneratedOnceJsonCodecs
             "internal static void WriteKey<TKey>(global::System.Text.Json.Utf8JsonWriter writer, TKey key, global::System.Text.Json.JsonSerializerOptions options, global::System.Func<global::System.Text.Json.JsonSerializerOptions, global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TKey>> getTypeInfo)"
         );
         code.OpenBlock();
-        code.AppendLine("if (!TryWriteScalar(writer, key!)) global::System.Text.Json.JsonSerializer.Serialize(writer, key!, getTypeInfo(options));");
+        code.AppendLine(
+            "if (!TryWritePayloadScalar(writer, key!)) global::System.Text.Json.JsonSerializer.Serialize(writer, key!, getTypeInfo(options));"
+        );
         code.CloseBlock();
     }
 

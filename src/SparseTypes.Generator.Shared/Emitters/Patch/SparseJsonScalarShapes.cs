@@ -19,15 +19,15 @@ internal static class SparseJsonScalarShapes
     /// <param name="code">Converter body builder.</param>
     /// <param name="valueParameter">Method-level value type parameter name.</param>
     /// <param name="accessibility">Emitted member accessibility.</param>
-    internal static void AppendScalarHelpers(SharedIndentedBuilder code, string valueParameter, string accessibility = "private")
+    internal static void AppendScalarHelpers(SharedIndentedBuilder code, string valueParameter, string accessibility = "private", string suffix = "")
     {
-        AppendTryReadScalar(code, valueParameter, accessibility);
+        AppendTryReadScalar(code, valueParameter, accessibility, suffix);
         code.AppendLine();
-        AppendReadScalarEnum(code, valueParameter, accessibility);
+        AppendReadScalarEnum(code, valueParameter, accessibility, suffix);
         code.AppendLine();
-        AppendTryWriteScalar(code, valueParameter, accessibility);
+        AppendTryWriteScalar(code, valueParameter, accessibility, suffix);
         code.AppendLine();
-        AppendWriteScalarEnum(code, valueParameter, accessibility);
+        AppendWriteScalarEnum(code, valueParameter, accessibility, suffix);
         code.AppendLine();
     }
 
@@ -107,11 +107,13 @@ internal static class SparseJsonScalarShapes
                 + ")(object)key!).ToString(global::System.Globalization.CultureInfo.InvariantCulture);"
         );
 
-    private static void AppendTryReadScalar(SharedIndentedBuilder code, string valueParameter, string accessibility = "private")
+    private static void AppendTryReadScalar(SharedIndentedBuilder code, string valueParameter, string accessibility, string suffix)
     {
         code.AppendLine(
             accessibility
-                + " static bool TryReadScalar<"
+                + " static bool TryRead"
+                + suffix
+                + "Scalar<"
                 + valueParameter
                 + ">(ref global::System.Text.Json.Utf8JsonReader reader, out "
                 + valueParameter
@@ -148,7 +150,7 @@ internal static class SparseJsonScalarShapes
         AppendScalarRead(code, valueParameter, "global::System.DateTimeOffset", "reader.GetDateTimeOffset()");
         code.AppendLine("if (target.IsEnum)");
         code.OpenBlock();
-        code.AppendLine("value = ReadScalarEnum<" + valueParameter + ">(ref reader);");
+        code.AppendLine("value = Read" + suffix + "ScalarEnum<" + valueParameter + ">(ref reader);");
         code.AppendLine("return true;");
         code.CloseBlock();
         code.CloseBlock();
@@ -172,13 +174,15 @@ internal static class SparseJsonScalarShapes
         code.CloseBlock();
     }
 
-    private static void AppendReadScalarEnum(SharedIndentedBuilder code, string valueParameter, string accessibility = "private")
+    private static void AppendReadScalarEnum(SharedIndentedBuilder code, string valueParameter, string accessibility, string suffix)
     {
         code.AppendLine(
             accessibility
                 + " static "
                 + valueParameter
-                + "? ReadScalarEnum<"
+                + "? Read"
+                + suffix
+                + "ScalarEnum<"
                 + valueParameter
                 + ">(ref global::System.Text.Json.Utf8JsonReader reader)"
         );
@@ -214,11 +218,13 @@ internal static class SparseJsonScalarShapes
                 + ");"
         );
 
-    private static void AppendTryWriteScalar(SharedIndentedBuilder code, string valueParameter, string accessibility = "private")
+    private static void AppendTryWriteScalar(SharedIndentedBuilder code, string valueParameter, string accessibility, string suffix)
     {
         code.AppendLine(
             accessibility
-                + " static bool TryWriteScalar<"
+                + " static bool TryWrite"
+                + suffix
+                + "Scalar<"
                 + valueParameter
                 + ">(global::System.Text.Json.Utf8JsonWriter writer, "
                 + valueParameter
@@ -246,7 +252,7 @@ internal static class SparseJsonScalarShapes
         AppendScalarWrite(code, "global::System.DateTimeOffset", "writer.WriteStringValue((global::System.DateTimeOffset)(object)value!);");
         code.AppendLine("if (target.IsEnum)");
         code.OpenBlock();
-        code.AppendLine("WriteScalarEnum(writer, value!);");
+        code.AppendLine("Write" + suffix + "ScalarEnum(writer, value!);");
         code.AppendLine("return true;");
         code.CloseBlock();
         code.AppendLine("return false;");
@@ -256,11 +262,13 @@ internal static class SparseJsonScalarShapes
     private static void AppendScalarWrite(SharedIndentedBuilder code, string type, string statement) =>
         code.AppendLine("if (target == typeof(" + type + ")) { " + statement + " return true; }");
 
-    private static void AppendWriteScalarEnum(SharedIndentedBuilder code, string valueParameter, string accessibility = "private")
+    private static void AppendWriteScalarEnum(SharedIndentedBuilder code, string valueParameter, string accessibility, string suffix)
     {
         code.AppendLine(
             accessibility
-                + " static void WriteScalarEnum<"
+                + " static void Write"
+                + suffix
+                + "ScalarEnum<"
                 + valueParameter
                 + ">(global::System.Text.Json.Utf8JsonWriter writer, "
                 + valueParameter
