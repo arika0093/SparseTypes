@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -5,8 +6,8 @@ using SparseTypes.Generator;
 
 namespace SparseTypes.Tests.Generation;
 
-// Pin the model-facing surface: state and UI types nest in the model, while
-// builders, paths, and implementation details live in SparseTypes.Generated.
+// Pin the model-facing surface: state and builder types nest in the model,
+// while paths and implementation details live in SparseTypes.Generated.
 public sealed class ModelFacingSurfaceTests
 {
     private const string ShapesSource = """
@@ -81,7 +82,6 @@ public sealed class ModelFacingSurfaceTests
         "DescriptorFactory",
         "PatchOperations",
         "ChangeSetOperations",
-        "FragmentBuilder",
         "SparsePaths",
     ];
 
@@ -127,7 +127,7 @@ public sealed class ModelFacingSurfaceTests
         {
             model.GetMembers(internalHelper).ShouldBeEmpty();
         }
-        foreach (var expected in new[] { "Fragment", "Patch", "ChangeSet", "ChangePayload", "PayloadJson" })
+        foreach (var expected in new[] { "Fragment", "FragmentBuilder", "Patch", "ChangeSet", "ChangePayload", "PayloadJson" })
         {
             nested.ShouldContain(expected);
         }
@@ -147,19 +147,28 @@ public sealed class ModelFacingSurfaceTests
                 nested.ShouldNotContain(unexpected);
             }
         }
-        // FragmentBuilder is a model-specific top-level generated type.
+        var fragmentBuilder = model.GetTypeMembers("FragmentBuilder").ShouldHaveSingleItem();
+        fragmentBuilder.DeclaredAccessibility.ShouldBe(model.DeclaredAccessibility);
         compilation
-            .GetSymbolsWithName(static name => name.EndsWith("FragmentBuilder", StringComparison.Ordinal))
+            .GetSymbolsWithName(static name => name == "FragmentBuilder")
             .OfType<INamedTypeSymbol>()
             .Where(static symbol => symbol.ContainingNamespace.ToDisplayString().StartsWith("SparseTypes.Generated", StringComparison.Ordinal))
             .Where(static symbol => symbol.ContainingType is null)
-            .ShouldNotBeEmpty();
-        compilation
+            .ShouldBeEmpty();
+        var sparsePathsTypes = compilation
             .GetSymbolsWithName(static name => name.EndsWith("SparsePaths", StringComparison.Ordinal))
             .OfType<INamedTypeSymbol>()
             .Where(static symbol => symbol.ContainingNamespace.ToDisplayString().StartsWith("SparseTypes.Generated", StringComparison.Ordinal))
             .Where(static symbol => symbol.ContainingType is null)
-            .ShouldNotBeEmpty();
+            .ToArray();
+        sparsePathsTypes.ShouldNotBeEmpty();
+        foreach (var pathsType in sparsePathsTypes)
+        {
+            var editorBrowsable = pathsType
+                .GetAttributes()
+                .Single(attribute => attribute.AttributeClass?.ToDisplayString() == "System.ComponentModel.EditorBrowsableAttribute");
+            editorBrowsable.ConstructorArguments.Single().Value.ShouldBe((int)EditorBrowsableState.Never);
+        }
 
         // Payload JSON remains available without adding a Fragment JSON converter.
         var fragment = model.GetTypeMembers("Fragment").ShouldHaveSingleItem();

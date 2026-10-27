@@ -50,8 +50,10 @@ public sealed class GeneratedApiApprovalTests
                 AssertNested(model, nested);
             }
 
-            // Builders and paths live in the per-model Generated container.
-            model.GetNestedTypes().Select(static type => type.Name).ShouldNotContain("FragmentBuilder");
+            var fragmentBuilder = AssertNested(model, "FragmentBuilder");
+            var fragment = AssertNested(model, "Fragment");
+            fragment.GetMethod("ToBuilder")!.ReturnType.ShouldBe(fragmentBuilder);
+            AssertMethods(fragmentBuilder, ["Build"]);
             model.GetNestedTypes().Select(static type => type.Name).ShouldNotContain("SparsePaths");
 
             var changeSet = AssertNested(model, "ChangeSet");

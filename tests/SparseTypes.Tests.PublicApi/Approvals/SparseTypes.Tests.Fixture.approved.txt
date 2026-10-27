@@ -1,13 +1,5 @@
 namespace SparseTypes.Generated
 {
-    public static class SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290 { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290FragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290FragmentBuilder() { }
-        public SparseTypes.Optional<>& Details { get; }
-        public SparseTypes.Optional<>& Scores { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment Build() { }
-    }
     public static class SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjects
     {
         public abstract class Change
@@ -124,15 +116,6 @@ namespace SparseTypes.Generated
             public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SparsePaths<TRoot>.SparseScoresPaths paths) { }
         }
     }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CC { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCFragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCFragmentBuilder() { }
-        public SparseTypes.Optional<>& Count { get; }
-        public SparseTypes.Optional<>& Name { get; }
-        public SparseTypes.Optional<>& Tags { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment Build() { }
-    }
     public static class SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjects
     {
         public abstract class Change
@@ -235,15 +218,6 @@ namespace SparseTypes.Generated
         public SparseTypes.SparsePath UntypedPath { get; }
         public void WriteModelValueInPlace(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, SparseTypes.GeneratedApiFixtures.CatalogImmutable updated) { }
         public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSparsePaths<TRoot> paths) { }
-    }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FD { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDFragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDFragmentBuilder() { }
-        public SparseTypes.Optional<>& Count { get; }
-        public SparseTypes.Optional<>& Id { get; }
-        public SparseTypes.Optional<>& Title { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment Build() { }
     }
     public static class SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjects
     {
@@ -348,13 +322,6 @@ namespace SparseTypes.Generated
         public void WriteModelValueInPlace(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem updated) { }
         public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSparsePaths<TRoot> paths) { }
     }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841 { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841FragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841FragmentBuilder() { }
-        public SparseTypes.Optional<>& Items { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment Build() { }
-    }
     public static class SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjects
     {
         public abstract class Change
@@ -455,18 +422,6 @@ namespace SparseTypes.Generated
             public void WriteModelValueInPlace(System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> current, System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem> updated) { }
             public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SparsePaths<TRoot>.SparseItemsPaths paths) { }
         }
-    }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CB { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBFragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBFragmentBuilder() { }
-        public SparseTypes.Optional<>& Child { get; }
-        public SparseTypes.Optional<>& Children { get; }
-        public SparseTypes.Optional<>& Maybe { get; }
-        public SparseTypes.Optional<>& Metadata { get; }
-        public SparseTypes.Optional<>& MetadataByKey { get; }
-        public SparseTypes.Optional<>& MetadataItems { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment Build() { }
     }
     public static class SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjects
     {
@@ -599,16 +554,6 @@ namespace SparseTypes.Generated
         public void WriteModelValueInPlace(SparseTypes.GeneratedApiFixtures.CatalogNested current, SparseTypes.GeneratedApiFixtures.CatalogNested updated) { }
         public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSparsePaths<TRoot> paths) { }
     }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EB { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBFragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBFragmentBuilder() { }
-        public SparseTypes.Optional<>& ChangeInfo { get; }
-        public SparseTypes.Optional<>& ChangeKind { get; }
-        public SparseTypes.Optional<>& EnumerateChangedPaths { get; }
-        public SparseTypes.Optional<>& EnumerateChanges { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment Build() { }
-    }
     public static class SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjects
     {
         public abstract class Change
@@ -721,17 +666,6 @@ namespace SparseTypes.Generated
         public SparseTypes.SparsePath UntypedPath { get; }
         public void WriteModelValueInPlace(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration updated) { }
         public static SparseTypes.SparsePath op_Implicit(SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSparsePaths<TRoot> paths) { }
-    }
-    public static class SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0C { }
-    public sealed class SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CFragmentBuilder
-    {
-        public SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CFragmentBuilder() { }
-        public SparseTypes.Optional<>& Count { get; }
-        public SparseTypes.Optional<>& Labels { get; }
-        public SparseTypes.Optional<>& Name { get; }
-        public SparseTypes.Optional<>& Note { get; }
-        public SparseTypes.Optional<>& Retry { get; }
-        public SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment Build() { }
     }
     public static class SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjects
     {
@@ -1069,7 +1003,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290FragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries ToModel(SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch ToPatch() { }
@@ -1077,6 +1011,13 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogDictionaries model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogDictionaries before, SparseTypes.GeneratedApiFixtures.CatalogDictionaries after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogDictionaries value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Details { get; }
+            public SparseTypes.Optional<>& Scores { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -1308,13 +1249,21 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCFragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogImmutable.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogImmutable ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogImmutable ToModel(SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch ToPatch() { }
             public bool TryGetOrigin(SparseTypes.SparsePath path, out string? origin) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogImmutable before, SparseTypes.GeneratedApiFixtures.CatalogImmutable after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogImmutable value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Count { get; }
+            public SparseTypes.Optional<>& Name { get; }
+            public SparseTypes.Optional<>& Tags { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -1514,7 +1463,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDFragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem ToModel(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch ToPatch() { }
@@ -1522,6 +1471,14 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem before, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Count { get; }
+            public SparseTypes.Optional<>& Id { get; }
+            public SparseTypes.Optional<>& Title { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -1763,7 +1720,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841FragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster ToModel(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch ToPatch() { }
@@ -1771,6 +1728,12 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster before, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Items { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -2012,7 +1975,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBFragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogNested.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogNested ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogNested ToModel(SparseTypes.GeneratedApiFixtures.CatalogNested baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogNested.Patch ToPatch() { }
@@ -2020,6 +1983,17 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogNested model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogNested before, SparseTypes.GeneratedApiFixtures.CatalogNested after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogNested value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Child { get; }
+            public SparseTypes.Optional<>& Children { get; }
+            public SparseTypes.Optional<>& Maybe { get; }
+            public SparseTypes.Optional<>& Metadata { get; }
+            public SparseTypes.Optional<>& MetadataByKey { get; }
+            public SparseTypes.Optional<>& MetadataItems { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -2244,7 +2218,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBFragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration ToModel(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch ToPatch() { }
@@ -2252,6 +2226,15 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration before, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& ChangeInfo { get; }
+            public SparseTypes.Optional<>& ChangeKind { get; }
+            public SparseTypes.Optional<>& EnumerateChangedPaths { get; }
+            public SparseTypes.Optional<>& EnumerateChanges { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {
@@ -2468,7 +2451,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public string? GetOrigin(SparseTypes.SparsePath path) { }
             public SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment Merge(SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment higherPriority) { }
             public System.Collections.Generic.IReadOnlyList<SparseTypes.FragmentOriginGroup<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment>> SplitByOrigin() { }
-            public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CFragmentBuilder ToBuilder() { }
+            public SparseTypes.GeneratedApiFixtures.CatalogScalar.FragmentBuilder ToBuilder() { }
             public SparseTypes.GeneratedApiFixtures.CatalogScalar ToModel() { }
             public SparseTypes.GeneratedApiFixtures.CatalogScalar ToModel(SparseTypes.GeneratedApiFixtures.CatalogScalar baseline) { }
             public SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch ToPatch() { }
@@ -2476,6 +2459,16 @@ namespace SparseTypes.GeneratedApiFixtures
             public void WriteTo(SparseTypes.GeneratedApiFixtures.CatalogScalar model) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment Diff(SparseTypes.GeneratedApiFixtures.CatalogScalar before, SparseTypes.GeneratedApiFixtures.CatalogScalar after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment From(SparseTypes.GeneratedApiFixtures.CatalogScalar value) { }
+        }
+        public sealed class FragmentBuilder
+        {
+            public FragmentBuilder() { }
+            public SparseTypes.Optional<>& Count { get; }
+            public SparseTypes.Optional<>& Labels { get; }
+            public SparseTypes.Optional<>& Name { get; }
+            public SparseTypes.Optional<>& Note { get; }
+            public SparseTypes.Optional<>& Retry { get; }
+            public SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment Build() { }
         }
         public sealed class Observable : System.ComponentModel.INotifyPropertyChanged
         {

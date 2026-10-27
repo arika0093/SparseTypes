@@ -581,9 +581,10 @@ bodies plus POCO clone helpers; the model keeps one-line facades on
 `internal static`, because only the owning model file references it.
 Reference cycles, comparers, merge modes, and presence semantics are
 unchanged, and collection kernels stay compilation-scoped under issue #182.
-The container also hosts the relocated `FragmentBuilder` and
-`SparsePaths<TRoot>` classes; the model keeps the `ToBuilder()` facade and
-the static `SparsePath` entry point forwarding to them.
+`FragmentBuilder` is nested in the model as `T.FragmentBuilder`, and the
+`ToBuilder()` facade seeds it from a Fragment. `SparsePaths<TRoot>` remains in
+the per-model implementation container, with the model's static `SparsePath`
+entry point forwarding to it.
 per-model generated implementations live once facade/implementation separation
 lands. All placement decisions flow through `SparseGeneratedPlacement`: the
 per-model container derives from the stable fully qualified model identity

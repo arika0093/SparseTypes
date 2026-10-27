@@ -332,16 +332,31 @@ public sealed class GeneratedDocsAndOrderingTests
     }
 
     [Test]
-    public void GeneratedInternalClassesAndFragmentBuildersAreHiddenFromIntelliSense()
+    public void ChangeSetCoreBetweenHasOneRelevantSummary()
+    {
+        var changeSet = Probe.Value.GetTypeByMetadataName("GeneratedContract.Probe.ProbeScalar+ChangeSet");
+        changeSet.ShouldNotBeNull();
+        var core = changeSet!.GetTypeMembers("__Core").ShouldHaveSingleItem();
+        var between = core
+            .GetMembers("Between")
+            .OfType<IMethodSymbol>()
+            .Single(method => method.DeclaredAccessibility == Accessibility.Internal && method.Parameters[0].Type.Name == "Optional");
+        var docs = ((MethodDeclarationSyntax)between.DeclaringSyntaxReferences.Single().GetSyntax()).GetLeadingTrivia().ToFullString();
+
+        Regex.Matches(docs, @"/// <summary>").Count.ShouldBe(1);
+        docs.ShouldContain("Derives the canonical baseline-aware diff between two states.");
+        docs.ShouldNotContain("Deep-clones a retained whole-root fragment.");
+    }
+
+    [Test]
+    public void GeneratedInternalClassesAreHiddenFromIntelliSense()
     {
         var violations = new List<string>();
         foreach (var tree in GeneratedTrees(Probe.Value))
         {
             foreach (var type in tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
             {
-                var isInternal = type.Modifiers.Any(SyntaxKind.InternalKeyword);
-                var isFragmentBuilder = type.Identifier.Text.EndsWith("FragmentBuilder", StringComparison.Ordinal);
-                if (!isInternal && !isFragmentBuilder)
+                if (!type.Modifiers.Any(SyntaxKind.InternalKeyword))
                 {
                     continue;
                 }

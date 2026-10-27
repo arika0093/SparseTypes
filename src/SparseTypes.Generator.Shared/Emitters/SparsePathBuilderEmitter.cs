@@ -80,6 +80,7 @@ internal static class SparsePathBuilderEmitter
         }
         code.AppendLine("/// <summary>Root path builder for typed navigation.</summary>");
         code.AppendLine("/// <typeparam name=\"TRoot\">The root model the path navigates from.</typeparam>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         var pathInterface = string.Empty;
         if (childPathInterface is not null)
         {

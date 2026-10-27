@@ -91,7 +91,6 @@ internal static class SparseChangeSetBetweenEmitter
         }
         // Empty storage contains no retained endpoints or mutable containers.
         code.AppendLine("private static readonly ChangeSet " + emptyName + " = new ChangeSet(" + empty + ");");
-        code.AppendLine("/// <summary>Deep-clones a retained whole-root fragment.</summary>");
         code.AppendLine(
             "private static "
                 + optionalFragment

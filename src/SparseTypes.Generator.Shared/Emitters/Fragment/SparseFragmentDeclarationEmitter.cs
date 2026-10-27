@@ -149,7 +149,6 @@ internal sealed class SparseFragmentDeclarationEmitter(
     {
         code.CancellationToken.ThrowIfCancellationRequested();
         code.AppendLine("/// <summary>A mutable builder for a generated fragment.</summary>");
-        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(accessibility + " sealed class " + typeName);
         code.OpenBlock();
         // Public surface first: staged references, construction, then Build.

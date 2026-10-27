@@ -17,10 +17,6 @@ internal static class SparseGeneratedPlacement
     /// <summary>Simple name of the per-model change-set operation container.</summary>
     public const string ChangeSetOperationsSimpleName = "ChangeSetOperations";
 
-    /// <summary>Gets the model-specific public FragmentBuilder type name.</summary>
-    public static string GetFragmentBuilderSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
-        GetImplementationContainer(model, cancellationToken) + "FragmentBuilder";
-
     /// <summary>Gets the model-specific public SparsePaths type name.</summary>
     public static string GetSparsePathsSimpleName(SparseModelInfo model, CancellationToken cancellationToken) =>
         GetImplementationContainer(model, cancellationToken) + "SparsePaths";
@@ -31,14 +27,6 @@ internal static class SparseGeneratedPlacement
         var root = TryGetImplementationNamespace(config) ?? (model.IsGlobalNamespace ? string.Empty : model.Namespace);
         var prefix = root.Length == 0 ? "global::" : "global::" + root + ".";
         return prefix + GetSparsePathsSimpleName(model, cancellationToken);
-    }
-
-    /// <summary>Gets the qualified top-level FragmentBuilder type for one model.</summary>
-    public static string GetFragmentBuilderTypeName(SparseModelInfo model, SparseGeneratorConfig config, CancellationToken cancellationToken)
-    {
-        var root = TryGetImplementationNamespace(config) ?? (model.IsGlobalNamespace ? string.Empty : model.Namespace);
-        var prefix = root.Length == 0 ? "global::" : "global::" + root + ".";
-        return prefix + GetFragmentBuilderSimpleName(model, cancellationToken);
     }
 
     /// <summary>Gets the model-specific temporary-key reconciliation helper name.</summary>

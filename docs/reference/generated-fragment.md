@@ -47,7 +47,7 @@ From and Diff reject unsupported structural cycles with a path-bearing `NotSuppo
 
 ## Builder
 
-The generated `FragmentBuilder` has a parameterless constructor, ref-returning `Optional<...>` members, and `Fragment Build()`. Normally obtain it with `fragment.ToBuilder()`. Assigning Missing clears a builder member; assigning Present(null) keeps it present. Build creates a new Fragment; subsequent builder assignments do not change its member storage. Referenced mutable values can still be shared.
+The generated `T.FragmentBuilder` has a parameterless constructor, ref-returning `Optional<...>` members, and `T.Fragment Build()`. Normally obtain it with `fragment.ToBuilder()`. Assigning Missing clears a builder member; assigning Present(null) keeps it present. Build creates a new Fragment; subsequent builder assignments do not change its member storage. Referenced mutable values can still be shared.
 
 ## Example
 
