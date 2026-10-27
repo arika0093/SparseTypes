@@ -1,7 +1,3 @@
 # SparseTypes.Core
 
 `SparseTypes.Core` contains the shared value types, model attributes, and runtime helpers used by the SparseTypes products.
-
-Most applications should install either `SparseTypes` or `SparseTypes.Fragments`. Both packages depend on Core and include their own source generator. Installing Core alone does not enable source generation. 
-
-Core targets `netstandard2.0`, `net6.0`, and `net10.0` and supports C# 9 or later. Core has no dependency on either product runtime or generator.
