@@ -11,6 +11,7 @@ public sealed class AotEmissionDefaultsTests
         // Compile-time presence: fragment families and UI/editing types stay
         // nested.
         _ = typeof(PayloadRoot.Fragment);
+        _ = typeof(PayloadRoot.FragmentBuilder);
         _ = typeof(PayloadRoot.Patch);
         _ = typeof(PayloadRoot.ChangeSet);
         _ = typeof(PayloadRoot.ChangePayload);
@@ -18,13 +19,8 @@ public sealed class AotEmissionDefaultsTests
         _ = typeof(PayloadRoot.ReadOnlyView);
         _ = typeof(PayloadRoot.EditSession);
         var probeBuilder = PayloadRoot.Fragment.From(new PayloadRoot { Label = "a" }).ToBuilder();
-        await Assert
-            .That(
-                probeBuilder
-                    .GetType()
-                    .Namespace!.StartsWith("SparseTypes.Generated", StringComparison.Ordinal)
-            )
-            .IsTrue();
+        await Assert.That(probeBuilder.GetType().Name).IsEqualTo("FragmentBuilder");
+        await Assert.That(probeBuilder.GetType().DeclaringType).IsEqualTo(typeof(PayloadRoot));
         // NOTE: no typeof(PayloadRoot).GetNestedTypes() enumeration here.
         var session = new PayloadRoot { Label = "a" }.CreateEditSession();
         await Assert
