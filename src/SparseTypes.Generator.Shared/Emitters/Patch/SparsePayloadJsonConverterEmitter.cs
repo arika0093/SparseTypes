@@ -405,7 +405,7 @@ internal static class SparsePayloadJsonConverterEmitter
                     + ": throw new global::System.Text.Json.JsonException(\"A model member is excluded from the JSON payload contract.\");"
             );
         }
-        code.AppendLine("default: reader.Skip(); break;");
+        code.AppendLine("default: throw new global::System.Text.Json.JsonException(\"Unknown model member target '\" + name + \"'.\");");
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("return members;");

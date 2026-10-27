@@ -163,7 +163,7 @@ public sealed class ShapeValidationTests
         contract.MembersPropertyName.ShouldBe("members");
         contract.EndpointStatePropertyName.ShouldBe("state");
         contract.EndpointValuePropertyName.ShouldBe("value");
-        contract.IgnoreUnknownMembers.ShouldBeTrue();
+        contract.IgnoreUnknownMembers.ShouldBeFalse();
         contract.RejectDuplicateProperties.ShouldBeTrue();
         contract.RejectUnknownOperations.ShouldBeTrue();
         SparsePayloadContract.Create(contract.Members.Select(static member => member.Member).ToImmutableArray()).ShouldBe(contract);
