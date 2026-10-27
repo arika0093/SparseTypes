@@ -4,7 +4,7 @@ using SparseTypes.Generator;
 
 namespace SparseTypes.Tests.Generation;
 
-/// <summary>Source-placement regression tests for the Fragment operations relocation (, stages 3-4).</summary>
+/// <summary>Source-placement regression tests for Fragment operations.</summary>
 public sealed class FragmentOperationsSplitTests
 {
     private static Dictionary<string, string> Files() =>
@@ -56,19 +56,15 @@ public sealed class FragmentOperationsSplitTests
             .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
+    private static string ModelSource(Dictionary<string, string> sources, string modelName) =>
+        string.Concat(sources.Where(pair => pair.Key.Contains(modelName, StringComparison.Ordinal) && pair.Key.EndsWith(".g.cs", StringComparison.Ordinal)).Select(static pair => pair.Value));
+
     [Test]
-    public void MergedFileKeepsFacadesAndBridgesWithAlgorithms()
+    public void CategorizedFilesKeepFacadesAndBridgesWithAlgorithms()
     {
         var sources = Sources();
-        // Single-file emission: one merged hint per model carries the surface
-        // plus implementations.
-        var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
-        sources
-            .Keys.Count(key => key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal))
-            .ShouldBe(0);
-        var merged = sources[mergedHint];
+        var merged = ModelSource(sources, "OpsParent");
+        sources.Keys.ShouldNotContain(static key => key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal));
 
         // Facades delegate to the relocated operations class.
         merged.ShouldContain("FragmentOperations.From(value)");
@@ -87,7 +83,7 @@ public sealed class FragmentOperationsSplitTests
         merged.ShouldContain("private Fragment(Fragment source,");
         merged.ShouldContain("__SparseWriteWritableTo");
         merged.ShouldContain("__SparseAreEqual");
-        // Heavy algorithms live in the same merged file.
+        // Heavy algorithms stay in the model's Generated file.
         merged.ShouldContain("__SparseDiffCore");
         merged.ShouldContain("__Diff_");
         merged.ShouldContain("public static Fragment Merge(Fragment self,");
@@ -95,13 +91,10 @@ public sealed class FragmentOperationsSplitTests
     }
 
     [Test]
-    public void MergedFileCarriesOperationsAndPocoHelpers()
+    public void GeneratedFileCarriesOperationsAndPocoHelpers()
     {
         var sources = Sources();
-        var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
-        var merged = sources[mergedHint];
+        var merged = ModelSource(sources, "OpsParent");
 
         // Same-file-only helpers narrow to file-scoped types on C# 11+.
         merged.ShouldContain(" static class ");
@@ -124,11 +117,9 @@ public sealed class FragmentOperationsSplitTests
     public void SplitOperationsAreAssemblyVisibleForCrossModelCloning()
     {
         var sources = Sources();
-        var mergedHint = sources.Keys.Single(key =>
-            key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
+        sources.Keys.Count(key => key.Contains("OpsParent", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(1);
         // Child model clone operations are referenced across generated files.
-        sources[mergedHint].ShouldContain("internal static class ");
+        ModelSource(sources, "OpsParent").ShouldContain("internal static class ");
     }
 
     [Test]
@@ -136,9 +127,9 @@ public sealed class FragmentOperationsSplitTests
     {
         var sources = Sources();
         var child = sources
-            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
+            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal) && pair.Key.EndsWith(".g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
+            .Aggregate(string.Concat);
         child.ShouldNotContain("CreateFromCycleContext");
         child.ShouldNotContain("CreateDiffCycleContext");
         child.ShouldNotContain("Cyclic reference detected during From");
@@ -150,9 +141,9 @@ public sealed class FragmentOperationsSplitTests
         child.ShouldNotContain("__sparse_diff_path");
 
         var parent = sources
-            .Where(pair => pair.Key.Contains("OpsParent", StringComparison.Ordinal))
+            .Where(pair => pair.Key.Contains("OpsParent", StringComparison.Ordinal) && pair.Key.EndsWith(".g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
+            .Aggregate(string.Concat);
         parent.ShouldContain("CreateFromCycleContext");
         parent.ShouldContain("CreateDiffCycleContext");
         parent.ShouldContain("Cyclic reference detected during From");
@@ -168,9 +159,9 @@ public sealed class FragmentOperationsSplitTests
     {
         var sources = Sources();
         var child = sources
-            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal))
+            .Where(pair => pair.Key.Contains("OpsChild", StringComparison.Ordinal) && pair.Key.EndsWith(".g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
-            .Single(static source => source.Contains("public static Fragment From(", StringComparison.Ordinal));
+            .Aggregate(string.Concat);
 
         child.ShouldContain("Count = source.Count");
         child.ShouldNotContain("source.Count is null");

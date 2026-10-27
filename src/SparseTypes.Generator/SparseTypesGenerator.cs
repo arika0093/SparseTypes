@@ -464,91 +464,18 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             )
             .WithComparer(EqualityComparer<(bool Needed, bool Portable, bool Capacity)>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceCloneKernels");
-        context.RegisterSourceOutput(
-            clonePlan,
-            static (productionContext, plan) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (plan.Needed && implementationNamespace is not null)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.CloneKernelsHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderCloneKernels(
-                                implementationNamespace,
-                                plan.Portable,
-                                plan.Capacity,
-                                productionContext.CancellationToken
-                            ),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         var needsReadOnlyAdapters = generatedOncePlan
             .Select(static (plan, _) => plan.Has(SparseGeneratedCapability.ReadOnlyAdapters))
             .WithComparer(EqualityComparer<bool>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceReadOnlyAdapters");
-        context.RegisterSourceOutput(
-            needsReadOnlyAdapters,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit && implementationNamespace is not null)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.ReadOnlyAdaptersHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(implementationNamespace, productionContext.CancellationToken),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         var needsRemovalIndex = generatedOncePlan
             .Select(static (plan, _) => plan.Has(SparseGeneratedCapability.RemovalIndex))
             .WithComparer(EqualityComparer<bool>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceRemovalIndex");
-        context.RegisterSourceOutput(
-            needsRemovalIndex,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit && implementationNamespace is not null)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.RemovalIndexHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderRemovalIndex(implementationNamespace, productionContext.CancellationToken),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         var needsObservationCoordinator = generatedOncePlan
             .Select(static (plan, _) => plan.Has(SparseGeneratedCapability.ObservationCoordinator))
             .WithComparer(EqualityComparer<bool>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceObservationCoordinator");
-        context.RegisterSourceOutput(
-            needsObservationCoordinator,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit && implementationNamespace is not null)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.ObservationCoordinatorHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderObservationCoordinator(implementationNamespace, productionContext.CancellationToken),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         // Shared JSON kernels back every split-mode fragment and payload
         // converter; single-file legacy output keeps its inline copies.
         // Content follows the JSON families: compilations without them keep
@@ -558,28 +485,6 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             .Select(static (input, _) => (HasModels: input.Left, EmitCodecs: input.Left && input.Right.SupportsV1Wire && EmitsJsonFamily()))
             .WithComparer(EqualityComparer<(bool HasModels, bool EmitCodecs)>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceJsonCodecs");
-        context.RegisterSourceOutput(
-            needsJsonCodecs,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit.HasModels && implementationNamespace is not null)
-                {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.JsonCodecsHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderJsonCodecs(
-                                implementationNamespace,
-                                Configuration.PatchDialect,
-                                emit.EmitCodecs,
-                                productionContext.CancellationToken
-                            ),
-                            Encoding.UTF8
-                        )
-                    );
-                }
-            }
-        );
         // Key-list and custom-leaf helpers need resolver-era serializer APIs,
         // so they ship behind the payload resolver capability.
         var needsJsonPayloadCodecs = hasModels
@@ -589,24 +494,36 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             )
             .WithComparer(EqualityComparer<(bool HasModels, bool EmitCodecs)>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceJsonPayloadCodecs");
-        context.RegisterSourceOutput(
-            needsJsonPayloadCodecs,
-            static (productionContext, emit) =>
-            {
-                var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
-                if (emit.HasModels && implementationNamespace is not null)
+        var generatedOnce = clonePlan
+            .Combine(needsReadOnlyAdapters)
+            .Combine(needsRemovalIndex)
+            .Combine(needsObservationCoordinator)
+            .Combine(needsJsonCodecs)
+            .Combine(needsJsonPayloadCodecs)
+            .Select(
+                static (input, cancellationToken) =>
                 {
-                    productionContext.AddSource(
-                        SparseGeneratedOnceEmitter.JsonPayloadCodecsHintName(implementationNamespace),
-                        SourceText.From(
-                            SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(
-                                implementationNamespace,
-                                emit.EmitCodecs,
-                                productionContext.CancellationToken
-                            ),
-                            Encoding.UTF8
-                        )
+                    var (((((clone, readOnlyAdapters), removalIndex), observationCoordinator), jsonCodecs), jsonPayloadCodecs) = input;
+                    return RenderGeneratedOnce(
+                        clone,
+                        readOnlyAdapters,
+                        removalIndex,
+                        observationCoordinator,
+                        jsonCodecs,
+                        jsonPayloadCodecs,
+                        cancellationToken
                     );
+                }
+            )
+            .WithComparer(EqualityComparer<string?>.Default)
+            .WithTrackingName("SparseTypesGenerator.GeneratedOnce");
+        context.RegisterSourceOutput(
+            generatedOnce,
+            static (productionContext, source) =>
+            {
+                if (source is not null)
+                {
+                    productionContext.AddSource("Generated.g.cs", SourceText.From(source, Encoding.UTF8));
                 }
             }
         );
@@ -667,6 +584,85 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
 
     private static bool ShouldEmitIsExternalInit(Compilation compilation, bool configured) =>
         SparseExternalInit.ShouldEmitIsExternalInit(compilation, configured);
+
+    private static string? RenderGeneratedOnce(
+        (bool Needed, bool Portable, bool Capacity) clonePlan,
+        bool needsReadOnlyAdapters,
+        bool needsRemovalIndex,
+        bool needsObservationCoordinator,
+        (bool HasModels, bool EmitCodecs) jsonCodecs,
+        (bool HasModels, bool EmitCodecs) jsonPayloadCodecs,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var implementationNamespace = SparseGeneratedOnceEmitter.TryGetNamespace(Configuration);
+        if (implementationNamespace is null || !jsonCodecs.HasModels)
+        {
+            return null;
+        }
+
+        var sources = ImmutableArray.CreateBuilder<SparseGeneratedSource>();
+        if (clonePlan.Needed)
+        {
+            sources.Add(
+                new SparseGeneratedSource(
+                    SparseGeneratedOnceEmitter.CloneKernelsHintName(implementationNamespace),
+                    SparseGeneratedOnceEmitter.RenderCloneKernels(implementationNamespace, clonePlan.Portable, clonePlan.Capacity, cancellationToken)
+                )
+            );
+        }
+
+        if (needsReadOnlyAdapters)
+        {
+            sources.Add(
+                new SparseGeneratedSource(
+                    SparseGeneratedOnceEmitter.ReadOnlyAdaptersHintName(implementationNamespace),
+                    SparseGeneratedOnceEmitter.RenderReadOnlyAdapters(implementationNamespace, cancellationToken)
+                )
+            );
+        }
+
+        if (needsRemovalIndex)
+        {
+            sources.Add(
+                new SparseGeneratedSource(
+                    SparseGeneratedOnceEmitter.RemovalIndexHintName(implementationNamespace),
+                    SparseGeneratedOnceEmitter.RenderRemovalIndex(implementationNamespace, cancellationToken)
+                )
+            );
+        }
+
+        if (needsObservationCoordinator)
+        {
+            sources.Add(
+                new SparseGeneratedSource(
+                    SparseGeneratedOnceEmitter.ObservationCoordinatorHintName(implementationNamespace),
+                    SparseGeneratedOnceEmitter.RenderObservationCoordinator(implementationNamespace, cancellationToken)
+                )
+            );
+        }
+
+        sources.Add(
+            new SparseGeneratedSource(
+                SparseGeneratedOnceEmitter.JsonCodecsHintName(implementationNamespace),
+                SparseGeneratedOnceEmitter.RenderJsonCodecs(
+                    implementationNamespace,
+                    Configuration.PatchDialect,
+                    jsonCodecs.EmitCodecs,
+                    cancellationToken
+                )
+            )
+        );
+        sources.Add(
+            new SparseGeneratedSource(
+                SparseGeneratedOnceEmitter.JsonPayloadCodecsHintName(implementationNamespace),
+                SparseGeneratedOnceEmitter.RenderJsonPayloadCodecs(implementationNamespace, jsonPayloadCodecs.EmitCodecs, cancellationToken)
+            )
+        );
+
+        return SparseTypesSingleFileMerger.Merge("// <auto-generated />\n#nullable enable\n", sources.ToImmutable());
+    }
 
     private static void Emit(SourceProductionContext context, SparseGenerationResult result)
     {
@@ -760,7 +756,19 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         }
 
         var merged = MergePerModelSources(surface, additional);
-        return new SparseGenerationResult(model.HintName, merged, analysis.Diagnostics, ImmutableArray<SparseGeneratedSource>.Empty);
+        var sources = SparseTypesGeneratedFilePartitioner.Partition(
+            model,
+#if SPARSE_FRAGMENTS
+            null,
+#else
+            SparseModelExtensionsEmitter.ContainerName(model, cancellationToken),
+#endif
+            merged,
+            configuration.GeneratedImplementationNamespace!,
+            configuration.PatchDialect!.Value.PayloadImplementationContainerPrefix,
+            cancellationToken
+        );
+        return new SparseGenerationResult(sources[0].HintName, sources[0].Source, analysis.Diagnostics, sources.RemoveAt(0));
     }
 
     private static DiagnosticDescriptor GetDescriptor(string id) =>
@@ -824,7 +832,6 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             );
         }
 
-        var hint = SparseFragmentEmitter.GetPromotedHintName(promoted.Model, Configuration.PromotedHintNameSuffix, cancellationToken);
         var configuration = WithCapabilities(Configuration, allowFileScopedTypes, stjCapabilities);
         var implementationNamespace = SparseGeneratedPlacement.TryGetImplementationNamespace(configuration);
         Action<SharedIndentedBuilder>? appendModelMembers = null;
@@ -858,7 +865,20 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
         }
 
         var merged = MergePerModelSources(surface, additional);
-        return new SparseGenerationResult(hint, merged, ImmutableArray<SparseGeneratorDiagnostic>.Empty, ImmutableArray<SparseGeneratedSource>.Empty);
+        var sources = SparseTypesGeneratedFilePartitioner.Partition(
+            promoted.Model,
+            null,
+            merged,
+            configuration.GeneratedImplementationNamespace!,
+            configuration.PatchDialect!.Value.PayloadImplementationContainerPrefix,
+            cancellationToken
+        );
+        return new SparseGenerationResult(
+            sources[0].HintName,
+            sources[0].Source,
+            ImmutableArray<SparseGeneratorDiagnostic>.Empty,
+            sources.RemoveAt(0)
+        );
     }
 
     private static string MergePerModelSources(string surface, ImmutableArray<SparseGeneratedSource> additional) =>

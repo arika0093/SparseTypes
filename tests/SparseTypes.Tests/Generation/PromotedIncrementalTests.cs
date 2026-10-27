@@ -129,31 +129,23 @@ public sealed class PromotedIncrementalTests
     private static string PromotedHintFor(Dictionary<string, string> sources, string typeName)
     {
         var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)
+            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)
         );
-        match.ShouldNotBeNull($"expected a promoted source for '{typeName}'");
+        match.ShouldNotBeNull($"expected a promoted Types source for '{typeName}'");
         return match;
     }
 
     private static string SurfaceHintFor(Dictionary<string, string> sources, string typeName)
     {
         var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
+            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)
         );
-        match.ShouldNotBeNull($"expected a surface source for '{typeName}'");
+        match.ShouldNotBeNull($"expected a Types source for '{typeName}'");
         return match;
     }
 
-    private static string MergedHintFor(Dictionary<string, string> sources, string typeName)
-    {
-        // Single-file emission: each model owns one merged hint carrying the
-        // surface plus implementations.
-        var match = sources.Keys.SingleOrDefault(key =>
-            key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
-        match.ShouldNotBeNull($"expected a merged source for '{typeName}'");
-        return match;
-    }
+    private static string[] ModelHintsFor(Dictionary<string, string> sources, string typeName) =>
+        sources.Keys.Where(key => key.Contains(typeName, StringComparison.Ordinal) && key.EndsWith(".g.cs", StringComparison.Ordinal)).ToArray();
 
     [Test]
     public void UnrelatedRootEdit_PreservesPromotedOutput()
@@ -182,8 +174,8 @@ public sealed class PromotedIncrementalTests
         // edit.
         foreach (var root in new[] { "InvRoot2", "InvRoot3" })
         {
-            var hints = afterSources.Keys.Where(key => key.Contains(root, StringComparison.Ordinal)).ToArray();
-            hints.Length.ShouldBe(1);
+            var hints = ModelHintsFor(afterSources, root);
+            hints.Length.ShouldBe(5);
             foreach (var hint in hints)
             {
                 afterSources[hint].ShouldBe(beforeSources[hint]);
@@ -191,8 +183,6 @@ public sealed class PromotedIncrementalTests
         }
         var editedHint = SurfaceHintFor(afterSources, "InvRoot1");
         afterSources[editedHint].ShouldContain("EditMarker");
-        var editedMergedHint = MergedHintFor(afterSources, "InvRoot1");
-        afterSources[editedMergedHint].ShouldContain("EditMarker");
     }
 
     [Test]
@@ -307,16 +297,14 @@ public sealed class PromotedIncrementalTests
         afterSources[promotedHint].ShouldNotBe(beforeSources[promotedHint]);
         afterSources[promotedHint].ShouldContain("C");
 
-        // Each explicit root emits one merged file. Its payload schema identity
-        // follows the nested wire shape, so the shared edit changes that file.
+        // Each explicit root emits one Types file and responsibility files.
+        // The payload schema identity follows the nested wire shape, so the
+        // shared edit changes one or more files for the affected root.
         foreach (var root in new[] { "InvRoot1", "InvRoot2" })
         {
-            var hints = afterSources.Keys.Where(key => key.Contains(root, StringComparison.Ordinal)).ToArray();
-            hints.Length.ShouldBe(1);
-            foreach (var hint in hints)
-            {
-                afterSources[hint].ShouldNotBe(beforeSources[hint]);
-            }
+            var hints = ModelHintsFor(afterSources, root);
+            hints.Length.ShouldBe(5);
+            hints.Any(hint => afterSources[hint] != beforeSources[hint]).ShouldBeTrue();
         }
 
         // The shared edit must invalidate the promoted emit stage.
@@ -347,10 +335,8 @@ public sealed class PromotedIncrementalTests
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
 
-        // The shared type gets its single merged file, never a promoted
-        // duplicate.
-        sources.Keys.Count(key => key.Contains("InvExplicitShared", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Any(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)).ShouldBeFalse();
+        // The explicitly modeled shared type has one Types output.
+        sources.Keys.Count(key => key.Contains("InvExplicitShared", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(1);
         sources.Keys.Any(key => key.Contains("InvExplicitRoot1", StringComparison.Ordinal)).ShouldBeTrue();
         sources.Keys.Any(key => key.Contains("InvExplicitRoot2", StringComparison.Ordinal)).ShouldBeTrue();
     }
@@ -379,8 +365,8 @@ public sealed class PromotedIncrementalTests
             secondSources[hint].ShouldBe(firstSources[hint]);
         }
 
-        // One promoted file shared by all roots, plus one file per root.
-        firstSources.Keys.Count(key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)).ShouldBe(1);
+        // One promoted Types file is shared by all roots, plus one per root.
+        firstSources.Keys.Count(key => key.Contains("InvScaleRoot", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(rootCount);
         var promotedHint = PromotedHintFor(firstSources, "InvScaleShared");
 
         // An unrelated single-root edit preserves the shared promoted bytes.
@@ -426,7 +412,7 @@ public sealed class PromotedIncrementalTests
         var cold = Run(files);
         cold.SpfDiagnostics().ShouldBeEmpty();
         var coldSources = cold.Sources();
-        coldSources.Keys.Count(key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBe(rootCount);
+        coldSources.Keys.Count(key => key.Contains("InvEnvelopeRoot", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(rootCount);
 
         var edited = Rerun(
             cold,

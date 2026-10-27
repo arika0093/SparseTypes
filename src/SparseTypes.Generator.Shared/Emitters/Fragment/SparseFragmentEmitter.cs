@@ -573,39 +573,42 @@ internal static class SparseFragmentEmitter
         }
         if (operationTarget is not null && operationContainer is not null && patchOperations is not null)
         {
-            var containerAccessibility = model.IsPublic ? "public" : "internal";
-            implementationBuilder.AppendLine(
-                "/// <summary>Per-model generated operations for '" + modelType + "'. Backs the model-facing generated operations.</summary>"
-            );
-            implementationBuilder.AppendLine(
-                "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
-            );
-            implementationBuilder.AppendLine(containerAccessibility + " static partial class " + operationContainer);
-            implementationBuilder.OpenBlock();
-            // Patch/ChangeSet cores live in private nested types; omit the
-            // empty legacy containers and keep only public Builder/Paths here.
             var patchOpsText = patchOperations.ToString();
-            if (!string.IsNullOrWhiteSpace(patchOpsText))
+            var changeSetOpsText = changeSetOperations?.ToString();
+            if (!string.IsNullOrWhiteSpace(patchOpsText) || !string.IsNullOrWhiteSpace(changeSetOpsText))
             {
-                SparseModelOperationFileEmitter.OpenOperations(implementationBuilder, SparseGeneratedPlacement.PatchOperationsSimpleName, "Patch");
-                SparseOperationOrdering.AppendInternalFirst(implementationBuilder, patchOpsText);
-                SparseModelOperationFileEmitter.CloseOperations(implementationBuilder);
-            }
-            if (features.EmitChangeSet && changeSetOperations is not null)
-            {
-                var changeSetOpsText = changeSetOperations.ToString();
-                if (!string.IsNullOrWhiteSpace(changeSetOpsText))
+                var containerAccessibility = model.IsPublic ? "public" : "internal";
+                implementationBuilder.AppendLine(
+                    "/// <summary>Per-model generated operations for '" + modelType + "'. Backs the model-facing generated operations.</summary>"
+                );
+                implementationBuilder.AppendLine(
+                    "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]"
+                );
+                implementationBuilder.AppendLine(containerAccessibility + " static partial class " + operationContainer);
+                implementationBuilder.OpenBlock();
+                if (!string.IsNullOrWhiteSpace(patchOpsText))
+                {
+                    SparseModelOperationFileEmitter.OpenOperations(
+                        implementationBuilder,
+                        SparseGeneratedPlacement.PatchOperationsSimpleName,
+                        "Patch"
+                    );
+                    SparseOperationOrdering.AppendInternalFirst(implementationBuilder, patchOpsText);
+                    SparseModelOperationFileEmitter.CloseOperations(implementationBuilder);
+                }
+                if (features.EmitChangeSet && !string.IsNullOrWhiteSpace(changeSetOpsText))
                 {
                     SparseModelOperationFileEmitter.OpenOperations(
                         implementationBuilder,
                         SparseGeneratedPlacement.ChangeSetOperationsSimpleName,
                         "ChangeSet"
                     );
-                    SparseOperationOrdering.AppendInternalFirst(implementationBuilder, changeSetOpsText);
+                    SparseOperationOrdering.AppendInternalFirst(implementationBuilder, changeSetOpsText!);
                     SparseModelOperationFileEmitter.CloseOperations(implementationBuilder);
                 }
+
+                implementationBuilder.CloseBlock();
             }
-            implementationBuilder.CloseBlock();
         }
         implementationBuilder.CloseBlock();
         return (code.ToString(), implementationBuilder.ToString());

@@ -55,7 +55,7 @@ public sealed class CloneCycleAnalysisTests
         // SPF026 is an informational note for constructor-bound members;
         // only errors indicate a behavior change here.
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal) && d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
-        sources.Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]

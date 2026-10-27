@@ -667,20 +667,20 @@ public partial class Settings
             {
                 Schema30 = static () => new global::SparseTypes.SparsePayloadSchema[]
                 {
-                    new(typeof(ChangePayload), "Settings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"enum\":[\"0.1\"]},\"change\":{\"$ref\":\"#/components/schemas/" + "Settings_ModelChange" + "\"}},\"required\":[\"version\",\"change\"]}"),
+                    new(typeof(ChangePayload), "Settings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"enum\":[\"0.1\"]},\"schema\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"recordedAt\":{\"type\":\"string\",\"format\":\"date-time\",\"nullable\":true},\"change\":{\"$ref\":\"#/components/schemas/" + "Settings_ModelChange" + "\"}},\"required\":[\"version\",\"schema\",\"change\"]}"),
                     new(typeof(Settings_4B058728SerializeObjects.ModelChange), "Settings_ModelChange", "{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"update\"]},\"members\":{\"$ref\":\"#/components/schemas/" + "Settings_MembersDelta" + "\"}},\"required\":[\"kind\",\"members\"],\"not\":{\"required\":[\"before\",\"after\"]}},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"replace\"]},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"redacted\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"$ref\":\"#/components/schemas/" + "Settings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"$ref\":\"#/components/schemas/" + "Settings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"before\",\"after\"],\"not\":{\"required\":[\"members\"]}}],\"discriminator\":{\"propertyName\":\"kind\"}}"),
                     new(typeof(Settings_4B058728SerializeObjects.Root), "Settings_Root", "{\"type\":\"object\",\"properties\":{\"database\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"label\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}}}"),
                     new(typeof(Settings_4B058728SerializeObjects.MembersDelta), "Settings_MembersDelta", "{\"type\":\"object\",\"properties\":{\"database\":{\"$ref\":\"#/components/schemas/" + "Settings_Change_database" + "\"},\"label\":{\"$ref\":\"#/components/schemas/" + "Settings_Change_label" + "\"}}}"),
-                    new(typeof(Settings_4B058728SerializeObjects.Change0), "Settings_Change_database", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"update\"]},\"change\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}},\"required\":[\"kind\",\"change\"]}"),
+                    new(typeof(Settings_4B058728SerializeObjects.Change0), "Settings_Change_database", "{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}"),
                     new(typeof(Settings_4B058728SerializeObjects.Change1), "Settings_Change_label", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"enum\":[\"replace\"]},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"redacted\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"missing\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"null\"]}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"enum\":[\"value\"]},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
                 },
                 Schema31 = static () => new global::SparseTypes.SparsePayloadSchema[]
                 {
-                    new(typeof(ChangePayload), "Settings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"const\":\"0.1\"},\"change\":{\"$ref\":\"#/components/schemas/" + "Settings_ModelChange" + "\"}},\"required\":[\"version\",\"change\"]}"),
+                    new(typeof(ChangePayload), "Settings_ChangePayload", "{\"type\":\"object\",\"properties\":{\"version\":{\"type\":\"string\",\"const\":\"0.1\"},\"schema\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"recordedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"change\":{\"$ref\":\"#/components/schemas/" + "Settings_ModelChange" + "\"}},\"required\":[\"version\",\"schema\",\"change\"]}"),
                     new(typeof(Settings_4B058728SerializeObjects.ModelChange), "Settings_ModelChange", "{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"update\"},\"members\":{\"$ref\":\"#/components/schemas/" + "Settings_MembersDelta" + "\"}},\"required\":[\"kind\",\"members\"],\"not\":{\"required\":[\"before\",\"after\"]}},{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"replace\"},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"redacted\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"$ref\":\"#/components/schemas/" + "Settings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"$ref\":\"#/components/schemas/" + "Settings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"before\",\"after\"],\"not\":{\"required\":[\"members\"]}}],\"discriminator\":{\"propertyName\":\"kind\"}}"),
                     new(typeof(Settings_4B058728SerializeObjects.Root), "Settings_Root", "{\"type\":\"object\",\"properties\":{\"database\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_Root" + "\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"label\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}}}"),
                     new(typeof(Settings_4B058728SerializeObjects.MembersDelta), "Settings_MembersDelta", "{\"type\":\"object\",\"properties\":{\"database\":{\"$ref\":\"#/components/schemas/" + "Settings_Change_database" + "\"},\"label\":{\"$ref\":\"#/components/schemas/" + "Settings_Change_label" + "\"}}}"),
-                    new(typeof(Settings_4B058728SerializeObjects.Change0), "Settings_Change_database", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"update\"},\"change\":{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}},\"required\":[\"kind\",\"change\"]}"),
+                    new(typeof(Settings_4B058728SerializeObjects.Change0), "Settings_Change_database", "{\"$ref\":\"#/components/schemas/" + "DatabaseSettings_ModelChange" + "\"}"),
                     new(typeof(Settings_4B058728SerializeObjects.Change1), "Settings_Change_label", "{\"type\":\"object\",\"properties\":{\"kind\":{\"type\":\"string\",\"const\":\"replace\"},\"before\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"redacted\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}},\"after\":{\"oneOf\":[{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"missing\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"null\"}},\"required\":[\"state\"],\"not\":{\"required\":[\"value\"]}},{\"type\":\"object\",\"properties\":{\"state\":{\"type\":\"string\",\"const\":\"value\"},\"value\":{\"type\":\"string\"}},\"required\":[\"state\",\"value\"]}],\"discriminator\":{\"propertyName\":\"state\"}}},\"required\":[\"kind\",\"after\"]}"),
                 },
                 SchemaIdentities = new global::SparseTypes.SparsePayloadSchemaIdentity[] { new(typeof(ChangePayload), "Settings_ChangePayload"), new(typeof(Settings_4B058728SerializeObjects.ModelChange), "Settings_ModelChange"), new(typeof(Settings_4B058728SerializeObjects.Root), "Settings_Root"), new(typeof(Settings_4B058728SerializeObjects.MembersDelta), "Settings_MembersDelta"), new(typeof(Settings_4B058728SerializeObjects.Change0), "Settings_Change_database"), new(typeof(Settings_4B058728SerializeObjects.Change1), "Settings_Change_label") },
@@ -1152,6 +1152,15 @@ public partial class Settings
     /// <summary>Baseline-aware transition between two states. Validates before-states and supports compose and rebase.</summary>
     public sealed partial class ChangeSet : global::SparseTypes.ISparseChangeSet<global::Settings>, global::SparseTypes.ISparseChangeSetPipeline<global::Settings, ChangeSet>
     {
+        /// <summary>Gets the time this transition was recorded.</summary>
+        public global::System.DateTimeOffset? RecordedAt => __sparse_recordedAt;
+        /// <summary>Returns a copy with the specified recording time.</summary>
+        /// <param name="recordedAt">The recording time, or null to remove it.</param>
+        /// <returns>A change set with unchanged transition data.</returns>
+        public ChangeSet WithRecordedAt(global::System.DateTimeOffset? recordedAt)
+        {
+            return new ChangeSet(__sparse_hasWhole, __sparse_wholeBefore, __sparse_wholeAfter, __sparse_nested_0, __sparse_before_1, __sparse_after_1, __sparse_has_1, recordedAt);
+        }
         /// <summary>Whether this change set contains no semantic changes.</summary>
         public bool IsEmpty => !__sparse_hasWhole && (__sparse_nested_0 is null || __sparse_nested_0.IsEmpty) && !__sparse_has_1;
         /// <summary>Gets an empty change set with no semantic changes.</summary>
@@ -1220,22 +1229,46 @@ public partial class Settings
         /// <param name="before">The state before the transition.</param>
         /// <param name="after">The state after the transition.</param>
         /// <returns>The baseline-aware diff.</returns>
-        public static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after) => __Core.Between(before, after);
+        public static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after) => __Core.Between(before, after, global::System.DateTimeOffset.UtcNow);
+        /// <summary>Derives a diff with an explicit recording time.</summary>
+        /// <param name="before">The state before the transition.</param>
+        /// <param name="after">The state after the transition.</param>
+        /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+        /// <returns>The baseline-aware diff.</returns>
+        public static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after, global::System.DateTimeOffset? recordedAt) => __Core.Between(before, after, recordedAt);
         /// <summary>Derives the baseline-aware diff between two ordinary models.</summary>
         /// <param name="before">The model before the transition.</param>
         /// <param name="after">The model after the transition.</param>
         /// <returns>The baseline-aware diff.</returns>
-        public static ChangeSet Between(global::Settings before, global::Settings after) => __Core.Between(before, after);
+        public static ChangeSet Between(global::Settings before, global::Settings after) => __Core.Between(before, after, global::System.DateTimeOffset.UtcNow);
+        /// <summary>Derives a model diff with an explicit recording time.</summary>
+        /// <param name="before">The model before the transition.</param>
+        /// <param name="after">The model after the transition.</param>
+        /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+        /// <returns>The baseline-aware diff.</returns>
+        public static ChangeSet Between(global::Settings before, global::Settings after, global::System.DateTimeOffset? recordedAt) => __Core.Between(before, after, recordedAt);
         /// <summary>Attaches a known baseline to an arbitrary patch.</summary>
         /// <param name="baseline">The known baseline.</param>
         /// <param name="patch">The patch to attach.</param>
         /// <returns>The baseline-aware change set.</returns>
-        public static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch) => __Core.FromPatch(baseline, patch);
+        public static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch) => __Core.FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);
+        /// <summary>Attaches a known baseline with an explicit recording time.</summary>
+        /// <param name="baseline">The known baseline.</param>
+        /// <param name="patch">The patch to attach.</param>
+        /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+        /// <returns>The baseline-aware change set.</returns>
+        public static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch, global::System.DateTimeOffset? recordedAt) => __Core.FromPatch(baseline, patch, recordedAt);
         /// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>
         /// <param name="baseline">The model baseline.</param>
         /// <param name="patch">The patch to attach.</param>
         /// <returns>The baseline-aware change set.</returns>
-        public static ChangeSet FromPatch(global::Settings baseline, Patch patch) => __Core.FromPatch(baseline, patch);
+        public static ChangeSet FromPatch(global::Settings baseline, Patch patch) => __Core.FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);
+        /// <summary>Attaches a model baseline with an explicit recording time.</summary>
+        /// <param name="baseline">The model baseline.</param>
+        /// <param name="patch">The patch to attach.</param>
+        /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+        /// <returns>The baseline-aware change set.</returns>
+        public static ChangeSet FromPatch(global::Settings baseline, Patch patch, global::System.DateTimeOffset? recordedAt) => __Core.FromPatch(baseline, patch, recordedAt);
         /// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>
         /// <returns>The baseline-free patch.</returns>
         public Patch ToPatch() => __Core.ToPatch(this);
@@ -1437,6 +1470,7 @@ public partial class Settings
             }
             return true;
         }
+        private readonly global::System.DateTimeOffset? __sparse_recordedAt;
         private readonly bool __sparse_hasWhole;
         private global::SparseTypes.Optional<Fragment?> __sparse_wholeBefore => __sparse_wholeBeforeOptional;
         private global::SparseTypes.Optional<Fragment?> __sparse_wholeAfter => __sparse_wholeAfterOptional;
@@ -1444,8 +1478,9 @@ public partial class Settings
         private global::SparseTypes.Optional<string?> __sparse_before_1 => __sparse_before_1Optional;
         private global::SparseTypes.Optional<string?> __sparse_after_1 => __sparse_after_1Optional;
         private readonly bool __sparse_has_1;
-        private ChangeSet(bool hasWhole, global::SparseTypes.Optional<Fragment?> wholeBefore, global::SparseTypes.Optional<Fragment?> wholeAfter, global::DatabaseSettings.ChangeSet? nested0, global::SparseTypes.Optional<string?> before1, global::SparseTypes.Optional<string?> after1, bool has1)
+        private ChangeSet(bool hasWhole, global::SparseTypes.Optional<Fragment?> wholeBefore, global::SparseTypes.Optional<Fragment?> wholeAfter, global::DatabaseSettings.ChangeSet? nested0, global::SparseTypes.Optional<string?> before1, global::SparseTypes.Optional<string?> after1, bool has1, global::System.DateTimeOffset? recordedAt = null)
         {
+            __sparse_recordedAt = recordedAt;
             __sparse_hasWhole = hasWhole;
             __sparse_wholeBeforeOptional = wholeBefore;
             __sparse_wholeAfterOptional = wholeAfter;
@@ -1467,63 +1502,68 @@ public partial class Settings
             /// <param name="before">The state before the transition.</param>
             /// <param name="after">The state after the transition.</param>
             /// <returns>The baseline-aware diff.</returns>
-            internal static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after)
+            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+            internal static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after, global::System.DateTimeOffset? recordedAt)
             {
                 if (before.IsPresent != after.IsPresent)
                 {
-                    return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), null, default, default, false);
+                    return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), null, default, default, false, recordedAt);
                 }
-                if (!before.IsPresent) return __sparse_empty;
-                if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return __sparse_empty;
+                if (!before.IsPresent) return __sparse_empty.WithRecordedAt(recordedAt);
+                if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return __sparse_empty.WithRecordedAt(recordedAt);
                 if (before.Value is null || after.Value is null)
                 {
-                    if (before.Value is null && after.Value is null) return __sparse_empty;
-                    return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), null, default, default, false);
+                    if (before.Value is null && after.Value is null) return __sparse_empty.WithRecordedAt(recordedAt);
+                    return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), null, default, default, false, recordedAt);
                 }
                 var bf = before.Value!;
                 var af = after.Value!;
-                var __n0 = global::DatabaseSettings.ChangeSet.Between(bf.Database, af.Database);
+                var __n0 = global::DatabaseSettings.ChangeSet.Between(bf.Database, af.Database, null);
                 global::DatabaseSettings.ChangeSet? __nn0 = __n0.IsEmpty ? null : __n0;
                 bool __h1 = !Fragment.__SparseEqual_1(bf.Label, af.Label);
                 global::SparseTypes.Optional<string?> __b1 = __h1 ? bf.Label : default;
                 global::SparseTypes.Optional<string?> __a1 = __h1 ? af.Label : default;
-                if (__nn0 is null && !__h1) return __sparse_empty;
-                return new ChangeSet(false, default, default, __nn0, __b1, __a1, __h1);
+                if (__nn0 is null && !__h1) return __sparse_empty.WithRecordedAt(recordedAt);
+                return new ChangeSet(false, default, default, __nn0, __b1, __a1, __h1, recordedAt);
             }
             /// <summary>Derives the baseline-aware diff between two ordinary models.</summary>
             /// <param name="before">The model before the transition.</param>
             /// <param name="after">The model after the transition.</param>
+            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
             /// <returns>The baseline-aware diff.</returns>
-            internal static ChangeSet Between(global::Settings before, global::Settings after)
+            internal static ChangeSet Between(global::Settings before, global::Settings after, global::System.DateTimeOffset? recordedAt)
             {
                 if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null)) throw new global::System.ArgumentNullException("value");
-                if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;
+                if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty.WithRecordedAt(recordedAt);
                 if (global::System.Object.ReferenceEquals(before.Database, after.Database) && global::System.Object.ReferenceEquals(before.Label, after.Label)) return __sparse_empty;
-                return Between(global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(before)), global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(after)));
+                return Between(global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(before)), global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(after)), recordedAt);
             }
             /// <summary>Attaches a known baseline to an arbitrary patch.</summary>
             /// <param name="baseline">The known baseline.</param>
             /// <param name="patch">The patch to attach.</param>
+            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
             /// <returns>The baseline-aware change set.</returns>
-            internal static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch)
+            internal static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch, global::System.DateTimeOffset? recordedAt)
             {
                 if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));
                 var after = patch.Apply(baseline);
-                return Between(baseline, after);
+                return Between(baseline, after, recordedAt);
             }
             /// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>
             /// <param name="baseline">The model baseline.</param>
             /// <param name="patch">The patch to attach.</param>
+            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
             /// <returns>The baseline-aware change set.</returns>
-            internal static ChangeSet FromPatch(global::Settings baseline, Patch patch)
+            internal static ChangeSet FromPatch(global::Settings baseline, Patch patch, global::System.DateTimeOffset? recordedAt)
             {
-                return FromPatch(global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(baseline)), patch);
+                return FromPatch(global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(baseline)), patch, recordedAt);
             }
             /// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>
             /// <param name="self">The change set to project.</param>
             /// <returns>The baseline-free patch.</returns>
             internal static Patch ToPatch(ChangeSet self)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1548,6 +1588,7 @@ public partial class Settings
             /// <returns>The inverted change set.</returns>
             internal static ChangeSet Invert(ChangeSet self)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1557,9 +1598,9 @@ public partial class Settings
                 var __sparse_has_1 = self.__sparse_has_1;
                 if (__sparse_hasWhole)
                 {
-                    return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, null, default, default, false);
+                    return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, null, default, default, false, __sparse_recordedAt);
                 }
-                return new ChangeSet(false, default, default, __sparse_nested_0 is null ? null : __sparse_nested_0.Invert(), __sparse_after_1, __sparse_before_1, __sparse_has_1);
+                return new ChangeSet(false, default, default, __sparse_nested_0 is null ? null : __sparse_nested_0.Invert(), __sparse_after_1, __sparse_before_1, __sparse_has_1, __sparse_recordedAt);
             }
             /// <summary>Validates a transition against the supplied baseline and returns the advanced baseline.</summary>
             /// <remarks>Only changed paths are compared; members the change set does not encode are never validated.</remarks>
@@ -1581,6 +1622,7 @@ public partial class Settings
             internal static ChangeSet Compose(ChangeSet self, ChangeSet next)
             {
                 if (self is null) throw new global::System.ArgumentNullException(nameof(self));
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1590,23 +1632,23 @@ public partial class Settings
                 var __sparse_has_1 = self.__sparse_has_1;
                 if (next is null) throw new global::System.ArgumentNullException(nameof(next));
                 if (self.IsEmpty) return next;
-                if (next.IsEmpty) return self;
+                if (next.IsEmpty) return self.WithRecordedAt(next.RecordedAt);
                 if (__sparse_hasWhole || next.__sparse_hasWhole)
                 {
                     if (__sparse_hasWhole && next.__sparse_hasWhole)
                     {
                         if (!Fragment.__SparseAreEqual(__sparse_wholeAfter, next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException("ChangeSet composition requires the first after-state to equal the second before-state.");
-                        return Between(__sparse_wholeBefore, next.__sparse_wholeAfter);
+                        return Between(__sparse_wholeBefore, next.__sparse_wholeAfter, next.RecordedAt);
                     }
                     if (__sparse_hasWhole)
                     {
                         if (!next.__SparseBeforeMatches(__sparse_wholeAfter)) throw new global::System.InvalidOperationException("ChangeSet composition requires the first after-state to equal the second before-state.");
                         var __mergedAfter = next.ToPatch().Apply(__sparse_wholeAfter);
-                        return Between(__sparse_wholeBefore, __mergedAfter);
+                        return Between(__sparse_wholeBefore, __mergedAfter, next.RecordedAt);
                     }
                     if (!self.__SparseAfterMatches(next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException("ChangeSet composition requires the first after-state to equal the second before-state.");
                     var __mergedBefore = Invert(self).ToPatch().Apply(next.__sparse_wholeBefore);
-                    return Between(__mergedBefore, next.__sparse_wholeAfter);
+                    return Between(__mergedBefore, next.__sparse_wholeAfter, next.RecordedAt);
                 }
                 global::DatabaseSettings.ChangeSet? __c0;
                 if (__sparse_nested_0 is null) __c0 = next.__sparse_nested_0;
@@ -1633,11 +1675,12 @@ public partial class Settings
                     if (Fragment.__SparseEqual_1(__sparse_before_1, next.__sparse_after_1)) { __cb1_has = false; }
                     else { __cb1_has = true; __cb1_b = __sparse_before_1; __cb1_a = next.__sparse_after_1; }
                 }
-                return new ChangeSet(false, default, default, __c0, __cb1_b, __cb1_a, __cb1_has);
+                return new ChangeSet(false, default, default, __c0, __cb1_b, __cb1_a, __cb1_has, next.RecordedAt);
             }
             /// <summary>Whether the supplied state matches a transition's before on every changed path.</summary>
             internal static bool __SparseBeforeMatches(ChangeSet self, global::SparseTypes.Optional<Fragment?> state)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1659,6 +1702,7 @@ public partial class Settings
             /// <summary>Whether the supplied state matches a transition's after on every changed path.</summary>
             internal static bool __SparseAfterMatches(ChangeSet self, global::SparseTypes.Optional<Fragment?> state)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1687,6 +1731,7 @@ public partial class Settings
             /// <returns>The rebased change and conflicts.</returns>
             internal static global::SparseTypes.RebaseResult<ChangeSet> RebaseOnto(ChangeSet self, global::SparseTypes.Optional<Fragment?> current, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -1702,25 +1747,25 @@ public partial class Settings
                         {
                             var __rconf = new global::System.Collections.Generic.List<global::SparseTypes.SparseConflict>();
                             __rconf.Add(new global::SparseTypes.SparseConflict(__SparseRootPath, global::SparseTypes.SparseConflictKind.RedactedBefore, global::SparseTypes.Optional<object?>.Missing, global::SparseTypes.Optional<object?>.Missing, global::SparseTypes.Optional<object?>.Missing, "The change carries a redacted before-state and strict rebase rejects it."));
-                            return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, current), __rconf);
+                            return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, current, __sparse_recordedAt), __rconf);
                         }
-                        return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, __sparse_wholeAfter));
+                        return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, __sparse_wholeAfter, __sparse_recordedAt));
                     }
                     var __local = ToPatch(self);
                     var __rb = Patch.Rebase(__sparse_wholeBefore, __local, current, options);
                     if (__rb.Conflicts.Count == 0 && __rb.Rebased.__SparseIsEmpty())
                     {
-                        return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, current));
+                        return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, current, __sparse_recordedAt));
                     }
                     var __ra = __rb.Rebased.Apply(current);
-                    return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, __ra), __rb.Conflicts);
+                    return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, __ra, __sparse_recordedAt), __rb.Conflicts);
                 }
-                if (self.IsEmpty) return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, current));
+                if (self.IsEmpty) return global::SparseTypes.RebaseResult<ChangeSet>.Success(Between(current, current, __sparse_recordedAt));
                 if (!current.IsPresent || current.Value is null)
                 {
                     var __conf = new global::System.Collections.Generic.List<global::SparseTypes.SparseConflict>();
                     __conf.Add(new global::SparseTypes.SparseConflict(__SparseRootPath, global::SparseTypes.SparseConflictKind.WholeContribution, global::SparseTypes.SparseOptionalBox.ToObject(__sparse_hasWhole ? __sparse_wholeBefore : default), global::SparseTypes.SparseOptionalBox.ToObject(__sparse_hasWhole ? __sparse_wholeAfter : default), global::SparseTypes.SparseOptionalBox.ToObject(current), "The contribution conflicts with a concurrent change."));
-                    return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, current), __conf);
+                    return new global::SparseTypes.RebaseResult<ChangeSet>(Between(current, current, __sparse_recordedAt), __conf);
                 }
                 var __cur = current.Value!;
                 var __conflicts = new global::System.Collections.Generic.List<global::SparseTypes.SparseConflict>();
@@ -1786,7 +1831,7 @@ public partial class Settings
                         }
                     }
                 }
-                var __rebased = new ChangeSet(false, default, default, __r0, __rb1, __ra1, __rh1);
+                var __rebased = new ChangeSet(false, default, default, __r0, __rb1, __ra1, __rh1, __sparse_recordedAt);
                 return new global::SparseTypes.RebaseResult<ChangeSet>(__rebased, __conflicts);
             }
             /// <summary>Rebases a change onto an ordinary model.</summary>
@@ -1927,6 +1972,7 @@ public partial class Settings
             /// <returns>The flattened transitions.</returns>
             internal static global::System.Collections.Generic.IEnumerable<global::SparseTypes.Generated.SparseChangeRecord> EnumerateChanges(ChangeSet self)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -2025,7 +2071,7 @@ public partial class Settings
                             return false;
                         }
                     }
-                    resolved = ChangeSet.Between(current, workingRoot);
+                    resolved = ChangeSet.Between(current, workingRoot, rebase.Rebased.RecordedAt);
                     return true;
                 }
                 if (!rebase.Rebased.__SparseBeforeMatches(current))
@@ -2056,7 +2102,7 @@ public partial class Settings
                     }
                     working = updated;
                 }
-                resolved = ChangeSet.Between(current, global::SparseTypes.Optional<Fragment?>.Present(working));
+                resolved = ChangeSet.Between(current, global::SparseTypes.Optional<Fragment?>.Present(working), rebase.Rebased.RecordedAt);
                 failureReason = null;
                 return true;
             }
@@ -2185,9 +2231,9 @@ public partial class Settings
             {
                 if (self.IsEmpty)
                 {
-                    return new ChangePayload { Version = "0.1", Change = new Settings_4B058728SerializeObjects.ModelChange { Kind = Settings_4B058728SerializeObjects.ModelChangeKind.Update, Members = new Settings_4B058728SerializeObjects.MembersDelta() } };
+                    return new ChangePayload { Version = "0.1", Change = new Settings_4B058728SerializeObjects.ModelChange { Kind = Settings_4B058728SerializeObjects.ModelChangeKind.Update, Members = new Settings_4B058728SerializeObjects.MembersDelta() }, RecordedAt = self.RecordedAt };
                 }
-                return new ChangePayload { Version = "0.1", Change = ToPayloadChange(self, false) };
+                return new ChangePayload { Version = "0.1", RecordedAt = self.RecordedAt, Change = ToPayloadChange(self, false) };
             }
             /// <summary>Builds the typed transport change for this change set.</summary>
             /// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>
@@ -2196,6 +2242,7 @@ public partial class Settings
             /// <returns>The typed transport change.</returns>
             internal static Settings_4B058728SerializeObjects.ModelChange ToPayloadChange(ChangeSet self, bool redactBefores)
             {
+                var __sparse_recordedAt = self.RecordedAt;
                 var __sparse_hasWhole = self.__sparse_hasWhole;
                 var __sparse_wholeBefore = self.__sparse_wholeBefore;
                 var __sparse_wholeAfter = self.__sparse_wholeAfter;
@@ -2232,7 +2279,8 @@ public partial class Settings
             {
                 if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));
                 if (!global::System.String.Equals(payload.Version, "0.1", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException("Unsupported ChangePayload version.", nameof(payload));
-                return FromPayloadCore(payload);
+                if (!ChangePayload.IsValidSchemaIdentity(payload.Schema)) throw new global::System.ArgumentException("Malformed ChangePayload schema identity.", nameof(payload));
+                return FromPayloadCore(payload).WithRecordedAt(payload.RecordedAt);
             }
             /// <summary>Projects a validated command core to a baseline-free patch.</summary>
             /// <remarks>Before-states are ignored rather than validated; malformed after-states are rejected.</remarks>
@@ -2395,6 +2443,11 @@ public partial class Settings
         /// <summary>Gets or sets the provisional wire version token.</summary>
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
         public string? Version { get; set; }
+        /// <summary>Gets or sets the generated model schema identity.</summary>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public string? Schema { get; set; } = "sha256:babfd5fc331c5de281042fabba72dca6dc80812cbbec9991d5b2df67a489c6af";
+        /// <summary>Gets or sets the time this transition was recorded.</summary>
+        public global::System.DateTimeOffset? RecordedAt { get; set; } = global::System.DateTimeOffset.UtcNow;
         /// <summary>Gets or sets the typed model change.</summary>
         public Settings_4B058728SerializeObjects.ModelChange? Change { get => TypedChange; set => TypedChange = value; }
         /// <summary>Converts this validated envelope to a complete change set.</summary>
@@ -2407,6 +2460,7 @@ public partial class Settings
         public new global::Settings.Patch ToPatch()
         {
             if (!global::System.String.Equals(Version, "0.1", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException("Unsupported ChangePayload version.", nameof(Version));
+            if (!IsValidSchemaIdentity(Schema)) throw new global::System.ArgumentException("Malformed ChangePayload schema identity.", nameof(Schema));
             return base.ToPatch();
         }
         /// <summary>Inverts the reversible transitions and reports write-only paths.</summary>
@@ -2416,7 +2470,8 @@ public partial class Settings
         public new global::Settings.ChangeSet InvertReversibleChanges(out global::System.Collections.Generic.IReadOnlyList<string> skippedPaths)
         {
             if (!global::System.String.Equals(Version, "0.1", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException("Unsupported ChangePayload version.", nameof(Version));
-            return base.InvertReversibleChanges(out skippedPaths);
+            if (!IsValidSchemaIdentity(Schema)) throw new global::System.ArgumentException("Malformed ChangePayload schema identity.", nameof(Schema));
+            return base.InvertReversibleChanges(out skippedPaths).WithRecordedAt(RecordedAt);
         }
         /// <summary>Applies a mixed request to an ordinary model without committing a subset on conflict.</summary>
         /// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>
@@ -2427,6 +2482,7 @@ public partial class Settings
         public new bool TryApplyMixedTo(global::Settings current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Settings? updated, out MixedApplyResult result)
         {
             if (!global::System.String.Equals(Version, "0.1", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException("Unsupported ChangePayload version.", nameof(Version));
+            if (!IsValidSchemaIdentity(Schema)) throw new global::System.ArgumentException("Malformed ChangePayload schema identity.", nameof(Schema));
             return base.TryApplyMixedTo(current, out updated, out result);
         }
         /// <summary>Validates the envelope wire contract without converting or applying.</summary>
@@ -2435,1271 +2491,37 @@ public partial class Settings
         public new global::SparseTypes.ChangePayloadValidationResult Validate()
         {
             if (!global::System.String.Equals(Version, "0.1", global::System.StringComparison.Ordinal)) return new global::SparseTypes.ChangePayloadValidationResult(new global::SparseTypes.ChangePayloadValidationError[] { new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Version, Path = string.Empty, Message = "Unsupported ChangePayload version." } });
+            if (!IsValidSchemaIdentity(Schema)) return new global::SparseTypes.ChangePayloadValidationResult(new global::SparseTypes.ChangePayloadValidationError[] { new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.SchemaIdentity, Path = string.Empty, Message = "Malformed ChangePayload schema identity." } });
             return base.Validate();
         }
         /// <summary>Builds a baseline-free command envelope from a patch.</summary>
         /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ToPatch"/>.</remarks>
         /// <param name="patch">The patch to convert.</param>
         /// <returns>The baseline-free command envelope.</returns>
-        public static ChangePayload FromPatch(global::Settings.Patch patch)
+        public static ChangePayload FromPatch(global::Settings.Patch patch) => FromPatch(patch, global::System.DateTimeOffset.UtcNow);
+        /// <summary>Builds a baseline-free command envelope with an explicit recording time.</summary>
+        /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ToPatch"/>.</remarks>
+        /// <param name="patch">The patch to convert.</param>
+        /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
+        /// <returns>The baseline-free command envelope.</returns>
+        public static ChangePayload FromPatch(global::Settings.Patch patch, global::System.DateTimeOffset? recordedAt)
         {
             if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));
-            return new ChangePayload { Version = "0.1", Change = Settings_4B058728SerializeObjects.Core.FromPatchCore(patch).TypedChange };
+            return new ChangePayload { Version = "0.1", Change = Settings_4B058728SerializeObjects.Core.FromPatchCore(patch).TypedChange, RecordedAt = recordedAt };
+        }
+        internal static bool IsValidSchemaIdentity(string? schema)
+        {
+            if (schema is null || schema.Length != 71 || !schema.StartsWith("sha256:", global::System.StringComparison.Ordinal)) return false;
+            for (var index = 7; index < schema.Length; index++)
+            {
+                var character = schema[index];
+                if (!(character >= '0' && character <= '9') && !(character >= 'a' && character <= 'f')) return false;
+            }
+            return true;
         }
     }
 
     /// <summary>Typed path navigation for 'global::Settings'.</summary>
     /// <remarks>For example <c>Order.SparsePath.Items.Key(id).Price</c>. Converts implicitly to the model-agnostic path for storage and lookup.</remarks>
     public static global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings> SparsePath => new global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>(global::SparseTypes.SparsePath.Root(typeof(global::Settings)));
-}
-
-/// <summary>Model extensions generated for this fragment model.</summary>
-public static partial class SettingsExtensions_9615EEF7
-{
-    /// <summary>Derives the baseline-aware change set from this baseline to the supplied current model.</summary>
-    public static global::Settings.ChangeSet CreateChangeSet(this global::Settings baseline, global::Settings current) => global::Settings.ChangeSet.Between(baseline, current);
-    /// <summary>Creates a framework-neutral edit session using this model as both the baseline source and live current value.</summary>
-    public static global::Settings.EditSession CreateEditSession(this global::Settings model, global::System.Action? onChanged = null) => new global::Settings.EditSession(model, onChanged);
-    /// <summary>Creates a framework-neutral edit session that edits the supplied current model against a separate baseline snapshot.</summary>
-    public static global::Settings.EditSession CreateEditSession(this global::Settings baseline, global::Settings current, global::System.Action? onChanged = null) => new global::Settings.EditSession(baseline, current, onChanged);
-    /// <summary>Maps an optional model to its typed observable proxy while preserving missing and present-null states.</summary>
-    public static global::SparseTypes.Optional<global::Settings.Observable?> ToObservable(this global::SparseTypes.Optional<global::Settings?> model, global::System.Action? onChanged = null)
-    {
-        if (!model.IsPresent) return global::SparseTypes.Optional<global::Settings.Observable?>.Missing;
-        var value = model.Value;
-        return global::SparseTypes.Optional<global::Settings.Observable?>.Present(value is null ? null : new global::Settings.Observable(value, onChanged));
-    }
-    /// <summary>Opens a path-addressed typed editing facade for one collection member of this session.</summary>
-    /// <remarks>Each operation re-resolves the live collection and runs inside one batch, so a replaced collection never acts on stale state and one user action raises one transition notification. Keyed lookups resolve stable identity per operation and never treat a sentinel or position as durable identity. For state inspection rather than editing, read the typed ChangeSet projections instead.</remarks>
-    /// <typeparam name="TElement">The collection element model type.</typeparam>
-    /// <param name="session">The edit session.</param>
-    /// <param name="collectionPath">A single-member collection path.</param>
-    /// <returns>An editing facade bound to the addressed member.</returns>
-    public static global::SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this global::Settings.EditSession session, global::SparseTypes.SparsePath collectionPath)
-    {
-        if (session is null) throw new global::System.ArgumentNullException(nameof(session));
-        return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit);
-    }
-    /// <summary>Opens a path-addressed keyed editing facade for one collection member of this session.</summary>
-    /// <remarks>Keyed operations resolve the current index per operation, so rows survive reordering; unassigned sentinels never serve as durable identity. Temporary identities address pending rows through their stable Guid.</remarks>
-    /// <typeparam name="TElement">The collection element model type.</typeparam>
-    /// <typeparam name="TKey">The assigned key type declared by the key attribute.</typeparam>
-    /// <param name="session">The edit session.</param>
-    /// <param name="collectionPath">A single-member collection path.</param>
-    /// <returns>A keyed editing facade bound to the addressed member.</returns>
-    public static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this global::Settings.EditSession session, global::SparseTypes.SparsePath collectionPath)
-    {
-        if (session is null) throw new global::System.ArgumentNullException(nameof(session));
-        return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit);
-    }
-}
-
-namespace SparseTypes.Generated
-{
-    /// <summary>Serializer-facing payload DTOs for this model.</summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    public static partial class Settings_4B058728SerializeObjects
-    {
-            /// <summary>Transport core carrying the validated member changes.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public class Core
-            {
-                /// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>
-                /// <remarks>Redacted before-states project to their requested after-state without historical comparison; ordinary members project their after-state too. The result is baseline-free and can no longer rebase or report conflicts. Public callers enter through the version-validated envelope override.</remarks>
-                /// <returns>The baseline-free patch.</returns>
-                public Patch ToPatch()
-                {
-                    var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out var __blind, out _);
-                    return __changes.ToPatch().Compose(__blind);
-                }
-                /// <summary>Inverts the reversible transitions and reports write-only paths.</summary>
-                /// <remarks>Write-only operations have no prior value to restore, so they are excluded. A non-empty <paramref name="skippedPaths"/> means the result is not a complete inverse; use <c>ChangeSet.Invert()</c> on complete change sets for true inversion.</remarks>
-                /// <param name="skippedPaths">The write-only paths excluded from the result.</param>
-                /// <returns>The inverted change set.</returns>
-                public ChangeSet InvertReversibleChanges(out global::System.Collections.Generic.IReadOnlyList<string> skippedPaths)
-                {
-                    var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out _, out var __blindPaths);
-                    skippedPaths = __blindPaths.ToArray();
-                    return __changes.Invert();
-                }
-                /// <summary>The outcome of applying a mixed request to an ordinary model.</summary>
-                public sealed class MixedApplyResult
-                {
-                    /// <summary>Whether rebasing the baseline-aware members produced conflicts.</summary>
-                    public bool HasConflicts => Conflicts.Count != 0;
-                    /// <summary>Structured conflicts for baseline-aware members only.</summary>
-                    public global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict> Conflicts { get; }
-                    /// <summary>Write-only member paths applied without baseline comparison.</summary>
-                    public global::System.Collections.Generic.IReadOnlyList<string> WriteOnlyPaths { get; }
-                    internal MixedApplyResult(global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict> conflicts, global::System.Collections.Generic.IReadOnlyList<string> writeOnlyPaths)
-                    {
-                        Conflicts = conflicts;
-                        WriteOnlyPaths = writeOnlyPaths;
-                    }
-                    internal static MixedApplyResult Applied(global::System.Collections.Generic.List<string> writeOnlyPaths) => new(global::System.Array.Empty<global::SparseTypes.SparseConflict>(), writeOnlyPaths.ToArray());
-                    internal static MixedApplyResult Conflicted(global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict> conflicts, global::System.Collections.Generic.List<string> writeOnlyPaths) => new(conflicts, writeOnlyPaths.ToArray());
-                }
-                /// <summary>Applies a mixed request to an ordinary model without committing a subset on conflict.</summary>
-                /// <remarks>Baseline-aware members rebase onto the current model; redacted-before members pass their requested after-state through. When rebasing conflicts, nothing is applied and the current model is left untouched. This default passes write-only operations through; it does not claim conflict reconciliation, and revision checks stay with the application.</remarks>
-                /// <param name="current">The current model.</param>
-                /// <param name="updated">The updated model when applied.</param>
-                /// <param name="result">The apply outcome.</param>
-                /// <returns><see langword="true"/> when the request was applied.</returns>
-                public bool TryApplyMixedTo(global::Settings current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Settings? updated, out MixedApplyResult result)
-                {
-                    var __changes = ChangeSet.__SparseMixedPartition(this, string.Empty, out var __blind, out var __blindPaths);
-                    var __state = global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(current));
-                    ChangeSet __toApply;
-                    if (__changes.__SparseBeforeMatches(__state))
-                    {
-                        __toApply = __changes;
-                    }
-                    else
-                    {
-                        var __rebase = __changes.RebaseOnto(__state);
-                        if (__rebase.HasConflicts)
-                        {
-                            updated = null;
-                            result = MixedApplyResult.Conflicted(__rebase.Conflicts, __blindPaths);
-                            return false;
-                        }
-                        __toApply = __rebase.Rebased;
-                    }
-                    var __applied = __toApply.ToPatch().Compose(__blind).Apply(__state);
-                    if (!__applied.IsPresent || __applied.Value is null) throw new global::System.InvalidOperationException("Advancing the baseline did not produce a valid model state.");
-                    var __updatedModel = __applied.Value.ToModel();
-                    updated = __updatedModel;
-                    result = MixedApplyResult.Applied(__blindPaths);
-                    return true;
-                }
-                /// <summary>Validates the structural wire contract without converting or applying.</summary>
-                /// <remarks>Blind and redacted envelopes are valid; a valid payload can still be unconvertible to a complete <c>ChangeSet</c>, and rebase conflicts are reported by <c>TryApplyMixedTo</c>, not here. Messages carry paths and reasons only, never secret values.</remarks>
-                /// <returns>The validation outcome in deterministic payload order.</returns>
-                public global::SparseTypes.ChangePayloadValidationResult Validate()
-                {
-                    var __validateErrors = new global::System.Collections.Generic.List<global::SparseTypes.ChangePayloadValidationError>();
-                    __SparseValidateInto(__validateErrors, string.Empty);
-                    return new global::SparseTypes.ChangePayloadValidationResult(__validateErrors);
-                }
-                /// <summary>Collects structural errors with the given path prefix.</summary>
-                /// <remarks>Accepts the same envelopes as <c>__SparseMixedPartition</c>; nested cores and item edits recurse with extended prefixes.</remarks>
-                /// <param name="errors">The collected errors.</param>
-                /// <param name="pathPrefix">The dotted path prefix.</param>
-                internal void __SparseValidateInto(global::System.Collections.Generic.List<global::SparseTypes.ChangePayloadValidationError> errors, string pathPrefix)
-                {
-                    if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));
-                    if (pathPrefix is null) throw new global::System.ArgumentNullException(nameof(pathPrefix));
-                    if (TypedChange is null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Changes, Path = pathPrefix, Message = "A model change is required." }); return; }
-                    if (TypedChange!.Kind == Settings_4B058728SerializeObjects.ModelChangeKind.Replace)
-                    {
-                        var whole = TypedChange!;
-                        if (whole.Before is null || whole.After is null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Changes, Path = pathPrefix + "$root", Message = "A whole-root payload must contain both endpoints." }); return; }
-                        bool __validateWholeBeforeBad = false;
-                        var __validateWholeBeforeBadMsg = whole.Before.GetInvariantError();
-                        if (__validateWholeBeforeBadMsg is not null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "$root", Message = __validateWholeBeforeBadMsg }); __validateWholeBeforeBad = true; }
-                        bool __validateWholeAfterBad = false;
-                        var __validateWholeAfterBadMsg = whole.After.GetInvariantError();
-                        if (__validateWholeAfterBadMsg is not null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "$root", Message = __validateWholeAfterBadMsg }); __validateWholeAfterBad = true; }
-                        if (__validateWholeBeforeBad || __validateWholeAfterBad) return;
-                        if (whole.After.IsRedacted) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "$root", Message = "The payload contains a redacted after-state for '" + pathPrefix + "$root" + "'. After-states must stay concrete (value, null, or missing)." }); return; }
-                        if (whole.Before.IsRedacted)
-                        {
-                            try { whole.After.ToOptional(); }
-                            catch (global::System.InvalidOperationException __validateWholeBlindEx) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "$root", Message = __validateWholeBlindEx.Message }); }
-                            return;
-                        }
-                        try
-                        {
-                            var __validateWholeBefore = whole.Before.ToOptional();
-                            var __validateWholeAfter = whole.After.ToOptional();
-                            if (__validateWholeBefore.IsPresent) __validateWholeBefore.Value?.ToFragment();
-                            if (__validateWholeAfter.IsPresent) __validateWholeAfter.Value?.ToFragment();
-                        }
-                        catch (global::System.ArgumentException __validateWholeEx) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Changes, Path = pathPrefix + "$root", Message = __validateWholeEx.Message }); }
-                        catch (global::System.InvalidOperationException __validateWholeEx) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "$root", Message = __validateWholeEx.Message }); }
-                        return;
-                    }
-                    bool __validateSeen0 = false;
-                    bool __validateSeen1 = false;
-                    foreach (var change in EnumerateChanges())
-                    {
-                        switch (change)
-                        {
-                            case Settings_4B058728SerializeObjects.Change0 item:
-                            if (__validateSeen0) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Duplicate, Path = pathPrefix + "Database", Message = "A payload cannot contain duplicate member changes." }); break; }
-                            __validateSeen0 = true;
-                            if (item.Nested is null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Changes, Path = pathPrefix + "Database", Message = "Nested payload is required." }); break; }
-                            item.Nested.__SparseValidateInto(errors, pathPrefix + "Database" + ".");
-                            break;
-                            case Settings_4B058728SerializeObjects.Change1 item:
-                            if (__validateSeen1) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Duplicate, Path = pathPrefix + "Label", Message = "A payload cannot contain duplicate member changes." }); break; }
-                            __validateSeen1 = true;
-                            if (item.Before is null || item.After is null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = "Both transition endpoints are required." }); break; }
-                            bool __validateBeforeBad1 = false;
-                            var __validateBeforeBad1Msg = item.Before.GetInvariantError();
-                            if (__validateBeforeBad1Msg is not null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = __validateBeforeBad1Msg }); __validateBeforeBad1 = true; }
-                            bool __validateAfterBad1 = false;
-                            var __validateAfterBad1Msg = item.After.GetInvariantError();
-                            if (__validateAfterBad1Msg is not null) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = __validateAfterBad1Msg }); __validateAfterBad1 = true; }
-                            if (__validateBeforeBad1 || __validateAfterBad1) break;
-                            if (item.After.IsRedacted) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = "The payload contains a redacted after-state for '" + pathPrefix + "Label" + "'. After-states must stay concrete (value, null, or missing)." }); break; }
-                            if (item.Before.IsRedacted)
-                            {
-                                try { item.After.ToOptional(); }
-                                catch (global::System.InvalidOperationException __validateBlindEx1) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = __validateBlindEx1.Message }); }
-                                break;
-                            }
-                            try { item.Before.ToOptional(); item.After.ToOptional(); }
-                            catch (global::System.InvalidOperationException __validateOrdinaryEx1) { errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Endpoint, Path = pathPrefix + "Label", Message = __validateOrdinaryEx1.Message }); }
-                            break;
-                            default: errors.Add(new global::SparseTypes.ChangePayloadValidationError { Kind = global::SparseTypes.ChangePayloadValidationKind.Changes, Path = pathPrefix, Message = "Payload contains a null or unknown change variant." }); break;
-                        }
-                    }
-                }
-                /// <summary>Gets or sets the member changes carried by this core.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                internal Settings_4B058728SerializeObjects.ModelChange? TypedChange { get; set; }
-                internal global::System.Collections.Generic.IEnumerable<Change> EnumerateChanges()
-                {
-                    var change = TypedChange;
-                    if (change is null) yield break;
-                    if (change.Kind == Settings_4B058728SerializeObjects.ModelChangeKind.Replace) yield break;
-                    if (change.Kind != Settings_4B058728SerializeObjects.ModelChangeKind.Update) throw new global::System.ArgumentOutOfRangeException(nameof(TypedChange));
-                    if (change.Members is null) throw new global::System.ArgumentException("An update requires a members object.", nameof(TypedChange));
-                    if (change.Members.Database is not null) yield return change.Members.Database;
-                    if (change.Members.Label is not null) yield return change.Members.Label;
-                }
-                internal global::Settings.ChangeSet ToChangeSetCore() => global::Settings.ChangeSet.FromPayloadCore(this);
-                internal global::Settings.Patch ToPatchCore() => global::Settings.ChangeSet.PatchFromPayloadCore(this);
-                internal static Core FromPatchCore(global::Settings.Patch patch) => patch.ToChangePayloadCore();
-            }
-    }
-
-    public static partial class Settings_4B058728SerializeObjects
-    {
-            /// <summary>Base type for the internal change representation.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public abstract class Change { }
-
-            /// <summary>Payload change for one member.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public sealed class Change0 : Change
-            {
-                /// <summary>Gets or sets the snapshot value.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>? Value { get; set; }
-                /// <summary>Gets or sets the nested change core.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Core? Nested { get; set; }
-            }
-
-            /// <summary>Payload change for one member.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public sealed class Change1 : Change
-            {
-                /// <summary>Gets or sets the snapshot value.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::SparseTypes.ChangePayloadEndpoint<string?>? Value { get; set; }
-                /// <summary>Gets or sets the before endpoint.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::SparseTypes.ChangePayloadEndpoint<string?>? Before { get; set; }
-                /// <summary>Gets or sets the after endpoint.</summary>
-                [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-                public global::SparseTypes.ChangePayloadEndpoint<string?>? After { get; set; }
-            }
-
-            /// <summary>Base role for a collection replacement or keyed item update.</summary>
-            /// <typeparam name="TCollection">The collection value type.</typeparam>
-            /// <typeparam name="TItem">The item-operation type.</typeparam>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public abstract class CollectionChange<TCollection, TItem> : Change
-            {
-                /// <summary>Gets or sets the before collection endpoint.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<TCollection>? Before { get; set; }
-                /// <summary>Gets or sets the after collection endpoint.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<TCollection>? After { get; set; }
-                /// <summary>Gets or sets the item operations for an incremental update.</summary>
-                public global::System.Collections.Generic.List<TItem> Items { get; set; } = new();
-            }
-
-            /// <summary>Base role for an operation on one keyed or dictionary item.</summary>
-            /// <typeparam name="TKey">The item identity type.</typeparam>
-            /// <typeparam name="TValue">The item value type.</typeparam>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public abstract class ItemOperation<TKey, TValue>
-            {
-                /// <summary>Gets or sets the item identity.</summary>
-                public TKey Key { get; set; } = default!;
-                /// <summary>Gets or sets the before endpoint.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<TValue>? Before { get; set; }
-                /// <summary>Gets or sets the after endpoint.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<TValue>? After { get; set; }
-                /// <summary>Gets or sets the item operation kind.</summary>
-                public global::SparseTypes.ChangePayloadItemKind Kind { get; set; }
-            }
-
-            /// <summary>Operation kind for a model payload change.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public enum ModelChangeKind
-            {
-                /// <summary>Updates only the listed members.</summary>
-                Update,
-                /// <summary>Replaces the entire model snapshot.</summary>
-                Replace
-            }
-
-            /// <summary>Snapshot value of a model's transportable members.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public sealed class Root
-            {
-                /// <summary>Gets or sets the snapshot endpoint for Database.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>? Database { get; set; }
-                /// <summary>Gets or sets the snapshot endpoint for Label.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<string?>? Label { get; set; }
-                /// <summary>Builds a snapshot from a fragment.</summary>
-                /// <param name="value">The fragment to snapshot.</param>
-                /// <returns>The generated snapshot.</returns>
-                public static Root FromFragment(Fragment value)
-                {
-                    if (value is null) throw new global::System.ArgumentNullException(nameof(value));
-                    var result = new Root();
-                    var member0 = value.Database;
-                    if (member0.IsPresent) result.Database = global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>.FromOptional(global::SparseTypes.Optional<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>.Present(member0.Value is null ? null : global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root.FromFragment(member0.Value!)));
-                    if (value.Label.IsPresent) result.Label = global::SparseTypes.ChangePayloadEndpoint<string?>.FromOptional(value.Label);
-                    return result;
-                }
-                /// <summary>Converts this snapshot to a fragment.</summary>
-                /// <returns>The converted fragment.</returns>
-                public Fragment ToFragment()
-                {
-                    if (this.Database?.State == global::SparseTypes.ChangePayloadState.Redacted) throw new global::System.ArgumentException("A redacted root member cannot convert to a fragment.", "Database");
-                    var member0 = this.Database?.ToOptional() ?? global::SparseTypes.Optional<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>.Missing;
-                    global::SparseTypes.Optional<global::DatabaseSettings.Fragment?> rootMember0 = !member0.IsPresent ? global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Missing : global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present(member0.Value is null ? null : member0.Value.ToFragment());
-                    if (this.Label?.State == global::SparseTypes.ChangePayloadState.Redacted) throw new global::System.ArgumentException("A redacted root member cannot convert to a fragment.", "Label");
-                    global::SparseTypes.Optional<string?> rootMember1 = this.Label is null ? global::SparseTypes.Optional<string?>.Missing : this.Label.ToOptional();
-                    return new Fragment
-                    {
-                        Database = rootMember0,
-                        Label = rootMember1,
-                    };
-                }
-            }
-
-            /// <summary>Optional member operations for a model update.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public sealed class MembersDelta
-            {
-                /// <summary>Gets or sets the optional change for Database.</summary>
-                public Change0? Database { get; set; }
-                /// <summary>Gets or sets the optional change for Label.</summary>
-                public Change1? Label { get; set; }
-            }
-
-            /// <summary>Typed update or replacement for a model.</summary>
-            [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-            public sealed class ModelChange
-            {
-                /// <summary>Gets or sets whether this is a member update or whole-model replacement.</summary>
-                public ModelChangeKind Kind { get; set; }
-                /// <summary>Gets or sets the optional member operations for an update.</summary>
-                public MembersDelta? Members { get; set; }
-                /// <summary>Gets or sets the before snapshot for a replacement.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<Root>? Before { get; set; }
-                /// <summary>Gets or sets the after snapshot for a replacement.</summary>
-                public global::SparseTypes.ChangePayloadEndpoint<Root>? After { get; set; }
-            }
-
-    }
-    /// <summary>Trim-safe JSON converter for this model's change payload.</summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    public sealed class Settings_4B058728SerializeObjectsPayloadJsonConverter : global::System.Text.Json.Serialization.JsonConverter<global::Settings.ChangePayload>
-    {
-        /// <inheritdoc />
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        public override global::Settings.ChangePayload? Read(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Type typeToConvert, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A payload must be an object.");
-            string? version = null;
-            Settings_4B058728SerializeObjects.ModelChange? change = null;
-            bool hasVersion = false;
-            bool hasChange = false;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed payload.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (name == "version")
-                { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); hasVersion = true; }
-                else if (name == "change")
-                { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); change = ReadModelChange(ref reader, options); hasChange = true; }
-                else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); reader.Skip(); }
-            }
-            if (!hasVersion || !hasChange || change is null) throw new global::System.Text.Json.JsonException("A payload requires version and change properties.");
-            return new global::Settings.ChangePayload { Version = version, Change = change };
-        }
-
-        /// <inheritdoc />
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        public override void Write(global::System.Text.Json.Utf8JsonWriter writer, global::Settings.ChangePayload? value, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (value is null) { writer.WriteNullValue(); return; }
-            ValidatePayloadForJson(value);
-            var change = value.Change ?? throw new global::System.Text.Json.JsonException("A payload change is required.");
-            writer.WriteStartObject();
-            writer.WriteString("version", value.Version);
-            writer.WritePropertyName("change");
-            WriteModelChange(writer, change, options);
-            writer.WriteEndObject();
-        }
-
-        internal static void ValidatePayloadForJson(global::Settings.ChangePayload value)
-        {
-            var validation = value.Validate();
-            if (!validation.IsValid) throw new global::System.Text.Json.JsonException("The change payload does not satisfy its structural contract.");
-            ValidateCoreForJson(value);
-        }
-
-        internal static void ValidateCoreForJson(Settings_4B058728SerializeObjects.Core? value)
-        {
-            if (value is null) return;
-            var validation = value.Validate();
-            if (!validation.IsValid) throw new global::System.Text.Json.JsonException("The change payload does not satisfy its structural contract.");
-            if (value.TypedChange is null) return;
-            if (value.TypedChange.Kind == Settings_4B058728SerializeObjects.ModelChangeKind.Replace)
-            {
-                var before = value.TypedChange.Before;
-                var after = value.TypedChange.After;
-                if (before?.State == global::SparseTypes.ChangePayloadState.Value) ValidateRootForJson(before.Value);
-                if (after?.State == global::SparseTypes.ChangePayloadState.Value) ValidateRootForJson(after.Value);
-                return;
-            }
-            foreach (var change in value.EnumerateChanges())
-            {
-                switch (change)
-                {
-                    case Settings_4B058728SerializeObjects.Change0 member0:
-                    if (member0.Nested is not null) global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.ValidateCoreForJson(member0.Nested);
-                    if (member0.Value?.State == global::SparseTypes.ChangePayloadState.Value) global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.ValidateRootForJson(member0.Value.Value);
-                    break;
-                    case Settings_4B058728SerializeObjects.Change1 member1:
-                    break;
-                    default: break;
-                }
-            }
-        }
-
-        internal static void ValidateRootForJson(Settings_4B058728SerializeObjects.Root? value)
-        {
-            if (value is null) return;
-            if (value.Database?.State == global::SparseTypes.ChangePayloadState.Value) global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.ValidateRootForJson(value.Database.Value);
-        }
-        /// <summary>Reads a nested model change.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static Settings_4B058728SerializeObjects.Core ReadCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            Settings_4B058728SerializeObjects.ModelChange change = ReadModelChange(ref reader, options);
-            return new Settings_4B058728SerializeObjects.Core { TypedChange = change };
-        }
-
-        /// <summary>Writes a nested model change.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static void WriteCore(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.Core? value, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (value is null) { writer.WriteNullValue(); return; }
-            var change = value.TypedChange ?? throw new global::System.Text.Json.JsonException("A model change is required.");
-            WriteModelChange(writer, change, options);
-        }
-
-        /// <summary>Reads a typed model snapshot.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static Settings_4B058728SerializeObjects.Root ReadRoot(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A snapshot must be an object.");
-            var snapshot = new Settings_4B058728SerializeObjects.Root();
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed snapshot.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed snapshot.");
-                switch (name)
-                {
-                    case "database":
-                    snapshot.Database = ReadChildEndpoint0(ref reader, options);
-                    break;
-                    case "label":
-                    snapshot.Label = ReadEndpoint<string?>(ref reader, options, null, null);
-                    break;
-                    default: reader.Skip(); break;
-                }
-            }
-            return snapshot;
-        }
-
-        /// <summary>Writes a typed model snapshot.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static void WriteRoot(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.Root? value, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (value is null) throw new global::System.Text.Json.JsonException("A snapshot is required.");
-            writer.WriteStartObject();
-            if (value.Database is not null)
-            {
-                writer.WritePropertyName("database");
-                WriteChildEndpoint0(writer, value.Database, options);
-            }
-            if (value.Label is not null)
-            {
-                writer.WritePropertyName("label");
-                WriteEndpoint(writer, value.Label, options, null);
-            }
-            writer.WriteEndObject();
-        }
-
-        private static Settings_4B058728SerializeObjects.ModelChange ReadModelChange(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A model change must be an object.");
-            var change = new Settings_4B058728SerializeObjects.ModelChange();
-            string? operation = null;
-            bool hasKind = false, hasMembers = false, hasBefore = false, hasAfter = false;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed model change.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed model change.");
-                if (name == "kind")
-                {
-                    operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null;
-                    change.Kind = operation switch { "update" => Settings_4B058728SerializeObjects.ModelChangeKind.Update, "replace" => Settings_4B058728SerializeObjects.ModelChangeKind.Replace, _ => throw new global::System.Text.Json.JsonException("Unknown model change kind.") };
-                    hasKind = true;
-                }
-                else if (name == "members") { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }
-                else if (name == "before") { change.Before = ReadEndpoint<Settings_4B058728SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasBefore = true; }
-                else if (name == "after") { change.After = ReadEndpoint<Settings_4B058728SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasAfter = true; }
-                else reader.Skip();
-            }
-            if (!hasKind) throw new global::System.Text.Json.JsonException("A model change requires a kind.");
-            if (operation == "replace" && (!hasBefore || !hasAfter || change.Before is null || change.After is null || hasMembers)) throw new global::System.Text.Json.JsonException("A replacement requires both endpoints and no members object.");
-            if (operation == "update" && (!hasMembers || change.Members is null || hasBefore || hasAfter)) throw new global::System.Text.Json.JsonException("An update requires members and cannot contain replacement endpoints.");
-            return change;
-        }
-
-        private static Settings_4B058728SerializeObjects.MembersDelta ReadMembersDelta(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("Members must be an object.");
-            var members = new Settings_4B058728SerializeObjects.MembersDelta();
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed members object.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed members object.");
-                switch (name)
-                {
-                    case "database": members.Database = (Settings_4B058728SerializeObjects.Change0)ReadMember0(ref reader, options); break;
-                    case "label": members.Label = (Settings_4B058728SerializeObjects.Change1)ReadMember1(ref reader, options); break;
-                    default: reader.Skip(); break;
-                }
-            }
-            return members;
-        }
-
-        private static void WriteModelChange(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.ModelChange change, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (change is null) throw new global::System.Text.Json.JsonException("A model change is required.");
-            writer.WriteStartObject();
-            writer.WriteString("kind", change.Kind switch { Settings_4B058728SerializeObjects.ModelChangeKind.Update => "update", Settings_4B058728SerializeObjects.ModelChangeKind.Replace => "replace", _ => throw new global::System.Text.Json.JsonException("Unknown model change kind.") });
-            if (change.Kind == Settings_4B058728SerializeObjects.ModelChangeKind.Replace)
-            {
-                if (change.Members is not null || change.Before is null || change.After is null) throw new global::System.Text.Json.JsonException("A replacement requires both endpoints and no members object.");
-                writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, WriteRoot);
-                writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, WriteRoot);
-            }
-            else if (change.Kind == Settings_4B058728SerializeObjects.ModelChangeKind.Update)
-            {
-                if (change.Members is null || change.Before is not null || change.After is not null) throw new global::System.Text.Json.JsonException("An update requires members and cannot contain replacement endpoints.");
-                writer.WritePropertyName("members"); WriteMembersDelta(writer, change.Members, options);
-            }
-            else throw new global::System.Text.Json.JsonException("Unknown model change kind.");
-            writer.WriteEndObject();
-        }
-
-        private static void WriteMembersDelta(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.MembersDelta members, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (members is null) throw new global::System.Text.Json.JsonException("Members are required.");
-            writer.WriteStartObject();
-            if (members.Database is not null)
-            {
-                writer.WritePropertyName("database");
-                writer.WriteStartObject();
-                WriteMember0Body(writer, members.Database, options);
-                writer.WriteEndObject();
-            }
-            if (members.Label is not null)
-            {
-                writer.WritePropertyName("label");
-                writer.WriteStartObject();
-                WriteMember1Body(writer, members.Label, options);
-                writer.WriteEndObject();
-            }
-            writer.WriteEndObject();
-        }
-
-        private static Settings_4B058728SerializeObjects.Change ReadMember0(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
-            var change = new Settings_4B058728SerializeObjects.Change0();
-            string? operation = null;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed change.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
-                else if (name == "change") { if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) change.Nested = null; else change.Nested = global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.ReadCore(ref reader, options); }
-                else reader.Skip();
-            }
-            if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");
-            if (operation != "update") throw new global::System.Text.Json.JsonException("Unknown nested model change kind.");
-            return change;
-        }
-
-        private static void WriteMember0Body(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.Change0 change, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (change.Nested is null) throw new global::System.Text.Json.JsonException("A nested model update requires members.");
-            writer.WriteString("kind", "update");
-            writer.WritePropertyName("change"); global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.WriteCore(writer, change.Nested, options);
-        }
-
-        private static global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>? ReadChildEndpoint0(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("An endpoint must be an object.");
-            var state = default(global::SparseTypes.ChangePayloadState);
-            var hasState = false;
-            var hasValue = false;
-            global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root? value = default;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (reader.ValueTextEquals("state")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); state = ParseState(reader.GetString()); hasState = true; }
-                else if (reader.ValueTextEquals("value")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); hasValue = true; if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) value = global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.ReadRoot(ref reader, options); }
-                else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint."); reader.Skip(); }
-            }
-            if (!hasState) throw new global::System.Text.Json.JsonException("An endpoint must contain a state.");
-            if (state != global::SparseTypes.ChangePayloadState.Value && hasValue) throw new global::System.Text.Json.JsonException("A value-free endpoint must not contain a value property.");
-            if (state == global::SparseTypes.ChangePayloadState.Value && (!hasValue || value is null)) throw new global::System.Text.Json.JsonException("A value endpoint must contain a non-null value.");
-            return new global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?> { State = state, Value = value };
-        }
-
-        private static void WriteChildEndpoint0(global::System.Text.Json.Utf8JsonWriter writer, global::SparseTypes.ChangePayloadEndpoint<global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjects.Root?>? value, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (value is null) { writer.WriteNullValue(); return; }
-            value.Validate();
-            writer.WriteStartObject();
-            writer.WriteString("state", global::SparseTypes.ChangePayloadWire.ToToken(value.State));
-            if (value.State == global::SparseTypes.ChangePayloadState.Value)
-            {
-                if (value.Value is null) throw new global::System.Text.Json.JsonException("A value endpoint must contain a value.");
-                writer.WritePropertyName("value");
-                global::SparseTypes.Generated.DatabaseSettings_8807E705SerializeObjectsPayloadJsonConverter.WriteRoot(writer, value.Value, options);
-            }
-            writer.WriteEndObject();
-        }
-
-        private static Settings_4B058728SerializeObjects.Change ReadMember1(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
-            var change = new Settings_4B058728SerializeObjects.Change1();
-            string? operation = null;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
-            while (reader.Read())
-            {
-                if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
-                if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed change.");
-                var name = reader.GetString() ?? string.Empty;
-                if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
-                else if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<string?>(ref reader, options, null, null); }
-                else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<string?>(ref reader, options, null, null); }
-                else reader.Skip();
-            }
-            if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");
-            if (operation != "replace") throw new global::System.Text.Json.JsonException("Unknown value change kind.");
-            return change;
-        }
-
-        private static void WriteMember1Body(global::System.Text.Json.Utf8JsonWriter writer, Settings_4B058728SerializeObjects.Change1 change, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (change.After is null) throw new global::System.Text.Json.JsonException("A value change requires an after-state.");
-            writer.WriteString("kind", "replace");
-            if (change.Before is not null) { writer.WritePropertyName("before"); WriteEndpoint(writer, change.Before, options, null); }
-            if (change.After is not null) { writer.WritePropertyName("after"); WriteEndpoint(writer, change.After, options, null); }
-        }
-
-        private static bool TryReadNull(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonCodecs.TryReadNull(ref reader);
-
-        private static global::SparseTypes.ChangePayloadState ParseState(string? token) => global::SparseTypes.Generated.SparseJsonCodecs.ParseState(token);
-
-        private static global::SparseTypes.ChangePayloadItemKind ParseKind(string? token) => global::SparseTypes.Generated.SparseJsonCodecs.ParseKind(token);
-
-        private static global::SparseTypes.ChangePayloadEndpoint<TValue>? ReadEndpoint<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options, global::SparseTypes.Generated.SparseJsonCodecs.RootReader<TValue>? rootReader, global::SparseTypes.Generated.SparseJsonCodecs.RootWriter<TValue>? rootWriter) => global::SparseTypes.Generated.SparseJsonCodecs.ReadEndpoint(ref reader, options, rootReader, rootWriter, GetValueInfo<TValue>);
-
-        private static void WriteEndpoint<TValue>(global::System.Text.Json.Utf8JsonWriter writer, global::SparseTypes.ChangePayloadEndpoint<TValue>? value, global::System.Text.Json.JsonSerializerOptions options, global::SparseTypes.Generated.SparseJsonCodecs.RootWriter<TValue>? rootWriter) => global::SparseTypes.Generated.SparseJsonCodecs.WriteEndpoint(writer, value, options, rootWriter, GetValueInfo<TValue>);
-
-        private static global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue> GetValueInfo<TValue>(global::System.Text.Json.JsonSerializerOptions options)
-        {
-            try { return (global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue)); }
-            catch (global::System.NotSupportedException exception)
-            {
-                throw new global::System.InvalidOperationException("The generated payload resolver requires JsonTypeInfo metadata for value type '" + typeof(TValue) + "'. Combine global::Settings.PayloadJson.Resolver with a source-generated context for custom value types, or add a JsonConverter for the type to the serializer options.", exception);
-            }
-        }
-
-        private static TKey ReadKey<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.ReadKey<TKey>(ref reader, options, GetValueInfo<TKey>);
-
-        private static void WriteKey<TKey>(global::System.Text.Json.Utf8JsonWriter writer, TKey key, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonCodecs.WriteKey(writer, key, options, GetValueInfo<TKey>);
-
-        private static global::System.Collections.Generic.List<TKey>? ReadKeyList<TKey>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.ReadKeyList<TKey>(ref reader, options, GetValueInfo<TKey>);
-
-        private static void WriteKeyList<TKey>(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values, global::System.Text.Json.JsonSerializerOptions options) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.WriteKeyList<TKey>(writer, values, options, GetValueInfo<TKey>);
-
-        private static global::System.Collections.Generic.List<global::System.Guid>? ReadGuidList(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.ReadGuidList(ref reader);
-
-        private static void WriteGuidList(global::System.Text.Json.Utf8JsonWriter writer, System.Collections.IEnumerable values) => global::SparseTypes.Generated.SparseJsonPayloadCodecs.WriteGuidList(writer, values);
-
-        private static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryReadScalar(ref reader, out value);
-
-        private static TValue? ReadScalarEnum<TValue>(ref global::System.Text.Json.Utf8JsonReader reader) => global::SparseTypes.Generated.SparseJsonCodecs.ReadScalarEnum<TValue>(ref reader);
-
-        private static bool TryWriteScalar<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value) => global::SparseTypes.Generated.SparseJsonCodecs.TryWriteScalar(writer, value);
-
-        private static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value) => global::SparseTypes.Generated.SparseJsonCodecs.WriteScalarEnum(writer, value);
-
-        private static TKey ParseMapKey<TKey>(string name) => global::SparseTypes.Generated.SparseJsonCodecs.ParseMapKey<TKey>(name);
-
-        private static string FormatMapKey<TKey>(TKey key) => global::SparseTypes.Generated.SparseJsonCodecs.FormatMapKey(key);
-    }
-
-    /// <summary>Trim-safe resolver for this model's change payload.</summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    internal sealed class Settings_4B058728SerializeObjectsPayloadJsonResolver : global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
-    {
-        /// <inheritdoc />
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        public global::System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(global::System.Type type, global::System.Text.Json.JsonSerializerOptions options)
-        {
-            if (type == typeof(global::Settings.ChangePayload))
-            return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<global::Settings.ChangePayload>(options, Converter);
-            return null;
-        }
-        /// <summary>Gets the shared resolver instance.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static Settings_4B058728SerializeObjectsPayloadJsonResolver Default { get; } = new();
-        /// <summary>Gets metadata for the model's change payload.</summary>
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<global::Settings.ChangePayload> ChangePayload => _payloadInfo ??= global::System.Text.Json.Serialization.Metadata.JsonMetadataServices.CreateValueInfo<global::Settings.ChangePayload>(new global::System.Text.Json.JsonSerializerOptions { TypeInfoResolver = Default }, Converter);
-        private static readonly Settings_4B058728SerializeObjectsPayloadJsonConverter Converter = new();
-        private global::System.Text.Json.Serialization.Metadata.JsonTypeInfo<global::Settings.ChangePayload>? _payloadInfo;
-    }
-
-
-    internal static class Settings_4B058728TemporaryKeyReconciler
-    {
-        /// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>
-        /// <remarks>Returns the opaque correlation and a null error on success, or a null map with the first mismatch. Never mutates either model.</remarks>
-        internal static (global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>? Map, string? Error) __SparseBuildTempMap(global::Settings submitted, global::Settings persisted)
-        {
-            if ((object?)submitted is null) throw new global::System.ArgumentNullException(nameof(submitted));
-            if ((object?)persisted is null) throw new global::System.ArgumentNullException(nameof(persisted));
-            var __map = new global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>();
-            var __error = __SparseCollectTempMap(submitted, persisted, __map, "");
-            if (__error is not null) return (null, __error);
-            return (__map, null);
-        }
-        /// <summary>Collects temporary correlations for this model into a shared map.</summary>
-        /// <remarks>Recurses through keyed and nested members; server-side drops absorb while omitted, duplicated, or unassigned temporary identities fail.</remarks>
-        internal static string? __SparseCollectTempMap(global::Settings submitted, global::Settings persisted, global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?> map, string __scope)
-        {
-            {
-                var __sub = submitted.Database;
-                var __per = persisted.Database;
-                if (__sub is not null && __per is not null)
-                {
-                    var __nestedScope0 = string.IsNullOrEmpty(__scope) ? "Database" : __scope + ".Database";
-                    var __nestedError = global::SparseTypes.Generated.DatabaseSettings_8807E705TemporaryKeyReconciler.__SparseCollectTempMap(__sub, __per, map, __nestedScope0);
-                    if (__nestedError is not null) return __nestedError;
-                }
-            }
-            return null;
-        }
-        /// <summary>Assigns mapped temporary identities into the live model.</summary>
-        /// <remarks>Replays recorded post-submit edits onto persisted elements; rows without their own edits adopt the persisted element, and unmapped temporary identities stay pending. Returns an error without partial writes when the live state is incompatible.</remarks>
-        internal static string? __SparseRetargetTemps(global::Settings live, global::Settings? submittedAfter, global::Settings? persisted, global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?> map, global::Settings.ChangeSet? pending, string __scope)
-        {
-            if ((object?)live is null) throw new global::System.ArgumentNullException(nameof(live));
-            if (map is null) throw new global::System.ArgumentNullException(nameof(map));
-            if (__scope is null) throw new global::System.ArgumentNullException(nameof(__scope));
-            var __origChild0 = live.Database;
-            string? __Fail(string __err)
-            {
-                live.Database = __origChild0!;
-                return __err;
-            }
-            {
-                var __childScope0 = string.IsNullOrEmpty(__scope) ? "Database" : __scope + ".Database";
-                var __childLive = live.Database;
-                if (__childLive is null)
-                {
-                }
-                else
-                {
-                    var __childPending = pending?.Database;
-                    var __childSub = submittedAfter?.Database;
-                    var __childPer = persisted?.Database;
-                    if (__childPer is null)
-                    {
-                        if (__childPending is not null && !__childPending.IsEmpty) return __Fail("The server dropped a value with pending local edits.");
-                        live.Database = default!;
-                    }
-                    else if (__childSub is null)
-                    {
-                        var __addError = global::SparseTypes.Generated.DatabaseSettings_8807E705TemporaryKeyReconciler.__SparseRetargetTemps(__childLive, __childSub, __childPer, map, __childPending, __childScope0);
-                        if (__addError is not null) return __Fail(__addError);
-                    }
-                    else
-                    {
-                        var __mergedChildBase = global::DatabaseSettings.Fragment.From(__childPer!);
-                        var __mergedChildAdvanced = global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present(__mergedChildBase);
-                        if (__childPending is not null && !__childPending.IsEmpty)
-                        {
-                            var __mergedChildApplied = __childPending.ToPatch().Apply(__mergedChildBase);
-                            if (!__mergedChildApplied.IsPresent || __mergedChildApplied.Value is null) return __Fail("Reconciling produced an invalid element.");
-                            __mergedChildAdvanced = __mergedChildApplied;
-                        }
-                        if (!__mergedChildAdvanced.IsPresent || __mergedChildAdvanced.Value is null) return __Fail("Reconciling produced an invalid element.");
-                        live.Database = __mergedChildAdvanced.Value.ToModel();
-                    }
-                }
-            }
-            return null;
-        }
-    }
-    /// <summary>Per-model Fragment conversion, merge, diff, and clone operations.</summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    internal static class Settings_4B058728FragmentOperations
-    {
-        /// <summary>Creates a fragment with every member present from a model value.</summary>
-        /// <param name="value">The model value to project.</param>
-        /// <returns>The fragment with all members present.</returns>
-        public static Fragment From(global::Settings value)
-        {
-            if (value is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(value));
-            }
-            using var __sparse_clone_context_scope = global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentCloneContext();
-            var __sparse_clone_context = __sparse_clone_context_scope.Context;
-            var __sparse_from_context = global::SparseTypes.CompilerServices.SparseFragmentRuntime.CreateFromCycleContext();
-            return From(value, __sparse_clone_context, __sparse_from_context, "");
-        }
-
-        /// <summary>Materializes a model by overlaying a fragment onto a baseline value.</summary>
-        /// <param name="fragment">The fragment to overlay.</param>
-        /// <param name="baseline">The baseline value supplying absent members.</param>
-        /// <returns>The materialized model value.</returns>
-        public static global::Settings ToModel(Fragment fragment, global::Settings baseline)
-        {
-            return ToModel(Merge(From(baseline), fragment));
-        }
-
-        /// <summary>Materializes a model from the present members of a fragment.</summary>
-        /// <param name="fragment">The fragment to materialize.</param>
-        /// <returns>The materialized model value.</returns>
-        public static global::Settings ToModel(Fragment fragment)
-        {
-            var value = new global::Settings();
-            if (fragment.Database.IsPresent) value.Database = fragment.Database.Value?.ToModel()!;
-            if (fragment.Label.IsPresent) value.Label = fragment.Label.Value!;
-            return value;
-        }
-
-        /// <summary>Merges a higher-priority fragment over this fragment.</summary>
-        /// <param name="self">The lower-priority fragment.</param>
-        /// <param name="higherPriority">The higher-priority contribution.</param>
-        /// <param name="selfFallback">The fallback origin for the lower contribution.</param>
-        /// <param name="higherFallback">The fallback origin for the higher contribution.</param>
-        /// <returns>The merged fragment.</returns>
-        public static Fragment Merge(Fragment self, Fragment higherPriority, string? selfFallback = null, string? higherFallback = null)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            if (higherPriority is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(higherPriority));
-            }
-            if (higherPriority.IsEmpty)
-            {
-                return self;
-            }
-            if (self.IsEmpty)
-            {
-                return higherPriority;
-            }
-            var __sparse_value_0 = higherPriority.Database.IsPresent ? global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present((self.Database.IsPresent && (object?)self.Database.Value is not null && (object?)higherPriority.Database.Value is not null) ? self.Database.Value!.__SparseMergeWithFallback(higherPriority.Database.Value!, (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[0]), (higherPriority.__SparseMemberOrigins is null ? (higherPriority.Origin ?? higherFallback) : higherPriority.__SparseMemberOrigins[0])) : higherPriority.Database.Value) : self.Database;
-            var __sparse_value_1 = higherPriority.Label.IsPresent ? higherPriority.Label : self.Label;
-            if (self.Origin is null && higherPriority.Origin is null && selfFallback is null && higherFallback is null && self.__SparseMemberOrigins is null && higherPriority.__SparseMemberOrigins is null && self.__SparseElementOrigins is null && higherPriority.__SparseElementOrigins is null)
-            {
-                return new Fragment
-                {
-                    Database = __sparse_value_0,
-                    Label = __sparse_value_1,
-                };
-            }
-            string? __sparse_origin_0 = (!higherPriority.Database.IsPresent ? (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[0]) : (!self.Database.IsPresent ? (higherPriority.__SparseMemberOrigins is null ? (higherPriority.Origin ?? higherFallback) : higherPriority.__SparseMemberOrigins[0]) : ((object?)higherPriority.Database.Value is null ? (higherPriority.__SparseMemberOrigins is null ? (higherPriority.Origin ?? higherFallback) : higherPriority.__SparseMemberOrigins[0]) : ((object?)self.Database.Value is null ? (higherPriority.__SparseMemberOrigins is null ? (higherPriority.Origin ?? higherFallback) : higherPriority.__SparseMemberOrigins[0]) : null))));
-            string? __sparse_origin_1 = (higherPriority.Label.IsPresent ? (higherPriority.__SparseMemberOrigins is null ? (higherPriority.Origin ?? higherFallback) : higherPriority.__SparseMemberOrigins[1]) : (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[1]));
-            return new Fragment(higherPriority.Origin ?? higherFallback ?? self.Origin ?? selfFallback)
-            {
-                Database = __sparse_value_0,
-                Label = __sparse_value_1,
-                __SparseMemberOrigins = new string?[] { __sparse_origin_0, __sparse_origin_1 },
-            };
-        }
-
-        /// <summary>Applies a sparse semantic diff to this contribution.</summary>
-        /// <param name="self">The fragment to update.</param>
-        /// <param name="changes">The diff to apply.</param>
-        /// <param name="selfFallback">The fallback origin for the updated fragment.</param>
-        /// <param name="changesFallback">The fallback origin for the diff.</param>
-        /// <returns>The fragment with the diff applied.</returns>
-        public static Fragment ApplyChanges(Fragment self, Fragment changes, string? selfFallback = null, string? changesFallback = null)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            if (changes is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(changes));
-            }
-            var __sparse_value_0 = changes.Database.IsPresent ? global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present((self.Database.IsPresent && (object?)self.Database.Value is not null && (object?)changes.Database.Value is not null) ? self.Database.Value!.__SparseApplyChangesWithFallback(changes.Database.Value!, (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[0]), (changes.__SparseMemberOrigins is null ? (changes.Origin ?? changesFallback) : changes.__SparseMemberOrigins[0])) : changes.Database.Value) : self.Database;
-            var __sparse_value_1 = changes.Label.IsPresent ? changes.Label : self.Label;
-            if (self.Origin is null && changes.Origin is null && selfFallback is null && changesFallback is null && self.__SparseMemberOrigins is null && changes.__SparseMemberOrigins is null && self.__SparseElementOrigins is null && changes.__SparseElementOrigins is null)
-            {
-                return new Fragment
-                {
-                    Database = __sparse_value_0,
-                    Label = __sparse_value_1,
-                };
-            }
-            string? __sparse_origin_0 = (!changes.Database.IsPresent ? (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[0]) : (!self.Database.IsPresent ? (changes.__SparseMemberOrigins is null ? (changes.Origin ?? changesFallback) : changes.__SparseMemberOrigins[0]) : ((object?)changes.Database.Value is null ? (changes.__SparseMemberOrigins is null ? (changes.Origin ?? changesFallback) : changes.__SparseMemberOrigins[0]) : ((object?)self.Database.Value is null ? (changes.__SparseMemberOrigins is null ? (changes.Origin ?? changesFallback) : changes.__SparseMemberOrigins[0]) : null))));
-            string? __sparse_origin_1 = (changes.Label.IsPresent ? (changes.__SparseMemberOrigins is null ? (changes.Origin ?? changesFallback) : changes.__SparseMemberOrigins[1]) : (self.__SparseMemberOrigins is null ? (self.Origin ?? selfFallback) : self.__SparseMemberOrigins[1]));
-            string?[]? __sparse_elements_1 = (changes.Label.IsPresent ? changes.__SparseElementOrigins?[1] : self.__SparseElementOrigins?[1]);
-            return new Fragment(changes.Origin ?? changesFallback ?? self.Origin ?? selfFallback)
-            {
-                Database = __sparse_value_0,
-                Label = __sparse_value_1,
-                __SparseMemberOrigins = new string?[] { __sparse_origin_0, __sparse_origin_1 },
-                __SparseElementOrigins = (__sparse_elements_1 is not null) ? new string?[]?[] { null, __sparse_elements_1 } : null,
-            };
-        }
-
-        /// <summary>Reads the origin attributed to the effective value at a path. Null means Unknown or absent.</summary>
-        public static string? GetOrigin(Fragment self, global::SparseTypes.SparsePath path)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            return TryGetOrigin(self, path, out var __sparse_origin) ? __sparse_origin : null;
-        }
-
-        /// <summary>Tries to read the origin attributed to the effective value at a path.</summary>
-        public static bool TryGetOrigin(Fragment self, global::SparseTypes.SparsePath path, out string? origin)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            origin = null;
-            foreach (var __sparse_entry in __SparseEnumerateOrigins(self))
-            {
-                if (__sparse_entry.Path == path) { origin = __sparse_entry.Origin; return true; }
-            }
-            return false;
-        }
-
-        /// <summary>Enumerates the effective values attributed to their origins for inspection.</summary>
-        public static global::System.Collections.Generic.IEnumerable<global::SparseTypes.FragmentOriginEntry> EnumerateOrigins(Fragment self)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            var __sparse_entries = new global::System.Collections.Generic.List<global::SparseTypes.FragmentOriginEntry>();
-            foreach (var __sparse_entry in __SparseEnumerateOrigins(self)) __sparse_entries.Add(__sparse_entry);
-            return __sparse_entries;
-        }
-
-        /// <summary>Projects the effective values attributed to one origin. Grouping is lossy and read-only.</summary>
-        public static Fragment GetByOrigin(Fragment self, string? origin)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            var __sparse_builder = new Fragment(origin).ToBuilder();
-            if (self.Database.IsPresent)
-            {
-                if ((object?)self.Database.Value is null)
-                {
-                    if (global::System.String.Equals((self.__SparseMemberOrigins is null ? self.Origin : self.__SparseMemberOrigins[0]), origin, global::System.StringComparison.Ordinal)) __sparse_builder.Database = self.Database;
-                }
-                else
-                {
-                    var __sparse_grouped_0 = self.Database.Value!.GetByOrigin(origin);
-                    if (!__sparse_grouped_0.IsEmpty)
-                    __sparse_builder.Database = global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present(__sparse_grouped_0);
-                }
-            }
-            if (self.Label.IsPresent && global::System.String.Equals((self.__SparseMemberOrigins is null ? self.Origin : self.__SparseMemberOrigins[1]), origin, global::System.StringComparison.Ordinal)) __sparse_builder.Label = self.Label;
-            return __sparse_builder.Build();
-        }
-
-        /// <summary>Groups the effective values by origin in first-seen order. Grouping is lossy and read-only.</summary>
-        public static global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.FragmentOriginGroup<Fragment>> SplitByOrigin(Fragment self)
-        {
-            if (self is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(self));
-            }
-            var __sparse_order = new global::System.Collections.Generic.List<string?>();
-            var __sparse_seen = new global::System.Collections.Generic.HashSet<string?>(global::System.StringComparer.Ordinal);
-            foreach (var __sparse_entry in EnumerateOrigins(self))
-            {
-                if (__sparse_seen.Add(__sparse_entry.Origin)) __sparse_order.Add(__sparse_entry.Origin);
-            }
-            var __sparse_groups = new global::System.Collections.Generic.List<global::SparseTypes.FragmentOriginGroup<Fragment>>(__sparse_order.Count);
-            foreach (var __sparse_origin in __sparse_order)
-            __sparse_groups.Add(new global::SparseTypes.FragmentOriginGroup<Fragment>(__sparse_origin, GetByOrigin(self, __sparse_origin)));
-            return __sparse_groups;
-        }
-
-        /// <summary>Creates a sparse semantic diff between two ordinary model values.</summary>
-        /// <param name="before">The baseline value.</param>
-        /// <param name="after">The updated value.</param>
-        /// <returns>The sparse diff from baseline to updated.</returns>
-        public static Fragment Diff(global::Settings before, global::Settings after)
-        {
-            if (before is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(before));
-            }
-            if (after is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(after));
-            }
-            if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }
-            var __sparse_diff_context = global::SparseTypes.CompilerServices.SparseFragmentRuntime.CreateDiffCycleContext();
-            return __SparseDiffCore(before, after, __sparse_diff_context, "");
-        }
-
-        /// <summary>Creates a deep copy of the specified model value.</summary>
-        /// <param name="value">The model value to copy.</param>
-        /// <returns>The deep copy.</returns>
-        public static global::Settings DeepClone(global::Settings value)
-        {
-            using var __sparse_clone_context_scope = global::SparseTypes.CompilerServices.SparseFragmentRuntime.RentCloneContext();
-            var __sparse_clone_context = __sparse_clone_context_scope.Context;
-            return DeepClone(value, __sparse_clone_context);
-        }
-        internal static Fragment From(global::Settings value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context, global::System.Collections.Generic.HashSet<object> __sparse_from_context, string __sparse_from_path)
-        {
-            if (value is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(value));
-            }
-            if (!__sparse_from_context.Add(value))
-            {
-                throw new global::System.NotSupportedException("Cyclic reference detected during From at '" + __sparse_from_path + "'. Fragment.From does not support cyclic object graphs; DeepClone preserves cycles.");
-            }
-            try
-            {
-                return new Fragment
-                {
-                    Database = global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present((value.Database is null ? null : global::DatabaseSettings.Fragment.From(value.Database, __sparse_clone_context))),
-                    Label = global::SparseTypes.Optional<string?>.Present(value.Label is null ? null! : value.Label),
-                };
-            }
-            finally
-            {
-                __sparse_from_context.Remove(value);
-            }
-        }
-
-        internal static Fragment Diff(global::Settings before, global::Settings after, global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>> __sparse_diff_context, string __sparse_diff_path)
-        {
-            if (before is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(before));
-            }
-            if (after is null)
-            {
-                throw new global::System.ArgumentNullException(nameof(after));
-            }
-            if (global::System.Object.ReferenceEquals(before, after)) { return new Fragment(); }
-            return __SparseDiffCore(before, after, __sparse_diff_context, __sparse_diff_path);
-        }
-
-        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-        internal static global::Settings DeepClone(global::Settings value, global::System.Collections.Generic.Dictionary<object, object> __sparse_clone_context)
-        {
-            if (__sparse_clone_context.TryGetValue(value, out var existing)) return (global::Settings)existing;
-            var clone = new global::Settings();
-            __sparse_clone_context.Add(value, clone);
-            clone.Database = value.Database is null ? null! : global::SparseTypes.Generated.DatabaseSettings_8807E705FragmentOperations.DeepClone(value.Database, __sparse_clone_context);
-            clone.Label = value.Label is null ? null! : value.Label;
-            return clone;
-        }
-        private static global::SparseTypes.Optional<global::DatabaseSettings.Fragment?> __Diff_0(global::DatabaseSettings? before, global::DatabaseSettings? after)
-        {
-            if (global::System.Object.ReferenceEquals(before, after)) { return default; }
-            if (before is null || after is null) { return global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present(after is null ? null : global::DatabaseSettings.Fragment.From(after)); }
-            var difference = global::DatabaseSettings.Fragment.Diff(before, after);
-            return difference.IsEmpty ? default : global::SparseTypes.Optional<global::DatabaseSettings.Fragment?>.Present(difference);
-        }
-
-        private static Fragment __SparseDiffCore(global::Settings before, global::Settings after, global::System.Collections.Generic.HashSet<global::System.Collections.Generic.KeyValuePair<object, object>> __sparse_diff_context, string __sparse_diff_path)
-        {
-            var __sparse_diff_pair = new global::System.Collections.Generic.KeyValuePair<object, object>((object)before, (object)after);
-            if (!__sparse_diff_context.Add(__sparse_diff_pair))
-            {
-                throw new global::System.NotSupportedException("Cyclic reference detected during Diff at '" + __sparse_diff_path + "'. Fragment.Diff does not support cyclic object graphs; DeepClone preserves cycles.");
-            }
-            try
-            {
-                return new Fragment
-                {
-                    Database = __Diff_0(before.Database, after.Database),
-                    Label = global::SparseTypes.CompilerServices.SparseFragmentRuntime.AreEqual(before.Label, after.Label) ? default : global::SparseTypes.Optional<string?>.Present(after.Label),
-                };
-            }
-            finally
-            {
-                __sparse_diff_context.Remove(__sparse_diff_pair);
-            }
-        }
-
-        private static readonly global::SparseTypes.SparsePath __SparseOriginRootPath = global::SparseTypes.SparsePath.Root(typeof(global::Settings));
-        private static readonly global::SparseTypes.SparsePath __SparseOriginMemberPath0 = __SparseOriginRootPath.Member("Database");
-        private static readonly global::SparseTypes.SparsePath __SparseOriginMemberPath1 = __SparseOriginRootPath.Member("Label");
-        private static global::System.Collections.Generic.IEnumerable<global::SparseTypes.FragmentOriginEntry> __SparseEnumerateOrigins(Fragment self)
-        {
-            if (self.Database.IsPresent)
-            {
-                if ((object?)self.Database.Value is null)
-                {
-                    yield return new global::SparseTypes.FragmentOriginEntry { Path = __SparseOriginMemberPath0, Origin = (self.__SparseMemberOrigins is null ? self.Origin : self.__SparseMemberOrigins[0]) };
-                }
-                else
-                {
-                    foreach (var __sparse_child_0 in self.Database.Value!.EnumerateOrigins())
-                    {
-                        yield return new global::SparseTypes.FragmentOriginEntry { Path = __SparseOriginMemberPath0.Append(__sparse_child_0.Path), Origin = __sparse_child_0.Origin };
-                    }
-                }
-            }
-            if (self.Label.IsPresent)
-            {
-                yield return new global::SparseTypes.FragmentOriginEntry { Path = __SparseOriginMemberPath1, Origin = (self.__SparseMemberOrigins is null ? self.Origin : self.__SparseMemberOrigins[1]) };
-            }
-        }
-
-    }
-    /// <summary>A mutable builder for a generated fragment.</summary>
-    public sealed class Settings_4B058728FragmentBuilder
-    {
-        /// <summary>Gets a mutable reference to the staged value for 'Database'.</summary>
-        public ref global::SparseTypes.Optional<global::DatabaseSettings.Fragment?> Database => ref __sparse_builder_member_0;
-        /// <summary>Gets a mutable reference to the staged value for 'Label'.</summary>
-        public ref global::SparseTypes.Optional<string?> Label => ref __sparse_builder_member_1;
-
-        /// <summary>Initializes a new empty builder.</summary>
-        public Settings_4B058728FragmentBuilder() { }
-        /// <summary>Builds the staged fragment.</summary>
-        /// <returns>The built fragment.</returns>
-        public Fragment Build() => new(__sparse_origin)
-        {
-            Database = Database,
-            Label = Label,
-            __SparseMemberOrigins = __sparse_member_origins,
-            __SparseElementOrigins = __sparse_element_origins,
-        };
-        internal Settings_4B058728FragmentBuilder(Fragment fragment)
-        {
-            Database = fragment.Database;
-            Label = fragment.Label;
-            __sparse_origin = fragment.Origin;
-            __sparse_member_origins = fragment.__SparseMemberOrigins;
-            __sparse_element_origins = fragment.__SparseElementOrigins;
-        }
-        private global::SparseTypes.Optional<global::DatabaseSettings.Fragment?> __sparse_builder_member_0;
-        private global::SparseTypes.Optional<string?> __sparse_builder_member_1;
-        private readonly string? __sparse_origin;
-        private string?[]? __sparse_member_origins;
-        private string?[]?[]? __sparse_element_origins;
-    }
-    /// <summary>Root path builder for typed navigation.</summary>
-    /// <typeparam name="TRoot">The root model the path navigates from.</typeparam>
-    public readonly struct Settings_4B058728SparsePaths<TRoot> : global::SparseTypes.ISparseChildEditPath<TRoot, global::Settings, global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>, global::Settings.EditSession>
-    {
-        /// <summary>Converts this builder to its model-agnostic path.</summary>
-        public static implicit operator global::SparseTypes.SparsePath(Settings_4B058728SparsePaths<TRoot> paths) => paths._path;
-        /// <summary>Gets the model-agnostic path.</summary>
-        public global::SparseTypes.SparsePath UntypedPath => _path;
-        /// <summary>Gets the compile-time typed path.</summary>
-        public global::SparseTypes.SparsePath<TRoot, global::Settings> TypedPath => new global::SparseTypes.SparsePath<TRoot, global::Settings>(_path);
-        /// <summary>Gets whether this path addresses a generated model that can be updated in place.</summary>
-        public bool CanWriteModelValueInPlace => true;
-        /// <summary>Writes an updated model value into an existing addressed instance.</summary>
-        public void WriteModelValueInPlace(global::Settings current, global::Settings updated)
-        {
-            current.Database = updated.Database;
-            current.Label = updated.Label;
-        }
-        /// <summary>Gets the path builder for 'Database'.</summary>
-        public global::SparseTypes.Generated.DatabaseSettings_8807E705SparsePaths<TRoot> Database => new global::SparseTypes.Generated.DatabaseSettings_8807E705SparsePaths<TRoot>(_path.Member("Database"));
-        /// <summary>Gets the path to 'Label'.</summary>
-        public global::SparseTypes.SparsePath<TRoot, string?> Label => new global::SparseTypes.SparsePath<TRoot, string?>(_path.Member("Label"));
-        global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings> global::SparseTypes.ISparseChildEditPath<TRoot, global::Settings, global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>, global::Settings.EditSession>.CreateRootPaths() => new global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>(global::SparseTypes.SparsePath.Root(typeof(global::Settings)));
-        global::Settings global::SparseTypes.ISparseChildEditPath<TRoot, global::Settings, global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>, global::Settings.EditSession>.Clone(global::Settings model) => global::Settings.Fragment.From(model).ToModel();
-        global::Settings.EditSession global::SparseTypes.ISparseChildEditPath<TRoot, global::Settings, global::SparseTypes.Generated.Settings_4B058728SparsePaths<global::Settings>, global::Settings.EditSession>.CreateEditSession(global::Settings baseline, global::Settings current, global::System.Action? onChanged) => new global::Settings.EditSession(baseline, current, onChanged);
-        internal Settings_4B058728SparsePaths(global::SparseTypes.SparsePath path) => _storedPath = path;
-        private readonly global::SparseTypes.SparsePath _storedPath;
-        private global::SparseTypes.SparsePath _path => _storedPath.RootType == typeof(TRoot) ? _storedPath : global::SparseTypes.SparsePath.Root(typeof(TRoot));
-    }
-    /// <summary>Per-model generated operations for 'global::Settings'. Backs the model-facing generated operations.</summary>
-    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-    public static partial class Settings_4B058728
-    {
-    }
 }

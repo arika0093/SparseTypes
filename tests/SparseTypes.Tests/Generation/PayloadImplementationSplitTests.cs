@@ -1,10 +1,11 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using SparseTypes.Generator;
+using SparseTypes.Generator.Shared;
 
 namespace SparseTypes.Tests.Generation;
 
-/// <summary>Source-placement regression tests for the payload/converter relocation (, stage 3).</summary>
+/// <summary>Source-placement regression tests for grouped model output.</summary>
 public sealed class PayloadImplementationSplitTests
 {
     private static Dictionary<string, string> Files() =>
@@ -40,73 +41,73 @@ public sealed class PayloadImplementationSplitTests
             references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary).WithNullableContextOptions(NullableContextOptions.Enable)
         );
-        var driver = CSharpGeneratorDriver.Create(new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() });
-        var result = driver.RunGenerators(compilation).GetRunResult();
-        result.Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new ISourceGenerator[] { new SparseTypesGenerator().AsSourceGenerator() });
+        driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var outputCompilation, out var diagnostics);
+        diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        outputCompilation.GetDiagnostics().Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+        var result = driver.GetRunResult();
         return result
             .Results.SelectMany(static result => result.GeneratedSources)
             .GroupBy(static source => source.HintName)
             .ToDictionary(static group => group.Key, static group => group.First().SourceText.ToString(), StringComparer.Ordinal);
     }
 
+    private static string FileFor(Dictionary<string, string> sources, string modelName, string category) =>
+        sources.Single(pair => pair.Key.Contains(modelName, StringComparison.Ordinal) && pair.Key.EndsWith("." + category + ".g.cs", StringComparison.Ordinal)).Value;
+
+    private static string OperationContainer(string modelName) =>
+        SparseGeneratedPlacement.GetImplementationContainer(
+            new SparseModelInfo(modelName, "global::" + modelName, string.Empty, true, false, false, "unused", null),
+            CancellationToken.None
+        );
+
     [Test]
-    public void MergedFileKeepsFacadesWithDtoAndConverterBodies()
+    public void ModelOutputUsesResponsibilityBasedFiles()
     {
         var sources = Sources();
-        // Single-file emission: one merged hint per model carries the surface
-        // plus implementations.
-        var mergedHint = sources.Keys.Single(key =>
-            key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
-        sources
-            .Keys.Count(key =>
-                key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".Implementation.g.cs", StringComparison.Ordinal)
-            )
-            .ShouldBe(0);
-        var merged = sources[mergedHint];
+        var types = FileFor(sources, "SplitParent", "Types");
+        var extensions = FileFor(sources, "SplitParent", "Extensions");
+        var serialize = FileFor(sources, "SplitParent", "Serialize");
+        var json = FileFor(sources, "SplitParent", "Json");
+        var generated = FileFor(sources, "SplitParent", "Generated");
 
-        // Facades stay model-facing.
-        merged.ShouldContain("class ChangePayload");
-        merged.ShouldNotContain("FragmentJsonConverter");
-        // The DTO hierarchy stays model-facing; converter bodies live in generated source.
-        merged.ShouldContain("static partial class SplitParent_");
-        merged.ShouldContain("SerializeObjects");
-        merged.ShouldContain("public class Core");
-        merged.ShouldContain("public sealed class Root");
-        merged.ShouldContain("PayloadJsonConverter");
-        merged.ShouldContain("PayloadJsonResolver");
-        var allSources = string.Concat(sources.Values);
-        allSources.ShouldContain(": global::System.Text.Json.Serialization.JsonConverter<global::SplitParent.ChangePayload>");
-        allSources.ShouldContain("public override global::SplitParent.ChangePayload? Read(");
-        // Container references resolve through the shared file alias.
-        merged.ShouldContain("using SplitParent_");
+        types.ShouldContain("public partial class SplitParent");
+        types.ShouldContain("public sealed class ChangePayload");
+        types.ShouldNotContain("static partial class SplitParent_");
+        extensions.ShouldContain("static partial class SplitParentExtensions_");
+        serialize.ShouldContain("static partial class SplitParent_");
+        serialize.ShouldContain("public class Core");
+        serialize.ShouldContain("public sealed class Root");
+        serialize.ShouldNotContain("PayloadJsonConverter :");
+        json.ShouldContain("PayloadJsonConverter :");
+        json.ShouldContain("PayloadJsonResolver :");
+        json.ShouldNotContain("static partial class SplitParent_");
+        generated.ShouldContain("FragmentOperations");
+        generated.ShouldContain("SplitParent_");
+        generated.ShouldContain("FragmentBuilder");
+        generated.ShouldContain("SparsePaths");
+        sources.Keys.ShouldAllBe(key => !key.Contains("global__", StringComparison.Ordinal));
+        sources.Keys.ShouldAllBe(key => !key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal));
+        sources.Keys.ShouldContain("Generated.g.cs");
     }
 
     [Test]
-    public void MergedFileCarriesDtosAndConverterBodies()
+    public void ModelFilesOmitEmptyOperationContainersAndPreserveNestedPayloads()
     {
         var sources = Sources();
-        var mergedHint = sources.Keys.Single(key =>
-            key.Contains("SplitParent", StringComparison.Ordinal) && key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)
-        );
-        var merged = sources[mergedHint];
+        var parentSerialize = FileFor(sources, "SplitParent", "Serialize");
+        var parentJson = FileFor(sources, "SplitParent", "Json");
+        var parentGenerated = FileFor(sources, "SplitParent", "Generated");
+        var container = OperationContainer("SplitParent");
 
-        merged.ShouldContain("namespace SparseTypes.Generated");
-        merged.ShouldContain("static partial class SplitParent_");
-        merged.ShouldContain("SerializeObjects");
-        merged.ShouldContain("public class Core");
-        merged.ShouldContain("public sealed class Root");
-        merged.ShouldContain("PayloadJsonConverter");
-        merged.ShouldContain("PayloadJsonResolver");
-        merged.ShouldNotContain("FragmentJsonConverter");
-        merged.ShouldContain("public override global::SplitParent.ChangePayload? Read(");
-        merged.ShouldContain("public override void Write(");
-        // Nested child payloads resolve to the implementation namespace.
-        merged.ShouldContain("global::SparseTypes.Generated.SplitChild_");
-        merged.ShouldContain("SerializeObjects");
-        // The generated model change uses a typed update/replacement contract.
-        merged.ShouldContain("\"members\"");
-        merged.ShouldContain("\"kind\"");
-        merged.ShouldNotContain("\"member\"");
+        parentSerialize.ShouldContain("global::SparseTypes.Generated.SplitChild_");
+        parentJson.ShouldContain("public override global::SplitParent.ChangePayload? Read(");
+        parentJson.ShouldContain("public override void Write(");
+        parentJson.ShouldContain("\"members\"");
+        parentJson.ShouldContain("\"kind\"");
+        parentJson.ShouldNotContain("\"member\"");
+        parentGenerated.ShouldNotContain("static partial class " + container + "\n");
+        FileFor(sources, "SplitChild", "Serialize").ShouldContain("SplitChild_");
+        FileFor(sources, "SplitChild", "Generated").ShouldNotContain("static partial class " + OperationContainer("SplitChild") + "\n");
     }
 }

@@ -64,14 +64,12 @@ namespace SparseTypes.Tests.Shared
         public void OperationsLiveOutsideTheModel()
         {
             var sources = RunProbe();
-            var surface = sources.Values.Single(text =>
-                text.Contains("class Patch", StringComparison.Ordinal)
-                && text.Contains("namespace RelocationProbe", StringComparison.Ordinal)
-                && text.Contains("ProbeRoot", StringComparison.Ordinal)
-            );
-            var implementation = sources.Values.Single(text =>
-                text.Contains("Per-model generated operations for 'global::RelocationProbe.ProbeRoot'")
-            );
+            var surface = sources.Single(pair =>
+                pair.Key.Contains("ProbeRoot", StringComparison.Ordinal) && pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal)
+            ).Value;
+            var implementation = sources.Single(pair =>
+                pair.Key.Contains("ProbeRoot", StringComparison.Ordinal) && pair.Key.EndsWith(".Generated.g.cs", StringComparison.Ordinal)
+            ).Value;
 
             // state-bound bodies live in the private nested Patch.__Core /
             // ChangeSet.__Core with direct private-state access.
@@ -85,8 +83,8 @@ namespace SparseTypes.Tests.Shared
             implementation.ShouldNotContain("class PatchOperations");
             implementation.ShouldNotContain("class ChangeSetOperations");
 
-            // Split emission: the surface carries facades plus nested cores,
-            // the implementation carries Builder/Paths and DTOs.
+            // The Types file carries facades and nested cores; Generated
+            // carries Builder/Paths and operations.
             var hints = sources.Keys.Where(static key => key.Contains("ProbeRoot", StringComparison.Ordinal)).ToArray();
             hints.Length.ShouldBeGreaterThanOrEqualTo(1);
             surface.ShouldContain("class Patch");
@@ -96,11 +94,9 @@ namespace SparseTypes.Tests.Shared
         public void FacadesKeepErgonomicSignaturesAndDelegate()
         {
             var sources = RunProbe();
-            var surface = sources.Values.Single(text =>
-                text.Contains("class Patch", StringComparison.Ordinal)
-                && text.Contains("namespace RelocationProbe", StringComparison.Ordinal)
-                && text.Contains("ProbeRoot", StringComparison.Ordinal)
-            );
+            var surface = sources.Single(pair =>
+                pair.Key.Contains("ProbeRoot", StringComparison.Ordinal) && pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal)
+            ).Value;
 
             // Typed facade surface is preserved: ref member access, lazy nested
             // identity, whole operations and the public algebra entry points.

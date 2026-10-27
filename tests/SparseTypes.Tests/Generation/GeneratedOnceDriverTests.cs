@@ -166,7 +166,7 @@ public sealed class GeneratedOnceDriverTests
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
         sources.Keys.ShouldNotContain(key => key.Contains("EditSession", StringComparison.Ordinal));
-        sources.Keys.ShouldContain(key => key.Contains("JsonCodecs", StringComparison.Ordinal));
+        sources["Generated.g.cs"].ShouldContain("SparseJsonCodecs");
         sources.Keys.ShouldNotContain(key => key.EndsWith("ChangePayloadJsonConverters.g.cs", StringComparison.Ordinal));
         sources.Values.ShouldContain(source => source.Contains("global::SparseTypes.Generated.EditSessionCore<", StringComparison.Ordinal));
         sources.Keys.ShouldNotContain(key =>
@@ -284,9 +284,10 @@ public sealed class GeneratedOnceDriverTests
         sources.Values.ShouldNotContain(source => source.Contains("class EditSessionCore<", StringComparison.Ordinal));
         // Per-model sessions bind to the runtime session cores.
         CountTypeDefinitions(sources, "global::SparseTypes.Generated.EditSessionCore<").ShouldBeGreaterThan(0);
-        sources.Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(static key => key == "Generated.g.cs").ShouldBe(1);
+        sources["Generated.g.cs"].ShouldContain("class SparseCloneKernels");
+        sources["Generated.g.cs"].ShouldContain("class SparseReadOnlyListAdapter");
+        sources["Generated.g.cs"].ShouldContain("class SparseRemovalIndex<");
     }
 
     [Test]
@@ -393,7 +394,7 @@ public sealed class GeneratedOnceDriverTests
         );
         probe.SpfDiagnostics().ShouldBeEmpty();
         var sources = probe.Sources();
-        sources.Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBeTrue();
+        sources["Generated.g.cs"].ShouldContain("class SparseCloneKernels");
     }
 
     [Test]
@@ -421,17 +422,7 @@ public sealed class GeneratedOnceDriverTests
         after.SpfDiagnostics().ShouldBeEmpty();
         var afterSources = after.Sources();
         afterSources.Keys.OrderBy(static key => key).ShouldBe(beforeSources.Keys.OrderBy(static key => key));
-        foreach (
-            var hint in beforeSources.Keys.Where(static key =>
-                key.Contains("JsonCodecs", StringComparison.Ordinal)
-                || key.Contains("JsonPayloadCodecs", StringComparison.Ordinal)
-                || key.Contains("CloneKernels", StringComparison.Ordinal)
-                || key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
-            )
-        )
-        {
-            afterSources[hint].ShouldBe(beforeSources[hint]);
-        }
+        afterSources["Generated.g.cs"].ShouldBe(beforeSources["Generated.g.cs"]);
 
         foreach (
             var stage in new[]
@@ -455,14 +446,14 @@ public sealed class GeneratedOnceDriverTests
     {
         var before = Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel }, tracked: true);
         before.SpfDiagnostics().ShouldBeEmpty();
-        before.Sources().Keys.ShouldNotContain(key => key.Contains("CloneKernels", StringComparison.Ordinal));
-        var jsonCodecsBefore = before.Sources().First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).Value;
+        before.Sources()["Generated.g.cs"].ShouldNotContain("class SparseCloneKernels");
+        before.Sources()["Generated.g.cs"].ShouldContain("SparseJsonCodecs");
         var after = Rerun(before, "Scalar.cs", CollectionModel.Replace("CollectionModel", "ScalarModel"));
         after.SpfDiagnostics().ShouldBeEmpty();
         var afterSources = after.Sources();
-        afterSources.Keys.Any(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBeTrue();
-        afterSources.Keys.Any(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBeTrue();
-        afterSources.First(pair => pair.Key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).Value.ShouldBe(jsonCodecsBefore);
+        afterSources["Generated.g.cs"].ShouldContain("class SparseCloneKernels");
+        afterSources["Generated.g.cs"].ShouldContain("class SparseReadOnlyListAdapter");
+        afterSources["Generated.g.cs"].ShouldContain("SparseJsonCodecs");
         // The unaffected families recompute value-equal; the newly
         // requested families change output.
         NoneModified(after, "SparseTypesGenerator.GeneratedOnceJsonCodecs");

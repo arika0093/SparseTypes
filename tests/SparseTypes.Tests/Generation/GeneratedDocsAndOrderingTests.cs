@@ -346,30 +346,18 @@ public sealed class GeneratedDocsAndOrderingTests
     [Test]
     public void ModelBetweenUsesSharedReferencesOnlyForCloneStableGraphs()
     {
-        var dictionarySource = GeneratedTrees(Probe.Value)
-            .Single(tree => tree.FilePath.Contains("ProbeDictionaries", StringComparison.Ordinal))
-            .GetText()
-            .ToString();
+        var dictionarySource = string.Concat(GeneratedTrees(Probe.Value).Where(tree => tree.FilePath.Contains("ProbeDictionaries", StringComparison.Ordinal)).Select(static tree => tree.GetText().ToString()));
         dictionarySource.ShouldContain(
             "if (global::System.Object.ReferenceEquals(before.Details, after.Details) && global::System.Object.ReferenceEquals(before.Scores, after.Scores)) return __sparse_empty;"
         );
 
-        var nestedSource = GeneratedTrees(Probe.Value)
-            .Single(tree => tree.FilePath.Contains("ProbeNested", StringComparison.Ordinal))
-            .GetText()
-            .ToString();
+        var nestedSource = string.Concat(GeneratedTrees(Probe.Value).Where(tree => tree.FilePath.Contains("ProbeNested", StringComparison.Ordinal)).Select(static tree => tree.GetText().ToString()));
         nestedSource.ShouldNotContain("ReferenceEquals(before.Child, after.Child)");
 
-        var computedGetterSource = GeneratedTrees(Probe.Value)
-            .Single(tree => tree.FilePath.Contains("ProbeComputedGetter", StringComparison.Ordinal))
-            .GetText()
-            .ToString();
+        var computedGetterSource = string.Concat(GeneratedTrees(Probe.Value).Where(tree => tree.FilePath.Contains("ProbeComputedGetter", StringComparison.Ordinal)).Select(static tree => tree.GetText().ToString()));
         computedGetterSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");
 
-        var customConstructorSource = GeneratedTrees(Probe.Value)
-            .Single(tree => tree.FilePath.Contains("ProbeCustomConstructor", StringComparison.Ordinal))
-            .GetText()
-            .ToString();
+        var customConstructorSource = string.Concat(GeneratedTrees(Probe.Value).Where(tree => tree.FilePath.Contains("ProbeCustomConstructor", StringComparison.Ordinal)).Select(static tree => tree.GetText().ToString()));
         customConstructorSource.ShouldNotContain("ReferenceEquals(before.Details, after.Details)");
     }
 }

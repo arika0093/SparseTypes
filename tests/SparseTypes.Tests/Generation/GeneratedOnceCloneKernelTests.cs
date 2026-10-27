@@ -60,14 +60,14 @@ public sealed class GeneratedOnceCloneKernelTests
             )
         );
 
-        var shared = sources.Where(pair => pair.Key.EndsWith(".CloneKernels.g.cs", StringComparison.Ordinal)).ToArray();
+        var shared = sources.Where(pair => pair.Key == "Generated.g.cs").ToArray();
         shared.ShouldHaveSingleItem();
         var text = shared[0].Value;
         text.ShouldContain("class " + SparseGeneratedOnceNames.CloneKernels);
         CountOccurrences(text, "internal static TCollection __CloneList<T, TCollection>").ShouldBe(1);
         CountOccurrences(text, "internal static TDictionary __CloneDictionary<TKey, TValue, TDictionary>").ShouldBe(1);
 
-        var perModel = sources.Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
+        var perModel = sources.Where(pair => pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
         perModel.Length.ShouldBe(2);
         foreach (var model in perModel)
         {

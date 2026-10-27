@@ -117,7 +117,7 @@ public sealed class ReadOnlyViewAdapterRetentionTests
     public void EmissionUsesAtomicCacheHoldersAndEscapesKeywordProperties()
     {
         var perModel = GeneratedSources()
-            .Where(static pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
+            .Where(static pair => pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal))
             .Select(static pair => pair.Value)
             .Where(static source => source.Contains("__sparse_cache_Rows", StringComparison.Ordinal))
             .ToArray();

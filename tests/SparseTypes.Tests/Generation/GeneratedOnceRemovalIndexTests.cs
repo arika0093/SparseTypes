@@ -65,14 +65,14 @@ public sealed class GeneratedOnceRemovalIndexTests
             )
         );
 
-        var shared = sources.Where(pair => pair.Key.EndsWith(".RemovalIndex.g.cs", StringComparison.Ordinal)).ToArray();
+        var shared = sources.Where(pair => pair.Key == "Generated.g.cs").ToArray();
         shared.ShouldHaveSingleItem();
         var text = shared[0].Value;
         text.ShouldContain("class " + SparseGeneratedOnceNames.RemovalIndex + "<TKey>");
         CountOccurrences(text, "AddRemoval(").ShouldBe(1);
         CountOccurrences(text, "ContainsRemoved(").ShouldBe(1);
 
-        var perModel = sources.Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
+        var perModel = sources.Where(pair => pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
         perModel.Length.ShouldBe(3);
         foreach (var model in perModel)
         {

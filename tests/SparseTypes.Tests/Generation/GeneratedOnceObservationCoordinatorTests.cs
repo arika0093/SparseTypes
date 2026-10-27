@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SparseTypes.Generator;
 using SparseTypes.Generator.Shared;
 
@@ -50,15 +51,21 @@ public sealed class GeneratedOnceObservationCoordinatorTests
         );
 
         var sources = GeneratedSources(compilation);
-        var coordinatorSources = sources.Where(pair => pair.Key.EndsWith(".ObservationCoordinator.g.cs", StringComparison.Ordinal)).ToArray();
+        var coordinatorSources = sources.Where(pair => pair.Key == "Generated.g.cs").ToArray();
         coordinatorSources.ShouldHaveSingleItem();
-        var coordinator = coordinatorSources[0].Value;
+        var coordinator = CSharpSyntaxTree
+            .ParseText(coordinatorSources[0].Value)
+            .GetRoot()
+            .DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Single(type => type.Identifier.ValueText == SparseGeneratedOnceNames.ObservationCoordinator)
+            .ToFullString();
         coordinator.ShouldContain("internal sealed class " + SparseGeneratedOnceNames.ObservationCoordinator + "<TView>");
         coordinator.ShouldContain("snapshotQuery(_view)");
         coordinator.ShouldNotContain("global::SparseTypes.");
 
         var modelSources = sources
-            .Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal))
+            .Where(pair => pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal))
             .Select(pair => pair.Value)
             .ToArray();
         modelSources.Length.ShouldBe(2);

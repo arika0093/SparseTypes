@@ -515,7 +515,7 @@ public sealed class SparseGeneratorDiagnosticTests
         var (diagnostics, sources) = Run(source);
         diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
         sources.Length.ShouldBeGreaterThan(0);
-        sources.Any(s => s.HintName.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
+        sources.Any(s => s.HintName.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBeTrue();
     }
 
     [Test]

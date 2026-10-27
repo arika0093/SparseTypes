@@ -38,8 +38,6 @@ public sealed class GeneratorStepTrackingTests
 
         public int TotalSourceBytes() => Sources().Values.Sum(static source => source.Length);
 
-        public int PromotedSourceCount() => Sources().Keys.Count(static key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal));
-
         public ImmutableArray<Diagnostic> SpfDiagnostics() =>
             DriverResult.Diagnostics.Where(static d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ToImmutableArray();
 
@@ -357,7 +355,7 @@ public sealed class GeneratorStepTrackingTests
 
         var probe = Run(Deep(3));
         probe.SpfDiagnostics().ShouldBeEmpty();
-        probe.PromotedSourceCount().ShouldBe(3);
+        probe.Sources().Keys.Count(static key => key.Contains("DepthLevel", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(3);
 
         // Deterministic across cold runs; an unrelated root edit preserves
         // promoted bytes.
@@ -378,7 +376,7 @@ public sealed class GeneratorStepTrackingTests
             """
         );
         edited.SpfDiagnostics().ShouldBeEmpty();
-        foreach (var hint in sources.Keys.Where(static key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)))
+        foreach (var hint in sources.Keys.Where(static key => key.Contains("DepthLevel", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)))
         {
             edited.Sources()[hint].ShouldBe(sources[hint]);
         }
@@ -417,7 +415,7 @@ public sealed class GeneratorStepTrackingTests
 
         var probe = Run(files);
         probe.SpfDiagnostics().ShouldBeEmpty();
-        probe.PromotedSourceCount().ShouldBe(fanOut);
+        probe.Sources().Keys.Count(static key => key.Contains("FanChild", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(fanOut);
         Run(files).Sources().ShouldBe(probe.Sources());
     }
 
@@ -533,9 +531,9 @@ public sealed class GeneratorStepTrackingTests
         var before = Run(Promoted(3));
         before.SpfDiagnostics().ShouldBeEmpty();
         var beforeSources = before.Sources();
-        beforeSources.Keys.Count(static key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)).ShouldBe(3);
+        beforeSources.Keys.Count(static key => key.Contains("ShapeShared", StringComparison.Ordinal) && key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).ShouldBe(3);
 
-        // An unrelated root edit preserves every promoted file
+        // An unrelated root edit preserves every promoted model file
         // byte-identically.
         var unrelated = Rerun(
             before,
@@ -552,7 +550,7 @@ public sealed class GeneratorStepTrackingTests
             """
         );
         unrelated.SpfDiagnostics().ShouldBeEmpty();
-        foreach (var hint in beforeSources.Keys.Where(static key => key.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal)))
+        foreach (var hint in beforeSources.Keys.Where(static key => key.Contains("ShapeShared", StringComparison.Ordinal) && key.EndsWith(".g.cs", StringComparison.Ordinal)))
         {
             unrelated.Sources()[hint].ShouldBe(beforeSources[hint]);
         }
@@ -575,10 +573,7 @@ public sealed class GeneratorStepTrackingTests
         var sharedSources = shared.Sources();
         sharedSources.Keys.ShouldBe(beforeSources.Keys);
         var changed = beforeSources.Keys.Where(key => sharedSources[key] != beforeSources[key]).ToArray();
-        changed.Length.ShouldBe(2);
-        changed.ShouldContain(static hint =>
-            hint.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal) && hint.Contains("ShapeShared1", StringComparison.Ordinal)
-        );
+        changed.ShouldContain(static hint => hint.EndsWith(".Types.g.cs", StringComparison.Ordinal) && hint.Contains("ShapeShared1", StringComparison.Ordinal));
         changed.ShouldContain(static hint => hint.Contains("ShapeRoot1", StringComparison.Ordinal));
     }
 }

@@ -17,3 +17,13 @@ public partial class DatabaseSettings
 ```
 
 The specifications for the generated code can be found [here](../reference/generated-api.md).
+
+Generated files are grouped by responsibility. `Generated.g.cs` contains helpers shared by all models in the compilation. Each model uses a filename based on its name and stable hash:
+
+- `*.Types.g.cs` contains the model's partial declaration and nested types, including fragments, patches, and change sets.
+- `*.Extensions.g.cs` contains extension methods for the model.
+- `*.Serialize.g.cs` contains serialization DTOs and their model conversions.
+- `*.Json.g.cs` contains JSON converters and resolvers.
+- `*.Generated.g.cs` contains other model-specific helpers, such as paths, builders, and fragment operations.
+
+Only files with generated content are emitted.

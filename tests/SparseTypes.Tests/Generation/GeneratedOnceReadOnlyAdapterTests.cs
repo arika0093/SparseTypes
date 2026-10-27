@@ -57,14 +57,14 @@ public sealed class GeneratedOnceReadOnlyAdapterTests
             )
         );
 
-        var shared = sources.Where(pair => pair.Key.EndsWith(".ReadOnlyAdapters.g.cs", StringComparison.Ordinal)).ToArray();
+        var shared = sources.Where(pair => pair.Key == "Generated.g.cs").ToArray();
         shared.ShouldHaveSingleItem();
         var text = shared[0].Value;
         text.ShouldContain("class " + SparseGeneratedOnceNames.ReadOnlyListAdapter + "<");
         text.ShouldContain("class " + SparseGeneratedOnceNames.ReadOnlyDictionaryAdapter + "<");
         CountOccurrences(text, "class " + SparseGeneratedOnceNames.ReadOnlyListAdapter + "<").ShouldBe(1);
 
-        var perModel = sources.Where(pair => pair.Key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
+        var perModel = sources.Where(pair => pair.Key.EndsWith(".Types.g.cs", StringComparison.Ordinal)).Select(pair => pair.Value).ToArray();
         perModel.Length.ShouldBe(2);
         foreach (var model in perModel)
         {

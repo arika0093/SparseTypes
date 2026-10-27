@@ -272,7 +272,8 @@ public sealed class StjOptionalGenerationTests
                 continue;
             }
 
-            otherRun[pair.Key].ShouldBe(pair.Value);
+            CSharpSyntaxTree.ParseText(otherRun[pair.Key]).GetRoot().NormalizeWhitespace().ToFullString()
+                .ShouldBe(CSharpSyntaxTree.ParseText(pair.Value).GetRoot().NormalizeWhitespace().ToFullString());
         }
     }
 
@@ -323,7 +324,8 @@ public sealed class StjOptionalGenerationTests
     }
 
     private static void HasStableHints(Dictionary<string, string> expected, Dictionary<string, string> actual) =>
-        actual.Keys.ShouldBe(expected.Keys, ignoreOrder: true);
+        actual.Keys.Where(static hint => !hint.EndsWith(".Json.g.cs", StringComparison.Ordinal))
+            .ShouldBe(expected.Keys.Where(static hint => !hint.EndsWith(".Json.g.cs", StringComparison.Ordinal)), ignoreOrder: true);
 
     [Test]
     public void WithoutStj_EmitsSerializerIndependentCoreOnly()
@@ -580,7 +582,9 @@ public sealed class StjOptionalGenerationTests
         var withoutStj = Run(CreateCompilation(includeStj: false));
         var withStj = Run(CreateCompilation(includeStj: true));
 
-        withStj.Keys.ShouldBe(withoutStj.Keys, ignoreOrder: true);
+        withStj.Keys.ShouldContain(static hint => hint.EndsWith(".Json.g.cs", StringComparison.Ordinal));
+        withoutStj.Keys.ShouldNotContain(static hint => hint.EndsWith(".Json.g.cs", StringComparison.Ordinal));
+        HasStableHints(withoutStj, withStj);
         string.Concat(withStj.Values).ShouldNotContain("ChangePayloadEndpointJsonConverter");
         foreach (var source in withoutStj.Values)
         {

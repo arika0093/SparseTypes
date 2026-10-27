@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using SparseTypes.CompilerServices;
 using SparseTypes.Generator;
 using SparseTypes.Generator.Shared;
@@ -87,15 +88,26 @@ public sealed class ThreeLayerCertificationTests
     private static Dictionary<string, string> FullFixture() =>
         Run(new Dictionary<string, string>(StringComparer.Ordinal) { ["Scalar.cs"] = ScalarModel, ["Keyed.cs"] = KeyedModel });
 
-    private static string SharedSource(Dictionary<string, string> sources, string family) =>
-        sources.Single(pair => pair.Key.Contains(family, StringComparison.Ordinal)).Value;
+    private static string SharedSource(Dictionary<string, string> sources, string family)
+    {
+        var declarations = CSharpSyntaxTree
+            .ParseText(sources["Generated.g.cs"])
+            .GetRoot()
+            .DescendantNodes()
+            .OfType<ClassDeclarationSyntax>()
+            .Where(type => type.Identifier.ValueText.Contains(family, StringComparison.Ordinal))
+            .ToArray();
+        declarations.ShouldNotBeEmpty();
+        return "namespace " + SharedNamespace + " { " + string.Join("\n", declarations.Select(static declaration => declaration.ToFullString())) + " }";
+    }
 
     private static string PerModelSources(Dictionary<string, string> sources) =>
         string.Join(
             "\n",
             sources
                 .Where(pair =>
-                    !pair.Key.Contains("CloneKernels", StringComparison.Ordinal)
+                    pair.Key != "Generated.g.cs"
+                    && !pair.Key.Contains("CloneKernels", StringComparison.Ordinal)
                     && !pair.Key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)
                     && !pair.Key.Contains("RemovalIndex", StringComparison.Ordinal)
                     && !pair.Key.Contains("JsonCodecs", StringComparison.Ordinal)
@@ -142,13 +154,9 @@ public sealed class ThreeLayerCertificationTests
     public void OwnershipTable_GeneratedOnceFamiliesAreInternalBclOnlyAndEmittedOnce()
     {
         var sources = FullFixture();
-        sources.Keys.Count(key => key.Contains("CloneKernels", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.Contains("ReadOnlyAdapters", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.Contains("RemovalIndex", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.EndsWith("Generated.JsonCodecs.g.cs", StringComparison.Ordinal)).ShouldBe(1);
-        sources.Keys.Count(key => key.EndsWith("Generated.JsonPayloadCodecs.g.cs", StringComparison.Ordinal)).ShouldBe(1);
+        sources.Keys.Count(static key => key == "Generated.g.cs").ShouldBe(1);
 
-        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "RemovalIndex", "JsonPayloadCodecs" })
+        foreach (var family in new[] { "CloneKernels", "ReadOnly", "RemovalIndex" })
         {
             var source = SharedSource(sources, family);
             source.ShouldContain("internal ");
@@ -168,10 +176,10 @@ public sealed class ThreeLayerCertificationTests
         }
         SharedSource(sources, "CloneKernels").ShouldContain("class SparseCloneKernels");
         SharedSource(sources, "RemovalIndex").ShouldContain("class SparseRemovalIndex<");
-        // The wire-level core is dialect-bound (runtime wire vocabulary), so it
-        // stays out of the product-neutral purity loop above.
-        SharedSource(sources, "Generated.JsonCodecs").ShouldContain("class SparseJsonCodecs");
-        SharedSource(sources, "JsonPayloadCodecs").ShouldContain("class SparseJsonPayloadCodecs");
+        // JSON helpers are dialect-bound, so they stay out of the
+        // product-neutral purity loop above.
+        SharedSource(sources, "SparseJsonCodecs").ShouldContain("class SparseJsonCodecs");
+        SharedSource(sources, "SparseJsonPayloadCodecs").ShouldContain("internal static class SparseJsonPayloadCodecs");
     }
 
     // Per-model output names the qualified shared helpers and defines no legacy
@@ -532,7 +540,7 @@ public sealed class ThreeLayerCertificationTests
                 ["M4.cs"] = CollectionModel("CertModelFour"),
             }
         );
-        foreach (var family in new[] { "CloneKernels", "ReadOnlyAdapters", "Generated.JsonCodecs.g.cs", "Generated.JsonPayloadCodecs.g.cs" })
+        foreach (var family in new[] { "SparseCloneKernels", "SparseReadOnlyListAdapter", "SparseJsonCodecs", "SparseJsonPayloadCodecs" })
         {
             SharedSource(one, family).ShouldBe(SharedSource(four, family));
         }
@@ -561,8 +569,12 @@ public sealed class ThreeLayerCertificationTests
         }
     }
 
-    private static string SharedSourceKey(Dictionary<string, string> sources, string family) =>
-        sources.Keys.Single(key => key.Contains(family, StringComparison.Ordinal));
+    private static string SharedSourceKey(Dictionary<string, string> sources, string family)
+    {
+        var source = sources["Generated.g.cs"];
+        source.ShouldContain(family);
+        return "Generated.g.cs";
+    }
 
     private static string ExecuteHelperProbe(string implementationNamespace)
     {

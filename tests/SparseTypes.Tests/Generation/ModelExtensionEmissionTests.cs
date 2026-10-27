@@ -38,11 +38,7 @@ public sealed class ModelExtensionEmissionTests
         );
         GeneratorDriver driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator());
         driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updatedCompilation, out _);
-        var generatedSource = driver
-            .GetRunResult()
-            .Results.SelectMany(static result => result.GeneratedSources)
-            .Single(static generated => generated.SourceText.ToString().Contains("Extensions_", StringComparison.Ordinal))
-            .SourceText.ToString();
+        var generatedSource = string.Concat(driver.GetRunResult().Results.SelectMany(static result => result.GeneratedSources).Select(static generated => generated.SourceText.ToString()));
         var match = Regex.Match(generatedSource, @"(public|internal) static partial class ([A-Za-z0-9_]+Extensions_[A-F0-9]{8})");
         match.Success.ShouldBeTrue();
         return (match.Groups[2].Value, match.Groups[1].Value, updatedCompilation.GetDiagnostics(), generatedSource, updatedCompilation);

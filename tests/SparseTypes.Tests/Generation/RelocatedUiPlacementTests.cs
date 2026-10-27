@@ -60,7 +60,7 @@ public sealed class RelocatedUiPlacementTests
     }
 
     [Test]
-    public void ImplementationHintsAreDistinct()
+    public void PerModelFilesUseDistinctResponsibilityHints()
     {
         const string source = """
             using SparseTypes;
@@ -73,10 +73,12 @@ public sealed class RelocatedUiPlacementTests
             """;
         var (_, _, all) = Generate(source);
         var hints = all.Keys.Where(static key => key.Contains("HintModel")).ToArray();
-        // Single-file emission: one merged hint carries the surface plus
-        // implementations (observable, view, session, factory).
-        hints.Length.ShouldBe(1);
-        hints.Count(static key => key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal)).ShouldBe(1);
+            hints.Length.ShouldBe(5);
+            foreach (var category in new[] { "Types", "Extensions", "Serialize", "Json", "Generated" })
+            {
+                hints.Count(key => key.EndsWith("." + category + ".g.cs", StringComparison.Ordinal)).ShouldBe(1);
+            }
+            hints.ShouldAllBe(key => !key.Contains("global__", StringComparison.Ordinal));
     }
 
     [Test]
@@ -227,9 +229,9 @@ public sealed class RelocatedUiPlacementTests
         descriptorFactory.DeclaredAccessibility.ShouldBe(Accessibility.Private);
         descriptorFactory.IsStatic.ShouldBeTrue();
         compilation.GetSymbolsWithName("DescriptorFactory").OfType<INamedTypeSymbol>().ShouldHaveSingleItem().ContainingType.ShouldBe(editSession);
-        // Single-file emission: the factory shares the merged model hint.
+        // The factory remains inside the model's Types output.
         all.Keys.Count(static key =>
-                key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal) && key.Contains("FactoryModel", StringComparison.Ordinal)
+                key.EndsWith(".Types.g.cs", StringComparison.Ordinal) && key.Contains("FactoryModel", StringComparison.Ordinal)
             )
             .ShouldBe(1);
     }
