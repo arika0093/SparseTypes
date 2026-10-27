@@ -17,9 +17,6 @@
     <PolyArgumentExceptions>true</PolyArgumentExceptions>
     <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
   </PropertyGroup>
-  <!-- Reproducibility policy: release-affecting tool inputs are pinned
-    to explicit versions. Dependabot (nuget ecosystem,.github/dependabot.yml)
-    proposes upgrades explicitly. Do not reintroduce floating (*) versions here. -->
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning" Version="3.10.94" PrivateAssets="all">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
