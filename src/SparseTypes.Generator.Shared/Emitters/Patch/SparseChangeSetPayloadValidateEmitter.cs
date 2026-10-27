@@ -105,6 +105,17 @@ internal static class SparseChangeSetPayloadValidateEmitter
                 + kind
                 + ".Version, Path = string.Empty, Message = \"Unsupported ChangePayload version.\" } });"
         );
+        code.AppendLine(
+            "if (!IsValidSchemaIdentity(Schema)) return new "
+                + result
+                + "(new "
+                + error
+                + "[] { new "
+                + error
+                + " { Kind = "
+                + kind
+                + ".SchemaIdentity, Path = string.Empty, Message = \"Malformed ChangePayload schema identity.\" } });"
+        );
         code.AppendLine("return base.Validate();");
         code.CloseBlock();
     }

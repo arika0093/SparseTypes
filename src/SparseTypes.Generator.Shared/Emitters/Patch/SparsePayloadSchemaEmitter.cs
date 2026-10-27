@@ -177,12 +177,23 @@ internal static class SparsePayloadSchemaEmitter
                 Object(
                     (context.Contract.EnvelopeVersionPropertyName, SingleValue("string", context.Dialect.ChangePayloadVersion, openApi31)),
                     (
+                        context.Contract.EnvelopeSchemaIdentityPropertyName,
+                        Object(("type", String("string")), ("pattern", String("^sha256:[0-9a-f]{64}$")))
+                    ),
+                    (
                         context.Contract.EnvelopeChangePropertyName,
                         schema.Reference(modelChange, SchemaComponentName(context.ModelType, "ModelChange"))
                     )
                 )
             ),
-            ("required", Array(String(context.Contract.EnvelopeVersionPropertyName), String(context.Contract.EnvelopeChangePropertyName)))
+            (
+                "required",
+                Array(
+                    String(context.Contract.EnvelopeVersionPropertyName),
+                    String(context.Contract.EnvelopeSchemaIdentityPropertyName),
+                    String(context.Contract.EnvelopeChangePropertyName)
+                )
+            )
         );
 
     private static string BuildModelChangeSchema(

@@ -160,11 +160,23 @@ public sealed class SparsePayloadSchemaBundleTests
             schema30.Single(static schema => schema.Type == typeof(PayloadSchemaProbe.ChangePayload)).OpenApi30JsonSchema
         );
         root30.RootElement.GetProperty("properties").GetProperty("version").GetProperty("enum")[0].GetString().ShouldBe("0.1");
+        root30.RootElement.GetProperty("properties").GetProperty("schema").GetProperty("pattern").GetString().ShouldBe("^sha256:[0-9a-f]{64}$");
+        root30.RootElement.GetProperty("required").EnumerateArray().ShouldContain(static value => value.GetString() == "schema");
 
         using var root31 = System.Text.Json.JsonDocument.Parse(
             schema31.Single(static schema => schema.Type == typeof(PayloadSchemaProbe.ChangePayload)).OpenApi31JsonSchema
         );
         root31.RootElement.GetProperty("properties").GetProperty("version").GetProperty("const").GetString().ShouldBe("0.1");
+        root31.RootElement.GetProperty("properties").GetProperty("schema").GetProperty("pattern").GetString().ShouldBe("^sha256:[0-9a-f]{64}$");
+        root31.RootElement.GetProperty("required").EnumerateArray().ShouldContain(static value => value.GetString() == "schema");
+
+        var allSchemas = string.Join("\n", schema31.Select(static schema => schema.OpenApi31JsonSchema));
+        allSchemas.ShouldContain("\"x-sparse-type\":\"int64\"");
+        allSchemas.ShouldContain("\"x-sparse-type\":\"uint64\"");
+        allSchemas.ShouldContain("\"x-sparse-type\":\"decimal\"");
+        allSchemas.ShouldContain("\"x-sparse-type\":\"date-time-utc-or-unspecified\"");
+        allSchemas.ShouldContain("\"x-sparse-type\":\"date-time-offset\"");
+        allSchemas.ShouldContain("\"pattern\":\"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$\"");
 
         schema31.ShouldContain(static schema => schema.Type == typeof(PayloadSchemaChild.ChangePayload));
         foreach (var reference in references)
@@ -199,6 +211,41 @@ public sealed class SparsePayloadSchemaBundleTests
         }
     }
 
+    [Test]
+    public void SchemaIdentityTracksNestedWireShapesInsteadOfNestedClrNames()
+    {
+        var first = new PayloadSchemaNestedProbeA.ChangePayload().Schema;
+        var equivalent = new PayloadSchemaNestedProbeB.ChangePayload().Schema;
+        var changed = new PayloadSchemaNestedProbeChanged.ChangePayload().Schema;
+
+        equivalent.ShouldBe(first);
+        changed.ShouldNotBe(first);
+    }
+
+    [Test]
+    public void CompatibleModelsExchangeAddressedMembersAcrossSchemaMismatch()
+    {
+        var before = Optional<PayloadSchemaNestedProbeA.Fragment?>.Present(
+            PayloadSchemaNestedProbeA.Fragment.From(new PayloadSchemaNestedProbeA { Child = new PayloadSchemaNestedChildA { Count = 1 } })
+        );
+        var after = Optional<PayloadSchemaNestedProbeA.Fragment?>.Present(
+            PayloadSchemaNestedProbeA.Fragment.From(new PayloadSchemaNestedProbeA { Child = new PayloadSchemaNestedChildA { Count = 2 } })
+        );
+        var json = System.Text.Json.JsonSerializer.Serialize(
+            PayloadSchemaNestedProbeA.ChangeSet.Between(before, after).ToPayload(),
+            PayloadSchemaNestedProbeA.PayloadJson.Default
+        );
+
+        var received = System.Text.Json.JsonSerializer.Deserialize<PayloadSchemaNestedProbeCompatible.ChangePayload>(
+            json,
+            PayloadSchemaNestedProbeCompatible.PayloadJson.Default
+        )!;
+
+        received.Schema.ShouldNotBe(new PayloadSchemaNestedProbeCompatible.ChangePayload().Schema);
+        received.Validate().IsValid.ShouldBeTrue();
+        received.ToChangeSet().Child.Count.After.Value.ShouldBe(2);
+    }
+
     private sealed class FirstPayload { }
 
     private sealed class SecondPayload { }
@@ -216,4 +263,67 @@ public partial class PayloadSchemaProbe
     public string? Label { get; set; }
 
     public PayloadSchemaChild? Child { get; set; }
+
+    public long WideInteger { get; set; }
+
+    public ulong UnsignedWideInteger { get; set; }
+
+    public decimal ExactDecimal { get; set; }
+
+    public PayloadSchemaWideEnum WideEnum { get; set; }
+
+    public Guid Identifier { get; set; }
+
+    public DateTime Moment { get; set; }
+
+    public DateTimeOffset OffsetMoment { get; set; }
+}
+
+public enum PayloadSchemaWideEnum : long
+{
+    Large = 9007199254740993,
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedChildA
+{
+    public int Count { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedChildB
+{
+    public int Count { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedChildChanged
+{
+    public long Count { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedProbeA
+{
+    public PayloadSchemaNestedChildA? Child { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedProbeB
+{
+    public PayloadSchemaNestedChildB? Child { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedProbeChanged
+{
+    public PayloadSchemaNestedChildChanged? Child { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaNestedProbeCompatible
+{
+    public PayloadSchemaNestedChildA? Child { get; set; }
+
+    public string? Note { get; set; }
 }

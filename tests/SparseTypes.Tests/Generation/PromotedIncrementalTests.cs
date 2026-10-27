@@ -275,7 +275,7 @@ public sealed class PromotedIncrementalTests
     }
 
     [Test]
-    public void SharedPromotedEdit_UpdatesPromotedOutputOnly()
+    public void SharedPromotedEdit_UpdatesPromotedOutputAndDependentRootSchema()
     {
         var files = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -307,15 +307,15 @@ public sealed class PromotedIncrementalTests
         afterSources[promotedHint].ShouldNotBe(beforeSources[promotedHint]);
         afterSources[promotedHint].ShouldContain("C");
 
-        // Root outputs only reference the promoted fragment by name.
-        // Each explicit root emits one merged file.
+        // Each explicit root emits one merged file. Its payload schema identity
+        // follows the nested wire shape, so the shared edit changes that file.
         foreach (var root in new[] { "InvRoot1", "InvRoot2" })
         {
             var hints = afterSources.Keys.Where(key => key.Contains(root, StringComparison.Ordinal)).ToArray();
             hints.Length.ShouldBe(1);
             foreach (var hint in hints)
             {
-                afterSources[hint].ShouldBe(beforeSources[hint]);
+                afterSources[hint].ShouldNotBe(beforeSources[hint]);
             }
         }
 

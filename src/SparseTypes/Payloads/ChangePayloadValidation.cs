@@ -11,6 +11,9 @@ public enum ChangePayloadValidationKind
     /// <summary>The envelope version is missing or unsupported.</summary>
     Version,
 
+    /// <summary>The schema identity is missing or malformed.</summary>
+    SchemaIdentity,
+
     /// <summary>The envelope or member structure is malformed.</summary>
     Changes,
 

@@ -11,7 +11,19 @@ internal static class PayloadJsonTestSupport
         where TPayload : notnull => JsonSerializer.Serialize(payload, TypeInfo<TPayload>());
 
     internal static TPayload Deserialize<TPayload>(string json)
-        where TPayload : notnull => JsonSerializer.Deserialize(NormalizeLegacySemanticFixture(json), TypeInfo<TPayload>())!;
+        where TPayload : notnull => JsonSerializer.Deserialize(NormalizeFixture<TPayload>(json), TypeInfo<TPayload>())!;
+
+    internal static string WithSchemaIdentity<TPayload>(string json)
+        where TPayload : notnull
+    {
+        var payload =
+            Activator.CreateInstance(typeof(TPayload)) ?? throw new InvalidOperationException("Payload fixture type needs a default instance.");
+        var schemaProperty =
+            typeof(TPayload).GetProperty("Schema") ?? throw new InvalidOperationException("Payload fixture type has no schema property.");
+        var schema =
+            schemaProperty.GetValue(payload) as string ?? throw new InvalidOperationException("Payload fixture schema identity is not initialized.");
+        return json.StartsWith("{", StringComparison.Ordinal) ? json.Insert(1, "\"schema\":\"" + schema + "\",") : json;
+    }
 
     internal static TPayload RoundTrip<TPayload>(TPayload payload)
         where TPayload : notnull => Deserialize<TPayload>(Serialize(payload));
@@ -31,26 +43,36 @@ internal static class PayloadJsonTestSupport
         return (JsonTypeInfo<TPayload>)options.GetTypeInfo(typeof(TPayload));
     }
 
-    private static string NormalizeLegacySemanticFixture(string json)
+    private static string NormalizeFixture<TPayload>(string json)
+        where TPayload : notnull
     {
-        using var document = JsonDocument.Parse(json);
+        using var source = JsonDocument.Parse(json);
+        var hasSchema =
+            source.RootElement.ValueKind == JsonValueKind.Object
+            && source.RootElement.EnumerateObject().Any(static property => property.NameEquals("schema"));
+        var fixture = hasSchema ? json : WithSchemaIdentity<TPayload>(json);
+        using var document = JsonDocument.Parse(fixture);
         if (
             document.RootElement.ValueKind != JsonValueKind.Object
             || document.RootElement.EnumerateObject().Any(static property => property.NameEquals("change"))
             || !document.RootElement.EnumerateObject().Any(static property => property.NameEquals("changes"))
         )
         {
-            return json;
+            return fixture;
         }
 
-        var root = JsonNode.Parse(json) as JsonObject;
-        if (root is null || !root.TryGetPropertyValue("changes", out var changes))
+        var root = JsonNode.Parse(fixture) as JsonObject;
+        if (root is null)
         {
-            return json;
+            return fixture;
         }
 
-        root.Remove("changes");
-        root["change"] = ConvertCore(new JsonObject { ["changes"] = changes?.DeepClone() });
+        if (!root.ContainsKey("change") && root.TryGetPropertyValue("changes", out var changes))
+        {
+            root.Remove("changes");
+            root["change"] = ConvertCore(new JsonObject { ["changes"] = changes?.DeepClone() });
+        }
+
         return root.ToJsonString();
     }
 
@@ -97,7 +119,7 @@ internal static class PayloadJsonTestSupport
     {
         if (member["nested"] is JsonObject nested)
         {
-            return new JsonObject { ["kind"] = "update", ["change"] = ConvertCore(nested) };
+            return ConvertCore(nested);
         }
 
         if (member["items"] is JsonArray items)
@@ -153,11 +175,11 @@ internal static class PayloadJsonTestSupport
             }
             if (item["edit"] is JsonObject edit)
             {
-                resultItem["change"] = ConvertCore(edit);
+                Copy(ConvertCore(edit), resultItem, "members");
             }
             else if (item["change"] is JsonObject change)
             {
-                resultItem["change"] = ConvertCore(change);
+                Copy(ConvertCore(change), resultItem, "members");
             }
             result.Add(resultItem);
         }

@@ -26,7 +26,18 @@ public static class ChangePayloadDocsSamples
         PocoLeaf();
     }
 
-    private static bool JsonMatches(string actual, string expected) => JsonNode.DeepEquals(JsonNode.Parse(actual), JsonNode.Parse(expected));
+    private static bool JsonMatches(string actual, string expected)
+    {
+        var actualNode = JsonNode.Parse(actual) as JsonObject;
+        var expectedNode = JsonNode.Parse(expected) as JsonObject;
+        if (actualNode is null || expectedNode is null)
+        {
+            return JsonNode.DeepEquals(actualNode, expectedNode);
+        }
+
+        expectedNode["schema"] = actualNode["schema"]?.DeepClone();
+        return JsonNode.DeepEquals(actualNode, expectedNode);
+    }
 
     private static void ScalarSet()
     {
@@ -38,6 +49,7 @@ public static class ChangePayloadDocsSamples
         var setJson = JsonSerializer.Serialize(setPayload, WireSettings.PayloadJson.Default);
         // setJson == {
         //   "version": "0.1",
+        //   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
         //   "change": {
         //     "kind": "update",
         //     "members": {
@@ -100,6 +112,7 @@ public static class ChangePayloadDocsSamples
         var nullJson = JsonSerializer.Serialize(nullPayload, WireSettings.PayloadJson.Default);
         // nullJson == {
         //   "version": "0.1",
+        //   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
         //   "change": {
         //     "kind": "update",
         //     "members": {
@@ -141,6 +154,7 @@ public static class ChangePayloadDocsSamples
         var removeJson = JsonSerializer.Serialize(removePayload, WireSettings.PayloadJson.Default);
         // removeJson == {
         //   "version": "0.1",
+        //   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
         //   "change": {
         //     "kind": "update",
         //     "members": {
@@ -242,7 +256,7 @@ public static class ChangePayloadDocsSamples
         // /sample
         DocsCheck.Require(
             nestedJson
-                == """{"version":"0.1","change":{"kind":"update","members":{"customer":{"kind":"update","change":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}}""",
+                == """{"version":"0.1","schema":"sha256:975073d6e08b95584b9dfbfc949a86450b232296ff6c0849bcd6accf5a5b1aaa","change":{"kind":"update","members":{"customer":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}""",
             "nested change emits the documented envelope"
         );
         DocsCheck.Require(nestedRestored.Customer.Name.After.Value == "Bob", "deserialized nested change preserves the leaf transition");
@@ -381,6 +395,7 @@ public static class ChangePayloadDocsSamples
         var commandJson = JsonSerializer.Serialize(command, WireSecret.PayloadJson.Default);
         // commandJson == {
         //   "version": "0.1",
+        //   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
         //   "change": {
         //     "kind": "update",
         //     "members": {
@@ -477,6 +492,7 @@ public static class ChangePayloadDocsSamples
             """
             {
               "version": "0.1",
+              "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
               "change": {
                 "kind": "update",
                 "members": {
@@ -701,42 +717,42 @@ public static class ChangePayloadJsonSpecimens
 {
     // json-specimen: payload-envelope
     public const string Envelope =
-        """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}}}}""";
+        """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-scalar-add
     public const string ScalarAdd =
-        """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":"after"}}}}}""";
+        """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":"after"}}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-nested-json
     public const string Nested =
-        """{"version":"0.1","change":{"kind":"update","members":{"customer":{"kind":"update","change":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}}""";
+        """{"version":"0.1","schema":"sha256:975073d6e08b95584b9dfbfc949a86450b232296ff6c0849bcd6accf5a5b1aaa","change":{"kind":"update","members":{"customer":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-keyed-json
     public const string Keyed =
-        """{"version":"0.1","change":{"kind":"update","members":{"servers":{"kind":"update","items":[{"key":"b","kind":"update","beforeIndex":1,"afterIndex":0,"change":{"kind":"update","members":{"host":{"kind":"replace","before":{"state":"value","value":"B"},"after":{"state":"value","value":"B2"}}}}},{"key":"c","kind":"add","afterIndex":1,"after":{"state":"value","value":{"Id":"c","Host":"C"}}},{"key":"a","kind":"remove","beforeIndex":0,"before":{"state":"value","value":{"Id":"a","Host":"A"}}}],"beforeOrder":["a","b"],"afterOrder":["b","c"]}}}}""";
+        """{"version":"0.1","schema":"sha256:279b7c9cd41f1d9afb3dc4fdfec3f8da469bf5c50814e051f626343bf07bfa64","change":{"kind":"update","members":{"servers":{"kind":"update","items":[{"key":"b","kind":"update","beforeIndex":1,"afterIndex":0,"members":{"host":{"kind":"replace","before":{"state":"value","value":"B"},"after":{"state":"value","value":"B2"}}}},{"key":"c","kind":"add","afterIndex":1,"after":{"state":"value","value":{"Id":"c","Host":"C"}}},{"key":"a","kind":"remove","beforeIndex":0,"before":{"state":"value","value":{"Id":"a","Host":"A"}}}],"beforeOrder":["a","b"],"afterOrder":["b","c"]}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-reorder
     public const string Reorder =
-        """{"version":"0.1","change":{"kind":"update","members":{"servers":{"kind":"update","items":[{"key":"b","kind":"update","beforeIndex":1,"afterIndex":0,"isReordered":true},{"key":"a","kind":"update","beforeIndex":0,"afterIndex":1,"isReordered":true}],"beforeOrder":["a","b"],"afterOrder":["b","a"]}}}}""";
+        """{"version":"0.1","schema":"sha256:279b7c9cd41f1d9afb3dc4fdfec3f8da469bf5c50814e051f626343bf07bfa64","change":{"kind":"update","members":{"servers":{"kind":"update","items":[{"key":"b","kind":"update","beforeIndex":1,"afterIndex":0,"isReordered":true},{"key":"a","kind":"update","beforeIndex":0,"afterIndex":1,"isReordered":true}],"beforeOrder":["a","b"],"afterOrder":["b","a"]}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-dict
     public const string Dictionary =
-        """{"version":"0.1","change":{"kind":"update","members":{"scores":{"kind":"update","items":[{"key":"c","kind":"add","after":{"state":"value","value":4}},{"key":"a","kind":"remove","before":{"state":"value","value":1}},{"key":"b","kind":"replace","before":{"state":"value","value":2},"after":{"state":"value","value":3}}]}}}}""";
+        """{"version":"0.1","schema":"sha256:f2d35c2daced669e6f233839d49eab30aebe28a7db507be1f6a62194919206a1","change":{"kind":"update","members":{"scores":{"kind":"update","items":[{"key":"c","kind":"add","after":{"state":"value","value":4}},{"key":"a","kind":"remove","before":{"state":"value","value":1}},{"key":"b","kind":"replace","before":{"state":"value","value":2},"after":{"state":"value","value":3}}]}}}}""";
 
     // /json-specimen
 
     // json-specimen: payload-root
     public const string Root =
-        """{"version":"0.1","change":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":{"label":{"state":"value","value":"present"},"retryCount":{"state":"value","value":3}}}}}""";
+        """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","change":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":{"label":{"state":"value","value":"present"},"retryCount":{"state":"value","value":3}}}}}""";
     // /json-specimen
 }

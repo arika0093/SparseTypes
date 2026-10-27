@@ -38,12 +38,14 @@ public sealed class AotJsonTests
         // /sample
         using (var document = JsonDocument.Parse(json))
         {
-            await Assert.That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "change"])).IsTrue();
+            await Assert
+                .That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "schema", "change"]))
+                .IsTrue();
             await Assert.That(document.RootElement.GetProperty("version").GetString()).IsEqualTo("0.1");
             var change = document.RootElement.GetProperty("change");
             await Assert.That(change.GetProperty("kind").GetString()).IsEqualTo("update");
             var members = change.GetProperty("members");
-            var nested = members.GetProperty("child").GetProperty("change");
+            var nested = members.GetProperty("child");
             await Assert.That(nested.TryGetProperty("version", out _)).IsFalse();
             await Assert.That(nested.GetProperty("kind").GetString()).IsEqualTo("update");
             await Assert.That(nested.TryGetProperty("members", out _)).IsTrue();
@@ -70,11 +72,11 @@ public sealed class AotJsonTests
         var editedItem = serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "a");
         await Assert
             .That(
-                editedItem.EnumerateObject().Select(property => property.Name).SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "change"])
+                editedItem.EnumerateObject().Select(property => property.Name).SequenceEqual(["key", "kind", "beforeIndex", "afterIndex", "members"])
             )
             .IsTrue();
         await Assert.That(editedItem.GetProperty("kind").GetString()).IsEqualTo("update");
-        await Assert.That(editedItem.GetProperty("change").GetProperty("members").TryGetProperty("name", out _)).IsTrue();
+        await Assert.That(editedItem.GetProperty("members").TryGetProperty("name", out _)).IsTrue();
         await Assert
             .That(serverItems.EnumerateArray().Single(item => item.GetProperty("key").GetString() == "b").GetProperty("kind").GetString())
             .IsEqualTo("add");

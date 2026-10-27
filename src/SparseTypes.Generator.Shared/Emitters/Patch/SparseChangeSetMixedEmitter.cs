@@ -338,6 +338,9 @@ internal static class SparseChangeSetMixedEmitter
                 + versionLiteral
                 + ", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException(\"Unsupported ChangePayload version.\", nameof(Version));"
         );
+        code.AppendLine(
+            "if (!IsValidSchemaIdentity(Schema)) throw new global::System.ArgumentException(\"Malformed ChangePayload schema identity.\", nameof(Schema));"
+        );
     }
 
     /// <summary>Emits version-validated envelope overrides for mixed entry points.</summary>

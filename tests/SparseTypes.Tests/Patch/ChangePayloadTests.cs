@@ -146,10 +146,10 @@ public sealed class ChangePayloadTests
         var json = PayloadJsonTestSupport.Serialize(payload);
         using (var document = JsonDocument.Parse(json))
         {
-            document.RootElement.EnumerateObject().Select(property => property.Name).ShouldBe(["version", "change"]);
+            document.RootElement.EnumerateObject().Select(property => property.Name).ShouldBe(["version", "schema", "change"]);
             var nested = document.RootElement.GetProperty("change").GetProperty("members").GetProperty("nested");
             nested.GetProperty("kind").GetString().ShouldBe("update");
-            nested.GetProperty("change").GetProperty("kind").GetString().ShouldBe("update");
+            nested.GetProperty("members").GetProperty("host").GetProperty("kind").GetString().ShouldBe("replace");
         }
         var restored = RoundTrip(payload).ToChangeSet();
         Settings.Patch.Between(restored.ToPatch().Apply(before), after).IsEmpty.ShouldBeTrue();
@@ -193,7 +193,7 @@ public sealed class ChangePayloadTests
             var edited = items.Single(item => item.GetProperty("key").GetString() == "b");
             edited.TryGetProperty("before", out _).ShouldBeFalse();
             edited.TryGetProperty("after", out _).ShouldBeFalse();
-            edited.GetProperty("change").GetProperty("members").TryGetProperty("id", out _).ShouldBeFalse();
+            edited.GetProperty("members").TryGetProperty("id", out _).ShouldBeFalse();
             items.Single(item => item.GetProperty("key").GetString() == "c").TryGetProperty("before", out _).ShouldBeFalse();
             items.Single(item => item.GetProperty("key").GetString() == "a").TryGetProperty("after", out _).ShouldBeFalse();
         }
@@ -326,7 +326,7 @@ public sealed class ChangePayloadTests
             edited.GetProperty("kind").GetString().ShouldBe("update");
             edited.TryGetProperty("before", out _).ShouldBeFalse();
             edited.TryGetProperty("after", out _).ShouldBeFalse();
-            edited.GetProperty("change").GetProperty("members").TryGetProperty("name", out _).ShouldBeTrue();
+            edited.GetProperty("members").TryGetProperty("name", out _).ShouldBeTrue();
         }
         var structuralRestored = RoundTrip(structuralPayload).ToChangeSet();
         StructuralDictHolder.Patch.Between(structuralRestored.ToPatch().Apply(structuralBefore), structuralAfter).IsEmpty.ShouldBeTrue();
@@ -444,7 +444,7 @@ public sealed class ChangePayloadTests
     {
         var empty = Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Missing, Optional<Settings.Fragment?>.Missing).ToPayload();
         var json = PayloadJsonTestSupport.Serialize(empty);
-        json.ShouldBe("""{"version":"0.1","change":{"kind":"update","members":{}}}""");
+        json.ShouldBe("{\"version\":\"0.1\",\"schema\":\"" + empty.Schema + "\",\"change\":{\"kind\":\"update\",\"members\":{}}}");
         var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
         restored.Version.ShouldBe("0.1");
         restored.Change!.Members!.Label.ShouldBeNull();
@@ -518,7 +518,7 @@ public sealed class ChangePayloadTests
     [Test]
     public void Payload_RejectsMalformedNestedPayload()
     {
-        var nested = """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update","change":{"kind":"bogus","members":{}}}}}}""";
+        var nested = """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"bogus","members":{}}}}}""";
         Settings.ChangePayload? payload;
         try
         {

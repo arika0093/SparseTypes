@@ -222,14 +222,9 @@ public sealed class ChangePayloadValidateTests
         reorderResult.IsValid.ShouldBeFalse();
         reorderResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Item);
 
-        // A nested member without its core is malformed.
-        var nested = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update"}}}}"""
+        Should.Throw<System.Text.Json.JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>("""{"version":"0.1","change":{"kind":"update","members":{"nested":{}}}}""")
         );
-        var nestedResult = nested.Validate();
-        nestedResult.IsValid.ShouldBeFalse();
-        nestedResult.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.Changes);
-        nestedResult.Errors.Single().Path.ShouldBe("Nested");
     }
 
     [Test]

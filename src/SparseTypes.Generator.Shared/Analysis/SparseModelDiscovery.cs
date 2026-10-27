@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -647,6 +649,17 @@ internal static class SparseModelDiscovery
             pocoCloneHelperName = SparseWellKnownNames.CloneHelperPrefix + SparseNaming.GetStableTypeHash(cloneTypeName, cancellationToken);
         }
 
+        string? enumUnderlyingTypeName = null;
+        if (type is INamedTypeSymbol enumType && enumType.TypeKind == TypeKind.Enum && enumType.EnumUnderlyingType is ITypeSymbol enumUnderlyingType)
+        {
+            enumUnderlyingTypeName = SparseNaming.NonNullableTypeName(enumUnderlyingType);
+        }
+
+        var payloadSchemaShape =
+            type is INamedTypeSymbol payloadModel && (isFragmentModel || IsStructuralType(type, config, cancellationToken))
+                ? CreatePayloadSchemaShape(payloadModel, config, cancellationToken, new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default))
+                : null;
+
         return new SparseTypeModel(
             SparseNaming.TypeName(type),
             SparseNaming.NonNullableTypeName(type),
@@ -660,9 +673,123 @@ internal static class SparseModelDiscovery
             UsesDefaultScalarEquality(type),
             GetObservableTypeName(type, isFragmentModel, config, cancellationToken),
             GetReadOnlyViewTypeName(type, isFragmentModel, config, cancellationToken),
-            pocoReadOnlyViewKey
+            pocoReadOnlyViewKey,
+            enumUnderlyingTypeName,
+            payloadSchemaShape,
+            IsNullableType(type)
         );
     }
+
+    private static string CreatePayloadSchemaShape(
+        INamedTypeSymbol model,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken,
+        HashSet<INamedTypeSymbol> activeModels
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!activeModels.Add(model))
+        {
+            return "recursive";
+        }
+
+        var canonical = new StringBuilder("SparseTypes.ChangePayload.NestedSchema.v1\n");
+        foreach (
+            var member in GetMembers(model, config, cancellationToken)
+                .OrderBy(member => SparseJsonNaming.GetJsonPropertyName(member.Property, cancellationToken, out _), StringComparer.Ordinal)
+        )
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (
+                IsTransportIgnored(member.Property, config)
+                || SparseJsonNaming.GetJsonIgnoreCondition(member.Property, cancellationToken) == SparseJsonNaming.JsonIgnoreAlways
+            )
+            {
+                continue;
+            }
+
+            var jsonName = SparseJsonNaming.GetJsonPropertyName(member.Property, cancellationToken, out _);
+            AppendPayloadShape(canonical, jsonName);
+            AppendPayloadShape(canonical, IsNullableType(member.Property.Type) ? "nullable" : "required");
+            AppendPayloadShape(canonical, IsRedactBefore(member.Property, config) ? "redacted-before" : "complete-before");
+            AppendPayloadShape(canonical, member.MergeMode.ToString(CultureInfo.InvariantCulture));
+            AppendPayloadShape(canonical, member.HasExplicitMergeMode ? "explicit-merge" : "default-merge");
+            AppendPayloadShape(canonical, GetPayloadTypeShape(member.Property.Type, config, cancellationToken, activeModels));
+
+            var collection = member.Collection;
+            if (collection.Kind != SparseCollectionKind.Unsupported)
+            {
+                var semantic = SparseCollectionAnalyzer.ClassifySemantic(collection, config, cancellationToken);
+                AppendPayloadShape(canonical, semantic.ToString());
+                if (
+                    semantic == SparseCollectionSemantic.KeyedSequence
+                    && collection.ElementType is INamedTypeSymbol element
+                    && SparseCollectionAnalyzer.TryDiscoverKeyInfo(element, config, cancellationToken, out var keyInfo)
+                    && keyInfo is not null
+                )
+                {
+                    AppendPayloadShape(canonical, SparsePayloadContract.GetWireTypeName(keyInfo.KeyTypeName));
+                    AppendPayloadShape(canonical, keyInfo.TemporaryKeyProperty ?? string.Empty);
+                    foreach (var keyName in keyInfo.PropertyNames.OrderBy(static name => name, StringComparer.Ordinal))
+                    {
+                        AppendPayloadShape(canonical, keyName);
+                    }
+                }
+            }
+        }
+
+        activeModels.Remove(model);
+        using var sha256 = SHA256.Create();
+        var digest = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonical.ToString()));
+        var hexadecimal = new StringBuilder(digest.Length * 2);
+        foreach (var item in digest)
+        {
+            hexadecimal.Append(item.ToString("x2", CultureInfo.InvariantCulture));
+        }
+        return "sha256:" + hexadecimal;
+    }
+
+    private static string GetPayloadTypeShape(
+        ITypeSymbol type,
+        SparseGeneratorConfig config,
+        CancellationToken cancellationToken,
+        HashSet<INamedTypeSymbol> activeModels
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var collection = SparseCollectionAnalyzer.GetCollectionInfo(type);
+        if (collection.Kind != SparseCollectionKind.Unsupported)
+        {
+            var canonical = new StringBuilder("collection\n");
+            AppendPayloadShape(canonical, collection.Kind.ToString());
+            AppendPayloadShape(canonical, SparseCollectionAnalyzer.ClassifySemantic(collection, config, cancellationToken).ToString());
+            AppendPayloadShape(canonical, IsNullableType(collection.ElementType) ? "nullable-element" : "required-element");
+            AppendPayloadShape(canonical, GetPayloadTypeShape(collection.ElementType, config, cancellationToken, activeModels));
+            var valueShape = string.Empty;
+            if (collection.ValueType is ITypeSymbol valueType)
+            {
+                var nullability = IsNullableType(valueType) ? "nullable-value:" : "required-value:";
+                valueShape = nullability + GetPayloadTypeShape(valueType, config, cancellationToken, activeModels);
+            }
+            AppendPayloadShape(canonical, valueShape);
+            return canonical.ToString();
+        }
+
+        if (type is INamedTypeSymbol named && (IsFragmentModel(type, config, cancellationToken) || IsStructuralType(type, config, cancellationToken)))
+        {
+            return (IsNullableType(type) ? "nullable-model:" : "required-model:")
+                + CreatePayloadSchemaShape(named, config, cancellationToken, activeModels);
+        }
+
+        var wireType =
+            type is INamedTypeSymbol enumType && enumType.TypeKind == TypeKind.Enum && enumType.EnumUnderlyingType is ITypeSymbol underlyingType
+                ? SparsePayloadContract.GetWireTypeName(SparseNaming.NonNullableTypeName(underlyingType))
+                : SparsePayloadContract.GetWireTypeName(SparseNaming.NonNullableTypeName(type));
+        return (IsNullableType(type) ? "nullable:" : "required:") + wireType;
+    }
+
+    private static void AppendPayloadShape(StringBuilder builder, string value) =>
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value).Append('\n');
 
     private static string? GetReadOnlyViewTypeName(
         ITypeSymbol type,

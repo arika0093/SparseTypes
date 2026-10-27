@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace SparseTypes.Generator.Shared;
 
@@ -113,6 +116,8 @@ internal sealed record SparsePayloadContract
 {
     public string EnvelopeVersionPropertyName { get; init; } = "version";
 
+    public string EnvelopeSchemaIdentityPropertyName { get; init; } = "schema";
+
     public string EnvelopeChangePropertyName { get; init; } = "change";
 
     public string OperationKindPropertyName { get; init; } = "kind";
@@ -122,6 +127,8 @@ internal sealed record SparsePayloadContract
     public string EndpointStatePropertyName { get; init; } = "state";
 
     public string EndpointValuePropertyName { get; init; } = "value";
+
+    public string SchemaIdentity { get; init; } = string.Empty;
 
     public ImmutableArray<SparsePayloadMemberContract> Members { get; init; } = ImmutableArray<SparsePayloadMemberContract>.Empty;
 
@@ -146,11 +153,13 @@ internal sealed record SparsePayloadContract
     public bool Equals(SparsePayloadContract? other) =>
         other is not null
         && EnvelopeVersionPropertyName == other.EnvelopeVersionPropertyName
+        && EnvelopeSchemaIdentityPropertyName == other.EnvelopeSchemaIdentityPropertyName
         && EnvelopeChangePropertyName == other.EnvelopeChangePropertyName
         && OperationKindPropertyName == other.OperationKindPropertyName
         && MembersPropertyName == other.MembersPropertyName
         && EndpointStatePropertyName == other.EndpointStatePropertyName
         && EndpointValuePropertyName == other.EndpointValuePropertyName
+        && SchemaIdentity == other.SchemaIdentity
         && SparseSequence.Equal(Members, other.Members)
         && SparseSequence.Equal(TransportMembers, other.TransportMembers)
         && SparseSequence.Equal(JsonMembers, other.JsonMembers)
@@ -165,11 +174,13 @@ internal sealed record SparsePayloadContract
     public override int GetHashCode()
     {
         var hash = EnvelopeVersionPropertyName.GetHashCode();
+        hash = unchecked(hash * 31 + EnvelopeSchemaIdentityPropertyName.GetHashCode());
         hash = unchecked(hash * 31 + EnvelopeChangePropertyName.GetHashCode());
         hash = unchecked(hash * 31 + OperationKindPropertyName.GetHashCode());
         hash = unchecked(hash * 31 + MembersPropertyName.GetHashCode());
         hash = unchecked(hash * 31 + EndpointStatePropertyName.GetHashCode());
         hash = unchecked(hash * 31 + EndpointValuePropertyName.GetHashCode());
+        hash = unchecked(hash * 31 + SchemaIdentity.GetHashCode());
         hash = unchecked(hash * 31 + SparseSequence.Hash(Members));
         hash = unchecked(hash * 31 + SparseSequence.Hash(TransportMembers));
         hash = unchecked(hash * 31 + SparseSequence.Hash(JsonMembers));
@@ -218,6 +229,7 @@ internal sealed record SparsePayloadContract
 
         return new SparsePayloadContract
         {
+            SchemaIdentity = CreateSchemaIdentity(jsonMembers),
             Members = contracts,
             TransportMembers = transportMembers,
             JsonMembers = jsonMembers,
@@ -237,11 +249,142 @@ internal sealed record SparsePayloadContract
                 SparsePayloadDtoRole.ItemOperation,
                 SparsePayloadDtoRole.Endpoint
             ),
-            IgnoreUnknownMembers = true,
+            IgnoreUnknownMembers = false,
             RejectDuplicateProperties = true,
             RejectUnknownOperations = true,
         };
     }
+
+    private static string CreateSchemaIdentity(ImmutableArray<SparsePayloadMemberContract> members)
+    {
+        var canonical = new StringBuilder("SparseTypes.ChangePayload.Schema.v1\n");
+        foreach (var member in members.OrderBy(static member => member.JsonName, StringComparer.Ordinal))
+        {
+            AppendCanonical(canonical, member.JsonName);
+            AppendCanonical(canonical, member.Shape.ToString());
+            AppendCanonical(canonical, GetWireType(member));
+            AppendCanonical(canonical, member.IsNullable ? "nullable" : "required");
+            AppendCanonical(canonical, member.RedactBefore ? "redacted-before" : "complete-before");
+            AppendCanonical(canonical, member.Member.Collection.Semantic.ToString());
+            AppendCanonical(
+                canonical,
+                member.Member.Collection.Semantic == SparseCollectionSemantic.None ? string.Empty : GetWireType(member.Member.Collection.ElementType)
+            );
+            if (member.Member.Collection.Semantic != SparseCollectionSemantic.None)
+            {
+                AppendCanonical(canonical, GetElementNullability(member));
+            }
+            AppendCanonical(canonical, member.Member.Collection.ValueType is SparseTypeModel valueType ? GetWireType(valueType) : string.Empty);
+            if (member.Member.Collection.ValueType is not null)
+            {
+                AppendCanonical(canonical, GetValueNullability(member));
+            }
+            AppendCanonical(canonical, member.KeyTypeName is string keyTypeName ? GetWireTypeName(keyTypeName) : string.Empty);
+            AppendCanonical(canonical, member.HasTemporaryIdentity ? "temporary-key" : "stable-key");
+            AppendCanonical(canonical, member.CarriesOrder ? "ordered" : "unordered");
+            foreach (var keyName in member.KeyPropertyNames.OrderBy(static name => name, StringComparer.Ordinal))
+            {
+                AppendCanonical(canonical, keyName);
+            }
+        }
+
+        using var sha256 = SHA256.Create();
+        var digest = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonical.ToString()));
+        var hexadecimal = new StringBuilder(digest.Length * 2);
+        foreach (var item in digest)
+        {
+            hexadecimal.Append(item.ToString("x2", CultureInfo.InvariantCulture));
+        }
+        return "sha256:" + hexadecimal;
+    }
+
+    private static string GetWireType(SparseTypeModel type)
+    {
+        if (type.PayloadSchemaShape is string payloadSchemaShape)
+        {
+            return "nested-model:" + payloadSchemaShape;
+        }
+
+        if (type.EnumUnderlyingTypeName is string enumUnderlyingTypeName)
+        {
+            return GetWireTypeName(enumUnderlyingTypeName);
+        }
+
+        return GetWireTypeName(type.NonNullableName);
+    }
+
+    private static string GetWireType(SparsePayloadMemberContract member)
+    {
+        var collection = member.Member.Collection;
+        if (collection.Semantic == SparseCollectionSemantic.None)
+        {
+            return GetWireType(member.Member.Property.Type);
+        }
+
+        return "collection:"
+            + collection.Semantic
+            + ":"
+            + GetWireType(collection.ElementType)
+            + ":"
+            + (collection.ValueType is SparseTypeModel valueType ? GetWireType(valueType) : string.Empty);
+    }
+
+    private static string GetElementNullability(SparsePayloadMemberContract member)
+    {
+        if (member.Member.Collection.Semantic == SparseCollectionSemantic.None)
+        {
+            return string.Empty;
+        }
+
+        return member.Member.Collection.ElementType.IsNullable ? "nullable-element" : "required-element";
+    }
+
+    private static string GetValueNullability(SparsePayloadMemberContract member)
+    {
+        if (member.Member.Collection.ValueType is not SparseTypeModel valueType)
+        {
+            return string.Empty;
+        }
+
+        return valueType.IsNullable ? "nullable-value" : "required-value";
+    }
+
+    internal static string GetWireTypeName(string typeName)
+    {
+        var normalized = typeName.Trim();
+        if (normalized.StartsWith("global::", StringComparison.Ordinal))
+        {
+            normalized = normalized.Substring("global::".Length);
+        }
+        return normalized switch
+        {
+            "long" or "System.Int64" => "int64-string",
+            "ulong" or "System.UInt64" => "uint64-string",
+            "decimal" or "System.Decimal" => "decimal-string",
+            "System.Guid" => "guid-string",
+            "System.DateTime" => "datetime-string",
+            "System.DateTimeOffset" => "datetimeoffset-string",
+            "string" or "System.String" => "string",
+            "bool" or "System.Boolean" => "boolean",
+            "byte"
+            or "System.Byte"
+            or "sbyte"
+            or "System.SByte"
+            or "short"
+            or "System.Int16"
+            or "ushort"
+            or "System.UInt16"
+            or "int"
+            or "System.Int32"
+            or "uint"
+            or "System.UInt32" => "integer-number",
+            "float" or "System.Single" or "double" or "System.Double" => "floating-number",
+            _ => "external:" + normalized,
+        };
+    }
+
+    private static void AppendCanonical(StringBuilder builder, string value) =>
+        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value).Append('\n');
 
     private static string ToCamelCase(string name)
     {

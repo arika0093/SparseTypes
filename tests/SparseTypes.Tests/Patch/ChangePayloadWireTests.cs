@@ -34,6 +34,7 @@ public sealed class ChangePayloadWireTests
     {
         ChangePayloadWire.Version.ShouldBe("0.1");
         ChangePayloadWire.VersionProperty.ShouldBe("version");
+        ChangePayloadWire.SchemaProperty.ShouldBe("schema");
         ChangePayloadWire.ChangeProperty.ShouldBe("change");
         ChangePayloadWire.KindProperty.ShouldBe("kind");
         ChangePayloadWire.MembersProperty.ShouldBe("members");
@@ -92,7 +93,7 @@ public sealed class ChangePayloadWireTests
 
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(payload, Settings.PayloadJson.Default));
         var envelope = document.RootElement;
-        envelope.EnumerateObject().Select(static property => property.Name).ShouldBe(new[] { "version", "change" });
+        envelope.EnumerateObject().Select(static property => property.Name).ShouldBe(new[] { "version", "schema", "change" });
         envelope.TryGetProperty("changes", out _).ShouldBeFalse();
 
         var change = envelope.GetProperty("change");
@@ -102,6 +103,50 @@ public sealed class ChangePayloadWireTests
         label.GetProperty("kind").GetString().ShouldBe("replace");
         label.TryGetProperty("member", out _).ShouldBeFalse();
         label.GetProperty("after").GetProperty("value").GetString().ShouldBe("after");
+    }
+
+    [Test]
+    public void SchemaIdentityIsStableRequiredAndDoesNotRejectAValidMismatch()
+    {
+        var before = Settings.Fragment.From(new Settings { Label = "before", RetryCount = 1 });
+        var after = Settings.Fragment.From(new Settings { Label = "after", RetryCount = 1 });
+        var payload = Settings
+            .ChangeSet.Between(Optional<Settings.Fragment?>.Present(before), Optional<Settings.Fragment?>.Present(after))
+            .ToPayload();
+        var identity = payload.Schema!;
+
+        identity.ShouldStartWith("sha256:");
+        identity.Length.ShouldBe(71);
+        new Settings.ChangePayload().Schema.ShouldBe(identity);
+        payload.Validate().IsValid.ShouldBeTrue();
+
+        payload.Schema = "sha256:" + new string('0', 64);
+        payload.Validate().IsValid.ShouldBeTrue();
+        payload.ToChangeSet().Label.After.Value.ShouldBe("after");
+
+        payload.Schema = "sha256:invalid";
+        var validation = payload.Validate();
+        validation.IsValid.ShouldBeFalse();
+        validation.Errors.Single().Kind.ShouldBe(ChangePayloadValidationKind.SchemaIdentity);
+        Should.Throw<ArgumentException>(() => payload.ToPatch());
+        Should.Throw<JsonException>(() => JsonSerializer.Serialize(payload, Settings.PayloadJson.Default));
+
+        var validJson = JsonSerializer.Serialize(
+            Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Present(before), Optional<Settings.Fragment?>.Present(after)).ToPayload(),
+            Settings.PayloadJson.Default
+        );
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<Settings.ChangePayload>(
+                validJson.Replace("\"schema\":\"" + identity + "\",", string.Empty, StringComparison.Ordinal),
+                Settings.PayloadJson.Default
+            )
+        );
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<Settings.ChangePayload>(
+                validJson.Replace("\"schema\":\"" + identity + "\"", "\"schema\":7", StringComparison.Ordinal),
+                Settings.PayloadJson.Default
+            )
+        );
     }
 
     [Test]
@@ -173,30 +218,41 @@ public sealed class ChangePayloadWireTests
     {
         var json =
             """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"},"extension":{"nested":true}}},"extension":123}}""";
-        var restored = JsonSerializer.Deserialize<Settings.ChangePayload>(json, Settings.PayloadJson.Default)!;
+        var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
 
         restored.ToChangeSet().Label.After.Value.ShouldBe("after");
 
         var nestedJson =
-            """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update","change":{"kind":"update","members":{"host":{"kind":"replace","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}}}},"extension":1}}}}""";
-        var nested = JsonSerializer.Deserialize<Settings.ChangePayload>(nestedJson, Settings.PayloadJson.Default)!;
+            """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update","members":{"host":{"kind":"replace","before":{"state":"value","value":"a"},"after":{"state":"value","value":"b"}}},"extension":1}}}}""";
+        var nested = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(nestedJson);
         nested.ToChangeSet().Nested.Host.After.Value.ShouldBe("b");
 
         var keyedJson =
             """{"version":"0.1","change":{"kind":"update","members":{"items":{"kind":"update","items":[{"key":"a","kind":"add","afterIndex":0,"after":{"state":"value","value":{"Id":"a","Name":"A","Count":0}},"extension":"x"}],"beforeOrder":[],"afterOrder":["a"]}}}}""";
-        var keyed = JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson, KeyedServerHolder.PayloadJson.Default)!;
+        var keyed = PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(keyedJson);
         keyed.ToChangeSet().Items.GetChange("a").IsAdded.ShouldBeTrue();
     }
 
     [Test]
     public void PayloadStillRejectsUnknownOperations()
     {
-        // Unknown model-member names are additive extensions and are skipped.
-        var unknownMember = JsonSerializer.Deserialize<Settings.ChangePayload>(
-            """{"version":"0.1","change":{"kind":"update","members":{"nope":{"kind":"replace","after":{"state":"value","value":"b"}}}}}""",
-            Settings.PayloadJson.Default
-        )!;
-        unknownMember.ToChangeSet().ShouldNotBeNull();
+        foreach (
+            var json in new[]
+            {
+                """{"version":"0.1","change":{"kind":"update","members":{"nope":{"kind":"replace","after":{"state":"value","value":"b"}}}}}""",
+                """{"version":"0.1","change":{"kind":"update","members":{"nested":{"kind":"update","members":{"nope":{"kind":"replace","after":{"state":"value","value":"b"}}}}}}}""",
+            }
+        )
+        {
+            var exception = Should.Throw<JsonException>(() => PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json));
+            exception.Message.ShouldContain("nope");
+            exception.Message.ShouldContain("member target");
+        }
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(
+                """{"version":"0.1","change":{"kind":"update","members":{"items":{"kind":"update","items":[{"key":"a","kind":"update","beforeIndex":0,"afterIndex":0,"members":{"nope":{"kind":"replace","after":{"state":"value","value":"b"}}}}],"beforeOrder":["a"],"afterOrder":["a"]}}}}"""
+            )
+        );
 
         // Unknown and legacy item kinds never drop an operation silently.
         const string itemJson =
@@ -204,16 +260,13 @@ public sealed class ChangePayloadWireTests
         foreach (var kind in new[] { "bogus", "edit", "reorder" })
         {
             var json = itemJson.Replace("__kind__", kind, StringComparison.Ordinal);
-            Should.Throw<JsonException>(() =>
-                JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(json, KeyedServerHolder.PayloadJson.Default)
-            );
+            Should.Throw<JsonException>(() => PayloadJsonTestSupport.Deserialize<KeyedServerHolder.ChangePayload>(json));
         }
 
         // Unknown endpoint states never decode silently.
         Should.Throw<JsonException>(() =>
-            JsonSerializer.Deserialize<Settings.ChangePayload>(
-                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"nope"},"after":{"state":"value","value":"b"}}}}}""",
-                Settings.PayloadJson.Default
+            PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(
+                """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"nope"},"after":{"state":"value","value":"b"}}}}}"""
             )
         );
     }
@@ -224,7 +277,12 @@ public sealed class ChangePayloadWireTests
         var json =
             """{"version":"0.1","change":{"kind":"replace","before":{"state":"value","value":{"nested":{"state":"missing","value":{"host":{"state":"value","value":"secret"}}}}},"after":{"state":"value","value":{}}}}""";
 
-        Should.Throw<JsonException>(() => JsonSerializer.Deserialize<Settings.ChangePayload>(json, Settings.PayloadJson.Default));
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<Settings.ChangePayload>(
+                PayloadJsonTestSupport.WithSchemaIdentity<Settings.ChangePayload>(json),
+                Settings.PayloadJson.Default
+            )
+        );
     }
 
     [Test]
@@ -243,7 +301,7 @@ public sealed class ChangePayloadWireTests
             var rejected = false;
             try
             {
-                JsonSerializer.Deserialize(json, Settings.PayloadJson.Default);
+                JsonSerializer.Deserialize(PayloadJsonTestSupport.WithSchemaIdentity<Settings.ChangePayload>(json), Settings.PayloadJson.Default);
             }
             catch (JsonException)
             {

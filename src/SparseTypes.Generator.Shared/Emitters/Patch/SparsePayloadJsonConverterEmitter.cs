@@ -57,8 +57,10 @@ internal static class SparsePayloadJsonConverterEmitter
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A payload must be an object.\");"
         );
         code.AppendLine("string? version = null;");
+        code.AppendLine("string? schema = null;");
         code.AppendLine(context.Dto("ModelChange") + "? change = null;");
         code.AppendLine("bool hasVersion = false;");
+        code.AppendLine("bool hasSchema = false;");
         code.AppendLine("bool hasChange = false;");
         code.AppendLine("var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
         code.AppendLine("while (reader.Read())");
@@ -73,6 +75,10 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); hasVersion = true; }"
         );
+        code.AppendLine("else if (name == \"schema\")");
+        code.AppendLine(
+            "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) schema = reader.GetString(); else if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) schema = null; else throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload schema identity.\"); hasSchema = true; }"
+        );
         code.AppendLine("else if (name == \"change\")");
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); change = ReadModelChange(ref reader, options); hasChange = true; }"
@@ -80,9 +86,14 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("else { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); reader.Skip(); }");
         code.CloseBlock();
         code.AppendLine(
-            "if (!hasVersion || !hasChange || change is null) throw new global::System.Text.Json.JsonException(\"A payload requires version and change properties.\");"
+            "if (!hasVersion || !hasSchema || !hasChange || change is null) throw new global::System.Text.Json.JsonException(\"A payload requires version, schema, and change properties.\");"
         );
-        code.AppendLine("return new " + changePayloadType + " { Version = version, Change = change };");
+        code.AppendLine(
+            "if (!"
+                + context.ModelType
+                + ".ChangePayload.IsValidSchemaIdentity(schema)) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload schema identity.\");"
+        );
+        code.AppendLine("return new " + changePayloadType + " { Version = version, Schema = schema, Change = change };");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <inheritdoc />");
@@ -98,6 +109,7 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var change = value.Change ?? throw new global::System.Text.Json.JsonException(\"A payload change is required.\");");
         code.AppendLine("writer.WriteStartObject();");
         code.AppendLine("writer.WriteString(\"version\", value.Version);");
+        code.AppendLine("writer.WriteString(\"schema\", value.Schema);");
         code.AppendLine("writer.WritePropertyName(\"change\");");
         code.AppendLine("WriteModelChange(writer, change, options);");
         code.AppendLine("writer.WriteEndObject();");

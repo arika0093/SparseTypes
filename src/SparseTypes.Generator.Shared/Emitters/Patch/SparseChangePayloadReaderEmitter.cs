@@ -53,6 +53,9 @@ internal static class SparseChangePayloadReaderEmitter
                 + versionLiteral
                 + ", global::System.StringComparison.Ordinal)) throw new global::System.ArgumentException(\"Unsupported ChangePayload version.\", nameof(payload));"
         );
+        code.AppendLine(
+            "if (!ChangePayload.IsValidSchemaIdentity(payload.Schema)) throw new global::System.ArgumentException(\"Malformed ChangePayload schema identity.\", nameof(payload));"
+        );
         code.AppendLine("return FromPayloadCore(payload);");
         code.CloseBlock();
         // The strict conversion partitions the envelope first and rejects blind

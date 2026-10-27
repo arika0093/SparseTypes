@@ -13,6 +13,9 @@ public static class ChangePayloadWire
     /// <summary>The envelope version property name.</summary>
     public const string VersionProperty = "version";
 
+    /// <summary>The envelope schema identity property name.</summary>
+    public const string SchemaProperty = "schema";
+
     /// <summary>The envelope change property name.</summary>
     public const string ChangeProperty = "change";
 

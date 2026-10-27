@@ -169,7 +169,9 @@ public sealed class ChangePayloadRedactionTests
         payload.Version.ShouldBe("0.1");
         payload.Change!.Members!.Password.ShouldNotBeNull();
         json.ShouldBe(
-            """{"version":"0.1","change":{"kind":"update","members":{"password":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"after-password"}}}}}"""
+            "{\"version\":\"0.1\",\"schema\":\""
+                + payload.Schema
+                + "\",\"change\":{\"kind\":\"update\",\"members\":{\"password\":{\"kind\":\"replace\",\"before\":{\"state\":\"redacted\"},\"after\":{\"state\":\"value\",\"value\":\"after-password\"}}}}}"
         );
 
         var restored = PayloadRoundTrip(payload);

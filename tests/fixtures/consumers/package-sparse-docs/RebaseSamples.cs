@@ -76,7 +76,7 @@ public static class RebaseSamples
         // sample: mixed-apply
         var currentModel = new RebaseDocsSettings { RetryCount = 1, Label = "current" };
         var payload = JsonSerializer.Deserialize<RebaseDocsSettings.ChangePayload>(
-            """{"version":"0.1","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}},"retryCount":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""",
+            """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"rotated"}},"retryCount":{"kind":"replace","before":{"state":"value","value":1},"after":{"state":"value","value":2}}}}}""",
             RebaseDocsSettings.PayloadJson.Default
         )!;
         if (!payload.TryApplyMixedTo(currentModel, out var updated, out var outcome))

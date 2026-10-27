@@ -4,7 +4,7 @@ For method and property lookup, see [generated ChangePayload](generated-payload.
 
 A `ChangePayload` is the versioned JSON envelope that carries a `ChangeSet` transition, a `Patch` command, or a mix of both across a process boundary. It names members and carries typed values, so each side converts the envelope into its own `Patch` or `ChangeSet`. The library performs no domain-specific model mapping, and the client and server models may differ.
 
-The current format token is `"version": "0.1"`. It identifies the documented grammar, not the sender and receiver model schemas, the library package version, or concurrency revisions. This format makes breaking wire changes without changing the token, so it cannot identify payloads produced by an earlier grammar; deploy compatible senders and receivers together. Schema evolution across models is also the application's responsibility, as the [version section](#version-and-malformed-payloads) explains. For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md). For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
+The current format token is `"version": "0.1"`. It identifies the wire grammar, not a model schema, package version, or concurrency revision. This early format may make breaking changes without changing the token; no legacy reader is provided, so deploy compatible senders and receivers together. The required `schema` field carries a deterministic identity for the generated model contract, but a different identity is not itself a compatibility error. For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md). For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
 
 <!-- sample: payload-models -->
 ```csharp
@@ -60,12 +60,13 @@ Serialize and deserialize the generated `T.ChangePayload`, not `T.ChangeSet` or 
 
 ## Envelope and model changes
 
-The envelope carries `version` and one `change`. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. Nested model changes use the same `update` shape without another version token.
+The envelope carries `version` and one `change`. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. A nested model member carries the child operation directly, without a second `change` wrapper.
 
 <!-- json-specimen: payload-envelope -->
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
   "change": {
     "kind": "update",
     "members": {
@@ -83,6 +84,7 @@ The envelope carries `version` and one `change`. A model update contains a typed
 | Field | Meaning |
 | --- | --- |
 | `version` | Required format token, currently `"0.1"`. |
+| `schema` | Required `sha256:` identity of the generated model's effective wire contract. A mismatch is informational; it does not reject a payload. |
 | `change` | Root model operation. Its `kind` is `update` or `replace`. |
 | `members` | Optional changed-member object for an `update`. Unspecified members are unchanged. |
 | `kind` | Operation discriminator. Member replacements use `replace`; nested and collection changes use `update`. |
@@ -91,6 +93,12 @@ The envelope carries `version` and one `change`. A model update contains a typed
 | `beforeOrder` / `afterOrder` | Key sequences for keyed collection updates. |
 
 Generated structure names use a fixed contract and are not changed by serializer naming policies. Leaf values use their configured JSON metadata. Optional members are omitted, and value-free endpoints contain only `state`.
+
+## Schema identity
+
+Each envelope includes a required `schema` string in the form `sha256:` followed by 64 lowercase hexadecimal digits. The digest is computed from the sorted effective JSON member contract: wire names, scalar wire types, nullability, redaction behavior, collection strategy, key types, keyed identity properties, and order semantics. Generated nested models are included recursively by their wire shape rather than their CLR type names; recursive references use a stable cycle marker. The digest is stable across source declaration order and does not include assembly versions, source paths, or generated implementation names.
+
+The digest is a hint, not a gate. Receivers require a well-formed identity but do not reject a different digest; they validate the actual member names and operations instead. Unknown targets inside `members` are rejected, while unknown extension metadata on the envelope and operation objects is ignored. External leaf types are opaque and identified by their fully qualified CLR type name; a custom converter or caller-provided `JsonSerializerOptions` can change their JSON representation without changing this digest. Applications that depend on such dynamic representations must coordinate that metadata separately.
 
 ## Endpoint states
 
@@ -123,6 +131,7 @@ var setPayload = WireSettings.ChangeSet.Between(setBefore, setAfter).ToPayload()
 var setJson = JsonSerializer.Serialize(setPayload, WireSettings.PayloadJson.Default);
 // setJson == {
 //   "version": "0.1",
+//   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
 //   "change": {
 //     "kind": "update",
 //     "members": {
@@ -145,6 +154,7 @@ The JSON above is actual serializer output. Only the changed member travels. An 
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
   "change": {
     "kind": "update",
     "members": {
@@ -171,6 +181,7 @@ var nullPayload = WireSettings.ChangeSet.Between(nullBefore, nullAfter).ToPayloa
 var nullJson = JsonSerializer.Serialize(nullPayload, WireSettings.PayloadJson.Default);
 // nullJson == {
 //   "version": "0.1",
+//   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
 //   "change": {
 //     "kind": "update",
 //     "members": {
@@ -201,6 +212,7 @@ var removePayload = WireSettings.ChangeSet.Between(removeBefore, removeAfter).To
 var removeJson = JsonSerializer.Serialize(removePayload, WireSettings.PayloadJson.Default);
 // removeJson == {
 //   "version": "0.1",
+//   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
 //   "change": {
 //     "kind": "update",
 //     "members": {
@@ -219,7 +231,7 @@ var removeRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(remo
 
 ## Nested changes
 
-A nested member recurses through the same typed shape under its `change` property.
+A nested member contains the child's `update` or `replace` operation. Keyed model-item updates use the item's `members` object for the child member changes.
 
 <!-- sample: payload-nested -->
 ```csharp
@@ -254,19 +266,17 @@ var nestedRestored = JsonSerializer.Deserialize<WireOrder.ChangePayload>(nestedJ
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:975073d6e08b95584b9dfbfc949a86450b232296ff6c0849bcd6accf5a5b1aaa",
   "change": {
     "kind": "update",
     "members": {
       "customer": {
         "kind": "update",
-        "change": {
-          "kind": "update",
-          "members": {
-            "name": {
-              "kind": "replace",
-              "before": { "state": "value", "value": "Ann" },
-              "after": { "state": "value", "value": "Bob" }
-            }
+        "members": {
+          "name": {
+            "kind": "replace",
+            "before": { "state": "value", "value": "Ann" },
+            "after": { "state": "value", "value": "Bob" }
           }
         }
       }
@@ -322,6 +332,7 @@ var keyedRestored = JsonSerializer.Deserialize<WireFleet.ChangePayload>(keyedJso
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:279b7c9cd41f1d9afb3dc4fdfec3f8da469bf5c50814e051f626343bf07bfa64",
   "change": {
     "kind": "update",
     "members": {
@@ -334,14 +345,11 @@ var keyedRestored = JsonSerializer.Deserialize<WireFleet.ChangePayload>(keyedJso
             "kind": "update",
             "beforeIndex": 1,
             "afterIndex": 0,
-            "change": {
-              "kind": "update",
-              "members": {
-                "host": {
-                  "kind": "replace",
-                  "before": { "state": "value", "value": "B" },
-                  "after": { "state": "value", "value": "B2" }
-                }
+            "members": {
+              "host": {
+                "kind": "replace",
+                "before": { "state": "value", "value": "B" },
+                "after": { "state": "value", "value": "B2" }
               }
             }
           },
@@ -382,6 +390,7 @@ A pure reorder carries `update` items marked with `isReordered`, indexes, and th
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:279b7c9cd41f1d9afb3dc4fdfec3f8da469bf5c50814e051f626343bf07bfa64",
   "change": {
     "kind": "update",
     "members": {
@@ -418,6 +427,7 @@ Scalar dictionary members use the same item vocabulary without positions. The ex
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:f2d35c2daced669e6f233839d49eab30aebe28a7db507be1f6a62194919206a1",
   "change": {
     "kind": "update",
     "members": {
@@ -465,6 +475,7 @@ Whole-model transitions use `kind: "replace"` with before and after snapshot end
 ```jsonc
 {
   "version": "0.1",
+  "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
   "change": {
     "kind": "replace",
     "before": { "state": "missing" },
@@ -494,6 +505,7 @@ var command = WireSecret.ChangePayload.FromPatch(rotation);
 var commandJson = JsonSerializer.Serialize(command, WireSecret.PayloadJson.Default);
 // commandJson == {
 //   "version": "0.1",
+//   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
 //   "change": {
 //     "kind": "update",
 //     "members": {
@@ -578,6 +590,7 @@ var mixed = JsonSerializer.Deserialize<WireSecret.ChangePayload>(
     """
     {
       "version": "0.1",
+      "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
       "change": {
         "kind": "update",
         "members": {
@@ -698,11 +711,11 @@ catch (ArgumentException)
 ```
 <!-- /sample -->
 
-Only `"0.1"` is accepted, compared ordinally. A missing, null, non-string, or different version fails: envelopes that deserialize still fail validation before producing a `ChangeSet`.
+Only `"0.1"` is accepted, compared ordinally. A missing, null, non-string, or different version fails. `schema` is also required and must match the `sha256:` plus 64 lowercase hexadecimal format; a valid digest mismatch is allowed and does not block conversion.
 
-The `"0.1"` token covers the wire grammar only, not the model schemas on either side. A receiver skips an unknown name in `members`, so adding a field can result in an older model silently ignoring that part of a change. Coordinate model evolution across deployments, add adapters, or agree on a separate schema handshake; the wire version does not carry that information.
+The `"0.1"` token covers the wire grammar only. The schema digest identifies a generated contract but does not replace member validation or application-level deployment coordination. A receiver rejects an unknown name in `members`; adding a field can therefore make a payload fail on an older model. A compatible superset or subset may still exchange a payload when every addressed member is supported.
 
-The reader skips unknown metadata properties and unknown member names, including names nested in child models. A known member excluded from the JSON contract is rejected rather than treated as an unknown name. Unknown operation kinds and endpoint states, missing required fields, and duplicate JSON properties are rejected. Every endpoint object must carry an explicit `state`; `{}` or `{"value":"x"}` is not an explicit `"state":"missing"`. Depending on where input fails, deserialization throws `JsonException` or conversion throws `ArgumentException`. Other malformed payloads include null items, invalid endpoints, duplicate item identities, keyed additions without an after-endpoint, keyed removals without a before-endpoint, redacted after-states, redacted before-states without an after-state, value-carrying missing, null, or redacted endpoints, and per-item redacted endpoints in keyed and dictionary members. Diagnostics carry member paths and reasons only, never secret before, current, or after values.
+The reader skips unknown metadata properties but rejects unknown member names, including names nested in child models. A known member excluded from the JSON contract is rejected rather than treated as an unknown name. Unknown operation kinds and endpoint states, missing required fields, and duplicate JSON properties are rejected. Every endpoint object must carry an explicit `state`; `{}` or `{"value":"x"}` is not an explicit `"state":"missing"`. Depending on where input fails, deserialization throws `JsonException` or conversion throws `ArgumentException`. Other malformed payloads include null items, invalid endpoints, duplicate item identities, keyed additions without an after-endpoint, keyed removals without a before-endpoint, redacted after-states, redacted before-states without an after-state, value-carrying missing, null, or redacted endpoints, and per-item redacted endpoints in keyed and dictionary members. Diagnostics carry member paths and reasons only, never secret before, current, or after values.
 
 ### Payload export and JsonIgnore members
 
@@ -746,14 +759,15 @@ The following endpoint, root-snapshot, key, and collection-element types round-t
 
 | Category | Covered types | Wire encoding |
 | --- | --- | --- |
-| Integers | `sbyte`, `byte`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, and their nullable counterparts | JSON number |
-| Floating point | `float`, `double`, `decimal`, and their nullable counterparts | JSON number |
+| Integers | `sbyte`, `byte`, `short`, `ushort`, `int`, `uint`, and their nullable counterparts | JSON number |
+| Wide integers | `long`, `ulong`, and their nullable counterparts | Canonical invariant base-10 JSON string |
+| Floating point and decimal | `float`, `double`, and their nullable counterparts; `decimal` uses a fixed-point string | JSON number; decimal preserves scale |
 | Boolean | `bool` and `bool?` | JSON boolean |
 | Text | `string`, `char`, and their nullable counterparts | JSON string; a `char` is a single-character string |
-| Identifiers and time | `Guid`, `DateTime`, `DateTimeOffset`, and their nullable counterparts | JSON string in round-trip format |
-| Enums | Every CLR-valid underlying integral type, including `[Flags]` combinations, and their nullable counterparts | JSON number holding the underlying value |
+| Identifiers and time | `Guid`, `DateTime`, `DateTimeOffset`, and their nullable counterparts | Lowercase GUID `D` string; round-trip timestamp string |
+| Enums | Smaller underlying integral types use numbers; `long`/`ulong` underlying types use strings | JSON number or canonical integer string |
 
-Covered scalar and enum values use this canonical 0.1 encoding deliberately: custom converters (including `JsonStringEnumConverter<T>`), `JsonNumberHandling`, and naming policies do not change them, so every receiver interprets the same bytes. A string token where a number belongs, a multi-character string for a `char`, or a quoted number where a strict number belongs fails with `JsonException`. Fragment property names still honor `JsonPropertyName`, naming policies, and case-insensitivity; non-scalar values resolve through options metadata and honor the registered converters and contexts.
+Covered scalar and enum values use this canonical 0.1 encoding deliberately: custom converters (including `JsonStringEnumConverter<T>`), `JsonNumberHandling`, and naming policies do not change them, so every receiver interprets the same bytes. Invalid or noncanonical wide scalar strings, a numeric token for a string-encoded scalar, a multi-character string for a `char`, or a quoted number where a strict number belongs fails with `JsonException`. Fragment property names still honor `JsonPropertyName`, naming policies, and case-insensitivity; non-scalar values resolve through options metadata and honor the registered converters and contexts.
 
 Structural collection containers need no metadata either: sequences, sets, and dictionaries use a generated container codec, and covered element types stay context-free while custom element types fall back to options metadata. Dictionary property-name keys cover `string`, `char`, `bool`, `Guid`, and the integer widths; keyed-collection item keys and key orders cover the full scalar and enum set above. Enum and custom dictionary keys resolve through options metadata instead.
 

@@ -132,9 +132,8 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
         code.OpenBlock();
         code.Indent();
-        // Payload DTOs stay permissive toward additive extensions: unknown
-        // JSON properties are ignored, while unknown operations (member
-        // discriminators, item kinds, endpoint states) still fail.
+        // Additive metadata properties are ignored; unknown member targets
+        // and operations are rejected by the generated reader.
         code.AppendLine("/// <summary>Transport core carrying the validated member changes.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public class " + payloadCore);
@@ -212,6 +211,12 @@ internal static class SparseChangeSetPayloadEmitter
         AppendJsonProperty(code, "Version", 0, dialect.EmitJson);
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("public string? Version { get; set; }");
+        code.AppendLine("/// <summary>Gets or sets the generated model schema identity.</summary>");
+        AppendJsonProperty(code, "Schema", 0, dialect.EmitJson);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine(
+            "public string? Schema { get; set; } = " + SymbolDisplay.FormatLiteral(SparsePayloadContract.Create(members).SchemaIdentity, true) + ";"
+        );
         if (modelType is not null)
         {
             SparseChangeSetPayloadShapeEmitter.AppendChangeProperty(code, PayloadTypeName(dialect, modelType, "ModelChange"));
@@ -260,8 +265,25 @@ internal static class SparseChangeSetPayloadEmitter
             code.CloseBlock();
             SparseChangeSetPayloadProjectionEmitter.AppendRootToPatch(code, members, dialect, modelType);
         }
+        AppendSchemaIdentityHelper(code);
         code.CloseBlock();
         code.AppendLine();
+    }
+
+    private static void AppendSchemaIdentityHelper(SharedIndentedBuilder code)
+    {
+        code.AppendLine("internal static bool IsValidSchemaIdentity(string? schema)");
+        code.OpenBlock();
+        code.AppendLine(
+            "if (schema is null || schema.Length != 71 || !schema.StartsWith(\"sha256:\", global::System.StringComparison.Ordinal)) return false;"
+        );
+        code.AppendLine("for (var index = 7; index < schema.Length; index++)");
+        code.OpenBlock();
+        code.AppendLine("var character = schema[index];");
+        code.AppendLine("if (!(character >= '0' && character <= '9') && !(character >= 'a' && character <= 'f')) return false;");
+        code.CloseBlock();
+        code.AppendLine("return true;");
+        code.CloseBlock();
     }
 
     private static void AppendPayloadVariantContainers(

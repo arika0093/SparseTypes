@@ -263,7 +263,7 @@ public sealed class GeneratorStepTrackingTests
     }
 
     [Test]
-    public void SharedPromotedEdit_RecomputesPromotedStagesButNotRootOutputs()
+    public void SharedPromotedEdit_RecomputesPromotedStagesAndRootSchemaIdentities()
     {
         var before = Run(ThreeRootFiles());
         before.SpfDiagnostics().ShouldBeEmpty();
@@ -284,7 +284,7 @@ public sealed class GeneratorStepTrackingTests
         HasModified(after, "SparseTypesGenerator.PromotedDedup");
         HasModified(after, "SparseTypesGenerator.PromotedDistinct");
         HasModified(after, "SparseTypesGenerator.Promoted");
-        NoneModified(after, "SparseTypesGenerator.Output");
+        HasModified(after, "SparseTypesGenerator.Output");
         AllCached(after, "SparseTypesGenerator.ExplicitRoots");
     }
 
@@ -501,7 +501,7 @@ public sealed class GeneratorStepTrackingTests
     }
 
     [Test]
-    public void PromotedCount_InvalidatesOnlyTheEditedSharedType()
+    public void PromotedCount_InvalidatesEditedSharedTypeAndDependentRootSchema()
     {
         static Dictionary<string, string> Promoted(int count)
         {
@@ -557,7 +557,8 @@ public sealed class GeneratorStepTrackingTests
             unrelated.Sources()[hint].ShouldBe(beforeSources[hint]);
         }
 
-        // A shared-type edit changes exactly its own promoted file.
+        // A shared-type edit changes its promoted file and the root whose
+        // schema identity includes that nested wire shape.
         var shared = Rerun(
             before,
             "Shared1.cs",
@@ -574,12 +575,10 @@ public sealed class GeneratorStepTrackingTests
         var sharedSources = shared.Sources();
         sharedSources.Keys.ShouldBe(beforeSources.Keys);
         var changed = beforeSources.Keys.Where(key => sharedSources[key] != beforeSources[key]).ToArray();
-        // Single-file emission: the edited shared type changes its one
-        // merged promoted file — nothing else.
-        changed.Length.ShouldBe(1);
-        foreach (var hint in changed)
-        {
-            hint.ShouldContain("ShapeShared1");
-        }
+        changed.Length.ShouldBe(2);
+        changed.ShouldContain(static hint =>
+            hint.EndsWith(".SparsePromoted.g.cs", StringComparison.Ordinal) && hint.Contains("ShapeShared1", StringComparison.Ordinal)
+        );
+        changed.ShouldContain(static hint => hint.Contains("ShapeRoot1", StringComparison.Ordinal));
     }
 }
