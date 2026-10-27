@@ -54,9 +54,7 @@ Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`.
 <!-- sample: readme-quickstart -->
 ```csharp
 #:package SparseTypes@*-*
-
 using SparseTypes;
-
 var settings = new Settings
 {
     Label = "default",
@@ -72,17 +70,25 @@ session.Observable.Database!.Port = 7432;
 
 // 3. Inspect dirty state and typed transitions
 var changes = session.CreateChangeSet();
-
-Console.WriteLine(settings.Label); // production
-Console.WriteLine(session.HasChanges); // True
-Console.WriteLine(changes.Label.IsChanged); // True
+Console.WriteLine(settings.Label);      // production
+Console.WriteLine(session.HasChanges);  // True
+Console.WriteLine(changes.Label.IsChanged);    // True
+Console.WriteLine(changes.Database.IsChanged); // True
 Console.WriteLine(changes.Database.Port.Before.Value); // 5432
-Console.WriteLine(changes.Database.Port.After.Value); // 7432
+Console.WriteLine(changes.Database.Port.After.Value);  // 7432
+// Enumerate all changed locations
+foreach (var change in changes.EnumerateChanges()) {
+    Console.WriteLine(
+        $"* {change.Path,-14} changed from {change.Before.Value,10} to {change.After.Value,10}");
+    // Output:
+    // * Database.Port  changed from       5432 to       7432
+    // * Label          changed from    default to production
+}
 
 // 4. Revert edits back to the session baseline
 session.RevertChanges();
 Console.WriteLine(session.HasChanges); // False
-Console.WriteLine(settings.Label); // default
+Console.WriteLine(settings.Label);     // default
 
 // ---------
 [SparseModel]
@@ -109,7 +115,8 @@ Let's walk through it step by step.
     * Editing through this object raises `INotifyPropertyChanged` notifications.
     * This makes it work as-is with UI frameworks such as WPF.
 1. Collect the differences with `CreateChangeSet`.
-    * For each value you can check whether it changed (`changes.X.IsChanged`) and, if so, get the before/after values (`changes.X.Before|After.Value`).
+    * For each value you can check whether it changed (`changes.X.IsChanged`).
+    * For each changed value you can inspect the previous and current values (`changes.X.Before` and `changes.X.After`).
     * You can also collect all changed locations as an array (`changes.EnumerateChanges`).
 1. Revert changes with `RevertChanges`.
     * This rolls back to the values at the start (step 1).

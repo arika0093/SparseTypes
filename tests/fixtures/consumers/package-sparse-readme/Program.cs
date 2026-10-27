@@ -27,19 +27,40 @@ session.Observable.Database!.Port = 7432;
 
 // 3. Inspect dirty state and typed transitions
 var changes = session.CreateChangeSet();
-
-Console.WriteLine(settings.Label); // production
-Console.WriteLine(session.HasChanges); // True
-Console.WriteLine(changes.Label.IsChanged); // True
+Console.WriteLine(settings.Label);      // production
+Console.WriteLine(session.HasChanges);  // True
+Console.WriteLine(changes.Label.IsChanged);    // True
+Console.WriteLine(changes.Database.IsChanged); // True
 Console.WriteLine(changes.Database.Port.Before.Value); // 5432
-Console.WriteLine(changes.Database.Port.After.Value); // 7432
+Console.WriteLine(changes.Database.Port.After.Value);  // 7432
+// Enumerate all changed locations
+foreach (var change in changes.EnumerateChanges()) {
+    Console.WriteLine(
+        $"* {change.Path,-14} changed from {change.Before.Value,10} to {change.After.Value,10}");
+    // Output:
+    // * Database.Port  changed from       5432 to       7432
+    // * Label          changed from    default to production
+}
 
 // 4. Revert edits back to the session baseline
 session.RevertChanges();
 Console.WriteLine(session.HasChanges); // False
-Console.WriteLine(settings.Label); // default
+Console.WriteLine(settings.Label);     // default
 
 // /sample
+var enumeratedChanges = changes.EnumerateChanges().ToArray();
+Require(changes.Database.IsChanged, "database transition reports a change");
+Require(
+    enumeratedChanges.Select(change => change.Path.ToString()).SequenceEqual(new[] { "Database.Port", "Label" }),
+    "changed locations are enumerated in the documented order"
+);
+Require(
+    enumeratedChanges[0].Before.Value?.ToString() == "5432"
+        && enumeratedChanges[0].After.Value?.ToString() == "7432"
+        && enumeratedChanges[1].Before.Value?.ToString() == "default"
+        && enumeratedChanges[1].After.Value?.ToString() == "production",
+    "enumerated changes preserve before/after values"
+);
 Require(!session.HasChanges, "session reverted has no changes");
 Require(settings.Label == "default", "revert restored Label");
 

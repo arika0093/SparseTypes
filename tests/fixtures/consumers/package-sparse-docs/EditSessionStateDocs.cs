@@ -5,9 +5,48 @@ public static class EditSessionStateDocsSamples
 {
     public static void Run()
     {
+        StartDraft();
+        MonitorEdits();
         FieldStateQuery();
         CollectionStateQuery();
         ObserveFieldLifecycle();
+    }
+
+    private static void StartDraft()
+    {
+        // sample: edit-session-start
+        var widget = new UiWidget { Title = "before" };
+        var session = widget.CreateEditSession();
+
+        session.Observable.Title = "draft";
+        // widget.Title == "draft"
+        // session.Current.Title == "draft"
+        // session.HasChanges == true
+        // /sample
+
+        DocsCheck.Require(widget.Title == "draft", "observable edits update the model");
+        DocsCheck.Require(session.Current.Title == "draft", "current reads the edited value");
+        DocsCheck.Require(session.HasChanges, "draft differs from baseline");
+    }
+
+    private static void MonitorEdits()
+    {
+        // sample: edit-session-notifications
+        var widget = new UiWidget { Title = "before" };
+        var callbackCount = 0;
+        var observedTitleChange = false;
+        var session = widget.CreateEditSession(onChanged: () => callbackCount++);
+        session.TransitionObserved += changes => observedTitleChange = changes.Title.IsChanged;
+
+        session.Observable.Title = "after";
+        // callbackCount == 1
+        // observedTitleChange == true
+        // session.HasChanges == true
+        // /sample
+
+        DocsCheck.Require(callbackCount == 1, "onChanged runs after an observable edit");
+        DocsCheck.Require(observedTitleChange, "TransitionObserved includes the committed transition");
+        DocsCheck.Require(session.HasChanges, "observable edit remains pending");
     }
 
     private static void FieldStateQuery()
@@ -54,14 +93,7 @@ public static class EditSessionStateDocsSamples
     private static void CollectionStateQuery()
     {
         // sample: edit-session-collection-state
-        var widget = new UiWidget
-        {
-            Items =
-            [
-                new UiWidgetItem { Id = "a", Name = "item-a" },
-                new UiWidgetItem { Id = "b", Name = "item-b" },
-            ],
-        };
+        var widget = new UiWidget { Items = [new UiWidgetItem { Id = "a", Name = "item-a" }, new UiWidgetItem { Id = "b", Name = "item-b" }] };
         var session = widget.CreateEditSession();
 
         // Reorder and edit

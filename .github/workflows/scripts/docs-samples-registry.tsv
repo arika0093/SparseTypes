@@ -79,6 +79,8 @@ docs/explanation/ui-frameworks.md	ui-session	tests/fixtures/consumers/package-sp
 docs/explanation/ui-frameworks.md	ui-history	tests/fixtures/consumers/package-sparse-blazor/Program.cs
 docs/explanation/ui-frameworks.md	ui-wpf-session	tests/fixtures/consumers/package-sparse-blazor/Program.cs
 docs/how-to/edit-session.md	ui-accept-flow	tests/fixtures/consumers/package-sparse-docs/UiFrameworks.cs
+docs/how-to/edit-session.md	edit-session-start	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
+docs/how-to/edit-session.md	edit-session-notifications	tests/fixtures/consumers/package-sparse-docs/EditSessionStateDocs.cs
 docs/how-to/edit-session.md	ui-reload	tests/fixtures/consumers/package-sparse-docs/UiFrameworks.cs
 docs/how-to/edit-session.md	ui-reload-conflict	tests/fixtures/consumers/package-sparse-docs/UiFrameworks.cs
 docs/how-to/edit-session.md	ui-revert	tests/fixtures/consumers/package-sparse-docs/UiFrameworks.cs

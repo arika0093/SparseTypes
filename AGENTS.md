@@ -17,9 +17,9 @@ Guidance for AI agents working in this repository. Always follow it, and consult
 - Prefer explicit record declarations with init-only properties.
   - Do not use positional record syntax such as `record Item(string Name, int Count)`.
 - Do not use the empty property pattern `x is {}`.
-- **Favor low-allocation**, efficient code while keeping the implementation straightforward and maintainable.
+- Favor low-allocation, efficient code while keeping the implementation straightforward and maintainable.
   - If necessary, create and run benchmarks to improve performance.
-- Format C# changes with CSharpier and verify them with `dotnet csharpier check`.
+- Do not need to run code formatting explicitly. `CSharpier.MSBuild` automatically applies formatting.
 
 ### Samples/Playground code
 

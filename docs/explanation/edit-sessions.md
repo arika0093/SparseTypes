@@ -105,18 +105,28 @@ models; see [Edit-session groups](edit-session-groups.md).
 
 ## Observation and inspection
 
-Session notifications report changes made through the observable surface.
-They are synchronous and do not dispatch to a UI thread. Raw writes through
-the model bypass those notifications and may disable cached change checks
-when the session exposes a raw reference. Use `Observable` for edits that
-must participate in notifications and session history.
+Session notifications report observable edit transitions. `onChanged` signals
+that an edit occurred, while `TransitionObserved` supplies its committed
+`ChangeSet`. `PropertyChanged` reports changes to session properties such as
+`HasChanges`. These notifications run synchronously on the mutating thread;
+they do not dispatch to a UI thread.
+
+`HasChanges` describes the net difference between the live model and the
+retained baseline, so it can return to `false` after an edit restores the
+baseline value. It is not an edit counter. Raw writes through the model bypass
+the observable notification pipeline. Use `Observable` for edits that must
+participate in notifications and session history. Accessing a raw model
+reference can also disable cached `HasChanges` checks so later reads detect
+direct mutations.
 
 `FieldState` and `CollectionState` are point-in-time queries. An
 `ObserveField` watcher subscribes to invalidations and must be disposed.
 Repeated field queries can share a captured `SparseChangeSetQueryView`; that
 view describes one snapshot and does not update after later edits. The
 [state reference](../reference/edit-session-state.md) documents exact,
-ancestor, descendant, and collection-item state.
+ancestor, descendant, and collection-item state, along with notification and
+watcher contracts. For steps to connect notifications to an application
+handler, see [Monitor edits](../how-to/edit-session.md#monitor-edits).
 
 For framework binding, in-place collection editing, save workflows, and
 notification details, see [UI framework integration](ui-frameworks.md).

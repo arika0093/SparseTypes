@@ -10,6 +10,39 @@ Call `CreateEditSession()` on the model instance that the UI edits. The session 
 
 To group several observable property writes into a single change notification, wrap them in `session.BatchEdit(() => { ... })`.
 
+<!-- sample: edit-session-start -->
+```csharp
+var widget = new UiWidget { Title = "before" };
+var session = widget.CreateEditSession();
+
+session.Observable.Title = "draft";
+// widget.Title == "draft"
+// session.Current.Title == "draft"
+// session.HasChanges == true
+```
+<!-- /sample -->
+
+## Monitor edits
+
+Pass an `onChanged` callback to `CreateEditSession` when the UI only needs to know that an observable edit occurred. Subscribe to `session.TransitionObserved` when the handler needs the committed `ChangeSet`, or to `PropertyChanged` when it needs to refresh the session's `HasChanges` state. Use `session.ObserveField(path)` to watch one field and dispose the returned watcher when it is no longer needed.
+
+These notifications run synchronously on the thread that made the edit. Mutate through `session.Observable`; writes through the raw model do not trigger the observable notification pipeline. See [Edit session state and observers](../reference/edit-session-state.md) for event details and field watcher behavior.
+
+<!-- sample: edit-session-notifications -->
+```csharp
+var widget = new UiWidget { Title = "before" };
+var callbackCount = 0;
+var observedTitleChange = false;
+var session = widget.CreateEditSession(onChanged: () => callbackCount++);
+session.TransitionObserved += changes => observedTitleChange = changes.Title.IsChanged;
+
+session.Observable.Title = "after";
+// callbackCount == 1
+// observedTitleChange == true
+// session.HasChanges == true
+```
+<!-- /sample -->
+
 ## Record Undo and Redo history
 
 Call `session.EnableHistory()` to track observable edits in an Undo/Redo stack (`session.History`). Each property write through `session.Observable` records a reversible step; call `History.Undo()` and `History.Redo()` to walk backward and forward without losing baseline tracking:
@@ -225,4 +258,4 @@ var accepted = childSession.TryAcceptChanges(out var conflicts);
 * **Blazor forms**: See [Blazor edit form](blazor-edit-form.md) and [Blazor headless components](blazor-headless-components.md) for `EditContext` integration and field components.
 * **Multi-model coordination**: See [Coordinate multi-session submissions](edit-session-groups.md) when a single save spans multiple root models.
 * **State queries and observers**: See [Edit session state and observers](../reference/edit-session-state.md) for `FieldState`, `CollectionState`, and `ObserveField`.
-
+* **Change notifications**: See [Edit sessions and state boundaries](../explanation/edit-sessions.md#observation-and-inspection) for the distinction between edit notifications and baseline-relative change state.
