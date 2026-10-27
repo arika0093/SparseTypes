@@ -25,6 +25,15 @@
     <PackageReference Include="SparseTypes" Version="$(SparseTypesPackageVersion)" />
   </ItemGroup>
   <!-- Roslyn groups emitted files by generator; keep the documentation snapshot flat. -->
+  <!-- One-step snapshot regeneration that is immune to stale incremental
+    output: EmitCompilerGeneratedFiles never deletes retired files, so a plain
+    rebuild would copy them into the docs snapshot. Clean (which forces
+    recompilation) plus an explicit wipe of the emitted directory guarantees
+    only the current emission is copied. Normal builds are untouched. -->
+  <Target Name="RegenerateReadmeSnapshot" DependsOnTargets="Clean;CleanReadmeGeneratedCache;Build" />
+  <Target Name="CleanReadmeGeneratedCache">
+    <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
+  </Target>
   <Target Name="CopyReadmeGeneratedCode" AfterTargets="CoreCompile">
     <ItemGroup>
       <_ReadmeGeneratedSource Include="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />

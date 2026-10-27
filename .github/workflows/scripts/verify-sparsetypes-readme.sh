@@ -119,7 +119,7 @@ fi
 
 if ! diff -ru docs/generated-code "${generated_snapshot}"; then
     echo "README generated-code snapshots are out of date. Regenerate them with:" >&2
-    echo "  dotnet build ${fixture_csproj} --configuration Release --framework ${framework}" >&2
+    echo "  dotnet build ${fixture_csproj} --configuration Release --framework ${framework} -t:RegenerateReadmeSnapshot" >&2
     exit 1
 fi
 
