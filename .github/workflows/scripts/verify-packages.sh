@@ -26,6 +26,9 @@ declare -A portable_package_assets=(
 expected_package_ids=(
     "${!portable_package_assets[@]}"
     SparseTypes.Generator.Shared
+    SparseTypes.EntityFrameworkCore
+    SparseTypes.OpenApi.AspNetCore
+    SparseTypes.OpenApi.Swashbuckle
 )
 
 package_files=()
@@ -191,6 +194,24 @@ for package_file in "${package_files[@]}"; do
             require_readme 'README.md'
             require_dependency 'SparseTypes'
             ;;
+        SparseTypes.EntityFrameworkCore)
+            require_entry 'lib/net10.0/SparseTypes.EntityFrameworkCore.dll'
+            require_readme 'README.md'
+            require_dependency 'SparseTypes'
+            require_dependency 'Microsoft.EntityFrameworkCore'
+            ;;
+        SparseTypes.OpenApi.AspNetCore)
+            require_entry 'lib/net10.0/SparseTypes.OpenApi.AspNetCore.dll'
+            require_readme 'README.md'
+            require_dependency 'SparseTypes'
+            require_dependency 'Microsoft.AspNetCore.OpenApi'
+            ;;
+        SparseTypes.OpenApi.Swashbuckle)
+            require_entry 'lib/net10.0/SparseTypes.OpenApi.Swashbuckle.dll'
+            require_readme 'README.md'
+            require_dependency 'SparseTypes'
+            require_dependency 'Swashbuckle.AspNetCore.SwaggerGen'
+            ;;
         SparseTypes.Generator.Shared)
             # Source-only: no lib/ assembly, no legacy content/ copy, no
             # buildTransitive/ propagation.
@@ -271,7 +292,11 @@ fi
 
 unexpected_package_ids=()
 for found_id in "${!found_package_ids[@]}"; do
-    if [[ -z "${portable_package_assets[${found_id}]:-}" && "${found_id}" != "SparseTypes.Generator.Shared" ]]; then
+    if [[ -z "${portable_package_assets[${found_id}]:-}" \
+        && "${found_id}" != "SparseTypes.Generator.Shared" \
+        && "${found_id}" != "SparseTypes.EntityFrameworkCore" \
+        && "${found_id}" != "SparseTypes.OpenApi.AspNetCore" \
+        && "${found_id}" != "SparseTypes.OpenApi.Swashbuckle" ]]; then
         unexpected_package_ids+=("${found_id}")
     fi
 done

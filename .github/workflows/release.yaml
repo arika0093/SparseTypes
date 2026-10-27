@@ -67,6 +67,12 @@ jobs:
           --no-build --no-restore --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes.Blazor/SparseTypes.Blazor.csproj
           --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.EntityFrameworkCore/SparseTypes.EntityFrameworkCore.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.OpenApi.AspNetCore/SparseTypes.OpenApi.AspNetCore.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.OpenApi.Swashbuckle/SparseTypes.OpenApi.Swashbuckle.csproj
+          --no-build --no-restore --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes.Generator.Shared/SparseTypes.Generator.Shared.csproj
           --no-build --no-restore --configuration Release --output artifacts
 

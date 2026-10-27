@@ -313,6 +313,12 @@ jobs:
           --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes.Blazor/SparseTypes.Blazor.csproj
           --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.EntityFrameworkCore/SparseTypes.EntityFrameworkCore.csproj
+          --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.OpenApi.AspNetCore/SparseTypes.OpenApi.AspNetCore.csproj
+          --configuration Release --output artifacts &&
+          dotnet pack src/SparseTypes.OpenApi.Swashbuckle/SparseTypes.OpenApi.Swashbuckle.csproj
+          --configuration Release --output artifacts &&
           dotnet pack src/SparseTypes.Generator.Shared/SparseTypes.Generator.Shared.csproj
           --configuration Release --output artifacts
 
