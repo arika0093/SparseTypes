@@ -9,6 +9,7 @@
 SparseTypes generates change-tracking, diffing, patching, and merging companion types from C# models.
 
 ## Motivation
+### Overview
 
 Consider a case where you directly edit `settings.Theme = "dark"`.  
 In that situation, information about the previous value and exactly where it changed is lost.  
@@ -43,7 +44,25 @@ public partial class DatabaseSettings
 
 Behind the scenes, [many classes are generated](./docs/reference/generated-api.md), but users don't need to be aware of it.
 
-Let's take a look at how it can be used.
+### What can you build?
+
+Try [this case](https://arika0093.github.io/SparseTypes/enterprise-editing) in the [Playground](https://arika0093.github.io/SparseTypes/).  
+You can easily build complex master-data management web pages commonly found in enterprise applications.
+
+A key feature of this library is that you can implement functionality like the following with [little code](./playground/SparseTypes.Playground/Pages/Case6/):
+
+* Manage edit history separately for each tab and save each tab independently.
+* Highlight changed sections and enable Undo/Redo.
+* Reorder and add child items seamlessly.
+* Automatically merge changes made by others where possible.
+* When conflicts occur, let users choose how to resolve them or fail the operation outright.
+* Use these features with any framework through [headless Blazor components](./docs/how-to/blazor-headless-components.md).
+
+If this seems too complex, there's also a [simpler example](https://arika0093.github.io/SparseTypes/ef-mapping).
+
+---
+
+Like it? Let's take a look at how it can be used.
 
 ## Quick Start
 ### Simple example
