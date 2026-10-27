@@ -46,7 +46,7 @@ Behind the scenes, [many classes are generated](./docs/reference/generated-api.m
 
 ### What can you build?
 
-Try [this case](https://arika0093.github.io/SparseTypes/enterprise-editing) in the [Playground](https://arika0093.github.io/SparseTypes/).  
+Try [this case](https://sparsetypes.eclairs.cc/enterprise-editing) in the [Playground](https://sparsetypes.eclairs.cc/).  
 You can easily build complex master-data management web pages commonly found in enterprise applications.
 
 A key feature of this library is that you can implement functionality like the following with [little code](./playground/SparseTypes.Playground/Pages/Case6/):
@@ -58,7 +58,7 @@ A key feature of this library is that you can implement functionality like the f
 * When conflicts occur, let users choose how to resolve them or fail the operation outright.
 * Use these features with any framework through [headless Blazor components](./docs/how-to/blazor-headless-components.md).
 
-If this seems too complex, there's also a [simpler example](https://arika0093.github.io/SparseTypes/ef-mapping).
+If this seems too complex, there's also a [simpler example](https://sparsetypes.eclairs.cc/ef-mapping).
 
 ---
 

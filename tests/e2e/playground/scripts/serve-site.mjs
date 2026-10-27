@@ -3,16 +3,16 @@ import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 
-// Serves a previously published and prepared site directory under
-// /SparseTypes/, mirroring the GitHub Pages layout. This script never builds:
+// Serves a previously published and prepared site directory at the root,
+// mirroring the custom-domain GitHub Pages layout. This script never builds:
 // CI publishes, prepares, and verifies in earlier workflow steps, so a
 // startup failure here means serving itself failed rather than an earlier
 // stage hiding behind a Playwright webServer exit code.
 const siteDirectory = resolve(
   process.env.PLAYGROUND_SITE_DIR ?? resolve(import.meta.dirname, "../artifacts/wwwroot"),
 );
-const basePath = "/SparseTypes";
 const port = Number(process.env.PORT ?? 4173);
+const rootBaseHref = '<base href="/" />';
 const contentTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -49,9 +49,9 @@ try {
   process.exit(1);
 }
 
-if (!indexHtml.includes('<base href="/SparseTypes/" />')) {
+if (!indexHtml.includes(rootBaseHref)) {
   console.error(
-    `[serve-site] index.html in ${siteDirectory} has no <base href="/SparseTypes/" />. Run 'npm run prepare-site' to rewrite the base path.`,
+    `[serve-site] index.html in ${siteDirectory} has no ${rootBaseHref}. Run 'npm run prepare-site' to prepare the site.`,
   );
   process.exit(1);
 }
@@ -65,17 +65,12 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (pathname === basePath) {
-    response.writeHead(308, { Location: `${basePath}/` }).end();
+  if (!pathname.startsWith("/")) {
+    response.writeHead(400).end("Bad request");
     return;
   }
 
-  if (!pathname.startsWith(`${basePath}/`)) {
-    response.writeHead(404).end("Not found");
-    return;
-  }
-
-  const relativePath = pathname.slice(basePath.length + 1);
+  const relativePath = pathname === "/" ? "index.html" : pathname.slice(1);
   const candidate = resolve(siteDirectory, relativePath);
   if (candidate !== siteDirectory && !candidate.startsWith(`${siteDirectory}${sep}`)) {
     response.writeHead(400).end("Bad request");
@@ -84,6 +79,10 @@ const server = createServer(async (request, response) => {
 
   let filePath = candidate;
   try {
+    const candidateStat = await stat(filePath);
+    if (candidateStat.isDirectory()) {
+      filePath = resolve(candidate, "index.html");
+    }
     if (!(await stat(filePath)).isFile()) {
       throw new Error("Not a file");
     }
@@ -110,5 +109,5 @@ server.on("error", error => {
 });
 
 server.listen(port, "127.0.0.1", () => {
-  console.log(`[serve-site] serving ${siteDirectory} at http://127.0.0.1:${port}${basePath}/`);
+  console.log(`[serve-site] serving ${siteDirectory} at http://127.0.0.1:${port}/`);
 });

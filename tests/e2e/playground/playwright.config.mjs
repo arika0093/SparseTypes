@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const baseURL = "http://127.0.0.1:4173/SparseTypes/";
+const baseURL = "http://127.0.0.1:4173/";
 
 // CI publishes, prepares, and verifies the site in earlier workflow steps and
 // sets PLAYGROUND_PREBUILT=1, so the webServer only serves that prebuilt

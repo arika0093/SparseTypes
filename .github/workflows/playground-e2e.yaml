@@ -103,6 +103,7 @@ jobs:
             echo "--- required files ---"
             test -f artifacts/wwwroot/404.html && echo "404.html: present" || echo "404.html: MISSING"
             test -f artifacts/wwwroot/.nojekyll && echo ".nojekyll: present" || echo ".nojekyll: MISSING"
+            test -f artifacts/wwwroot/CNAME && echo "CNAME: $(cat artifacts/wwwroot/CNAME)" || echo "CNAME: MISSING"
             echo "--- port 4173 ---"
             (ss -ltn 2>/dev/null | grep ':4173 ' || echo "nothing listening on 4173")
           } | tee e2e-diagnostics/summary.txt

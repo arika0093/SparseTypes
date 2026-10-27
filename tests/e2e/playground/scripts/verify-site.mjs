@@ -7,8 +7,9 @@ import { resolve } from "node:path";
 const siteDirectory = resolve(
   process.env.PLAYGROUND_SITE_DIR ?? resolve(import.meta.dirname, "../artifacts/wwwroot"),
 );
-const basePathHref = '<base href="/SparseTypes/" />';
-const readinessUrl = `http://127.0.0.1:${process.env.PORT ?? 4173}/SparseTypes/`;
+const rootBaseHref = '<base href="/" />';
+const customDomain = "sparsetypes.eclairs.cc";
+const readinessUrl = `http://127.0.0.1:${process.env.PORT ?? 4173}/`;
 
 const failures = [];
 
@@ -25,6 +26,7 @@ async function requireFile(name) {
 await requireFile("index.html");
 await requireFile("404.html");
 await requireFile(".nojekyll");
+await requireFile("CNAME");
 
 let index = "";
 try {
@@ -33,8 +35,19 @@ try {
   // Already reported by requireFile above.
 }
 
-if (index && !index.includes(basePathHref)) {
-  failures.push(`index.html does not contain ${basePathHref}; run 'npm run prepare-site'`);
+if (index && !index.includes(rootBaseHref)) {
+  failures.push(`index.html does not contain ${rootBaseHref}; run 'npm run prepare-site'`);
+}
+
+let cname = "";
+try {
+  cname = await readFile(resolve(siteDirectory, "CNAME"), "utf8");
+} catch {
+  // Already reported by requireFile above.
+}
+
+if (cname && cname.trim() !== customDomain) {
+  failures.push(`CNAME does not contain ${customDomain}; run 'npm run prepare-site'`);
 }
 
 if (failures.length > 0) {

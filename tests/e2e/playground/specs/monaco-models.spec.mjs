@@ -97,7 +97,7 @@ async function openCase(page, route, heading) {
     await page.locator(`fluent-anchor-button[href="${route}"]`).click();
   }
   await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-  const expectedPath = route ? `/SparseTypes/${route}` : "/SparseTypes/";
+  const expectedPath = route ? `/${route}` : "/";
   await expect(page).toHaveURL(new URL(expectedPath, localOrigin).toString());
   expect(
     await page.evaluate(() => document === window.__initialDocument),
@@ -106,9 +106,9 @@ async function openCase(page, route, heading) {
 }
 
 async function navigateInApp(page, route, heading) {
-  await page.evaluate(route => window.Blazor.navigateTo(`/SparseTypes/${route}`), route);
+  await page.evaluate(route => window.Blazor.navigateTo(`/${route}`), route);
   await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-  await expect(page).toHaveURL(new URL(`/SparseTypes/${route}`, localOrigin).toString());
+  await expect(page).toHaveURL(new URL(`/${route}`, localOrigin).toString());
   expect(
     await page.evaluate(() => document === window.__initialDocument),
     "Route navigation must preserve the initial document",
