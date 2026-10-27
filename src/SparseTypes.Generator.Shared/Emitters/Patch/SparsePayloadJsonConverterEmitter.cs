@@ -121,6 +121,40 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("return new " + core + " { TypedChange = change };");
         code.CloseBlock();
         code.AppendLine();
+        code.AppendLine(
+            "internal static "
+                + core
+                + " ReadMembersCore(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine(
+            "return new "
+                + core
+                + " { TypedChange = new "
+                + modelChange
+                + " { Kind = "
+                + context.Dto("ModelChangeKind")
+                + ".Update, Members = ReadMembersDelta(ref reader, options) } };"
+        );
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "internal static void WriteMembersCore(global::System.Text.Json.Utf8JsonWriter writer, "
+                + core
+                + "? value, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine(
+            "var change = value?.TypedChange ?? throw new global::System.Text.Json.JsonException(\"A model item update requires members.\");"
+        );
+        code.AppendLine(
+            "if (change.Kind != "
+                + context.Dto("ModelChangeKind")
+                + ".Update || change.Members is null || change.Before is not null || change.After is not null) throw new global::System.Text.Json.JsonException(\"A model item update requires members.\");"
+        );
+        code.AppendLine("writer.WritePropertyName(\"members\"); WriteMembersDelta(writer, change.Members, options);");
+        code.CloseBlock();
+        code.AppendLine();
         code.AppendLine("/// <summary>Writes a nested model change.</summary>");
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
@@ -132,6 +166,16 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
         code.AppendLine("var change = value.TypedChange ?? throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
         code.AppendLine("WriteModelChange(writer, change, options);");
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "internal static void WriteCoreBody(global::System.Text.Json.Utf8JsonWriter writer, "
+                + core
+                + "? value, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine("var change = value?.TypedChange ?? throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
+        code.AppendLine("WriteModelChangeBody(writer, change, options);");
         code.CloseBlock();
         code.AppendLine();
     }
@@ -364,6 +408,17 @@ internal static class SparsePayloadJsonConverterEmitter
         code.OpenBlock();
         code.AppendLine("if (change is null) throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
         code.AppendLine("writer.WriteStartObject();");
+        code.AppendLine("WriteModelChangeBody(writer, change, options);");
+        code.AppendLine("writer.WriteEndObject();");
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteModelChangeBody(global::System.Text.Json.Utf8JsonWriter writer, "
+                + modelChange
+                + " change, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (change is null) throw new global::System.Text.Json.JsonException(\"A model change is required.\");");
         code.AppendLine(
             "writer.WriteString(\"kind\", change.Kind switch { "
                 + kindType
@@ -387,7 +442,6 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("writer.WritePropertyName(\"members\"); WriteMembersDelta(writer, change.Members, options);");
         code.CloseBlock();
         code.AppendLine("else throw new global::System.Text.Json.JsonException(\"Unknown model change kind.\");");
-        code.AppendLine("writer.WriteEndObject();");
         code.CloseBlock();
         code.AppendLine();
 

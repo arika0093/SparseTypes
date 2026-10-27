@@ -290,17 +290,7 @@ internal static class SparsePayloadSchemaEmitter
                 "ModelChange",
                 context.ImplementationNamespace
             );
-            return Object(
-                ("type", String("object")),
-                (
-                    "properties",
-                    Object(
-                        (kind, SingleValue("string", "update", openApi31)),
-                        ("change", schema.Reference(childChange, SchemaComponentName(child, "ModelChange")))
-                    )
-                ),
-                ("required", Array(String(kind), String("change")))
-            );
+            return schema.Reference(childChange, SchemaComponentName(child, "ModelChange"));
         }
 
         if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member))
@@ -399,10 +389,10 @@ internal static class SparsePayloadSchemaEmitter
             var childChange = SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
                 context.Dialect,
                 valueType.NonNullableName,
-                "ModelChange",
+                "MembersDelta",
                 context.ImplementationNamespace
             );
-            properties.Add(("change", schema.Reference(childChange, SchemaComponentName(valueType.NonNullableName, "ModelChange"))));
+            properties.Add(("members", schema.Reference(childChange, SchemaComponentName(valueType.NonNullableName, "MembersDelta"))));
         }
 
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member) && SparseChangeSetBasicsEmitter.IsKeyed(member))
@@ -414,7 +404,7 @@ internal static class SparsePayloadSchemaEmitter
         var remove = ItemVariant(properties, "remove", required: ["key", "kind", "before"], notRequired: ["after"], openApi31);
         var replace = ItemVariant(properties, "replace", required: ["key", "kind", "before", "after"], notRequired: [], openApi31);
         var updateRequirements = isModelValue
-            ? Object(("anyOf", Array(Object(("required", Array(String("change")))), Object(("required", Array(String("isReordered")))))))
+            ? Object(("anyOf", Array(Object(("required", Array(String("members")))), Object(("required", Array(String("isReordered")))))))
             : Object(("required", Array(String("isReordered"))));
         var update = ItemVariant(properties, "update", required: ["key", "kind"], notRequired: [], openApi31, extra: updateRequirements);
         return Object(("oneOf", Array(add, remove, replace, update)), ("discriminator", Object(("propertyName", String("kind")))));

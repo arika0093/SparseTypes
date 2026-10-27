@@ -29,6 +29,35 @@ internal static class SparsePayloadJsonMemberEmitter
                 + "(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
+        if (isNested)
+        {
+            var childModel =
+                member.ChildModel?.NonNullableName ?? throw new global::System.InvalidOperationException("Nested member is missing its child model.");
+            code.AppendLine(
+                "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A nested model change must be an object.\");"
+            );
+            code.AppendLine(
+                "return new " + memberChange + " { Nested = " + context.ConverterReference(childModel) + ".ReadCore(ref reader, options) };"
+            );
+            code.CloseBlock();
+            code.AppendLine();
+            code.AppendLine(
+                "private static void WriteMember"
+                    + member.Id
+                    + "Body(global::System.Text.Json.Utf8JsonWriter writer, "
+                    + memberChange
+                    + " change, global::System.Text.Json.JsonSerializerOptions options)"
+            );
+            code.OpenBlock();
+            code.AppendLine(
+                "if (change.Nested is null) throw new global::System.Text.Json.JsonException(\"A nested model update requires members.\");"
+            );
+            code.AppendLine(context.ConverterReference(childModel) + ".WriteCoreBody(writer, change.Nested, options);");
+            code.CloseBlock();
+            code.AppendLine();
+            AppendChildEndpoint(code, context, member);
+            return;
+        }
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A change must be an object.\");"
         );
@@ -51,16 +80,7 @@ internal static class SparsePayloadJsonMemberEmitter
         code.AppendLine(
             "if (name == \"kind\") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }"
         );
-        if (isNested)
-        {
-            code.AppendLine(
-                "else if (name == \"change\") { if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) change.Nested = null; else change.Nested = "
-                    + context.ConverterReference(member.ChildModel!.Value.NonNullableName)
-                    + ".ReadCore(ref reader, options); }"
-            );
-            code.AppendLine("else reader.Skip();");
-        }
-        else if (isKeyed || isDict)
+        if (isKeyed || isDict)
         {
             code.AppendLine(
                 "else if (name == \"before\") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<"
@@ -137,23 +157,7 @@ internal static class SparsePayloadJsonMemberEmitter
                 + " change, global::System.Text.Json.JsonSerializerOptions options)"
         );
         code.OpenBlock();
-        if (isNested)
-        {
-            if (member.ChildModel is not { } writeChild)
-            {
-                throw new global::System.InvalidOperationException("Nested member is missing its child model.");
-            }
-
-            var writeChildModel = writeChild.NonNullableName;
-            code.AppendLine(
-                "if (change.Nested is null) throw new global::System.Text.Json.JsonException(\"A nested model update requires members.\");"
-            );
-            code.AppendLine("writer.WriteString(\"kind\", \"update\");");
-            code.AppendLine(
-                "writer.WritePropertyName(\"change\"); " + context.ConverterReference(writeChildModel) + ".WriteCore(writer, change.Nested, options);"
-            );
-        }
-        else if (isKeyed || isDict)
+        if (isKeyed || isDict)
         {
             code.AppendLine("if (change.Before is not null || change.After is not null)");
             code.OpenBlock();
@@ -213,11 +217,6 @@ internal static class SparsePayloadJsonMemberEmitter
 
         code.CloseBlock();
         code.AppendLine();
-        if (isNested)
-        {
-            AppendChildEndpoint(code, context, member);
-        }
-
         if (isValueCollection && valueCollection is not null)
         {
             SparseJsonCollectionShapes.AppendCollectionCodec(
@@ -421,9 +420,9 @@ internal static class SparsePayloadJsonMemberEmitter
             var editCore = context.ChildDto(editChild, "Core");
             _ = editCore;
             code.AppendLine(
-                "else if (reader.ValueTextEquals(\"change\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) item.Edit = null; else item.Edit = "
+                "else if (reader.ValueTextEquals(\"members\")) { if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload item.\"); item.Edit = "
                     + context.ConverterReference(editChild)
-                    + ".ReadCore(ref reader, options); }"
+                    + ".ReadMembersCore(ref reader, options); }"
             );
         }
         else
@@ -500,9 +499,7 @@ internal static class SparsePayloadJsonMemberEmitter
                 ? member.Collection.ElementType.NonNullableName
                 : member.Collection.ValueType.GetValueOrDefault().NonNullableName;
             code.AppendLine(
-                "if (item.Edit is not null) { writer.WritePropertyName(\"change\"); "
-                    + context.ConverterReference(writeEditChild)
-                    + ".WriteCore(writer, item.Edit, options); }"
+                "if (item.Edit is not null) " + context.ConverterReference(writeEditChild) + ".WriteMembersCore(writer, item.Edit, options);"
             );
         }
 
