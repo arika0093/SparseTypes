@@ -105,6 +105,14 @@ Each endpoint carries a `state`: `missing` (known absent), `null` (explicit null
 
 Redacted is never read as missing. A redacted before-state must arrive with an explicit desired after-state; envelopes that omit it, or that redact an after-state, are rejected.
 
+## Scalar wire encoding
+
+Payload scalar codecs use invariant formatting and are separate from ordinary model JSON. `long`, `ulong`, and 64-bit enum underlying values use canonical base-10 strings; `decimal` uses a fixed-point string and preserves its scale, including trailing zeros. Numeric JSON tokens, exponent notation, whitespace, leading plus signs, noncanonical leading zeros, and out-of-range strings are rejected for these types. Smaller integral types and floating-point values retain their established JSON number representation.
+
+`Guid` uses a lowercase `D`-format string. `DateTime` and `DateTimeOffset` use seven fractional digits from the round-trip `"O"` format. UTC `DateTime` values use `Z`; `Unspecified` values have no offset and keep `DateTimeKind.Unspecified`; Local `DateTime` values are rejected because their zone-dependent meaning cannot be preserved on another machine. `DateTimeOffset` keeps its original offset rather than normalizing it to UTC.
+
+Keep these wire values as strings in TypeScript until an explicit domain conversion. In particular, do not pass timestamps through JavaScript `Date` if the original offset or sub-millisecond ticks matter, and do not parse wide integers or decimals through `number`. OpenAPI marks these fields as strings with `x-sparse-type` metadata and patterns rather than `date-time`, so common SDK generators are less likely to coerce them into `Date`.
+
 ## Scalar set
 
 <!-- sample: payload-scalar-set -->
