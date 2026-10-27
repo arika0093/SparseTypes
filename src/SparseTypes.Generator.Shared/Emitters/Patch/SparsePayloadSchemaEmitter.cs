@@ -782,14 +782,15 @@ internal static class SparsePayloadSchemaEmitter
         internal string SourceExpression(string json, bool openApi31)
         {
             _ = openApi31;
-            var builder = new StringBuilder();
+            var parts = new List<string>();
+            var literal = new StringBuilder();
             var index = 0;
             while (index < json.Length)
             {
                 var markerStart = json.IndexOf(ReferenceMarkerPrefix, index, StringComparison.Ordinal);
                 if (markerStart < 0)
                 {
-                    builder.Append(SymbolDisplay.FormatLiteral(json[index..], quote: true));
+                    literal.Append(json[index..]);
                     break;
                 }
 
@@ -800,16 +801,42 @@ internal static class SparsePayloadSchemaEmitter
                 }
 
                 markerEnd += 2;
-                builder.Append(SymbolDisplay.FormatLiteral(json[index..markerStart], quote: true));
-                builder.Append(" + ");
+                literal.Append(json[index..markerStart]);
                 var reference = _references[json[markerStart..markerEnd]];
-                builder.Append(reference.Name is null ? NameExpression(reference.Type) : SymbolDisplay.FormatLiteral(reference.Name, true));
-                builder.Append(" + ");
+                if (reference.Name is null)
+                {
+                    FlushLiteral(parts, literal);
+                    parts.Add(NameExpression(reference.Type));
+                }
+                else
+                {
+                    literal.Append(reference.Name);
+                }
+
                 index = markerEnd;
             }
 
-            return builder.ToString();
+            FlushLiteral(parts, literal);
+            if (parts.Count == 0)
+            {
+                parts.Add(ToVerbatimLiteral(string.Empty));
+            }
+
+            return string.Join(" + ", parts);
         }
+
+        private static void FlushLiteral(List<string> parts, StringBuilder literal)
+        {
+            if (literal.Length == 0)
+            {
+                return;
+            }
+
+            parts.Add(ToVerbatimLiteral(literal.ToString()));
+            literal.Clear();
+        }
+
+        private static string ToVerbatimLiteral(string value) => "@\"" + value.Replace("\"", "\"\"") + "\"";
 
         private string NameExpression(string type) => context.Dialect.PayloadSchemaNamesType + ".GetName(typeof(" + type + "))";
 
