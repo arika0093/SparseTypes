@@ -108,7 +108,7 @@ public sealed class PlaygroundJsonDisplayTests
             PortValue = 9000,
             PluginsOp = PatchKind.Remove,
         }.Build();
-        return PlaygroundSettings.ChangeSet.FromPatch(Optional<PlaygroundSettings.Fragment?>.Present(baseline), patch);
+        return PlaygroundSettings.ChangeSet.FromPatch(Optional<PlaygroundSettings.Fragment?>.Present(baseline), patch, DateTimeOffset.UnixEpoch);
     }
 
     // STJ indents with Environment.NewLine while raw literals carry the

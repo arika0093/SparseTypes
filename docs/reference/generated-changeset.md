@@ -10,14 +10,20 @@ Here `state` means `Optional<T.Fragment?>`. Both model and sparse-state overload
 | --- | --- |
 | `static ChangeSet Empty` | No transition. |
 | `bool IsEmpty`, `bool IsChanged` | Complementary aggregate flags. |
+| `DateTimeOffset? RecordedAt` | Optional time this transition was recorded. |
+| `ChangeSet WithRecordedAt(DateTimeOffset? recordedAt)` | Returns a copy with a replacement recording time; `null` removes it. |
 | Model-specific properties | Read-only scalar, nested, keyed, dictionary, or set transitions. |
-| `static ChangeSet Between(T before, T after)` | Derives transitions from models. |
-| `static ChangeSet Between(state before, state after)` | Also represents missing/null root and member endpoints. |
+| `static ChangeSet Between(T before, T after)` | Derives transitions from models and records the current UTC time. |
+| `static ChangeSet Between(T before, T after, DateTimeOffset? recordedAt)` | Derives transitions with an explicit recording time, including `null`. |
+| `static ChangeSet Between(state before, state after)` | Also represents missing/null root and member endpoints; records the current UTC time. |
+| `static ChangeSet Between(state before, state after, DateTimeOffset? recordedAt)` | Presence-aware equivalent with an explicit recording time. |
 | `static ChangeSet FromPatch(T baseline, T.Patch patch)` | Attaches a known baseline to commands. |
 | `static ChangeSet FromPatch(state baseline, T.Patch patch)` | Presence-aware equivalent. |
 | `static ChangeSet FromPayload(T.ChangePayload payload)` | Converts a fully known transition envelope. |
 
 An unchanged scalar's Before and After are missing because there is no transition. They are not a request to remove the model property.
+
+The timestamp is metadata for the whole transition; it does not affect emptiness, comparisons, conflicts, or patch application. Explicit overloads preserve the supplied offset and treat `null` as unknown. The shared `ChangeSet.Empty` has no timestamp, while a newly computed empty diff records the current UTC time.
 
 ## Conversion, composition, and inspection
 
@@ -35,6 +41,8 @@ An unchanged scalar's Before and After are missing because there is no transitio
 | `SparseChangeRecord? Find<TValue>(SparsePath<T,TValue> path)` | Typed-path equivalent. |
 
 `SparseChangeRecord` is in `SparseTypes.Generated`; it exposes Path, PathText, Before, After, and Kind. Its constructor accepts path, presence-aware boxed endpoints, and SparseChangeKind. Kind is Changed, Added, Removed, or Order. Some model member names collide with convenience enumeration names; the `ISparseChangeSet` contract remains the generic inspection entry point.
+
+`Invert()` retains the source timestamp. `Compose(next)` uses `next.RecordedAt`, even when `next` is empty or undated. `RebaseOnto(...)` retains the source timestamp for successful, empty, and conflicting results.
 
 `ToPayload()` preserves changes to `[JsonIgnore]` members in the neutral payload; the JSON codec rejects serializing such a payload before writing bytes. Changes to `[SparseTransportIgnore]` members are rejected during payload export. Do not serialize ChangeSet directly as a substitute for `ToPayload()`.
 

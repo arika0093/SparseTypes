@@ -8,8 +8,10 @@
 | --- | --- |
 | `ChangePayload()` | Creates an envelope with generated defaults. |
 | `string? Version { get; set; }` | Wire version, currently `"0.1"`. |
+| `DateTimeOffset? RecordedAt { get; set; }` | Optional time this change was recorded. New envelopes default to current UTC; set `null` to leave it unknown. |
 | `Change { get; set; }` | Typed root model operation generated from the model contract. |
 | `static ChangePayload FromPatch(T.Patch patch)` | Exports baseline-free commands with undisclosed before-state. |
+| `static ChangePayload FromPatch(T.Patch patch, DateTimeOffset? recordedAt)` | Exports a command envelope with an explicit recording time, including `null`. |
 | `T.ChangeSet ToChangeSet()` | Converts only when every necessary before endpoint is known. Blind/redacted-before requests are rejected. |
 | `T.Patch ToPatch()` | Projects commands, dropping known history where present. |
 | `ChangePayloadValidationResult Validate()` | Returns aggregate structural/version/endpoint errors. |
@@ -19,6 +21,8 @@
 The `result` of TryApplyMixedTo is a generated result type exposing `Conflicts`, `HasConflicts`, and `WriteOnlyPaths`. Use `out var result` rather than naming its hashed implementation container. Input current is not mutated; inspect the bool before using updated.
 
 To export a ChangeSet, call `changes.ToPayload()`. FromPatch is intentionally not equivalent: it does not know the previous values.
+
+ChangeSet conversion preserves `RecordedAt`; the JSON envelope stores it only at the root as optional `recordedAt`. Older payloads without the field, and payloads with `recordedAt: null`, retain an unknown time.
 
 Use the generated `T.PayloadJson.Default` metadata when serializing or deserializing this DTO. The DTO does not carry JSON attributes that define its wire format.
 

@@ -12,10 +12,12 @@ public sealed class ModelChangeSetBetweenTests
     {
         var before = new RedactedAccount { DisplayName = beforeName, Password = "secret" };
         var after = new RedactedAccount { DisplayName = afterName, Password = "secret" };
-        var direct = RedactedAccount.ChangeSet.Between(before, after);
+        var recordedAt = DateTimeOffset.UnixEpoch;
+        var direct = RedactedAccount.ChangeSet.Between(before, after, recordedAt);
         var projected = RedactedAccount.ChangeSet.Between(
             Optional<RedactedAccount.Fragment?>.Present(RedactedAccount.Fragment.From(before)),
-            Optional<RedactedAccount.Fragment?>.Present(RedactedAccount.Fragment.From(after))
+            Optional<RedactedAccount.Fragment?>.Present(RedactedAccount.Fragment.From(after)),
+            recordedAt
         );
         PayloadJsonTestSupport.Serialize(direct.ToPayload()).ShouldBe(PayloadJsonTestSupport.Serialize(projected.ToPayload()));
         direct.ToPatch().ApplyTo(before).DisplayName.ShouldBe(afterName);

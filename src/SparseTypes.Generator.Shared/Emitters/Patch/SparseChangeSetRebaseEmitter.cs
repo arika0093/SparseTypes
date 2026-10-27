@@ -104,6 +104,7 @@ internal static class SparseChangeSetRebaseEmitter
         {
             AppendSelfAliases(code, members);
         }
+        var recordedAt = target is null ? "RecordedAt" : "__sparse_recordedAt";
         var __hasSparseRb = members.Any(static m => IsKeyed(m) || IsDict(m));
         code.AppendLine("if (__sparse_hasWhole)");
         code.OpenBlock();
@@ -127,23 +128,23 @@ internal static class SparseChangeSetRebaseEmitter
                 + SparseRebaseOptionEmitter.RedactedReason
                 + "\"));"
         );
-        code.AppendLine("return new " + rebaseResult + "(Between(current, current), __rconf);");
+        code.AppendLine("return new " + rebaseResult + "(Between(current, current, " + recordedAt + "), __rconf);");
         code.CloseBlock();
-        code.AppendLine("return " + rebaseResult + ".Success(Between(current, __sparse_wholeAfter));");
+        code.AppendLine("return " + rebaseResult + ".Success(Between(current, __sparse_wholeAfter, " + recordedAt + "));");
         code.CloseBlock();
         code.AppendLine(target is null ? "var __local = ToPatch();" : "var __local = ToPatch(self);");
         code.AppendLine("var __rb = " + rebase + "(__sparse_wholeBefore, __local, current, options);");
         code.AppendLine("if (__rb.Conflicts.Count == 0 && __rb.Rebased.__SparseIsEmpty())");
         code.OpenBlock();
-        code.AppendLine("return " + rebaseResult + ".Success(Between(current, current));");
+        code.AppendLine("return " + rebaseResult + ".Success(Between(current, current, " + recordedAt + "));");
         code.CloseBlock();
         code.AppendLine("var __ra = __rb.Rebased.Apply(current);");
-        code.AppendLine("return new " + rebaseResult + "(Between(current, __ra), __rb.Conflicts);");
+        code.AppendLine("return new " + rebaseResult + "(Between(current, __ra, " + recordedAt + "), __rb.Conflicts);");
         code.CloseBlock();
         code.AppendLine(
             target is null
-                ? "if (IsEmpty) return " + rebaseResult + ".Success(Between(current, current));"
-                : "if (self.IsEmpty) return " + rebaseResult + ".Success(Between(current, current));"
+                ? "if (IsEmpty) return " + rebaseResult + ".Success(Between(current, current, " + recordedAt + "));"
+                : "if (self.IsEmpty) return " + rebaseResult + ".Success(Between(current, current, " + recordedAt + "));"
         );
         code.AppendLine("if (!current.IsPresent || current.Value is null)");
         code.OpenBlock();
@@ -166,7 +167,7 @@ internal static class SparseChangeSetRebaseEmitter
                 )
                 + ", \"The contribution conflicts with a concurrent change.\"));"
         );
-        code.AppendLine("return new " + rebaseResult + "(Between(current, current), __conf);");
+        code.AppendLine("return new " + rebaseResult + "(Between(current, current, " + recordedAt + "), __conf);");
         code.CloseBlock();
         code.AppendLine("var __cur = current.Value!;");
         code.AppendLine("var __conflicts = new " + conflictList + "();");
@@ -390,6 +391,7 @@ internal static class SparseChangeSetRebaseEmitter
                 rargs.AddRange(new[] { "__rb" + member.Id, "__ra" + member.Id, "__rh" + member.Id });
             }
         }
+        rargs.Add(recordedAt);
         code.AppendLine("var __rebased = new ChangeSet(" + string.Join(", ", rargs) + ");");
         if (__hasSparseRb)
         {

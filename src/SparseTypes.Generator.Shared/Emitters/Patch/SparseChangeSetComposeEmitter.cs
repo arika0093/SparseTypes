@@ -68,7 +68,11 @@ internal static class SparseChangeSetComposeEmitter
         var __hasSparse = members.Any(static m => IsKeyed(m) || IsDict(m));
         code.AppendLine("if (next is null) throw new global::System.ArgumentNullException(nameof(next));");
         code.AppendLine(target is null ? "if (IsEmpty) return next;" : "if (self.IsEmpty) return next;");
-        code.AppendLine(target is null ? "if (next.IsEmpty) return this;" : "if (next.IsEmpty) return self;");
+        code.AppendLine(
+            target is null
+                ? "if (next.IsEmpty) return WithRecordedAt(next.RecordedAt);"
+                : "if (next.IsEmpty) return self.WithRecordedAt(next.RecordedAt);"
+        );
         code.AppendLine("if (__sparse_hasWhole || next.__sparse_hasWhole)");
         code.OpenBlock();
         code.AppendLine("if (__sparse_hasWhole && next.__sparse_hasWhole)");
@@ -76,7 +80,7 @@ internal static class SparseChangeSetComposeEmitter
         code.AppendLine(
             "if (!Fragment.__SparseAreEqual(__sparse_wholeAfter, next.__sparse_wholeBefore)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
-        code.AppendLine("return Between(__sparse_wholeBefore, next.__sparse_wholeAfter);");
+        code.AppendLine("return Between(__sparse_wholeBefore, next.__sparse_wholeAfter, next.RecordedAt);");
         code.CloseBlock();
         // Compose whole-root and memberwise changes when their shared paths are
         // contiguous.
@@ -86,7 +90,7 @@ internal static class SparseChangeSetComposeEmitter
             "if (!next.__SparseBeforeMatches(__sparse_wholeAfter)) throw new global::System.InvalidOperationException(\"ChangeSet composition requires the first after-state to equal the second before-state.\");"
         );
         code.AppendLine("var __mergedAfter = next.ToPatch().Apply(__sparse_wholeAfter);");
-        code.AppendLine("return Between(__sparse_wholeBefore, __mergedAfter);");
+        code.AppendLine("return Between(__sparse_wholeBefore, __mergedAfter, next.RecordedAt);");
         code.CloseBlock();
         code.AppendLine(
             target is null
@@ -98,7 +102,7 @@ internal static class SparseChangeSetComposeEmitter
                 ? "var __mergedBefore = Invert().ToPatch().Apply(next.__sparse_wholeBefore);"
                 : "var __mergedBefore = Invert(self).ToPatch().Apply(next.__sparse_wholeBefore);"
         );
-        code.AppendLine("return Between(__mergedBefore, next.__sparse_wholeAfter);");
+        code.AppendLine("return Between(__mergedBefore, next.__sparse_wholeAfter, next.RecordedAt);");
         code.CloseBlock();
         if (__hasSparse)
         {
@@ -249,6 +253,7 @@ internal static class SparseChangeSetComposeEmitter
             AppendPragmaRestoreNullKey(code);
         }
 
+        args.Add("next.RecordedAt");
         code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
         code.CloseBlock();
         if (target is null)

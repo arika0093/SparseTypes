@@ -140,6 +140,17 @@ public sealed class SparsePayloadSchemaTests
         schemas
             .Single(static schema => schema.Name.EndsWith("_ModelChange", StringComparison.Ordinal))
             .OpenApi31JsonSchema.ShouldContain("\"oneOf\"");
+        var envelope = schemas.Single(static schema => schema.Name.EndsWith("_ChangePayload", StringComparison.Ordinal));
+        envelope.OpenApi31JsonSchema.ShouldContain("\"recordedAt\"");
+        envelope.OpenApi31JsonSchema.ShouldContain("\"format\":\"date-time\"");
+        envelope.OpenApi31JsonSchema.ShouldContain("\"null\"");
+        var envelope30 = OpenApiTestModel.PayloadJson.Schema.OpenApi30Schemas.Single(static schema =>
+            schema.Name.EndsWith("_ChangePayload", StringComparison.Ordinal)
+        );
+        using var openApi30 = System.Text.Json.JsonDocument.Parse(envelope30.OpenApi30JsonSchema);
+        var recordedAt30 = openApi30.RootElement.GetProperty("properties").GetProperty("recordedAt");
+        recordedAt30.GetProperty("format").GetString().ShouldBe("date-time");
+        recordedAt30.GetProperty("nullable").GetBoolean().ShouldBeTrue();
         schemas.Select(static schema => schema.Name).Distinct().Count().ShouldBe(schemas.Count);
         schemas
             .Select(static schema => schema.Name)

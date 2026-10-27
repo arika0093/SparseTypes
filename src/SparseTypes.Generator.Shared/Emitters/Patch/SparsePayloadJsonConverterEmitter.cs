@@ -58,6 +58,7 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLine("string? version = null;");
         code.AppendLine("string? schema = null;");
+        code.AppendLine("global::System.DateTimeOffset? recordedAt = null;");
         code.AppendLine(context.Dto("ModelChange") + "? change = null;");
         code.AppendLine("bool hasVersion = false;");
         code.AppendLine("bool hasSchema = false;");
@@ -79,6 +80,10 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) schema = reader.GetString(); else if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) schema = null; else throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload schema identity.\"); hasSchema = true; }"
         );
+        code.AppendLine("else if (name == \"recordedAt\")");
+        code.AppendLine(
+            "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) { var text = reader.GetString(); if (text is null || !global::System.DateTimeOffset.TryParseExact(text, \"O\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.None, out var value) || !global::System.String.Equals(value.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture), text, global::System.StringComparison.Ordinal)) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload recording time.\"); recordedAt = value; } else if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload recording time.\"); }"
+        );
         code.AppendLine("else if (name == \"change\")");
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); change = ReadModelChange(ref reader, options); hasChange = true; }"
@@ -93,7 +98,7 @@ internal static class SparsePayloadJsonConverterEmitter
                 + context.ModelType
                 + ".ChangePayload.IsValidSchemaIdentity(schema)) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload schema identity.\");"
         );
-        code.AppendLine("return new " + changePayloadType + " { Version = version, Schema = schema, Change = change };");
+        code.AppendLine("return new " + changePayloadType + " { Version = version, Schema = schema, Change = change, RecordedAt = recordedAt };");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <inheritdoc />");
@@ -110,6 +115,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("writer.WriteStartObject();");
         code.AppendLine("writer.WriteString(\"version\", value.Version);");
         code.AppendLine("writer.WriteString(\"schema\", value.Schema);");
+        code.AppendLine(
+            "if (value.RecordedAt is global::System.DateTimeOffset recordedAt) writer.WriteString(\"recordedAt\", recordedAt.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture));"
+        );
         code.AppendLine("writer.WritePropertyName(\"change\");");
         code.AppendLine("WriteModelChange(writer, change, options);");
         code.AppendLine("writer.WriteEndObject();");

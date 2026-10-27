@@ -60,13 +60,14 @@ Serialize and deserialize the generated `T.ChangePayload`, not `T.ChangeSet` or 
 
 ## Envelope and model changes
 
-The envelope carries `version` and one `change`. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. A nested model member carries the child operation directly, without a second `change` wrapper.
+The envelope carries `version`, `schema`, an optional `recordedAt`, and one `change`. The timestamp describes the whole change, not its individual members or operations. It is an ISO 8601 round-trip `DateTimeOffset` string when present; `null` and a missing field are written without `recordedAt` and read as unknown. Older envelopes remain readable. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. A nested model member carries the child operation directly, without a second `change` wrapper.
 
 <!-- json-specimen: payload-envelope -->
 ```jsonc
 {
   "version": "0.1",
   "schema": "sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59",
+  "recordedAt": "2025-01-02T03:04:05.0000000+05:30",
   "change": {
     "kind": "update",
     "members": {
@@ -85,6 +86,7 @@ The envelope carries `version` and one `change`. A model update contains a typed
 | --- | --- |
 | `version` | Required format token, currently `"0.1"`. |
 | `schema` | Required `sha256:` identity of the generated model's effective wire contract. A mismatch is informational; it does not reject a payload. |
+| `recordedAt` | Optional round-trip `DateTimeOffset` for the whole change. Missing or `null` means unknown. |
 | `change` | Root model operation. Its `kind` is `update` or `replace`. |
 | `members` | Optional changed-member object for an `update`. Unspecified members are unchanged. |
 | `kind` | Operation discriminator. Member replacements use `replace`; nested and collection changes use `update`. |
@@ -93,6 +95,8 @@ The envelope carries `version` and one `change`. A model update contains a typed
 | `beforeOrder` / `afterOrder` | Key sequences for keyed collection updates. |
 
 Generated structure names use a fixed contract and are not changed by serializer naming policies. Leaf values use their configured JSON metadata. Optional members are omitted, and value-free endpoints contain only `state`.
+
+The JSON specimens below omit `recordedAt` unless it is shown explicitly; without it, the envelope's recording time is unknown. Newly captured changes include the current UTC time by default.
 
 ## Schema identity
 
@@ -255,7 +259,6 @@ var nestedAfter = Optional<WireOrder.Fragment?>.Present(
 );
 var nestedPayload = WireOrder.ChangeSet.Between(nestedBefore, nestedAfter).ToPayload();
 var nestedJson = JsonSerializer.Serialize(nestedPayload, WireOrder.PayloadJson.Default);
-Console.WriteLine("NESTED=" + nestedJson);
 // nestedJson carries an optional customer update with no inner version
 var nestedRestored = JsonSerializer.Deserialize<WireOrder.ChangePayload>(nestedJson, WireOrder.PayloadJson.Default)!.ToChangeSet();
 // nestedRestored.Customer.Name.After.Value == "Bob"

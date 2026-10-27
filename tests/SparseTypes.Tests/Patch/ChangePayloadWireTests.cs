@@ -35,6 +35,7 @@ public sealed class ChangePayloadWireTests
         ChangePayloadWire.Version.ShouldBe("0.1");
         ChangePayloadWire.VersionProperty.ShouldBe("version");
         ChangePayloadWire.SchemaProperty.ShouldBe("schema");
+        ChangePayloadWire.RecordedAtProperty.ShouldBe("recordedAt");
         ChangePayloadWire.ChangeProperty.ShouldBe("change");
         ChangePayloadWire.KindProperty.ShouldBe("kind");
         ChangePayloadWire.MembersProperty.ShouldBe("members");
@@ -93,7 +94,7 @@ public sealed class ChangePayloadWireTests
 
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(payload, Settings.PayloadJson.Default));
         var envelope = document.RootElement;
-        envelope.EnumerateObject().Select(static property => property.Name).ShouldBe(new[] { "version", "schema", "change" });
+        envelope.EnumerateObject().Select(static property => property.Name).ShouldBe(new[] { "version", "schema", "recordedAt", "change" });
         envelope.TryGetProperty("changes", out _).ShouldBeFalse();
 
         var change = envelope.GetProperty("change");

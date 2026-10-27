@@ -36,6 +36,8 @@ public static class ChangePayloadDocsSamples
         }
 
         expectedNode["schema"] = actualNode["schema"]?.DeepClone();
+        actualNode.Remove("recordedAt");
+        expectedNode.Remove("recordedAt");
         return JsonNode.DeepEquals(actualNode, expectedNode);
     }
 
@@ -77,14 +79,14 @@ public static class ChangePayloadDocsSamples
             WireSettings.Patch.Between(setRestored.ToPatch().Apply(setBefore), setAfter).IsEmpty,
             "deserialized scalar set replays the transition"
         );
-        DocsCheck.Require(setJson == ChangePayloadJsonSpecimens.Envelope, "minimal envelope matches the layout reference");
+        DocsCheck.Require(JsonMatches(setJson, ChangePayloadJsonSpecimens.Envelope), "minimal envelope matches the layout reference");
         var setAddBefore = Optional<WireSettings.Fragment?>.Present(new WireSettings.Fragment { RetryCount = 1 });
         var setAddAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "after", RetryCount = 1 }));
         var setAddJson = JsonSerializer.Serialize(
             WireSettings.ChangeSet.Between(setAddBefore, setAddAfter).ToPayload(),
             WireSettings.PayloadJson.Default
         );
-        DocsCheck.Require(setAddJson == ChangePayloadJsonSpecimens.ScalarAdd, "addition emits the documented envelope");
+        DocsCheck.Require(JsonMatches(setAddJson, ChangePayloadJsonSpecimens.ScalarAdd), "addition emits the documented envelope");
         var setAddRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(setAddJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
         DocsCheck.Require(
             WireSettings.Patch.Between(setAddRestored.ToPatch().Apply(setAddBefore), setAddAfter).IsEmpty,
@@ -249,18 +251,19 @@ public static class ChangePayloadDocsSamples
 
         var nestedPayload = WireOrder.ChangeSet.Between(nestedBefore, nestedAfter).ToPayload();
         var nestedJson = JsonSerializer.Serialize(nestedPayload, WireOrder.PayloadJson.Default);
-        Console.WriteLine("NESTED=" + nestedJson);
         // nestedJson carries an optional customer update with no inner version
         var nestedRestored = JsonSerializer.Deserialize<WireOrder.ChangePayload>(nestedJson, WireOrder.PayloadJson.Default)!.ToChangeSet();
         // nestedRestored.Customer.Name.After.Value == "Bob"
         // /sample
         DocsCheck.Require(
-            nestedJson
-                == """{"version":"0.1","schema":"sha256:975073d6e08b95584b9dfbfc949a86450b232296ff6c0849bcd6accf5a5b1aaa","change":{"kind":"update","members":{"customer":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}""",
+            JsonMatches(
+                nestedJson,
+                """{"version":"0.1","schema":"sha256:975073d6e08b95584b9dfbfc949a86450b232296ff6c0849bcd6accf5a5b1aaa","change":{"kind":"update","members":{"customer":{"kind":"update","members":{"name":{"kind":"replace","before":{"state":"value","value":"Ann"},"after":{"state":"value","value":"Bob"}}}}}}}"""
+            ),
             "nested change emits the documented envelope"
         );
         DocsCheck.Require(nestedRestored.Customer.Name.After.Value == "Bob", "deserialized nested change preserves the leaf transition");
-        DocsCheck.Require(nestedJson == ChangePayloadJsonSpecimens.Nested, "nested fence matches serializer output");
+        DocsCheck.Require(JsonMatches(nestedJson, ChangePayloadJsonSpecimens.Nested), "nested fence matches serializer output");
     }
 
     private static void Keyed()
@@ -301,7 +304,7 @@ public static class ChangePayloadDocsSamples
         // keyedRestored.Servers.GetChange("c").IsAdded == true
         // keyedRestored.Servers.GetChange("a").IsRemoved == true
         // /sample
-        DocsCheck.Require(keyedJson == ChangePayloadJsonSpecimens.Keyed, "keyed change emits the documented envelope with final indexes");
+        DocsCheck.Require(JsonMatches(keyedJson, ChangePayloadJsonSpecimens.Keyed), "keyed change emits the documented envelope with final indexes");
         DocsCheck.Require(
             !keyedJson.Contains("\"before\":null") && !keyedJson.Contains("\"after\":null") && !keyedJson.Contains("\"edit\":null"),
             "unused item fields stay omitted"
@@ -340,7 +343,7 @@ public static class ChangePayloadDocsSamples
             WireFleet.ChangeSet.Between(reorderBefore, reorderAfter).ToPayload(),
             WireFleet.PayloadJson.Default
         );
-        DocsCheck.Require(reorderJson == ChangePayloadJsonSpecimens.Reorder, "pure reorder emits the documented envelope");
+        DocsCheck.Require(JsonMatches(reorderJson, ChangePayloadJsonSpecimens.Reorder), "pure reorder emits the documented envelope");
         var reorderRestored = JsonSerializer.Deserialize<WireFleet.ChangePayload>(reorderJson, WireFleet.PayloadJson.Default)!.ToChangeSet();
         DocsCheck.Require(reorderRestored.Servers.AfterOrder.SequenceEqual(new[] { "b", "a" }), "deserialized reorder preserves the key sequence");
     }
@@ -364,7 +367,7 @@ public static class ChangePayloadDocsSamples
             )
         );
         var dictJson = JsonSerializer.Serialize(WireScores.ChangeSet.Between(dictBefore, dictAfter).ToPayload(), WireScores.PayloadJson.Default);
-        DocsCheck.Require(dictJson == ChangePayloadJsonSpecimens.Dictionary, "dictionary change emits the documented envelope");
+        DocsCheck.Require(JsonMatches(dictJson, ChangePayloadJsonSpecimens.Dictionary), "dictionary change emits the documented envelope");
         var dictRestored = JsonSerializer.Deserialize<WireScores.ChangePayload>(dictJson, WireScores.PayloadJson.Default)!.ToChangeSet();
         DocsCheck.Require(
             WireScores.Patch.Between(dictRestored.ToPatch().Apply(dictBefore), dictAfter).IsEmpty,
@@ -377,7 +380,7 @@ public static class ChangePayloadDocsSamples
         var rootBefore = Optional<WireSettings.Fragment?>.Missing;
         var rootAfter = Optional<WireSettings.Fragment?>.Present(WireSettings.Fragment.From(new WireSettings { Label = "present", RetryCount = 3 }));
         var rootJson = JsonSerializer.Serialize(WireSettings.ChangeSet.Between(rootBefore, rootAfter).ToPayload(), WireSettings.PayloadJson.Default);
-        DocsCheck.Require(rootJson == ChangePayloadJsonSpecimens.Root, "whole-root transition emits the documented envelope");
+        DocsCheck.Require(JsonMatches(rootJson, ChangePayloadJsonSpecimens.Root), "whole-root transition emits the documented envelope");
         var rootRestored = JsonSerializer.Deserialize<WireSettings.ChangePayload>(rootJson, WireSettings.PayloadJson.Default)!.ToChangeSet();
         DocsCheck.Require(
             WireSettings.Patch.Between(rootRestored.ToPatch().Apply(rootBefore), rootAfter).IsEmpty,
@@ -717,7 +720,7 @@ public static class ChangePayloadJsonSpecimens
 {
     // json-specimen: payload-envelope
     public const string Envelope =
-        """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}}}}""";
+        """{"version":"0.1","schema":"sha256:d9d9103450c69184264f032386d556b7f01a1869d3d66e9982313994607cbc59","recordedAt":"2025-01-02T03:04:05.0000000+05:30","change":{"kind":"update","members":{"label":{"kind":"replace","before":{"state":"value","value":"before"},"after":{"state":"value","value":"after"}}}}}""";
 
     // /json-specimen
 

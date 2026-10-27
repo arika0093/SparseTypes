@@ -164,10 +164,13 @@ public sealed class ChangePayloadRedactionTests
     {
         var patch = new RedactedAccount.Patch { Password = "after-password" };
         var payload = RedactedAccount.ChangePayload.FromPatch(patch);
-        var json = PayloadJsonTestSupport.Serialize(payload);
 
         payload.Version.ShouldBe("0.1");
+        payload.RecordedAt.ShouldNotBeNull();
+        payload.RecordedAt!.Value.Offset.ShouldBe(TimeSpan.Zero);
         payload.Change!.Members!.Password.ShouldNotBeNull();
+        payload.RecordedAt = null;
+        var json = PayloadJsonTestSupport.Serialize(payload);
         json.ShouldBe(
             "{\"version\":\"0.1\",\"schema\":\""
                 + payload.Schema

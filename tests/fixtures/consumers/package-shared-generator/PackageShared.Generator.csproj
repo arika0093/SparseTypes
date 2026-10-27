@@ -17,6 +17,7 @@
       Compile glob to src/SparseTypes.Generator.Shared. -->
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="consumer/**/*.cs" />
     <PackageReference Remove="TUnit;Shouldly" />
     <Using Remove="Shouldly" />
   </ItemGroup>

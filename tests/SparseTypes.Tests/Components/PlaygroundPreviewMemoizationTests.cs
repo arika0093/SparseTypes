@@ -122,14 +122,7 @@ public sealed class PlaygroundPreviewMemoizationTests
         preview.MergedModelJson.ShouldBe(PlaygroundJson.WriteModel(preview.MergedModel));
         preview.PatchedModelJson.ShouldBe(PlaygroundJson.WriteModel(preview.PatchedModel));
         preview.PatchCSharp.ShouldBe(PlaygroundSnippets.PatchCSharp("patch", patch));
-        preview.ChangeSetExportText.ShouldBe(
-            PlaygroundJson.WriteSettingsChangeSet(
-                PlaygroundSettings.ChangeSet.FromPatch(
-                    Optional<PlaygroundSettings.Fragment?>.Present(preview.MergedFragment),
-                    preview.TypedPatch
-                )
-            )
-        );
+        preview.ChangeSetExportText.ShouldBe(PlaygroundJson.WriteSettingsChangeSet(preview.ExportChanges));
 
         preview.MergedModel.Label.ShouldBeNull();
         preview.PatchedModel.Label.ShouldBe("patched!");
@@ -188,17 +181,10 @@ public sealed class PlaygroundPreviewMemoizationTests
     [Test]
     public void Case1OutputsMatchDirectComputation()
     {
-        var preview = Case1Preview(
-            FragmentEditState.LowerDefaults(includeTags: true),
-            FragmentEditState.HigherDefaults(includeTags: true)
-        );
+        var preview = Case1Preview(FragmentEditState.LowerDefaults(includeTags: true), FragmentEditState.HigherDefaults(includeTags: true));
 
         preview.LowerFragmentJson.ShouldBe(PlaygroundJson.WriteFragment(preview.LowerFragment));
-        preview.MergeDiffJson.ShouldBe(
-            PlaygroundJson.WriteFragment(
-                PlaygroundSettings.Fragment.Diff(preview.LowerModel, preview.MergedModel)
-            )
-        );
+        preview.MergeDiffJson.ShouldBe(PlaygroundJson.WriteFragment(PlaygroundSettings.Fragment.Diff(preview.LowerModel, preview.MergedModel)));
         preview.MergedOrigins.ShouldContain("lower");
         preview.MergedOrigins.ShouldContain("higher");
         preview.LowerModel.Label.ShouldBe("default");
@@ -239,9 +225,9 @@ public sealed class PlaygroundPreviewMemoizationTests
 
         summaryCalls.ShouldBe(1);
         changeSetCalls.ShouldBe(1);
-        preview.ChangePayloadJson.ShouldBe(
-            PlaygroundJson.WriteSettingsChangeSet(session.CreateChangeSet())
-        );
+        using var document = System.Text.Json.JsonDocument.Parse(preview.ChangePayloadJson);
+        var recordedAt = document.RootElement.GetProperty("recordedAt").GetDateTimeOffset();
+        preview.ChangePayloadJson.ShouldBe(PlaygroundJson.WriteSettingsChangeSet(session.CreateChangeSet().WithRecordedAt(recordedAt)));
     }
 
     [Test]

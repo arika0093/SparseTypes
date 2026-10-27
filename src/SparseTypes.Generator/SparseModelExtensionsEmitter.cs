@@ -57,6 +57,23 @@ internal static class SparseModelExtensionsEmitter
                 + modelType
                 + ".ChangeSet.Between(baseline, current);"
         );
+        code.AppendLine("/// <summary>Derives the change set with an explicit recording time.</summary>");
+        code.AppendLine("/// <param name=\"baseline\">The model before the transition.</param>");
+        code.AppendLine("/// <param name=\"current\">The model after the transition.</param>");
+        code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+        code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+        code.AppendLine(
+            accessibility
+                + " static "
+                + modelType
+                + ".ChangeSet CreateChangeSet(this "
+                + modelType
+                + " baseline, "
+                + modelType
+                + " current, global::System.DateTimeOffset? recordedAt) => "
+                + modelType
+                + ".ChangeSet.Between(baseline, current, recordedAt);"
+        );
 
         if (!model.IsStruct)
         {

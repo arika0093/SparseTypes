@@ -61,8 +61,18 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("internal static ChangePayload ToPayload(ChangeSet self)");
             code.OpenBlock();
-            AppendEmptyPayloadFastPath(code, payloadModelChange, payloadMembersDelta, payloadChangeKind, versionLiteral, "self.IsEmpty");
-            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Change = ToPayloadChange(self, false) };");
+            AppendEmptyPayloadFastPath(
+                code,
+                payloadModelChange,
+                payloadMembersDelta,
+                payloadChangeKind,
+                versionLiteral,
+                "self.IsEmpty",
+                "self.RecordedAt"
+            );
+            code.AppendLine(
+                "return new ChangePayload { Version = " + versionLiteral + ", RecordedAt = self.RecordedAt, Change = ToPayloadChange(self, false) };"
+            );
             code.CloseBlock();
         }
         else
@@ -71,8 +81,10 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("public ChangePayload ToPayload()");
             code.OpenBlock();
-            AppendEmptyPayloadFastPath(code, payloadModelChange, payloadMembersDelta, payloadChangeKind, versionLiteral, "IsEmpty");
-            code.AppendLine("return new ChangePayload { Version = " + versionLiteral + ", Change = ToPayloadChange(false) };");
+            AppendEmptyPayloadFastPath(code, payloadModelChange, payloadMembersDelta, payloadChangeKind, versionLiteral, "IsEmpty", "RecordedAt");
+            code.AppendLine(
+                "return new ChangePayload { Version = " + versionLiteral + ", RecordedAt = RecordedAt, Change = ToPayloadChange(false) };"
+            );
             code.CloseBlock();
         }
         code.AppendLine("/// <summary>Builds the typed transport change for this change set.</summary>");
@@ -429,7 +441,8 @@ internal static class SparseChangeSetPayloadTransferEmitter
         string payloadMembersDelta,
         string payloadChangeKind,
         string versionLiteral,
-        string isEmptyExpression
+        string isEmptyExpression,
+        string recordedAtExpression
     )
     {
         code.AppendLine("if (" + isEmptyExpression + ")");
@@ -443,7 +456,9 @@ internal static class SparseChangeSetPayloadTransferEmitter
                 + payloadChangeKind
                 + ".Update, Members = new "
                 + payloadMembersDelta
-                + "() } };"
+                + "() }, RecordedAt = "
+                + recordedAtExpression
+                + " };"
         );
         code.CloseBlock();
     }

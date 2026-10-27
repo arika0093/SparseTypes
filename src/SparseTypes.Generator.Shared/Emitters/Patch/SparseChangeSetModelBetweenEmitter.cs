@@ -37,14 +37,15 @@ internal static class SparseChangeSetModelBetweenEmitter
         ImmutableArray<SparseMemberModel> members,
         bool modelIsReferenceType,
         string runtime,
-        string optionalFragment
+        string optionalFragment,
+        string recordedAt
     )
     {
         if (modelIsReferenceType)
         {
             code.AppendLine("if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))");
             code.AppendLine("throw new global::System.ArgumentNullException(\"value\");");
-            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;");
+            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty.WithRecordedAt(" + recordedAt + ");");
         }
         foreach (var side in new[] { "before", "after" })
         {
@@ -89,9 +90,10 @@ internal static class SparseChangeSetModelBetweenEmitter
             code.AppendLine("if (" + string.Join(" && ", conditions) + ")");
         }
 
-        code.AppendLine("return Between(default(" + optionalFragment + "), default(" + optionalFragment + "));");
+        code.AppendLine("return Between(default(" + optionalFragment + "), default(" + optionalFragment + "), " + recordedAt + ");");
         if (conditions.Count > 0)
         {
+            args.Add(recordedAt);
             code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
         }
     }
@@ -100,7 +102,8 @@ internal static class SparseChangeSetModelBetweenEmitter
         SharedIndentedBuilder code,
         string optionalFragment,
         bool modelIsReferenceType,
-        ImmutableArray<SparseMemberModel> members
+        ImmutableArray<SparseMemberModel> members,
+        string recordedAt
     )
     {
         if (modelIsReferenceType)
@@ -108,7 +111,7 @@ internal static class SparseChangeSetModelBetweenEmitter
             code.AppendLine(
                 "if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null)) throw new global::System.ArgumentNullException(\"value\");"
             );
-            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty;");
+            code.AppendLine("if (global::System.Object.ReferenceEquals(before, after)) return __sparse_empty.WithRecordedAt(" + recordedAt + ");");
             if (CanUseSharedReferenceEqualityFastPath(members))
             {
                 var sharedMembers = members.Select(member =>
@@ -122,7 +125,13 @@ internal static class SparseChangeSetModelBetweenEmitter
             }
         }
         code.AppendLine(
-            "return Between(" + optionalFragment + ".Present(Fragment.From(before)), " + optionalFragment + ".Present(Fragment.From(after)));"
+            "return Between("
+                + optionalFragment
+                + ".Present(Fragment.From(before)), "
+                + optionalFragment
+                + ".Present(Fragment.From(after)), "
+                + recordedAt
+                + ");"
         );
     }
 }

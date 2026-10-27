@@ -70,11 +70,7 @@ internal static class ProbeSurface
             PocoCloneHelperName: null
         );
         var policyMember = member with { RebasePolicyType = policyType };
-        var key = new SparseKeyInfo(
-            SparseKeyKind.None,
-            ImmutableArray<string>.Empty,
-            "global::System.String"
-        );
+        var key = new SparseKeyInfo(SparseKeyKind.None, ImmutableArray<string>.Empty, "global::System.String");
 
         // Shared model/collection analysis (Analysis/). Referencing the
         // analyzer types proves their sources were compiled from the package.
@@ -140,25 +136,13 @@ internal static class ProbeSurface
             PayloadImplementationContainerPrefix: "PackageSharedInternal"
         )
         {
-            ChildConflictPathPrefixExpression = static (conflict, prefix) =>
-                conflict + ".WithPathPrefix(" + prefix + ")",
+            ChildConflictPathPrefixExpression = static (conflict, prefix) => conflict + ".WithPathPrefix(" + prefix + ")",
         };
-        var sessionSources = SparseEditSessionEmitter.RenderCoreSources(
-            sessionDialect,
-            sessionRuntime,
-            sessionPatch
-        );
-        var write = new SparseWriteContract(
-            "global::PackageShared.WriteCmd",
-            ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret"))
-        );
+        var sessionSources = SparseEditSessionEmitter.RenderCoreSources(sessionDialect, sessionRuntime, sessionPatch);
+        var write = new SparseWriteContract("global::PackageShared.WriteCmd", ImmutableArray.Create(new SparseWriteMember("Secret", "NewSecret")));
         var dependencyErrors = features.ValidateDependencies();
         var emittedNames = features.GetEmittedTypeNames();
-        var descriptorCapability = SparseDescriptorCapabilities.ForCompilation(
-            hasDescriptors: true,
-            hasCollections: true,
-            hasChangeProjection: true
-        );
+        var descriptorCapability = SparseDescriptorCapabilities.ForCompilation(hasDescriptors: true, hasCollections: true, hasChangeProjection: true);
         var downstreamConfig = new SparseGeneratorConfig(
             ModelAttributeMetadataName: "ModelAttribute",
             IgnoreAttributeMetadataName: "IgnoreAttribute",
@@ -192,15 +176,9 @@ internal static class ProbeSurface
             PromotedHintNameSuffix: ".ProbePromoted.g.cs",
             StructuralHostPrefix: "__ProbeHost_"
         );
-        var descriptorErrors = SparseDescriptorCapabilities.ValidatePrerequisites(
-            downstreamConfig,
-            descriptorCapability
-        );
+        var descriptorErrors = SparseDescriptorCapabilities.ValidatePrerequisites(downstreamConfig, descriptorCapability);
         var kernelKinds = SparsePatchKernelCapabilities.ForCompilation(true, true, true);
-        var kernelSource = SparsePatchKernelEmitter.RenderHelperSource(
-            "PackageShared.Generated",
-            kernelKinds
-        );
+        var kernelSource = SparsePatchKernelEmitter.RenderHelperSource("PackageShared.Generated", kernelKinds);
 
         // Emitter/helpers (Emitters/, Infrastructure/).
         var code = new SharedIndentedBuilder(cancellationToken);
@@ -212,9 +190,7 @@ internal static class ProbeSurface
             "global::PackageShared.Optional"
         );
         var clone = expressions.CloneValueExpression(elementType, "value");
-        var observable = SparseObservableEmitter.ObservableTypeName(
-            ImmutableArray<SparseMemberModel>.Empty
-        );
+        var observable = SparseObservableEmitter.ObservableTypeName(ImmutableArray<SparseMemberModel>.Empty);
         var incrementalTypes = new[]
         {
             typeof(SparseChangeSetEnumeratorEmitter),
@@ -223,31 +199,10 @@ internal static class ProbeSurface
             typeof(RoslynSymbolCompat),
         };
 
-        code.AppendLine(
-            "// PackageShared probe: "
-                + escaped
-                + " prefix="
-                + apiPrefix
-                + " merge="
-                + mergeFieldPrefix
-                + " json="
-                + jsonIgnoreNever
-        );
+        code.AppendLine("// PackageShared probe: " + escaped + " prefix=" + apiPrefix + " merge=" + mergeFieldPrefix + " json=" + jsonIgnoreNever);
         code.AppendLine("// member=" + member.Id + " key=" + key.KeyTypeName + " clone=" + clone);
-        code.AppendLine(
-            "// policy="
-                + policyMember.RebasePolicyType!.Value.Name
-                + " prefix="
-                + rebaseFieldPrefix
-        );
-        code.AppendLine(
-            "// analysis="
-                + analysisTypes.Length
-                + " rebase="
-                + rebaseTypes.Length
-                + " incremental="
-                + incrementalTypes.Length
-        );
+        code.AppendLine("// policy=" + policyMember.RebasePolicyType!.Value.Name + " prefix=" + rebaseFieldPrefix);
+        code.AppendLine("// analysis=" + analysisTypes.Length + " rebase=" + rebaseTypes.Length + " incremental=" + incrementalTypes.Length);
         code.AppendLine("// observable=" + observable + " collection=" + collection.Kind);
         code.AppendLine(
             "// session-capability="
@@ -267,11 +222,7 @@ internal static class ProbeSurface
                 + " extracted="
                 + SparsePatchKernelInventory.Extracted.Length
                 + " child-prefix="
-                + (
-                    sessionPatch.ChildConflictPathPrefixExpression is null
-                        ? "missing"
-                        : "configured"
-                )
+                + (sessionPatch.ChildConflictPathPrefixExpression is null ? "missing" : "configured")
         );
         code.AppendLine(
             "// policy="
@@ -288,14 +239,38 @@ internal static class ProbeSurface
                 + emittedNames.Length
         );
         if (
-            !sessionSources.Core.Contains(
-                "global::PackageShared.Optional",
-                StringComparison.Ordinal
-            ) || sessionSources.Core.Contains("global::SparseTypes", StringComparison.Ordinal)
+            !sessionSources.Core.Contains("global::PackageShared.Optional", StringComparison.Ordinal)
+            || sessionSources.Core.Contains("global::SparseTypes", StringComparison.Ordinal)
         )
         {
             throw new InvalidOperationException("The edit-session dialect was not applied.");
         }
-        return "// Shared generator API and template probe passed.";
+
+        var recordedAtCode = new SharedIndentedBuilder(cancellationToken);
+        recordedAtCode.AppendLine("#nullable enable");
+        recordedAtCode.AppendLine("namespace PackageShared.Generated");
+        recordedAtCode.OpenBlock();
+        recordedAtCode.AppendLine("public sealed class ChangeSet");
+        recordedAtCode.OpenBlock();
+        recordedAtCode.AppendLine("private readonly bool __sparse_hasWhole;");
+        recordedAtCode.AppendLine("private readonly object? __sparse_wholeBefore;");
+        recordedAtCode.AppendLine("private readonly object? __sparse_wholeAfter;");
+        recordedAtCode.AppendLine("private readonly global::System.DateTimeOffset? __sparse_recordedAt;");
+        recordedAtCode.AppendLine(
+            "private ChangeSet(bool hasWhole, object? wholeBefore, object? wholeAfter, global::System.DateTimeOffset? recordedAt = null)"
+        );
+        recordedAtCode.OpenBlock();
+        recordedAtCode.AppendLine("__sparse_hasWhole = hasWhole;");
+        recordedAtCode.AppendLine("__sparse_wholeBefore = wholeBefore;");
+        recordedAtCode.AppendLine("__sparse_wholeAfter = wholeAfter;");
+        recordedAtCode.AppendLine("__sparse_recordedAt = recordedAt;");
+        recordedAtCode.CloseBlock();
+        SparseChangeSetBasicsEmitter.AppendRecordedAtAccessors(recordedAtCode, ImmutableArray<SparseMemberModel>.Empty);
+        recordedAtCode.AppendLine(
+            "public static ChangeSet Create(global::System.DateTimeOffset? recordedAt) => new ChangeSet(false, null, null, recordedAt);"
+        );
+        recordedAtCode.CloseBlock();
+        recordedAtCode.CloseBlock();
+        return recordedAtCode.ToString() + "// Shared generator API and template probe passed.";
     }
 }

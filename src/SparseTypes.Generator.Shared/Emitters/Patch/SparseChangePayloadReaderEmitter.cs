@@ -56,7 +56,7 @@ internal static class SparseChangePayloadReaderEmitter
         code.AppendLine(
             "if (!ChangePayload.IsValidSchemaIdentity(payload.Schema)) throw new global::System.ArgumentException(\"Malformed ChangePayload schema identity.\", nameof(payload));"
         );
-        code.AppendLine("return FromPayloadCore(payload);");
+        code.AppendLine("return FromPayloadCore(payload).WithRecordedAt(payload.RecordedAt);");
         code.CloseBlock();
         // The strict conversion partitions the envelope first and rejects blind
         // paths, so there is exactly one routing seam for mixed requests.

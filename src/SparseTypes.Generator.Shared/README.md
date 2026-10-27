@@ -129,7 +129,10 @@ Each model emits a unified `ChangePayload` envelope carrying baseline-aware
 transitions and baseline-free commands side by side, with `missing`, `null`,
 `value`, and `redacted` endpoint states. `ToChangeSet()` accepts only complete
 histories; `ToPatch()` projects any envelope without a baseline, and
-`FromPatch()` builds a command envelope without one.
+`FromPatch()` builds a command envelope without one. Generated ChangeSets and
+payload envelopes expose one optional root-level `RecordedAt` time; factories
+default it to UTC, explicit timestamp overloads accept `null`, and payload JSON
+uses the optional `recordedAt` envelope property.
 
 Payload implementation DTOs are grouped under a nested container whose prefix
 comes from `SparsePatchDialect.PayloadImplementationContainerPrefix`. Shared

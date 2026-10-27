@@ -47,11 +47,12 @@ namespace SparseTypes
     public enum ChangePayloadValidationKind
     {
         Version = 0,
-        Changes = 1,
-        Duplicate = 2,
-        Endpoint = 3,
-        Item = 4,
-        Order = 5,
+        SchemaIdentity = 1,
+        Changes = 2,
+        Duplicate = 3,
+        Endpoint = 4,
+        Item = 5,
+        Order = 6,
     }
     public sealed class ChangePayloadValidationResult
     {
@@ -76,9 +77,11 @@ namespace SparseTypes
         public const string MembersProperty = "members";
         public const string MissingState = "missing";
         public const string NullState = "null";
+        public const string RecordedAtProperty = "recordedAt";
         public const string RedactedState = "redacted";
         public const string RemoveKind = "remove";
         public const string ReplaceKind = "replace";
+        public const string SchemaProperty = "schema";
         public const string StateProperty = "state";
         public const string TemporaryKeyProperty = "temporaryKey";
         public const string UpdateKind = "update";

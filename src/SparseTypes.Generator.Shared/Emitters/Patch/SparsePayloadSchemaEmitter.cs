@@ -180,6 +180,7 @@ internal static class SparsePayloadSchemaEmitter
                         context.Contract.EnvelopeSchemaIdentityPropertyName,
                         Object(("type", String("string")), ("pattern", String("^sha256:[0-9a-f]{64}$")))
                     ),
+                    (context.Contract.EnvelopeRecordedAtPropertyName, NullableDateTime(openApi31)),
                     (
                         context.Contract.EnvelopeChangePropertyName,
                         schema.Reference(modelChange, SchemaComponentName(context.ModelType, "ModelChange"))
@@ -542,6 +543,11 @@ internal static class SparsePayloadSchemaEmitter
 
     private static string SingleValue(string type, string value, bool openApi31) =>
         openApi31 ? Object(("type", String(type)), ("const", String(value))) : Object(("type", String(type)), ("enum", Array(String(value))));
+
+    private static string NullableDateTime(bool openApi31) =>
+        openApi31
+            ? Object(("type", Array(String("string"), String("null"))), ("format", String("date-time")))
+            : Object(("type", String("string")), ("format", String("date-time")), ("nullable", "true"));
 
     private static string BooleanTrue(bool openApi31) =>
         openApi31 ? Object(("type", String("boolean")), ("const", "true")) : Object(("type", String("boolean")), ("enum", Array("true")));

@@ -185,10 +185,10 @@ public sealed class GeneratedOnceDriverTests
             .Values.SelectMany(source => CSharpSyntaxTree.ParseText(source).GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
             .Where(declaration =>
                 declaration.Identifier.ValueText == "Between"
-                && declaration.ParameterList.Parameters.Count == 2
-                && declaration.ParameterList.Parameters.All(parameter =>
-                    parameter.Type?.ToString().EndsWith("ScalarModel", StringComparison.Ordinal) is true
-                )
+                && declaration.ParameterList.Parameters.Count == 3
+                && declaration
+                    .ParameterList.Parameters.Take(2)
+                    .All(parameter => parameter.Type?.ToString().EndsWith("ScalarModel", StringComparison.Ordinal) is true)
             )
             .Where(declaration => declaration.Body is not null && declaration.Body.ToString().Contains("before.Label", StringComparison.Ordinal))
             .ToArray();

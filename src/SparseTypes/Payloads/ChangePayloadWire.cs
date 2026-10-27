@@ -16,6 +16,9 @@ public static class ChangePayloadWire
     /// <summary>The envelope schema identity property name.</summary>
     public const string SchemaProperty = "schema";
 
+    /// <summary>The envelope recording-time property name.</summary>
+    public const string RecordedAtProperty = "recordedAt";
+
     /// <summary>The envelope change property name.</summary>
     public const string ChangeProperty = "change";
 

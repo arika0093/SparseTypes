@@ -217,6 +217,8 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLine(
             "public string? Schema { get; set; } = " + SymbolDisplay.FormatLiteral(SparsePayloadContract.Create(members).SchemaIdentity, true) + ";"
         );
+        code.AppendLine("/// <summary>Gets or sets the time this transition was recorded.</summary>");
+        code.AppendLine("public global::System.DateTimeOffset? RecordedAt { get; set; } = global::System.DateTimeOffset.UtcNow;");
         if (modelType is not null)
         {
             SparseChangeSetPayloadShapeEmitter.AppendChangeProperty(code, PayloadTypeName(dialect, modelType, "ModelChange"));
@@ -252,7 +254,15 @@ internal static class SparseChangeSetPayloadEmitter
             code.AppendLine("/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ToPatch\"/>.</remarks>");
             code.AppendLine("/// <param name=\"patch\">The patch to convert.</param>");
             code.AppendLine("/// <returns>The baseline-free command envelope.</returns>");
-            code.AppendLine("public static ChangePayload FromPatch(" + modelType + ".Patch patch)");
+            code.AppendLine(
+                "public static ChangePayload FromPatch(" + modelType + ".Patch patch) => FromPatch(patch, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Builds a baseline-free command envelope with an explicit recording time.</summary>");
+            code.AppendLine("/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ToPatch\"/>.</remarks>");
+            code.AppendLine("/// <param name=\"patch\">The patch to convert.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-free command envelope.</returns>");
+            code.AppendLine("public static ChangePayload FromPatch(" + modelType + ".Patch patch, global::System.DateTimeOffset? recordedAt)");
             code.OpenBlock();
             code.AppendLine("if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));");
             code.AppendLine(
@@ -260,7 +270,7 @@ internal static class SparseChangeSetPayloadEmitter
                     + SymbolDisplay.FormatLiteral(dialect.ChangePayloadVersion, true)
                     + ", Change = "
                     + PayloadTypeName(dialect, modelType, "Core")
-                    + ".FromPatchCore(patch).TypedChange };"
+                    + ".FromPatchCore(patch).TypedChange, RecordedAt = recordedAt };"
             );
             code.CloseBlock();
             SparseChangeSetPayloadProjectionEmitter.AppendRootToPatch(code, members, dialect, modelType);

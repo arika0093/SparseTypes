@@ -91,6 +91,7 @@ internal static class SparseChangeSetBasicsEmitter
     {
         // Canonical sparse storage is private; the nested ChangeSet.__Core
         // reads it directly.
+        code.AppendLine("private readonly global::System.DateTimeOffset? __sparse_recordedAt;");
         code.AppendLine("private readonly bool __sparse_hasWhole;");
         storage.AppendFields(code, "__sparse_wholeBefore", "Fragment?");
         storage.AppendFields(code, "__sparse_wholeAfter", "Fragment?");
@@ -181,10 +182,12 @@ internal static class SparseChangeSetBasicsEmitter
                 parts.Add("bool has" + member.Id);
             }
         }
+        parts.Add("global::System.DateTimeOffset? recordedAt = null");
         // The canonical-state constructor is private; the nested __Core builds
         // instances directly. No external container constructs ChangeSets.
         code.AppendLine("private ChangeSet(" + string.Join(", ", parts) + ")");
         code.OpenBlock();
+        code.AppendLine("__sparse_recordedAt = recordedAt;");
         code.AppendLine("__sparse_hasWhole = hasWhole;");
         storage.AppendAssignment(code, "__sparse_wholeBefore", "wholeBefore");
         storage.AppendAssignment(code, "__sparse_wholeAfter", "wholeAfter");
@@ -222,10 +225,57 @@ internal static class SparseChangeSetBasicsEmitter
         code.CloseBlock();
     }
 
+    internal static void AppendRecordedAtAccessors(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
+    {
+        code.AppendLine("/// <summary>Gets the time this transition was recorded.</summary>");
+        code.AppendLine("public global::System.DateTimeOffset? RecordedAt => __sparse_recordedAt;");
+        code.AppendLine("/// <summary>Returns a copy with the specified recording time.</summary>");
+        code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null to remove it.</param>");
+        code.AppendLine("/// <returns>A change set with unchanged transition data.</returns>");
+        code.AppendLine("public ChangeSet WithRecordedAt(global::System.DateTimeOffset? recordedAt)");
+        code.OpenBlock();
+        var cloneArgs = new List<string> { "__sparse_hasWhole", "__sparse_wholeBefore", "__sparse_wholeAfter" };
+        foreach (var member in members)
+        {
+            if (IsNested(member))
+            {
+                cloneArgs.Add(NestedField(member));
+            }
+            else if (IsKeyed(member) || IsDict(member))
+            {
+                cloneArgs.Add(HasField(member));
+                cloneArgs.Add(KeyedWholeFlag(member));
+                cloneArgs.Add(KeyedWholeBefore(member));
+                cloneArgs.Add(KeyedWholeAfter(member));
+                cloneArgs.Add(KeyedItems(member));
+                if (IsKeyed(member))
+                {
+                    cloneArgs.Add(KeyedBeforeOrder(member));
+                    cloneArgs.Add(KeyedAfterOrder(member));
+                    if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+                    {
+                        cloneArgs.Add(KeyedTempBeforeOrder(member));
+                        cloneArgs.Add(KeyedTempAfterOrder(member));
+                    }
+                }
+            }
+            else
+            {
+                cloneArgs.Add(BeforeField(member));
+                cloneArgs.Add(AfterField(member));
+                cloneArgs.Add(HasField(member));
+            }
+        }
+        cloneArgs.Add("recordedAt");
+        code.AppendLine("return new ChangeSet(" + string.Join(", ", cloneArgs) + ");");
+        code.CloseBlock();
+    }
+
     /// <summary>Aliases canonical facade state as locals for relocated bodies.</summary>
     /// <remarks>Relocated ChangeSet operations take the facade as an explicit <c>self</c> parameter.</remarks>
     internal static void AppendSelfAliases(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members, bool includeMemberState = true)
     {
+        code.AppendLine("var __sparse_recordedAt = self.RecordedAt;");
         code.AppendLine("var __sparse_hasWhole = self.__sparse_hasWhole;");
         code.AppendLine("var __sparse_wholeBefore = self.__sparse_wholeBefore;");
         code.AppendLine("var __sparse_wholeAfter = self.__sparse_wholeAfter;");

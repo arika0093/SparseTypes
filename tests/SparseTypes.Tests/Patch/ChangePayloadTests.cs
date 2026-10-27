@@ -146,7 +146,7 @@ public sealed class ChangePayloadTests
         var json = PayloadJsonTestSupport.Serialize(payload);
         using (var document = JsonDocument.Parse(json))
         {
-            document.RootElement.EnumerateObject().Select(property => property.Name).ShouldBe(["version", "schema", "change"]);
+            document.RootElement.EnumerateObject().Select(property => property.Name).ShouldBe(["version", "schema", "recordedAt", "change"]);
             var nested = document.RootElement.GetProperty("change").GetProperty("members").GetProperty("nested");
             nested.GetProperty("kind").GetString().ShouldBe("update");
             nested.GetProperty("members").GetProperty("host").GetProperty("kind").GetString().ShouldBe("replace");
@@ -442,13 +442,60 @@ public sealed class ChangePayloadTests
     [Test]
     public void Payload_WritesStableMinimalEnvelope()
     {
-        var empty = Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Missing, Optional<Settings.Fragment?>.Missing).ToPayload();
+        var empty = Settings.ChangeSet.Between(Optional<Settings.Fragment?>.Missing, Optional<Settings.Fragment?>.Missing, null).ToPayload();
         var json = PayloadJsonTestSupport.Serialize(empty);
         json.ShouldBe("{\"version\":\"0.1\",\"schema\":\"" + empty.Schema + "\",\"change\":{\"kind\":\"update\",\"members\":{}}}");
         var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
         restored.Version.ShouldBe("0.1");
+        restored.RecordedAt.ShouldBeNull();
         restored.Change!.Members!.Label.ShouldBeNull();
         restored.Change.Members.RetryCount.ShouldBeNull();
+    }
+
+    [Test]
+    public void PayloadPreservesRecordedAtAndAcceptsLegacyEnvelopesWithoutIt()
+    {
+        var recordedAt = new DateTimeOffset(2025, 1, 2, 3, 4, 5, TimeSpan.FromHours(5.5)).AddTicks(1234);
+        var before = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "before" }));
+        var after = Optional<Settings.Fragment?>.Present(Settings.Fragment.From(new Settings { Label = "after" }));
+        var payload = Settings.ChangeSet.Between(before, after, recordedAt).ToPayload();
+        var json = PayloadJsonTestSupport.Serialize(payload);
+
+        using var document = JsonDocument.Parse(json);
+        var wireTime = document.RootElement.GetProperty("recordedAt").GetDateTimeOffset();
+        wireTime.ShouldBe(recordedAt);
+        wireTime.Offset.ShouldBe(recordedAt.Offset);
+        document.RootElement.GetProperty("change").GetProperty("members").GetProperty("label").TryGetProperty("recordedAt", out _).ShouldBeFalse();
+        var restored = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(json);
+        restored.RecordedAt.ShouldBe(recordedAt);
+        restored.ToChangeSet().RecordedAt.ShouldBe(recordedAt);
+        restored.InvertReversibleChanges(out var skipped).RecordedAt.ShouldBe(recordedAt);
+        skipped.ShouldBeEmpty();
+
+        var legacyJson = PayloadJsonTestSupport.WithSchemaIdentity<Settings.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{}}}"""
+        );
+        var legacy = PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(legacyJson);
+        legacy.RecordedAt.ShouldBeNull();
+        legacy.ToChangeSet().RecordedAt.ShouldBeNull();
+        PayloadJsonTestSupport.Serialize(legacy).ShouldNotContain("\"recordedAt\"");
+
+        var explicitNull = Settings.ChangePayload.FromPatch(new Settings.Patch { Label = "command" }, null);
+        explicitNull.RecordedAt.ShouldBeNull();
+        var timestampedCommand = Settings.ChangePayload.FromPatch(new Settings.Patch { Label = "command" }, recordedAt);
+        timestampedCommand.RecordedAt.ShouldBe(recordedAt);
+    }
+
+    [Test]
+    [Arguments("\"recordedAt\":7")]
+    [Arguments("\"recordedAt\":\"not-a-time\"")]
+    [Arguments("\"recordedAt\":\"2025-01-02T03:04:05+05:30\"")]
+    public void PayloadRejectsMalformedRecordedAt(string recordedAtProperty)
+    {
+        var json = PayloadJsonTestSupport.WithSchemaIdentity<Settings.ChangePayload>("""{"version":"0.1","change":{"kind":"update","members":{}}}""");
+        var malformed = json.Replace("\"change\":", recordedAtProperty + ",\"change\":", StringComparison.Ordinal);
+
+        Should.Throw<System.Text.Json.JsonException>(() => PayloadJsonTestSupport.Deserialize<Settings.ChangePayload>(malformed));
     }
 
     [Test]

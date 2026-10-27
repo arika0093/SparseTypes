@@ -169,12 +169,20 @@ public sealed class FragmentOriginViewTests
 
         var attributedJson = JsonSerializer.Serialize(
             OriginSettings
-                .ChangeSet.Between(Optional<OriginSettings.Fragment?>.Present(first), Optional<OriginSettings.Fragment?>.Present(second))
+                .ChangeSet.Between(
+                    Optional<OriginSettings.Fragment?>.Present(first),
+                    Optional<OriginSettings.Fragment?>.Present(second),
+                    DateTimeOffset.UnixEpoch
+                )
                 .ToPayload()
         );
         var plainJson = JsonSerializer.Serialize(
             OriginSettings
-                .ChangeSet.Between(Optional<OriginSettings.Fragment?>.Present(plainFirst), Optional<OriginSettings.Fragment?>.Present(plainSecond))
+                .ChangeSet.Between(
+                    Optional<OriginSettings.Fragment?>.Present(plainFirst),
+                    Optional<OriginSettings.Fragment?>.Present(plainSecond),
+                    DateTimeOffset.UnixEpoch
+                )
                 .ToPayload()
         );
 

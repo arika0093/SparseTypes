@@ -362,7 +362,7 @@ internal static class SparseChangeSetMixedEmitter
         );
         code.OpenBlock();
         AppendVersionGuard(code, dialect);
-        code.AppendLine("return base.InvertReversibleChanges(out skippedPaths);");
+        code.AppendLine("return base.InvertReversibleChanges(out skippedPaths).WithRecordedAt(RecordedAt);");
         code.CloseBlock();
         code.AppendLine("/// <summary>Applies a mixed request to an ordinary model without committing a subset on conflict.</summary>");
         code.AppendLine("/// <remarks>Validates the envelope wire version before interpreting the payload.</remarks>");

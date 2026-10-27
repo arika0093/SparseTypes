@@ -43,14 +43,29 @@ internal static class SparseChangeSetPatchSyncEmitter
                     + optionalFragment
                     + " baseline, Patch patch) => "
                     + target.ChangeSetOperationsType
-                    + ".FromPatch(baseline, patch);"
+                    + ".FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Attaches a known baseline with an explicit recording time.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
+            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
+                "public static ChangeSet FromPatch("
+                    + optionalFragment
+                    + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt) => "
+                    + target.ChangeSetOperationsType
+                    + ".FromPatch(baseline, patch, recordedAt);"
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Attaches a known baseline to an arbitrary patch.</summary>");
             code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
             code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
             code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLine("internal static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch)");
+            code.AppendLine(
+                "internal static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
+            );
         }
         else
         {
@@ -58,12 +73,24 @@ internal static class SparseChangeSetPatchSyncEmitter
             code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
             code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
             code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLine("public static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch)");
+            code.AppendLine(
+                "public static ChangeSet FromPatch("
+                    + optionalFragment
+                    + " baseline, Patch patch) => FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Attaches a known baseline with an explicit recording time.</summary>");
+            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
+            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+            code.AppendLine(
+                "public static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
+            );
         }
         code.OpenBlock();
         code.AppendLine("if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));");
         code.AppendLine("var after = patch.Apply(baseline);");
-        code.AppendLine("return Between(baseline, after);");
+        code.AppendLine("return Between(baseline, after, recordedAt);");
         code.CloseBlock();
         if (modelType is not null)
         {
@@ -73,8 +100,11 @@ internal static class SparseChangeSetPatchSyncEmitter
                 code.AppendLine("/// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>");
                 code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
                 code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
                 code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
-                code.AppendLine("internal static ChangeSet FromPatch(" + modelType + " baseline, Patch patch)");
+                code.AppendLine(
+                    "internal static ChangeSet FromPatch(" + modelType + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
+                );
             }
             else
             {
@@ -82,10 +112,22 @@ internal static class SparseChangeSetPatchSyncEmitter
                 code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
                 code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
                 code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
-                code.AppendLine("public static ChangeSet FromPatch(" + modelType + " baseline, Patch patch)");
+                code.AppendLine(
+                    "public static ChangeSet FromPatch("
+                        + modelType
+                        + " baseline, Patch patch) => FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);"
+                );
+                code.AppendLine("/// <summary>Attaches a model baseline with an explicit recording time.</summary>");
+                code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
+                code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+                code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+                code.AppendLine(
+                    "public static ChangeSet FromPatch(" + modelType + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
+                );
             }
             code.OpenBlock();
-            code.AppendLine("return FromPatch(" + optionalFragment + ".Present(Fragment.From(baseline)), patch);");
+            code.AppendLine("return FromPatch(" + optionalFragment + ".Present(Fragment.From(baseline)), patch, recordedAt);");
             code.CloseBlock();
             if (target is not null)
             {
@@ -98,7 +140,19 @@ internal static class SparseChangeSetPatchSyncEmitter
                         + modelType
                         + " baseline, Patch patch) => "
                         + target.ChangeSetOperationsType
-                        + ".FromPatch(baseline, patch);"
+                        + ".FromPatch(baseline, patch, global::System.DateTimeOffset.UtcNow);"
+                );
+                shell.AppendLine("/// <summary>Attaches a model baseline with an explicit recording time.</summary>");
+                shell.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
+                shell.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
+                shell.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+                shell.AppendLine("/// <returns>The baseline-aware change set.</returns>");
+                shell.AppendLine(
+                    "public static ChangeSet FromPatch("
+                        + modelType
+                        + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt) => "
+                        + target.ChangeSetOperationsType
+                        + ".FromPatch(baseline, patch, recordedAt);"
                 );
             }
         }
@@ -249,16 +303,17 @@ internal static class SparseChangeSetPatchSyncEmitter
         {
             AppendSelfAliases(code, members);
         }
+        var recordedAt = target is null ? "RecordedAt" : "__sparse_recordedAt";
         var emptyTail = MemberEmptyTail(members);
         code.AppendLine("if (__sparse_hasWhole)");
         code.OpenBlock();
         if (string.IsNullOrEmpty(emptyTail))
         {
-            code.AppendLine("return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore);");
+            code.AppendLine("return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, " + recordedAt + ");");
         }
         else
         {
-            code.AppendLine("return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, " + emptyTail + ");");
+            code.AppendLine("return new ChangeSet(true, __sparse_wholeAfter, __sparse_wholeBefore, " + emptyTail + ", " + recordedAt + ");");
         }
 
         code.CloseBlock();
@@ -303,6 +358,7 @@ internal static class SparseChangeSetPatchSyncEmitter
                 args.AddRange(new[] { AfterField(member), BeforeField(member), HasField(member) });
             }
         }
+        args.Add(recordedAt);
         code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
         code.CloseBlock();
     }

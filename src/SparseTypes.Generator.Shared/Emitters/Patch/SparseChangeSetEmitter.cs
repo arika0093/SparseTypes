@@ -64,6 +64,7 @@ internal static class SparseChangeSetEmitter
         using var privateDeferred = changeSetCore is null ? null : new SharedIndentedBuilder(code.CancellationToken);
         var storageCode = privateDeferred ?? code;
         var storage = new SparseChangeSetStorageLayout(members, runtime);
+        SparseChangeSetBasicsEmitter.AppendRecordedAtAccessors(code, members);
         SparseChangeSetBasicsEmitter.AppendFields(storageCode, members, dialect, storage);
         SparseChangeSetBasicsEmitter.AppendConstructor(storageCode, members, runtime, optionalFragment, dialect, storage);
         SparseChangeSetBasicsEmitter.AppendIsEmpty(code, members);

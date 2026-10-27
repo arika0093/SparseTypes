@@ -56,10 +56,38 @@ internal static class SparseChangeSetBetweenEmitter
                     + optionalFragment
                     + " after) => "
                     + target.ChangeSetOperationsType
-                    + ".Between(before, after);"
+                    + ".Between(before, after, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Derives a diff with an explicit recording time.</summary>");
+            code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
+                "public static ChangeSet Between("
+                    + optionalFragment
+                    + " before, "
+                    + optionalFragment
+                    + " after, global::System.DateTimeOffset? recordedAt) => "
+                    + target.ChangeSetOperationsType
+                    + ".Between(before, after, recordedAt);"
             );
             // The algorithm body below streams into the operation container.
             code = target.ChangeSetOperations;
+        }
+        else
+        {
+            code.AppendLine("/// <summary>Derives the canonical baseline-aware diff between two states.</summary>");
+            code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
+                "public static ChangeSet Between("
+                    + optionalFragment
+                    + " before, "
+                    + optionalFragment
+                    + " after) => Between(before, after, global::System.DateTimeOffset.UtcNow);"
+            );
         }
         // Empty storage contains no retained endpoints or mutable containers.
         code.AppendLine("private static readonly ChangeSet " + emptyName + " = new ChangeSet(" + empty + ");");
@@ -80,28 +108,39 @@ internal static class SparseChangeSetBetweenEmitter
         code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
         code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
         code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+        code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
         code.AppendLine(
             (target is null ? "public static ChangeSet Between(" : "internal static ChangeSet Between(")
                 + optionalFragment
                 + " before, "
                 + optionalFragment
-                + " after)"
+                + " after, global::System.DateTimeOffset? recordedAt)"
         );
         code.OpenBlock();
         code.AppendLine("if (before.IsPresent != after.IsPresent)");
         code.OpenBlock();
-        code.AppendLine("return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), " + MemberEmptyTail(members) + ");");
+        code.AppendLine(
+            "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
+                + MemberEmptyTail(members)
+                + (members.IsDefaultOrEmpty || members.Length == 0 ? "" : ", ")
+                + "recordedAt);"
+        );
         code.CloseBlock();
-        code.AppendLine("if (!before.IsPresent) return " + emptyName + ";");
-        code.AppendLine("if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return " + emptyName + ";");
+        code.AppendLine("if (!before.IsPresent) return " + emptyName + ".WithRecordedAt(recordedAt);");
+        code.AppendLine("if (global::System.Object.ReferenceEquals(before.Value, after.Value)) return " + emptyName + ".WithRecordedAt(recordedAt);");
         code.AppendLine("if (before.Value is null || after.Value is null)");
         code.OpenBlock();
-        code.AppendLine("if (before.Value is null && after.Value is null) return " + emptyName + ";");
-        code.AppendLine("return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), " + MemberEmptyTail(members) + ");");
+        code.AppendLine("if (before.Value is null && after.Value is null) return " + emptyName + ".WithRecordedAt(recordedAt);");
+        code.AppendLine(
+            "return new ChangeSet(true, __SparseCloneRoot(before), __SparseCloneRoot(after), "
+                + MemberEmptyTail(members)
+                + (members.IsDefaultOrEmpty || members.Length == 0 ? "" : ", ")
+                + "recordedAt);"
+        );
         code.CloseBlock();
         if (members.IsDefaultOrEmpty || members.Length == 0)
         {
-            code.AppendLine("return " + emptyName + ";");
+            code.AppendLine("return " + emptyName + ".WithRecordedAt(recordedAt);");
             code.CloseBlock();
             return;
         }
@@ -113,7 +152,7 @@ internal static class SparseChangeSetBetweenEmitter
             if (IsNested(member))
             {
                 var child = ChildChangeSet(member, dialect);
-                code.AppendLine("var __n" + member.Id + " = " + child + ".Between(bf." + name + ", af." + name + ");");
+                code.AppendLine("var __n" + member.Id + " = " + child + ".Between(bf." + name + ", af." + name + ", null);");
                 code.AppendLine(child + "? __nn" + member.Id + " = __n" + member.Id + ".IsEmpty ? null : __n" + member.Id + ";");
             }
             else if (IsKeyed(member))
@@ -152,7 +191,7 @@ internal static class SparseChangeSetBetweenEmitter
                 conds.Add("!__h" + member.Id);
             }
         }
-        code.AppendLine("if (" + string.Join(" && ", conds) + ") return " + emptyName + ";");
+        code.AppendLine("if (" + string.Join(" && ", conds) + ") return " + emptyName + ".WithRecordedAt(recordedAt);");
         var args = new List<string> { "false", "default", "default" };
         foreach (var member in members)
         {
@@ -185,6 +224,7 @@ internal static class SparseChangeSetBetweenEmitter
                 args.AddRange(new[] { "__b" + member.Id, "__a" + member.Id, "__h" + member.Id });
             }
         }
+        args.Add("recordedAt");
         code.AppendLine("return new ChangeSet(" + string.Join(", ", args) + ");");
         code.CloseBlock();
     }
@@ -212,14 +252,31 @@ internal static class SparseChangeSetBetweenEmitter
                     + modelType
                     + " after) => "
                     + target.ChangeSetOperationsType
-                    + ".Between(before, after);"
+                    + ".Between(before, after, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Derives a model diff with an explicit recording time.</summary>");
+            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
+                "public static ChangeSet Between("
+                    + modelType
+                    + " before, "
+                    + modelType
+                    + " after, global::System.DateTimeOffset? recordedAt) => "
+                    + target.ChangeSetOperationsType
+                    + ".Between(before, after, recordedAt);"
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>");
             code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
             code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
             code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLine("internal static ChangeSet Between(" + modelType + " before, " + modelType + " after)");
+            code.AppendLine(
+                "internal static ChangeSet Between(" + modelType + " before, " + modelType + " after, global::System.DateTimeOffset? recordedAt)"
+            );
         }
         else
         {
@@ -227,16 +284,30 @@ internal static class SparseChangeSetBetweenEmitter
             code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
             code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
             code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
-            code.AppendLine("public static ChangeSet Between(" + modelType + " before, " + modelType + " after)");
+            code.AppendLine(
+                "public static ChangeSet Between("
+                    + modelType
+                    + " before, "
+                    + modelType
+                    + " after) => Between(before, after, global::System.DateTimeOffset.UtcNow);"
+            );
+            code.AppendLine("/// <summary>Derives a model diff with an explicit recording time.</summary>");
+            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+            code.AppendLine(
+                "public static ChangeSet Between(" + modelType + " before, " + modelType + " after, global::System.DateTimeOffset? recordedAt)"
+            );
         }
         code.OpenBlock();
         if (SparseChangeSetModelBetweenEmitter.CanCompareDirectly(members))
         {
-            SparseChangeSetModelBetweenEmitter.AppendBody(code, members, modelIsReferenceType, runtime, optionalFragment);
+            SparseChangeSetModelBetweenEmitter.AppendBody(code, members, modelIsReferenceType, runtime, optionalFragment, "recordedAt");
         }
         else
         {
-            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(code, optionalFragment, modelIsReferenceType, members);
+            SparseChangeSetModelBetweenEmitter.AppendProjectedReturn(code, optionalFragment, modelIsReferenceType, members, "recordedAt");
         }
 
         code.CloseBlock();

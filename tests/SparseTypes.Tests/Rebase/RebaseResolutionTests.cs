@@ -6,12 +6,7 @@ namespace SparseTypes.Tests;
 /// <remarks>Generic consumer coverage.</remarks>
 public sealed class RebaseResolutionTests
 {
-    private static ResOrder Order(
-        string number = "n",
-        decimal price = 1m,
-        string? note = "a",
-        int? retry = null
-    ) =>
+    private static ResOrder Order(string number = "n", decimal price = 1m, string? note = "a", int? retry = null) =>
         new()
         {
             Number = number,
@@ -20,14 +15,11 @@ public sealed class RebaseResolutionTests
             Retry = retry,
         };
 
-    private static Optional<ResOrder.Fragment?> OrderState(ResOrder model) =>
-        Optional<ResOrder.Fragment?>.Present(ResOrder.Fragment.From(model));
+    private static Optional<ResOrder.Fragment?> OrderState(ResOrder model) => Optional<ResOrder.Fragment?>.Present(ResOrder.Fragment.From(model));
 
-    private static string Describe(IEnumerable<SparseConflict> conflicts) =>
-        string.Join(";", conflicts.Select(static conflict => conflict.PathText));
+    private static string Describe(IEnumerable<SparseConflict> conflicts) => string.Join(";", conflicts.Select(static conflict => conflict.PathText));
 
-    private static string DescribePaths(IEnumerable<SparsePath> paths) =>
-        string.Join(";", paths.Select(static path => path.ToString()));
+    private static string DescribePaths(IEnumerable<SparsePath> paths) => string.Join(";", paths.Select(static path => path.ToString()));
 
     private static SparsePath MissingOrderPath() => SparsePath.Root<ResOrder>().Member("Missing");
 
@@ -78,7 +70,8 @@ public sealed class RebaseResolutionTests
         var edited = Order(price: 2m, note: "b");
         var current = Order(price: 3m, note: "c");
 
-        var rebase = baseModel.CreateChangeSet(edited).RebaseOnto(OrderState(current));
+        var recordedAt = new DateTimeOffset(2025, 1, 2, 3, 4, 5, TimeSpan.FromHours(5.5));
+        var rebase = ResOrder.ChangeSet.Between(OrderState(baseModel), OrderState(edited), recordedAt).RebaseOnto(OrderState(current));
         var resolution = new ResOrder.ChangeSet.Resolution(rebase, OrderState(current));
 
         resolution.UseIncoming(ResOrder.SparsePath.Price);
@@ -87,8 +80,10 @@ public sealed class RebaseResolutionTests
         built.ShouldBeTrue($"failure: {failure?.Reason}");
         failure.ShouldBeNull();
         resolved.ShouldNotBeNull();
+        var resolvedChange = resolved!;
+        resolvedChange.RecordedAt.ShouldBe(recordedAt);
 
-        var applied = resolved!.ToPatch().Apply(OrderState(current));
+        var applied = resolvedChange.ToPatch().Apply(OrderState(current));
         applied.IsPresent.ShouldBeTrue();
         var model = applied.Value!.ToModel();
         model.Price.ShouldBe(2m);
@@ -126,9 +121,7 @@ public sealed class RebaseResolutionTests
 
         resolution.UseIncoming(ResOrder.SparsePath.Price);
         resolution.UseCurrent(ResOrder.SparsePath.Note);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         // Retry was a clean rebased edit; it must survive alongside both
         // resolutions.
@@ -175,9 +168,7 @@ public sealed class RebaseResolutionTests
         var resolution = ResOrder.ChangeSet.BeginResolution(rebase, current);
 
         Should.Throw<InvalidOperationException>(() => resolution.UseIncoming(MissingOrderPath()));
-        Should.Throw<InvalidOperationException>(() =>
-            resolution.Remove(SparsePath.Root<ResOrder>())
-        );
+        Should.Throw<InvalidOperationException>(() => resolution.Remove(SparsePath.Root<ResOrder>()));
         resolution.ClearDecision(MissingOrderPath()).ShouldBeFalse();
     }
 
@@ -193,24 +184,19 @@ public sealed class RebaseResolutionTests
         {
             Labels = new HashSet<string> { "x", "y", "z" },
         };
-        Optional<ResLabels.Fragment?> State(ResLabels model) =>
-            Optional<ResLabels.Fragment?>.Present(ResLabels.Fragment.From(model));
+        Optional<ResLabels.Fragment?> State(ResLabels model) => Optional<ResLabels.Fragment?>.Present(ResLabels.Fragment.From(model));
 
         // Set conflicts stay member-level.
         var rebase = baseLabels.CreateChangeSet(edited).RebaseOnto(State(current));
         var resolution = ResLabels.ChangeSet.BeginResolution(rebase, current);
         SparsePath element = ResLabels.SparsePath.Labels.Element("x");
         Should.Throw<InvalidOperationException>(() => resolution.Remove(element));
-        Should.Throw<InvalidOperationException>(() =>
-            resolution.SetValue(ResLabels.SparsePath.Labels.Element("x"), "x")
-        );
+        Should.Throw<InvalidOperationException>(() => resolution.SetValue(ResLabels.SparsePath.Labels.Element("x"), "x"));
 
         // Whole-member removal is exact and builds.
         SparsePath member = ResLabels.SparsePath.Labels;
         resolution.Remove(member);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
         var entry = resolved!.EnumerateChanges().Single();
         entry.Kind.ShouldBe(ResLabels.ChangeSet.ChangeKind.Removed);
     }
@@ -261,8 +247,7 @@ public sealed class RebaseResolutionTests
             Label = "c",
             Customer = new ResCustomer { Name = "Cat" },
         };
-        Optional<ResNestedRoot.Fragment?> State(ResNestedRoot model) =>
-            Optional<ResNestedRoot.Fragment?>.Present(ResNestedRoot.Fragment.From(model));
+        Optional<ResNestedRoot.Fragment?> State(ResNestedRoot model) => Optional<ResNestedRoot.Fragment?>.Present(ResNestedRoot.Fragment.From(model));
 
         var rebase = baseRoot.CreateChangeSet(edited).RebaseOnto(State(current));
         Describe(rebase.Conflicts).ShouldBe("Customer.Name;Label");
@@ -277,9 +262,7 @@ public sealed class RebaseResolutionTests
         // Ancestor UseIncoming fans out to the leaf below it.
         resolution.UseIncoming(customer);
         resolution.UseCurrent(ResNestedRoot.SparsePath.Label);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.Label.ShouldBe("c");
@@ -290,18 +273,10 @@ public sealed class RebaseResolutionTests
         second.UseCurrent(customer);
         second.UseCurrent(ResNestedRoot.SparsePath.Label);
         second.UseIncoming(ResNestedRoot.SparsePath.Customer.Name);
-        var wholeCustomer = new SparsePath<ResNestedRoot, ResCustomer?>(
-            ResNestedRoot.SparsePath.Customer
-        );
-        Should.Throw<InvalidOperationException>(() =>
-            second.SetValue(wholeCustomer, new ResCustomer { Name = "Dan" })
-        );
+        var wholeCustomer = new SparsePath<ResNestedRoot, ResCustomer?>(ResNestedRoot.SparsePath.Customer);
+        Should.Throw<InvalidOperationException>(() => second.SetValue(wholeCustomer, new ResCustomer { Name = "Dan" }));
         second.TryBuild(out var secondResolved, out _).ShouldBeTrue();
-        secondResolved!
-            .ToPatch()
-            .Apply(State(current))
-            .Value!.ToModel()
-            .Customer!.Name.ShouldBe("Bob");
+        secondResolved!.ToPatch().Apply(State(current)).Value!.ToModel().Customer!.Name.ShouldBe("Bob");
     }
 
     [Test]
@@ -330,24 +305,18 @@ public sealed class RebaseResolutionTests
                 new ResItem { Id = "b", Price = 30m },
             },
         };
-        Optional<ResRoster.Fragment?> State(ResRoster model) =>
-            Optional<ResRoster.Fragment?>.Present(ResRoster.Fragment.From(model));
+        Optional<ResRoster.Fragment?> State(ResRoster model) => Optional<ResRoster.Fragment?>.Present(ResRoster.Fragment.From(model));
 
         var rebase = baseRoster.CreateChangeSet(edited).RebaseOnto(State(current));
         var paths = Describe(rebase.Conflicts);
-        paths.ShouldBe(
-            "Items[\"b\"].Price;Items[\"a\"]",
-            $"keyed conflicts carry element identity, got: {paths}"
-        );
+        paths.ShouldBe("Items[\"b\"].Price;Items[\"a\"]", $"keyed conflicts carry element identity, got: {paths}");
         var resolution = ResRoster.ChangeSet.BeginResolution(rebase, current);
 
         // Deletion wins for a; current wins for the b leaf.
         SparsePath deleted = ResRoster.SparsePath.Items.Key("a");
         resolution.UseIncoming(deleted);
         resolution.UseCurrent(ResRoster.SparsePath.Items.Key("b").Price);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.Items.Count.ShouldBe(1);
@@ -377,8 +346,7 @@ public sealed class RebaseResolutionTests
         {
             Scores = new() { ["a"] = 100, ["b"] = 20 },
         };
-        Optional<ResDict.Fragment?> State(ResDict model) =>
-            Optional<ResDict.Fragment?>.Present(ResDict.Fragment.From(model));
+        Optional<ResDict.Fragment?> State(ResDict model) => Optional<ResDict.Fragment?>.Present(ResDict.Fragment.From(model));
 
         var rebase = baseDict.CreateChangeSet(edited).RebaseOnto(State(current));
         var paths = Describe(rebase.Conflicts);
@@ -387,9 +355,7 @@ public sealed class RebaseResolutionTests
 
         resolution.UseIncoming(ResDict.SparsePath.Scores.Key("a"));
         resolution.UseIncoming(ResDict.SparsePath.Scores.Key("b"));
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.Scores.Count.ShouldBe(1);
@@ -417,8 +383,7 @@ public sealed class RebaseResolutionTests
         {
             Labels = new HashSet<string> { "x", "y", "z" },
         };
-        Optional<ResLabels.Fragment?> State(ResLabels model) =>
-            Optional<ResLabels.Fragment?>.Present(ResLabels.Fragment.From(model));
+        Optional<ResLabels.Fragment?> State(ResLabels model) => Optional<ResLabels.Fragment?>.Present(ResLabels.Fragment.From(model));
 
         var rebase = baseLabels.CreateChangeSet(edited).RebaseOnto(State(current));
         var paths = Describe(rebase.Conflicts);
@@ -427,9 +392,7 @@ public sealed class RebaseResolutionTests
 
         SparsePath labels = ResLabels.SparsePath.Labels;
         resolution.UseIncoming(labels);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.Labels.SetEquals(new[] { "y" }).ShouldBeTrue();
@@ -463,8 +426,7 @@ public sealed class RebaseResolutionTests
                 new ResItem { Id = "c", Price = 3m },
             },
         };
-        Optional<ResRoster.Fragment?> State(ResRoster model) =>
-            Optional<ResRoster.Fragment?>.Present(ResRoster.Fragment.From(model));
+        Optional<ResRoster.Fragment?> State(ResRoster model) => Optional<ResRoster.Fragment?>.Present(ResRoster.Fragment.From(model));
 
         var rebase = baseRoster.CreateChangeSet(edited).RebaseOnto(State(current));
         var paths = Describe(rebase.Conflicts);
@@ -473,9 +435,7 @@ public sealed class RebaseResolutionTests
 
         SparsePath items = ResRoster.SparsePath.Items;
         resolution.UseIncoming(items);
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
 
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.Items.Select(static item => item.Id).ShouldBe(["b", "a", "c"]);
@@ -488,41 +448,29 @@ public sealed class RebaseResolutionTests
         var edited = Order(price: 2m);
         var current = Order(price: 3m);
 
-        var rebase = baseModel
-            .CreateChangeSet(edited)
-            .RebaseOnto(Optional<ResOrder.Fragment?>.Missing);
+        var rebase = baseModel.CreateChangeSet(edited).RebaseOnto(Optional<ResOrder.Fragment?>.Missing);
         rebase.HasConflicts.ShouldBeTrue();
         rebase.Conflicts.Count.ShouldBe(1);
         rebase.Conflicts[0].Kind.ShouldBe(SparseConflictKind.WholeContribution);
         rebase.Conflicts[0].Path.IsRoot.ShouldBeTrue();
 
-        var resolution = ResOrder.ChangeSet.BeginResolution(
-            rebase,
-            Optional<ResOrder.Fragment?>.Missing
-        );
+        var resolution = ResOrder.ChangeSet.BeginResolution(rebase, Optional<ResOrder.Fragment?>.Missing);
         resolution.HasConflict(SparsePath.Root<ResOrder>()).ShouldBeTrue();
         resolution.GetState(SparsePath.Root<ResOrder>()).ShouldBe(SparseConflictState.Unresolved);
 
         resolution.UseCurrent(SparsePath.Root<ResOrder>());
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
         resolved!.IsEmpty.ShouldBeTrue();
     }
 
     [Test]
     public void Redacted_Conflicts_Keep_Current_And_Hide_Plaintext()
     {
-        var options = new ChangePayloadRebaseOptions
-        {
-            RejectChangesWithRedactedBeforeValuesDuringRebase = true,
-            RedactedBeforePaths = ["Password"],
-        };
+        var options = new ChangePayloadRebaseOptions { RejectChangesWithRedactedBeforeValuesDuringRebase = true, RedactedBeforePaths = ["Password"] };
         var baseSecret = new ResSecret { DisplayName = "a", Password = "p1" };
         var edited = new ResSecret { DisplayName = "b", Password = "p2" };
         var current = new ResSecret { DisplayName = "a", Password = "c" };
-        Optional<ResSecret.Fragment?> State(ResSecret model) =>
-            Optional<ResSecret.Fragment?>.Present(ResSecret.Fragment.From(model));
+        Optional<ResSecret.Fragment?> State(ResSecret model) => Optional<ResSecret.Fragment?>.Present(ResSecret.Fragment.From(model));
 
         var rebase = baseSecret.CreateChangeSet(edited).RebaseOnto(State(current), options);
         rebase.HasConflicts.ShouldBeTrue();
@@ -540,9 +488,7 @@ public sealed class RebaseResolutionTests
         Should.Throw<InvalidOperationException>(() => resolution.SetValue(password, "x"));
         resolution.UseCurrent(password);
 
-        resolution
-            .TryBuild(out var resolved, out var failure)
-            .ShouldBeTrue($"failure: {failure?.Reason}");
+        resolution.TryBuild(out var resolved, out var failure).ShouldBeTrue($"failure: {failure?.Reason}");
         var model = resolved!.ToPatch().Apply(State(current)).Value!.ToModel();
         model.DisplayName.ShouldBe("b");
         model.Password.ShouldBe("c");

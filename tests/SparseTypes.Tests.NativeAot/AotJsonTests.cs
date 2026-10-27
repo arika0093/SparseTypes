@@ -39,7 +39,12 @@ public sealed class AotJsonTests
         using (var document = JsonDocument.Parse(json))
         {
             await Assert
-                .That(document.RootElement.EnumerateObject().Select(property => property.Name).SequenceEqual(["version", "schema", "change"]))
+                .That(
+                    document
+                        .RootElement.EnumerateObject()
+                        .Select(property => property.Name)
+                        .SequenceEqual(["version", "schema", "recordedAt", "change"])
+                )
                 .IsTrue();
             await Assert.That(document.RootElement.GetProperty("version").GetString()).IsEqualTo("0.1");
             var change = document.RootElement.GetProperty("change");

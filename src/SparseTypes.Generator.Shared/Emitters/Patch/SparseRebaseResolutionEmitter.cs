@@ -261,7 +261,7 @@ internal static class SparseRebaseResolutionEmitter
         body.AppendLine("return false;");
         body.CloseBlock();
         body.CloseBlock();
-        body.AppendLine("resolved = ChangeSet.Between(current, workingRoot);");
+        body.AppendLine("resolved = ChangeSet.Between(current, workingRoot, rebase.Rebased.RecordedAt);");
         body.AppendLine("return true;");
         body.CloseBlock();
         body.AppendLine("if (!rebase.Rebased.__SparseBeforeMatches(current))");
@@ -300,7 +300,7 @@ internal static class SparseRebaseResolutionEmitter
         body.CloseBlock();
         body.AppendLine("working = updated;");
         body.CloseBlock();
-        body.AppendLine("resolved = ChangeSet.Between(current, " + optionalFragment + ".Present(working));");
+        body.AppendLine("resolved = ChangeSet.Between(current, " + optionalFragment + ".Present(working), rebase.Rebased.RecordedAt);");
         body.AppendLine("failureReason = null;");
         body.AppendLine("return true;");
         body.CloseBlock();

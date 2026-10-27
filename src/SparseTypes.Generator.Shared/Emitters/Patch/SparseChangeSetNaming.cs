@@ -13,6 +13,8 @@ internal static class SparseChangeSetNaming
         {
             "IsEmpty",
             "IsChanged",
+            "RecordedAt",
+            "WithRecordedAt",
             "EnumerateChangeRecords",
             "TryGetNestedChange",
             "TryGetValueChange",

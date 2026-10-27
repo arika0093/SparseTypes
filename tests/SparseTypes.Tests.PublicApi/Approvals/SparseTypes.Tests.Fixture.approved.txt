@@ -881,6 +881,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet ToChangeSet() { }
@@ -888,12 +890,14 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogDictionaries? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogDictionaries_7372D290SerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogDictionaries, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogDictionaries>
         {
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet.DetailsTransition Details { get; }
             public bool IsChanged { get; }
             public bool IsEmpty { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet.ScoresTransition Scores { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
@@ -911,13 +915,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogDictionaries? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogDictionaries? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogDictionaries current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogDictionaries before, SparseTypes.GeneratedApiFixtures.CatalogDictionaries after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogDictionaries before, SparseTypes.GeneratedApiFixtures.CatalogDictionaries after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -1154,6 +1163,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogDictionariesExtensions_14E9C38F
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogDictionaries model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogDictionaries.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogDictionaries baseline, SparseTypes.GeneratedApiFixtures.CatalogDictionaries current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogDictionaries.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -1174,6 +1184,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet ToChangeSet() { }
@@ -1181,6 +1193,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogImmutable? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogImmutable_4D88D0CCSerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogImmutable, SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogImmutable>
         {
@@ -1188,6 +1201,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool IsChanged { get; }
             public bool IsEmpty { get; }
             public SparseTypes.SparseValueTransition<string> Name { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public SparseTypes.SparseValueTransition<int[]?> Tags { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
@@ -1205,13 +1219,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogImmutable? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogImmutable current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogImmutable? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogImmutable current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogImmutable before, SparseTypes.GeneratedApiFixtures.CatalogImmutable after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogImmutable before, SparseTypes.GeneratedApiFixtures.CatalogImmutable after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogImmutable.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -1349,6 +1368,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogImmutableExtensions_F16D2821
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogImmutable model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogImmutable.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogImmutable baseline, SparseTypes.GeneratedApiFixtures.CatalogImmutable current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogImmutable.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -1370,6 +1390,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet ToChangeSet() { }
@@ -1377,6 +1399,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedItem? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedItem_66C0C1FDSerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem>
         {
@@ -1384,6 +1407,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public SparseTypes.SparseValueTransition<string> Id { get; }
             public bool IsChanged { get; }
             public bool IsEmpty { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public SparseTypes.SparseValueTransition<string> Title { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
@@ -1401,13 +1425,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedItem? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedItem? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem before, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem before, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -1546,6 +1575,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogKeyedItemExtensions_3E1875D0
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogKeyedItem model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogKeyedItem baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedItem current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogKeyedItem.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -1564,6 +1594,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet ToChangeSet() { }
@@ -1571,12 +1603,14 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogKeyedRoster_A157F841SerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster>
         {
             public bool IsChanged { get; }
             public bool IsEmpty { get; }
             public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet.ItemsTransition Items { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> ApplyToBaseline(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> baseline) { }
@@ -1593,13 +1627,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster before, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster before, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -1798,6 +1837,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogKeyedRosterExtensions_1D892D2C
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster baseline, SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogKeyedRoster.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -1825,6 +1865,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet ToChangeSet() { }
@@ -1832,6 +1874,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogNested current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogNested? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogNested_D948A6CBSerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogNested, SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogNested>
         {
@@ -1843,6 +1886,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public SparseTypes.SparseValueTransition<SparseTypes.GeneratedApiFixtures.CatalogPoco?> Metadata { get; }
             public SparseTypes.SparseValueTransition<System.Collections.Generic.Dictionary<SparseTypes.GeneratedApiFixtures.CatalogPoco, string>> MetadataByKey { get; }
             public SparseTypes.SparseValueTransition<System.Collections.Generic.List<SparseTypes.GeneratedApiFixtures.CatalogPoco?>> MetadataItems { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogNested current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> ApplyToBaseline(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> baseline) { }
@@ -1859,13 +1903,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogNested current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogNested current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogNested? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogNested current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogNested? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogNested current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogNested before, SparseTypes.GeneratedApiFixtures.CatalogNested after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogNested before, SparseTypes.GeneratedApiFixtures.CatalogNested after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogNested.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogNested.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogNested.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -2041,6 +2090,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogNestedExtensions_2459EB7C
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogNested.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogNested.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogNested model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogNested.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogNested baseline, SparseTypes.GeneratedApiFixtures.CatalogNested current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogNested.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -2068,6 +2118,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet ToChangeSet() { }
@@ -2075,11 +2127,13 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogReservedEnumeration_292919EBSerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration>
         {
             public bool IsChanged { get; }
             public bool IsEmpty { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public SparseTypes.SparseValueTransition<string> SparseChangeInfo { get; }
             public SparseTypes.SparseValueTransition<string> SparseChangeKind { get; }
             public SparseTypes.SparseValueTransition<string> SparseEnumerateChangedPaths { get; }
@@ -2100,13 +2154,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration before, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration before, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -2249,6 +2308,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogReservedEnumerationExtensions_C060E532
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration baseline, SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogReservedEnumeration.EditSession session, SparseTypes.SparsePath collectionPath) { }
@@ -2271,6 +2331,8 @@ namespace SparseTypes.GeneratedApiFixtures
         {
             public ChangePayload() { }
             public SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjects.ModelChange? Change { get; set; }
+            public System.DateTimeOffset? RecordedAt { get; set; }
+            public string? Schema { get; set; }
             public string? Version { get; set; }
             public new SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet InvertReversibleChanges(out System.Collections.Generic.IReadOnlyList<string> skippedPaths) { }
             public SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet ToChangeSet() { }
@@ -2278,6 +2340,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public new bool TryApplyMixedTo(SparseTypes.GeneratedApiFixtures.CatalogScalar current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogScalar? updated, out SparseTypes.Generated.SparseTypes_GeneratedApiFixtures_CatalogScalar_3CC48A0CSerializeObjects.Core.MixedApplyResult result) { }
             public new SparseTypes.ChangePayloadValidationResult Validate() { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload FromPatch(SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch, System.DateTimeOffset? recordedAt) { }
         }
         public sealed class ChangeSet : SparseTypes.ISparseChangeSet, SparseTypes.ISparseChangeSetPipeline<SparseTypes.GeneratedApiFixtures.CatalogScalar, SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet>, SparseTypes.ISparseChangeSet<SparseTypes.GeneratedApiFixtures.CatalogScalar>
         {
@@ -2287,6 +2350,7 @@ namespace SparseTypes.GeneratedApiFixtures
             public SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet.LabelsTransition Labels { get; }
             public SparseTypes.SparseValueTransition<string> Name { get; }
             public SparseTypes.SparseValueTransition<string?> Note { get; }
+            public System.DateTimeOffset? RecordedAt { get; }
             public SparseTypes.SparseValueTransition<int?> Retry { get; }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Empty { get; }
             public void ApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogScalar current, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
@@ -2304,13 +2368,18 @@ namespace SparseTypes.GeneratedApiFixtures
             public bool TryApplyInPlace(SparseTypes.GeneratedApiFixtures.CatalogScalar current, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogScalar current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogScalar? updated, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
             public bool TryApplyTo(SparseTypes.GeneratedApiFixtures.CatalogScalar current, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.GeneratedApiFixtures.CatalogScalar? updated, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts, SparseTypes.ChangePayloadRebaseOptions? options = null) { }
+            public SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet WithRecordedAt(System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet> rebase, SparseTypes.GeneratedApiFixtures.CatalogScalar current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet.Resolution BeginResolution(SparseTypes.RebaseResult<SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet> rebase, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> current) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogScalar before, SparseTypes.GeneratedApiFixtures.CatalogScalar after) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> after) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Between(SparseTypes.GeneratedApiFixtures.CatalogScalar before, SparseTypes.GeneratedApiFixtures.CatalogScalar after, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Between(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> before, SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> after, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet Compose(SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet first, SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet second) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch, System.DateTimeOffset? recordedAt) { }
+            public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPatch(SparseTypes.Optional<SparseTypes.GeneratedApiFixtures.CatalogScalar.Fragment?> baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar.Patch patch, System.DateTimeOffset? recordedAt) { }
             public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet FromPayload(SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangePayload payload) { }
             public static class ChangeKind
             {
@@ -2466,6 +2535,7 @@ namespace SparseTypes.GeneratedApiFixtures
     public static class CatalogScalarExtensions_FC484E03
     {
         public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar current) { }
+        public static SparseTypes.GeneratedApiFixtures.CatalogScalar.ChangeSet CreateChangeSet(this SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar current, System.DateTimeOffset? recordedAt) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogScalar.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogScalar model, System.Action? onChanged = null) { }
         public static SparseTypes.GeneratedApiFixtures.CatalogScalar.EditSession CreateEditSession(this SparseTypes.GeneratedApiFixtures.CatalogScalar baseline, SparseTypes.GeneratedApiFixtures.CatalogScalar current, System.Action? onChanged = null) { }
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.GeneratedApiFixtures.CatalogScalar.EditSession session, SparseTypes.SparsePath collectionPath) { }

@@ -118,6 +118,8 @@ internal sealed record SparsePayloadContract
 
     public string EnvelopeSchemaIdentityPropertyName { get; init; } = "schema";
 
+    public string EnvelopeRecordedAtPropertyName { get; init; } = "recordedAt";
+
     public string EnvelopeChangePropertyName { get; init; } = "change";
 
     public string OperationKindPropertyName { get; init; } = "kind";
@@ -154,6 +156,7 @@ internal sealed record SparsePayloadContract
         other is not null
         && EnvelopeVersionPropertyName == other.EnvelopeVersionPropertyName
         && EnvelopeSchemaIdentityPropertyName == other.EnvelopeSchemaIdentityPropertyName
+        && EnvelopeRecordedAtPropertyName == other.EnvelopeRecordedAtPropertyName
         && EnvelopeChangePropertyName == other.EnvelopeChangePropertyName
         && OperationKindPropertyName == other.OperationKindPropertyName
         && MembersPropertyName == other.MembersPropertyName
@@ -175,6 +178,7 @@ internal sealed record SparsePayloadContract
     {
         var hash = EnvelopeVersionPropertyName.GetHashCode();
         hash = unchecked(hash * 31 + EnvelopeSchemaIdentityPropertyName.GetHashCode());
+        hash = unchecked(hash * 31 + EnvelopeRecordedAtPropertyName.GetHashCode());
         hash = unchecked(hash * 31 + EnvelopeChangePropertyName.GetHashCode());
         hash = unchecked(hash * 31 + OperationKindPropertyName.GetHashCode());
         hash = unchecked(hash * 31 + MembersPropertyName.GetHashCode());
