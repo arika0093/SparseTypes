@@ -5,15 +5,15 @@ namespace SparseTypes.Tests;
 public sealed class EditSessionOwnedHistoryTests
 {
     [Test]
-    public void HistoryIsNullUntilEnabled()
+    public void HistoryThrowsUntilEnabled()
     {
         var model = new HistoryScalarModel { Name = "base" };
         var session = model.CreateEditSession();
 
-        session.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = session.History);
 
         session.Observable.Name = "after";
-        session.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = session.History);
         model.Name.ShouldBe("after");
     }
 
@@ -128,7 +128,7 @@ public sealed class EditSessionOwnedHistoryTests
 
         session.DisableHistory();
         availabilityChanges.ShouldBe(2);
-        session.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = session.History);
 
         // Disabling twice is a no-op with no further notification.
         session.DisableHistory();
@@ -395,7 +395,7 @@ public sealed class EditSessionOwnedHistoryTests
 
         var fork = session.Fork();
 
-        fork.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = fork.History);
         history.UndoCount.ShouldBe(1);
 
         fork.Observable.Name = "fork-edit";
@@ -417,7 +417,7 @@ public sealed class EditSessionOwnedHistoryTests
 
         var replacement = model.CreateEditSession();
 
-        replacement.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = replacement.History);
         history.UndoCount.ShouldBe(1);
 
         // The replacement observes its own transitions on the shared model;

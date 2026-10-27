@@ -28,4 +28,18 @@ internal static class DocsCheck
             throw new InvalidOperationException("Failed: " + capability);
         }
     }
+
+    public static void RequireThrowsInvalidOperation(Action action, string capability)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException("Failed: " + capability);
+    }
 }

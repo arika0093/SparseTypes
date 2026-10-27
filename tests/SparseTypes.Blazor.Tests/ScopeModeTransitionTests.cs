@@ -35,7 +35,7 @@ public sealed class ScopeModeTransitionTests
                 ? accessor.GetModelForFrameworkAccess()
                 : _inner.Model;
 
-        public ISparseEditHistory? History => ((ISparseEditSessionWithHistory)_inner).History;
+        public ISparseEditHistory History => ((ISparseEditSessionWithHistory)_inner).History;
 
         public event Action? HistoryChanged
         {

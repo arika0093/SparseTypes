@@ -14,7 +14,7 @@ Obtain a session with `model.CreateEditSession(onChanged: ...)` or `baseline.Cre
 | `long BaselineRevision` | Revision used to invalidate stale group submissions. |
 | `Paths` | Generated typed navigation rooted at T. |
 | `IDescriptorSet Descriptors` | Dynamic metadata/access entry point. |
-| `ISparseEditHistory? History` | Session-owned history, null until enabled. |
+| `ISparseEditHistory History` | Session-owned history; throws `InvalidOperationException` until enabled. |
 
 `Model` is available through `ISparseEditSession<T>`, not a normal concrete session property. Prefer Current for reads and Observable for edits. `GetModelForFrameworkAccess()` returns the live model for adapters that control raw access.
 

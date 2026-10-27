@@ -247,11 +247,18 @@ internal static class SparseEditSessionHistoryEmitter
         var ownedViewType = history.OwnedHistoryViewType is { Length: > 0 } ownedType
             ? ownedType + "<" + modelType + ".ChangeSet>"
             : "__OwnedHistoryView";
-        code.AppendLine("/// <summary>Gets the session-owned edit history, or null when history is not enabled.</summary>");
+        code.AppendLine("/// <summary>Gets the session-owned edit history.</summary>");
         code.AppendLine(
-            "/// <remarks>No history subscription or retained entries exist until <see cref=\"EnableHistory\"/> runs. Forked and new sessions start without history.</remarks>"
+            "/// <remarks>No history subscription or retained entries exist until <see cref=\"EnableHistory\"/> runs. Accessing this property before <see cref=\"EnableHistory\"/> or after <see cref=\"DisableHistory\"/> throws <see cref=\"global::System.InvalidOperationException\"/>. Forked and new sessions start without history. Use <see cref=\"EnableHistory\"/> to create it.</remarks>"
         );
-        code.AppendLine("public " + history.HistoryContractType + "? History => __ownedHistoryView;");
+        code.AppendLine(
+            "/// <exception cref=\"global::System.InvalidOperationException\">History is not enabled. Call <see cref=\"EnableHistory\"/> first.</exception>"
+        );
+        code.AppendLine(
+            "public "
+                + history.HistoryContractType
+                + " History => __ownedHistoryView ?? throw new global::System.InvalidOperationException(\"The session has no enabled history. Call EnableHistory() first.\");"
+        );
         code.AppendLine("/// <summary>Occurs when session-owned history availability changes.</summary>");
         code.AppendLine(
             "/// <remarks>Raised after <see cref=\"EnableHistory\"/> creates the history and after <see cref=\"DisableHistory\"/> releases it. Undo/redo stack changes raise <c>StateChanged</c> on the history itself.</remarks>"

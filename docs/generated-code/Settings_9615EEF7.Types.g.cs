@@ -346,9 +346,10 @@ public partial class Settings
             __histories.Add(history);
             return history;
         }
-        /// <summary>Gets the session-owned edit history, or null when history is not enabled.</summary>
-        /// <remarks>No history subscription or retained entries exist until <see cref="EnableHistory"/> runs. Forked and new sessions start without history.</remarks>
-        public global::SparseTypes.ISparseEditHistory? History => __ownedHistoryView;
+        /// <summary>Gets the session-owned edit history.</summary>
+        /// <remarks>No history subscription or retained entries exist until <see cref="EnableHistory"/> runs. Accessing this property before <see cref="EnableHistory"/> or after <see cref="DisableHistory"/> throws <see cref="global::System.InvalidOperationException"/>. Forked and new sessions start without history. Use <see cref="EnableHistory"/> to create it.</remarks>
+        /// <exception cref="global::System.InvalidOperationException">History is not enabled. Call <see cref="EnableHistory"/> first.</exception>
+        public global::SparseTypes.ISparseEditHistory History => __ownedHistoryView ?? throw new global::System.InvalidOperationException("The session has no enabled history. Call EnableHistory() first.");
         /// <summary>Occurs when session-owned history availability changes.</summary>
         /// <remarks>Raised after <see cref="EnableHistory"/> creates the history and after <see cref="DisableHistory"/> releases it. Undo/redo stack changes raise <c>StateChanged</c> on the history itself.</remarks>
         public event global::System.Action? HistoryChanged;

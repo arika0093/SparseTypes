@@ -177,7 +177,7 @@ For display tables, `SparseChangeRowProjection.Project(changes, options = null)`
 
 ## Edit history contract
 
-`session.EnableHistory(options)` enables session-owned Undo and Redo and sets `session.History`. Before `EnableHistory` or after `session.DisableHistory()`, `session.History` is `null`.
+`session.EnableHistory(options)` enables session-owned Undo and Redo and sets `session.History`. Accessing `session.History` before `EnableHistory` or after `session.DisableHistory()` throws `InvalidOperationException`.
 
 | Member | Description |
 | --- | --- |

@@ -917,7 +917,7 @@ public sealed class SparseSessionScopeTests
         await harness.SwapSessionAsync(second);
 
         first.HasPendingChildSessions.ShouldBeFalse();
-        first.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = first.History);
         harness.Consumer.ScopeContext.ShouldNotBeNull();
         harness
             .Consumer.ScopeContext.OpenChildSession(second, OrderDto.SparsePath.Customer)

@@ -186,7 +186,7 @@ public static class TutorialFirstEditSamples
     private static void HistoryFlow()
     {
         var probe = new UserSettings { Theme = "light" }.CreateEditSession();
-        DocsCheck.Require(probe.History is null, "history off by default");
+        DocsCheck.RequireThrowsInvalidOperation(() => _ = probe.History, "history off by default");
 
         // sample: tutorial-history
         var historyModel = new UserSettings { Theme = "light", RefreshInterval = 60 };
@@ -209,7 +209,7 @@ public static class TutorialFirstEditSamples
         history.Redo();
         DocsCheck.Require(historyModel.RefreshInterval == 120, "redo reapplies edit");
         historySession.DisableHistory();
-        DocsCheck.Require(historySession.History is null, "disable releases history");
+        DocsCheck.RequireThrowsInvalidOperation(() => _ = historySession.History, "disable releases history");
     }
 }
 

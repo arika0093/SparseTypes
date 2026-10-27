@@ -7,9 +7,9 @@ namespace SparseTypes;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public interface ISparseEditSessionWithHistory
 {
-    /// <summary>Gets the session-owned history, or null when history is not enabled.</summary>
-    /// <remarks>No history subscription or retained entries exist until <c>EnableHistory</c> runs.</remarks>
-    ISparseEditHistory? History { get; }
+    /// <summary>Gets the session-owned history.</summary>
+    /// <remarks>No history subscription or retained entries exist until <c>EnableHistory</c> runs. Accessing this property before <c>EnableHistory</c> or after <c>DisableHistory</c> throws <see cref="InvalidOperationException"/>.</remarks>
+    ISparseEditHistory History { get; }
 
     /// <summary>Raised after <c>EnableHistory</c> creates the history and after <c>DisableHistory</c> releases it.</summary>
     event System.Action? HistoryChanged;

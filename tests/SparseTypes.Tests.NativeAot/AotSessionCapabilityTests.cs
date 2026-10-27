@@ -39,7 +39,7 @@ public sealed class AotSessionCapabilityTests
         await Assert.That(descriptors.TryGet(nameof(PayloadRoot.Label), out _)).IsTrue();
 
         historyOwner.DisableHistory();
-        await Assert.That(historyOwner.History is null).IsTrue();
+        await Assert.That(() => _ = historyOwner.History).Throws<InvalidOperationException>();
     }
 
     [Test]

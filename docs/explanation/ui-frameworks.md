@@ -63,14 +63,13 @@ Use `session.BatchEdit(() => { ... })` when a single user action modifies severa
 
 ### Session-owned Undo and Redo history
 
-Undo and Redo history is part of the framework-neutral session and works in any UI framework or console app. The session retains no history entries until you call `EnableHistory()`, and `session.History` remains `null` before `EnableHistory()` and after `DisableHistory()`:
+Undo and Redo history is part of the framework-neutral session and works in any UI framework or console app. The session retains no history entries until you call `EnableHistory()`, and accessing `session.History` before `EnableHistory()` or after `DisableHistory()` throws `InvalidOperationException`:
 
 <!-- sample: ui-history -->
 ```csharp
 var historyOrder = new UiOrder { Number = "ORD-1" };
 var historySession = historyOrder.CreateEditSession();
 
-// historySession.History == null
 var history = historySession.EnableHistory(new EditHistoryOptions { MaxEntries = 20 });
 
 historySession.Observable.Number = "ORD-2";
@@ -83,7 +82,7 @@ history.Redo();
 // historyOrder.Number == "ORD-2"
 
 historySession.DisableHistory();
-// historySession.History == null
+// historySession.History throws InvalidOperationException when disabled
 ```
 <!-- /sample -->
 

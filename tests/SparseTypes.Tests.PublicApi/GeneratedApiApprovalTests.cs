@@ -233,13 +233,13 @@ public sealed class GeneratedApiApprovalTests
         }
 
         var ownedSession = new CatalogScalar().CreateEditSession();
-        ownedSession.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = ownedSession.History);
         var history = ownedSession.EnableHistory();
         history.ShouldNotBeNull();
         ReferenceEquals(history, ownedSession.History).ShouldBeTrue();
         (history is IDisposable).ShouldBeFalse();
         ownedSession.DisableHistory();
-        ownedSession.History.ShouldBeNull();
+        Should.Throw<InvalidOperationException>(() => _ = ownedSession.History);
     }
 
     [Test]

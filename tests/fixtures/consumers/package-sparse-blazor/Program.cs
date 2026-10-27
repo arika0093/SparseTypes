@@ -121,6 +121,20 @@ internal static class DocsCheck
             throw new InvalidOperationException("Failed: " + capability);
         }
     }
+
+    public static void RequireThrowsInvalidOperation(Action action, string capability)
+    {
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException("Failed: " + capability);
+    }
 }
 
 public static class UiDocSamples
@@ -143,7 +157,6 @@ public static class UiDocSamples
         var historyOrder = new UiOrder { Number = "ORD-1" };
         var historySession = historyOrder.CreateEditSession();
 
-        // historySession.History == null
         var history = historySession.EnableHistory(new EditHistoryOptions { MaxEntries = 20 });
 
         historySession.Observable.Number = "ORD-2";
@@ -159,9 +172,9 @@ public static class UiDocSamples
         DocsCheck.Require(historyOrder.Number == "ORD-2", "redo reapplies");
 
         historySession.DisableHistory();
-        // historySession.History == null
+        // historySession.History throws InvalidOperationException when disabled
         // /sample
-        DocsCheck.Require(historySession.History is null, "disable releases");
+        DocsCheck.RequireThrowsInvalidOperation(() => _ = historySession.History, "disable releases");
     }
 
     private static void BlazorFormInput()

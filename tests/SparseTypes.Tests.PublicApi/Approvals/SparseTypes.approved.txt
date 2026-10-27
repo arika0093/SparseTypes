@@ -370,7 +370,7 @@ namespace SparseTypes
     }
     public interface ISparseEditSessionWithHistory
     {
-        SparseTypes.ISparseEditHistory? History { get; }
+        SparseTypes.ISparseEditHistory History { get; }
         event System.Action? HistoryChanged;
         void DisableHistory();
         SparseTypes.ISparseEditHistory EnableHistory(SparseTypes.EditHistoryOptions? options = null);
