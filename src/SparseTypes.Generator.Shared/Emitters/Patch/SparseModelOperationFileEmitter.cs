@@ -59,6 +59,7 @@ internal static class SparseModelOperationFileEmitter
     public static void OpenOperations(SharedIndentedBuilder code, string simpleName, string backedFacade)
     {
         code.AppendLine("/// <summary>Model-specific " + backedFacade + " algorithms backing the thin model facade.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal static class " + simpleName);
         code.OpenBlock();
     }

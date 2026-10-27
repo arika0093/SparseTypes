@@ -50,7 +50,10 @@ internal static class SparseChangeSetFindEmitter
         var enumerate = target is null ? "EnumerateChanges()" : "EnumerateChanges(self)";
         var visibility = target is null ? "public" : "internal static";
         code.AppendLine("/// <summary>Finds the entry at exactly the given path, or null when absent.</summary>");
-        code.AppendLine("/// <remarks>Exact paths only; ancestors and descendants never match.</remarks>");
+        if (target is null)
+        {
+            code.AppendLine("/// <remarks>Exact paths only; ancestors and descendants never match.</remarks>");
+        }
         code.AppendLine(visibility + " " + recordType + "? Find(" + receiver + pathType + " path)");
         code.OpenBlock();
         if (!dialect.PathIsValueType)
@@ -92,9 +95,12 @@ internal static class SparseChangeSetFindEmitter
         }
 
         code.AppendLine("/// <summary>Finds the entry at exactly the given typed path, or null when absent.</summary>");
-        code.AppendLine(
-            "/// <remarks>Exact paths only; ancestors and descendants never match. The path root and value types are checked at compile time.</remarks>"
-        );
+        if (target is null)
+        {
+            code.AppendLine(
+                "/// <remarks>Exact paths only; ancestors and descendants never match. The path root and value types are checked at compile time.</remarks>"
+            );
+        }
         code.AppendLine(
             visibility
                 + " "

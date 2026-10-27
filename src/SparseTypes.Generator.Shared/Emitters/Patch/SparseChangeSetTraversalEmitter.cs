@@ -73,9 +73,6 @@ internal static class SparseChangeSetTraversalEmitter
     )
     {
         code.AppendLine("/// <summary>Collects flattened transitions into the caller's sink (enumeration infrastructure).</summary>");
-        code.AppendLine("/// <param name=\"__sparse_sink\">Receives boxed endpoints plus the change-kind index for each leaf.</param>");
-        code.AppendLine("/// <param name=\"__sparse_path_sink\">Receives paths without projecting or boxing endpoints.</param>");
-        code.AppendLine("/// <param name=\"__sparse_scratch\">Push/pop segment buffer owned by the root enumeration.</param>");
         code.AppendLine(
             "internal bool __SparseCollectInto("
                 + SinkType(optionalObject)

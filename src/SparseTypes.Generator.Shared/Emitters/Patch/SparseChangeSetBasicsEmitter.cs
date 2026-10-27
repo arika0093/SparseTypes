@@ -398,9 +398,17 @@ internal static class SparseChangeSetBasicsEmitter
         return ["default", "default", "false"];
     }
 
-    internal static void AppendIsEmpty(SharedIndentedBuilder code, ImmutableArray<SparseMemberModel> members)
+    internal static void AppendIsEmpty(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+    )
     {
-        code.AppendLine("/// <summary>Whether this change set contains no semantic changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            SparseChangeSetContractEmitter.HasContracts(dialect),
+            "Whether this change set contains no semantic changes."
+        );
         var expr = new List<string> { "!__sparse_hasWhole" };
         foreach (var member in members)
         {

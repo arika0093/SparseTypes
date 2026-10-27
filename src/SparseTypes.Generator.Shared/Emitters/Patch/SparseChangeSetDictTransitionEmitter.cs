@@ -30,6 +30,7 @@ internal static class SparseChangeSetDictTransitionEmitter
         var valueFrag = hasPatch ? ValueFragmentOf(member) : null;
         var optionalValueFragment = hasPatch ? runtime + "Optional<" + valueFrag + "?>" : null;
         var editedType = hasPatch ? valueCs! : valueType;
+        var hasContracts = SparseChangeSetContractEmitter.HasContracts(dialect);
         code.AppendLine("/// <summary>Typed dictionary transition for member '" + member.Property.Name + "'.</summary>");
         code.AppendLine(
             "public sealed class "
@@ -42,47 +43,51 @@ internal static class SparseChangeSetDictTransitionEmitter
         code.OpenBlock();
         // Public surface first, then the internal constructor, then private
         // storage.
-        code.AppendLine("/// <summary>Gets whether this transition contains no changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this transition contains no changes.");
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine("/// <summary>Gets whether this transition contains any changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this transition contains any changes.");
         code.AppendLine("public bool IsChanged => !IsEmpty;");
-        code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value before the transition.");
         code.AppendLine("public " + optDict + " Before { get; }");
-        code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value after the transition.");
         code.AppendLine("public " + optDict + " After { get; }");
-        code.AppendLine("/// <summary>Gets the entries added by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entries added by the transition.");
         code.AppendLine("public " + readOnlyDict + keyType + ", " + valueType + "> Added { get; }");
-        code.AppendLine("/// <summary>Gets the entries removed by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entries removed by the transition.");
         code.AppendLine("public " + readOnlyDict + keyType + ", " + valueType + "> Removed { get; }");
-        code.AppendLine("/// <summary>Gets the entries edited by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entries edited by the transition.");
         code.AppendLine("public " + readOnlyDict + keyType + ", " + editedType + "> Edited { get; }");
-        code.AppendLine("/// <summary>Gets the enumerator over changed entries.</summary>");
-        code.AppendLine("/// <returns>The enumerator over changed entries.</returns>");
+        code.AppendLine("/// <inheritdoc />");
         code.AppendLine("public global::System.Collections.Generic.IEnumerator<Item> GetEnumerator() => _items.GetEnumerator();");
+        code.AppendLine("/// <inheritdoc />");
         code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
         code.AppendLine("/// <summary>A single typed dictionary entry change.</summary>");
         code.AppendLine("public sealed class Item" + SparseChangeSetContractEmitter.DictionaryItemBases(dialect, member));
         code.OpenBlock();
-        code.AppendLine("/// <summary>Gets the entry key.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entry key.");
         code.AppendLine("public " + keyType + " Key { get; }");
-        code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value before the transition.");
         code.AppendLine("public " + optValue + " Before { get; }");
-        code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value after the transition.");
         code.AppendLine("public " + optValue + " After { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was added.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was added.");
         code.AppendLine("public bool IsAdded { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was removed.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was removed.");
         code.AppendLine("public bool IsRemoved { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was edited.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was edited.");
         code.AppendLine("public bool IsEdited { get; }");
         if (hasPatch)
         {
-            code.AppendLine("/// <summary>Gets the nested transition for the edited entry.</summary>");
+            SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the nested transition for the edited entry.");
             code.AppendLine("public " + valueCs + " Edit { get; }");
         }
-        code.AppendLine("/// <summary>Whether this entry carries no semantic change for the requested key.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            hasContracts,
+            "Whether this entry carries no semantic change for the requested key."
+        );
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine("/// <summary>Gets whether this entry contains any changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this entry contains any changes.");
         code.AppendLine("public bool IsChanged => !IsEmpty;");
         code.AppendLine("/// <summary>Shared allocation-light empty entry; retains no value snapshots.</summary>");
         if (hasPatch)
@@ -144,13 +149,20 @@ internal static class SparseChangeSetDictTransitionEmitter
         code.AppendLine("IsEmpty = isEmpty;");
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine("/// <summary>Looks up the typed change for a dictionary key; never returns null.</summary>");
-        code.AppendLine(
-            "/// <remarks>Unchanged or unknown keys return <see cref=\"Item.Empty\"/> (allocation-light singleton). "
-                + "Non-empty results are the same instances produced by enumeration.</remarks>"
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            hasContracts,
+            "Looks up the typed change for a dictionary key; never returns null."
         );
-        code.AppendLine("/// <param name=\"key\">The dictionary key to look up.</param>");
-        code.AppendLine("/// <returns>The typed change for the key.</returns>");
+        if (!hasContracts)
+        {
+            code.AppendLine(
+                "/// <remarks>Unchanged or unknown keys return <see cref=\"Item.Empty\"/> (allocation-light singleton). "
+                    + "Non-empty results are the same instances produced by enumeration.</remarks>"
+            );
+            code.AppendLine("/// <param name=\"key\">The dictionary key to look up.</param>");
+            code.AppendLine("/// <returns>The typed change for the key.</returns>");
+        }
         code.AppendLine("public Item GetChange(" + keyType + " key)");
         code.OpenBlock();
         code.AppendLine("if (_itemCount == 0) return Item.Empty;");

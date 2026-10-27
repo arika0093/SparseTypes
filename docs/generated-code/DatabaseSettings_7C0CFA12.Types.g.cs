@@ -674,8 +674,6 @@ public partial class DatabaseSettings
         /// <summary>Rebases a local patch onto a newer sparse state and reports structured conflicts.</summary>
         public static global::SparseTypes.RebaseResult<Patch> Rebase(global::SparseTypes.Optional<Fragment?> baseState, Patch local, global::SparseTypes.Optional<Fragment?> currentState, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.Rebase(baseState, local, currentState, options);
         /// <summary>Builds a baseline-free command core from this patch.</summary>
-        /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>
-        /// <returns>The baseline-free command core.</returns>
         internal DatabaseSettings_8807E705SerializeObjects.Core ToChangePayloadCore() => __Core.ToChangePayloadCore(this);
         internal Fragment ApplyMembers(Fragment current) => __Core.ApplyMembers(this, current);
         internal bool __SparseIsEmpty() => IsEmpty;
@@ -868,9 +866,6 @@ public partial class DatabaseSettings
                 return new global::SparseTypes.RebaseResult<Patch>(result, conflicts);
             }
             /// <summary>Builds a baseline-free command core from this patch.</summary>
-            /// <remarks>Before-states are redacted by construction; the result only supports <see cref="ChangePayload.ToPatch"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>
-            /// <param name="self">The patch to convert.</param>
-            /// <returns>The baseline-free command core.</returns>
             internal static DatabaseSettings_8807E705SerializeObjects.Core ToChangePayloadCore(Patch self)
             {
                 var __sparse_whole = self.__sparse_whole;
@@ -922,14 +917,13 @@ public partial class DatabaseSettings
         {
             return new ChangeSet(__sparse_hasWhole, __sparse_wholeBefore, __sparse_wholeAfter, __sparse_before_0, __sparse_after_0, __sparse_has_0, __sparse_before_1, __sparse_after_1, __sparse_has_1, recordedAt);
         }
-        /// <summary>Whether this change set contains no semantic changes.</summary>
+        /// <inheritdoc />
         public bool IsEmpty => !__sparse_hasWhole && !__sparse_has_0 && !__sparse_has_1;
         /// <summary>Gets an empty change set with no semantic changes.</summary>
         public static ChangeSet Empty { get; } = new ChangeSet(false, default, default, default, default, false, default, default, false);
-        /// <summary>Gets whether this change set contains any semantic changes.</summary>
+        /// <inheritdoc />
         public bool IsChanged => !IsEmpty;
-        /// <summary>Enumerates flattened change records reusing the typed enumeration projection.</summary>
-        /// <returns>The flattened transitions.</returns>
+        /// <inheritdoc />
         global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.Generated.SparseChangeRecord> global::SparseTypes.ISparseChangeSet.EnumerateChangeRecords()
         {
             var records = new global::System.Collections.Generic.List<global::SparseTypes.Generated.SparseChangeRecord>();
@@ -937,20 +931,13 @@ public partial class DatabaseSettings
             records.Add(change);
             return records.AsReadOnly();
         }
-        /// <summary>Gets the nested change set for a nested-model member.</summary>
-        /// <param name="memberName">The member CLR name.</param>
-        /// <param name="child">The nested change set when the member is a nested model.</param>
-        /// <returns>True when the member is a nested model; otherwise false.</returns>
+        /// <inheritdoc />
         bool global::SparseTypes.ISparseChangeSet.TryGetNestedChange(string memberName, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::SparseTypes.ISparseChangeSet? child)
         {
             child = null;
             return false;
         }
-        /// <summary>Gets the scalar transition for an atomic member.</summary>
-        /// <param name="memberName">The member CLR name.</param>
-        /// <param name="change">The transition on an exact member and value-type match.</param>
-        /// <returns>True on an exact match; otherwise false.</returns>
-        /// <typeparam name="T">The expected member value type.</typeparam>
+        /// <inheritdoc />
         bool global::SparseTypes.ISparseChangeSet.TryGetValueChange<T>(string memberName, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::SparseTypes.ISparseValueChange<T>? change)
         {
             if (memberName is null) { change = null; return false; }
@@ -959,26 +946,14 @@ public partial class DatabaseSettings
             change = null;
             return false;
         }
-        /// <summary>Gets the keyed-sequence transition for a keyed collection member.</summary>
-        /// <param name="memberName">The member CLR name.</param>
-        /// <param name="change">The transition on an exact member and type match.</param>
-        /// <returns>True on an exact match; otherwise false.</returns>
-        /// <typeparam name="TKey">The expected stable key type.</typeparam>
-        /// <typeparam name="TElement">The expected element type.</typeparam>
-        /// <typeparam name="TElementChange">The expected element change-set type.</typeparam>
+        /// <inheritdoc />
         bool global::SparseTypes.ISparseChangeSet.TryGetKeyedChange<TKey, TElement, TElementChange>(string memberName, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::SparseTypes.ISparseKeyedChange<TKey, TElement, TElementChange>? change)
         {
             if (memberName is null) { change = null; return false; }
             change = null;
             return false;
         }
-        /// <summary>Gets the dictionary transition for a dictionary member.</summary>
-        /// <param name="memberName">The member CLR name.</param>
-        /// <param name="change">The transition on an exact member and type match.</param>
-        /// <returns>True on an exact match; otherwise false.</returns>
-        /// <typeparam name="TKey">The expected dictionary key type.</typeparam>
-        /// <typeparam name="TValue">The expected dictionary value type.</typeparam>
-        /// <typeparam name="TEdited">The expected edited-projection type.</typeparam>
+        /// <inheritdoc />
         bool global::SparseTypes.ISparseChangeSet.TryGetDictionaryChange<TKey, TValue, TEdited>(string memberName, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::SparseTypes.ISparseDictionaryChange<TKey, TValue, TEdited>? change)
         {
             if (memberName is null) { change = null; return false; }
@@ -1059,6 +1034,7 @@ public partial class DatabaseSettings
         public global::SparseTypes.RebaseResult<ChangeSet> RebaseOnto(global::SparseTypes.Optional<Fragment?> current, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.RebaseOnto(this, current, options);
         /// <summary>Rebases this change onto an ordinary model.</summary>
         public global::SparseTypes.RebaseResult<ChangeSet> RebaseOnto(global::DatabaseSettings current, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.RebaseOnto(this, current, options);
+        /// <inheritdoc />
         global::SparseTypes.RebaseResult<ChangeSet> global::SparseTypes.ISparseChangeSetPipeline<global::DatabaseSettings, ChangeSet>.RebaseForPipeline(global::DatabaseSettings current) => RebaseOnto(current);
         /// <summary>Applies this change to an ordinary model if it can be rebased without conflicts.</summary>
         public bool TryApplyTo(global::DatabaseSettings current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::DatabaseSettings? updated, global::SparseTypes.ChangePayloadRebaseOptions? options = null) => __Core.TryApplyTo(this, current, out updated, options);
@@ -1153,45 +1129,20 @@ public partial class DatabaseSettings
         /// <returns>The complete change set.</returns>
         public static ChangeSet FromPayload(ChangePayload payload) => __Core.FromPayload(payload);
         /// <summary>Projects a validated command core to a baseline-free patch.</summary>
-        /// <param name="payload">The validated command core.</param>
-        /// <returns>The baseline-free patch.</returns>
         internal static Patch PatchFromPayloadCore(DatabaseSettings_8807E705SerializeObjects.Core payload) => __Core.PatchFromPayloadCore(payload);
         /// <summary>Converts a validated root envelope to a change set.</summary>
-        /// <exception cref="global::System.ArgumentException">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>
-        /// <param name="payload">The validated envelope.</param>
-        /// <returns>The baseline-aware change set.</returns>
         internal static ChangeSet FromPayloadCore(DatabaseSettings_8807E705SerializeObjects.Core payload) => __Core.FromPayloadCore(payload);
         /// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>
-        /// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>
-        /// <param name="payload">The validated envelope.</param>
-        /// <param name="pathPrefix">The dotted path prefix.</param>
-        /// <param name="blindSets">The blind patch for redacted paths.</param>
-        /// <param name="blindPaths">The redacted paths routed to the blind patch.</param>
-        /// <returns>The baseline-aware change set.</returns>
         internal static ChangeSet __SparseMixedPartition(DatabaseSettings_8807E705SerializeObjects.Core payload, string pathPrefix, out Patch blindSets, out global::System.Collections.Generic.List<string> blindPaths) => __Core.__SparseMixedPartition(payload, pathPrefix, out blindSets, out blindPaths);
         /// <summary>Whether the supplied state matches this transition's before on every changed path.</summary>
         internal bool __SparseBeforeMatches(global::SparseTypes.Optional<Fragment?> state) => __Core.__SparseBeforeMatches(this, state);
         /// <summary>Whether the supplied state matches this transition's after on every changed path.</summary>
         internal bool __SparseAfterMatches(global::SparseTypes.Optional<Fragment?> state) => __Core.__SparseAfterMatches(this, state);
         /// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>
-        /// <param name="fragment">The fragment subtree to update.</param>
-        /// <param name="path">Canonical path addressing the value.</param>
-        /// <param name="offset">The segment this level consumes.</param>
-        /// <param name="desired">The presence-aware value to write.</param>
-        /// <param name="workspace">Per-build collection staging.</param>
-        /// <param name="updated">The updated fragment.</param>
-        /// <param name="error">A value-free reason on failure.</param>
-        /// <returns><see langword="true"/> when the value applied.</returns>
         internal static bool __SparseTryApplyResolution(Fragment fragment, global::SparseTypes.SparsePath path, int offset, global::SparseTypes.Optional<object?> desired, global::SparseTypes.SparseResolutionWorkspace workspace, out Fragment? updated, out string? error) => __Core.__SparseTryApplyResolution(fragment, path, offset, desired, workspace, out updated, out error);
         /// <summary>Builds the transport core for this change set.</summary>
-        /// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>
-        /// <param name="redactBefores">Whether to redact before-states.</param>
-        /// <returns>The transport core.</returns>
         internal DatabaseSettings_8807E705SerializeObjects.Core ToPayloadCore(bool redactBefores) => __Core.ToPayloadCore(this, redactBefores);
         /// <summary>Collects flattened transitions into the caller's sink (enumeration infrastructure).</summary>
-        /// <param name="__sparse_sink">Receives boxed endpoints plus the change-kind index for each leaf.</param>
-        /// <param name="__sparse_path_sink">Receives paths without projecting or boxing endpoints.</param>
-        /// <param name="__sparse_scratch">Push/pop segment buffer owned by the root enumeration.</param>
         internal bool __SparseCollectInto(global::System.Func<global::SparseTypes.Optional<object?>, global::SparseTypes.Optional<object?>, int, bool>? __sparse_sink, global::System.Func<global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment>, bool>? __sparse_path_sink, global::System.Collections.Generic.List<global::SparseTypes.SparsePathSegment> __sparse_scratch)
         {
             if (__sparse_hasWhole)
@@ -1276,11 +1227,6 @@ public partial class DatabaseSettings
         {
             /// <summary>Deep-clones a retained whole-root fragment.</summary>
             /// <summary>Derives the canonical baseline-aware diff between two states.</summary>
-            /// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>
-            /// <param name="before">The state before the transition.</param>
-            /// <param name="after">The state after the transition.</param>
-            /// <returns>The baseline-aware diff.</returns>
-            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
             internal static ChangeSet Between(global::SparseTypes.Optional<Fragment?> before, global::SparseTypes.Optional<Fragment?> after, global::System.DateTimeOffset? recordedAt)
             {
                 if (before.IsPresent != after.IsPresent)
@@ -1306,10 +1252,6 @@ public partial class DatabaseSettings
                 return new ChangeSet(false, default, default, __b0, __a0, __h0, __b1, __a1, __h1, recordedAt);
             }
             /// <summary>Derives the baseline-aware diff between two ordinary models.</summary>
-            /// <param name="before">The model before the transition.</param>
-            /// <param name="after">The model after the transition.</param>
-            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
-            /// <returns>The baseline-aware diff.</returns>
             internal static ChangeSet Between(global::DatabaseSettings before, global::DatabaseSettings after, global::System.DateTimeOffset? recordedAt)
             {
                 if (global::System.Object.ReferenceEquals(before, null) || global::System.Object.ReferenceEquals(after, null))
@@ -1326,10 +1268,6 @@ public partial class DatabaseSettings
                 return new ChangeSet(false, default, default, __h0 ? __before0 : default, __h0 ? __after0 : default, __h0, __h1 ? __before1 : default, __h1 ? __after1 : default, __h1, recordedAt);
             }
             /// <summary>Attaches a known baseline to an arbitrary patch.</summary>
-            /// <param name="baseline">The known baseline.</param>
-            /// <param name="patch">The patch to attach.</param>
-            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
-            /// <returns>The baseline-aware change set.</returns>
             internal static ChangeSet FromPatch(global::SparseTypes.Optional<Fragment?> baseline, Patch patch, global::System.DateTimeOffset? recordedAt)
             {
                 if (patch is null) throw new global::System.ArgumentNullException(nameof(patch));
@@ -1337,17 +1275,11 @@ public partial class DatabaseSettings
                 return Between(baseline, after, recordedAt);
             }
             /// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>
-            /// <param name="baseline">The model baseline.</param>
-            /// <param name="patch">The patch to attach.</param>
-            /// <param name="recordedAt">The recording time, or null when it is unknown.</param>
-            /// <returns>The baseline-aware change set.</returns>
             internal static ChangeSet FromPatch(global::DatabaseSettings baseline, Patch patch, global::System.DateTimeOffset? recordedAt)
             {
                 return FromPatch(global::SparseTypes.Optional<Fragment?>.Present(Fragment.From(baseline)), patch, recordedAt);
             }
             /// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>
-            /// <param name="self">The change set to project.</param>
-            /// <returns>The baseline-free patch.</returns>
             internal static Patch ToPatch(ChangeSet self)
             {
                 var __sparse_recordedAt = self.RecordedAt;
@@ -1373,8 +1305,6 @@ public partial class DatabaseSettings
                 return patch;
             }
             /// <summary>Swaps the transition direction without requiring a separate baseline.</summary>
-            /// <param name="self">The change set to invert.</param>
-            /// <returns>The inverted change set.</returns>
             internal static ChangeSet Invert(ChangeSet self)
             {
                 var __sparse_recordedAt = self.RecordedAt;
@@ -1394,11 +1324,6 @@ public partial class DatabaseSettings
                 return new ChangeSet(false, default, default, __sparse_after_0, __sparse_before_0, __sparse_has_0, __sparse_after_1, __sparse_before_1, __sparse_has_1, __sparse_recordedAt);
             }
             /// <summary>Validates a transition against the supplied baseline and returns the advanced baseline.</summary>
-            /// <remarks>Only changed paths are compared; members the change set does not encode are never validated.</remarks>
-            /// <exception cref="global::System.InvalidOperationException">Thrown when the transition is stale or incompatible with the baseline, or when advancing would not produce a valid model state.</exception>
-            /// <param name="self">The change set to apply.</param>
-            /// <param name="baseline">The baseline to advance.</param>
-            /// <returns>The advanced baseline.</returns>
             internal static global::SparseTypes.Optional<Fragment?> ApplyToBaseline(ChangeSet self, global::SparseTypes.Optional<Fragment?> baseline)
             {
                 if (!self.__SparseBeforeMatches(baseline)) throw new global::System.InvalidOperationException("The change set is stale or incompatible with the supplied baseline.");
@@ -1407,9 +1332,6 @@ public partial class DatabaseSettings
                 return __advanced;
             }
             /// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>
-            /// <param name="self">The first change set.</param>
-            /// <param name="next">The second change set.</param>
-            /// <returns>The composed change set.</returns>
             internal static ChangeSet Compose(ChangeSet self, ChangeSet next)
             {
                 if (self is null) throw new global::System.ArgumentNullException(nameof(self));
@@ -1544,11 +1466,6 @@ public partial class DatabaseSettings
             /// <summary>Whether the given dotted path is redacted-before under the supplied options.</summary>
             /// <summary>Whether strict rebase rejects redacted-before members.</summary>
             /// <summary>Rebases this change onto a newer state without requiring the original baseline.</summary>
-            /// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>
-            /// <param name="self">The change set to rebase.</param>
-            /// <param name="current">The newer state to rebase onto.</param>
-            /// <param name="options">Optional rebase behavior.</param>
-            /// <returns>The rebased change and conflicts.</returns>
             internal static global::SparseTypes.RebaseResult<ChangeSet> RebaseOnto(ChangeSet self, global::SparseTypes.Optional<Fragment?> current, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
                 var __sparse_recordedAt = self.RecordedAt;
@@ -1708,12 +1625,6 @@ public partial class DatabaseSettings
                 return true;
             }
             /// <summary>Applies this change to an existing model after checking its before-state.</summary>
-            /// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>
-            /// <param name="self">The change set to apply.</param>
-            /// <param name="current">The existing model instance to update.</param>
-            /// <param name="conflicts">Structured conflicts when rebasing fails or an immutable member cannot be written.</param>
-            /// <param name="options">Optional rebase behavior.</param>
-            /// <returns><see langword="true"/> when the update was applied.</returns>
             internal static bool TryApplyInPlace(ChangeSet self, global::DatabaseSettings current, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparseConflict>? conflicts, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
                 if (current is null) throw new global::System.ArgumentNullException(nameof(current));
@@ -1748,9 +1659,6 @@ public partial class DatabaseSettings
                 return true;
             }
             /// <summary>Applies this change to an existing model or throws when its before-state conflicts or it includes an immutable member.</summary>
-            /// <param name="self">The change set to apply.</param>
-            /// <param name="current">The existing model instance to update.</param>
-            /// <param name="options">Optional rebase behavior.</param>
             internal static void ApplyInPlace(ChangeSet self, global::DatabaseSettings current, global::SparseTypes.ChangePayloadRebaseOptions? options = null)
             {
                 if (!TryApplyInPlace(self, current, out var conflicts, options)) throw new global::System.InvalidOperationException("The change set cannot be applied in place because it conflicts or includes immutable members.");
@@ -1810,8 +1718,6 @@ public partial class DatabaseSettings
             /// <summary>Model-rooted path factory for changes and rebase conflicts.</summary>
             internal static readonly global::SparseTypes.SparsePath __SparseRootPath = global::SparseTypes.SparsePath.Root(typeof(global::DatabaseSettings));
             /// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>
-            /// <param name="self">The change set to enumerate.</param>
-            /// <returns>The flattened transitions.</returns>
             internal static global::System.Collections.Generic.IEnumerable<global::SparseTypes.Generated.SparseChangeRecord> EnumerateChanges(ChangeSet self)
             {
                 var __sparse_recordedAt = self.RecordedAt;
@@ -1834,7 +1740,6 @@ public partial class DatabaseSettings
                 return changes;
             }
             /// <summary>Finds the entry at exactly the given path, or null when absent.</summary>
-            /// <remarks>Exact paths only; ancestors and descendants never match.</remarks>
             internal static global::SparseTypes.Generated.SparseChangeRecord? Find(ChangeSet self, global::SparseTypes.SparsePath path)
             {
                 if (self.IsEmpty) return null;
@@ -1866,15 +1771,11 @@ public partial class DatabaseSettings
                 return __sparse_found;
             }
             /// <summary>Finds the entry at exactly the given typed path, or null when absent.</summary>
-            /// <remarks>Exact paths only; ancestors and descendants never match. The path root and value types are checked at compile time.</remarks>
             internal static global::SparseTypes.Generated.SparseChangeRecord? Find<TValue>(ChangeSet self, global::SparseTypes.SparsePath<global::DatabaseSettings, TValue> path)
             {
                 return Find(self, path.Path);
             }
             /// <summary>Enumerates changed member paths, descending through nested models.</summary>
-            /// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>
-            /// <returns>The changed member paths.</returns>
-            /// <param name="self">The change set to inspect.</param>
             internal static global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.SparsePath> EnumerateChangedPaths(ChangeSet self)
             {
                 if (self.IsEmpty) return global::System.Array.Empty<global::SparseTypes.SparsePath>();
@@ -1898,7 +1799,6 @@ public partial class DatabaseSettings
             /// <summary>Begins path-based resolution of a rebase result against the authoritative current state.</summary>
             internal static ChangeSet.Resolution BeginResolution(global::SparseTypes.RebaseResult<ChangeSet> rebase, global::SparseTypes.Optional<Fragment?> current) => new ChangeSet.Resolution(rebase, current);
             /// <summary>Builds a baseline-aware resolved change set from per-conflict desired values.</summary>
-            /// <remarks>Applies the clean rebased patch onto the stored current snapshot, writes each chosen value through the fragment applier, and diffs back against the same snapshot. Never mutates inputs.</remarks>
             internal static bool __SparseBuildResolved(global::SparseTypes.RebaseResult<ChangeSet> rebase, global::SparseTypes.Optional<Fragment?> current, global::System.Collections.Generic.IReadOnlyList<global::SparseTypes.ResolvedChoice> choices, out ChangeSet? resolved, out string? failureReason)
             {
                 resolved = null;
@@ -2057,8 +1957,6 @@ public partial class DatabaseSettings
                 return false;
             }
             /// <summary>Converts a change set into its serializable payload envelope.</summary>
-            /// <param name="self">The change set to convert.</param>
-            /// <returns>The serializable payload envelope.</returns>
             internal static ChangePayload ToPayload(ChangeSet self)
             {
                 if (self.IsEmpty)
@@ -2068,10 +1966,6 @@ public partial class DatabaseSettings
                 return new ChangePayload { Version = "0.1", RecordedAt = self.RecordedAt, Change = ToPayloadChange(self, false) };
             }
             /// <summary>Builds the typed transport change for this change set.</summary>
-            /// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>
-            /// <param name="self">The change set to convert.</param>
-            /// <param name="redactBefores">Whether to redact before-states.</param>
-            /// <returns>The typed transport change.</returns>
             internal static DatabaseSettings_8807E705SerializeObjects.ModelChange ToPayloadChange(ChangeSet self, bool redactBefores)
             {
                 var __sparse_recordedAt = self.RecordedAt;
@@ -2100,15 +1994,9 @@ public partial class DatabaseSettings
                 return change;
             }
             /// <summary>Builds the transport core for this change set.</summary>
-            /// <param name="self">The change set to convert.</param>
-            /// <param name="redactBefores">Whether to redact before-states.</param>
-            /// <returns>The transport core.</returns>
             internal static DatabaseSettings_8807E705SerializeObjects.Core ToPayloadCore(ChangeSet self, bool redactBefores) => new DatabaseSettings_8807E705SerializeObjects.Core { TypedChange = ToPayloadChange(self, redactBefores) };
             /// <summary>Builds an undisclosed-free after snapshot for a whole-root change.</summary>
             /// <summary>Converts a validated envelope to a complete change set.</summary>
-            /// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref="ChangePayload.ToPatch"/> instead.</remarks>
-            /// <param name="payload">The validated envelope.</param>
-            /// <returns>The complete change set.</returns>
             internal static ChangeSet FromPayload(ChangePayload payload)
             {
                 if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));
@@ -2117,9 +2005,6 @@ public partial class DatabaseSettings
                 return FromPayloadCore(payload).WithRecordedAt(payload.RecordedAt);
             }
             /// <summary>Projects a validated command core to a baseline-free patch.</summary>
-            /// <remarks>Before-states are ignored rather than validated; malformed after-states are rejected.</remarks>
-            /// <param name="payload">The validated command core.</param>
-            /// <returns>The baseline-free patch.</returns>
             internal static Patch PatchFromPayloadCore(DatabaseSettings_8807E705SerializeObjects.Core payload)
             {
                 if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));
@@ -2157,9 +2042,6 @@ public partial class DatabaseSettings
                 return patch;
             }
             /// <summary>Converts a validated root envelope to a change set.</summary>
-            /// <exception cref="global::System.ArgumentException">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>
-            /// <param name="payload">The validated envelope.</param>
-            /// <returns>The baseline-aware change set.</returns>
             internal static ChangeSet FromPayloadCore(DatabaseSettings_8807E705SerializeObjects.Core payload)
             {
                 if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));
@@ -2168,12 +2050,6 @@ public partial class DatabaseSettings
                 return __changes;
             }
             /// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>
-            /// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>
-            /// <param name="payload">The validated envelope.</param>
-            /// <param name="pathPrefix">The dotted path prefix.</param>
-            /// <param name="blindSets">The blind patch for redacted paths.</param>
-            /// <param name="blindPaths">The redacted paths routed to the blind patch.</param>
-            /// <returns>The baseline-aware change set.</returns>
             internal static ChangeSet __SparseMixedPartition(DatabaseSettings_8807E705SerializeObjects.Core payload, string pathPrefix, out Patch blindSets, out global::System.Collections.Generic.List<string> blindPaths)
             {
                 if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));

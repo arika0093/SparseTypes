@@ -65,6 +65,7 @@ internal static class SparseChangeSetModelRebaseEmitter
             return;
         }
 
+        code.AppendLine("/// <inheritdoc />");
         code.AppendLine(
             rebaseResult
                 + " "

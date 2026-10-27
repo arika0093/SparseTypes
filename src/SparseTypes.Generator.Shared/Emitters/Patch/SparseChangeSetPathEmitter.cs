@@ -23,14 +23,13 @@ internal static class SparseChangeSetPathEmitter
             code = target.ChangeSetOperations;
         }
 
-        AppendSummary(code);
+        AppendSummary(code, target is null);
         if (target is null)
         {
             code.AppendLine("public global::System.Collections.Generic.IReadOnlyList<" + pathType + "> EnumerateChangedPaths()");
         }
         else
         {
-            code.AppendLine("/// <param name=\"self\">The change set to inspect.</param>");
             code.AppendLine(
                 "internal static global::System.Collections.Generic.IReadOnlyList<" + pathType + "> EnumerateChangedPaths(ChangeSet self)"
             );
@@ -50,13 +49,16 @@ internal static class SparseChangeSetPathEmitter
         code.CloseBlock();
     }
 
-    private static void AppendSummary(SharedIndentedBuilder code)
+    private static void AppendSummary(SharedIndentedBuilder code, bool includeDetails = true)
     {
         code.AppendLine("/// <summary>Enumerates changed member paths, descending through nested models.</summary>");
-        code.AppendLine(
-            "/// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>"
-        );
-        code.AppendLine("/// <returns>The changed member paths.</returns>");
+        if (includeDetails)
+        {
+            code.AppendLine(
+                "/// <remarks>A whole-root presence transition reports the root path, replacing member paths. Exact paths; use <c>StartsWith</c> and <c>IsAncestorOf</c> for subtree queries.</remarks>"
+            );
+            code.AppendLine("/// <returns>The changed member paths.</returns>");
+        }
     }
 
     private static void AppendTraversal(

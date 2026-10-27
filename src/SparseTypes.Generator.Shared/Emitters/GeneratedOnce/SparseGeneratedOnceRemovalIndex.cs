@@ -16,6 +16,7 @@ internal static class SparseGeneratedOnceRemovalIndex
         SparseGeneratedOnceNames.AppendGeneratedHeader(code, implementationNamespace, cancellationToken);
         var comparer = "global::System.Collections.Generic.EqualityComparer<TKey>.Default";
         code.AppendLine("/// <summary>Ordered removal-index kernels shared by keyed patch types.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal static class " + SparseGeneratedOnceNames.RemovalIndex + "<TKey>");
         code.OpenBlock();
         // Internal-first ordering: public-equivalent kernels precede private

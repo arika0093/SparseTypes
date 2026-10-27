@@ -80,15 +80,13 @@ internal static class SparseChangeSetRebaseEmitter
         }
         SparseRebaseOptionEmitter.AppendHelpers(code, dialect);
         code.AppendLine("/// <summary>Rebases this change onto a newer state without requiring the original baseline.</summary>");
-        code.AppendLine("/// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>");
-        if (target is not null)
+        if (target is null)
         {
-            code.AppendLine("/// <param name=\"self\">The change set to rebase.</param>");
+            code.AppendLine("/// <remarks>Redacted-before members pass through as explicit operations unless the options reject them.</remarks>");
+            code.AppendLine("/// <param name=\"current\">The newer state to rebase onto.</param>");
+            code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+            code.AppendLine("/// <returns>The rebased change and conflicts.</returns>");
         }
-
-        code.AppendLine("/// <param name=\"current\">The newer state to rebase onto.</param>");
-        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
-        code.AppendLine("/// <returns>The rebased change and conflicts.</returns>");
         code.AppendLine(
             (target is null ? "public " : "internal static ")
                 + rebaseResult

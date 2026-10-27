@@ -43,6 +43,7 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         var elementCs = ElementChangeSetOf(member);
         var elementFrag = ElementFragmentOf(member);
         var optionalElementFragment = runtime + "Optional<" + elementFrag + "?>";
+        var hasContracts = SparseChangeSetContractEmitter.HasContracts(dialect);
         var readOnlyList = "global::System.Collections.Generic.IReadOnlyList<";
         var readOnlyDict = "global::System.Collections.Generic.IReadOnlyDictionary<";
         // Transition type.
@@ -58,58 +59,62 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         code.OpenBlock();
         // Public surface first, then the internal constructor, then private
         // storage.
-        code.AppendLine("/// <summary>Gets whether this transition contains no changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this transition contains no changes.");
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine("/// <summary>Gets whether this transition contains any changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this transition contains any changes.");
         code.AppendLine("public bool IsChanged => !IsEmpty;");
-        code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value before the transition.");
         code.AppendLine("public " + optList + " Before { get; }");
-        code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value after the transition.");
         code.AppendLine("public " + optList + " After { get; }");
-        code.AppendLine("/// <summary>Gets the elements added by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the elements added by the transition.");
         code.AppendLine("public " + readOnlyList + elementType + "> Added { get; }");
-        code.AppendLine("/// <summary>Gets the elements removed by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the elements removed by the transition.");
         code.AppendLine("public " + readOnlyList + elementType + "> Removed { get; }");
-        code.AppendLine("/// <summary>Gets the entries edited by the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entries edited by the transition.");
         code.AppendLine("public " + readOnlyDict + keyType + ", " + elementCs + "> Edited { get; }");
-        code.AppendLine("/// <summary>Gets the key order before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the key order before the transition.");
         code.AppendLine("public " + readOnlyList + keyType + "> BeforeOrder { get; }");
-        code.AppendLine("/// <summary>Gets the key order after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the key order after the transition.");
         code.AppendLine("public " + readOnlyList + keyType + "> AfterOrder { get; }");
-        code.AppendLine("/// <summary>Gets whether the key order changed.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the key order changed.");
         code.AppendLine("public bool OrderChanged { get; }");
-        code.AppendLine("/// <summary>Gets the enumerator over changed entries.</summary>");
-        code.AppendLine("/// <returns>The enumerator over changed entries.</returns>");
+        code.AppendLine("/// <inheritdoc />");
         code.AppendLine("public global::System.Collections.Generic.IEnumerator<Item> GetEnumerator() => _items.GetEnumerator();");
+        code.AppendLine("/// <inheritdoc />");
         code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();");
         code.AppendLine("/// <summary>A single typed keyed item change.</summary>");
         code.AppendLine("/// <remarks>Empty lookup results expose <see cref=\"IsEmpty\"/> and are never enumerated.</remarks>");
         code.AppendLine("public sealed class Item" + SparseChangeSetContractEmitter.KeyedItemBases(dialect, member));
         code.OpenBlock();
-        code.AppendLine("/// <summary>Gets the entry key.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the entry key.");
         code.AppendLine("public " + keyType + " Key { get; }");
-        SparseChangeSetKeyedTempTransitionEmitter.AppendItemTemporaryKeyProperty(code, member);
-        code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
+        SparseChangeSetKeyedTempTransitionEmitter.AppendItemTemporaryKeyProperty(code, member, hasContracts);
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value before the transition.");
         code.AppendLine("public " + optElement + " Before { get; }");
-        code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the value after the transition.");
         code.AppendLine("public " + optElement + " After { get; }");
-        code.AppendLine("/// <summary>Gets the index before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the index before the transition.");
         code.AppendLine("public int BeforeIndex { get; }");
-        code.AppendLine("/// <summary>Gets the index after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the index after the transition.");
         code.AppendLine("public int AfterIndex { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was added.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was added.");
         code.AppendLine("public bool IsAdded { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was removed.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was removed.");
         code.AppendLine("public bool IsRemoved { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was edited.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was edited.");
         code.AppendLine("public bool IsEdited { get; }");
-        code.AppendLine("/// <summary>Gets whether the entry was reordered.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether the entry was reordered.");
         code.AppendLine("public bool IsReordered { get; }");
-        code.AppendLine("/// <summary>Gets the nested transition for the edited entry.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets the nested transition for the edited entry.");
         code.AppendLine("public " + elementCs + " Edit { get; }");
-        code.AppendLine("/// <summary>Whether this item carries no semantic change for the requested key.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            hasContracts,
+            "Whether this item carries no semantic change for the requested key."
+        );
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine("/// <summary>Gets whether this item contains any changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(code, hasContracts, "Gets whether this item contains any changes.");
         code.AppendLine("public bool IsChanged => !IsEmpty;");
         code.AppendLine("/// <summary>Shared allocation-light empty item; retains no element snapshots.</summary>");
         code.AppendLine(
@@ -151,15 +156,22 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         code.AppendLine("IsEmpty = isEmpty;");
         code.CloseBlock();
         code.CloseBlock();
-        code.AppendLine("/// <summary>Looks up the typed change for a stable key; never returns null.</summary>");
-        code.AppendLine(
-            "/// <remarks>Unchanged or unknown keys return <see cref=\"Item.Empty\"/> (allocation-light singleton shared across lookups). "
-                + "The unassigned sentinel is never a stable lookup: it always returns <see cref=\"Item.Empty\"/>. "
-                + "Non-empty results are the same instances produced by enumeration. "
-                + "BeforeIndex/AfterIndex are absolute collection indexes; IsReordered observes surviving-key relative rank.</remarks>"
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            hasContracts,
+            "Looks up the typed change for a stable key; never returns null."
         );
-        code.AppendLine("/// <param name=\"key\">The stable key to look up.</param>");
-        code.AppendLine("/// <returns>The typed change for the key.</returns>");
+        if (!hasContracts)
+        {
+            code.AppendLine(
+                "/// <remarks>Unchanged or unknown keys return <see cref=\"Item.Empty\"/> (allocation-light singleton shared across lookups). "
+                    + "The unassigned sentinel is never a stable lookup: it always returns <see cref=\"Item.Empty\"/>. "
+                    + "Non-empty results are the same instances produced by enumeration. "
+                    + "BeforeIndex/AfterIndex are absolute collection indexes; IsReordered observes surviving-key relative rank.</remarks>"
+            );
+            code.AppendLine("/// <param name=\"key\">The stable key to look up.</param>");
+            code.AppendLine("/// <returns>The typed change for the key.</returns>");
+        }
         code.AppendLine("public Item GetChange(" + keyType + " key)");
         code.OpenBlock();
         if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
@@ -203,7 +215,7 @@ internal static class SparseChangeSetKeyedTransitionEmitter
         code.CloseBlock();
         if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
         {
-            SparseChangeSetKeyedTempTransitionEmitter.AppendGetTemporaryChange(code, member);
+            SparseChangeSetKeyedTempTransitionEmitter.AppendGetTemporaryChange(code, member, hasContracts);
         }
         SparseChangeSetContractEmitter.AppendKeyedContractMembers(code, member, dialect);
         code.AppendLine(

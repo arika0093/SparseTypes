@@ -103,6 +103,7 @@ internal static class SparsePatchKernelEmitter
         code.AppendLine("namespace " + rootNamespace);
         code.OpenBlock();
         code.AppendLine("/// <summary>Model-independent patch operation kernels (Generated-Once).</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal static class PatchOperationKernels");
         code.OpenBlock();
         if ((kinds & SparsePatchKernelKind.EmptyIdentities) != 0)

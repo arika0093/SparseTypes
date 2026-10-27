@@ -47,9 +47,6 @@ internal static class SparseChangeSetComposeEmitter
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Composes sequential transitions; overlapping paths must be semantically contiguous.</summary>");
-            code.AppendLine("/// <param name=\"self\">The first change set.</param>");
-            code.AppendLine("/// <param name=\"next\">The second change set.</param>");
-            code.AppendLine("/// <returns>The composed change set.</returns>");
             code.AppendLine("internal static ChangeSet Compose(ChangeSet self, ChangeSet next)");
         }
         else

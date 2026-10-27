@@ -231,9 +231,6 @@ internal static class SparseRebaseResolutionEmitter
         _ = conflict;
         body.AppendLine("/// <summary>Builds a baseline-aware resolved change set from per-conflict desired values.</summary>");
         body.AppendLine(
-            "/// <remarks>Applies the clean rebased patch onto the stored current snapshot, writes each chosen value through the fragment applier, and diffs back against the same snapshot. Never mutates inputs.</remarks>"
-        );
-        body.AppendLine(
             (target is null ? "private static bool __SparseBuildResolved(" : "internal static bool __SparseBuildResolved(")
                 + rebaseResult
                 + " rebase, "

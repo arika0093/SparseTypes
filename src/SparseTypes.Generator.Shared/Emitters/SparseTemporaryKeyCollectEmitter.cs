@@ -13,9 +13,6 @@ internal static class SparseTemporaryKeyCollectEmitter
         _ = members;
         code.AppendLine("/// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>");
         code.AppendLine(
-            "/// <remarks>Returns the opaque correlation and a null error on success, or a null map with the first mismatch. Never mutates either model.</remarks>"
-        );
-        code.AppendLine(
             "internal static (global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>? Map, string? Error) __SparseBuildTempMap("
                 + modelType
                 + " submitted, "
@@ -40,9 +37,6 @@ internal static class SparseTemporaryKeyCollectEmitter
     )
     {
         code.AppendLine("/// <summary>Collects temporary correlations for this model into a shared map.</summary>");
-        code.AppendLine(
-            "/// <remarks>Recurses through keyed and nested members; server-side drops absorb while omitted, duplicated, or unassigned temporary identities fail.</remarks>"
-        );
         code.AppendLine(
             "internal static string? __SparseCollectTempMap("
                 + modelType

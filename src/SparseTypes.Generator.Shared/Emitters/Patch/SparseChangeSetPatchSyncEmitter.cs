@@ -59,10 +59,6 @@ internal static class SparseChangeSetPatchSyncEmitter
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Attaches a known baseline to an arbitrary patch.</summary>");
-            code.AppendLine("/// <param name=\"baseline\">The known baseline.</param>");
-            code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
-            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
-            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
             code.AppendLine(
                 "internal static ChangeSet FromPatch(" + optionalFragment + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
             );
@@ -98,10 +94,6 @@ internal static class SparseChangeSetPatchSyncEmitter
             {
                 // NOTE: code already streams into the operation container here.
                 code.AppendLine("/// <summary>Attaches an ordinary model baseline to an arbitrary patch.</summary>");
-                code.AppendLine("/// <param name=\"baseline\">The model baseline.</param>");
-                code.AppendLine("/// <param name=\"patch\">The patch to attach.</param>");
-                code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
-                code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
                 code.AppendLine(
                     "internal static ChangeSet FromPatch(" + modelType + " baseline, Patch patch, global::System.DateTimeOffset? recordedAt)"
                 );
@@ -175,8 +167,6 @@ internal static class SparseChangeSetPatchSyncEmitter
             code.AppendLine("public Patch ToPatch() => " + target.ChangeSetOperationsType + ".ToPatch(this);");
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Discards baseline information and returns the equivalent desired-operation patch.</summary>");
-            code.AppendLine("/// <param name=\"self\">The change set to project.</param>");
-            code.AppendLine("/// <returns>The baseline-free patch.</returns>");
             code.AppendLine("internal static Patch ToPatch(ChangeSet self)");
         }
         else
@@ -288,8 +278,6 @@ internal static class SparseChangeSetPatchSyncEmitter
             code.AppendLine("public ChangeSet Invert() => " + target.ChangeSetOperationsType + ".Invert(this);");
             code = into;
             code.AppendLine("/// <summary>Swaps the transition direction without requiring a separate baseline.</summary>");
-            code.AppendLine("/// <param name=\"self\">The change set to invert.</param>");
-            code.AppendLine("/// <returns>The inverted change set.</returns>");
             code.AppendLine("internal static ChangeSet Invert(ChangeSet self)");
         }
         else
@@ -386,13 +374,6 @@ internal static class SparseChangeSetPatchSyncEmitter
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Validates a transition against the supplied baseline and returns the advanced baseline.</summary>");
-            code.AppendLine("/// <remarks>Only changed paths are compared; members the change set does not encode are never validated.</remarks>");
-            code.AppendLine(
-                "/// <exception cref=\"global::System.InvalidOperationException\">Thrown when the transition is stale or incompatible with the baseline, or when advancing would not produce a valid model state.</exception>"
-            );
-            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
-            code.AppendLine("/// <param name=\"baseline\">The baseline to advance.</param>");
-            code.AppendLine("/// <returns>The advanced baseline.</returns>");
             code.AppendLine("internal static " + optionalFragment + " ApplyToBaseline(ChangeSet self, " + optionalFragment + " baseline)");
         }
         else

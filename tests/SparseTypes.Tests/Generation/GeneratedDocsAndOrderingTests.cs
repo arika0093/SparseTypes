@@ -273,12 +273,13 @@ public sealed class GeneratedDocsAndOrderingTests
                 }
 
                 var docs = member.GetLeadingTrivia().ToString();
-                if (!docs.Contains("/// <summary", StringComparison.Ordinal))
+                var inheritsDocumentation = docs.Contains("/// <inheritdoc", StringComparison.Ordinal);
+                if (!docs.Contains("/// <summary", StringComparison.Ordinal) && !inheritsDocumentation)
                 {
                     missing.Add(LocationOf(tree, member) + " " + MemberLabel(member));
                 }
 
-                if (member is BaseMethodDeclarationSyntax method)
+                if (member is BaseMethodDeclarationSyntax method && !inheritsDocumentation)
                 {
                     var declared = method.ParameterList.Parameters.Select(static p => p.Identifier.Text).ToHashSet(StringComparer.Ordinal);
                     var documented = Regex
@@ -304,6 +305,143 @@ public sealed class GeneratedDocsAndOrderingTests
 
         missing.ShouldBeEmpty(Report(missing));
         paramMismatches.ShouldBeEmpty(Report(paramMismatches));
+    }
+
+    [Test]
+    public void GeneratedInternalMethodsHaveSummaryOnlyXmlDocs()
+    {
+        var violations = new List<string>();
+        foreach (var tree in GeneratedTrees(Probe.Value))
+        {
+            foreach (var method in tree.GetRoot().DescendantNodes().OfType<MethodDeclarationSyntax>())
+            {
+                if (!method.Modifiers.Any(SyntaxKind.InternalKeyword))
+                {
+                    continue;
+                }
+
+                var docs = method.GetLeadingTrivia().ToString();
+                if (Regex.IsMatch(docs, @"/// <(param|returns|remarks|exception|typeparam)\b", RegexOptions.CultureInvariant))
+                {
+                    violations.Add(LocationOf(tree, method) + " " + MemberLabel(method));
+                }
+            }
+        }
+
+        violations.ShouldBeEmpty(Report(violations));
+    }
+
+    [Test]
+    public void GeneratedInternalClassesAndFragmentBuildersAreHiddenFromIntelliSense()
+    {
+        var violations = new List<string>();
+        foreach (var tree in GeneratedTrees(Probe.Value))
+        {
+            foreach (var type in tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                var isInternal = type.Modifiers.Any(SyntaxKind.InternalKeyword);
+                var isFragmentBuilder = type.Identifier.Text.EndsWith("FragmentBuilder", StringComparison.Ordinal);
+                if (!isInternal && !isFragmentBuilder)
+                {
+                    continue;
+                }
+
+                var attributes = type.AttributeLists.ToString();
+                if (
+                    !attributes.Contains("EditorBrowsable", StringComparison.Ordinal)
+                    || !attributes.Contains("EditorBrowsableState.Never", StringComparison.Ordinal)
+                )
+                {
+                    violations.Add(LocationOf(tree, type) + " " + MemberLabel(type));
+                }
+            }
+        }
+
+        violations.ShouldBeEmpty(Report(violations));
+    }
+
+    [Test]
+    public void GeneratedSparseContractMembersInheritDocumentation()
+    {
+        var violations = new List<string>();
+        var keyedProperties = new HashSet<string>(
+            [
+                "IsEmpty",
+                "IsChanged",
+                "Before",
+                "After",
+                "Added",
+                "Removed",
+                "Edited",
+                "BeforeOrder",
+                "AfterOrder",
+                "OrderChanged",
+                "Key",
+                "TemporaryKey",
+                "BeforeIndex",
+                "AfterIndex",
+                "IsAdded",
+                "IsRemoved",
+                "IsEdited",
+                "IsReordered",
+                "Edit",
+            ],
+            StringComparer.Ordinal
+        );
+
+        foreach (var tree in GeneratedTrees(Probe.Value))
+        {
+            foreach (var type in tree.GetRoot().DescendantNodes().OfType<TypeDeclarationSyntax>())
+            {
+                var bases = type.BaseList?.ToString() ?? string.Empty;
+                var isChangeSet = bases.Contains("ISparseChangeSet", StringComparison.Ordinal);
+                var isValueChange = bases.Contains("ISparseValueChange", StringComparison.Ordinal);
+                var isKeyedChange =
+                    bases.Contains("ISparseKeyedChange", StringComparison.Ordinal)
+                    || bases.Contains("ISparseTemporaryKeyedChange", StringComparison.Ordinal);
+                var isKeyedItem = bases.Contains("ISparseKeyedItemChange", StringComparison.Ordinal);
+                var isDictionaryChange = bases.Contains("ISparseDictionaryChange", StringComparison.Ordinal);
+                var isDictionaryItem =
+                    bases.Contains("ISparseDictionaryItemChange", StringComparison.Ordinal)
+                    || bases.Contains("ISparseStructuralDictionaryItemChange", StringComparison.Ordinal);
+                if (!isChangeSet && !isValueChange && !isKeyedChange && !isKeyedItem && !isDictionaryChange && !isDictionaryItem)
+                {
+                    continue;
+                }
+
+                foreach (var member in type.Members)
+                {
+                    var isContractMember =
+                        member switch
+                        {
+                            PropertyDeclarationSyntax property =>
+                                (isChangeSet && property.Identifier.Text is "IsEmpty" or "IsChanged")
+                                || (isValueChange && property.Identifier.Text is "IsChanged" or "Before" or "After")
+                                || ((isKeyedChange || isDictionaryChange) && keyedProperties.Contains(property.Identifier.Text))
+                                || ((isKeyedItem || isDictionaryItem) && keyedProperties.Contains(property.Identifier.Text)),
+                            MethodDeclarationSyntax method =>
+                                (method.ExplicitInterfaceSpecifier is not null
+                                    && (
+                                        method.ExplicitInterfaceSpecifier.Name.ToString().Contains("ISparseChangeSet", StringComparison.Ordinal)
+                                        || method.ExplicitInterfaceSpecifier.Name.ToString().Contains("ISparseValueChange", StringComparison.Ordinal)
+                                        || method.ExplicitInterfaceSpecifier.Name.ToString().Contains("ISparseKeyed", StringComparison.Ordinal)
+                                        || method.ExplicitInterfaceSpecifier.Name.ToString().Contains("ISparseDictionary", StringComparison.Ordinal)
+                                    ))
+                                || ((isKeyedChange || isDictionaryChange)
+                                    && method.Identifier.Text is "GetChange" or "GetEnumerator")
+                                || (bases.Contains("ISparseTemporaryKeyedChange", StringComparison.Ordinal)
+                                    && method.Identifier.Text == "GetTemporaryChange"),
+                            _ => false,
+                        };
+                    if (isContractMember && !member.GetLeadingTrivia().ToString().Contains("/// <inheritdoc", StringComparison.Ordinal))
+                    {
+                        violations.Add(LocationOf(tree, member) + " " + MemberLabel(member));
+                    }
+                }
+            }
+        }
+
+        violations.ShouldBeEmpty(Report(violations));
     }
 
     [Test]

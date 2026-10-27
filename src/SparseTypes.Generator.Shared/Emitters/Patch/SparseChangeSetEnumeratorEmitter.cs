@@ -227,8 +227,6 @@ internal static class SparseChangeSetEnumeratorEmitter
         if (target is not null)
         {
             code.AppendLine("/// <summary>Enumerates flattened value transitions, including keyed collection order changes.</summary>");
-            code.AppendLine("/// <param name=\"self\">The change set to enumerate.</param>");
-            code.AppendLine("/// <returns>The flattened transitions.</returns>");
             code.AppendLine("internal static global::System.Collections.Generic.IEnumerable<" + recordType + "> EnumerateChanges(ChangeSet self)");
             code.OpenBlock();
             AppendSelfAliases(code, members, includeMemberState: traversal is null);

@@ -34,11 +34,14 @@ internal static class SparseChangePayloadReaderEmitter
             code = target.ChangeSetOperations;
         }
         code.AppendLine("/// <summary>Converts a validated envelope to a complete change set.</summary>");
-        code.AppendLine(
-            "/// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref=\"ChangePayload.ToPatch\"/> instead.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLine("/// <returns>The complete change set.</returns>");
+        if (target is null)
+        {
+            code.AppendLine(
+                "/// <remarks>Redacted or otherwise incomplete histories are rejected; project them with <see cref=\"ChangePayload.ToPatch\"/> instead.</remarks>"
+            );
+            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
+            code.AppendLine("/// <returns>The complete change set.</returns>");
+        }
         code.AppendLine(
             (
                 target is null

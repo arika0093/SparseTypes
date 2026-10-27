@@ -428,11 +428,23 @@ internal static class SparseChangeSetTransitionEmitter
                 + (dialect.HasValue ? SparseChangeSetContractEmitter.ScalarBases(dialect.Value, FragmentValueType(member)) : string.Empty)
         );
         code.OpenBlock();
-        code.AppendLine("/// <summary>Gets whether the member changed between the endpoints.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "Gets whether the member changed between the endpoints."
+        );
         code.AppendLine("public bool IsChanged => _isChanged;");
-        code.AppendLine("/// <summary>Gets the value before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "Gets the value before the transition."
+        );
         code.AppendLine("public " + opt + " Before => _before;");
-        code.AppendLine("/// <summary>Gets the value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "Gets the value after the transition."
+        );
         code.AppendLine("public " + opt + " After => _after;");
         code.AppendLine("internal " + trans + "(" + opt + " before, " + opt + " after, bool isChanged)");
         code.OpenBlock();
@@ -496,11 +508,23 @@ internal static class SparseChangeSetTransitionEmitter
         code.OpenBlock();
         code.AppendLine("/// <summary>Whether this set transition contains no semantic changes.</summary>");
         code.AppendLine("public bool IsEmpty { get; }");
-        code.AppendLine("/// <summary>Whether this set transition contains any semantic changes.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "Whether this set transition contains any semantic changes."
+        );
         code.AppendLine("public bool IsChanged => !IsEmpty;");
-        code.AppendLine("/// <summary>The presence-aware set value before the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "The presence-aware set value before the transition."
+        );
         code.AppendLine("public " + opt + " Before { get; }");
-        code.AppendLine("/// <summary>The presence-aware set value after the transition.</summary>");
+        SparseChangeSetContractEmitter.AppendInterfaceMemberDocumentation(
+            code,
+            dialect.HasValue && SparseChangeSetContractEmitter.HasContracts(dialect.Value),
+            "The presence-aware set value after the transition."
+        );
         code.AppendLine("public " + opt + " After { get; }");
         code.AppendLine("/// <summary>Values present only in the after set.</summary>");
         code.AppendLine("public " + readOnlyList + " Added { get; }");

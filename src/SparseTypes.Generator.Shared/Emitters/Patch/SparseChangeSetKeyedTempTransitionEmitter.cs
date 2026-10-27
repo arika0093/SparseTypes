@@ -5,12 +5,19 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetKeyedTempTransitionEmitter
 {
     /// <summary>Emits the TemporaryKey property of a keyed transition item.</summary>
-    internal static void AppendItemTemporaryKeyProperty(SharedIndentedBuilder code, SparseMemberModel member)
+    internal static void AppendItemTemporaryKeyProperty(SharedIndentedBuilder code, SparseMemberModel member, bool hasContracts)
     {
-        code.AppendLine("/// <summary>Gets the temporary identity for unassigned entries.</summary>");
-        code.AppendLine(
-            "/// <remarks>Non-null only when the entry key is unassigned and the element type opts into temporary identity; assigned keys always take precedence.</remarks>"
-        );
+        if (hasContracts)
+        {
+            code.AppendLine("/// <inheritdoc />");
+        }
+        else
+        {
+            code.AppendLine("/// <summary>Gets the temporary identity for unassigned entries.</summary>");
+            code.AppendLine(
+                "/// <remarks>Non-null only when the entry key is unassigned and the element type opts into temporary identity; assigned keys always take precedence.</remarks>"
+            );
+        }
         code.AppendLine(
             SparseKeyedCollectionEmitter.HasTemporaryKey(member)
                 ? "public global::System.Guid? TemporaryKey { get; }"
@@ -19,14 +26,21 @@ internal static class SparseChangeSetKeyedTempTransitionEmitter
     }
 
     /// <summary>Emits the temporary-identity lookup of a keyed transition.</summary>
-    internal static void AppendGetTemporaryChange(SharedIndentedBuilder code, SparseMemberModel member)
+    internal static void AppendGetTemporaryChange(SharedIndentedBuilder code, SparseMemberModel member, bool hasContracts)
     {
-        code.AppendLine("/// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>");
-        code.AppendLine(
-            "/// <remarks>Only entries with an unassigned permanent key participate: a valid assigned key always wins, so assigned entries are never returned here even when they retain a temporary value. Unknown, empty, or temporary-less entries return <see cref=\"Item.Empty\"/>. Non-empty results are the same instances produced by enumeration.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"temporaryKey\">The temporary identity to look up.</param>");
-        code.AppendLine("/// <returns>The typed change for the identity.</returns>");
+        if (hasContracts)
+        {
+            code.AppendLine("/// <inheritdoc />");
+        }
+        else
+        {
+            code.AppendLine("/// <summary>Looks up the typed change for a temporary identity; never returns null.</summary>");
+            code.AppendLine(
+                "/// <remarks>Only entries with an unassigned permanent key participate: a valid assigned key always wins, so assigned entries are never returned here even when they retain a temporary value. Unknown, empty, or temporary-less entries return <see cref=\"Item.Empty\"/>. Non-empty results are the same instances produced by enumeration.</remarks>"
+            );
+            code.AppendLine("/// <param name=\"temporaryKey\">The temporary identity to look up.</param>");
+            code.AppendLine("/// <returns>The typed change for the identity.</returns>");
+        }
         code.AppendLine("public Item GetTemporaryChange(global::System.Guid temporaryKey)");
         code.OpenBlock();
         code.AppendLine("if (temporaryKey == global::System.Guid.Empty) return Item.Empty;");

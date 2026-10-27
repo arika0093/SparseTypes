@@ -11,10 +11,10 @@ using ChangeKind = global::Settings.ChangeSet.ChangeKind;
 
 namespace SparseTypes.Generated
 {
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     internal static class Settings_4B058728TemporaryKeyReconciler
     {
         /// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>
-        /// <remarks>Returns the opaque correlation and a null error on success, or a null map with the first mismatch. Never mutates either model.</remarks>
         internal static (global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?>? Map, string? Error) __SparseBuildTempMap(global::Settings submitted, global::Settings persisted)
         {
             if ((object?)submitted is null) throw new global::System.ArgumentNullException(nameof(submitted));
@@ -25,7 +25,6 @@ namespace SparseTypes.Generated
             return (__map, null);
         }
         /// <summary>Collects temporary correlations for this model into a shared map.</summary>
-        /// <remarks>Recurses through keyed and nested members; server-side drops absorb while omitted, duplicated, or unassigned temporary identities fail.</remarks>
         internal static string? __SparseCollectTempMap(global::Settings submitted, global::Settings persisted, global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?> map, string __scope)
         {
             {
@@ -41,7 +40,6 @@ namespace SparseTypes.Generated
             return null;
         }
         /// <summary>Assigns mapped temporary identities into the live model.</summary>
-        /// <remarks>Replays recorded post-submit edits onto persisted elements; rows without their own edits adopt the persisted element, and unmapped temporary identities stay pending. Returns an error without partial writes when the live state is incompatible.</remarks>
         internal static string? __SparseRetargetTemps(global::Settings live, global::Settings? submittedAfter, global::Settings? persisted, global::System.Collections.Generic.Dictionary<(string Scope, global::System.Guid Temp), object?> map, global::Settings.ChangeSet? pending, string __scope)
         {
             if ((object?)live is null) throw new global::System.ArgumentNullException(nameof(live));
@@ -426,6 +424,7 @@ namespace SparseTypes.Generated
 
     }
     /// <summary>A mutable builder for a generated fragment.</summary>
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     public sealed class Settings_4B058728FragmentBuilder
     {
         /// <summary>Gets a mutable reference to the staged value for 'Database'.</summary>

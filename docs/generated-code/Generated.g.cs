@@ -6,6 +6,7 @@ namespace SparseTypes.Generated
 {
     /// <summary>Streaming read-only list view over a live enumerable source.</summary>
     /// <remarks>Sources must be finite, repeatable enumerables that stay stable during a view read (issue #172). <c>Count</c> is O(1) for <c>ICollection</c>/<c>IReadOnlyCollection</c> sources and a full enumeration otherwise; the indexer is O(1) for <c>IList</c>/<c>IReadOnlyList</c> sources and re-enumerates from the start otherwise, so a full indexed loop over a streaming source is quadratic and should be a <c>foreach</c> instead. Each access enumerates anew with no snapshot: single-pass sources drain and per-enumeration-varying sources reflect the latest enumeration.</remarks>
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     internal sealed class SparseReadOnlyListAdapter<TSource, TView> : global::System.Collections.Generic.IReadOnlyList<TView>
     {
         public SparseReadOnlyListAdapter(global::System.Collections.Generic.IEnumerable<TSource> source, global::System.Func<TSource, TView> map)
@@ -27,6 +28,7 @@ namespace SparseTypes.Generated
             throw new global::System.ArgumentOutOfRangeException(nameof(index));
         }
     }
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     internal sealed class SparseReadOnlyDictionaryAdapter<TKey, TSource, TView> : global::System.Collections.Generic.IReadOnlyDictionary<TKey, TView> where TKey : notnull
     {
         public SparseReadOnlyDictionaryAdapter(global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> source, global::System.Func<TSource, TView> map)
@@ -53,6 +55,7 @@ namespace SparseTypes.Generated
         private readonly global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> _source;
         private readonly global::System.Func<TSource, TView> _map;
     }
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     internal sealed class SparseReadOnlyDictionaryEntriesAdapter<TKey, TSource, TKeyView, TValueView> : global::System.Collections.Generic.IReadOnlyCollection<global::System.Collections.Generic.KeyValuePair<TKeyView, TValueView>> where TKey : notnull
     {
         public SparseReadOnlyDictionaryEntriesAdapter(global::System.Collections.Generic.IReadOnlyDictionary<TKey, TSource> source, global::System.Func<TKey, TKeyView> mapKey, global::System.Func<TSource, TValueView> mapValue)
@@ -75,6 +78,7 @@ namespace SparseTypes.Generated
 
 namespace SparseTypes.Generated
 {
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     internal sealed class SparseObservationCoordinator<TView>
     {
         internal SparseObservationCoordinator(global::System.Action<global::System.ComponentModel.PropertyChangedEventHandler> subscribe, global::System.Action<global::System.ComponentModel.PropertyChangedEventHandler> unsubscribe, global::System.Func<TView> capture)

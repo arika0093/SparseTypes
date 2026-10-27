@@ -22,6 +22,7 @@ internal static class SparseGeneratedOnceCloneKernels
         using var code = new SharedIndentedBuilder(cancellationToken);
         SparseGeneratedOnceNames.AppendGeneratedHeader(code, implementationNamespace, cancellationToken);
         code.AppendLine("/// <summary>Shared generic collection clone kernels with identity tracking.</summary>");
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal static class " + SparseGeneratedOnceNames.CloneKernels);
         code.OpenBlock();
         AppendKernels(code, includePortableSetView, hashSetSupportsCapacity);
@@ -177,6 +178,7 @@ internal static class SparseGeneratedOnceCloneKernels
     // supports it, keeping older target frameworks free of that reference.
     private static void AppendPortableSetView(SharedIndentedBuilder code, bool hashSetSupportsCapacity)
     {
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal sealed class __SparseReadOnlySet<T> : global::System.Collections.Generic.ISet<T>, global::System.Collections.Generic.IReadOnlySet<T>"
         );

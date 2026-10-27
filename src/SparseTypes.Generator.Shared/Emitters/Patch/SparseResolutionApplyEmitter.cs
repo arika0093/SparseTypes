@@ -27,18 +27,6 @@ internal static class SparseResolutionApplyEmitter
         var workspaceParameter = WorkspaceParameter(workspace);
         var workspaceArgument = WorkspaceArgument(workspace);
         shell.AppendLine("/// <summary>Applies one resolved value to a fragment subtree (resolution infrastructure).</summary>");
-        shell.AppendLine("/// <param name=\"fragment\">The fragment subtree to update.</param>");
-        shell.AppendLine("/// <param name=\"path\">Canonical path addressing the value.</param>");
-        shell.AppendLine("/// <param name=\"offset\">The segment this level consumes.</param>");
-        shell.AppendLine("/// <param name=\"desired\">The presence-aware value to write.</param>");
-        if (workspace is not null)
-        {
-            shell.AppendLine("/// <param name=\"workspace\">Per-build collection staging.</param>");
-        }
-
-        shell.AppendLine("/// <param name=\"updated\">The updated fragment.</param>");
-        shell.AppendLine("/// <param name=\"error\">A value-free reason on failure.</param>");
-        shell.AppendLine("/// <returns><see langword=\"true\"/> when the value applied.</returns>");
         shell.AppendLine(
             "internal static bool __SparseTryApplyResolution(Fragment fragment, "
                 + pathType

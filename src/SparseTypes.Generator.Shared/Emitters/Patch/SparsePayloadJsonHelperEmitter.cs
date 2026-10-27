@@ -12,6 +12,10 @@ internal static class SparsePayloadJsonHelperEmitter
         var payloadType = context.ModelType + ".ChangePayload";
         var resolver = context.ResolverTypeReference + ".Default";
         code.AppendLine("/// <summary>Metadata for '" + context.ModelType + "' change payloads.</summary>");
+        if (!model.IsPublic)
+        {
+            code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        }
         code.AppendLine((model.IsPublic ? "public" : "internal") + " static class PayloadJson");
         code.OpenBlock();
         if (context.Dialect.PayloadSchemaBundleType is not null && context.Dialect.PayloadSchemaDescriptorType is not null)

@@ -39,11 +39,6 @@ internal static class SparseChangeSetPayloadValidateEmitter
         code.AppendLine("return new " + result + "(__validateErrors);");
         code.CloseBlock();
         code.AppendLine("/// <summary>Collects structural errors with the given path prefix.</summary>");
-        code.AppendLine(
-            "/// <remarks>Accepts the same envelopes as <c>__SparseMixedPartition</c>; nested cores and item edits recurse with extended prefixes.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"errors\">The collected errors.</param>");
-        code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
         code.AppendLine("internal void __SparseValidateInto(" + errors + " errors, string pathPrefix)");
         code.OpenBlock();
         code.AppendLine("if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));");

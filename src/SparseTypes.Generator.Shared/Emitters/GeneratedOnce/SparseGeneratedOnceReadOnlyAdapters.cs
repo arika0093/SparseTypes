@@ -48,6 +48,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
         code.AppendLine(
             "/// <remarks>Sources must be finite, repeatable enumerables that stay stable during a view read (issue #172). <c>Count</c> is O(1) for <c>ICollection</c>/<c>IReadOnlyCollection</c> sources and a full enumeration otherwise; the indexer is O(1) for <c>IList</c>/<c>IReadOnlyList</c> sources and re-enumerates from the start otherwise, so a full indexed loop over a streaming source is quadratic and should be a <c>foreach</c> instead. Each access enumerates anew with no snapshot: single-pass sources drain and per-enumeration-varying sources reflect the latest enumeration.</remarks>"
         );
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal sealed class "
                 + SparseGeneratedOnceNames.ReadOnlyListAdapter
@@ -91,6 +92,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
     private static void AppendDictionaryAdapter(SharedIndentedBuilder code, string implementationNamespace)
     {
         var collection = SparseGeneratedOnceNames.QualifiedListAdapter(implementationNamespace);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal sealed class "
                 + SparseGeneratedOnceNames.ReadOnlyDictionaryAdapter
@@ -139,6 +141,7 @@ internal static class SparseGeneratedOnceReadOnlyAdapters
 
     private static void AppendDictionaryEntriesAdapter(SharedIndentedBuilder code)
     {
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(
             "internal sealed class "
                 + SparseGeneratedOnceNames.ReadOnlyDictionaryEntriesAdapter

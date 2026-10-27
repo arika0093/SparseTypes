@@ -54,16 +54,16 @@ internal static class SparseChangeSetInPlaceEmitter
             );
         }
         code.AppendLine("/// <summary>Applies this change to an existing model after checking its before-state.</summary>");
-        code.AppendLine("/// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>");
-        if (target is not null)
+        if (target is null)
         {
-            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
+            code.AppendLine("/// <remarks>Returns an in-place write conflict when the change includes an immutable member.</remarks>");
+            code.AppendLine("/// <param name=\"current\">The existing model instance to update.</param>");
+            code.AppendLine(
+                "/// <param name=\"conflicts\">Structured conflicts when rebasing fails or an immutable member cannot be written.</param>"
+            );
+            code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
+            code.AppendLine("/// <returns><see langword=\"true\"/> when the update was applied.</returns>");
         }
-
-        code.AppendLine("/// <param name=\"current\">The existing model instance to update.</param>");
-        code.AppendLine("/// <param name=\"conflicts\">Structured conflicts when rebasing fails or an immutable member cannot be written.</param>");
-        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
-        code.AppendLine("/// <returns><see langword=\"true\"/> when the update was applied.</returns>");
         code.AppendLine(
             (target is null ? "public bool TryApplyInPlace(" : "internal static bool TryApplyInPlace(ChangeSet self, ")
                 + modelType
@@ -143,13 +143,11 @@ internal static class SparseChangeSetInPlaceEmitter
         code.AppendLine(
             "/// <summary>Applies this change to an existing model or throws when its before-state conflicts or it includes an immutable member.</summary>"
         );
-        if (target is not null)
+        if (target is null)
         {
-            code.AppendLine("/// <param name=\"self\">The change set to apply.</param>");
+            code.AppendLine("/// <param name=\"current\">The existing model instance to update.</param>");
+            code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
         }
-
-        code.AppendLine("/// <param name=\"current\">The existing model instance to update.</param>");
-        code.AppendLine("/// <param name=\"options\">Optional rebase behavior.</param>");
         code.AppendLine(
             (target is null ? "public void ApplyInPlace(" : "internal static void ApplyInPlace(ChangeSet self, ")
                 + modelType

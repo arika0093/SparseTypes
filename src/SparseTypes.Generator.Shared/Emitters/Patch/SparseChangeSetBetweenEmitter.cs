@@ -102,13 +102,16 @@ internal static class SparseChangeSetBetweenEmitter
                 + ".Present(value.Value!.DeepClone());"
         );
         code.AppendLine("/// <summary>Derives the canonical baseline-aware diff between two states.</summary>");
-        code.AppendLine(
-            "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
-        code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
-        code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
-        code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+        if (target is null)
+        {
+            code.AppendLine(
+                "/// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>"
+            );
+            code.AppendLine("/// <param name=\"before\">The state before the transition.</param>");
+            code.AppendLine("/// <param name=\"after\">The state after the transition.</param>");
+            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
+            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
+        }
         code.AppendLine(
             (target is null ? "public static ChangeSet Between(" : "internal static ChangeSet Between(")
                 + optionalFragment
@@ -270,10 +273,6 @@ internal static class SparseChangeSetBetweenEmitter
             );
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Derives the baseline-aware diff between two ordinary models.</summary>");
-            code.AppendLine("/// <param name=\"before\">The model before the transition.</param>");
-            code.AppendLine("/// <param name=\"after\">The model after the transition.</param>");
-            code.AppendLine("/// <param name=\"recordedAt\">The recording time, or null when it is unknown.</param>");
-            code.AppendLine("/// <returns>The baseline-aware diff.</returns>");
             code.AppendLine(
                 "internal static ChangeSet Between(" + modelType + " before, " + modelType + " after, global::System.DateTimeOffset? recordedAt)"
             );

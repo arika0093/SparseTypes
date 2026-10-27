@@ -14,6 +14,7 @@ internal static class SparseTemporaryKeyReconcileEmitter
         System.Func<string, string> reconcilerTypeName
     )
     {
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal static class " + typeName);
         code.OpenBlock();
         SparseTemporaryKeyCollectEmitter.AppendBuildTempMap(code, modelType, members);
@@ -32,9 +33,6 @@ internal static class SparseTemporaryKeyReconcileEmitter
     )
     {
         code.AppendLine("/// <summary>Assigns mapped temporary identities into the live model.</summary>");
-        code.AppendLine(
-            "/// <remarks>Replays recorded post-submit edits onto persisted elements; rows without their own edits adopt the persisted element, and unmapped temporary identities stay pending. Returns an error without partial writes when the live state is incompatible.</remarks>"
-        );
         code.AppendLine(
             "internal static string? __SparseRetargetTemps("
                 + modelType

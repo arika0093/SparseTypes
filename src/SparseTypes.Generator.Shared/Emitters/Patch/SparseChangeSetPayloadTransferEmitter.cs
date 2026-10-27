@@ -21,11 +21,6 @@ internal static class SparseChangeSetPayloadTransferEmitter
         // change-set values project through the facade bridge.
         code.AppendLine("/// <summary>Builds the transport core for this change set.</summary>");
         code.AppendLine(
-            "/// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
-        code.AppendLine("/// <returns>The transport core.</returns>");
-        code.AppendLine(
             "internal "
                 + payloadCore
                 + " ToPayloadCore(bool redactBefores) => "
@@ -57,8 +52,6 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.AppendLine("public ChangePayload ToPayload() => " + target.ChangeSetOperationsType + ".ToPayload(this);");
             code = target.ChangeSetOperations;
             code.AppendLine("/// <summary>Converts a change set into its serializable payload envelope.</summary>");
-            code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
-            code.AppendLine("/// <returns>The serializable payload envelope.</returns>");
             code.AppendLine("internal static ChangePayload ToPayload(ChangeSet self)");
             code.OpenBlock();
             AppendEmptyPayloadFastPath(
@@ -88,16 +81,6 @@ internal static class SparseChangeSetPayloadTransferEmitter
             code.CloseBlock();
         }
         code.AppendLine("/// <summary>Builds the typed transport change for this change set.</summary>");
-        code.AppendLine(
-            "/// <remarks>Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported. JSON-ignored changes remain in the neutral payload but are rejected by the JSON codec.</remarks>"
-        );
-        if (target is not null)
-        {
-            code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
-        }
-
-        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
-        code.AppendLine("/// <returns>The typed transport change.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
                 + payloadModelChange
@@ -339,13 +322,6 @@ internal static class SparseChangeSetPayloadTransferEmitter
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine("/// <summary>Builds the transport core for this change set.</summary>");
-        if (target is not null)
-        {
-            code.AppendLine("/// <param name=\"self\">The change set to convert.</param>");
-        }
-
-        code.AppendLine("/// <param name=\"redactBefores\">Whether to redact before-states.</param>");
-        code.AppendLine("/// <returns>The transport core.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
                 + payloadCore

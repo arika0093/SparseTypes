@@ -97,9 +97,6 @@ namespace SparseTypes.Generated
                 return new global::SparseTypes.ChangePayloadValidationResult(__validateErrors);
             }
             /// <summary>Collects structural errors with the given path prefix.</summary>
-            /// <remarks>Accepts the same envelopes as <c>__SparseMixedPartition</c>; nested cores and item edits recurse with extended prefixes.</remarks>
-            /// <param name="errors">The collected errors.</param>
-            /// <param name="pathPrefix">The dotted path prefix.</param>
             internal void __SparseValidateInto(global::System.Collections.Generic.List<global::SparseTypes.ChangePayloadValidationError> errors, string pathPrefix)
             {
                 if (errors is null) throw new global::System.ArgumentNullException(nameof(errors));

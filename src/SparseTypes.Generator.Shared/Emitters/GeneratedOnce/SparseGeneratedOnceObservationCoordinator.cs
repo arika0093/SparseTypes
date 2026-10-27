@@ -12,6 +12,7 @@ internal static class SparseGeneratedOnceObservationCoordinator
     {
         var code = new SharedIndentedBuilder(cancellationToken);
         SparseGeneratedOnceNames.AppendGeneratedHeader(code, implementationNamespace, cancellationToken);
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine("internal sealed class " + TypeName + "<TView>");
         code.OpenBlock();
         code.AppendLine(

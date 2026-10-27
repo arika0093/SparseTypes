@@ -23,11 +23,6 @@ internal static class SparseChangeSetMixedEmitter
             // Payload DTO bridges keep calling through the facade.
             code.AppendLine("/// <summary>Converts a validated root envelope to a change set.</summary>");
             code.AppendLine(
-                "/// <exception cref=\"global::System.ArgumentException\">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>"
-            );
-            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
-            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
-            code.AppendLine(
                 "internal static ChangeSet FromPayloadCore("
                     + payloadCore
                     + " payload) => "
@@ -35,14 +30,6 @@ internal static class SparseChangeSetMixedEmitter
                     + ".FromPayloadCore(payload);"
             );
             code.AppendLine("/// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>");
-            code.AppendLine(
-                "/// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>"
-            );
-            code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
-            code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-            code.AppendLine("/// <param name=\"blindSets\">The blind patch for redacted paths.</param>");
-            code.AppendLine("/// <param name=\"blindPaths\">The redacted paths routed to the blind patch.</param>");
-            code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
             code.AppendLine(
                 "internal static ChangeSet __SparseMixedPartition("
                     + payloadCore
@@ -53,11 +40,6 @@ internal static class SparseChangeSetMixedEmitter
             code = target.ChangeSetOperations;
         }
         code.AppendLine("/// <summary>Converts a validated root envelope to a change set.</summary>");
-        code.AppendLine(
-            "/// <exception cref=\"global::System.ArgumentException\">Thrown when the payload carries redacted before-states, which cannot form baseline-aware transitions.</exception>"
-        );
-        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
         code.AppendLine("internal static ChangeSet FromPayloadCore(" + payloadCore + " payload)");
         code.OpenBlock();
         code.AppendLine("if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));");
@@ -68,14 +50,6 @@ internal static class SparseChangeSetMixedEmitter
         code.AppendLine("return __changes;");
         code.CloseBlock();
         code.AppendLine("/// <summary>Splits a validated envelope into baseline-aware transitions plus a blind patch.</summary>");
-        code.AppendLine(
-            "/// <remarks>Redacted before-states route to the blind patch without historical comparison; ordinary members keep baseline-aware validation. After-states must stay concrete.</remarks>"
-        );
-        code.AppendLine("/// <param name=\"payload\">The validated envelope.</param>");
-        code.AppendLine("/// <param name=\"pathPrefix\">The dotted path prefix.</param>");
-        code.AppendLine("/// <param name=\"blindSets\">The blind patch for redacted paths.</param>");
-        code.AppendLine("/// <param name=\"blindPaths\">The redacted paths routed to the blind patch.</param>");
-        code.AppendLine("/// <returns>The baseline-aware change set.</returns>");
         code.AppendLine(
             "internal static ChangeSet __SparseMixedPartition("
                 + payloadCore

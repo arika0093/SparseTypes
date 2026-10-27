@@ -27,10 +27,6 @@ internal static class SparseChangePayloadPatchSyncEmitter
         {
             var core = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
             code.AppendLine("/// <summary>Builds a baseline-free command core from this patch.</summary>");
-            code.AppendLine(
-                "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>"
-            );
-            code.AppendLine("/// <returns>The baseline-free command core.</returns>");
             code.AppendLine("internal " + core + " ToChangePayloadCore() => " + target.PatchOperationsType + ".ToChangePayloadCore(this);");
             code = target.PatchOperations;
         }
@@ -56,8 +52,6 @@ internal static class SparseChangePayloadPatchSyncEmitter
             var core = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "Core");
             // The payload DTO bridges keep calling through the facade.
             code.AppendLine("/// <summary>Projects a validated command core to a baseline-free patch.</summary>");
-            code.AppendLine("/// <param name=\"payload\">The validated command core.</param>");
-            code.AppendLine("/// <returns>The baseline-free patch.</returns>");
             code.AppendLine(
                 "internal static Patch PatchFromPayloadCore("
                     + core
@@ -84,15 +78,6 @@ internal static class SparseChangePayloadPatchSyncEmitter
         var membersDelta = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "MembersDelta");
         var modelChangeKind = SparseChangeSetPayloadEmitter.PayloadTypeName(dialect, modelType, "ModelChangeKind");
         code.AppendLine("/// <summary>Builds a baseline-free command core from this patch.</summary>");
-        code.AppendLine(
-            "/// <remarks>Before-states are redacted by construction; the result only supports <see cref=\"ChangePayload.ToPatch\"/>. Changes to members marked with <c>SparseTransportIgnore</c> cannot be exported.</remarks>"
-        );
-        if (target is not null)
-        {
-            code.AppendLine("/// <param name=\"self\">The patch to convert.</param>");
-        }
-
-        code.AppendLine("/// <returns>The baseline-free command core.</returns>");
         code.AppendLine(
             (target is null ? "internal " : "internal static ")
                 + core
@@ -301,9 +286,6 @@ internal static class SparseChangePayloadPatchSyncEmitter
         var runtime = dialect.RuntimeNamespace;
         var state = runtime + "ChangePayloadState";
         code.AppendLine("/// <summary>Projects a validated command core to a baseline-free patch.</summary>");
-        code.AppendLine("/// <remarks>Before-states are ignored rather than validated; malformed after-states are rejected.</remarks>");
-        code.AppendLine("/// <param name=\"payload\">The validated command core.</param>");
-        code.AppendLine("/// <returns>The baseline-free patch.</returns>");
         code.AppendLine("internal static Patch PatchFromPayloadCore(" + core + " payload)");
         code.OpenBlock();
         code.AppendLine("if (payload is null) throw new global::System.ArgumentNullException(nameof(payload));");

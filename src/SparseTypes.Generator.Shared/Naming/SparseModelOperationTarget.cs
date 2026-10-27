@@ -48,6 +48,7 @@ internal sealed class SparseOperationTarget
         }
 
         PatchOperations.AppendLine("/// <summary>Collection operations for one member patch.</summary>");
+        PatchOperations.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         PatchOperations.AppendLine("internal static class " + className);
         PatchOperations.OpenBlock();
         return PatchOperations;
