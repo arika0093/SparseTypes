@@ -98,7 +98,16 @@ internal static class SparseTypesGeneratedFilePartitioner
                 var namespaceMembers = namespaceDeclaration.Members.Where(member => include(namespaceName, member)).ToArray();
                 if (namespaceMembers.Length > 0)
                 {
-                    members.Add(namespaceDeclaration.WithMembers(SyntaxFactory.List(namespaceMembers)));
+                    namespaceMembers[0] = EnsureSingleLeadingNewLine(namespaceMembers[0]);
+                    var partitionedNamespace = namespaceDeclaration.WithMembers(SyntaxFactory.List(namespaceMembers));
+                    if (partitionedNamespace is NamespaceDeclarationSyntax blockNamespace)
+                    {
+                        var openBrace = blockNamespace.OpenBraceToken;
+                        partitionedNamespace = blockNamespace.WithOpenBraceToken(
+                            openBrace.WithTrailingTrivia(RemoveLeadingWhitespace(openBrace.TrailingTrivia))
+                        );
+                    }
+                    members.Add(partitionedNamespace);
                 }
             }
             else if (include(null, member))
@@ -120,6 +129,40 @@ internal static class SparseTypesGeneratedFilePartitioner
             .WithLeadingTrivia(original.GetLeadingTrivia())
             .WithTrailingTrivia(original.GetTrailingTrivia());
         output.Add(new SparseGeneratedSource(hintName, partition.ToFullString()));
+    }
+
+    private static MemberDeclarationSyntax EnsureSingleLeadingNewLine(MemberDeclarationSyntax member)
+    {
+        var leadingTrivia = member.GetLeadingTrivia();
+        var firstContent = 0;
+        while (
+            firstContent < leadingTrivia.Count
+            && (leadingTrivia[firstContent].IsKind(SyntaxKind.WhitespaceTrivia) || leadingTrivia[firstContent].IsKind(SyntaxKind.EndOfLineTrivia))
+        )
+        {
+            firstContent++;
+        }
+
+        var indentation = leadingTrivia.Take(firstContent).LastOrDefault(static trivia => trivia.IsKind(SyntaxKind.WhitespaceTrivia));
+        var normalizedTrivia = ImmutableArray.CreateBuilder<SyntaxTrivia>(leadingTrivia.Count - firstContent + 2);
+        normalizedTrivia.Add(SyntaxFactory.EndOfLine("\n"));
+        normalizedTrivia.Add(indentation.RawKind == 0 ? SyntaxFactory.Whitespace("    ") : indentation);
+        normalizedTrivia.AddRange(leadingTrivia.Skip(firstContent));
+        return member.WithLeadingTrivia(SyntaxFactory.TriviaList(normalizedTrivia));
+    }
+
+    private static SyntaxTriviaList RemoveLeadingWhitespace(SyntaxTriviaList trivia)
+    {
+        var firstContent = 0;
+        while (
+            firstContent < trivia.Count
+            && (trivia[firstContent].IsKind(SyntaxKind.WhitespaceTrivia) || trivia[firstContent].IsKind(SyntaxKind.EndOfLineTrivia))
+        )
+        {
+            firstContent++;
+        }
+
+        return SyntaxFactory.TriviaList(trivia.Skip(firstContent));
     }
 
     private static bool IsType(MemberDeclarationSyntax member, string? actualNamespaceName, string expectedNamespaceName, string? typeName)

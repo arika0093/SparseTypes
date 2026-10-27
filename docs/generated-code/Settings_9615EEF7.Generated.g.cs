@@ -11,8 +11,6 @@ using ChangeKind = global::Settings.ChangeSet.ChangeKind;
 
 namespace SparseTypes.Generated
 {
-
-
     internal static class Settings_4B058728TemporaryKeyReconciler
     {
         /// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>

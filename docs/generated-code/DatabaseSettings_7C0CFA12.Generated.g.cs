@@ -11,8 +11,6 @@ using ChangeKind = global::DatabaseSettings.ChangeSet.ChangeKind;
 
 namespace SparseTypes.Generated
 {
-
-
     internal static class DatabaseSettings_8807E705TemporaryKeyReconciler
     {
         /// <summary>Correlates submitted temporary identities with persisted assigned keys.</summary>

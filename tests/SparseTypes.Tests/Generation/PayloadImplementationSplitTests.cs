@@ -78,6 +78,10 @@ public sealed class PayloadImplementationSplitTests
         serialize.ShouldContain("static partial class SplitParent_");
         serialize.ShouldContain("public class Core");
         serialize.ShouldContain("public sealed class Root");
+        serialize.ShouldContain("\n        public class Core\n        {");
+        serialize.ShouldContain("\n            public sealed class MixedApplyResult\n            {");
+        serialize.ShouldContain("\n        public abstract class Change { }");
+        serialize.ShouldNotContain("\n            public class Core\n");
         serialize.ShouldNotContain("PayloadJsonConverter :");
         json.ShouldContain("PayloadJsonConverter :");
         json.ShouldContain("PayloadJsonResolver :");
@@ -86,6 +90,7 @@ public sealed class PayloadImplementationSplitTests
         generated.ShouldContain("SplitParent_");
         generated.ShouldContain("FragmentBuilder");
         generated.ShouldContain("SparsePaths");
+        generated.ShouldNotContain("namespace SparseTypes.Generated\n{\n\n");
         sources.Keys.ShouldAllBe(key => !key.Contains("global__", StringComparison.Ordinal));
         sources.Keys.ShouldAllBe(key => !key.EndsWith(".SparseTypes.g.cs", StringComparison.Ordinal));
         sources.Keys.ShouldContain("Generated.g.cs");

@@ -131,7 +131,6 @@ internal static class SparseChangeSetPayloadEmitter
         code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
         code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
         code.OpenBlock();
-        code.Indent();
         // Additive metadata properties are ignored; unknown member targets
         // and operations are rejected by the generated reader.
         code.AppendLine("/// <summary>Transport core carrying the validated member changes.</summary>");
@@ -185,7 +184,6 @@ internal static class SparseChangeSetPayloadEmitter
             SparseChangeSetPayloadProjectionEmitter.AppendCoreToPatch(code, members, dialect, modelType);
         }
         code.CloseBlock();
-        code.Unindent();
         code.CloseBlock();
         code.AppendLine();
     }
@@ -310,7 +308,6 @@ internal static class SparseChangeSetPayloadEmitter
     {
         code.AppendLine(containerAccessibility + " static partial class " + RequirePayloadContainerName(dialect, modelType));
         code.OpenBlock();
-        code.Indent();
         // XML docs precede serialization attributes so the compiler associates
         // them with the member (CS1591).
         code.AppendLine("/// <summary>Base type for the internal change representation.</summary>");
@@ -324,7 +321,6 @@ internal static class SparseChangeSetPayloadEmitter
             code.AppendLine();
         }
         SparseChangeSetPayloadShapeEmitter.AppendPublicRoles(code, contractMembers, endpoint, modelType, dialect, implementationNamespace);
-        code.Unindent();
         code.CloseBlock();
     }
 
