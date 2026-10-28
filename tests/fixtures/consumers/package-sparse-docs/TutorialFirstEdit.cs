@@ -1,10 +1,12 @@
 using System.Text.Json;
 using SparseTypes;
 
-// Compile-checked tutorial samples for the three progressive tutorials:
+// Compile-checked tutorial samples for the five progressive tutorials:
 // 1. first-sparse-edit.md
 // 2. send-and-rebase-changes.md
 // 3. layer-and-reset-settings.md
+// 4. edit-a-keyed-collection.md
+// 5. resolve-a-conflict.md
 public static class TutorialFirstEditSamples
 {
     public static void Run()
@@ -12,6 +14,8 @@ public static class TutorialFirstEditSamples
         FirstEditTutorial();
         SendAndRebaseTutorial();
         LayerAndResetTutorial();
+        KeyedCollectionTutorial();
+        ResolveConflictTutorial();
         HistoryFlow();
     }
 
@@ -183,6 +187,204 @@ public static class TutorialFirstEditSamples
         DocsCheck.Require(finalSettings.Theme == "light" && finalSettings.RefreshInterval == 30, "lower layer Theme revealed after Remove");
     }
 
+    private static void KeyedCollectionTutorial()
+    {
+        // sample: tutorial-roster-add
+        var before = new TutorialRoster
+        {
+            Quests = new List<TutorialQuest>
+            {
+                new() { Id = 1, Title = "Gather herbs", Points = 10 },
+            },
+        };
+
+        var after = new TutorialRoster
+        {
+            Quests = new List<TutorialQuest>
+            {
+                new() { Id = 1, Title = "Gather herbs", Points = 10 },
+                new() { Id = 2, Title = "Repair bridge", Points = 25 },
+            },
+        };
+
+        // 1. Diff the two rosters to inspect the added quest
+        var arrived = before.CreateChangeSet(after);
+        var q2Change = arrived.Quests.GetChange(2);
+        Console.WriteLine(
+            $"Quest 2 IsAdded: {q2Change.IsAdded}, Added Id: {arrived.Quests.Added.Single().Id}"
+        );
+        // Output:
+        // Quest 2 IsAdded: True, Added Id: 2
+        // /sample
+        DocsCheck.Require(arrived.Quests.GetChange(2).IsAdded, "quest 2 is marked added");
+        DocsCheck.Require(arrived.Quests.Added.Single().Id == 2, "Added contains quest 2");
+
+        // sample: tutorial-roster-edit
+        // 2. Retitle quest 1 and swap the quest order
+        var reordered = new TutorialRoster
+        {
+            Quests = new List<TutorialQuest>
+            {
+                new() { Id = 2, Title = "Repair bridge", Points = 25 },
+                new() { Id = 1, Title = "Gather healing herbs", Points = 10 },
+            },
+        };
+
+        var edited = after.CreateChangeSet(reordered);
+        var q1Change = edited.Quests.GetChange(1);
+        Console.WriteLine(
+            $"Quest 1 IsEdited: {q1Change.IsEdited}, Title: {q1Change.Edit.Title.After.Value}, OrderChanged: {edited.Quests.OrderChanged}, AfterOrder: [{string.Join(", ", edited.Quests.AfterOrder)}]"
+        );
+        // Output:
+        // Quest 1 IsEdited: True, Title: Gather healing herbs, OrderChanged: True, AfterOrder: [2, 1]
+        // /sample
+        DocsCheck.Require(edited.Quests.GetChange(1).IsEdited, "quest 1 is marked edited");
+        DocsCheck.Require(
+            edited.Quests.GetChange(1).Edit.Title.After.Value == "Gather healing herbs",
+            "quest 1 Title updated"
+        );
+        DocsCheck.Require(edited.Quests.OrderChanged, "quest order changed");
+        DocsCheck.Require(
+            edited.Quests.AfterOrder.SequenceEqual(new[] { 2, 1 }),
+            "AfterOrder records [2, 1]"
+        );
+
+        // sample: tutorial-roster-remove
+        // 3. Remove quest 2 from the roster
+        var trimmed = new TutorialRoster
+        {
+            Quests = new List<TutorialQuest>
+            {
+                new() { Id = 1, Title = "Gather healing herbs", Points = 10 },
+            },
+        };
+
+        var removed = reordered.CreateChangeSet(trimmed);
+        Console.WriteLine($"Quest 2 IsRemoved: {removed.Quests.GetChange(2).IsRemoved}");
+        // Output:
+        // Quest 2 IsRemoved: True
+        // /sample
+        DocsCheck.Require(removed.Quests.GetChange(2).IsRemoved, "quest 2 is marked removed");
+        DocsCheck.Require(removed.Quests.Removed.Single().Id == 2, "Removed contains quest 2");
+
+        // sample: tutorial-roster-temporary
+        // 4. Add a pending quest with an unassigned Id and a temporary key
+        var tempId = Guid.NewGuid();
+        var withPending = new TutorialRoster
+        {
+            Quests = new List<TutorialQuest>
+            {
+                new() { Id = 1, Title = "Gather healing herbs", Points = 10 },
+                new() { TemporaryId = tempId, Title = "Scout watchtower", Points = 15 },
+            },
+        };
+
+        var pending = trimmed.CreateChangeSet(withPending);
+        // pending.Quests.GetTemporaryChange(tempId).IsAdded == true
+        var pendingTitlePath = TutorialRoster.SparsePath.Quests.TemporaryKey(tempId).Title;
+        Console.WriteLine(
+            $"Pending IsAdded: {pending.Quests.GetTemporaryChange(tempId).IsAdded}, Path: {pendingTitlePath}"
+        );
+        // Output:
+        // Pending IsAdded: True, Path: Quests[temp:"<tempId>"].Title
+        // /sample
+        DocsCheck.Require(
+            pending.Quests.GetTemporaryChange(tempId).IsAdded,
+            "pending quest is marked added by temporary key"
+        );
+        DocsCheck.Require(
+            pendingTitlePath.ToString().StartsWith("Quests[temp:", StringComparison.Ordinal),
+            "pending path carries temporary key segment"
+        );
+    }
+
+    private static void ResolveConflictTutorial()
+    {
+        // sample: tutorial-resolve-detect
+        var baseline = new UserSettings
+        {
+            DisplayName = "Alice",
+            Theme = "light",
+            RefreshInterval = 60,
+        };
+        var incoming = baseline.CreateChangeSet(
+            new UserSettings
+            {
+                DisplayName = "Alice",
+                Theme = "dark",
+                RefreshInterval = 60,
+            }
+        );
+
+        var serverCurrent = new UserSettings
+        {
+            DisplayName = "Alice",
+            Theme = "high-contrast",
+            RefreshInterval = 120,
+        };
+
+        // 1. Rebase the incoming ChangeSet onto the server's current state
+        var conflicted = incoming.RebaseOnto(serverCurrent);
+        var conflict = conflicted.Conflicts[0];
+        Console.WriteLine(
+            $"HasConflicts: {conflicted.HasConflicts}, Path: {conflict.PathText}, base={conflict.BaseValue.Value}, local={conflict.LocalValue.Value}, current={conflict.CurrentValue.Value}"
+        );
+        // Output:
+        // HasConflicts: True, Path: Theme, base=light, local=dark, current=high-contrast
+        // /sample
+        DocsCheck.Require(conflicted.HasConflicts, "overlapping Theme edit produces a conflict");
+        DocsCheck.Require(conflict.PathText == "Theme", "conflict path is Theme");
+        DocsCheck.Require(
+            Equals(conflict.BaseValue.Value, "light")
+                && Equals(conflict.LocalValue.Value, "dark")
+                && Equals(conflict.CurrentValue.Value, "high-contrast"),
+            "conflict captures base, local, and current values"
+        );
+
+        // sample: tutorial-resolve-decide
+        // 2. Open a resolution builder and choose the incoming value for Theme
+        var resolution = UserSettings.ChangeSet.BeginResolution(conflicted, serverCurrent);
+        var themePath = UserSettings.SparsePath.Theme;
+
+        if (resolution.HasConflict(themePath))
+        {
+            resolution.UseIncoming(themePath);
+        }
+
+        Console.WriteLine(
+            $"HasConflict(Theme): {resolution.HasConflict(themePath)}, Unresolved count: {resolution.EnumerateUnresolvedConflicts().Count}"
+        );
+        // Output:
+        // HasConflict(Theme): True, Unresolved count: 0
+        // /sample
+        DocsCheck.Require(resolution.HasConflict(themePath), "Theme path has a conflict");
+        DocsCheck.Require(
+            resolution.EnumerateUnresolvedConflicts().Count == 0,
+            "UseIncoming resolves the Theme conflict"
+        );
+
+        // sample: tutorial-resolve-apply
+        // 3. Build the resolved ChangeSet and apply it to the server state
+        var built = resolution.TryBuild(out var resolved, out var failure);
+        DocsCheck.Require(
+            (resolved ?? throw new InvalidOperationException("resolved is null")) is not null
+                && built
+                && failure is null,
+            "TryBuild produces a resolved ChangeSet"
+        );
+        var updated = resolved.ToPatch().ApplyTo(serverCurrent);
+        Console.WriteLine(
+            $"TryBuild: {built}, Theme: {updated.Theme}, RefreshInterval: {updated.RefreshInterval}"
+        );
+        // Output:
+        // TryBuild: True, Theme: dark, RefreshInterval: 120
+        // /sample
+        DocsCheck.Require(
+            updated.Theme == "dark" && updated.RefreshInterval == 120,
+            "resolved ChangeSet applies incoming Theme while preserving server RefreshInterval"
+        );
+    }
+
     private static void HistoryFlow()
     {
         var probe = new UserSettings { Theme = "light" }.CreateEditSession();
@@ -222,6 +424,28 @@ public partial class UserSettings
     public string? Theme { get; set; }
 
     public int RefreshInterval { get; set; }
+}
+
+// /sample
+
+// sample: tutorial-roster-models
+public partial class TutorialQuest
+{
+    [SparseKey(Unassigned = 0)]
+    public int Id { get; set; }
+
+    [SparseTemporaryKey]
+    public Guid? TemporaryId { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public int Points { get; set; }
+}
+
+[SparseModel]
+public partial class TutorialRoster
+{
+    public List<TutorialQuest> Quests { get; set; } = new();
 }
 
 // /sample

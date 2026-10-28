@@ -102,6 +102,14 @@ docs/tutorial/send-and-rebase-changes.md	tutorial-rebase	tests/fixtures/consumer
 docs/tutorial/send-and-rebase-changes.md	tutorial-rebase-conflict	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
 docs/tutorial/layer-and-reset-settings.md	tutorial-fragment-patch	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
 docs/tutorial/layer-and-reset-settings.md	tutorial-fragment-remove-and-materialize	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/edit-a-keyed-collection.md	tutorial-roster-models	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/edit-a-keyed-collection.md	tutorial-roster-add	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/edit-a-keyed-collection.md	tutorial-roster-edit	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/edit-a-keyed-collection.md	tutorial-roster-remove	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/edit-a-keyed-collection.md	tutorial-roster-temporary	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/resolve-a-conflict.md	tutorial-resolve-detect	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/resolve-a-conflict.md	tutorial-resolve-decide	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
+docs/tutorial/resolve-a-conflict.md	tutorial-resolve-apply	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
 docs/how-to/edit-session.md	tutorial-history	tests/fixtures/consumers/package-sparse-docs/TutorialFirstEdit.cs
 docs/how-to/layered-settings.md	layered-models	tests/fixtures/consumers/package-sparse-docs/LayeredSettings.cs
 docs/how-to/layered-settings.md	layered-precedence	tests/fixtures/consumers/package-sparse-docs/LayeredSettings.cs

@@ -16,6 +16,8 @@ If you are new, read in this order. Each tutorial runs as a console program:
 1. [Track and revert edits with EditSession](tutorial/first-sparse-edit.md): Create an `EditSession`, mutate properties through `Observable`, inspect `ChangeSet` transitions, and revert changes.
 2. [Send changes as JSON and rebase concurrent edits](tutorial/send-and-rebase-changes.md): Serialize a `ChangePayload` over the wire, merge non-overlapping concurrent edits, and inspect structured conflicts.
 3. [Layer settings and reset overrides with Fragment and Patch](tutorial/layer-and-reset-settings.md): Merge multi-layer configuration fragments and use `Patch.Remove()` to fall back to lower layers.
+4. [Edit a keyed collection](tutorial/edit-a-keyed-collection.md): Match list elements by `[SparseKey]`, inspect added, edited, reordered, and removed items on a `ChangeSet`, and track pending rows with `[SparseTemporaryKey]`.
+5. [Resolve a rebase conflict](tutorial/resolve-a-conflict.md): Open `ChangeSet.BeginResolution` on a conflicted rebase result, pick per-path winners, and apply the resolved `ChangeSet`.
 
 Then continue with [Work with an edit session](how-to/edit-session.md) and [Fragments and patches](explanation/fragments-and-patches.md). The [Reference](reference/README.md) section below lists every API and wire contract. It assumes the concepts from the tutorials, so first-time readers can skip it.
 
