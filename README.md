@@ -42,7 +42,7 @@ public partial class DatabaseSettings
 }
 ```
 
-Behind the scenes, [many classes are generated](./docs/reference/generated-api.md), but users don't need to be aware of it.
+Behind the scenes, [four companion types](./docs/explanation/fragments-and-patches.md) are generated, but users don't need to be aware of it.
 
 ### What can you build?
 
@@ -164,7 +164,7 @@ var rebased = incoming.RebaseOnto(updated);
 ```
 
 `RebaseOnto` works like `git rebase`: it reports conflicts where they occur and merges everything else automatically.
-With [`ChangePayload`](docs/reference/change-payload.md) and [`Rebase`](docs/explanation/rebase.md), partial changes fit naturally even in environments where the client and server are separated.
+With [wire transport](docs/how-to/partial-updates.md) and [`Rebase`](docs/explanation/rebase.md), partial changes fit naturally even in environments where the client and server are separated.
 
 ## Install
 

@@ -11,17 +11,22 @@ This index organizes the documentation into four categories:
 
 ## Tutorials
 
-Start here to learn SparseTypes step by step in a console application:
+If you are new, read in this order. Each tutorial runs as a console program:
 
 1. [Track and revert edits with EditSession](tutorial/first-sparse-edit.md): Create an `EditSession`, mutate properties through `Observable`, inspect `ChangeSet` transitions, and revert changes.
 2. [Send changes as JSON and rebase concurrent edits](tutorial/send-and-rebase-changes.md): Serialize a `ChangePayload` over the wire, merge non-overlapping concurrent edits, and inspect structured conflicts.
 3. [Layer settings and reset overrides with Fragment and Patch](tutorial/layer-and-reset-settings.md): Merge multi-layer configuration fragments and use `Patch.Remove()` to fall back to lower layers.
+
+Then continue with [Work with an edit session](how-to/edit-session.md) and [Fragments and patches](explanation/fragments-and-patches.md). The [Reference](reference/README.md) section below lists every API and wire contract. It assumes the concepts from the tutorials, so first-time readers can skip it.
 
 ## How-to Guides
 
 Task-oriented guides for UI binding, API endpoints, and persistence:
 
 * [Work with an edit session](how-to/edit-session.md): Submit captured snapshots, choose the right baseline acknowledgement (`AcceptChanges`, `TryReconcile`, `Reload`), undo/redo history, fork speculative drafts, and open child sessions.
+* [Edit keyed collections](how-to/edit-collections.md): Add, remove, rename, and reorder `[SparseKey]` rows through the session collection editor, and reconcile client-generated `[SparseTemporaryKey]` rows after save.
+* [Resolve rebase conflicts](how-to/resolve-conflicts.md): Reconcile a stale `ChangeSet` against current server state, decide per-path winners with `BeginResolution`, and retry the save without losing user edits.
+* [Review changes before save](how-to/review-changes.md): List pending transitions with `EnumerateChanges`, show them in a preview table, and surface field errors with `SparseValidationStore`.
 * [Accept partial updates in an API](how-to/partial-updates.md): Receive `ChangePayload` requests, distinguish baseline-aware `ChangeSet` transitions from baseline-free `Patch` commands, and redact write-only secrets with `[SparseRedactBefore]`.
 * [Compose layered settings](how-to/layered-settings.md): Layer defaults, environment overrides, and user preferences, and persist diffs against defaults.
 * [Build a Blazor edit form](how-to/blazor-edit-form.md): Wire `EditSession` to Blazor's `EditContext`, surface rebase conflicts on form fields, and retry failed saves without losing user edits.
