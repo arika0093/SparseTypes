@@ -11,11 +11,11 @@ SparseTypes generates change-tracking, diffing, patching, and merging companion 
 ## Motivation
 ### Overview
 
-Consider a case where you directly edit `settings.Theme = "dark"`.  
-In that situation, information about the previous value and exactly where it changed is lost.  
+Consider a case where you directly edit `settings.Label = "dark"`.
+In that situation, information about the previous value and exactly where it changed is lost.
 This makes it inconvenient to track edit history or update the UI based on the changed parts.
 
-Additionally, consider a scenario where multiple people are editing the same settings.  
+Now consider multiple people editing the same settings concurrently.
 Unrelated changes should be merged automatically, and conflicts should be detected and reported clearly.
 
 Implementing these features required a lot of redundant code. It's tedious, isn't it?
@@ -30,7 +30,7 @@ That's it. All the necessary companion types are generated automatically.
 [SparseModel]                 // add this attribute
 public partial class Settings // mark the class as partial
 {
-    public string? Theme { get; set; }
+    public string? Label { get; set; }
     public DatabaseSettings? Database { get; set; }
 }
 
@@ -42,21 +42,22 @@ public partial class DatabaseSettings
 }
 ```
 
-Behind the scenes, [four companion types](./docs/explanation/fragments-and-patches.md) are generated, but users don't need to be aware of it.
+Behind the scenes, [four companion types](docs/explanation/fragments-and-patches.md) are generated automatically.  
+You never edit the generated code directly — the `EditSession`/`ChangeSet` APIs below are all you touch.
 
 ### What can you build?
 
-Try [this case](https://sparsetypes.eclairs.cc/enterprise-editing) in the [Playground](https://sparsetypes.eclairs.cc/).  
-You can easily build complex master-data management web pages commonly found in enterprise applications.
+Try the [enterprise editing demo](https://sparsetypes.eclairs.cc/enterprise-editing) in the [Playground](https://sparsetypes.eclairs.cc/).
+You can build complex master-data management web pages commonly found in enterprise applications.
 
-A key feature of this library is that you can implement functionality like the following with [little code](./playground/SparseTypes.Playground/Pages/Case6/):
+You can implement functionality like the following with [the enterprise editing source on GitHub](https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case6):
 
 * Manage edit history separately for each tab and save each tab independently.
 * Highlight changed sections and enable Undo/Redo.
-* Reorder and add child items seamlessly.
+* Reorder, add, and remove child items in keyed collections.
 * Automatically merge changes made by others where possible.
 * When conflicts occur, let users choose how to resolve them or fail the operation outright.
-* Use these features with any framework through [headless Blazor components](./docs/how-to/blazor-headless-components.md).
+* Use these features with any framework through [headless Blazor components](docs/how-to/blazor-headless-components.md).
 
 If this seems too complex, there's also a [simpler example](https://sparsetypes.eclairs.cc/ef-mapping).
 
@@ -67,8 +68,8 @@ Like it? Let's take a look at how it can be used.
 ## Quick Start
 ### Simple example
 
-With the .NET 10 SDK or later, you can run a complete single-file program.  
-Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`. 
+With the .NET 10 SDK or later, you can run a complete single-file program.
+Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`.
 
 <!-- sample: readme-quickstart -->
 ```csharp
@@ -136,7 +137,7 @@ Let's walk through it step by step.
 1. Collect the differences with `CreateChangeSet`.
     * For each value you can check whether it changed (`changes.X.IsChanged`).
     * For each changed value you can inspect the previous and current values (`changes.X.Before` and `changes.X.After`).
-    * You can also collect all changed locations as an array (`changes.EnumerateChanges`).
+    * You can also collect all changed locations (`changes.EnumerateChanges`).
 1. Revert changes with `RevertChanges`.
     * This rolls back to the values at the start (step 1).
     * You can also accept changes (`AcceptChanges`).
@@ -145,11 +146,11 @@ Of course, there is much more that didn't fit here! For example...
 
 * [Undo/redo](docs/how-to/edit-session.md#record-undo-and-redo-history) user changes.
 * [Create a fork](docs/how-to/edit-session.md#branch-speculative-edits-with-fork) for tentative changes. Once done, merge it or discard it.
-* [Reload from the latest server state](docs/how-to/edit-session.md#reload-with-fresh-server-state) (without discarding changes!)
+* [Reload with the latest server state](docs/how-to/edit-session.md#reload-with-fresh-server-state) (without discarding unsaved local edits!)
 * Automatically apply these changes to EF Core [entities](docs/how-to/efcore-mapping.md).
-* By [declaring key columns in advance](docs/explanation/keyed-collections.md), even complex cases like arrays of arrays of classes work without issues.
+* By [declaring key properties in advance](docs/explanation/keyed-collections.md), even complex cases like arrays of arrays of classes work without issues.
 
-### Wire transport and concurrent rebase
+## Wire transport and concurrent rebase
 
 When changes cross process boundaries, serialize the `ChangeSet` to a `ChangePayload` and reconcile it against the latest server state:
 
@@ -159,8 +160,8 @@ When changes cross process boundaries, serialize the `ChangeSet` to a `ChangePay
 var json = JsonSerializer.Serialize(changes.ToPayload());
 // 2. Deserialize on the server
 var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
-// 3. Rebase incoming changes onto latest server state
-var rebased = incoming.RebaseOnto(updated);
+// 3. Rebase incoming changes onto the latest server state
+var rebased = incoming.RebaseOnto(currentServerState);
 ```
 
 `RebaseOnto` works like `git rebase`: it reports conflicts where they occur and merges everything else automatically.
@@ -174,9 +175,11 @@ Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/Sp
 dotnet add package SparseTypes --prerelease
 ```
 
-We also provide several other libraries. For details, see [here](docs/explanation/libraries.md).
+We also provide several other libraries. For details, see [the library overview](docs/explanation/libraries.md).
 
 ## Learn more
+
+New to SparseTypes? Start with the [tutorials](docs/README.md#tutorials).
 
 See the [Documentation Index](docs/README.md) for the full map.
 
