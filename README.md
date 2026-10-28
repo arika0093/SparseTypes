@@ -47,10 +47,12 @@ You never edit the generated code directly — the `EditSession`/`ChangeSet` API
 
 ### What can you build?
 
-Try the [enterprise editing demo](https://sparsetypes.eclairs.cc/enterprise-editing) in the [Playground](https://sparsetypes.eclairs.cc/).
-You can build complex master-data management web pages commonly found in enterprise applications.
+Try the demos in the [Playground](https://sparsetypes.eclairs.cc/). You can build complex master-data management web pages commonly found in enterprise applications.
 
-You can implement functionality like the following with [the enterprise editing source on GitHub](https://github.com/arika0093/SparseTypes/tree/main/playground/SparseTypes.Playground/Pages/Case6):
+* [Enterprise editing demo](https://sparsetypes.eclairs.cc/enterprise-editing)
+* [EFCore mapping example](https://sparsetypes.eclairs.cc/ef-mapping)
+
+You can implement functionality like the following features:
 
 * Manage edit history separately for each tab and save each tab independently.
 * Highlight changed sections and enable Undo/Redo.
@@ -58,8 +60,6 @@ You can implement functionality like the following with [the enterprise editing 
 * Automatically merge changes made by others where possible.
 * When conflicts occur, let users choose how to resolve them or fail the operation outright.
 * Use these features with any framework through [headless Blazor components](docs/how-to/blazor-headless-components.md).
-
-If this seems too complex, there's also a [simpler example](https://sparsetypes.eclairs.cc/ef-mapping).
 
 ---
 
