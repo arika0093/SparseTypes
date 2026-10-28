@@ -160,10 +160,12 @@ The method saves the entire DbContext. Use a short-lived context without unrelat
 ## Execution lifecycle
 
 1. **Plan construction**: `OrderMapper.Create(db.Model)` compiles source-generated conventional defaults, executes `Configure()`, and validates the plan against `IModel`.
-2. **Navigation loading**: `query.IncludeFor(mapper, changes)` inspects the accepted `ChangeSet` and includes only navigations required by changed paths.
-3. **Preflight validation**: `Apply` or `ApplyWithResult` validates all operations before modifying any entity state. A failure leaves `ChangeTracker` untouched.
+2. **Navigation loading**: `query.IncludeFor(mapper, changes)` inspects the accepted `ChangeSet` and includes only navigations required by changed paths. Scalar keyed edit filters share a budget of 1,024 key entries across one query, including repeated requests for a navigation. Once a request exceeds the remaining budget, that navigation uses an unfiltered Include. Large edit sets remain supported, but may load the entire parent collection. This bounds generated key comparisons; applications still control request size and the number of children stored under a parent.
+3. **Preflight validation**: `Apply` or `ApplyWithResult` validates all operations before modifying any entity state. A failure leaves `ChangeTracker` untouched. Missing nested objects may require constructing detached prospective instances during validation. Constructor invocation failures are collected as `NestedNotCreatable` errors at the affected DTO path, so independent member errors are still reported. Constructors, getters, and configured converters can execute application code during preflight; their external side effects are not rolled back.
 4. **Direct mutation**: Only modified properties execute setters. Unchanged EF properties remain untouched.
 5. **Temporary key correlation**: `ApplyWithResult` correlates client-generated `[SparseTemporaryKey]` values to new entities. Call `mapper.AssignTemporaryKeys(db, result, baseline, authoritative)` after `SaveChangesAsync()`. The mapper validates correlation across the complete DTO tree before invoking temporary-key setters. A deterministic mapping failure leaves all DTO keys unchanged. If a setter throws during the final write, earlier setter effects may remain; setter execution is not transactional.
+
+Soft-delete ordering places active rows in the submitted order, then newly removed rows in removal-plan order, then previously deleted rows in the original tracked navigation order. Retention uses entity reference identity, so custom entity equality cannot collapse distinct tracked instances. Database read order still requires an explicit ordering configuration.
 
 ## Missing versus null semantics
 

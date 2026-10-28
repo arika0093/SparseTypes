@@ -423,6 +423,32 @@ public sealed class IncludeFilterBalancedTests
     }
 
     [Test]
+    public async Task OversizedEditBatchLoadsUnfilteredAndAppliesOnlyAddressedChildren()
+    {
+        using var connection = TestDatabases.OpenMemory();
+        var editedCount = SparseTypes.EntityFrameworkCore.Mapping.IncludePathCollector.MaximumFilterKeys + 1;
+        var seeded = await SeedSampleAsync(connection, editedCount * 2);
+        using var context = seeded.Context;
+        var mapper = SampleMapper(context);
+        var changes = EditBatch(seeded.Entity, editedCount);
+        using var fresh = TestDatabases.CreateSample(connection, new QueryCounter());
+        var query = fresh.Orders.Where(order => order.Id == seeded.Entity.Id).IncludeFor(mapper, changes);
+        FindWhere(query.Expression, typeof(OrderLineEntity)).ShouldBeNull();
+        _ = query.ToQueryString();
+        var loaded = await query.SingleAsync();
+        loaded.Lines.Count.ShouldBe(editedCount * 2);
+        mapper.Apply(fresh, loaded, changes);
+        var originalIndexes = seeded
+            .Entity.Lines.Select((line, index) => (line.Id, Index: index))
+            .ToDictionary(static item => item.Id, static item => item.Index);
+        foreach (var line in loaded.Lines)
+        {
+            var originalIndex = originalIndexes[line.Id];
+            line.Quantity.ShouldBe(originalIndex % 2 == 0 ? originalIndex + 1000 : originalIndex);
+        }
+    }
+
+    [Test]
     public async Task FilteredIncludeLoadsOnlyAddressedChildren()
     {
         using var connection = TestDatabases.OpenMemory();

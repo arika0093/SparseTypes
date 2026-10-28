@@ -42,9 +42,9 @@ internal static class CollectionSync
         var collection = CollectionEntryAccess.ReadNoDetect(state.Context, state.Entity, runtime.NavigationName);
         // Preflight is read-only: PeekList never assigns a null navigation.
         var list = CollectionState.ReadTrackedList(runtime, state, collection);
-        var tracked = CollectionState.IndexTracked(runtime, state, list);
+        var tracked = CollectionState.IndexTracked(runtime, state, list, out var trackedOrder);
         var path = state.DisplayPath(runtime.DtoName);
-        var plan = PlanSync(runtime, view, tracked, path);
+        var plan = PlanSync(runtime, view, tracked, trackedOrder, path);
         foreach (var edit in plan.Edits)
         {
             var sub = new PlanApplyState(
@@ -254,6 +254,7 @@ internal static class CollectionSync
         CollectionRuntime<TDtoChild, TEntityChild> runtime,
         KeyedCollectionView<TDtoChild> view,
         Dictionary<object, TEntityChild> tracked,
+        IReadOnlyList<TEntityChild> trackedOrder,
         string path
     )
         where TDtoChild : class
@@ -294,7 +295,7 @@ internal static class CollectionSync
         }
 
         ValidateDelta(runtime, view, tracked, plan, path);
-        plan.FinalOrder = CollectionOrderPlanner.PlanOrder(runtime, view, tracked, plan, path);
+        plan.FinalOrder = CollectionOrderPlanner.PlanOrder(runtime, view, tracked, plan, trackedOrder, path);
         if (view.OrderChanged && plan.Added.Count == 0 && plan.Removed.Count == 0 && runtime.OrderSetter is null)
         {
             throw new SparseEntityMappingException(

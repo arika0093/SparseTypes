@@ -7,6 +7,7 @@ internal static class CollectionOrderPlanner
         KeyedCollectionView<TDtoChild> view,
         Dictionary<object, TEntityChild> tracked,
         SyncPlan<TDtoChild, TEntityChild> plan,
+        IReadOnlyList<TEntityChild> trackedOrder,
         string path
     )
         where TDtoChild : class
@@ -112,35 +113,23 @@ internal static class CollectionOrderPlanner
 
         if (runtime.RemoveKind == SparseEntityRemoveKind.SoftDelete)
         {
-            var retentionCandidates = plan.Removed.Count + survivors.Count;
-            HashSet<TEntityChild>? retained = null;
-            if (retentionCandidates > 0)
-            {
-                // List.Contains scans the growing output per retained row;
-                // one membership set keeps retention linear instead.
-                retained = new HashSet<TEntityChild>(merged, System.Collections.Generic.EqualityComparer<TEntityChild>.Default);
-            }
-
-            // Soft-deleted rows stay in the collection: removals are excluded
-            // from the survivor map, so re-add them from the removal plan.
-            foreach (var removal in plan.Removed.Where(removal => retained is null || retained.Add(removal.Entity)))
+            // Membership is by tracked instance; value equality must not
+            // collapse distinct EF entities with different persistent keys.
+            var retained = new HashSet<TEntityChild>(merged, ReferenceEqualityComparer.Instance);
+            foreach (var removal in plan.Removed.Where(removal => retained.Add(removal.Entity)))
             {
                 merged.Add(removal.Entity);
             }
 
-            // Previously flagged rows leave the DTO projection but stay
-            // tracked: retain proven rows in tracked order instead of failing.
-            var afterSet = new HashSet<object>(view.AfterOrder.Where(key => !runtime.IsUnassigned(key)), runtime.KeyComparer);
+            // Use the original navigation sequence explicitly, rather than
+            // relying on dictionary enumeration to preserve tracked order.
             foreach (
-                var survivor in survivors.Where(candidate =>
-                    !afterSet.Contains(candidate.Key)
-                    && runtime.IsDeletedPredicate is not null
-                    && runtime.IsDeletedPredicate(candidate.Value)
-                    && (retained is null || retained.Add(candidate.Value))
+                var survivor in trackedOrder.Where(survivor =>
+                    !retained.Contains(survivor) && runtime.IsDeletedPredicate?.Invoke(survivor) == true && retained.Add(survivor)
                 )
             )
             {
-                merged.Add(survivor.Value);
+                merged.Add(survivor);
             }
         }
 

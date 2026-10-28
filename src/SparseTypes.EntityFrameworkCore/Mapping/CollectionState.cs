@@ -112,12 +112,14 @@ internal static class CollectionState
     public static Dictionary<object, TEntityChild> IndexTracked<TDtoChild, TEntityChild>(
         CollectionRuntime<TDtoChild, TEntityChild> runtime,
         PlanApplyState state,
-        IList list
+        IList list,
+        out IReadOnlyList<TEntityChild> trackedOrder
     )
         where TDtoChild : class
         where TEntityChild : class
     {
         var tracked = new Dictionary<object, TEntityChild>(list.Count, runtime.KeyComparer);
+        var order = runtime.RemoveKind == SparseEntityRemoveKind.SoftDelete ? new List<TEntityChild>(list.Count) : null;
         foreach (var entry in list)
         {
             if (entry is not TEntityChild child)
@@ -144,8 +146,10 @@ internal static class CollectionState
                     $"The tracked collection '{runtime.DtoName}' contains a duplicated child key."
                 );
             }
+            order?.Add(child);
         }
 
+        trackedOrder = order ?? (IReadOnlyList<TEntityChild>)Array.Empty<TEntityChild>();
         return tracked;
     }
 }

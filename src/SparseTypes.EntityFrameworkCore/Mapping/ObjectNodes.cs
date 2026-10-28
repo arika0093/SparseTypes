@@ -627,13 +627,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
 
     private void ValidateChildOnProspective(PlanApplyState state, ISparseChangeSet child)
     {
-        var prospective =
-            _createChild!()
-            ?? throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.NestedNotCreatable,
-                state.DisplayPath(DtoName),
-                $"The nested entity for '{DtoName}' is null and its parameterless constructor returned null."
-            );
+        var prospective = ProspectiveEntityFactory.Create(_createChild!, state.DisplayPath(DtoName), DtoName);
         // Dry-run validation only: the prospective instance is never linked or
         // tracked, so preflight leaves the real graph untouched.
         var probeEntry = state.Context.Entry(prospective);
@@ -653,13 +647,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
 
     private void ValidateWholesaleOnProspective(DbContext context, string displayPath, TDtoChild snapshot, CollectionScopePath parentScope)
     {
-        var prospective =
-            _createChild!()
-            ?? throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.NestedNotCreatable,
-                displayPath,
-                $"The nested entity for '{DtoName}' is null and its parameterless constructor returned null."
-            );
+        var prospective = ProspectiveEntityFactory.Create(_createChild!, displayPath, DtoName);
         var probe = new PlanWriteState(
             context,
             prospective,

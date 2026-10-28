@@ -9,6 +9,8 @@ namespace SparseTypes.EntityFrameworkCore.Mapping;
 
 internal sealed class IncludePathCollector
 {
+    internal const int MaximumFilterKeys = 1024;
+
     private static readonly MethodInfo EfPropertyMethod = typeof(EF)
         .GetMethods(BindingFlags.Public | BindingFlags.Static)
         .Single(method => method.Name == nameof(EF.Property) && method.IsGenericMethodDefinition && method.GetParameters().Length == 2);
@@ -32,6 +34,7 @@ internal sealed class IncludePathCollector
 
     private readonly Dictionary<string, IncludePathNode> _root = new(StringComparer.Ordinal);
     private readonly List<IncludePathNode> _stack = [];
+    private int _filterKeyCount;
 
     public void PushReference(string name, Type targetType, bool owned)
     {
@@ -50,9 +53,19 @@ internal sealed class IncludePathCollector
     )
     {
         var filter =
-            !owned && filterEdits && keySelector is not null && keyType is not null && entityType is not null && keys is not null
+            !owned
+            && filterEdits
+            && keySelector is not null
+            && keyType is not null
+            && entityType is not null
+            && keys is not null
+            && keys.Count <= MaximumFilterKeys - _filterKeyCount
                 ? IncludeFilter.TryCreate(keySelector, keyType, entityType, keys)
                 : null;
+        if (filter is not null)
+        {
+            _filterKeyCount += keys!.Count;
+        }
         var node = Push(name, targetType, isCollection: true, owned);
         node.MergeFilter(filter, filterEdits && !owned);
     }
@@ -354,6 +367,7 @@ internal sealed class IncludePathCollector
                 || selector.ReturnType != keyType
                 || !IsSimpleMappedSelector(selector, entityType)
                 || keys.Count == 0
+                || keys.Count > MaximumFilterKeys
                 || keys.Any(key => key is null)
             )
             {

@@ -157,6 +157,14 @@ public sealed class SparseEntityMappingException : InvalidOperationException
             : Array.AsReadOnly(new[] { new SparseEntityMappingError(failure, dtoPath, message) });
     }
 
+    internal SparseEntityMappingException(SparseEntityMappingError error, Exception inner)
+        : base(error.Message, inner)
+    {
+        Failure = error.Failure;
+        DtoPath = error.DtoPath;
+        _errors = Array.AsReadOnly(new[] { error });
+    }
+
     private SparseEntityMappingException(IReadOnlyList<SparseEntityMappingError> errors)
         : base(CreateAggregateMessage(errors))
     {

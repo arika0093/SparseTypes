@@ -85,6 +85,7 @@ internal sealed class CollectionNode<TDto, TEntity, TDtoChild, TEntityChild> : M
         var filterEdits =
             !view.OrderChanged
             && view.Items.Count > 0
+            && view.Items.Count <= IncludePathCollector.MaximumFilterKeys
             && view.Items.All(static item => item.IsEdited && !item.IsAdded && !item.IsRemoved && !item.IsReordered);
         var keys = filterEdits ? view.Items.Select(static item => item.Key).ToList() : null;
         collector.PushCollection(
