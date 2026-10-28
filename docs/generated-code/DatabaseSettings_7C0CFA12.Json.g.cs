@@ -27,20 +27,20 @@ namespace SparseTypes.Generated
             bool hasVersion = false;
             bool hasSchema = false;
             bool hasChange = false;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed payload.");
                 var name = reader.GetString() ?? string.Empty;
                 if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
-                if (name == "version")
-                { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); hasVersion = true; }
-                else if (name == "schema")
+                if (global::System.String.Equals(name, "version", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))
+                { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : throw new global::System.Text.Json.JsonException("Malformed payload version."); hasVersion = true; }
+                else if (global::System.String.Equals(name, "schema", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))
                 { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) schema = reader.GetString(); else if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) schema = null; else throw new global::System.Text.Json.JsonException("Malformed ChangePayload schema identity."); hasSchema = true; }
-                else if (name == "recordedAt")
+                else if (global::System.String.Equals(name, "recordedAt", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))
                 { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) { var text = reader.GetString(); if (text is null || !global::System.DateTimeOffset.TryParseExact(text, "O", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.None, out var value) || !global::System.String.Equals(value.ToString("O", global::System.Globalization.CultureInfo.InvariantCulture), text, global::System.StringComparison.Ordinal)) throw new global::System.Text.Json.JsonException("Malformed ChangePayload recording time."); recordedAt = value; } else if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException("Malformed ChangePayload recording time."); }
-                else if (name == "change")
+                else if (global::System.String.Equals(name, "change", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))
                 { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); change = ReadModelChange(ref reader, options); hasChange = true; }
                 else { if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed payload."); reader.Skip(); }
             }
@@ -144,7 +144,7 @@ namespace SparseTypes.Generated
         {
             if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A snapshot must be an object.");
             var snapshot = new DatabaseSettings_8807E705SerializeObjects.Root();
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
@@ -154,10 +154,10 @@ namespace SparseTypes.Generated
                 if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed snapshot.");
                 switch (name)
                 {
-                    case "host":
+                    case var _ when global::System.String.Equals(name, "host", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal):
                     snapshot.Host = ReadEndpoint<string>(ref reader, options, null, null);
                     break;
-                    case "port":
+                    case var _ when global::System.String.Equals(name, "port", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal):
                     snapshot.Port = ReadEndpoint<int>(ref reader, options, null, null);
                     break;
                     default: reader.Skip(); break;
@@ -191,7 +191,7 @@ namespace SparseTypes.Generated
             var change = new DatabaseSettings_8807E705SerializeObjects.ModelChange();
             string? operation = null;
             bool hasKind = false, hasMembers = false, hasBefore = false, hasAfter = false;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
@@ -199,15 +199,15 @@ namespace SparseTypes.Generated
                 var name = reader.GetString() ?? string.Empty;
                 if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                 if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed model change.");
-                if (name == "kind")
+                if (global::System.String.Equals(name, "kind", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))
                 {
                     operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null;
                     change.Kind = operation switch { "update" => DatabaseSettings_8807E705SerializeObjects.ModelChangeKind.Update, "replace" => DatabaseSettings_8807E705SerializeObjects.ModelChangeKind.Replace, _ => throw new global::System.Text.Json.JsonException("Unknown model change kind.") };
                     hasKind = true;
                 }
-                else if (name == "members") { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }
-                else if (name == "before") { change.Before = ReadEndpoint<DatabaseSettings_8807E705SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasBefore = true; }
-                else if (name == "after") { change.After = ReadEndpoint<DatabaseSettings_8807E705SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasAfter = true; }
+                else if (global::System.String.Equals(name, "members", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }
+                else if (global::System.String.Equals(name, "before", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.Before = ReadEndpoint<DatabaseSettings_8807E705SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasBefore = true; }
+                else if (global::System.String.Equals(name, "after", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.After = ReadEndpoint<DatabaseSettings_8807E705SerializeObjects.Root>(ref reader, options, ReadRoot, null); hasAfter = true; }
                 else reader.Skip();
             }
             if (!hasKind) throw new global::System.Text.Json.JsonException("A model change requires a kind.");
@@ -220,7 +220,7 @@ namespace SparseTypes.Generated
         {
             if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("Members must be an object.");
             var members = new DatabaseSettings_8807E705SerializeObjects.MembersDelta();
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
@@ -230,8 +230,8 @@ namespace SparseTypes.Generated
                 if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed members object.");
                 switch (name)
                 {
-                    case "host": members.Host = (DatabaseSettings_8807E705SerializeObjects.Change0)ReadMember0(ref reader, options); break;
-                    case "port": members.Port = (DatabaseSettings_8807E705SerializeObjects.Change1)ReadMember1(ref reader, options); break;
+                    case var _ when global::System.String.Equals(name, "host", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal): members.Host = (DatabaseSettings_8807E705SerializeObjects.Change0)ReadMember0(ref reader, options); break;
+                    case var _ when global::System.String.Equals(name, "port", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal): members.Port = (DatabaseSettings_8807E705SerializeObjects.Change1)ReadMember1(ref reader, options); break;
                     default: throw new global::System.Text.Json.JsonException("Unknown model member target '" + name + "'.");
                 }
             }
@@ -290,7 +290,7 @@ namespace SparseTypes.Generated
             if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
             var change = new DatabaseSettings_8807E705SerializeObjects.Change0();
             string? operation = null;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
@@ -298,9 +298,9 @@ namespace SparseTypes.Generated
                 var name = reader.GetString() ?? string.Empty;
                 if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                 if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
-                else if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<string>(ref reader, options, null, null); }
-                else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<string>(ref reader, options, null, null); }
+                if (global::System.String.Equals(name, "kind", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
+                else if (global::System.String.Equals(name, "before", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<string>(ref reader, options, null, null); }
+                else if (global::System.String.Equals(name, "after", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<string>(ref reader, options, null, null); }
                 else reader.Skip();
             }
             if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");
@@ -321,7 +321,7 @@ namespace SparseTypes.Generated
             if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException("A change must be an object.");
             var change = new DatabaseSettings_8807E705SerializeObjects.Change1();
             string? operation = null;
-            var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+            var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
@@ -329,9 +329,9 @@ namespace SparseTypes.Generated
                 var name = reader.GetString() ?? string.Empty;
                 if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                 if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed change.");
-                if (name == "kind") { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
-                else if (name == "before") { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<int>(ref reader, options, null, null); }
-                else if (name == "after") { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<int>(ref reader, options, null, null); }
+                if (global::System.String.Equals(name, "kind", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null; }
+                else if (global::System.String.Equals(name, "before", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { if (!TryReadNull(ref reader)) change.Before = ReadEndpoint<int>(ref reader, options, null, null); }
+                else if (global::System.String.Equals(name, "after", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { if (!TryReadNull(ref reader)) change.After = ReadEndpoint<int>(ref reader, options, null, null); }
                 else reader.Skip();
             }
             if (operation is null) throw new global::System.Text.Json.JsonException("A member change requires a kind.");

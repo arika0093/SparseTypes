@@ -171,6 +171,35 @@ namespace SparseTypes.Generated
             return false;
         }
 
+        /// <summary>Validates numeric enum values against the declared domain.</summary>
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        internal static class ScalarEnumDomain<TEnum>
+        {
+            internal static object Validate(object value)
+            {
+                if (IsFlags ? (Bits(value) & ~DefinedMask) != 0 : !global::System.Enum.IsDefined(EnumType, value))
+                    throw new global::System.Text.Json.JsonException("Undefined enum value.");
+                return value;
+            }
+
+            private static readonly global::System.Type EnumType = global::System.Nullable.GetUnderlyingType(typeof(TEnum)) ?? typeof(TEnum);
+            private static readonly bool IsFlags = EnumType.IsDefined(typeof(global::System.FlagsAttribute), false);
+            private static readonly bool IsUnsigned = global::System.Enum.GetUnderlyingType(EnumType) == typeof(ulong);
+            private static readonly ulong DefinedMask = CreateMask();
+
+            private static ulong Bits(object value) => IsUnsigned
+                ? global::System.Convert.ToUInt64(value, global::System.Globalization.CultureInfo.InvariantCulture)
+                : unchecked((ulong)global::System.Convert.ToInt64(value, global::System.Globalization.CultureInfo.InvariantCulture));
+
+            private static ulong CreateMask()
+            {
+                if (!IsFlags) return 0;
+                ulong mask = 0;
+                foreach (var name in global::System.Enum.GetNames(EnumType)) mask |= Bits(global::System.Enum.Parse(EnumType, name));
+                return mask;
+            }
+        }
+
         internal static bool TryReadScalar<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, out TValue? value)
         {
             value = default;
@@ -224,14 +253,14 @@ namespace SparseTypes.Generated
             var underlying = global::System.Enum.GetUnderlyingType(enumType);
             try
             {
-                if (underlying == typeof(int)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt32());
-                if (underlying == typeof(uint)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt32());
-                if (underlying == typeof(long)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt64());
-                if (underlying == typeof(ulong)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt64());
-                if (underlying == typeof(short)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetInt16());
-                if (underlying == typeof(ushort)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetUInt16());
-                if (underlying == typeof(byte)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetByte());
-                if (underlying == typeof(sbyte)) return (TValue?)global::System.Enum.ToObject(enumType, reader.GetSByte());
+                if (underlying == typeof(int)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetInt32()));
+                if (underlying == typeof(uint)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetUInt32()));
+                if (underlying == typeof(long)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetInt64()));
+                if (underlying == typeof(ulong)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetUInt64()));
+                if (underlying == typeof(short)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetInt16()));
+                if (underlying == typeof(ushort)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetUInt16()));
+                if (underlying == typeof(byte)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetByte()));
+                if (underlying == typeof(sbyte)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, reader.GetSByte()));
             }
             catch (global::System.FormatException exception)
             {
@@ -276,6 +305,7 @@ namespace SparseTypes.Generated
         internal static void WriteScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value)
         {
             var enumType = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+            ScalarEnumDomain<TValue>.Validate(value!);
             var underlying = global::System.Enum.GetUnderlyingType(enumType);
             if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);
             else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);
@@ -422,7 +452,7 @@ namespace SparseTypes.Generated
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;
                 if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
-                if (reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.StatePropertyUtf8()))
+                if ((reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.StatePropertyUtf8()) || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), global::SparseTypes.ChangePayloadWire.StateProperty, global::System.StringComparison.OrdinalIgnoreCase))))
                 {
                     if (hasStateProperty) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                     hasStateProperty = true;
@@ -430,7 +460,7 @@ namespace SparseTypes.Generated
                     state = ReadEndpointState(ref reader);
                     hasState = true;
                 }
-                else if (reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.ValuePropertyUtf8()))
+                else if ((reader.ValueTextEquals(global::SparseTypes.ChangePayloadWire.ValuePropertyUtf8()) || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), global::SparseTypes.ChangePayloadWire.ValueProperty, global::System.StringComparison.OrdinalIgnoreCase))))
                 {
                     if (hasValueProperty) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                     hasValueProperty = true;
@@ -444,7 +474,7 @@ namespace SparseTypes.Generated
                 else
                 {
                     var extensionName = reader.GetString() ?? string.Empty;
-                    seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);
+                    seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);
                     if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException("Duplicate JSON property.");
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
                     reader.Skip();
@@ -519,8 +549,8 @@ namespace SparseTypes.Generated
         {
             var enumType = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
             var underlying = global::System.Enum.GetUnderlyingType(enumType);
-            if (underlying == typeof(long)) return (TValue?)global::System.Enum.ToObject(enumType, ReadPayloadInt64(ref reader));
-            if (underlying == typeof(ulong)) return (TValue?)global::System.Enum.ToObject(enumType, ReadPayloadUInt64(ref reader));
+            if (underlying == typeof(long)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, ReadPayloadInt64(ref reader)));
+            if (underlying == typeof(ulong)) return (TValue?)ScalarEnumDomain<TValue>.Validate(global::System.Enum.ToObject(enumType, ReadPayloadUInt64(ref reader)));
             return ReadScalarEnum<TValue>(ref reader);
         }
 
@@ -545,6 +575,7 @@ namespace SparseTypes.Generated
         internal static void WritePayloadScalarEnum<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue value)
         {
             var enumType = global::System.Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
+            ScalarEnumDomain<TValue>.Validate(value!);
             var underlying = global::System.Enum.GetUnderlyingType(enumType);
             if (underlying == typeof(long)) writer.WriteStringValue(((long)(object)value!).ToString(global::System.Globalization.CultureInfo.InvariantCulture));
             else if (underlying == typeof(ulong)) writer.WriteStringValue(((ulong)(object)value!).ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -637,7 +668,7 @@ namespace SparseTypes.Generated
             while (reader.Read())
             {
                 if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;
-                list.Add(reader.GetGuid());
+                if (reader.TokenType != global::System.Text.Json.JsonTokenType.String || !reader.TryGetGuid(out var value)) throw new global::System.Text.Json.JsonException("Malformed temporary key."); list.Add(value);
             }
             return list;
         }
