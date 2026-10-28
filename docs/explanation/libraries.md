@@ -1,6 +1,17 @@
 # Available libraries
 
-The following libraries are available.
+SparseTypes separates its core source generator from framework integration packages so that domain models stay independent of UI and persistence libraries. You can reference the core package in shared model projects and add framework integrations only in the application layers that use them.
+
+## Choosing packages
+
+Start with `SparseTypes` alone. It generates fragments, patches, `ChangeSet`, `ChangePayload`, observable views, and edit sessions from your `[SparseModel]` classes without adding framework dependencies. It supports `netstandard2.0` (including .NET Framework 4.8) as well as `net6.0` and `net10.0`, and requires C# 9 and Roslyn 4.3.1 or later at build time. If a project only needs in-memory `Fragment` and `Patch` types without edit sessions or wire payloads, use `SparseTypes.Fragments` as the core package. See the [reference overview](../reference/README.md) for the generated types and API surface.
+
+Each optional package connects those generated types to a specific boundary in your application architecture. Add an integration package only in the project that hosts that boundary:
+
+* `SparseTypes.Blazor` has headless components and form state integration for building Blazor forms on .NET 8 or later. See [Blazor edit form](../how-to/blazor-edit-form.md) and [Blazor headless components](../how-to/blazor-headless-components.md).
+* `SparseTypes.EntityFrameworkCore` maps `ChangeSet` values onto tracked entities when persisting changes with EF Core 10 on .NET 10 or later. See [EF Core mapping](../how-to/efcore-mapping.md).
+* `SparseTypes.OpenApi.AspNetCore` and `SparseTypes.OpenApi.Swashbuckle` register `ChangePayload` schemas when exposing partial-update endpoints in OpenAPI documents on .NET 10 or later. Both packages require `SparseTypes`. See [OpenAPI integration](../how-to/openapi.md).
+* Trimmed and NativeAOT deployments require no extra package because `SparseTypes` emits AOT-compatible code and `System.Text.Json` metadata (`{ModelName}.PayloadJson.Default`) directly. See [Use SparseTypes with NativeAOT](../how-to/nativeaot.md) for publishing notes.
 
 ## `SparseTypes`
 
@@ -97,6 +108,13 @@ These extensions expose `ChangePayload` correctly in OpenAPI documents.
 dotnet add package SparseTypes.OpenApi.AspNetCore --prerelease
 # dotnet add package SparseTypes.OpenApi.Swashbuckle --prerelease
 ```
+
+### Requirements
+
+* `.NET 10` or later
+* `SparseTypes` (generates the `ChangePayload` schema metadata)
+* `Microsoft.AspNetCore.OpenApi` when using `SparseTypes.OpenApi.AspNetCore`
+* `Swashbuckle.AspNetCore` when using `SparseTypes.OpenApi.Swashbuckle`
 
 ## For library developers
 ### `SparseTypes.Core`
