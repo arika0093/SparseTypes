@@ -58,6 +58,23 @@ public partial class WireSecret
 
 Serialize and deserialize the generated `T.ChangePayload`, not `T.ChangeSet` or `T.Patch`. The typed member variants are suitable for OpenAPI endpoint schemas.
 
+## Resource limits for untrusted input
+
+The generated converters use `Utf8JsonReader`, whose default maximum JSON depth is 64. `JsonSerializerOptions.MaxDepth` also defaults to an effective limit of 64; leaving it at zero does not disable the limit. Exceeding the limit throws `JsonException`, including while skipping unknown properties. When calling a converter directly with a reader, configure depth through `JsonReaderOptions.MaxDepth`; serializer options do not replace an existing reader's settings. See the .NET references for [reader depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonreaderoptions.maxdepth) and [serializer depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions.maxdepth).
+
+Depth does not limit the width or total size of an envelope. SparseTypes has no global maximum for payload bytes, string lengths, collection sizes, or operation counts. `Validate()` checks structure, not resource consumption. A shallow payload can therefore allocate large collections and consume substantial processing time.
+
+Set and enforce these limits at the receiving application boundary:
+
+| Resource | Where to enforce the limit |
+| --- | --- |
+| Request bytes | Bound the body before buffering or deserializing it. For compressed requests, also bound decompressed bytes. |
+| JSON depth | Set the serializer or reader maximum depth for the accepted model. Do not raise it merely to accept an untrusted request. |
+| Operations and collection entries | Bound the aggregate count across the envelope, including nested snapshots and order arrays, before conversion or application. Bound existing model collections as well. |
+| Strings and textual paths | Bound string lengths before allocating parsed representations. See [path parsing limits](paths.md#parsing-resource-limits). |
+
+Choose numeric budgets from the endpoint's expected workload and measured worst-case cost, and reject requests that exceed them. A byte limit alone does not bound application cost: a small request can repeatedly edit a large existing collection. For example, generated keyed descriptor mutations scan the live collection to reject duplicate identities on each add, insert, or set. Applying `m` such edits to a collection initially containing `n` entries can take `O(m × (n + m))` comparisons. These scans observe raw collection and key changes; they are not a persistent index. This cost concerns descriptor mutations, rather than every JSON read or every `ChangeSet` application.
+
 ## Envelope and model changes
 
 The envelope carries `version`, `schema`, an optional `recordedAt`, and one `change`. The timestamp describes the whole change, not its individual members or operations. It is an ISO 8601 round-trip `DateTimeOffset` string when present; `null` and a missing field are written without `recordedAt` and read as unknown. Older envelopes remain readable. A model update contains a typed `members` object. Only changed members appear, and each member name uses camel case unless `[JsonPropertyName]` supplies another name. A nested model member carries the child operation directly, without a second `change` wrapper.

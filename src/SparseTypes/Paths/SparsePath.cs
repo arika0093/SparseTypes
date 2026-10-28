@@ -38,6 +38,10 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         ArgumentNullException.ThrowIfNull(segments);
         _rootType = rootType;
         _storage = segments.ToArray();
+        if (_storage.Any(static segment => !segment.IsInitialized))
+        {
+            throw new ArgumentException("Path segments must be initialized through a segment factory.", nameof(segments));
+        }
         _length = _storage.Length;
     }
 
@@ -112,6 +116,10 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     /// <param name="segment">The segment to append.</param>
     public SparsePath Append(SparsePathSegment segment)
     {
+        if (!segment.IsInitialized)
+        {
+            throw new ArgumentException("Path segments must be initialized through a segment factory.", nameof(segment));
+        }
         var combined = new SparsePathSegment[_length + 1];
         Array.Copy(SegmentsArray, combined, _length);
         combined[_length] = segment;

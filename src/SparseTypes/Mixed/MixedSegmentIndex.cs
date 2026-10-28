@@ -141,7 +141,7 @@ internal sealed class MixedSegmentIndex
         {
             if (_count == _items.Length)
             {
-                Array.Resize(ref _items, _count * 2);
+                Array.Resize(ref _items, checked(_count * 2));
             }
 
             _items[_count] = ordinal;

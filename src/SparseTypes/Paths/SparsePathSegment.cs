@@ -13,6 +13,8 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
     private readonly Type? _keyType;
     private readonly int _index;
 
+    internal bool IsInitialized => _name is not null;
+
     private SparsePathSegment(SparsePathSegmentKind kind, string name, object? key, Type? keyType, int index)
     {
         Kind = kind;

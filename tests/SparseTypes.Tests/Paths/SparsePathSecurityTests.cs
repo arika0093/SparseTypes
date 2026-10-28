@@ -9,6 +9,38 @@ namespace SparseTypes.Tests;
 public sealed class SparsePathSecurityTests
 {
     [Test]
+    public void DeepPathParsingDoesNotUseRecursiveDescent()
+    {
+        var text = string.Join(".", Enumerable.Repeat("Item", 20_000));
+        var path = SparsePath.Parse<Settings>(text);
+        path.Depth.ShouldBe(20_000);
+        path.ToString().ShouldBe(text);
+    }
+
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    public void ConstructorsRejectUninitializedSegments(int position)
+    {
+        SparsePathSegment[] segments = [SparsePathSegment.Member("Items"), SparsePathSegment.At(0), SparsePathSegment.Member("Name")];
+        segments[position] = default;
+        Should.Throw<ArgumentException>(() => new SparsePath(typeof(Settings), segments)).ParamName.ShouldBe("segments");
+        Should.Throw<ArgumentException>(() => new SparsePath(typeof(Settings), segments.Select(static segment => segment)))
+            .ParamName.ShouldBe("segments");
+    }
+
+    [Test]
+    public void AppendRejectsUninitializedSegments()
+    {
+        var root = SparsePath.Root<Settings>();
+        Should.Throw<ArgumentException>(() => root.Append(default(SparsePathSegment))).ParamName.ShouldBe("segment");
+        Should.Throw<ArgumentException>(() => root.Member("Items").Append(default(SparsePathSegment))).ParamName.ShouldBe("segment");
+        root.Key<string?>(null).ToString().ShouldBe("[null]");
+        root.At(0).ToString().ShouldBe("[0]");
+    }
+
+    [Test]
     [Arguments("a.b")]
     [Arguments("a[b")]
     [Arguments("a]b")]
