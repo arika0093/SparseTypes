@@ -2,6 +2,13 @@
 
 Source-only generator infrastructure shared by `SparseTypes.Generator` and downstream generators.
 
+Generated sequence descriptor resolvers return -1 for unassigned, missing, or ambiguous keys and for empty temporary identities. Generated descriptor mutations on nullable keyed sequences reject duplicate null slots before changing the collection. Descriptor hosts should preserve these resolver results instead of choosing a first match.
+
+Generated payload readers honour `JsonSerializerOptions.PropertyNameCaseInsensitive` for envelope, member, item, and endpoint properties. Duplicate detection uses the same comparison. Non-model item values do not support an `edit` property; readers reject it rather than discarding it. Malformed index, reorder, and temporary-key fields throw `JsonException`.
+
+Scalar enum codecs reject undefined values on read and write. Flags enums accept combinations of declared bits, including zero. These checks apply to the shared scalar codecs and payload codecs, including nullable and wide enum types.
+
+
 This package ships C# sources only — there is no runtime assembly and no `lib/` assets.
 Referencing it compiles the shared sources into the consuming generator via
 `build/SparseTypes.Generator.Shared.props` (direct consumer only; no

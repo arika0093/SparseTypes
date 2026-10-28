@@ -81,16 +81,20 @@ internal static class SparsePayloadJsonScalarShapes
         code.AppendLine(
             "if (underlying == typeof(long)) return ("
                 + valueParameter
-                + "?)global::System.Enum.ToObject(enumType, Read"
+                + "?)ScalarEnumDomain<"
+                + valueParameter
+                + ">.Validate(global::System.Enum.ToObject(enumType, Read"
                 + suffix
-                + "Int64(ref reader));"
+                + "Int64(ref reader)));"
         );
         code.AppendLine(
             "if (underlying == typeof(ulong)) return ("
                 + valueParameter
-                + "?)global::System.Enum.ToObject(enumType, Read"
+                + "?)ScalarEnumDomain<"
+                + valueParameter
+                + ">.Validate(global::System.Enum.ToObject(enumType, Read"
                 + suffix
-                + "UInt64(ref reader));"
+                + "UInt64(ref reader)));"
         );
         code.AppendLine("return Read" + baseSuffix + "ScalarEnum<" + valueParameter + ">(ref reader);");
         code.CloseBlock();
@@ -161,6 +165,7 @@ internal static class SparsePayloadJsonScalarShapes
         code.AppendLine(
             "var enumType = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");"
         );
+        code.AppendLine("ScalarEnumDomain<" + valueParameter + ">.Validate(value!);");
         code.AppendLine("var underlying = global::System.Enum.GetUnderlyingType(enumType);");
         code.AppendLine(
             "if (underlying == typeof(long)) writer.WriteStringValue(((long)(object)value!).ToString(global::System.Globalization.CultureInfo.InvariantCulture));"

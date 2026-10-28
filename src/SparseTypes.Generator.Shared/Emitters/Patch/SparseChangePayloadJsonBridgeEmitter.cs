@@ -79,7 +79,13 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         // Byte-level envelope dispatch while the reader is still on the
         // property name: ValueTextEquals decodes escaped names exactly like
         // the previously materialized string did, without allocating it.
-        code.AppendLine("if (reader.ValueTextEquals(" + wire + ".StatePropertyUtf8()))");
+        code.AppendLine(
+            "if ((reader.ValueTextEquals("
+                + wire
+                + ".StatePropertyUtf8()) || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), "
+                + wire
+                + ".StateProperty, global::System.StringComparison.OrdinalIgnoreCase))))"
+        );
         code.OpenBlock();
         code.AppendLine("if (hasStateProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("hasStateProperty = true;");
@@ -87,7 +93,13 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         AppendStateTokenComparison(code, dialect, "state");
         code.AppendLine("hasState = true;");
         code.CloseBlock();
-        code.AppendLine("else if (reader.ValueTextEquals(" + wire + ".ValuePropertyUtf8()))");
+        code.AppendLine(
+            "else if ((reader.ValueTextEquals("
+                + wire
+                + ".ValuePropertyUtf8()) || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), "
+                + wire
+                + ".ValueProperty, global::System.StringComparison.OrdinalIgnoreCase))))"
+        );
         code.OpenBlock();
         code.AppendLine("if (hasValueProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("hasValueProperty = true;");
@@ -103,7 +115,9 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine("var extensionName = reader.GetString() ?? string.Empty;");
-        code.AppendLine("seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         code.AppendLine("reader.Skip();");

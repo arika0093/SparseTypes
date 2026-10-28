@@ -21,6 +21,7 @@ internal static class SparseJsonScalarShapes
     /// <param name="accessibility">Emitted member accessibility.</param>
     internal static void AppendScalarHelpers(SharedIndentedBuilder code, string valueParameter, string accessibility = "private", string suffix = "")
     {
+        SparseJsonEnumValidationEmitter.Append(code, accessibility);
         AppendTryReadScalar(code, valueParameter, accessibility, suffix);
         code.AppendLine();
         AppendReadScalarEnum(code, valueParameter, accessibility, suffix);
@@ -213,9 +214,11 @@ internal static class SparseJsonScalarShapes
                 + underlying
                 + ")) return ("
                 + valueParameter
-                + "?)global::System.Enum.ToObject(enumType, "
+                + "?)ScalarEnumDomain<"
+                + valueParameter
+                + ">.Validate(global::System.Enum.ToObject(enumType, "
                 + expression
-                + ");"
+                + "));"
         );
 
     private static void AppendTryWriteScalar(SharedIndentedBuilder code, string valueParameter, string accessibility, string suffix)
@@ -278,6 +281,7 @@ internal static class SparseJsonScalarShapes
         code.AppendLine(
             "var enumType = global::System.Nullable.GetUnderlyingType(typeof(" + valueParameter + ")) ?? typeof(" + valueParameter + ");"
         );
+        code.AppendLine("ScalarEnumDomain<" + valueParameter + ">.Validate(value!);");
         code.AppendLine("var underlying = global::System.Enum.GetUnderlyingType(enumType);");
         code.AppendLine("if (underlying == typeof(int)) writer.WriteNumberValue((int)(object)value!);");
         code.AppendLine("else if (underlying == typeof(uint)) writer.WriteNumberValue((uint)(object)value!);");

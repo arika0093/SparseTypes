@@ -25,16 +25,16 @@ public enum SparseCollectionEditError
     /// <summary>A positional index lies outside the current collection bounds.</summary>
     IndexOutOfRange = 5,
 
-    /// <summary>An addition or replacement would duplicate an assigned key or temporary identity.</summary>
+    /// <summary>An addition or replacement would duplicate an assigned key, temporary identity, or null slot.</summary>
     DuplicateKey = 6,
 
-    /// <summary>No current item carries the requested assigned key.</summary>
+    /// <summary>The requested assigned key does not resolve to one current item.</summary>
     UnknownKey = 7,
 
     /// <summary>An unassigned sentinel or missing temporary identity was used as durable identity.</summary>
     UnassignedKey = 8,
 
-    /// <summary>No current item carries the requested temporary identity.</summary>
+    /// <summary>The requested temporary identity does not resolve to one current item.</summary>
     UnknownTemporaryKey = 9,
 
     /// <summary>The supplied item cannot be converted to the collection element type.</summary>

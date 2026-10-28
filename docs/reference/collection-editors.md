@@ -45,7 +45,7 @@ Includes the base members and:
 | `TryRemoveByTemporaryKey(Guid temporaryKey, out error)` | Removes an unassigned row by temporary identity. |
 | `TryReplaceByKey(TKey? key, TElement? item, out error)` | Replaces the resolved row. |
 
-Unassigned sentinels are not stable lookup identities. Use temporary-key methods for rows awaiting server-assigned keys.
+Unassigned sentinels are not stable lookup identities. Use temporary-key methods for rows awaiting server-assigned keys. Duplicate assigned or temporary identities do not resolve; keyed edits return `UnknownKey` or `UnknownTemporaryKey` without selecting the first row. On nullable keyed lists, adding a second null slot or replacing another row with null returns `DuplicateKey`. The existing null slot can be replaced at its own index.
 
 ## Failure contract
 

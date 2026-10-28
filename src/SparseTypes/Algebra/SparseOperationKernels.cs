@@ -187,7 +187,7 @@ public static class SparseOperationKernels
     public static string EscapeKeySegment(string keyText)
     {
         ArgumentNullException.ThrowIfNull(keyText);
-        return "\"" + keyText.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        return "\"" + SparsePath.EscapeKey(keyText) + "\"";
     }
 
     /// <summary>Formats a canonical keyed member path.</summary>

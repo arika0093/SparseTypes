@@ -125,9 +125,59 @@ internal static class SparsePatchKernelEmitter
 
         if ((kinds & (SparsePatchKernelKind.PathKernels | SparsePatchKernelKind.ConflictPaths)) != 0)
         {
+            code.AppendLine("internal static string EscapeKeySegment(string value)");
+            code.AppendLine("{");
+            code.AppendLine("if (value is null) throw new ArgumentNullException(nameof(value));");
             code.AppendLine(
-                "internal static string EscapeKeySegment(string keyText) => \"\\\"\" + keyText.Replace(\"\\\\\", \"\\\\\\\\\").Replace(\"\\\"\", \"\\\\\\\"\") + \"\\\"\";"
+                "if (!global::System.Linq.Enumerable.Any(value, static c => c < 0x20 || char.IsSurrogate(c) || c == '\"' || c == '\\\\'))"
             );
+            code.AppendLine("{");
+            code.AppendLine("    return \"\\\"\" + value + \"\\\"\";");
+            code.AppendLine("}");
+            code.AppendLine("");
+            code.AppendLine("var builder = new global::System.Text.StringBuilder(value.Length + 8);");
+            code.AppendLine("foreach (var c in value)");
+            code.AppendLine("{");
+            code.AppendLine("    switch (c)");
+            code.AppendLine("    {");
+            code.AppendLine("        case '\"':");
+            code.AppendLine("            builder.Append(\"\\\\\\\"\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\\\':");
+            code.AppendLine("            builder.Append(\"\\\\\\\\\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\b':");
+            code.AppendLine("            builder.Append(\"\\\\b\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\f':");
+            code.AppendLine("            builder.Append(\"\\\\f\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\n':");
+            code.AppendLine("            builder.Append(\"\\\\n\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\r':");
+            code.AppendLine("            builder.Append(\"\\\\r\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        case '\\t':");
+            code.AppendLine("            builder.Append(\"\\\\t\");");
+            code.AppendLine("            break;");
+            code.AppendLine("        default:");
+            code.AppendLine("            if (c < 0x20 || char.IsSurrogate(c))");
+            code.AppendLine("            {");
+            code.AppendLine("                builder.Append(\"\\\\u\");");
+            code.AppendLine("                builder.Append(((int)c).ToString(\"x4\", global::System.Globalization.CultureInfo.InvariantCulture));");
+            code.AppendLine("            }");
+            code.AppendLine("            else");
+            code.AppendLine("            {");
+            code.AppendLine("                builder.Append(c);");
+            code.AppendLine("            }");
+            code.AppendLine("");
+            code.AppendLine("            break;");
+            code.AppendLine("    }");
+            code.AppendLine("}");
+            code.AppendLine("");
+            code.AppendLine("return \"\\\"\" + builder.ToString() + \"\\\"\";");
+            code.AppendLine("}");
             code.AppendLine(
                 "internal static string FormatKeyedPath(string member, string keyText) => member + \"[\" + EscapeKeySegment(keyText) + \"]\";"
             );

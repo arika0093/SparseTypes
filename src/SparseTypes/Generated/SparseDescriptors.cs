@@ -128,7 +128,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
         }
 
         var sequence = container.Array;
-        var keyedIndex = sequence?.IndexOfKey(segment.Key) ?? -1;
+        var keyedIndex = sequence is null || sequence.IsUnassignedKey(segment.Key) ? -1 : sequence.IndexOfKey(segment.Key);
         return keyedIndex < 0 ? null : sequence!.GetItemModel(keyedIndex);
     }
 
@@ -160,7 +160,7 @@ public sealed class SparseDescriptorSet : IDescriptorSet
         }
 
         var sequence = descriptor.Array;
-        if (sequence is null)
+        if (sequence is null || sequence.IsUnassignedKey(segment.Key))
         {
             return null;
         }
@@ -415,16 +415,16 @@ public sealed class SparseArrayDescriptorAccess
     /// <summary>Gets or sets the temporary identity resolver for an item.</summary>
     public Func<int, Guid?>? GetItemTemporaryKey { get; set; }
 
-    /// <summary>Gets or sets typed key equality for sequence lookup indexing.</summary>
+    /// <summary>Gets or sets typed key equality for lookup without a generated resolver.</summary>
     public Func<object?, object?, bool>? KeyEquals { get; set; }
 
-    /// <summary>Gets or sets typed key hashing for sequence lookup indexing.</summary>
+    /// <summary>Gets or sets typed key hashing metadata.</summary>
     public Func<object?, int>? KeyHash { get; set; }
 
-    /// <summary>Gets or sets the positional key lookup.</summary>
+    /// <summary>Gets or sets the unique assigned-key lookup, returning -1 for absent or ambiguous keys.</summary>
     public Func<object?, int>? IndexOfKey { get; set; }
 
-    /// <summary>Gets or sets the temporary identity lookup.</summary>
+    /// <summary>Gets or sets the unique temporary identity lookup, returning -1 for absent or ambiguous keys.</summary>
     public Func<Guid, int>? IndexOfTemporaryKey { get; set; }
 
     /// <summary>Gets or sets the unassigned-marker test.</summary>
@@ -436,7 +436,7 @@ public sealed class SparseArrayDescriptorAccess
 public sealed class SparseArrayDescriptor : IArrayDescriptor
 {
     private readonly SparseArrayDescriptorAccess _access;
-    private readonly SparseArrayDescriptorLookupIndex _lookupIndex;
+    private readonly SparseArrayDescriptorLookup _lookup;
 
     /// <summary>Creates a sequence descriptor with its declared item type and accessors.</summary>
     public SparseArrayDescriptor(
@@ -454,7 +454,7 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
         KeyType = keyType;
         KeyPropertyNames = Array.AsReadOnly((string[])(keyPropertyNames?.Clone() ?? Array.Empty<string>()));
         _access = access ?? throw new ArgumentNullException(nameof(access));
-        _lookupIndex = new SparseArrayDescriptorLookupIndex(_access);
+        _lookup = new SparseArrayDescriptorLookup(_access);
     }
 
     /// <inheritdoc />
@@ -476,10 +476,10 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     public object? GetItemKey(int index) => _access.GetItemKey?.Invoke(index);
 
     /// <inheritdoc />
-    public int IndexOfKey(object? key) => _lookupIndex.IndexOfKey(key);
+    public int IndexOfKey(object? key) => _lookup.IndexOfKey(key);
 
     /// <inheritdoc />
-    public int IndexOfTemporaryKey(Guid temporaryKey) => _lookupIndex.IndexOfTemporaryKey(temporaryKey);
+    public int IndexOfTemporaryKey(Guid temporaryKey) => _lookup.IndexOfTemporaryKey(temporaryKey);
 
     /// <inheritdoc />
     public bool IsUnassignedKey(object? key) => _access.IsUnassignedKey?.Invoke(key) == true;

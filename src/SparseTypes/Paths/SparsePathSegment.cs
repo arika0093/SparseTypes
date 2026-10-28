@@ -45,8 +45,17 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
     public static SparsePathSegment Member(string name)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
+        if (!IsValidMemberName(name))
+        {
+            throw new ArgumentException("Member names must not contain path delimiters, controls, or surrogates, or equal $root.", nameof(name));
+        }
         return new SparsePathSegment(SparsePathSegmentKind.Member, name, null, null, -1);
     }
+
+    internal static bool IsValidMemberName(string name) =>
+        name.Length > 0
+        && !string.Equals(name, "$root", StringComparison.Ordinal)
+        && !name.Any(static c => c is '.' or '[' or ']' or '"' or '\\' || char.IsControl(c) || char.IsSurrogate(c));
 
     /// <summary>Creates a key segment carrying the actual typed key.</summary>
     /// <param name="key">The entry key.</param>
@@ -128,6 +137,8 @@ public readonly struct SparsePathSegment : IEquatable<SparsePathSegment>
         {
             SparsePathSegmentKind.Member => _name,
             SparsePathSegmentKind.Index => "[" + _index.ToString(CultureInfo.InvariantCulture) + "]",
+            SparsePathSegmentKind.TemporaryKey => "[temp:\"" + ((Guid)_key!).ToString("D", CultureInfo.InvariantCulture) + "\"]",
+            SparsePathSegmentKind.Key when _key is null => "[null]",
             _ => "[\"" + SparsePath.EscapeKey(SparsePath.KeyText(_key)) + "\"]",
         };
 }

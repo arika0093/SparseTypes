@@ -295,6 +295,13 @@ public sealed class AotScalarTests
         var enumAfter = Optional<PayloadScalars.Fragment?>.Present(PayloadScalars.Fragment.From(new PayloadScalars { ByteEnum = ScalarByte.B }));
         var enumJson = SerializePayload(PayloadScalars.ChangeSet.Between(before, enumAfter).ToPayload(), PayloadScalars.PayloadJson.Default);
         await Assert.That(ReadFails(enumJson.Replace("\"value\":2}", "\"value\":\"B\"}"))).IsTrue();
+        await Assert.That(ReadFails(enumJson.Replace("\"value\":2}", "\"value\":99}"))).IsTrue();
+
+        var flagsAfter = Optional<PayloadScalars.Fragment?>.Present(
+            PayloadScalars.Fragment.From(new PayloadScalars { Flags = ScalarFlags.A | ScalarFlags.C })
+        );
+        var flagsJson = SerializePayload(PayloadScalars.ChangeSet.Between(before, flagsAfter).ToPayload(), PayloadScalars.PayloadJson.Default);
+        await Assert.That(ReadFails(flagsJson.Replace("\"value\":5}", "\"value\":8}"))).IsTrue();
 
         var charAfter = Optional<PayloadScalars.Fragment?>.Present(PayloadScalars.Fragment.From(new PayloadScalars { CharValue = 'a' }));
         var charJson = SerializePayload(PayloadScalars.ChangeSet.Between(before, charAfter).ToPayload(), PayloadScalars.PayloadJson.Default);

@@ -23,7 +23,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
 
     /// <summary>Finds the current position of an assigned key.</summary>
     /// <param name="key">The assigned key to locate.</param>
-    /// <returns>The position, or -1 for unassigned, unknown, or unkeyed collections.</returns>
+    /// <returns>The position, or -1 for unassigned, absent, ambiguous, or unkeyed identities.</returns>
     /// <remarks>Unassigned sentinels never resolve; check <see cref="IsUnassignedKey"/> first when needed.</remarks>
     public int IndexOfKey(TKey? key)
     {
@@ -42,7 +42,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
 
     /// <summary>Finds the current position of a temporary identity.</summary>
     /// <param name="temporaryKey">The stable temporary identity.</param>
-    /// <returns>The position, or -1 when absent or unsupported.</returns>
+    /// <returns>The position, or -1 when empty, absent, ambiguous, or unsupported.</returns>
     public int IndexOfTemporaryKey(Guid temporaryKey)
     {
         if (!TryResolveArray(out var array, out _) || temporaryKey == Guid.Empty)

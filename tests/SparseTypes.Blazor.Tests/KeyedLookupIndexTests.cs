@@ -247,8 +247,8 @@ public sealed class KeyedLookupIndexTests
         var root = BlazorDraftBoard.SparsePath.Drafts;
 
         var byTemporary = session.Field(root.TemporaryKey(temporary).Title);
-        var byUnassigned = session.Field(root.Key(0).Title);
-        ReferenceEquals(byTemporary.Model, byUnassigned.Model).ShouldBeTrue();
+        ReferenceEquals(byTemporary.Model, Raw(session).Drafts[0]).ShouldBeTrue();
+        Should.Throw<ArgumentException>(() => session.Field(root.Key(0).Title));
 
         Raw(session).Drafts[0].Id = 5;
         var assigned = session.Field(root.Key(5).Title);
@@ -324,10 +324,7 @@ public sealed class KeyedLookupIndexTests
         var book = new ReadOnlyContactBook
         {
             ByName = new ReadOnlyDictionaryStub<string, OrderCustomer>(
-                new Dictionary<string, OrderCustomer>
-                {
-                    ["billing"] = new OrderCustomer { Name = "Ada" },
-                }
+                new Dictionary<string, OrderCustomer> { ["billing"] = new OrderCustomer { Name = "Ada" } }
             ),
         }.CreateEditSession();
         var readOnlyContact = book.Field(ReadOnlyContactBook.SparsePath.ByName.Key("billing").Name);
@@ -373,7 +370,7 @@ public sealed class KeyedLookupIndexTests
     }
 
     [Test]
-    public void DuplicateKeysKeepFirstMatchSemantics()
+    public void DuplicateKeysDoNotResolveUntilIdentityIsUnique()
     {
         var session = new OrderDto
         {
@@ -395,8 +392,7 @@ public sealed class KeyedLookupIndexTests
             },
         }.CreateEditSession();
 
-        var first = session.Field(OrderDto.SparsePath.Lines.Key("dup").Quantity);
-        ReferenceEquals(first.Model, Raw(session).Lines[0]).ShouldBeTrue();
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("dup").Quantity));
 
         Raw(session).Lines.RemoveAt(0);
         var second = session.Field(OrderDto.SparsePath.Lines.Key("dup").Quantity);
@@ -421,15 +417,11 @@ public sealed class KeyedLookupIndexTests
             },
         }.CreateEditSession();
 
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity));
 
         var survivor = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(survivor.Model, Raw(session).Lines[0]).ShouldBeTrue();
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("missing").Quantity));
     }
 
     [Test]
@@ -474,12 +466,9 @@ public sealed class KeyedLookupIndexTests
         ReferenceEquals(reordered.Model, replacement).ShouldBeTrue();
 
         Raw(session).Lines.RemoveAll(line => line.Sku == "a");
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity));
         var survivor = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
-        ReferenceEquals(survivor.Model, Raw(session).Lines.Single(line => line.Sku == "b"))
-            .ShouldBeTrue();
+        ReferenceEquals(survivor.Model, Raw(session).Lines.Single(line => line.Sku == "b")).ShouldBeTrue();
     }
 
     [Test]
@@ -530,15 +519,13 @@ public sealed class KeyedLookupIndexTests
         session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
 
         Raw(session).Lines[0].Sku = "a2";
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity));
         var moved = session.Field(OrderDto.SparsePath.Lines.Key("a2").Quantity);
         ReferenceEquals(moved.Model, Raw(session).Lines[0]).ShouldBeTrue();
     }
 
     [Test]
-    public void EarlierAssignedKeyMutationRestoresFirstMatchSemantics()
+    public void EarlierAssignedKeyMutationRejectsAmbiguousIdentity()
     {
         var session = new OrderDto
         {
@@ -563,12 +550,14 @@ public sealed class KeyedLookupIndexTests
 
         Raw(session).Lines[0].Sku = "b";
 
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity));
+        Raw(session).Lines[0].Sku = "a";
         var field = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
-        ReferenceEquals(field.Model, Raw(session).Lines[0]).ShouldBeTrue();
+        ReferenceEquals(field.Model, Raw(session).Lines[1]).ShouldBeTrue();
     }
 
     [Test]
-    public void EarlierTemporaryKeyMutationRestoresFirstMatchSemantics()
+    public void EarlierTemporaryKeyMutationRejectsAmbiguousIdentity()
     {
         var firstKey = Guid.NewGuid();
         var secondKey = Guid.NewGuid();
@@ -596,8 +585,10 @@ public sealed class KeyedLookupIndexTests
 
         Raw(session).Drafts[0].TemporaryId = secondKey;
 
+        Should.Throw<ArgumentException>(() => session.Field(path));
+        Raw(session).Drafts[0].TemporaryId = firstKey;
         var field = session.Field(path);
-        ReferenceEquals(field.Model, Raw(session).Drafts[0]).ShouldBeTrue();
+        ReferenceEquals(field.Model, Raw(session).Drafts[1]).ShouldBeTrue();
     }
 
     [Test]
@@ -627,18 +618,14 @@ public sealed class KeyedLookupIndexTests
         session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
 
         session.Observable.Lines.RemoveAt(0);
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity));
 
         history.Undo();
         var restored = session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity);
         ReferenceEquals(restored.Model, live.Lines.Single(line => line.Sku == "a")).ShouldBeTrue();
 
         history.Redo();
-        Should.Throw<ArgumentException>(() =>
-            session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity)
-        );
+        Should.Throw<ArgumentException>(() => session.Field(OrderDto.SparsePath.Lines.Key("a").Quantity));
         var survivor = session.Field(OrderDto.SparsePath.Lines.Key("b").Quantity);
         ReferenceEquals(survivor.Model, live.Lines.Single(line => line.Sku == "b")).ShouldBeTrue();
     }
@@ -652,9 +639,7 @@ public sealed class KeyedLookupIndexTests
         session.Observable.Lines.Move(0, 1);
 
         var submitted = session.CreateChangeSet();
-        submitted
-            .TryApplyTo(OrderBaseline(), out var persisted, out var applyConflicts)
-            .ShouldBeTrue();
+        submitted.TryApplyTo(OrderBaseline(), out var persisted, out var applyConflicts).ShouldBeTrue();
         applyConflicts.ShouldBeNull();
         session.TryReconcile(submitted, persisted!, out var error).ShouldBeTrue();
         error.ShouldBeNull();

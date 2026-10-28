@@ -165,11 +165,12 @@ public interface IArrayDescriptor
     /// <remarks>Null when unkeyed or the item has no key.</remarks>
     object? GetItemKey(int index);
 
-    /// <summary>Finds the first index with an equal assigned key.</summary>
-    /// <remarks>Unassigned sentinels match like any other value, so callers exempting them must check <see cref="IsUnassignedKey"/> first.</remarks>
+    /// <summary>Finds the unique index with an equal assigned key.</summary>
+    /// <remarks>Returns -1 for unassigned, absent, or ambiguous identities.</remarks>
     int IndexOfKey(object? key);
 
-    /// <summary>Finds the first index with the given temporary identity.</summary>
+    /// <summary>Finds the unique index with the given temporary identity.</summary>
+    /// <remarks>Returns -1 for empty, absent, or ambiguous identities.</remarks>
     int IndexOfTemporaryKey(Guid temporaryKey);
 
     /// <summary>Determines whether a key is the configured unassigned marker.</summary>

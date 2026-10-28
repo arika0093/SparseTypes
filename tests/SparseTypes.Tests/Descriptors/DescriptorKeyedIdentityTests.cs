@@ -5,14 +5,7 @@ public sealed class DescriptorKeyedIdentityTests
     [Test]
     public void SingleKeyMetadataAndLookupSurviveReorder()
     {
-        var model = new KeyedServerHolder
-        {
-            Items =
-            [
-                new KeyedServer { Id = "a", Name = "a" },
-                new KeyedServer { Id = "b", Name = "b" },
-            ],
-        };
+        var model = new KeyedServerHolder { Items = [new KeyedServer { Id = "a", Name = "a" }, new KeyedServer { Id = "b", Name = "b" }] };
         var session = model.CreateEditSession();
 
         session.Descriptors.TryGet(nameof(KeyedServerHolder.Items), out var items).ShouldBeTrue();
@@ -69,9 +62,7 @@ public sealed class DescriptorKeyedIdentityTests
         };
         var session = model.CreateEditSession();
 
-        session
-            .Descriptors.TryGet(nameof(CompositeServerHolder.Items), out var items)
-            .ShouldBeTrue();
+        session.Descriptors.TryGet(nameof(CompositeServerHolder.Items), out var items).ShouldBeTrue();
         var array = items.Array.ShouldNotBeNull();
         array!.IsKeyed.ShouldBeTrue();
         array.KeyType.ShouldBe(typeof(ValueTuple<string, string>));
@@ -98,9 +89,7 @@ public sealed class DescriptorKeyedIdentityTests
         };
         var session = model.CreateEditSession();
 
-        session
-            .Descriptors.TryGet(nameof(AssignedServerHolder.Items), out var items)
-            .ShouldBeTrue();
+        session.Descriptors.TryGet(nameof(AssignedServerHolder.Items), out var items).ShouldBeTrue();
         var array = items.Array.ShouldNotBeNull();
         array!.IsKeyed.ShouldBeTrue();
         array.KeyType.ShouldBe(typeof(int));
@@ -109,12 +98,11 @@ public sealed class DescriptorKeyedIdentityTests
         array.IsUnassignedKey(7).ShouldBeFalse();
         array.IsUnassignedKey("nope").ShouldBeFalse();
 
-        // Pure-equality lookup finds the first sentinel; callers exempt via
-        // IsUnassignedKey.
+        // Unassigned rows remain readable by position, but not by key.
         array.GetItemKey(0).ShouldBe(7);
         array.GetItemKey(1).ShouldBe(0);
         array.GetItemKey(2).ShouldBe(0);
-        array.IndexOfKey(0).ShouldBe(1);
+        array.IndexOfKey(0).ShouldBe(-1);
         array.IndexOfKey(7).ShouldBe(0);
     }
 

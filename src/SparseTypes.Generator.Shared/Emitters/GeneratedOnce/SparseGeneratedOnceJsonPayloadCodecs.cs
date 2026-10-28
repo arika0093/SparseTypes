@@ -79,7 +79,9 @@ internal static class SparseGeneratedOnceJsonPayloadCodecs
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
-        code.AppendLine("list.Add(reader.GetGuid());");
+        code.AppendLine(
+            "if (reader.TokenType != global::System.Text.Json.JsonTokenType.String || !reader.TryGetGuid(out var value)) throw new global::System.Text.Json.JsonException(\"Malformed temporary key.\"); list.Add(value);"
+        );
         code.CloseBlock();
         code.AppendLine("return list;");
         code.CloseBlock();

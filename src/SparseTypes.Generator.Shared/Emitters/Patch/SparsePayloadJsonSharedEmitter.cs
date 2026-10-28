@@ -205,14 +205,20 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine(
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.PropertyName) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");"
         );
-        code.AppendLine("if (reader.ValueTextEquals(\"state\"))");
+        code.AppendLine(
+            "if ((reader.ValueTextEquals(\"state\") || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), \"state\", global::System.StringComparison.OrdinalIgnoreCase))))"
+        );
         code.OpenBlock();
         code.AppendLine("if (hasStateProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("hasStateProperty = true;");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
-        code.AppendLine("state = ParseState(reader.GetString()); hasState = true;");
+        code.AppendLine(
+            "state = ParseState(reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null); hasState = true;"
+        );
         code.CloseBlock();
-        code.AppendLine("else if (reader.ValueTextEquals(\"value\"))");
+        code.AppendLine(
+            "else if ((reader.ValueTextEquals(\"value\") || (options.PropertyNameCaseInsensitive && global::System.String.Equals(reader.GetString(), \"value\", global::System.StringComparison.OrdinalIgnoreCase))))"
+        );
         code.OpenBlock();
         code.AppendLine("if (hasValueProperty) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("hasValueProperty = true;");
@@ -226,7 +232,9 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine("else");
         code.OpenBlock();
         code.AppendLine("var extensionName = reader.GetString() ?? string.Empty;");
-        code.AppendLine("seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "seenExtensions ??= new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("if (!seenExtensions.Add(extensionName)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         code.AppendLine("reader.Skip();");
@@ -362,7 +370,9 @@ internal static class SparsePayloadJsonSharedEmitter
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndArray) break;");
-        code.AppendLine("list.Add(reader.GetGuid());");
+        code.AppendLine(
+            "if (reader.TokenType != global::System.Text.Json.JsonTokenType.String || !reader.TryGetGuid(out var value)) throw new global::System.Text.Json.JsonException(\"Malformed temporary key.\"); list.Add(value);"
+        );
         code.CloseBlock();
         code.AppendLine("return list;");
         code.CloseBlock();

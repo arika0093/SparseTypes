@@ -63,7 +63,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("bool hasVersion = false;");
         code.AppendLine("bool hasSchema = false;");
         code.AppendLine("bool hasChange = false;");
-        code.AppendLine("var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
@@ -72,19 +74,27 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLine("var name = reader.GetString() ?? string.Empty;");
         code.AppendLine("if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
-        code.AppendLine("if (name == \"version\")");
         code.AppendLine(
-            "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.GetString(); hasVersion = true; }"
+            "if (global::System.String.Equals(name, \"version\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))"
         );
-        code.AppendLine("else if (name == \"schema\")");
+        code.AppendLine(
+            "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); version = reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? null : reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : throw new global::System.Text.Json.JsonException(\"Malformed payload version.\"); hasVersion = true; }"
+        );
+        code.AppendLine(
+            "else if (global::System.String.Equals(name, \"schema\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))"
+        );
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) schema = reader.GetString(); else if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) schema = null; else throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload schema identity.\"); hasSchema = true; }"
         );
-        code.AppendLine("else if (name == \"recordedAt\")");
+        code.AppendLine(
+            "else if (global::System.String.Equals(name, \"recordedAt\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))"
+        );
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); if (reader.TokenType == global::System.Text.Json.JsonTokenType.String) { var text = reader.GetString(); if (text is null || !global::System.DateTimeOffset.TryParseExact(text, \"O\", global::System.Globalization.CultureInfo.InvariantCulture, global::System.Globalization.DateTimeStyles.None, out var value) || !global::System.String.Equals(value.ToString(\"O\", global::System.Globalization.CultureInfo.InvariantCulture), text, global::System.StringComparison.Ordinal)) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload recording time.\"); recordedAt = value; } else if (reader.TokenType != global::System.Text.Json.JsonTokenType.Null) throw new global::System.Text.Json.JsonException(\"Malformed ChangePayload recording time.\"); }"
         );
-        code.AppendLine("else if (name == \"change\")");
+        code.AppendLine(
+            "else if (global::System.String.Equals(name, \"change\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))"
+        );
         code.AppendLine(
             "{ if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed payload.\"); change = ReadModelChange(ref reader, options); hasChange = true; }"
         );
@@ -215,7 +225,9 @@ internal static class SparsePayloadJsonConverterEmitter
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A snapshot must be an object.\");"
         );
         code.AppendLine("var snapshot = new " + snapshot + "();");
-        code.AppendLine("var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
@@ -230,7 +242,11 @@ internal static class SparsePayloadJsonConverterEmitter
         foreach (var contractMember in context.Contract.JsonMembers)
         {
             var member = contractMember.Member;
-            code.AppendLine("case " + Format(contractMember.JsonName) + ":");
+            code.AppendLine(
+                "case var _ when global::System.String.Equals(name, "
+                    + Format(contractMember.JsonName)
+                    + ", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal):"
+            );
             if (SparseChangeSetBasicsEmitter.IsNested(member))
             {
                 code.AppendLine(
@@ -259,9 +275,9 @@ internal static class SparsePayloadJsonConverterEmitter
         foreach (var contractMember in context.Contract.Members.Where(static member => !member.IsJsonIncluded))
         {
             code.AppendLine(
-                "case "
+                "case var _ when global::System.String.Equals(name, "
                     + Format(contractMember.JsonName)
-                    + ": throw new global::System.Text.Json.JsonException(\"A model member is excluded from the JSON payload contract.\");"
+                    + ", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal): throw new global::System.Text.Json.JsonException(\"A model member is excluded from the JSON payload contract.\");"
             );
         }
         code.AppendLine("default: reader.Skip(); break;");
@@ -326,7 +342,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var change = new " + modelChange + "();");
         code.AppendLine("string? operation = null;");
         code.AppendLine("bool hasKind = false, hasMembers = false, hasBefore = false, hasAfter = false;");
-        code.AppendLine("var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
@@ -336,7 +354,9 @@ internal static class SparsePayloadJsonConverterEmitter
         code.AppendLine("var name = reader.GetString() ?? string.Empty;");
         code.AppendLine("if (!seenProperties.Add(name)) throw new global::System.Text.Json.JsonException(\"Duplicate JSON property.\");");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed model change.\");");
-        code.AppendLine("if (name == \"kind\")");
+        code.AppendLine(
+            "if (global::System.String.Equals(name, \"kind\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal))"
+        );
         code.OpenBlock();
         code.AppendLine("operation = reader.TokenType == global::System.Text.Json.JsonTokenType.String ? reader.GetString() : null;");
         code.AppendLine(
@@ -348,12 +368,18 @@ internal static class SparsePayloadJsonConverterEmitter
         );
         code.AppendLine("hasKind = true;");
         code.CloseBlock();
-        code.AppendLine("else if (name == \"members\") { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }");
         code.AppendLine(
-            "else if (name == \"before\") { change.Before = ReadEndpoint<" + snapshot + ">(ref reader, options, ReadRoot, null); hasBefore = true; }"
+            "else if (global::System.String.Equals(name, \"members\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.Members = ReadMembersDelta(ref reader, options); hasMembers = true; }"
         );
         code.AppendLine(
-            "else if (name == \"after\") { change.After = ReadEndpoint<" + snapshot + ">(ref reader, options, ReadRoot, null); hasAfter = true; }"
+            "else if (global::System.String.Equals(name, \"before\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.Before = ReadEndpoint<"
+                + snapshot
+                + ">(ref reader, options, ReadRoot, null); hasBefore = true; }"
+        );
+        code.AppendLine(
+            "else if (global::System.String.Equals(name, \"after\", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal)) { change.After = ReadEndpoint<"
+                + snapshot
+                + ">(ref reader, options, ReadRoot, null); hasAfter = true; }"
         );
         code.AppendLine("else reader.Skip();");
         code.CloseBlock();
@@ -378,7 +404,9 @@ internal static class SparsePayloadJsonConverterEmitter
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"Members must be an object.\");"
         );
         code.AppendLine("var members = new " + delta + "();");
-        code.AppendLine("var seenProperties = new global::System.Collections.Generic.HashSet<string>(global::System.StringComparer.Ordinal);");
+        code.AppendLine(
+            "var seenProperties = new global::System.Collections.Generic.HashSet<string>(options.PropertyNameCaseInsensitive ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal);"
+        );
         code.AppendLine("while (reader.Read())");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.EndObject) break;");
@@ -394,9 +422,9 @@ internal static class SparsePayloadJsonConverterEmitter
         {
             var member = contractMember.Member;
             code.AppendLine(
-                "case "
+                "case var _ when global::System.String.Equals(name, "
                     + Format(contractMember.JsonName)
-                    + ": members."
+                    + ", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal): members."
                     + SparseNaming.EscapeIdentifier(member.Property.Name)
                     + " = ("
                     + context.MemberDto("Change", member.Id)
@@ -408,9 +436,9 @@ internal static class SparsePayloadJsonConverterEmitter
         foreach (var contractMember in context.Contract.Members.Where(static member => !member.IsJsonIncluded))
         {
             code.AppendLine(
-                "case "
+                "case var _ when global::System.String.Equals(name, "
                     + Format(contractMember.JsonName)
-                    + ": throw new global::System.Text.Json.JsonException(\"A model member is excluded from the JSON payload contract.\");"
+                    + ", options.PropertyNameCaseInsensitive ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal): throw new global::System.Text.Json.JsonException(\"A model member is excluded from the JSON payload contract.\");"
             );
         }
         code.AppendLine("default: throw new global::System.Text.Json.JsonException(\"Unknown model member target '\" + name + \"'.\");");

@@ -297,6 +297,12 @@ public readonly struct SparsePath : IEquatable<SparsePath>
                         builder.Append("\"]");
                         break;
                     default:
+                        if (segment.Key is null)
+                        {
+                            builder.Append("[null]");
+                            break;
+                        }
+
                         builder.Append("[\"");
                         builder.Append(EscapeKey(KeyText(segment.Key)));
                         builder.Append("\"]");
@@ -387,7 +393,13 @@ public readonly struct SparsePath : IEquatable<SparsePath>
                 return false;
             }
 
-            segments.Add(SparsePathSegment.Member(text.Substring(start, index - start)));
+            var name = text.Substring(start, index - start);
+            if (!SparsePathSegment.IsValidMemberName(name))
+            {
+                return false;
+            }
+
+            segments.Add(SparsePathSegment.Member(name));
             if (index < text.Length && text[index] == '.')
             {
                 index++;
@@ -502,9 +514,18 @@ public readonly struct SparsePath : IEquatable<SparsePath>
 
         var raw = text.Substring(start, index - start);
         index++;
-        if (int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var position))
+        if (
+            int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var position)
+            && string.Equals(raw, position.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)
+        )
         {
             segment = SparsePathSegment.At(position);
+            return true;
+        }
+
+        if (string.Equals(raw, "null", StringComparison.Ordinal))
+        {
+            segment = SparsePathSegment.KeyOf<string?>(null);
             return true;
         }
 
@@ -575,7 +596,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     internal static string EscapeKey(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        if (!value.Any(static c => c < 0x20 || c == '"' || c == '\\'))
+        if (!value.Any(static c => c < 0x20 || char.IsSurrogate(c) || c == '"' || c == '\\'))
         {
             return value;
         }
@@ -607,7 +628,7 @@ public readonly struct SparsePath : IEquatable<SparsePath>
                     builder.Append("\\t");
                     break;
                 default:
-                    if (c < 0x20)
+                    if (c < 0x20 || char.IsSurrogate(c))
                     {
                         builder.Append("\\u");
                         builder.Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));

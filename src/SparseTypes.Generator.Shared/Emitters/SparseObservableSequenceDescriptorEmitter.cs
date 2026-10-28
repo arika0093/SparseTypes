@@ -390,7 +390,9 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + "); }, "
             + "IndexOfKey = key => { if (!"
             + keyCast
-            + "(key, out var typedKey)) return -1; var keyedList = "
+            + "(key, out var typedKey) || "
+            + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "typedKey")
+            + ") return -1; var found = -1; var keyedList = "
             + collection
             + "; for (var keyedIndex = 0; keyedIndex < keyedList.Count; keyedIndex++) { var keyedModel = "
             + Unwrap("keyedList[keyedIndex]")
@@ -398,7 +400,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
             + comparer
             + ".Equals("
             + KeyOf("keyedModel")
-            + ", typedKey)) return keyedIndex; } return -1; }, "
+            + ", typedKey)) { if (found >= 0) return -1; found = keyedIndex; } } return found; }, "
             + "IsUnassignedKey = key => { if (!"
             + keyCast
             + "(key, out var typedKey)) return false; return "
@@ -425,7 +427,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
 
             temporaryResolver =
                 temporaryResolver
-                + "IndexOfTemporaryKey = temporaryKey => { var temporaryList = "
+                + "IndexOfTemporaryKey = temporaryKey => { if (temporaryKey == global::System.Guid.Empty) return -1; var found = -1; var temporaryList = "
                 + collection
                 + "; for (var temporaryIndex = 0; temporaryIndex < temporaryList.Count; temporaryIndex++) { var temporaryModel = "
                 + Unwrap("temporaryList[temporaryIndex]")
@@ -433,7 +435,7 @@ internal static class SparseObservableSequenceDescriptorEmitter
                 + member.Collection.ElementType.NonNullableName
                 + " typedTemporaryModel && typedTemporaryModel."
                 + temporaryProperty
-                + " == temporaryKey) return temporaryIndex; } return -1; }, ";
+                + " == temporaryKey) { if (found >= 0) return -1; found = temporaryIndex; } } return found; }, ";
         }
         resolvers = keyIndexAccessors + resolvers;
         var namesLiteral =
@@ -487,7 +489,13 @@ internal static class SparseObservableSequenceDescriptorEmitter
         var guard =
             "var __duplicateItem = "
             + modelVariable
-            + "; if ((object?)__duplicateItem is not null) { var __duplicateKey = "
+            + "; if ((object?)__duplicateItem is null) { var __nullList = "
+            + context.Member(property)
+            + "!; for (var __nullIndex = 0; __nullIndex < __nullList.Count; __nullIndex++) { "
+            + (excludeIndex is null ? string.Empty : "if (__nullIndex == " + excludeIndex + ") continue; ")
+            + "if ((object?)("
+            + UnwrapModelExpression(names, "__nullList[__nullIndex]")
+            + ") is null) return false; } } else { var __duplicateKey = "
             + KeyOfObjectExpression(member, "__duplicateItem")
             + "; if (!"
             + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__duplicateKey")

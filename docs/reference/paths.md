@@ -27,6 +27,10 @@ Package and namespace: `SparseTypes`. Paths identify a root model and an ordered
 | `Parse(Type rootType, string text)`, `Parse<TModel>(string text)` | Parse textual paths; malformed input throws `FormatException`. |
 | `TryParse(Type rootType, string? text, out SparsePath path)`, `TryParse<TModel>(string? text, out SparsePath path)` | Return false for malformed text. |
 
+Member factories reject empty names, `$root`, path delimiters (`.`, `[`, `]`, `"`, `\`), control characters, and UTF-16 surrogates. `TryParse` returns false for invalid member text.
+
+Null keys render as `[null]`; empty string keys render as `[""]`. Parsing `[null]` produces a null string key. Unquoted bracket text becomes an index only when it is a canonical non-negative `Int32` (for example, `[123]`). Other unquoted text, including `[0123]`, remains a string key. Control characters and UTF-16 surrogates in quoted keys use escaped text.
+
 Text is not a lossless encoding of arbitrary CLR key types. Keys render as invariant text in quoted brackets, and parsing does not recover the original numeric or composite CLR key type. Use generated key paths for typed lookup.
 
 ## Typed paths and segments

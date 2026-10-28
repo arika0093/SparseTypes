@@ -3,7 +3,7 @@ namespace SparseTypes.Tests;
 public sealed class DescriptorKeyLookupCacheTests
 {
     [Test]
-    public void AssignedKeyLookupTracksRawReorderAndExternalKeyMutation()
+    public void AssignedKeyLookupRejectsRawDuplicatesAndTracksExternalChanges()
     {
         var first = new KeyedServer { Id = "a", Name = "first" };
         var second = new KeyedServer { Id = "b", Name = "second" };
@@ -14,10 +14,10 @@ public sealed class DescriptorKeyLookupCacheTests
         var array = items.Array.ShouldNotBeNull();
         array!.IndexOfKey("b").ShouldBe(1);
 
-        // Mutating a preceding key can make it the first match without
+        // Mutating a preceding key can make identity ambiguous without
         // changing either the collection count or its item references.
         first.Id = "b";
-        array.IndexOfKey("b").ShouldBe(0);
+        array.IndexOfKey("b").ShouldBe(-1);
 
         first.Id = "a";
         array.IndexOfKey("b").ShouldBe(1);
@@ -26,14 +26,14 @@ public sealed class DescriptorKeyLookupCacheTests
         model.Items.Reverse();
         array.IndexOfKey("b").ShouldBe(0);
 
-        // Mutating the indexed item invalidates its cached position too.
+        // Key edits also change which identities resolve.
         second.Id = "c";
         array.IndexOfKey("b").ShouldBe(-1);
         array.IndexOfKey("c").ShouldBe(0);
     }
 
     [Test]
-    public void TemporaryKeyLookupTracksRawChangesAndKeepsFirstMatch()
+    public void TemporaryKeyLookupRejectsRawDuplicatesAndTracksChanges()
     {
         var firstTemporaryKey = Guid.NewGuid();
         var secondTemporaryKey = Guid.NewGuid();
@@ -47,17 +47,17 @@ public sealed class DescriptorKeyLookupCacheTests
         array!.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(1);
 
         first.TemporaryId = secondTemporaryKey;
-        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(0);
+        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(-1);
 
         model.Lines.Reverse();
-        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(0);
+        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(-1);
 
         model.Lines.Insert(0, null!);
-        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(1);
+        array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(-1);
 
         second.TemporaryId = firstTemporaryKey;
         first.TemporaryId = firstTemporaryKey;
         array.IndexOfTemporaryKey(secondTemporaryKey).ShouldBe(-1);
-        array.IndexOfTemporaryKey(firstTemporaryKey).ShouldBe(1);
+        array.IndexOfTemporaryKey(firstTemporaryKey).ShouldBe(-1);
     }
 }
