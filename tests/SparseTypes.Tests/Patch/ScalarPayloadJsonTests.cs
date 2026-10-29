@@ -213,6 +213,16 @@ public sealed class ScalarPayloadJsonTests
     }
 
     [Test]
+    public void DecimalPayloadAcceptsJsonNumbers()
+    {
+        var json = RoundTripPayload(new ScalarLedger(), new ScalarLedger { Amount = 0.1m });
+        var numericJson = json.Replace("\"value\":\"0.1\"", "\"value\":0.1");
+
+        var restored = PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(numericJson).ToChangeSet();
+        restored.Amount.After.Value.ShouldBe(0.1m);
+    }
+
+    [Test]
     public void LocalDateTimeIsRejectedByPayloadSerializer()
     {
         var before = Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger()));

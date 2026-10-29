@@ -251,6 +251,128 @@ public sealed class CrossLayerPersistenceMatrixTests
     }
 
     [Test]
+    public void ClientShapedKeyedReorderPayloadDeserializes()
+    {
+        var schema = new OrderDto.ChangePayload().Schema!;
+        var json = JsonSerializer.Serialize(
+            new
+            {
+                version = "0.1",
+                schema,
+                change = new
+                {
+                    kind = "update",
+                    members = new
+                    {
+                        lines = new
+                        {
+                            kind = "update",
+                            items = new[]
+                            {
+                                new { key = 1, kind = "update", beforeIndex = 0, afterIndex = 1, isReordered = true },
+                                new { key = 2, kind = "update", beforeIndex = 1, afterIndex = 0, isReordered = true },
+                            },
+                            beforeOrder = new[] { 1, 2 },
+                            afterOrder = new[] { 2, 1 },
+                            tempBeforeOrder = Array.Empty<Guid>(),
+                            tempAfterOrder = Array.Empty<Guid>(),
+                        },
+                    },
+                },
+            }
+        );
+
+        var payload = JsonSerializer.Deserialize<OrderDto.ChangePayload>(json, OrderDto.PayloadJson.Default)!;
+        var changes = payload.ToChangeSet();
+
+        changes.Lines.OrderChanged.ShouldBeTrue();
+        changes.Lines.AfterOrder.ShouldBe([2, 1]);
+    }
+
+    [Test]
+    public void ClientPayloadWithMultipleNewRowsAndReorderingDeserializes()
+    {
+        var schema = new OrderDto.ChangePayload().Schema!;
+        var firstTemporaryId = Guid.Parse("5122ba2a-377c-46ec-9a64-38ec86ffa6f6");
+        var secondTemporaryId = Guid.Parse("1b046d34-48b5-4183-9de8-67910d1cb18f");
+        var json = JsonSerializer.Serialize(
+            new
+            {
+                version = "0.1",
+                schema,
+                change = new
+                {
+                    kind = "update",
+                    members = new
+                    {
+                        lines = new
+                        {
+                            kind = "update",
+                            items = new object[]
+                            {
+                                new
+                                {
+                                    key = 0,
+                                    kind = "add",
+                                    afterIndex = 0,
+                                    temporaryKey = firstTemporaryId,
+                                    after = new
+                                    {
+                                        state = "value",
+                                        value = new
+                                        {
+                                            id = 0,
+                                            key = 0,
+                                            temporaryId = firstTemporaryId,
+                                            quantity = 1,
+                                            unitPrice = 100m,
+                                            subtotal = 0m,
+                                        },
+                                    },
+                                },
+                                new { key = 1, kind = "update", beforeIndex = 0, afterIndex = 2, isReordered = true },
+                                new
+                                {
+                                    key = 0,
+                                    kind = "add",
+                                    afterIndex = 3,
+                                    temporaryKey = secondTemporaryId,
+                                    after = new
+                                    {
+                                        state = "value",
+                                        value = new
+                                        {
+                                            id = 0,
+                                            key = 0,
+                                            temporaryId = secondTemporaryId,
+                                            quantity = 1,
+                                            unitPrice = 100m,
+                                            subtotal = 0m,
+                                        },
+                                    },
+                                },
+                            },
+                            beforeOrder = new[] { 1, 2 },
+                            afterOrder = new[] { 0, 2, 1, 0 },
+                            tempBeforeOrder = Array.Empty<Guid>(),
+                            tempAfterOrder = new[] { firstTemporaryId, secondTemporaryId },
+                        },
+                    },
+                },
+            }
+        );
+
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.TypeInfoResolverChain.Add(OrderDto.PayloadJson.Resolver);
+        var payload = JsonSerializer.Deserialize<OrderDto.ChangePayload>(json, options)!;
+        var changes = payload.ToChangeSet();
+
+        changes.Lines.GetTemporaryChange(firstTemporaryId).After.Value!.UnitPrice.ShouldBe(100m);
+        changes.Lines.GetTemporaryChange(secondTemporaryId).After.Value!.UnitPrice.ShouldBe(100m);
+        changes.Lines.AfterOrder.ShouldBe([0, 2, 1, 0]);
+    }
+
+    [Test]
     public async Task RemoveAndRecreateLinePersistsDeleteAndInsert()
     {
         using var connection = TestDatabases.OpenMemory();
