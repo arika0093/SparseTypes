@@ -620,8 +620,10 @@ internal static class SparseKeyAnalyzer
             string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
             char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character.ToString(), true),
             bool boolean => boolean ? "true" : "false",
-            byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal =>
-                Convert.ToString(constant.Value, System.Globalization.CultureInfo.InvariantCulture),
+            byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(
+                constant.Value,
+                System.Globalization.CultureInfo.InvariantCulture
+            ),
             _ => null,
         };
     }

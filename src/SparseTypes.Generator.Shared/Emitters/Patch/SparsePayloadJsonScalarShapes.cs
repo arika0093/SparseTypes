@@ -186,7 +186,9 @@ internal static class SparsePayloadJsonScalarShapes
         code.AppendLine("private static decimal Read" + suffix + "Decimal(ref global::System.Text.Json.Utf8JsonReader reader)");
         code.OpenBlock();
         code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Number) return reader.GetDecimal();");
-        code.AppendLine("if (reader.TokenType != global::System.Text.Json.JsonTokenType.String) throw new global::System.Text.Json.JsonException(\"Malformed scalar value.\");");
+        code.AppendLine(
+            "if (reader.TokenType != global::System.Text.Json.JsonTokenType.String) throw new global::System.Text.Json.JsonException(\"Malformed scalar value.\");"
+        );
         code.AppendLine("var text = reader.GetString();");
         code.AppendLine(
             "if (text is null || !decimal.TryParse(text, global::System.Globalization.NumberStyles.AllowLeadingSign | global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture, out var value) || !global::System.String.Equals(value.ToString(global::System.Globalization.CultureInfo.InvariantCulture), text, global::System.StringComparison.Ordinal)) throw new global::System.Text.Json.JsonException(\"Malformed scalar value.\");"

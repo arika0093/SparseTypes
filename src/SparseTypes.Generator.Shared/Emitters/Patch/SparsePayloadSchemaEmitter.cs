@@ -200,12 +200,7 @@ internal static class SparsePayloadSchemaEmitter
         }
 
         var metadata = BuildMetadata(context, role, member);
-        return new SchemaDescriptor(
-            type,
-            name,
-            AddMetadata(openApi30, extensionName, metadata),
-            AddMetadata(openApi31, extensionName, metadata)
-        );
+        return new SchemaDescriptor(type, name, AddMetadata(openApi30, extensionName, metadata), AddMetadata(openApi31, extensionName, metadata));
     }
 
     private static string BuildMetadata(PayloadJsonEmissionContext context, string role, SparsePayloadMemberContract? member)
@@ -229,14 +224,7 @@ internal static class SparsePayloadSchemaEmitter
             if (role == "members")
             {
                 properties.Add(
-                    (
-                        "members",
-                        Array(
-                            context.Contract.JsonMembers
-                                .Select(memberContract => BuildMemberMetadata(memberContract))
-                                .ToArray()
-                        )
-                    )
+                    ("members", Array(context.Contract.JsonMembers.Select(memberContract => BuildMemberMetadata(memberContract)).ToArray()))
                 );
             }
 
@@ -253,15 +241,20 @@ internal static class SparsePayloadSchemaEmitter
         var properties = new List<(string, string)>
         {
             ("name", String(member.JsonName)),
-            ("shape", String(member.Shape switch
-            {
-                SparsePayloadMemberShape.Value => "value",
-                SparsePayloadMemberShape.NestedModel => "nested",
-                SparsePayloadMemberShape.Sequence => "sequence",
-                SparsePayloadMemberShape.KeyedCollection => "keyed",
-                SparsePayloadMemberShape.Dictionary => "dictionary",
-                _ => throw new InvalidOperationException("Unsupported payload member shape."),
-            })),
+            (
+                "shape",
+                String(
+                    member.Shape switch
+                    {
+                        SparsePayloadMemberShape.Value => "value",
+                        SparsePayloadMemberShape.NestedModel => "nested",
+                        SparsePayloadMemberShape.Sequence => "sequence",
+                        SparsePayloadMemberShape.KeyedCollection => "keyed",
+                        SparsePayloadMemberShape.Dictionary => "dictionary",
+                        _ => throw new InvalidOperationException("Unsupported payload member shape."),
+                    }
+                )
+            ),
             ("nullable", member.IsNullable ? "true" : "false"),
             ("redactBefore", member.RedactBefore ? "true" : "false"),
         };
