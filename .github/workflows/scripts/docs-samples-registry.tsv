@@ -7,7 +7,6 @@
 docs/reference/blazor-api.md	blazor-reference-models	tests/fixtures/consumers/package-sparse-blazor/BlazorApiSamples.cs
 docs/reference/blazor-api.md	blazor-reference-binding	tests/fixtures/consumers/package-sparse-blazor/BlazorApiSamples.cs
 README.md	readme-quickstart	tests/fixtures/consumers/package-sparse-readme/ReadmeSamples.cs
-README.draft.md	readme-quickstart	tests/fixtures/consumers/package-sparse-readme/ReadmeSamples.cs
 docs/explanation/fragments-and-patches.md	core-models	tests/fixtures/consumers/package-sparse-docs/VerifiedSamples.cs
 docs/explanation/fragments-and-patches.md	core-create	tests/fixtures/consumers/package-sparse-docs/VerifiedSamples.cs
 docs/explanation/fragments-and-patches.md	core-layering	tests/fixtures/consumers/package-sparse-docs/VerifiedSamples.cs
