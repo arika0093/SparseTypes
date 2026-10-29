@@ -37,12 +37,13 @@
   <Target Name="CopyReadmeGeneratedCode" AfterTargets="CoreCompile">
     <ItemGroup>
       <_ReadmeGeneratedSource Include="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+      <_ReadmeGeneratedSnapshot Include="$(ReadmeGeneratedCodeDirectory)/*.g.cs" />
     </ItemGroup>
     <Error
       Condition="'@(_ReadmeGeneratedSource)' == ''"
       Text="The README consumer did not emit any generated source files."
     />
-    <Delete Files="$(ReadmeGeneratedCodeDirectory)/*.g.cs" />
+    <Delete Files="@(_ReadmeGeneratedSnapshot)" />
     <MakeDir Directories="$(ReadmeGeneratedCodeDirectory)" />
     <Copy
       SourceFiles="@(_ReadmeGeneratedSource)"

@@ -4,123 +4,79 @@
 
 [![NuGet Version](https://img.shields.io/nuget/v/SparseTypes?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes/) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/arika0093/SparseTypes/test.yaml?branch=main&label=Test&style=flat-square)
 
-*A unified change model for .NET.*
+*Build complex .NET editors with less change-management code.*
 
-SparseTypes generates change-tracking, diffing, patching, and merging companion types from C# models.
+SparseTypes generates typed edit sessions and change sets from C# models.  
+Track edits, undo and redo, and reconcile concurrent changes.  
+Use the same change model to apply accepted changes to EF Core entities.
 
-## Motivation
-### Overview
+Try the [Enterprise editing demo](https://sparsetypes.eclairs.cc/enterprise-editing) or the [EF Core mapping demo](https://sparsetypes.eclairs.cc/ef-mapping).
 
-Consider a case where you directly edit `settings.Label = "dark"`.
-In that situation, information about the previous value and exactly where it changed is lost.
-This makes it inconvenient to track edit history or update the UI based on the changed parts.
+## Introduction
+### Motivation
 
-Now consider multiple people editing the same settings concurrently.
-Unrelated changes should be merged automatically, and conflicts should be detected and reported clearly.
+Business applications often need more than a form that loads and saves a record.
+Tabs hold independent drafts. Detail rows can be added, removed, and reordered before they have database IDs.  
+Users need to review changes, undo mistakes, and handle updates made by someone else.
 
-Implementing these features required a lot of redundant code. It's tedious, isn't it?
+The application must track changed values, their original values, new rows, and saved edits.  
+A dirty flag alone cannot describe those changes.  
+Copying an entire edited DTO onto an entity can overwrite values the user never touched.
 
-`SparseTypes` solves this by generating companion types for your C# models at compile time to track changes, create diffs, apply patches, and merge updates.
+Why should we have to implement these features ourselves?  
+The DTO type information already exists, so it should be possible to generate the change-management code automatically from that member metadata.
+If the mapping information to EF Core entities is available, the subsequent integration should largely be boilerplate.
 
-It's simple to use: just add the `[SparseModel]` attribute to your model.  
-That's it. All the necessary companion types are generated automatically.
+*SparseTypes does exactly this.*
 
-<!-- illustrative: model shape excerpt; attribute and partial declarations only, not a runnable program -->
-```csharp
-[SparseModel]                 // add this attribute
-public partial class Settings // mark the class as partial
-{
-    public string? Label { get; set; }
-    public DatabaseSettings? Database { get; set; }
-}
+### Features
 
-// Reachable nested models are also marked as partial.
-public partial class DatabaseSettings
-{
-    public string Host { get; set; } = "localhost";
-    public int Port { get; set; } = 5432;
-}
-```
+SparseTypes generates change-management infrastructure from models annotated with `[SparseModel]`.  
+A typed `ChangeSet` describes pending UI edits and can be sent as a JSON payload.  
+On the server, rebase it against current state. Map accepted changes onto tracked EF Core entities.
 
-Behind the scenes, [four companion types](docs/explanation/fragments-and-patches.md) are generated automatically.  
-You never edit the generated code directly — the `EditSession`/`ChangeSet` APIs below are all you touch.
+Use it to:
 
-### What can you build?
-
-Try the demos in the [Playground](https://sparsetypes.eclairs.cc/). You can build complex master-data management web pages commonly found in enterprise applications.
-
-* [Enterprise editing demo](https://sparsetypes.eclairs.cc/enterprise-editing)
-* [EFCore mapping example](https://sparsetypes.eclairs.cc/ef-mapping)
-
-You can implement functionality like the following features:
-
-* Manage edit history separately for each tab and save each tab independently.
-* Highlight changed sections and enable Undo/Redo.
-* Reorder, add, and remove child items in keyed collections.
-* Automatically merge changes made by others where possible.
-* When conflicts occur, let users choose how to resolve them or fail the operation outright.
-* Use these features with any framework through [headless Blazor components](docs/how-to/blazor-headless-components.md).
-
----
-
-Like it? Let's take a look at how it can be used.
+* Keep per-tab drafts and Undo/Redo histories, highlight edits, and review changes before saving.
+* Edit keyed child collections, including unsaved rows whose database keys are assigned later.
+* Merge non-conflicting edits and expose overlapping changes for explicit conflict resolution.
+* Apply accepted changes to EF Core entities.  
+  Successful reconciliation adopts the saved state while preserving later edits.
 
 ## Quick Start
-### Simple example
 
-With the .NET 10 SDK or later, you can run a complete single-file program.
-Save the file as `quickstart.cs` and run it: `dotnet run quickstart.cs`.
+Use the .NET 10 SDK or later.  
+Save this complete program as `quickstart.cs`. Run it with `dotnet run quickstart.cs`.
 
 <!-- sample: readme-quickstart -->
 ```csharp
 #:package SparseTypes@*-*
 using SparseTypes;
-var settings = new Settings
-{
-    Label = "default",
-    Database = new() { Host = "db.local", Port = 5432 },
-};
 
-// 1. Start an edit session (captures the initial baseline)
-var session = settings.CreateEditSession();
+var order = new Order { CustomerName = "Alice", Quantity = 1 };
+var session = order.CreateEditSession();
 
-// 2. Edit through the observable proxy (writes through to settings)
-session.Observable.Label = "production";
-session.Observable.Database!.Port = 7432;
+// Edit through the observable view; the original model is updated too.
+session.Observable.CustomerName = "Bob";
+Console.WriteLine(order.CustomerName); // Bob
+Console.WriteLine(session.HasChanges); // True
 
-// 3. Inspect dirty state and typed transitions
+// Inspect the difference from the start of the session.
 var changes = session.CreateChangeSet();
-Console.WriteLine(settings.Label);      // production
-Console.WriteLine(session.HasChanges);  // True
-Console.WriteLine(changes.Label.IsChanged);    // True
-Console.WriteLine(changes.Database.IsChanged); // True
-Console.WriteLine(changes.Database.Port.Before.Value); // 5432
-Console.WriteLine(changes.Database.Port.After.Value);  // 7432
-// Enumerate all changed locations
-foreach (var change in changes.EnumerateChanges()) {
-    Console.WriteLine(
-        $"* {change.Path,-14} changed from {change.Before.Value,10} to {change.After.Value,10}");
-    // Output:
-    // * Database.Port  changed from       5432 to       7432
-    // * Label          changed from    default to production
-}
+Console.WriteLine(changes.CustomerName.Before.Value); // Alice
+Console.WriteLine(changes.CustomerName.After.Value);  // Bob
+Console.WriteLine(changes.Quantity.IsChanged);        // False
 
-// 4. Revert edits back to the session baseline
+// Discard the edits and restore the starting values.
 session.RevertChanges();
+Console.WriteLine(order.CustomerName); // Alice
 Console.WriteLine(session.HasChanges); // False
-Console.WriteLine(settings.Label);     // default
 
-// ---------
 [SparseModel]
-public partial class Settings
+public partial class Order
 {
-    public string? Label { get; set; }
-    public DatabaseSettings? Database { get; set; }
-}
-public partial class DatabaseSettings
-{
-    public string Host { get; set; } = "localhost";
-    public int Port { get; set; } = 5432;
+    public string CustomerName { get; set; } = "";
+    public int Quantity { get; set; }
 }
 ```
 <!-- /sample -->
@@ -142,46 +98,39 @@ Let's walk through it step by step.
     * This rolls back to the values at the start (step 1).
     * You can also accept changes (`AcceptChanges`).
 
-Of course, there is much more that didn't fit here! For example...
 
-* [Undo/redo](docs/how-to/edit-session.md#record-undo-and-redo-history) user changes.
-* [Create a fork](docs/how-to/edit-session.md#branch-speculative-edits-with-fork) for tentative changes. Once done, merge it or discard it.
-* [Reload with the latest server state](docs/how-to/edit-session.md#reload-with-fresh-server-state) (without discarding unsaved local edits!)
-* Automatically apply these changes to EF Core [entities](docs/how-to/efcore-mapping.md).
-* By [declaring key properties in advance](docs/explanation/keyed-collections.md), even complex cases like arrays of arrays of classes work without issues.
+## Build your editing workflow
 
-## Wire transport and concurrent rebase
+| Goal | Start here |
+|---|---|
+| Track, inspect, and revert edits | [First edit session tutorial](docs/tutorial/first-sparse-edit.md) |
+| Add Undo/Redo, child drafts, or refresh without losing pending edits | [Edit-session guide](docs/how-to/edit-session.md) |
+| Bind an existing Blazor UI | [Headless Blazor components](docs/how-to/blazor-headless-components.md) |
+| Bind WPF or another .NET UI | [UI framework integration](docs/explanation/ui-frameworks.md) |
+| Add, remove, and reorder child rows | [Keyed collection guide](docs/how-to/edit-collections.md) |
+| Send changes as JSON and merge concurrent edits | [Transport and rebase tutorial](docs/tutorial/send-and-rebase-changes.md) |
+| Let users resolve conflicting edits | [Conflict resolution tutorial](docs/tutorial/resolve-a-conflict.md) |
+| Persist DTO changes with EF Core | [EF Core mapping guide](docs/how-to/efcore-mapping.md) |
 
-When changes cross process boundaries, serialize the `ChangeSet` to a `ChangePayload` and reconcile it against the latest server state:
-
-<!-- illustrative: excerpt; crosses process boundaries with System.Text.Json -->
-```csharp
-// 1. Serialize the typed change set for wire transport
-var json = JsonSerializer.Serialize(changes.ToPayload());
-// 2. Deserialize on the server
-var incoming = JsonSerializer.Deserialize<Settings.ChangePayload>(json)!.ToChangeSet();
-// 3. Rebase incoming changes onto the latest server state
-var rebased = incoming.RebaseOnto(currentServerState);
-```
-
-`RebaseOnto` works like `git rebase`: it reports conflicts where they occur and merges everything else automatically.
-With [wire transport](docs/how-to/partial-updates.md) and [`Rebase`](docs/explanation/rebase.md), partial changes fit naturally even in environments where the client and server are separated.
+For a client/server example with PostgreSQL persistence, see [EfCoreSample](samples/EfCoreSample/README.md).
 
 ## Install
 
-Install the `SparseTypes` package from [NuGet](https://www.nuget.org/packages/SparseTypes/):
+For an existing project:
 
 ```shell
 dotnet add package SparseTypes --prerelease
 ```
 
-We also provide several other libraries. For details, see [the library overview](docs/explanation/libraries.md).
+Start with `SparseTypes` for framework-independent editing and change tracking.  
+Add `SparseTypes.Blazor` for Blazor integration.  
+Add `SparseTypes.EntityFrameworkCore` for persistence mapping.
 
-## Learn more
+See [packages and requirements](docs/explanation/libraries.md).
 
-New to SparseTypes? Start with the [tutorials](docs/README.md#tutorials).
+## Documentation
 
-See the [Documentation Index](docs/README.md) for the full map.
+See the [Documentation Index](docs/README.md) for tutorials, guides, explanations, and API reference.
 
 ## License
 

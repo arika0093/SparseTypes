@@ -6,7 +6,7 @@ package_directory="${1:-}"
 readme_path="${2:-README.md}"
 fixture_dir="tests/fixtures/consumers/package-sparse-readme"
 fixture_csproj="${fixture_dir}/PackageSparse.Readme.Consumer.csproj"
-fixture_program="${fixture_dir}/Program.cs"
+fixture_program="${fixture_dir}/ReadmeSamples.cs"
 
 if [[ -z "${package_directory}" ]]; then
     echo "Usage: $(basename "$0") <package-directory> [readme-path]" >&2
@@ -21,30 +21,19 @@ if [[ ! -f "${fixture_csproj}" || ! -f "${fixture_program}" ]]; then
     exit 1
 fi
 
-# The Quick Start constructs DatabaseSettings.Fragment directly, so the
-# nested model must remain partial in both files.
-if ! grep -E -q 'public partial class DatabaseSettings' "${readme_path}"; then
-    echo "README must declare 'DatabaseSettings' as 'public partial class DatabaseSettings': the Quick Start constructs 'new DatabaseSettings.Fragment { ... }' directly." >&2
-    exit 1
-fi
-if ! grep -E -q 'public partial class DatabaseSettings' "${fixture_program}"; then
-    echo "Canonical fixture must declare 'DatabaseSettings' as 'public partial class DatabaseSettings'." >&2
-    exit 1
-fi
-
 # Required API tokens are checked in both the README and fixture.
 # Advanced APIs are covered by the docs sample consumers.
 required_tokens=(
     '[SparseModel]'
+    'public partial class Order'
     'CreateEditSession'
     'session.Observable'
     'session.HasChanges'
     'CreateChangeSet'
-    'changes.Label.IsChanged'
+    'changes.CustomerName.Before.Value'
+    'changes.CustomerName.After.Value'
+    'changes.Quantity.IsChanged'
     'session.RevertChanges'
-    'JsonSerializer.Serialize'
-    'JsonSerializer.Deserialize'
-    'RebaseOnto'
 )
 for token in "${required_tokens[@]}"; do
     if ! grep -F -q "${token}" "${readme_path}"; then
