@@ -106,6 +106,34 @@ public sealed class OpenApiRegistrationTests
     }
 
     [Test]
+    public async Task BundleAcceptsAComponentReferenceAsTheRootSchema()
+    {
+        var rootType = typeof(PayloadModel.ChangePayload);
+        var schema = new SparsePayloadSchemaBundle(
+            rootType,
+            [
+                new SparsePayloadSchema(rootType, "BundlePayload", "{\"$ref\":\"#/components/schemas/BundleValue\"}"),
+                new SparsePayloadSchema(typeof(string), "BundleValue", "{\"type\":\"string\"}"),
+            ],
+            [
+                new SparsePayloadSchema(rootType, "BundlePayload", "{\"$ref\":\"#/components/schemas/BundleValue\"}"),
+                new SparsePayloadSchema(typeof(string), "BundleValue", "{\"type\":\"string\"}"),
+            ],
+            []
+        );
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddOpenApi();
+        builder.Services.AddSparseOpenApi(schema);
+        await using var app = builder.Build();
+
+        var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+        document.Components!.Schemas!.Keys.ShouldContain("BundleValue");
+        document.Components.Schemas.Keys.ShouldContain("BundlePayload");
+        (document.Components.Schemas["BundlePayload"] is OpenApiSchemaReference).ShouldBeTrue();
+    }
+
+    [Test]
     public async Task RegisteredPayloadSchemasAppearInTheDocument()
     {
         var builder = WebApplication.CreateBuilder();

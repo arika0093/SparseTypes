@@ -26,6 +26,25 @@ internal static class SparseOpenApiSchemaParser
 
     internal static IOpenApiSchema Parse(string jsonSchema, OpenApiSpecVersion version, OpenApiDocument document)
     {
+        using var json = JsonDocument.Parse(jsonSchema);
+        if (
+            json.RootElement.ValueKind == JsonValueKind.Object
+            && json.RootElement.EnumerateObject().Count() == 1
+            && json.RootElement.TryGetProperty("$ref", out var referenceElement)
+            && referenceElement.ValueKind == JsonValueKind.String
+        )
+        {
+            const string componentPrefix = "#/components/schemas/";
+            var reference = referenceElement.GetString();
+            if (reference is not null && reference.StartsWith(componentPrefix, StringComparison.Ordinal))
+            {
+                var name = Uri.UnescapeDataString(reference[componentPrefix.Length..])
+                    .Replace("~1", "/", StringComparison.Ordinal)
+                    .Replace("~0", "~", StringComparison.Ordinal);
+                return new OpenApiSchemaReference(name, document);
+            }
+        }
+
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonSchema), writable: false);
         var schema = new OpenApiJsonReader().ReadFragment<OpenApiSchema>(stream, version, document, out var diagnostic);
         if (diagnostic.Errors.Count > 0)

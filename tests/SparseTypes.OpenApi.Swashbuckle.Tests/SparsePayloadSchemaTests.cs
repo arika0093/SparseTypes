@@ -117,6 +117,35 @@ public sealed class SparsePayloadSchemaTests
     }
 
     [Test]
+    public void BundleAcceptsAComponentReferenceAsTheRootSchema()
+    {
+        var rootType = typeof(OpenApiTestModel.ChangePayload);
+        var schema = new SparsePayloadSchemaBundle(
+            rootType,
+            [
+                new SparsePayloadSchema(rootType, "BundlePayload", "{\"$ref\":\"#/components/schemas/BundleValue\"}"),
+                new SparsePayloadSchema(typeof(string), "BundleValue", "{\"type\":\"string\"}"),
+            ],
+            [
+                new SparsePayloadSchema(rootType, "BundlePayload", "{\"$ref\":\"#/components/schemas/BundleValue\"}"),
+                new SparsePayloadSchema(typeof(string), "BundleValue", "{\"type\":\"string\"}"),
+            ],
+            []
+        );
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddSparseOpenApi(schema, OpenApiSpecVersion.OpenApi3_1);
+        using var app = builder.Build();
+
+        var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+        document.Components!.Schemas!.Keys.ShouldContain("BundleValue");
+        document.Components.Schemas.Keys.ShouldContain("BundlePayload");
+        (document.Components.Schemas["BundlePayload"] is OpenApiSchemaReference).ShouldBeTrue();
+    }
+
+    [Test]
     public void BundleRegistrationsRejectMixedOpenApiVersions()
     {
         var builder = WebApplication.CreateBuilder();
