@@ -4,7 +4,8 @@ For method and property lookup, see [generated ChangePayload](generated-payload.
 
 A `ChangePayload` is the versioned JSON envelope that carries a `ChangeSet` transition, a `Patch` command, or a mix of both across a process boundary. It names members and carries typed values, so each side converts the envelope into its own `Patch` or `ChangeSet`. The library performs no domain-specific model mapping, and the client and server models may differ.
 
-The current format token is `"version": "0.1"`. It identifies the wire grammar, not a model schema, package version, or concurrency revision. This early format may make breaking changes without changing the token; no legacy reader is provided, so deploy compatible senders and receivers together. The required `schema` field carries a deterministic identity for the generated model contract, but a different identity is not itself a compatibility error. For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md). For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
+For the in-memory transition and command types, see [Fragments and patches](../explanation/fragments-and-patches.md).
+For reconciling a received transition with current state, see [ChangeSet rebase](../explanation/rebase.md).
 
 <!-- sample: payload-models -->
 ```csharp
@@ -58,22 +59,13 @@ public partial class WireSecret
 
 Serialize and deserialize the generated `T.ChangePayload`, not `T.ChangeSet` or `T.Patch`. The typed member variants are suitable for OpenAPI endpoint schemas.
 
-## Resource limits for untrusted input
+## Wire versioning
 
-The generated converters use `Utf8JsonReader`, whose default maximum JSON depth is 64. `JsonSerializerOptions.MaxDepth` also defaults to an effective limit of 64; leaving it at zero does not disable the limit. Exceeding the limit throws `JsonException`, including while skipping unknown properties. When calling a converter directly with a reader, configure depth through `JsonReaderOptions.MaxDepth`; serializer options do not replace an existing reader's settings. See the .NET references for [reader depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonreaderoptions.maxdepth) and [serializer depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions.maxdepth).
+The current format token is `"version": "0.1"`. It identifies the wire grammar, not a model schema, package version, or concurrency revision.
 
-Depth does not limit the width or total size of an envelope. SparseTypes has no global maximum for payload bytes, string lengths, collection sizes, or operation counts. `Validate()` checks structure, not resource consumption. A shallow payload can therefore allocate large collections and consume substantial processing time.
-
-Set and enforce these limits at the receiving application boundary:
-
-| Resource | Where to enforce the limit |
-| --- | --- |
-| Request bytes | Bound the body before buffering or deserializing it. For compressed requests, also bound decompressed bytes. |
-| JSON depth | Set the serializer or reader maximum depth for the accepted model. Do not raise it merely to accept an untrusted request. |
-| Operations and collection entries | Bound the aggregate count across the envelope, including nested snapshots and order arrays, before conversion or application. Bound existing model collections as well. |
-| Strings and textual paths | Bound string lengths before allocating parsed representations. See [path parsing limits](paths.md#parsing-resource-limits). |
-
-Choose numeric budgets from the endpoint's expected workload and measured worst-case cost, and reject requests that exceed them. A byte limit alone does not bound application cost: a small request can repeatedly edit a large existing collection. For example, generated keyed descriptor mutations scan the live collection to reject duplicate identities on each add, insert, or set. Applying `m` such edits to a collection initially containing `n` entries can take `O(m × (n + m))` comparisons. These scans observe raw collection and key changes; they are not a persistent index. This cost concerns descriptor mutations, rather than every JSON read or every `ChangeSet` application.
+> [!IMPORTANT]
+> The format is not stable at this time, so do not use it for persistence or long-term storage;
+> use it only for communication between client and server using the same version.
 
 ## Envelope and model changes
 
@@ -880,3 +872,20 @@ Shapes outside the contract keep the explicit fallback instead of a silent schem
 ## Choosing a conversion
 
 Use `Validate()` when an envelope arrives from an untrusted sender and the receiver needs structural feedback before interpretation. `ToPatch()` also validates the wire version and envelope structure; it projects desired operations without requiring a complete before-state. Use `ToChangeSet()` when the receiver needs complete history for rebase, conflict reporting, or full inversion. It rejects redacted before-states. Use `TryApplyMixedTo` when ordinary transitions and write-only operations share an envelope. Use `InvertReversibleChanges` to invert reversible members of a mixed envelope while reporting skipped write-only paths. These operations do not perform authorization, domain validation, or persistence concurrency checks.
+
+## Resource limits for untrusted input
+
+The generated converters use `Utf8JsonReader`, whose default maximum JSON depth is 64. `JsonSerializerOptions.MaxDepth` also defaults to an effective limit of 64; leaving it at zero does not disable the limit. Exceeding the limit throws `JsonException`, including while skipping unknown properties. When calling a converter directly with a reader, configure depth through `JsonReaderOptions.MaxDepth`; serializer options do not replace an existing reader's settings. See the .NET references for [reader depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonreaderoptions.maxdepth) and [serializer depth](https://learn.microsoft.com/en-us/dotnet/api/system.text.json.jsonserializeroptions.maxdepth).
+
+Depth does not limit the width or total size of an envelope. SparseTypes has no global maximum for payload bytes, string lengths, collection sizes, or operation counts. `Validate()` checks structure, not resource consumption. A shallow payload can therefore allocate large collections and consume substantial processing time.
+
+Set and enforce these limits at the receiving application boundary:
+
+| Resource | Where to enforce the limit |
+| --- | --- |
+| Request bytes | Bound the body before buffering or deserializing it. For compressed requests, also bound decompressed bytes. |
+| JSON depth | Set the serializer or reader maximum depth for the accepted model. Do not raise it merely to accept an untrusted request. |
+| Operations and collection entries | Bound the aggregate count across the envelope, including nested snapshots and order arrays, before conversion or application. Bound existing model collections as well. |
+| Strings and textual paths | Bound string lengths before allocating parsed representations. See [path parsing limits](paths.md#parsing-resource-limits). |
+
+Choose numeric budgets from the endpoint's expected workload and measured worst-case cost, and reject requests that exceed them. A byte limit alone does not bound application cost: a small request can repeatedly edit a large existing collection. For example, generated keyed descriptor mutations scan the live collection to reject duplicate identities on each add, insert, or set. Applying `m` such edits to a collection initially containing `n` entries can take `O(m × (n + m))` comparisons. These scans observe raw collection and key changes; they are not a persistent index. This cost concerns descriptor mutations, rather than every JSON read or every `ChangeSet` application.

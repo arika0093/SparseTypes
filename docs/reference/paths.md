@@ -33,12 +33,6 @@ Null keys render as `[null]`; empty string keys render as `[""]`. Parsing `[null
 
 Text is not a lossless encoding of arbitrary CLR key types. Keys render as invariant text in quoted brackets, and parsing does not recover the original numeric or composite CLR key type. Use generated key paths for typed lookup.
 
-## Parsing resource limits
-
-`Parse` and `TryParse` process segments iteratively, without a recursive call for each segment. They impose no maximum text length or segment count. Memory use grows with the input text and parsed segments; JSON depth limits do not restrict the contents of a path string.
-
-Applications accepting untrusted path text must enforce their own text-length budget before parsing and a segment-count budget before navigation or other processing. Select those budgets for the model and endpoint. The parser's acceptance of a path does not establish that the path is authorized or affordable to resolve.
-
 ## Typed paths and segments
 
 `SparsePath<TModel,TValue>(SparsePath path)` adds root/value typing; a mismatched root throws ArgumentException. Members are `Path`, `UntypedPath`, `TypedPath`, `RootType`, `ValueType`, `CanWriteModelValueInPlace`, and `WriteModelValueInPlace(current, updated)`, plus equality, text rendering, and implicit conversion to untyped `SparsePath`. On the runtime wrapper CanWriteModelValueInPlace is false and WriteModelValueInPlace throws NotSupportedException; generated navigation builders supply model-specific writers.
@@ -68,3 +62,10 @@ var samePath = itemTitle.UntypedPath == untyped;
 `samePath` is true. The item path renders as `Items["a"].Title`. A key path keeps identifying the same row after reordering; an index path addresses the current position.
 
 See [generated paths](generated-paths-and-transitions.md) for model-specific navigation.
+
+
+## Parsing resource limits
+
+`Parse` and `TryParse` process segments iteratively, without a recursive call for each segment. They impose no maximum text length or segment count. Memory use grows with the input text and parsed segments; JSON depth limits do not restrict the contents of a path string.
+
+Applications accepting untrusted path text must enforce their own text-length budget before parsing and a segment-count budget before navigation or other processing. Select those budgets for the model and endpoint. The parser's acceptance of a path does not establish that the path is authorized or affordable to resolve.
