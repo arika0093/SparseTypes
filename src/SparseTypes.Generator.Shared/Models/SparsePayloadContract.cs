@@ -64,7 +64,13 @@ internal sealed record SparsePayloadMemberContract
 
     public ImmutableArray<string> KeyPropertyNames { get; init; } = ImmutableArray<string>.Empty;
 
+    public ImmutableArray<string> KeyJsonPropertyNames { get; init; } = ImmutableArray<string>.Empty;
+
+    public string? UnassignedKeyJson { get; init; }
+
     public bool HasTemporaryIdentity { get; init; }
+
+    public string? TemporaryKeyJsonPropertyName { get; init; }
 
     public bool CarriesOrder { get; init; }
 
@@ -86,7 +92,10 @@ internal sealed record SparsePayloadMemberContract
         && IsNullable == other.IsNullable
         && KeyTypeName == other.KeyTypeName
         && SparseSequence.Equal(KeyPropertyNames, other.KeyPropertyNames)
+        && SparseSequence.Equal(KeyJsonPropertyNames, other.KeyJsonPropertyNames)
+        && UnassignedKeyJson == other.UnassignedKeyJson
         && HasTemporaryIdentity == other.HasTemporaryIdentity
+        && TemporaryKeyJsonPropertyName == other.TemporaryKeyJsonPropertyName
         && CarriesOrder == other.CarriesOrder
         && SparseSequence.Equal(ChangeOperations, other.ChangeOperations)
         && SparseSequence.Equal(ItemOperations, other.ItemOperations)
@@ -104,7 +113,10 @@ internal sealed record SparsePayloadMemberContract
         hash = unchecked(hash * 31 + (IsNullable ? 1 : 0));
         hash = unchecked(hash * 31 + (KeyTypeName?.GetHashCode() ?? 0));
         hash = unchecked(hash * 31 + SparseSequence.Hash(KeyPropertyNames));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(KeyJsonPropertyNames));
+        hash = unchecked(hash * 31 + (UnassignedKeyJson?.GetHashCode() ?? 0));
         hash = unchecked(hash * 31 + (HasTemporaryIdentity ? 1 : 0));
+        hash = unchecked(hash * 31 + (TemporaryKeyJsonPropertyName?.GetHashCode() ?? 0));
         hash = unchecked(hash * 31 + (CarriesOrder ? 1 : 0));
         hash = unchecked(hash * 31 + SparseSequence.Hash(ChangeOperations));
         hash = unchecked(hash * 31 + SparseSequence.Hash(ItemOperations));
@@ -214,7 +226,12 @@ internal sealed record SparsePayloadContract
                 IsNullable = member.Property.IsNullable,
                 KeyTypeName = member.Collection.KeyTypeName,
                 KeyPropertyNames = member.Collection.KeyPropertyNames.IsDefault ? ImmutableArray<string>.Empty : member.Collection.KeyPropertyNames,
+                KeyJsonPropertyNames = member.Collection.KeyJsonPropertyNames.IsDefault
+                    ? ImmutableArray<string>.Empty
+                    : member.Collection.KeyJsonPropertyNames,
+                UnassignedKeyJson = member.Collection.UnassignedKeyJson,
                 HasTemporaryIdentity = member.Collection.TemporaryKeyPropertyName is not null,
+                TemporaryKeyJsonPropertyName = member.Collection.TemporaryKeyJsonPropertyName,
                 CarriesOrder = member.Collection.Semantic == SparseCollectionSemantic.KeyedSequence,
                 ChangeOperations = GetChangeOperations(GetShape(member)),
                 ItemOperations = GetItemOperations(member),

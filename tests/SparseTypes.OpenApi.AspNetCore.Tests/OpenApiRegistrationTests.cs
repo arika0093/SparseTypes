@@ -148,6 +148,8 @@ public sealed class OpenApiRegistrationTests
 
         document.Components!.Schemas!.Keys.ShouldContain("SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload");
         document.Components.Schemas.Keys.ShouldContain("SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ModelChange");
+        document.Components.Schemas["SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload"]
+            .Extensions!.Keys.ShouldContain("x-sparsetypes");
     }
 
     [Test]

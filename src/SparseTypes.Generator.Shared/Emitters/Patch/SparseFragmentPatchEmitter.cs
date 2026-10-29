@@ -202,7 +202,8 @@ internal static class SparseFragmentPatchEmitter
         string? PayloadSchemaOptionsSchema31MemberName = null,
         string? PayloadSchemaOptionsIdentitiesMemberName = null,
         string? PayloadSchemaOptionsExternalTypesMemberName = null,
-        string? PayloadSchemaOptionsDependenciesMemberName = null
+        string? PayloadSchemaOptionsDependenciesMemberName = null,
+        string? PayloadSchemaMetadataExtensionName = null
     )
     {
         /// <summary>Optional factory for a validation scope.</summary>

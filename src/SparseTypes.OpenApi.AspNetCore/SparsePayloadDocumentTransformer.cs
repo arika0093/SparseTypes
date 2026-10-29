@@ -50,7 +50,15 @@ internal sealed class SparsePayloadDocumentTransformer(
             {
                 var type = descriptor.Type;
                 var jsonSchema = version == OpenApiSpecVersion.OpenApi3_0 ? descriptor.OpenApi30JsonSchema : descriptor.OpenApi31JsonSchema;
-                var openApiSchema = SparseOpenApiSchemaParser.Parse(jsonSchema, version, document);
+                IOpenApiSchema openApiSchema;
+                try
+                {
+                    openApiSchema = SparseOpenApiSchemaParser.Parse(jsonSchema, version, document);
+                }
+                catch (InvalidOperationException exception)
+                {
+                    throw new InvalidOperationException($"Could not register generated SparseTypes schema '{descriptor.Name}'.", exception);
+                }
                 var namesForSchema = new HashSet<string>(StringComparer.Ordinal) { descriptor.Name };
                 if (registry.GetEffectiveName(context.DocumentName, type) is { Length: > 0 } effectiveName)
                 {

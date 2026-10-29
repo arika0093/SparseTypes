@@ -24,7 +24,10 @@ internal sealed record SparseKeyInfo(
     string KeyTypeName,
     string? UnassignedKeyExpression = null,
     string? TemporaryKeyProperty = null,
-    bool KeyIsReferenceType = false
+    bool KeyIsReferenceType = false,
+    ImmutableArray<string> JsonPropertyNames = default,
+    string? TemporaryKeyJsonProperty = null,
+    string? UnassignedKeyJson = null
 );
 
 /// <summary>Discovers and validates SparseTypes key metadata on element types.</summary>
@@ -81,13 +84,28 @@ internal static class SparseKeyAnalyzer
             return false;
         }
 
+        var temporaryKeyProperty = TemporaryKeyProperty(element, config, cancellationToken);
+        string? temporaryKeyJsonProperty = null;
+        if (temporaryKeyProperty is not null)
+        {
+            var temporaryProperty = GetAllProperties(element, cancellationToken)
+                .FirstOrDefault(candidate => string.Equals(candidate.Name, temporaryKeyProperty, StringComparison.Ordinal));
+            if (temporaryProperty is not null)
+            {
+                temporaryKeyJsonProperty = JsonPropertyName(temporaryProperty, cancellationToken);
+            }
+        }
+
         info = new SparseKeyInfo(
             SparseKeyKind.Property,
             ImmutableArray.Create(property.Name),
             NonNullableTypeName(property.Type),
             sentinel,
-            TemporaryKeyProperty(element, config, cancellationToken),
-            property.Type.IsReferenceType
+            temporaryKeyProperty,
+            property.Type.IsReferenceType,
+            ImmutableArray.Create(JsonPropertyName(property, cancellationToken)),
+            temporaryKeyJsonProperty,
+            GetUnassignedJson(attribute)
         );
         return true;
     }
@@ -552,6 +570,60 @@ internal static class SparseKeyAnalyzer
         }
 
         return null;
+    }
+
+    private static string JsonPropertyName(IPropertySymbol property, CancellationToken cancellationToken)
+    {
+        var name = SparseJsonNaming.GetJsonPropertyName(property, cancellationToken, out var isExplicit);
+        if (isExplicit || name.Length == 0 || !char.IsUpper(name[0]))
+        {
+            return name;
+        }
+
+        var characters = name.ToCharArray();
+        var count = 0;
+        while (count < characters.Length)
+        {
+            if (count == 1 && !char.IsUpper(characters[count]))
+            {
+                break;
+            }
+
+            if (count > 0 && count + 1 < characters.Length && !char.IsUpper(characters[count + 1]))
+            {
+                break;
+            }
+
+            characters[count] = char.ToLowerInvariant(characters[count]);
+            count++;
+        }
+
+        return new string(characters);
+    }
+
+    private static string? GetUnassignedJson(AttributeData attribute)
+    {
+        var named = attribute.NamedArguments.FirstOrDefault(static argument => argument.Key == "Unassigned");
+        if (named.Key is null)
+        {
+            return null;
+        }
+
+        var constant = named.Value;
+        if (constant.IsNull || constant.Value is null)
+        {
+            return "null";
+        }
+
+        return constant.Value switch
+        {
+            string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
+            char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character.ToString(), true),
+            bool boolean => boolean ? "true" : "false",
+            byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal =>
+                Convert.ToString(constant.Value, System.Globalization.CultureInfo.InvariantCulture),
+            _ => null,
+        };
     }
 
     private static Location? AttributeLocation(AttributeData attribute, INamedTypeSymbol fallback) =>

@@ -236,6 +236,46 @@ public sealed class SparsePayloadSchemaBundleTests
         reorder31.GetProperty("type").GetString().ShouldBe("boolean");
         reorder31.TryGetProperty("const", out _).ShouldBeFalse();
 
+        var members30 = schemas.OpenApi30Schemas.Single(static schema => schema.Name.Contains("PayloadSchemaOrder_MembersDelta", StringComparison.Ordinal));
+        var members31 = schemas.OpenApi31Schemas.Single(static schema => schema.Name.Contains("PayloadSchemaOrder_MembersDelta", StringComparison.Ordinal));
+        using var metadata30 = System.Text.Json.JsonDocument.Parse(members30.OpenApi30JsonSchema);
+        using var metadata31 = System.Text.Json.JsonDocument.Parse(members31.OpenApi31JsonSchema);
+        AssertCollectionMetadata(metadata30.RootElement);
+        AssertCollectionMetadata(metadata31.RootElement);
+        metadata31.RootElement.GetProperty("x-sparsetypes")
+            .GetProperty("members")
+            .EnumerateArray()
+            .Single(static member => member.GetProperty("name").GetString() == "nullableValues")
+            .GetProperty("valueNullable")
+            .GetBoolean()
+            .ShouldBeTrue();
+
+        var lineMembers = schemas.OpenApi31Schemas.Single(static schema =>
+            schema.Name.Contains("PayloadSchemaOrderLine_MembersDelta", StringComparison.Ordinal)
+        );
+        using var lineMetadata = System.Text.Json.JsonDocument.Parse(lineMembers.OpenApi31JsonSchema);
+        lineMetadata.RootElement.GetProperty("x-sparsetypes")
+            .GetProperty("members")
+            .EnumerateArray()
+            .Single(static member => member.GetProperty("name").GetString() == "unitPrice")
+            .GetProperty("wireType")
+            .GetString()
+            .ShouldBe("decimal-string");
+
+        static void AssertCollectionMetadata(System.Text.Json.JsonElement schema)
+        {
+            var metadata = schema.GetProperty("x-sparsetypes");
+            metadata.GetProperty("version").GetInt32().ShouldBe(1);
+            metadata.GetProperty("role").GetString().ShouldBe("members");
+            var lines = metadata.GetProperty("members").EnumerateArray().Single(static member => member.GetProperty("name").GetString() == "lines");
+            lines.GetProperty("shape").GetString().ShouldBe("keyed");
+            lines.GetProperty("keyProperties").EnumerateArray().Select(static key => key.GetString()).ShouldBe(["key"]);
+            lines.GetProperty("keyType").GetString().ShouldBe("integer-number");
+            lines.GetProperty("unassignedKey").GetInt32().ShouldBe(0);
+            lines.GetProperty("temporaryKey").GetString().ShouldBe("temporaryId");
+            lines.GetProperty("ordered").GetBoolean().ShouldBeTrue();
+        }
+
         static string GetValueReference(System.Text.Json.JsonElement endpoint) =>
             endpoint.GetProperty("oneOf")
                 .EnumerateArray()
@@ -382,10 +422,14 @@ public partial class PayloadSchemaOrderLine
     public Guid? TemporaryId { get; set; }
 
     public string Name { get; set; } = string.Empty;
+
+    public decimal UnitPrice { get; set; }
 }
 
 [SparseModel]
 public partial class PayloadSchemaOrder
 {
+    public Dictionary<string, int?> NullableValues { get; set; } = new();
+
     public List<PayloadSchemaOrderLine> Lines { get; set; } = [];
 }

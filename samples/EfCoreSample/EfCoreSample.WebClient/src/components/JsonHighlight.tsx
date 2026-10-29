@@ -19,7 +19,8 @@ export default function JsonHighlight({ code }: JsonHighlightProps) {
         if (active) setHtml(highlighted);
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : String(cause));
+        if (active)
+          setError(cause instanceof Error ? cause.message : String(cause));
       });
 
     return () => {
@@ -31,9 +32,16 @@ export default function JsonHighlight({ code }: JsonHighlightProps) {
     <Stack gap="xs">
       {error && <Alert color="red">JSON highlighting failed: {error}</Alert>}
       <Box h={400} style={{ overflow: "auto" }}>
-        {html
-          ? <Box className="payload-highlight" role="region" aria-label="ChangePayload JSON" dangerouslySetInnerHTML={{ __html: html }} />
-          : <Code block>{code}</Code>}
+        {html ? (
+          <Box
+            className="payload-highlight"
+            role="region"
+            aria-label="ChangePayload JSON"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        ) : (
+          <Code block>{code}</Code>
+        )}
       </Box>
     </Stack>
   );

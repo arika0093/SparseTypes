@@ -52,7 +52,11 @@ internal static class SparseOpenApiSchemaParser
             throw new InvalidOperationException("The generated payload schema is invalid: " + string.Join("; ", diagnostic.Errors));
         }
 
-        return schema ?? throw new InvalidOperationException("The generated payload schema did not contain a schema object.");
+        return schema
+            ?? throw new InvalidOperationException(
+                "The generated payload schema did not contain a schema object."
+                    + (diagnostic.Warnings.Count > 0 ? " " + string.Join("; ", diagnostic.Warnings) : string.Empty)
+            );
     }
 
     private static void ValidateReferences(JsonElement schema, string sourceName, HashSet<string> names)

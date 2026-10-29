@@ -107,35 +107,43 @@ internal static class SparsePayloadSchemaEmitter
         var snapshot = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "Root");
         var membersDelta = SparseChangeSetPayloadEmitter.PayloadTypeName(context.Dialect, context.ModelType, "MembersDelta");
         descriptors.Add(
-            new SchemaDescriptor(
-                "ChangePayload",
-                SchemaComponentName(context.ModelType, "ChangePayload"),
-                BuildRootSchema(context, schema, modelChange, openApi31: false),
-                BuildRootSchema(context, schema, modelChange, openApi31: true)
+            CreateDescriptor(
+                context,
+                role: "payload",
+                type: "ChangePayload",
+                name: SchemaComponentName(context.ModelType, "ChangePayload"),
+                openApi30: BuildRootSchema(context, schema, modelChange, openApi31: false),
+                openApi31: BuildRootSchema(context, schema, modelChange, openApi31: true)
             )
         );
         descriptors.Add(
-            new SchemaDescriptor(
-                modelChange,
-                SchemaComponentName(context.ModelType, "ModelChange"),
-                BuildModelChangeSchema(context, schema, snapshot, membersDelta, openApi31: false),
-                BuildModelChangeSchema(context, schema, snapshot, membersDelta, openApi31: true)
+            CreateDescriptor(
+                context,
+                role: "model-change",
+                type: modelChange,
+                name: SchemaComponentName(context.ModelType, "ModelChange"),
+                openApi30: BuildModelChangeSchema(context, schema, snapshot, membersDelta, openApi31: false),
+                openApi31: BuildModelChangeSchema(context, schema, snapshot, membersDelta, openApi31: true)
             )
         );
         descriptors.Add(
-            new SchemaDescriptor(
-                snapshot,
-                SchemaComponentName(context.ModelType, "Root"),
-                BuildSnapshotSchema(context, schema, openApi31: false),
-                BuildSnapshotSchema(context, schema, openApi31: true)
+            CreateDescriptor(
+                context,
+                role: "snapshot",
+                type: snapshot,
+                name: SchemaComponentName(context.ModelType, "Root"),
+                openApi30: BuildSnapshotSchema(context, schema, openApi31: false),
+                openApi31: BuildSnapshotSchema(context, schema, openApi31: true)
             )
         );
         descriptors.Add(
-            new SchemaDescriptor(
-                membersDelta,
-                SchemaComponentName(context.ModelType, "MembersDelta"),
-                BuildMembersDeltaSchema(context, schema),
-                BuildMembersDeltaSchema(context, schema)
+            CreateDescriptor(
+                context,
+                role: "members",
+                type: membersDelta,
+                name: SchemaComponentName(context.ModelType, "MembersDelta"),
+                openApi30: BuildMembersDeltaSchema(context, schema),
+                openApi31: BuildMembersDeltaSchema(context, schema)
             )
         );
 
@@ -144,11 +152,14 @@ internal static class SparsePayloadSchemaEmitter
             var member = memberContract.Member;
             var memberType = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(context.Dialect, context.ModelType, "Change", member.Id);
             descriptors.Add(
-                new SchemaDescriptor(
-                    memberType,
-                    SchemaMemberName(context.ModelType, memberContract.JsonName),
-                    BuildMemberChangeSchema(context, schema, member, memberContract.JsonName, openApi31: false),
-                    BuildMemberChangeSchema(context, schema, member, memberContract.JsonName, openApi31: true)
+                CreateDescriptor(
+                    context,
+                    role: "member-change",
+                    type: memberType,
+                    name: SchemaMemberName(context.ModelType, memberContract.JsonName),
+                    openApi30: BuildMemberChangeSchema(context, schema, member, memberContract.JsonName, openApi31: false),
+                    openApi31: BuildMemberChangeSchema(context, schema, member, memberContract.JsonName, openApi31: true),
+                    member: memberContract
                 )
             );
 
@@ -156,17 +167,173 @@ internal static class SparsePayloadSchemaEmitter
             {
                 var itemType = SparseChangeSetPayloadEmitter.PayloadMemberTypeName(context.Dialect, context.ModelType, "Item", member.Id);
                 descriptors.Add(
-                    new SchemaDescriptor(
-                        itemType,
-                        SchemaItemName(context.ModelType, memberContract.JsonName),
-                        BuildItemSchema(context, schema, member, openApi31: false),
-                        BuildItemSchema(context, schema, member, openApi31: true)
+                    CreateDescriptor(
+                        context,
+                        role: "item",
+                        type: itemType,
+                        name: SchemaItemName(context.ModelType, memberContract.JsonName),
+                        openApi30: BuildItemSchema(context, schema, member, openApi31: false),
+                        openApi31: BuildItemSchema(context, schema, member, openApi31: true),
+                        member: memberContract
                     )
                 );
             }
         }
 
         return descriptors;
+    }
+
+    private static SchemaDescriptor CreateDescriptor(
+        PayloadJsonEmissionContext context,
+        string role,
+        string type,
+        string name,
+        string openApi30,
+        string openApi31,
+        SparsePayloadMemberContract? member = null
+    )
+    {
+        var extensionName = context.Dialect.PayloadSchemaMetadataExtensionName;
+        if (extensionName is null || string.IsNullOrWhiteSpace(extensionName) || role is "member-change" or "item")
+        {
+            return new SchemaDescriptor(type, name, openApi30, openApi31);
+        }
+
+        var metadata = BuildMetadata(context, role, member);
+        return new SchemaDescriptor(
+            type,
+            name,
+            AddMetadata(openApi30, extensionName, metadata),
+            AddMetadata(openApi31, extensionName, metadata)
+        );
+    }
+
+    private static string BuildMetadata(PayloadJsonEmissionContext context, string role, SparsePayloadMemberContract? member)
+    {
+        var properties = new List<(string, string)>
+        {
+            ("version", "1"),
+            ("role", String(role)),
+            ("model", String(context.ModelType)),
+            ("schemaIdentity", String(context.Contract.SchemaIdentity)),
+        };
+        if (role == "payload")
+        {
+            properties.Add(("membersComponent", String(SchemaComponentName(context.ModelType, "MembersDelta"))));
+            properties.Add(("modelChangeComponent", String(SchemaComponentName(context.ModelType, "ModelChange"))));
+            properties.Add(("snapshotComponent", String(SchemaComponentName(context.ModelType, "Root"))));
+        }
+
+        if (member is null)
+        {
+            if (role == "members")
+            {
+                properties.Add(
+                    (
+                        "members",
+                        Array(
+                            context.Contract.JsonMembers
+                                .Select(memberContract => BuildMemberMetadata(memberContract))
+                                .ToArray()
+                        )
+                    )
+                );
+            }
+
+            return Object(properties.ToArray());
+        }
+
+        properties.Add(("member", BuildMemberMetadata(member)));
+        return Object(properties.ToArray());
+    }
+
+    private static string BuildMemberMetadata(SparsePayloadMemberContract member)
+    {
+        var collection = member.Member.Collection;
+        var properties = new List<(string, string)>
+        {
+            ("name", String(member.JsonName)),
+            ("shape", String(member.Shape switch
+            {
+                SparsePayloadMemberShape.Value => "value",
+                SparsePayloadMemberShape.NestedModel => "nested",
+                SparsePayloadMemberShape.Sequence => "sequence",
+                SparsePayloadMemberShape.KeyedCollection => "keyed",
+                SparsePayloadMemberShape.Dictionary => "dictionary",
+                _ => throw new InvalidOperationException("Unsupported payload member shape."),
+            })),
+            ("nullable", member.IsNullable ? "true" : "false"),
+            ("redactBefore", member.RedactBefore ? "true" : "false"),
+        };
+
+        if (member.ModelDependency is not null)
+        {
+            properties.Add(("childModel", String(member.ModelDependency)));
+        }
+
+        if (member.Shape == SparsePayloadMemberShape.Value)
+        {
+            properties.Add(("wireType", String(ScalarWireType(member.Member.Property.Type))));
+            properties.Add(("comparison", String(ScalarComparison(member.Member.Property.Type))));
+        }
+        else if (member.Shape == SparsePayloadMemberShape.Sequence)
+        {
+            properties.Add(("elementWireType", String(ScalarWireType(collection.ElementType))));
+            properties.Add(("comparison", String(ScalarComparison(collection.ElementType))));
+        }
+        else if (member.Shape == SparsePayloadMemberShape.Dictionary && collection.ValueType is SparseTypeModel valueType)
+        {
+            properties.Add(("valueWireType", String(ScalarWireType(valueType))));
+            properties.Add(("comparison", String(ScalarComparison(valueType))));
+        }
+
+        if (member.Shape == SparsePayloadMemberShape.Dictionary && collection.ValueType is SparseTypeModel dictionaryValueType)
+        {
+            properties.Add(("valueNullable", dictionaryValueType.IsNullable ? "true" : "false"));
+        }
+        else if (collection.Semantic != SparseCollectionSemantic.None)
+        {
+            properties.Add(("elementNullable", collection.ElementType.IsNullable ? "true" : "false"));
+        }
+
+        if (member.Shape is SparsePayloadMemberShape.KeyedCollection or SparsePayloadMemberShape.Dictionary)
+        {
+            var valueType = member.Shape == SparsePayloadMemberShape.KeyedCollection ? collection.ElementType : collection.ValueType!.Value;
+            properties.Add(("itemModel", valueType.IsFragmentModel ? String(valueType.NonNullableName) : "null"));
+            properties.Add(("keyProperties", Array(member.KeyJsonPropertyNames.Select(String).ToArray())));
+            properties.Add(("ordered", member.CarriesOrder ? "true" : "false"));
+            if (member.KeyTypeName is not null)
+            {
+                properties.Add(("keyType", String(SparsePayloadContract.GetWireTypeName(member.KeyTypeName))));
+            }
+
+            if (member.UnassignedKeyJson is not null)
+            {
+                properties.Add(("unassignedKey", member.UnassignedKeyJson));
+            }
+
+            if (member.TemporaryKeyJsonPropertyName is not null)
+            {
+                properties.Add(("temporaryKey", String(member.TemporaryKeyJsonPropertyName)));
+            }
+        }
+
+        return Object(properties.ToArray());
+    }
+
+    private static string ScalarWireType(SparseTypeModel type) =>
+        SparsePayloadContract.GetWireTypeName(type.EnumUnderlyingTypeName ?? type.NonNullableName);
+
+    private static string ScalarComparison(SparseTypeModel type) => type.UsesDefaultScalarEquality ? "default" : "custom";
+
+    private static string AddMetadata(string schema, string extensionName, string metadata)
+    {
+        if (schema.Length < 2 || schema[0] != '{' || schema[^1] != '}')
+        {
+            throw new InvalidOperationException("Generated payload schemas must be JSON objects.");
+        }
+
+        return schema[..^1] + "," + JsonString(extensionName) + ":" + metadata + "}";
     }
 
     private static string BuildRootSchema(PayloadJsonEmissionContext context, SchemaBuilder schema, string modelChange, bool openApi31) =>

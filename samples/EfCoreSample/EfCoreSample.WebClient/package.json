@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "generate:api": "openapi-typescript ../EfCoreSample.Server/obj/openapi/order-api.json -o src/generated/api.d.ts",
-    "build": "tsc -b && vite build"
+    "generate:api": "npm --prefix ../../../javascript run build && node ../../../javascript/dist/src/cli.js ../EfCoreSample.Server/obj/openapi/order-api.json",
+    "build": "tsc -b && vite build",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -14,7 +16,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/core": "^9.7.4",
     "@mantine/hooks": "^9.7.4",
-    "openapi-fetch": "^0.13.8",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "shiki": "^4.5.0"
@@ -23,7 +24,8 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
-    "openapi-typescript": "^7.6.1",
+    "@sparsetypes/codegen": "file:../../../javascript",
+    "prettier": "3.9.10",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
   }

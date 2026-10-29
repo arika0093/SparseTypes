@@ -59,7 +59,10 @@ internal readonly record struct SparseCollectionInfo(
     SparseKeyKind KeyKind = default,
     string? UnassignedKeyExpression = null,
     string? TemporaryKeyPropertyName = null,
-    bool KeyIsReferenceType = false
+    bool KeyIsReferenceType = false,
+    ImmutableArray<string> KeyJsonPropertyNames = default,
+    string? TemporaryKeyJsonPropertyName = null,
+    string? UnassignedKeyJson = null
 )
 {
     public bool Equals(SparseCollectionInfo other) =>
@@ -74,6 +77,9 @@ internal readonly record struct SparseCollectionInfo(
         && KeyKind == other.KeyKind
         && UnassignedKeyExpression == other.UnassignedKeyExpression
         && TemporaryKeyPropertyName == other.TemporaryKeyPropertyName
+        && SparseSequence.Equal(KeyJsonPropertyNames, other.KeyJsonPropertyNames)
+        && TemporaryKeyJsonPropertyName == other.TemporaryKeyJsonPropertyName
+        && UnassignedKeyJson == other.UnassignedKeyJson
         && KeyIsReferenceType == other.KeyIsReferenceType;
 
     public override int GetHashCode()
@@ -89,6 +95,9 @@ internal readonly record struct SparseCollectionInfo(
         hash = unchecked(hash * 31 + (int)KeyKind);
         hash = unchecked(hash * 31 + (UnassignedKeyExpression?.GetHashCode() ?? 0));
         hash = unchecked(hash * 31 + (TemporaryKeyPropertyName?.GetHashCode() ?? 0));
+        hash = unchecked(hash * 31 + SparseSequence.Hash(KeyJsonPropertyNames));
+        hash = unchecked(hash * 31 + (TemporaryKeyJsonPropertyName?.GetHashCode() ?? 0));
+        hash = unchecked(hash * 31 + (UnassignedKeyJson?.GetHashCode() ?? 0));
         return unchecked(hash * 31 + (KeyIsReferenceType ? 1 : 0));
     }
 

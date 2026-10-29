@@ -202,6 +202,8 @@ public sealed class SparsePayloadSchemaTests
 
         document.Components!.Schemas!.Keys.ShouldContain("SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload");
         document.Components!.Schemas!.Keys.ShouldContain("SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ModelChange");
+        document.Components.Schemas["SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload"]
+            .Extensions!.Keys.ShouldContain("x-sparsetypes");
     }
 
     [Test]

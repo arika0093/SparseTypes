@@ -14,9 +14,9 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
   `SparseTypes.OpenApi.AspNetCore`, and `/` serves the Swagger UI.
 - EfCoreSample.WebClient: React and TypeScript order editor. It supports
   adding, editing, removing, and reordering order lines, including unsaved lines.
-  It builds a `ChangePayload` from the loaded and edited values, then sends it
-  through the existing HTTP API. Its types come from the server's build-time
-  OpenAPI document.
+  The local `@sparsetypes/codegen` package generates its API client, model
+  declarations, schema parsers, and `ChangePayload` diff functions from the
+  server's build-time OpenAPI document.
 - EfCoreSample.WinAppClient: WPF order editor and edit-session showcase. The form
   binds to the live edit session's observable proxy with changed-field
   highlighting and read-only gray cells; line buttons move the selected row up
@@ -34,10 +34,11 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 
 ## Run
 
-Install the web-client dependencies, then start PostgreSQL, pgweb, the server,
-and the clients through Aspire:
+Install the code generator and web-client dependencies, then start PostgreSQL,
+pgweb, the server, and the clients through Aspire:
 
 ```bash
+npm ci --prefix javascript
 npm ci --prefix samples/EfCoreSample/EfCoreSample.WebClient
 dotnet run --project samples/EfCoreSample/EfCoreSample.AppHost
 ```
@@ -50,11 +51,12 @@ available to start from the Aspire dashboard. The server listens on
 concurrency token.
 
 Running the AppHost with `dotnet run` builds the server first. That build writes
-`obj/openapi/order-api.json` and runs `openapi-typescript` to update
-`EfCoreSample.WebClient/src/generated/api.d.ts` before Aspire starts the
-resources. The browser client uses those generated types for the order
-endpoints and payload. It reads the payload schema identity from the server
-rather than copying the generated identity into a separate constant.
+`obj/openapi/order-api.json` and runs the web client's `generate:api` script.
+The script builds the local codegen package and writes the generated module to
+`EfCoreSample.WebClient/node_modules/@sparsetypes/generated` before Aspire
+starts. The browser client imports that package and uses its generated response parser and
+`buildOrderDtoChangePayload` function rather than maintaining its own keyed-line
+diff and payload envelope.
 
 The server alone also runs standalone against any reachable PostgreSQL:
 

@@ -29,7 +29,7 @@ import {
   Tooltip,
 } from "@mantine/core";
 import type { CSSProperties } from "react";
-import type { EditableLine, EditableOrder } from "../logics/orderDraft";
+import type { EditableLine, EditableOrder } from "../logics/orderState";
 
 type EditableField = "name" | "notes" | "code" | "shipCity";
 
@@ -37,7 +37,10 @@ interface OrderEditorProps {
   order: EditableOrder;
   disabled: boolean;
   onFieldChange: (field: EditableField, value: string) => void;
-  onLineChange: (index: number, patch: Partial<Pick<EditableLine, "quantity" | "unitPrice">>) => void;
+  onLineChange: (
+    index: number,
+    patch: Partial<Pick<EditableLine, "quantity" | "unitPrice">>,
+  ) => void;
   onAddLine: () => void;
   onReorderLines: (fromIndex: number, toIndex: number) => void;
   onRemoveLine: (index: number) => void;
@@ -53,12 +56,26 @@ interface SortableLineRowProps {
 
 function sortableLineId(line: EditableLine): string {
   if (line.id > 0) return `line-${line.id}`;
-  if (!line.temporaryId) throw new Error("A new line is missing its temporary ID.");
+  if (!line.temporaryId)
+    throw new Error("A new line is missing its temporary ID.");
   return `new-${line.temporaryId}`;
 }
 
-function SortableLineRow({ line, index, disabled, onLineChange, onRemoveLine }: SortableLineRowProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+function SortableLineRow({
+  line,
+  index,
+  disabled,
+  onLineChange,
+  onRemoveLine,
+}: SortableLineRowProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: sortableLineId(line),
     disabled,
   });
@@ -75,7 +92,11 @@ function SortableLineRow({ line, index, disabled, onLineChange, onRemoveLine }: 
         <NumberInput
           aria-label={`Line ${index + 1} quantity`}
           value={line.quantity}
-          onChange={(value) => onLineChange(index, { quantity: String(value) })}
+          onChange={(value) => {
+            const parsed = Number(value);
+            if (Number.isFinite(parsed))
+              onLineChange(index, { quantity: parsed });
+          }}
           min={1}
           step={1}
           decimalScale={0}
@@ -86,7 +107,11 @@ function SortableLineRow({ line, index, disabled, onLineChange, onRemoveLine }: 
         <NumberInput
           aria-label={`Line ${index + 1} unit price`}
           value={line.unitPrice}
-          onChange={(value) => onLineChange(index, { unitPrice: String(value) })}
+          onChange={(value) => {
+            const parsed = Number(value);
+            if (Number.isFinite(parsed))
+              onLineChange(index, { unitPrice: parsed });
+          }}
           min={0}
           decimalScale={2}
           disabled={disabled}
@@ -133,13 +158,19 @@ export default function OrderEditor({
 }: OrderEditorProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   function handleDragEnd({ active, over }: DragEndEvent) {
     if (!over || active.id === over.id) return;
-    const fromIndex = order.lines.findIndex((line) => sortableLineId(line) === active.id);
-    const toIndex = order.lines.findIndex((line) => sortableLineId(line) === over.id);
+    const fromIndex = order.lines.findIndex(
+      (line) => sortableLineId(line) === active.id,
+    );
+    const toIndex = order.lines.findIndex(
+      (line) => sortableLineId(line) === over.id,
+    );
     if (fromIndex >= 0 && toIndex >= 0) onReorderLines(fromIndex, toIndex);
   }
 
@@ -147,10 +178,38 @@ export default function OrderEditor({
     <Stack gap="lg">
       <Paper withBorder p="md" radius="md">
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <TextInput label="Customer" value={order.name} onChange={(event) => onFieldChange("name", event.currentTarget.value)} disabled={disabled} />
-          <TextInput label="Code" value={order.code} onChange={(event) => onFieldChange("code", event.currentTarget.value)} disabled={disabled} />
-          <TextInput label="Shipping city" value={order.shipCity} onChange={(event) => onFieldChange("shipCity", event.currentTarget.value)} disabled={disabled} />
-          <Textarea label="Notes" value={order.notes ?? ""} onChange={(event) => onFieldChange("notes", event.currentTarget.value)} disabled={disabled} />
+          <TextInput
+            label="Customer"
+            value={order.name}
+            onChange={(event) =>
+              onFieldChange("name", event.currentTarget.value)
+            }
+            disabled={disabled}
+          />
+          <TextInput
+            label="Code"
+            value={order.code}
+            onChange={(event) =>
+              onFieldChange("code", event.currentTarget.value)
+            }
+            disabled={disabled}
+          />
+          <TextInput
+            label="Shipping city"
+            value={order.shipCity}
+            onChange={(event) =>
+              onFieldChange("shipCity", event.currentTarget.value)
+            }
+            disabled={disabled}
+          />
+          <Textarea
+            label="Notes"
+            value={order.notes ?? ""}
+            onChange={(event) =>
+              onFieldChange("notes", event.currentTarget.value)
+            }
+            disabled={disabled}
+          />
         </SimpleGrid>
       </Paper>
       <Paper withBorder p="md" radius="md">
@@ -158,13 +217,24 @@ export default function OrderEditor({
           <Group justify="space-between">
             <div>
               <Text fw={600}>Order lines</Text>
-              <Text size="sm" c="dimmed">{order.lines.length} items</Text>
+              <Text size="sm" c="dimmed">
+                {order.lines.length} items
+              </Text>
             </div>
-            <Button onClick={onAddLine} disabled={disabled}>Add line</Button>
+            <Button onClick={onAddLine} disabled={disabled}>
+              Add line
+            </Button>
           </Group>
           <Table.ScrollContainer minWidth={640}>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={order.lines.map(sortableLineId)} strategy={verticalListSortingStrategy}>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={order.lines.map(sortableLineId)}
+                strategy={verticalListSortingStrategy}
+              >
                 <Table verticalSpacing="sm">
                   <Table.Thead>
                     <Table.Tr>

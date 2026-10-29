@@ -359,6 +359,76 @@ jobs:
       # Everyday CI covers oldest+newest TFMs; the release gate runs the full list.
       slim-frameworks: ${{ !inputs.full-matrix }}
 
+  javascript-codegen:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            javascript/package-lock.json
+            samples/EfCoreSample/EfCoreSample.WebClient/package-lock.json
+
+      - name: Install codegen dependencies
+        run: npm ci --prefix javascript
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore .NET tools
+        run: dotnet tool restore
+
+      - name: Test and type-check codegen
+        run: |
+          npm test --prefix javascript
+          npm run typecheck --prefix javascript
+          npm run format:check --prefix javascript
+
+      - name: Check package contents
+        working-directory: javascript
+        run: npm run pack:versioned -- --dry-run
+
+      - name: Install sample web dependencies
+        run: npm ci --prefix samples/EfCoreSample/EfCoreSample.WebClient
+
+      - name: Generate the sample client from OpenAPI
+        run: dotnet build samples/EfCoreSample/EfCoreSample.Server/EfCoreSample.Server.csproj --configuration Release
+
+      - name: Build sample web client
+        run: |
+          npm run build --prefix samples/EfCoreSample/EfCoreSample.WebClient
+          npm run format:check --prefix samples/EfCoreSample/EfCoreSample.WebClient
+
+      - name: Pack codegen npm package
+        id: npm-package
+        working-directory: javascript
+        run: |
+          npm run pack:versioned -- --pack-destination "$RUNNER_TEMP"
+          version="$(dotnet nbgv get-version --variable NpmPackageVersion)"
+          echo "path=$RUNNER_TEMP/sparsetypes-codegen-$version.tgz" >> "$GITHUB_OUTPUT"
+
+      - name: Verify packed package in an isolated consumer
+        run: |
+          mkdir -p "$RUNNER_TEMP/codegen-consumer"
+          npm install --prefix "$RUNNER_TEMP/codegen-consumer" --ignore-scripts --no-audit --no-fund "${{ steps.npm-package.outputs.path }}"
+          node "$RUNNER_TEMP/codegen-consumer/node_modules/@sparsetypes/codegen/dist/src/cli.js" \
+            samples/EfCoreSample/EfCoreSample.Server/obj/openapi/order-api.json \
+            --output "$RUNNER_TEMP/codegen-output"
+          test -s "$RUNNER_TEMP/codegen-output/changes.js"
+          test -s "$RUNNER_TEMP/codegen-output/client.d.ts"
+          test -s "$RUNNER_TEMP/codegen-output/index.js"
+          test -s "$RUNNER_TEMP/codegen-output/models.js"
+
   docs-enforcement:
     if: >-
       github.workflow != 'Strict tests' ||

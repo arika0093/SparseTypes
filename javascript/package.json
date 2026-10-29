@@ -1,0 +1,42 @@
+{
+  "name": "@sparsetypes/codegen",
+  "version": "0.0.0-placeholder",
+  "description": "Generate dependency-free JavaScript and TypeScript declarations from SparseTypes OpenAPI documents.",
+  "type": "module",
+  "bin": {
+    "sparsetypes-codegen": "./dist/src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist/src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsgo --project tsconfig.json",
+    "prepare": "npm run build",
+    "pack:versioned": "npm run build && node dist/tools/pack-versioned.js",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "typecheck": "tsgo --project tsconfig.json --noEmit",
+    "format": "prettier --write src test tools",
+    "format:check": "prettier --check src test tools",
+    "pack:check": "npm run pack:versioned -- --dry-run"
+  },
+  "dependencies": {
+    "openapi-typescript": "7.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "nerdbank-gitversioning": "3.10.94",
+    "prettier": "3.9.10",
+    "typescript": "~5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

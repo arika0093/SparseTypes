@@ -10,6 +10,17 @@ Scalar enum codecs reject undefined values on read and write. Flags enums accept
 
 Keyed item snapshot endpoints serialize model values as ordinary JSON values. OpenAPI hosts must register a `SparsePayloadSchema` for each type in `PayloadJson.Schema.RequiredExternalSchemaTypes`; use `SparsePayloadSchemaNames.GetName` for the component name referenced by the generated bundle.
 
+Payload-schema metadata is opt-in through the consuming generator's
+`PayloadSchemaMetadataExtensionName` dialect setting. When configured, the
+shared emitter adds versioned metadata to payload and member schemas, including
+member JSON names and shapes, scalar wire/comparison hints, redaction, nested
+model links, and collection key/order semantics. The shared emitter uses only
+the configured extension name and dialect; consumers own the metadata
+vocabulary and can leave the setting unset to preserve existing OpenAPI output.
+Downstream code generators can use this metadata to build product-specific
+clients without inferring C# names or payload behavior from schema component
+names.
+
 
 This package ships C# sources only — there is no runtime assembly and no `lib/` assets.
 Referencing it compiles the shared sources into the consuming generator via

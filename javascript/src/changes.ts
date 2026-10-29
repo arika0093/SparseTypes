@@ -1,0 +1,774 @@
+import { metadataOf, refName, schemaRef, unwrapSchema } from "./openapi.js";
+import type { OpenApiDocument } from "./openapi.js";
+
+export interface ChangeMember extends Record<string, any> {
+  name: string;
+  shape: string;
+}
+
+export interface ChangeModel {
+  model: string;
+  dto: string;
+  membersComponent: string;
+  members: ChangeMember[];
+  payload: string;
+  schemaIdentity: string;
+  typeName: string;
+}
+
+export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
+  const schemas = Object.entries(document.components.schemas);
+  const membersByModel = new Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >();
+  const payloadByComponent = new Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >();
+  const payloadByModel = new Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >();
+  for (const [component, schema] of schemas) {
+    const metadata = metadataOf(schema);
+    if (metadata?.role === "members")
+      membersByModel.set(metadata.model, { component, metadata });
+    if (metadata?.role === "payload") {
+      const payload = { component, metadata };
+      payloadByComponent.set(component, payload);
+      if (!payloadByModel.has(metadata.model))
+        payloadByModel.set(metadata.model, payload);
+    }
+  }
+  if (membersByModel.size === 0 || payloadByModel.size === 0) {
+    throw new Error(
+      "OpenAPI document has no x-sparsetypes payload/member metadata. Rebuild the server with SparseTypes TypeScript metadata enabled.",
+    );
+  }
+
+  const dtoByModel = new Map<string, string>();
+  for (const pathItem of Object.values(document.paths) as Record<
+    string,
+    any
+  >[]) {
+    for (const operation of Object.values(pathItem ?? {}) as Record<
+      string,
+      any
+    >[]) {
+      const request = (
+        Object.values(operation?.requestBody?.content ?? {}) as Record<
+          string,
+          any
+        >[]
+      ).find((entry) => entry.schema);
+      const requestRef = schemaRef(request?.schema);
+      const payload = requestRef
+        ? payloadByComponent.get(requestRef)
+        : undefined;
+      if (!payload) continue;
+      for (const [status, response] of Object.entries(
+        operation.responses ?? {},
+      ) as [string, Record<string, any>][]) {
+        if (!/^[23]/.test(status)) continue;
+        const schema = (
+          Object.values(response?.content ?? {}) as Record<string, any>[]
+        )
+          .map((entry) => entry.schema)
+          .find(Boolean);
+        const component = schemaRef(schema);
+        if (component) {
+          dtoByModel.set(payload.metadata.model, component);
+          payloadByModel.set(payload.metadata.model, payload);
+          break;
+        }
+      }
+    }
+  }
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [model, entry] of membersByModel) {
+      const parentSchemaName = dtoByModel.get(model);
+      if (!parentSchemaName) continue;
+      const parentSchema = document.components.schemas[parentSchemaName];
+      for (const member of entry.metadata.members ?? []) {
+        const child = member.childModel ?? member.itemModel;
+        if (!child || dtoByModel.has(child)) continue;
+        const property = parentSchema?.properties?.[member.name];
+        const propertyShape = unwrapSchema(property);
+        const childSchema =
+          member.shape === "keyed"
+            ? unwrapSchema(propertyShape?.items)
+            : member.shape === "dictionary"
+              ? unwrapSchema(propertyShape?.additionalProperties)
+              : propertyShape;
+        const childComponent = schemaRef(childSchema);
+        if (childComponent) {
+          dtoByModel.set(child, childComponent);
+          changed = true;
+        }
+      }
+    }
+  }
+
+  const missing = [...membersByModel.keys()].filter(
+    (model) => !dtoByModel.has(model),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `Could not associate SparseTypes models with ordinary OpenAPI schemas: ${missing.join(", ")}. Ensure payload models occur in a response schema.`,
+    );
+  }
+  for (const [model, entry] of membersByModel) {
+    const unsupported = (entry.metadata.members ?? []).find(
+      (member: ChangeMember) => member.comparison === "custom",
+    );
+    if (unsupported)
+      throw new Error(
+        `Member '${model}.${unsupported.name}' uses custom scalar comparison, which JavaScript codegen cannot reproduce.`,
+      );
+  }
+
+  const models = [...membersByModel].map(([model, members]) => {
+    const payload = payloadByModel.get(model);
+    if (!payload)
+      throw new Error(
+        `Model '${model}' has no generated ChangePayload schema.`,
+      );
+    const dto = dtoByModel.get(model);
+    if (!dto)
+      throw new Error(
+        `Could not associate SparseTypes model '${model}' with an ordinary OpenAPI schema.`,
+      );
+    return {
+      model,
+      dto,
+      membersComponent: members.component,
+      members: (members.metadata.members ?? []).map((member: ChangeMember) => {
+        const dtoSchema = document.components.schemas[dto];
+        const property = unwrapSchema(dtoSchema?.properties?.[member.name]);
+        const valueSchema =
+          member.shape === "sequence"
+            ? unwrapSchema(property?.items)
+            : member.shape === "dictionary"
+              ? unwrapSchema(property?.additionalProperties)
+              : property;
+        return {
+          ...member,
+          snapshotType: valueSchema?.type,
+          snapshotFormat: valueSchema?.format,
+        };
+      }),
+      payload: payload.component,
+      schemaIdentity: payload.metadata.schemaIdentity,
+    };
+  });
+  const duplicateNames = new Set(
+    [
+      ...models.reduce(
+        (counts, model) =>
+          counts.set(
+            modelTypeName(model.model),
+            (counts.get(modelTypeName(model.model)) ?? 0) + 1,
+          ),
+        new Map(),
+      ),
+    ]
+      .filter(([, count]) => count > 1)
+      .map(([name]) => name),
+  );
+  return models.map((model) => ({
+    ...model,
+    typeName: duplicateNames.has(modelTypeName(model.model))
+      ? model.model
+          .replace(/^global::/, "")
+          .split(/[.+]/)
+          .map((part) => part.replace(/`[0-9]+$/, ""))
+          .join("_")
+      : modelTypeName(model.model),
+  }));
+}
+
+function modelTypeName(model: string): string {
+  const name = model.split(/[.+]/).at(-1) ?? model;
+  return name.replace(/`[0-9]+$/, "");
+}
+
+function jsString(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+export function emitChangesJs(models: ChangeModel[]): string {
+  const definitions = Object.fromEntries(
+    models.map((model) => [
+      model.model,
+      {
+        payload: model.payload,
+        schema: model.schemaIdentity,
+        members: model.members,
+      },
+    ]),
+  );
+  return `const models = ${JSON.stringify(definitions, null, 2)};\n\n${CHANGE_RUNTIME}\n\n${models
+    .map((model) => {
+      const functionName = `build${model.typeName}ChangePayload`;
+      return `export function ${functionName}(before, after) { return buildPayload(${jsString(model.model)}, before, after); }\n`;
+    })
+    .join("")}`;
+}
+
+export function emitChangesDts(models: ChangeModel[]): string {
+  const functions = models
+    .map((model) => {
+      const name = `build${model.typeName}ChangePayload`;
+      const alias = `Optional${model.typeName}`;
+      return `export declare function ${name}(before: DeepReadonly<${alias}> | null | undefined, after: DeepReadonly<${alias}> | null | undefined): components["schemas"][${jsString(model.payload)}] | undefined;`;
+    })
+    .join("\n");
+  const imports = models.map((model) => `Optional${model.typeName}`).join(", ");
+  return `import type { components } from "./api";\nimport type { DeepReadonly, ${imports} } from "./models";\n\n${functions}\n`;
+}
+
+export function emitModelsDts(
+  document: OpenApiDocument,
+  models: ChangeModel[],
+): string {
+  const modelByIdentity = new Map(models.map((model) => [model.model, model]));
+  const aliases = models
+    .map(
+      (model) =>
+        `export type ${model.typeName} = components["schemas"][${jsString(model.dto)}];`,
+    )
+    .join("\n");
+  const states = models
+    .map((model) => {
+      const rewritten = model.members.filter(
+        (member) =>
+          member.shape === "nested" ||
+          (member.shape === "keyed" && member.itemModel) ||
+          (member.shape === "dictionary" && member.itemModel) ||
+          (member.shape === "sequence" &&
+            member.elementWireType &&
+            isPrecisionStringType(member.elementWireType)) ||
+          (member.shape === "dictionary" &&
+            member.valueWireType &&
+            isPrecisionStringType(member.valueWireType)) ||
+          (member.shape === "value" &&
+            member.wireType &&
+            isPrecisionStringType(member.wireType)),
+      );
+      if (rewritten.length === 0)
+        return `export type Optional${model.typeName} = DeepOptional<${model.typeName}>;`;
+      const omitted = rewritten
+        .map((member) => JSON.stringify(member.name))
+        .join(" | ");
+      const fields = rewritten
+        .map((member) => {
+          const property = `StateProperty<${model.typeName}, ${JSON.stringify(member.name)}>`;
+          const child = modelByIdentity.get(
+            member.childModel ?? member.itemModel,
+          );
+          let value;
+          if (member.shape === "nested" && child) {
+            value = `Optional${child.typeName}${member.nullable ? " | null" : ""}`;
+          } else if (member.shape === "keyed" && child) {
+            value = `readonly (Optional${child.typeName}${member.elementNullable ? " | null" : ""})[]`;
+          } else if (member.shape === "dictionary" && child) {
+            value = `Record<string, Optional${child.typeName}${member.valueNullable ? " | null" : ""}>`;
+          } else if (member.shape === "sequence") {
+            value = `StringElements<DeepOptional<${property}>>`;
+          } else if (
+            member.shape === "dictionary" &&
+            member.valueWireType &&
+            isPrecisionStringType(member.valueWireType)
+          ) {
+            value = `StringRecordValues<DeepOptional<${property}>>`;
+          } else if (
+            member.wireType &&
+            isPrecisionStringType(member.wireType)
+          ) {
+            value = `DeepOptional<${property}> | string`;
+          } else {
+            value = `DeepOptional<${property}>`;
+          }
+          if (
+            member.shape !== "nested" &&
+            member.shape !== "keyed" &&
+            member.shape !== "dictionary" &&
+            member.nullable
+          )
+            value += " | null";
+          if (
+            (member.shape === "keyed" ||
+              member.shape === "sequence" ||
+              member.shape === "dictionary") &&
+            member.nullable
+          )
+            value += " | null";
+          return `  ${JSON.stringify(member.name)}?: ${value} | undefined;`;
+        })
+        .join("\n");
+      return `export type Optional${model.typeName} = DeepOptional<Omit<${model.typeName}, ${omitted}>> & {\n${fields}\n};`;
+    })
+    .join("\n");
+  return `import type { components } from "./api";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;
+}
+
+export function emitModelsJs(
+  document: OpenApiDocument,
+  models: ChangeModel[],
+): string {
+  return `const schemas = ${JSON.stringify(document.components.schemas)};\n\n${MODEL_RUNTIME}\n\n${models
+    .map(
+      (model) =>
+        `export function parse${model.typeName}(value) { validateSchema(${jsString(model.dto)}, value, "$", new WeakSet()); return value; }\n`,
+    )
+    .join("")}`;
+}
+
+function isPrecisionStringType(type: string): boolean {
+  return ["decimal-string", "int64-string", "uint64-string"].includes(type);
+}
+
+const MODEL_RUNTIME = String.raw`
+function fail(path, reason) { throw new TypeError(path + ": " + reason); }
+function referenceName(ref) {
+  const prefix = "#/components/schemas/";
+  return typeof ref === "string" && ref.startsWith(prefix)
+    ? decodeURIComponent(ref.slice(prefix.length)).replace(/~1/g, "/").replace(/~0/g, "~")
+    : undefined;
+}
+function matches(schema, value, path) {
+  try { validate(schema, value, path, new WeakSet()); return true; }
+  catch (error) { if (error instanceof TypeError) return false; throw error; }
+}
+function validateSchema(name, value, path, active) {
+  const schema = schemas[name];
+  if (!schema) fail(path, "missing OpenAPI schema '" + name + "'");
+  validate(schema, value, path, active);
+}
+function validate(schema, value, path, active) {
+  if (!schema || typeof schema !== "object") return;
+  if (schema.$ref) {
+    const name = referenceName(schema.$ref);
+    if (!name) fail(path, "external schema references are not supported");
+    validateSchema(name, value, path, active);
+  }
+  if (value === null && (schema.nullable === true || (Array.isArray(schema.type) && schema.type.includes("null")))) return;
+  if (schema.const !== undefined && value !== schema.const) fail(path, "does not match its constant");
+  if (Array.isArray(schema.enum) && !schema.enum.some((item) => Object.is(item, value))) fail(path, "is not an allowed enum value");
+  if (Array.isArray(schema.allOf)) for (const child of schema.allOf) validate(child, value, path, active);
+  if (Array.isArray(schema.anyOf) && !schema.anyOf.some((child) => matches(child, value, path))) fail(path, "does not match any allowed schema");
+  if (Array.isArray(schema.oneOf)) {
+    const matchesCount = schema.oneOf.filter((child) => matches(child, value, path)).length;
+    if (matchesCount !== 1) fail(path, "must match exactly one schema");
+  }
+  const types = Array.isArray(schema.type) ? schema.type.filter((type) => type !== "null") : schema.type ? [schema.type] : [];
+  if (types.length && !types.some((type) => matchesType(type, value))) fail(path, "has an invalid JSON type");
+  if (typeof value === "string") {
+    if (schema.minLength !== undefined && value.length < schema.minLength) fail(path, "is shorter than minLength");
+    if (schema.maxLength !== undefined && value.length > schema.maxLength) fail(path, "is longer than maxLength");
+    if (schema.pattern && !new RegExp(schema.pattern).test(value)) fail(path, "does not match its pattern");
+    if (schema.format === "uuid" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) fail(path, "is not a UUID");
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) fail(path, "must be finite");
+    if (schema.type === "integer" && !Number.isInteger(value)) fail(path, "must be an integer");
+    if (schema.minimum !== undefined && value < schema.minimum) fail(path, "is below minimum");
+    if (schema.maximum !== undefined && value > schema.maximum) fail(path, "is above maximum");
+  }
+  if (Array.isArray(value)) {
+    enter(value, active, path);
+    try {
+      if (schema.minItems !== undefined && value.length < schema.minItems) fail(path, "has fewer than minItems");
+      if (schema.maxItems !== undefined && value.length > schema.maxItems) fail(path, "has more than maxItems");
+      if (schema.items) value.forEach((item, index) => validate(schema.items, item, path + "[" + index + "]", active));
+    } finally { active.delete(value); }
+  } else if (value !== null && typeof value === "object") {
+    enter(value, active, path);
+    try {
+      const properties = schema.properties ?? {};
+      for (const name of schema.required ?? []) if (!Object.prototype.hasOwnProperty.call(value, name)) fail(path + "." + name, "is required");
+      for (const [name, child] of Object.entries(properties)) {
+        if (Object.prototype.hasOwnProperty.call(value, name)) validate(child, value[name], path + "." + name, active);
+      }
+      for (const [name, item] of Object.entries(value)) {
+        if (Object.prototype.hasOwnProperty.call(properties, name)) continue;
+        if (schema.additionalProperties === false) fail(path + "." + name, "is not allowed");
+        if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
+          validate(schema.additionalProperties, item, path + "." + name, active);
+        }
+      }
+    } finally { active.delete(value); }
+  }
+}
+function enter(value, active, path) {
+  if (active.has(value)) fail(path, "contains a cyclic object");
+  active.add(value);
+}
+function matchesType(type, value) {
+  if (type === "array") return Array.isArray(value);
+  if (type === "object") return value !== null && typeof value === "object" && !Array.isArray(value);
+  if (type === "integer") return typeof value === "number" && Number.isInteger(value);
+  if (type === "number") return typeof value === "number" && Number.isFinite(value);
+  if (type === "null") return value === null;
+  return typeof value === type;
+}
+`;
+
+const CHANGE_RUNTIME = String.raw`
+function own(object, key) { return object !== null && typeof object === "object" && Object.prototype.hasOwnProperty.call(object, key); }
+function state(object, key, wireType, elementWireType) {
+  if (!own(object, key) || object[key] === undefined) return { state: "missing" };
+  if (object[key] === null) return { state: "null" };
+  const value = object[key];
+  const encoded = Array.isArray(value) && elementWireType ? value.map((item) => encodeWireValue(item, elementWireType)) : encodeWireValue(value, wireType);
+  return { state: "value", value: clone(encoded) };
+}
+function endpoint(value, redact = false, wireType, elementWireType) {
+  if (redact) return { state: "redacted" };
+  if (value === undefined) return { state: "missing" };
+  if (value === null) return { state: "null" };
+  const encoded = Array.isArray(value) && elementWireType ? value.map((item) => encodeWireValue(item, elementWireType)) : encodeWireValue(value, wireType);
+  return { state: "value", value: clone(encoded) };
+}
+function encodeWireValue(value, wireType) {
+  if (value === null || value === undefined || !["decimal-string", "int64-string", "uint64-string"].includes(wireType)) return value;
+  if (Array.isArray(value)) return value.map((item) => encodeWireValue(item, wireType));
+  if (typeof value === "object") {
+    const result = {};
+    for (const key of Object.keys(value)) {
+      Object.defineProperty(result, key, {
+        value: encodeWireValue(value[key], wireType), enumerable: true, writable: true, configurable: true,
+      });
+    }
+    return result;
+  }
+  if (typeof value === "number") {
+    if (!Number.isFinite(value) || (wireType !== "decimal-string" && !Number.isSafeInteger(value))) {
+      throw new TypeError("Precision-sensitive SparseTypes values must be supplied as strings.");
+    }
+    return String(value);
+  }
+  if (typeof value !== "string") throw new TypeError("Precision-sensitive SparseTypes values must be numbers or strings.");
+  if (wireType === "decimal-string") normalizeDecimal(value);
+  else {
+    if (!/^-?\d+$/.test(value) || (wireType === "uint64-string" && value.startsWith("-"))) {
+      throw new TypeError("A precision-sensitive integer value is invalid.");
+    }
+    const integer = BigInt(value);
+    const minimum = wireType === "int64-string" ? -(1n << 63n) : 0n;
+    const maximum = wireType === "int64-string" ? (1n << 63n) - 1n : (1n << 64n) - 1n;
+    if (integer < minimum || integer > maximum) throw new TypeError("A precision-sensitive integer value is out of range.");
+  }
+  return value;
+}
+function normalizeDecimal(value) {
+  const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(String(value));
+  if (!match || (!match[2] && !match[3])) throw new TypeError("A decimal value is invalid.");
+  const exponent = Number(match[4] ?? 0);
+  if (!Number.isSafeInteger(exponent) || Math.abs(exponent) > 1000) throw new TypeError("A decimal exponent is out of range.");
+  const fraction = match[3] ?? "";
+  let digits = (match[2] + fraction).replace(/^0+/, "") || "0";
+  let scale = fraction.length - exponent;
+  while (digits.length > 1 && digits.endsWith("0") && scale > 0) { digits = digits.slice(0, -1); scale--; }
+  if (scale < 0) { digits += "0".repeat(-scale); scale = 0; }
+  const sign = match[1] === "-" && digits !== "0" ? "-" : "";
+  return sign + digits + ":" + scale;
+}
+function clone(value, seen = new WeakSet()) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") { if (!Number.isFinite(value)) throw new TypeError("ChangePayload values must contain finite JSON numbers."); return value; }
+  if (typeof value !== "object") throw new TypeError("ChangePayload snapshots must contain JSON values.");
+  if (seen.has(value)) throw new TypeError("ChangePayload snapshots cannot contain cyclic values.");
+  seen.add(value);
+  let result;
+  if (Array.isArray(value)) result = value.map((item) => {
+    if (item === undefined) throw new TypeError("ChangePayload arrays cannot contain undefined values.");
+    return clone(item, seen);
+  });
+  else {
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null) throw new TypeError("ChangePayload snapshots must contain plain JSON objects.");
+    result = {};
+    for (const key of Object.keys(value)) if (value[key] !== undefined) Object.defineProperty(result, key, { value: clone(value[key], seen), enumerable: true, writable: true, configurable: true });
+  }
+  seen.delete(value);
+  return result;
+}
+function equal(left, right) {
+  if (Object.is(left, right)) return true;
+  if (left === null || right === null || typeof left !== "object" || typeof right !== "object") return false;
+  if (Array.isArray(left) !== Array.isArray(right)) return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return leftKeys.length === rightKeys.length && leftKeys.every((key, index) => key === rightKeys[index] && equal(left[key], right[key]));
+}
+function sameEndpoint(before, after, wireType) {
+  if (before.state !== after.state) return false;
+  if (before.state !== "value") return true;
+  return equalWireValue(before.value, after.value, wireType);
+}
+function equalWireValue(before, after, wireType) {
+  if (wireType === "decimal-string") return normalizeDecimal(before) === normalizeDecimal(after);
+  if (wireType === "int64-string" || wireType === "uint64-string") return BigInt(before) === BigInt(after);
+  if (Array.isArray(before) || Array.isArray(after)) {
+    return Array.isArray(before) && Array.isArray(after) && before.length === after.length
+      && before.every((value, index) => equalWireValue(value, after[index], wireType));
+  }
+  if (before && after && typeof before === "object" && typeof after === "object") {
+    const beforeKeys = Object.keys(before).sort();
+    const afterKeys = Object.keys(after).sort();
+    return beforeKeys.length === afterKeys.length && beforeKeys.every((key, index) =>
+      key === afterKeys[index] && equalWireValue(before[key], after[key], wireType));
+  }
+  return equal(before, after);
+}
+function snapshot(modelName, value) {
+  if (value === null || value === undefined) return value;
+  const result = {};
+  for (const member of models[modelName].members) {
+    const present = own(value, member.name) && value[member.name] !== undefined;
+    const item = present ? value[member.name] : undefined;
+    const output = member.shape === "nested" && present && item !== null ? snapshot(member.childModel, item) : item;
+    Object.defineProperty(result, member.name, { value: endpoint(output, false, member.wireType, member.elementWireType), enumerable: true, writable: true, configurable: true });
+  }
+  return result;
+}
+function snapshotDto(modelName, value) {
+  const result = clone(value);
+  for (const member of models[modelName].members) {
+    if (!own(result, member.name) || result[member.name] === undefined || result[member.name] === null) continue;
+    const current = result[member.name];
+    if (member.shape === "nested" && member.childModel) {
+      result[member.name] = snapshotDto(member.childModel, current);
+    } else if (member.shape === "keyed" && member.itemModel && Array.isArray(current)) {
+      result[member.name] = current.map((item) => item === null ? null : snapshotDto(member.itemModel, item));
+    } else if (member.shape === "dictionary" && member.itemModel && current && typeof current === "object" && !Array.isArray(current)) {
+      const entries = {};
+      for (const key of Object.keys(current)) {
+        Object.defineProperty(entries, key, {
+          value: current[key] === null ? null : snapshotDto(member.itemModel, current[key]),
+          enumerable: true, writable: true, configurable: true,
+        });
+      }
+      result[member.name] = entries;
+    } else if (member.shape === "value") {
+      result[member.name] = snapshotScalar(current, member.wireType, member.snapshotType);
+    } else if (member.shape === "sequence" && Array.isArray(current) && member.snapshotType === "number") {
+      result[member.name] = current.map((item) => snapshotScalar(item, member.elementWireType, "number"));
+    } else if (member.shape === "dictionary" && member.snapshotType === "number") {
+      const entries = {};
+      for (const key of Object.keys(current)) {
+        Object.defineProperty(entries, key, {
+          value: snapshotScalar(current[key], member.valueWireType, "number"),
+          enumerable: true, writable: true, configurable: true,
+        });
+      }
+      result[member.name] = entries;
+    }
+  }
+  return result;
+}
+function snapshotScalar(value, wireType, snapshotType) {
+  if (snapshotType !== "number" || value === null || value === undefined) return value;
+  if (wireType === "decimal-string" && typeof value === "string") {
+    const number = Number(value);
+    if (!Number.isFinite(number) || normalizeDecimal(String(number)) !== normalizeDecimal(value)) {
+      throw new TypeError("A keyed DTO snapshot cannot preserve this decimal as an OpenAPI number.");
+    }
+    return number;
+  }
+  if ((wireType === "int64-string" || wireType === "uint64-string") && typeof value === "string") {
+    const integer = BigInt(value);
+    const number = Number(value);
+    if (!Number.isSafeInteger(number) || BigInt(String(number)) !== integer) {
+      throw new TypeError("A keyed DTO snapshot cannot preserve this integer as an OpenAPI number.");
+    }
+    return number;
+  }
+  return value;
+}
+function identity(model, item, member, index) {
+  if (item === null || typeof item !== "object") throw new TypeError("Keyed collection elements must be objects.");
+  const keyParts = member.keyProperties.map((name) => {
+    if (!own(item, name) || item[name] === undefined) throw new TypeError("A keyed collection item is missing key property '" + name + "'.");
+    return item[name];
+  });
+  const key = keyParts.length === 1 ? keyParts[0] : keyParts;
+  const unassigned = Object.prototype.hasOwnProperty.call(member, "unassignedKey") && equal(key, member.unassignedKey);
+  if (unassigned && member.temporaryKey) {
+    const temporary = item[member.temporaryKey];
+    if (typeof temporary !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(temporary) ||
+        /^00000000-0000-0000-0000-000000000000$/i.test(temporary)) {
+      throw new TypeError("An unassigned keyed item needs a valid, non-empty temporary key.");
+    }
+    return { key, id: "temporary:" + temporary, temporary, unassigned };
+  }
+  return { key, id: unassigned ? "unassigned:" + index : "key:" + JSON.stringify(key), temporary: undefined, unassigned };
+}
+function validateUnique(entries) {
+  const seen = new Set();
+  for (const entry of entries) { if (seen.has(entry.id)) throw new TypeError("Duplicate keyed collection identity: " + entry.id); seen.add(entry.id); }
+}
+function orderedRanks(before, after) {
+  const afterRank = new Map();
+  let rank = 0;
+  for (const item of after) if (before.some((candidate) => candidate.id === item.id)) afterRank.set(item.id, rank++);
+  const beforeRank = new Map();
+  rank = 0;
+  for (const item of before) if (afterRank.has(item.id)) beforeRank.set(item.id, rank++);
+  return new Set([...beforeRank].filter(([id, value]) => afterRank.get(id) !== value).map(([id]) => id));
+}
+function diffKeyed(model, member, before, after) {
+  const b = state(before, member.name, member.wireType); const a = state(after, member.name, member.wireType);
+  if ((b.state === "value" && !Array.isArray(b.value)) || (a.state === "value" && !Array.isArray(a.value))) {
+    throw new TypeError("Keyed collection values must be arrays, null, or missing.");
+  }
+  if (b.state !== "value" || a.state !== "value") {
+    if (sameEndpoint(b, a, member.wireType)) return undefined;
+    return { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a };
+  }
+  const beforeEntries = b.value.map((item, index) => ({ item, index, ...identity(model, item, member, index) }));
+  const afterEntries = a.value.map((item, index) => ({ item, index, ...identity(model, item, member, index) }));
+  if (beforeEntries.some((entry) => entry.unassigned && !member.temporaryKey)) throw new TypeError("An unassigned key cannot appear in the baseline without a temporary key.");
+  validateUnique(beforeEntries); validateUnique(afterEntries);
+  const beforeById = new Map(beforeEntries.map((entry) => [entry.id, entry]));
+  const afterById = new Map(afterEntries.map((entry) => [entry.id, entry]));
+  const reordered = orderedRanks(beforeEntries, afterEntries);
+  const items = [];
+  for (const entry of afterEntries) {
+    const previous = beforeById.get(entry.id);
+    if (!previous) {
+      items.push({ key: entry.key, kind: "add", afterIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), after: endpoint(snapshotDto(member.itemModel, entry.item)) });
+      continue;
+    }
+    const members = diffMembers(member.itemModel, previous.item, entry.item);
+    const isReordered = reordered.has(entry.id);
+    if (members && Object.keys(members).length || isReordered) {
+      items.push({ key: entry.key, kind: "update", beforeIndex: previous.index, afterIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), ...(isReordered ? { isReordered: true } : {}), ...(members && Object.keys(members).length ? { members } : {}) });
+    }
+  }
+  for (const entry of beforeEntries) {
+    if (!afterById.has(entry.id)) items.push({ key: entry.key, kind: "remove", beforeIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), before: { state: "redacted" } });
+  }
+  if (!items.length) return undefined;
+  return {
+    kind: "update",
+    items,
+    beforeOrder: beforeEntries.map((entry) => entry.key),
+    afterOrder: afterEntries.map((entry) => entry.key),
+    ...(member.temporaryKey ? {
+      tempBeforeOrder: beforeEntries.flatMap((entry) => entry.temporary ? [entry.temporary] : []),
+      tempAfterOrder: afterEntries.flatMap((entry) => entry.temporary ? [entry.temporary] : []),
+    } : {}),
+  };
+}
+function diffDictionary(model, member, before, after) {
+  const b = state(before, member.name, member.valueWireType); const a = state(after, member.name, member.valueWireType);
+  if ((b.state === "value" && (!b.value || typeof b.value !== "object" || Array.isArray(b.value))) ||
+      (a.state === "value" && (!a.value || typeof a.value !== "object" || Array.isArray(a.value)))) {
+    throw new TypeError("Dictionary values must be objects, null, or missing.");
+  }
+  if (b.state !== "value" || a.state !== "value") {
+    if (sameEndpoint(b, a, member.valueWireType)) return undefined;
+    return { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a };
+  }
+  const beforeKeys = Object.keys(b.value).filter((key) => b.value[key] !== undefined);
+  const afterKeys = Object.keys(a.value).filter((key) => a.value[key] !== undefined);
+  const items = [];
+  for (const key of afterKeys) {
+    if (!own(b.value, key)) {
+      const value = member.itemModel ? snapshotDto(member.itemModel, a.value[key]) : a.value[key];
+      items.push({ key, kind: "add", after: endpoint(value, false, member.itemModel ? undefined : member.valueWireType) });
+      continue;
+    }
+    const previous = b.value[key]; const current = a.value[key];
+    if (member.itemModel) {
+      const nested = diffMembers(member.itemModel, previous, current);
+      if (nested && Object.keys(nested).length) items.push({ key, kind: "update", members: nested });
+    } else if (!sameEndpoint(endpoint(previous, false, member.valueWireType), endpoint(current, false, member.valueWireType), member.valueWireType)) {
+      items.push({ key, kind: "replace", before: endpoint(previous, false, member.valueWireType), after: endpoint(current, false, member.valueWireType) });
+    }
+  }
+  for (const key of beforeKeys) if (!own(a.value, key)) items.push({ key, kind: "remove", before: { state: "redacted" } });
+  if (!items.length) return undefined;
+  return { kind: "update", items };
+}
+function diffMembers(modelName, before, after) {
+  const model = models[modelName];
+  if (!model) throw new TypeError("Missing SparseTypes metadata for model '" + modelName + "'.");
+  const members = {};
+  for (const member of model.members) {
+    if (member.shape === "nested") {
+      const nested = diffModel(member.childModel, own(before, member.name) ? before[member.name] : undefined, own(after, member.name) ? after[member.name] : undefined);
+      if (nested) {
+        const change = member.redactBefore && nested.kind === "replace" && nested.before?.state === "value"
+          ? { ...nested, before: { state: "redacted" } }
+          : nested;
+        Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
+      }
+      continue;
+    }
+    if (member.shape === "keyed") {
+      const change = diffKeyed(modelName, member, before, after);
+      if (change) Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
+      continue;
+    }
+    if (member.shape === "dictionary") {
+      const change = diffDictionary(modelName, member, before, after);
+      if (change) Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
+      continue;
+    }
+    const b = state(before, member.name, member.wireType, member.elementWireType); const a = state(after, member.name, member.wireType, member.elementWireType);
+    const wireType = member.wireType ?? member.elementWireType;
+    if (!sameEndpoint(b, a, wireType)) Object.defineProperty(members, member.name, { value: { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a }, enumerable: true, writable: true, configurable: true });
+  }
+  return members;
+}
+function diffModel(modelName, before, after) {
+  for (const value of [before, after]) {
+    if (value !== undefined && value !== null && (typeof value !== "object" || Array.isArray(value))) {
+      throw new TypeError("SparseTypes model states must be objects, null, or missing.");
+    }
+  }
+  if (before === after) return undefined;
+  const model = models[modelName];
+  if (before === undefined || after === undefined || before === null || after === null || typeof before !== "object" || typeof after !== "object") {
+    const b = before === undefined ? { state: "missing" } : before === null ? { state: "null" } : { state: "value", value: snapshot(modelName, before) };
+    const a = after === undefined ? { state: "missing" } : after === null ? { state: "null" } : { state: "value", value: snapshot(modelName, after) };
+    return sameEndpoint(b, a) ? undefined : { kind: "replace", before: b, after: a };
+  }
+  const members = diffMembers(modelName, before, after);
+  return Object.keys(members).length ? { kind: "update", members } : undefined;
+}
+function buildPayload(modelName, before, after) {
+  validateState(before);
+  validateState(after);
+  const change = diffModel(modelName, before, after);
+  if (!change) return undefined;
+  const model = models[modelName];
+  return { version: "0.1", schema: model.schema, change };
+}
+function validateState(value, active = new WeakSet()) {
+  if (value === null || value === undefined || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new TypeError("ChangePayload values must contain finite JSON numbers.");
+    return;
+  }
+  if (typeof value !== "object") throw new TypeError("ChangePayload states must contain JSON values.");
+  const prototype = Object.getPrototypeOf(value);
+  if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError("ChangePayload states must contain plain JSON objects.");
+  }
+  if (active.has(value)) throw new TypeError("ChangePayload states cannot contain cyclic values.");
+  active.add(value);
+  for (const key of Object.keys(value)) {
+    if (Array.isArray(value) && value[key] === undefined) throw new TypeError("ChangePayload arrays cannot contain undefined values.");
+    validateState(value[key], active);
+  }
+  active.delete(value);
+}
+`;
