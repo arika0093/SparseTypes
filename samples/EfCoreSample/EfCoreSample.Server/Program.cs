@@ -17,7 +17,13 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 );
 builder.Services.AddHealthChecks();
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Servers = [new Microsoft.OpenApi.OpenApiServer { Url = "/" }];
+        return Task.CompletedTask;
+    })
+);
 
 // Keyed line item endpoints contain the DTO snapshot, so register its schema explicitly.
 builder.Services.AddSparseOpenApi(OrderDto.PayloadJson.Schema, OrderApiMetadata.ExternalPayloadSchemas);
