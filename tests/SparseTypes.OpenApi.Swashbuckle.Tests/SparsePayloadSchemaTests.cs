@@ -17,6 +17,7 @@ public sealed class SparsePayloadSchemaTests
         foreach (var version in new[] { OpenApiSpecVersion.OpenApi3_0, OpenApiSpecVersion.OpenApi3_1 })
         {
             var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseUrls("http://127.0.0.1:0");
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
                 options.CustomSchemaIds(type =>
@@ -36,7 +37,6 @@ public sealed class SparsePayloadSchemaTests
             await using var app = builder.Build();
             app.MapPost("/changes", (OpenApiTestModel.ChangePayload payload) => Results.Ok(payload));
             await app.StartAsync();
-
             var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
             var root = (OpenApiSchema)document.Components!.Schemas!["BundlePayload"];
             root.Enum!.Select(static value => value!.GetValue<string>())
@@ -242,8 +242,7 @@ public sealed class SparsePayloadSchemaTests
                 ),
             ]
         );
-        builder.Services.AddSparseOpenApi(OpenApiBasket.PayloadJson.Schema);
-        builder.Services.AddSparseOpenApi(OpenApiBasketItem.PayloadJson.Schema);
+        builder.Services.AddSparseOpenApi(OpenApiBasket.PayloadJson.Schema, OpenApiSpecVersion.OpenApi3_0, [OpenApiBasketItemDtoSchema()]);
         using var app = builder.Build();
         app.MapPost("/shipments", (OpenApiShipment.ChangePayload payload) => Results.Ok(payload));
 
@@ -428,6 +427,13 @@ public sealed class SparsePayloadSchemaTests
         }
         return (OpenApiSchema)schema;
     }
+
+    private static SparsePayloadSchema OpenApiBasketItemDtoSchema() =>
+        new(
+            typeof(OpenApiBasketItem),
+            SparseTypes.SparsePayloadSchemaNames.GetName(typeof(OpenApiBasketItem)),
+            """{"type":"object","properties":{"id":{"type":"integer","format":"int32"},"key":{"type":"integer","format":"int32"},"quantity":{"type":"integer","format":"int32"}}}"""
+        );
 
     private static SparsePayloadSchemaBundle CreateBundle()
     {

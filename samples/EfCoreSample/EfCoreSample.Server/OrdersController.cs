@@ -21,6 +21,7 @@ public sealed class OrdersController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Creating a new order with placeholder values");
@@ -48,6 +49,8 @@ public sealed class OrdersController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetAsync(int id, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Loading order {OrderId}", id);
@@ -63,7 +66,15 @@ public sealed class OrdersController : ControllerBase
         return Ok(order);
     }
 
+    [HttpGet("schema")]
+    [ProducesResponseType(typeof(OrderPayloadSchema), StatusCodes.Status200OK)]
+    public ActionResult<OrderPayloadSchema> GetSchema() =>
+        new OrderPayloadSchema { Schema = new OrderDto.ChangePayload().Schema! };
+
     [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(OrderConflict[]), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status412PreconditionFailed)]
     public async Task<IActionResult> UpdateAsync(
         int id,
         [FromBody] OrderDto.ChangePayload payload,

@@ -177,8 +177,7 @@ public sealed class OpenApiRegistrationTests
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Services.AddOpenApi();
-        builder.Services.AddSparseOpenApi(Basket.PayloadJson.Schema);
-        builder.Services.AddSparseOpenApi(BasketItem.PayloadJson.Schema);
+        builder.Services.AddSparseOpenApi(Basket.PayloadJson.Schema, [BasketItemDtoSchema()]);
         await using var app = builder.Build();
         app.MapPost("/baskets", (Basket.ChangePayload payload) => Results.Ok(payload));
         app.MapOpenApi();
@@ -206,8 +205,7 @@ public sealed class OpenApiRegistrationTests
             Shipment.PayloadJson.Schema,
             [new SparsePayloadSchema(typeof(ShipmentState), SparsePayloadSchemaNames.GetName(typeof(ShipmentState)), "{\"type\":\"integer\"}")]
         );
-        builder.Services.AddSparseOpenApi(Basket.PayloadJson.Schema);
-        builder.Services.AddSparseOpenApi(BasketItem.PayloadJson.Schema);
+        builder.Services.AddSparseOpenApi(Basket.PayloadJson.Schema, [BasketItemDtoSchema()]);
         await using var app = builder.Build();
         app.MapPost("/shipments", (Shipment.ChangePayload payload) => Results.Ok(payload));
         app.MapOpenApi();
@@ -375,6 +373,13 @@ public sealed class OpenApiRegistrationTests
             }
         }
     }
+
+    private static SparsePayloadSchema BasketItemDtoSchema() =>
+        new(
+            typeof(BasketItem),
+            SparsePayloadSchemaNames.GetName(typeof(BasketItem)),
+            """{"type":"object","properties":{"id":{"type":"integer","format":"int32"},"key":{"type":"integer","format":"int32"},"quantity":{"type":"integer","format":"int32"}}}"""
+        );
 
     private static SparsePayloadSchemaBundle CreateBundle()
     {

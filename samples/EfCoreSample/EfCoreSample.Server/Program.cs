@@ -1,3 +1,4 @@
+using System.Reflection;
 using EfCoreSample.Contracts;
 using EfCoreSample.Server;
 using Microsoft.EntityFrameworkCore;
@@ -18,11 +19,14 @@ builder.Services.AddHealthChecks();
 builder.Services.AddSparseEntityMappers(typeof(OrderMapper));
 builder.Services.AddOpenApi();
 
-// The OrderDto bundle includes schemas for its nested address and line models.
-builder.Services.AddSparseOpenApi(OrderDto.PayloadJson.Schema);
+// Keyed line item endpoints contain the DTO snapshot, so register its schema explicitly.
+builder.Services.AddSparseOpenApi(OrderDto.PayloadJson.Schema, OrderApiMetadata.ExternalPayloadSchemas);
 var app = builder.Build();
-app.Services.ValidateSparseEntityMappers<SampleDbContext>();
-SampleDbInitializer.Initialize(app.Services);
+if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
+{
+    app.Services.ValidateSparseEntityMappers<SampleDbContext>();
+    SampleDbInitializer.Initialize(app.Services);
+}
 
 app.MapOpenApi();
 app.UseSwaggerUI(options =>
