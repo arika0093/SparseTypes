@@ -302,7 +302,14 @@ internal static class SparseEditSessionEmitter
         );
         // Path-first semantic state inspection: live field and root-collection
         // queries over the retained baseline.
-        SparseEditSessionStateEmitter.AppendStateMembers(code, modelType, members, patchDialect, config.GeneratedImplementationNamespace);
+        SparseEditSessionStateEmitter.AppendStateMembers(
+            code,
+            modelType,
+            members,
+            patchDialect,
+            config.GeneratedImplementationNamespace,
+            config.DescriptorDialect is not null
+        );
         code.AppendLine("/// <summary>Applies a change set to the current model in place when possible.</summary>");
         code.AppendLine("/// <param name=\"changes\">The change set to apply.</param>");
         code.AppendLine("/// <param name=\"conflicts\">Structured conflicts when the change set cannot be applied in place.</param>");

@@ -10,12 +10,7 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
     where TModel : class
     where TElement : class
 {
-    private readonly Dictionary<TElement, Guid> _identityByItem = new(ReferenceEqualityComparer.Instance);
-    private readonly HashSet<TElement> _itemsInRender = new(ReferenceEqualityComparer.Instance);
-    private readonly Dictionary<SparsePathSegment, Guid> _identityByPath = [];
-    private readonly HashSet<SparsePathSegment> _pathsInRender = [];
-    private readonly Dictionary<Guid, Guid> _identityByTemporaryKey = [];
-    private readonly HashSet<Guid> _temporaryKeysInRender = [];
+    private readonly SparseCollectionRowIdentityStore<TElement> _rowIdentity = new();
     private ISparseEditScope<TModel>? _scope;
     private INotifyPropertyChanged? _notifier;
     private SparseCollectionEditor<TElement>? _editor;
@@ -155,9 +150,9 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
         base.OnParametersSet();
         Interlocked.Increment(ref _parameterSetVersion);
         var scope = Scope ?? throw new InvalidOperationException("SparseCollection must be placed inside a SparseEdit for the same model type.");
-        if (Path.RootType != typeof(TModel) || Path.Segments.Count != 1)
+        if (Path.RootType != typeof(TModel) || Path.IsRoot || Path.Segments[Path.Segments.Count - 1].Kind != SparsePathSegmentKind.Member)
         {
-            throw new InvalidOperationException("SparseCollection requires a single-member path rooted at its model type.");
+            throw new InvalidOperationException("SparseCollection requires a collection member path rooted at its model type.");
         }
 
         if (!ReferenceEquals(_scope, scope) || !_hasPath || !_path.Equals(Path))
@@ -166,6 +161,7 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
             _scope = scope;
             _path = Path;
             _hasPath = true;
+            _rowIdentity.Reset();
             Interlocked.Increment(ref _bindingVersion);
             InvalidateRows();
             _editor = SparseSessionInterop.CreateCollectionEditor<TElement>(scope.Session, Path);
@@ -229,9 +225,7 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
             return;
         }
 
-        _itemsInRender.Clear();
-        _pathsInRender.Clear();
-        _temporaryKeysInRender.Clear();
+        _rowIdentity.BeginRefresh();
         var count = editor.Count;
         var rows = new List<SparseCollectionRow<TModel, TElement>>(count);
         SparseCollectionState? collectionState = null;
@@ -274,7 +268,6 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
                 return;
             }
 
-            _itemsInRender.Add(item);
             if (
                 !SparseSessionInterop.TryGetCollectionRowIdentity(
                     _scope!.Session,
@@ -293,7 +286,7 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
                 return;
             }
 
-            var uiKey = GetUiKey(item, identitySegment, temporaryKey, isKeyed);
+            var uiKey = _rowIdentity.GetOrCreate(item, identitySegment, temporaryKey, isKeyed);
             SparseCollectionItemState? itemState = null;
             var rowStateError = stateQueryError;
             if (hasCollectionState && collectionState is { } state)
@@ -322,68 +315,16 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
                     new SparsePath<TModel, TElement>(_path.Append(identitySegment)),
                     itemState,
                     rowStateError,
+                    (_scope as ISparseValidationScope)?.GetValidationMessages(_path.Append(identitySegment)).ToArray() ?? Array.Empty<string>(),
                     remove!,
                     move!
                 )
             );
         }
 
-        foreach (var item in _identityByItem.Keys.Where(item => !_itemsInRender.Contains(item)).ToArray())
-        {
-            _identityByItem.Remove(item);
-        }
-
-        foreach (var path in _identityByPath.Keys.Where(path => !_pathsInRender.Contains(path)).ToArray())
-        {
-            _identityByPath.Remove(path);
-        }
-
-        foreach (var temporaryKey in _identityByTemporaryKey.Keys.Where(key => !_temporaryKeysInRender.Contains(key)).ToArray())
-        {
-            _identityByTemporaryKey.Remove(temporaryKey);
-        }
-
+        _rowIdentity.EndRefresh();
         Rows = rows;
         QueryError = null;
-    }
-
-    private Guid GetUiKey(TElement item, SparsePathSegment identity, Guid? temporaryKey, bool isKeyed)
-    {
-        if (!isKeyed)
-        {
-            if (!_identityByItem.TryGetValue(item, out var itemIdentity))
-            {
-                itemIdentity = Guid.NewGuid();
-                _identityByItem.Add(item, itemIdentity);
-            }
-
-            return itemIdentity;
-        }
-
-        _pathsInRender.Add(identity);
-        if (temporaryKey is { } temporary)
-        {
-            _temporaryKeysInRender.Add(temporary);
-        }
-
-        var hasIdentity = _identityByPath.TryGetValue(identity, out var uiKey);
-        if (!hasIdentity && temporaryKey is { } temporaryIdentity)
-        {
-            hasIdentity = _identityByTemporaryKey.TryGetValue(temporaryIdentity, out uiKey);
-        }
-
-        if (!hasIdentity)
-        {
-            uiKey = Guid.NewGuid();
-        }
-
-        _identityByPath[identity] = uiKey;
-        if (temporaryKey is { } stableTemporaryKey)
-        {
-            _identityByTemporaryKey[stableTemporaryKey] = uiKey;
-        }
-
-        return uiKey;
     }
 
     private bool RemoveRow(SparseCollectionRow<TModel, TElement> row, long bindingVersion, out SparseCollectionEditError error)

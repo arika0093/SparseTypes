@@ -39,6 +39,12 @@ Obtain a session with `model.CreateEditSession(onChanged: ...)` or `baseline.Cre
 
 Baseline operations are in-memory acknowledgements. They do not prove persistence happened. Successful baseline updates clear Undo/Redo; a failed reconciliation must not be treated as acknowledgement. AcceptChanges(changes) rejects stale transitions with InvalidOperationException. TryMergeFrom rejects self-merges or unrelated session lineages with InvalidOperationException; Try APIs do not suppress programmer errors.
 
+## Collection editing and save coordination
+
+Generated typed collection paths infer their element and key types in `session.EditCollection(path)`. Editors can address nested collection members; they resolve the live parent on each operation. Keyed editors can reset one row to the retained baseline, capture and restore removed baseline rows, or open a copied row as an uninserted child draft.
+
+`session.CreateEditor(options)` returns an optional `SparseEditController<TModel,TChangeSet>`. `PrepareSaveAsync` captures and validates an immutable submission. `SaveAsync` accepts that submission and an application persistence callback, then reconciles the authoritative model. The controller does not perform transport or persistence. It preserves unknown outcomes and persisted-but-unreconciled results so the application can resolve them without blindly resending.
+
 ## State, history, and branches
 
 | Member | Contract |

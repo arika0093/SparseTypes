@@ -39,9 +39,7 @@ public sealed class CollectionEditingFacadeErrorTests
     {
         var model = new CollectionEditRoster { MaybeQuests = null };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionEditQuest, string>(
-            CollectionEditRoster.SparsePath.MaybeQuests
-        );
+        var editor = session.EditCollection<CollectionEditQuest, string>(CollectionEditRoster.SparsePath.MaybeQuests);
 
         editor.Count.ShouldBe(0);
         editor.IsAvailable(out var availableError).ShouldBeFalse();
@@ -61,10 +59,7 @@ public sealed class CollectionEditingFacadeErrorTests
         var model = new CollectionEditRoster();
         var session = model.CreateEditSession();
         var path = SparsePath.Root<CollectionEditRoster>().Member("NoSuch");
-        var editor = session.Descriptors.EditCollection<CollectionEditQuest>(
-            path,
-            session.BatchEdit
-        );
+        var editor = session.Descriptors.EditCollection<CollectionEditQuest>(path, session.BatchEdit);
 
         editor.Count.ShouldBe(0);
         editor.IsAvailable(out var availableError).ShouldBeFalse();
@@ -94,10 +89,9 @@ public sealed class CollectionEditingFacadeErrorTests
 
         Should.Throw<ArgumentException>(() => session.EditCollection<CollectionEditQuest>(default));
         Should.Throw<ArgumentException>(() =>
-            session.EditCollection<CollectionEditQuest>(
-                SparsePath.Root<CollectionEditRoster>().Member("Quests").At(0)
-            )
+            session.EditCollection<CollectionEditQuest>(SparsePath.Root<CollectionEditRoster>().Member("Quests").At(0))
         );
+        Should.Throw<ArgumentException>(() => session.EditCollection<CollectionEditLine>(CollectionEditOrder.SparsePath.Lines));
     }
 
     [Test]
@@ -105,7 +99,11 @@ public sealed class CollectionEditingFacadeErrorTests
     {
         var model = new CollectionEditRoster { Scores = [1] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<int, int>(CollectionEditRoster.SparsePath.Scores);
+        var editor = SparseCollectionEditors.EditKeyedCollection<int, int>(
+            session.Descriptors,
+            CollectionEditRoster.SparsePath.Scores,
+            session.BatchEdit
+        );
 
         Should.Throw<InvalidOperationException>(() => editor.TryGetByKey(1, out _, out _));
         // Pure lookups degrade gracefully instead of throwing.
@@ -118,8 +116,10 @@ public sealed class CollectionEditingFacadeErrorTests
     {
         var model = new CollectionEditRoster { Quests = [new() { Id = "a", Title = "Alpha" }] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionEditQuest, int>(
-            CollectionEditRoster.SparsePath.Quests
+        var editor = SparseCollectionEditors.EditKeyedCollection<CollectionEditQuest, int>(
+            session.Descriptors,
+            CollectionEditRoster.SparsePath.Quests,
+            session.BatchEdit
         );
 
         Should.Throw<InvalidOperationException>(() => editor.TryGetByKey(1, out _, out _));
@@ -144,9 +144,7 @@ public sealed class CollectionEditingFacadeErrorTests
     {
         var model = new CollectionEditRoster { Quests = [new() { Id = "a", Title = "Alpha" }] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionEditQuest, string>(
-            CollectionEditRoster.SparsePath.Quests
-        );
+        var editor = session.EditCollection<CollectionEditQuest, string>(CollectionEditRoster.SparsePath.Quests);
         var transitions = 0;
         session.TransitionObserved += _ => transitions++;
 
@@ -172,21 +170,14 @@ public sealed class CollectionEditingFacadeErrorTests
     [Test]
     public void ReplaceWithTakenKey_ReportsDuplicate()
     {
-        var model = new CollectionEditRoster
-        {
-            Quests = [new() { Id = "a", Title = "Alpha" }, new() { Id = "b", Title = "Beta" }],
-        };
+        var model = new CollectionEditRoster { Quests = [new() { Id = "a", Title = "Alpha" }, new() { Id = "b", Title = "Beta" }] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionEditQuest, string>(
-            CollectionEditRoster.SparsePath.Quests
-        );
+        var editor = session.EditCollection<CollectionEditQuest, string>(CollectionEditRoster.SparsePath.Quests);
         var transitions = 0;
         session.TransitionObserved += _ => transitions++;
 
         // Changing identity is remove plus add: taking another row's key fails.
-        editor
-            .TryReplaceByKey("b", new() { Id = "a", Title = "Clash" }, out var error)
-            .ShouldBeFalse();
+        editor.TryReplaceByKey("b", new() { Id = "a", Title = "Clash" }, out var error).ShouldBeFalse();
         error.ShouldBe(SparseCollectionEditError.DuplicateKey);
         model.Quests[1].Title.ShouldBe("Beta");
         transitions.ShouldBe(0);
@@ -196,14 +187,9 @@ public sealed class CollectionEditingFacadeErrorTests
     [Test]
     public void MoveOnly_ReordersChangeSetOrder()
     {
-        var model = new CollectionEditRoster
-        {
-            Quests = [new() { Id = "a", Title = "Alpha" }, new() { Id = "b", Title = "Beta" }],
-        };
+        var model = new CollectionEditRoster { Quests = [new() { Id = "a", Title = "Alpha" }, new() { Id = "b", Title = "Beta" }] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionEditQuest, string>(
-            CollectionEditRoster.SparsePath.Quests
-        );
+        var editor = session.EditCollection<CollectionEditQuest, string>(CollectionEditRoster.SparsePath.Quests);
 
         editor.TryMove(0, 1, out _).ShouldBeTrue();
 
@@ -232,9 +218,7 @@ public sealed class CollectionEditingFacadeErrorTests
         title.TrySetValue("Mutated").ShouldBeFalse();
         model.Quests[0].Title.ShouldBe("Fresh");
 
-        var editor = session.EditCollection<CollectionEditQuest, string>(
-            CollectionEditRoster.SparsePath.Quests
-        );
+        var editor = session.EditCollection<CollectionEditQuest, string>(CollectionEditRoster.SparsePath.Quests);
         editor.TryGetByKey("fresh", out var fresh, out _).ShouldBeTrue();
         fresh!.Title.ShouldBe("Fresh");
     }

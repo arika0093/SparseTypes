@@ -41,8 +41,7 @@ internal static class Headless
         [Parameter]
         public RenderFragment? ChildContent { get; set; }
 
-        protected override void BuildRenderTree(RenderTreeBuilder builder) =>
-            builder.AddContent(0, ChildContent);
+        protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddContent(0, ChildContent);
     }
 
     internal sealed class Counter : ComponentBase
@@ -54,14 +53,14 @@ internal static class Headless
 
         protected override void OnAfterRender(bool firstRender) => Renders++;
 
-        protected override void BuildRenderTree(RenderTreeBuilder builder) =>
-            builder.AddContent(0, ChildContent);
+        protected override void BuildRenderTree(RenderTreeBuilder builder) => builder.AddContent(0, ChildContent);
     }
 
     internal static RenderFragment Edit<TModel, TPaths>(
         ISparseEditSessionWithPaths<TModel, TPaths> session,
         Action<SparseEditContext<TModel, TPaths>> capture,
-        RenderFragment<SparseEditContext<TModel, TPaths>>? child = null
+        RenderFragment<SparseEditContext<TModel, TPaths>>? child = null,
+        ISparseEditController<TModel>? controller = null
     )
         where TModel : class
         where TPaths : ISparseTypedPath<TModel, TModel> =>
@@ -69,8 +68,9 @@ internal static class Headless
         {
             builder.OpenComponent<SparseEdit<TModel, TPaths>>(0);
             builder.AddAttribute(1, nameof(SparseEdit<TModel, TPaths>.Session), session);
+            builder.AddAttribute(2, nameof(SparseEdit<TModel, TPaths>.Controller), controller);
             builder.AddAttribute(
-                2,
+                3,
                 nameof(SparseEdit<TModel, TPaths>.ChildContent),
                 (RenderFragment<SparseEditContext<TModel, TPaths>>)(
                     edit =>
@@ -187,13 +187,12 @@ internal static class Headless
             _rootId = rootId;
         }
 
-        public static async Task<Tree> CreateAsync(RenderFragment fragment)
+        public static async Task<Tree> CreateAsync(RenderFragment fragment, Action<IServiceCollection>? configureServices = null)
         {
-            var services = new ServiceCollection().AddLogging().BuildServiceProvider();
-            var renderer = new HeadlessRenderer(
-                services,
-                services.GetRequiredService<ILoggerFactory>()
-            );
+            var serviceCollection = new ServiceCollection().AddLogging();
+            configureServices?.Invoke(serviceCollection);
+            var services = serviceCollection.BuildServiceProvider();
+            var renderer = new HeadlessRenderer(services, services.GetRequiredService<ILoggerFactory>());
             var rootId = await renderer.RenderRootAsync(new Root(), RootParameters(fragment));
             await renderer.DispatchAsync(() => { });
             return new Tree(services, renderer, rootId);
@@ -205,8 +204,7 @@ internal static class Headless
             await _renderer.DispatchAsync(() => { });
         }
 
-        public async Task<Exception?> TryShowAsync(RenderFragment fragment) =>
-            await _renderer.TryShowAsync(_rootId, RootParameters(fragment));
+        public async Task<Exception?> TryShowAsync(RenderFragment fragment) => await _renderer.TryShowAsync(_rootId, RootParameters(fragment));
 
         public Task FlushAsync() => _renderer.DispatchAsync(() => { });
 
@@ -233,8 +231,6 @@ internal static class Headless
         private Dispatcher _dispatcher => _renderer.Dispatcher;
 
         private static ParameterView RootParameters(RenderFragment fragment) =>
-            ParameterView.FromDictionary(
-                new Dictionary<string, object?> { [nameof(Root.ChildContent)] = fragment }
-            );
+            ParameterView.FromDictionary(new Dictionary<string, object?> { [nameof(Root.ChildContent)] = fragment });
     }
 }

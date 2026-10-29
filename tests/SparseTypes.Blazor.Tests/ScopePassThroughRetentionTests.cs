@@ -27,13 +27,40 @@ public sealed class ScopePassThroughRetentionTests
         };
 
     [Test]
+    public async Task CollectionDraftChangesNotifyTheOwningScope()
+    {
+        var parent = Order().CreateEditSession();
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
+        var notifications = 0;
+        host.ScopeContext.Changed += () => notifications++;
+        var collectionPath = OrderDto.SparsePath.Lines;
+        using var draft = parent
+            .EditCollection<OrderLine, string>(collectionPath)
+            .BeginAdd(
+                collectionPath.At(0),
+                new OrderLine
+                {
+                    Sku = "new",
+                    Quantity = 1,
+                    Price = 1m,
+                },
+                parent
+            );
+
+        notifications.ShouldBe(1);
+        parent.HasPendingCollectionDrafts.ShouldBeTrue();
+
+        draft.DiscardChanges();
+
+        notifications.ShouldBe(2);
+        parent.HasPendingCollectionDrafts.ShouldBeFalse();
+    }
+
+    [Test]
     public async Task RepeatedUnrelatedRootEditsRetainEveryCleanChild()
     {
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var customer = scope.OpenChildSession(parent, OrderDto.SparsePath.Customer);
         var first = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
@@ -73,10 +100,7 @@ public sealed class ScopePassThroughRetentionTests
     public async Task SameSubtreeParentWriteInvalidatesOnlyTheAffectedChild()
     {
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var customer = scope.OpenChildSession(parent, OrderDto.SparsePath.Customer);
         var line = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
@@ -104,10 +128,7 @@ public sealed class ScopePassThroughRetentionTests
     public async Task SiblingKeyedRowEditRetainsTheUntouchedRow()
     {
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var first = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
         var second = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("b"));
@@ -128,10 +149,7 @@ public sealed class ScopePassThroughRetentionTests
         var model = Order();
         var parent = model.CreateEditSession();
         var history = parent.EnableHistory();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var customer = scope.OpenChildSession(parent, OrderDto.SparsePath.Customer);
         var line = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
@@ -152,43 +170,32 @@ public sealed class ScopePassThroughRetentionTests
         model.Number.ShouldBe("ORD-1");
         Should.Throw<ObjectDisposedException>(() => customer.Session);
         Should.Throw<ObjectDisposedException>(() => line.Session);
-        scope
-            .OpenChildSession(parent, OrderDto.SparsePath.Customer)
-            .Session.Observable.Name.ShouldBe("Ada");
+        scope.OpenChildSession(parent, OrderDto.SparsePath.Customer).Session.Observable.Name.ShouldBe("Ada");
 
         history.CanRedo.ShouldBeTrue();
         history.Redo();
         await host.FlushAsync();
         model.Number.ShouldBe("ORD-2");
-        scope
-            .OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"))
-            .Session.Observable.Quantity.ShouldBe(1);
+        scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a")).Session.Observable.Quantity.ShouldBe(1);
     }
 
     [Test]
     public async Task ParentTargetReplacementInvalidatesOnlyTheAffectedChild()
     {
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var customerContext = scope.OpenChildSession(parent, OrderDto.SparsePath.Customer);
         var line = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
         var lineSession = line.Session;
 
         parent.Descriptors.TryGet(nameof(OrderDto.Customer), out var descriptor).ShouldBeTrue();
-        descriptor
-            .TrySetValue(new OrderCustomer { Name = "Grace", Email = "grace@example.com" })
-            .ShouldBeTrue();
+        descriptor.TrySetValue(new OrderCustomer { Name = "Grace", Email = "grace@example.com" }).ShouldBeTrue();
         await host.FlushAsync();
 
         Should.Throw<ObjectDisposedException>(() => customerContext.Session);
         ReferenceEquals(lineSession, line.Session).ShouldBeTrue();
-        scope
-            .OpenChildSession(parent, OrderDto.SparsePath.Customer)
-            .Session.Observable.Name.ShouldBe("Grace");
+        scope.OpenChildSession(parent, OrderDto.SparsePath.Customer).Session.Observable.Name.ShouldBe("Grace");
     }
 
     [Test]
@@ -196,10 +203,7 @@ public sealed class ScopePassThroughRetentionTests
     {
         var model = Order();
         var parent = model.CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var child = scope.OpenChildSession(parent, OrderDto.SparsePath.Customer);
         var acceptedCount = 0;
@@ -255,10 +259,7 @@ public sealed class ScopePassThroughRetentionTests
         // mark rows as edited, nor dispose clean children (which would refork
         // the whole root on reopen).
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var first = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
         var second = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("b"));
@@ -289,10 +290,7 @@ public sealed class ScopePassThroughRetentionTests
     public async Task KeyedInsertRetainsSiblingsAndReportsOnlyTheAddedRow()
     {
         var parent = Order().CreateEditSession();
-        using var host = await ScopeTestHost.CreateAsync(
-            parent,
-            mode: SparseChildEditMode.PassThrough
-        );
+        using var host = await ScopeTestHost.CreateAsync(parent, mode: SparseChildEditMode.PassThrough);
         var scope = host.ScopeContext;
         var first = scope.OpenChildSession(parent, OrderDto.SparsePath.Lines.Key("a"));
         var firstSession = first.Session;

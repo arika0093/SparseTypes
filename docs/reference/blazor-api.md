@@ -9,6 +9,7 @@ Package and namespace: `SparseTypes.Blazor`. Components are headless: they suppl
 | [SparseEdit](#sparseedit) | Supplies an editing context, typed root paths, dirty state, and session history controls. |
 | [SparseField](#sparsefield) | Binds one typed path to an input and exposes its change state and validation messages. |
 | [SparseCollection](#sparsecollection) | Renders collection rows with stable UI identity and session-aware mutation operations. |
+| [SparseNavigationGuard](#sparsenavigationguard) | Connects controller state to Blazor's standard internal and external navigation guards. |
 | [SparseSessionScope](#sparsesessionscope) | Owns retained child editors and selects Draft or PassThrough behavior. |
 | [SparseChildEdit / SparseChildEditDefault](#sparsechildedit-and-sparsechildeditdefault) | Opens a typed child editor inside a session scope. |
 
@@ -77,7 +78,7 @@ Each component example below uses this Razor setup. History is enabled on the se
 
 `SparseEdit<TModel,TPaths>` takes Session and a typed ChildContent template, named `edit` here with Context. Session supplies the generic arguments, including the generated root path type. `TPaths` must implement `ISparseTypedPath<TModel,TModel>`.
 
-SparseEdit supplies the EditContext; EditForm supplies the form element and Blazor validation cascade. It subscribes to session and history notifications so Changed, Undo, and Redo controls refresh after edits.
+SparseEdit supplies the EditContext; EditForm supplies the form element and Blazor validation cascade. It subscribes to session and history notifications so Changed, Undo, and Redo controls refresh after edits. The optional `Controller` parameter must reference a controller for the same session. Controller errors appear in `SparseFieldContext.ValidationMessages`, and controller state changes refresh the template.
 
 <!-- illustrative: edit root compiled in BlazorApiReference.razor in the Blazor consumer fixture -->
 ```razor
@@ -111,7 +112,7 @@ Changing Number from `ORD-1` to `ORD-2` shows both change labels and enables Und
 
 | Members | Contract |
 | --- | --- |
-| `Session`, `Path`, `EditContext`, `HasChanges` | Active generated session, root navigation, original-model context, and dirty state. |
+| `Session`, `Path`, `EditContext`, `HasChanges`, `Controller` | Active generated session, root navigation, original-model context, dirty state, and optional controller. |
 | `History`, `CanUndo`, `CanRedo` | Optional session-owned history state. |
 | `Undo()`, `Redo()` | Throw if history is disabled, empty, or replay conflicts. |
 | `TryUndo(out conflicts)`, `TryRedo(out conflicts)` | Return false when unavailable or conflicting. |
@@ -199,7 +200,7 @@ Bindings resolve live paths, including nested replacement. A stale EditContext b
 
 ## SparseCollection
 
-`SparseCollection<TModel,TElement>` takes a single-member collection Path and RowTemplate. EmptyContent renders when the collection has no rows; ErrorContent receives an enumeration error. Its generic arguments are explicit because an untyped SparsePath does not carry the element type for Razor inference.
+`SparseCollection<TModel,TElement>` takes a collection Path and RowTemplate. The path may address a nested collection below a keyed row or child model. EmptyContent renders when the collection has no rows; ErrorContent receives an enumeration error. Its generic arguments are explicit because an untyped SparsePath does not carry the element type for Razor inference.
 
 The row's Item is for reading. Bind editable members through `row.Select(...)` and SparseField, and remove or move entries through row operations. Directly changing `row.Item.Quantity` bypasses the session's notification pipeline.
 
@@ -252,9 +253,15 @@ The component reference is assigned after rendering, before these button handler
 
 ### Collection and row members
 
-`SparseCollection` exposes Rows, RemovedItems, CollectionState, QueryError, Editor, `TryAdd(item, out SparseCollectionEditError error)`, and Dispose. A row exposes Item, Index, Path, UiKey, optional ItemState, StateQueryError, `RequireItemState()`, `Select(selector)`, `TryMoveTo(newIndex, out error)`, and `TryRemove(out error)`.
+`SparseCollection` exposes Rows, RemovedItems, CollectionState, QueryError, Editor, `TryAdd(item, out SparseCollectionEditError error)`, and Dispose. A row exposes Item, Index, Path, UiKey, optional ItemState, StateQueryError, controller `ValidationMessages`, `RequireItemState()`, `Select(selector)`, `TryMoveTo(newIndex, out error)`, and `TryRemove(out error)`.
 
 UiKey supports rendering identity; use the model's SparseKey for domain identity. `RequireItemState` throws when state is unavailable instead of returning fabricated clean state.
+
+## SparseNavigationGuard
+
+`SparseNavigationGuard<TModel,TChangeSet>` takes an editor, `EnableExternalConfirmation`, and an optional `BeforeInternalNavigation` callback. Its `HasUnsavedWork` state includes committed changes, pending child or collection drafts, active controller operations, and unresolved persistence outcomes. The callback receives Blazor's `LocationChangingContext`; call `PreventNavigation()` when the application chooses to stop the transition. When no callback is supplied, internal navigation proceeds.
+
+External confirmation is disabled by default. Setting `EnableExternalConfirmation` lets `NavigationLock` use the browser's standard confirmation. Browser restrictions still apply, and the component does not perform async saves or guarantee that unload callbacks run.
 
 ## SparseSessionScope
 

@@ -22,6 +22,7 @@ public sealed class SparseCollectionRow<TModel, TElement>
         SparsePath<TModel, TElement> path,
         SparseCollectionItemState? itemState,
         string? stateQueryError,
+        IReadOnlyList<string> validationMessages,
         RemoveOperation remove,
         MoveOperation move
     )
@@ -32,6 +33,7 @@ public sealed class SparseCollectionRow<TModel, TElement>
         Path = path;
         ItemState = itemState;
         StateQueryError = stateQueryError;
+        ValidationMessages = validationMessages;
         _remove = remove;
         _move = move;
     }
@@ -54,6 +56,9 @@ public sealed class SparseCollectionRow<TModel, TElement>
 
     /// <summary>Gets why the item state snapshot was unavailable, or null when it was available.</summary>
     public string? StateQueryError { get; }
+
+    /// <summary>Gets controller validation messages at this row or any nested path.</summary>
+    public IReadOnlyList<string> ValidationMessages { get; }
 
     /// <summary>Gets the item state snapshot or throws when the collection cannot provide one.</summary>
     /// <exception cref="InvalidOperationException">The item state query was unavailable.</exception>

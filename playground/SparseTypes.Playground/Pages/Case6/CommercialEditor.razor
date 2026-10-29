@@ -67,22 +67,27 @@
                 <div class="pg-roster-list">
                     <SparseCollection @ref="_tierCollection"
                         TModel="CatalogCommercialDetails" TElement="CatalogPriceTier"
-                        Path="child.Path.PriceTiers">
+                        Path="CatalogCommercialDetails.SparsePath.PriceTiers">
                         <RowTemplate Context="tierRow">
-                            <CatalogPriceTierEditor Code="@tierRow.Item.Code"
+                            <CatalogPriceTierEditor @key="tierRow.Item"
+                                Path="CatalogCommercialDetails.SparsePath.PriceTiers.Key(tierRow.Item.Code)"
+                                Code="@tierRow.Item.Code" Item="tierRow.Item"
                                 State="tierRow.RequireItemState()"
                                 SectionDraftsEnabled="SectionDraftsEnabled"
                                 OpenOnLoad="@(_tierToOpen == tierRow.Item.Code)"
                                 OnOpened="ClearTierToOpen" OnRemove="() => RemoveTier(tierRow)"
+                                OnDuplicate="DuplicateTier" OnReset="ResetTier"
                                 OnChanged="ReportNestedStatus" />
                         </RowTemplate>
                     </SparseCollection>
-                        @foreach (var removed in _tierCollection?.RemovedItems ?? [])
+                        @foreach (var removed in RemovedTiers)
                         {
                             <div class="pg-roster-row pg-removed">
                                 <div class="pg-catalog-inline-row">
-                                    <span>@removed.Label</span>
+                                    <span>@removed.Model.Label</span>
                                     <span class="pg-change-remove">Removed</span>
+                                    <FluentButton Appearance="ButtonAppearance.Default"
+                                        @onclick="() => RestoreTier(removed)">Restore</FluentButton>
                                 </div>
                             </div>
                         }
@@ -118,6 +123,14 @@
     private CatalogCommercialDetails.Observable Draft => _draftSession.Observable;
     private bool HasChanges => _childSession?.HasChanges == true;
     private bool IsSectionEdited => HasChanges;
+    private IReadOnlyList<SparseRemovedCollectionRow<CatalogPriceTier, string>> RemovedTiers
+    {
+        get
+        {
+            var editor = _draftSession.EditCollection<CatalogPriceTier, string>(CatalogCommercialDetails.SparsePath.PriceTiers);
+            return editor.TryGetRemovedRows(out var rows, out _) ? rows : [];
+        }
+    }
 
     private Task ReportStatus(bool _) => UpdateStatus();
 
@@ -172,5 +185,45 @@
         }
 
         return Task.CompletedTask;
+    }
+
+    private Task DuplicateTier(string code)
+    {
+        var editor = _draftSession.EditCollection<CatalogPriceTier, string>(CatalogCommercialDetails.SparsePath.PriceTiers);
+        using var duplicate = editor.BeginDuplicate(
+            code,
+            CatalogCommercialDetails.SparsePath.PriceTiers.At(0),
+            copy => copy.Code = $"tier-{Guid.NewGuid():N}",
+            _draftSession
+        );
+        if (!duplicate.TryAcceptChanges(out var error, out var conflicts))
+        {
+            throw new InvalidOperationException($"Could not duplicate the price tier ({error}; {conflicts?.Count ?? 0} conflicts).");
+        }
+
+        _tierToOpen = duplicate.Session.Observable.Code;
+        return UpdateStatus();
+    }
+
+    private Task ResetTier(string code)
+    {
+        var editor = _draftSession.EditCollection<CatalogPriceTier, string>(CatalogCommercialDetails.SparsePath.PriceTiers);
+        if (!editor.TryResetByKey(code, out var error))
+        {
+            throw new InvalidOperationException($"Could not reset the price tier ({error}).");
+        }
+
+        return UpdateStatus();
+    }
+
+    private Task RestoreTier(SparseRemovedCollectionRow<CatalogPriceTier, string> row)
+    {
+        var editor = _draftSession.EditCollection<CatalogPriceTier, string>(CatalogCommercialDetails.SparsePath.PriceTiers);
+        if (!editor.TryRestoreRemoved(row, out var error))
+        {
+            throw new InvalidOperationException($"Could not restore the price tier ({error}).");
+        }
+
+        return UpdateStatus();
     }
 }

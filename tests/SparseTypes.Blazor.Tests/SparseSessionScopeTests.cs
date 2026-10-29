@@ -869,6 +869,29 @@ public sealed class SparseSessionScopeTests
     }
 
     [Test]
+    public async Task ScopeClosesCleanChildSessionsButRetainsDirtyChildren()
+    {
+        var parent = Order().CreateEditSession();
+        using var harness = await ScopeHarness.CreateAsync(parent);
+        var scope = harness.Consumer.ScopeContext!;
+        var path = OrderDto.SparsePath.Customer;
+        var child = scope.OpenChildSession(parent, path);
+
+        scope.TryCloseChildSession(parent, path).ShouldBeTrue();
+        parent.HasPendingChildSessions.ShouldBeFalse();
+        Should.Throw<ObjectDisposedException>(() => child.Session);
+
+        var reopened = scope.OpenChildSession(parent, path);
+        reopened.Session.Observable.Name = "Grace";
+        scope.TryCloseChildSession(parent, path).ShouldBeFalse();
+        reopened.Session.Observable.Name.ShouldBe("Grace");
+
+        reopened.DiscardChanges();
+        scope.TryCloseChildSession(parent, path).ShouldBeTrue();
+        parent.HasPendingChildSessions.ShouldBeFalse();
+    }
+
+    [Test]
     public async Task PassThroughModeChangeIsRejectedWhileChildDraftIsPending()
     {
         var model = Order();

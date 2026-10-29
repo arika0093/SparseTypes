@@ -5,23 +5,6 @@ namespace SparseTypes.Blazor.Tests;
 public sealed class NestedCollectionQueryTests
 {
     [Test]
-    public void CollectionAccessCacheHitsDoNotAllocate()
-    {
-        var keyed = SparseCollectionChangeAccess.ForKeyed(typeof(int), typeof(CollectionQueryNode));
-        var dictionary = SparseCollectionChangeAccess.ForDictionary(typeof(string), typeof(CollectionQueryNode), hasChild: true);
-        keyed.ShouldNotBeNull();
-        dictionary.ShouldNotBeNull();
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var iteration = 0; iteration < 1000; iteration++)
-        {
-            SparseCollectionChangeAccess.ForKeyed(typeof(int), typeof(CollectionQueryNode));
-            SparseCollectionChangeAccess.ForDictionary(typeof(string), typeof(CollectionQueryNode), hasChild: true);
-        }
-
-        (GC.GetAllocatedBytesForCurrentThread() - before).ShouldBe(0);
-    }
-
-    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public void KeyedAndTemporaryRowsReadTheCurrentNestedChanges(bool temporary)

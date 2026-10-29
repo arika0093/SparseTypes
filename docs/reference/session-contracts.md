@@ -21,6 +21,7 @@ Package and namespace: `SparseTypes`. Applications normally use [generated EditS
 | `ISparseEditSessionWithChildren<TModel,TConflict>` | `HasPendingChildSessions`, `OpenChildSession(path)`, `TryAcceptChildSessions(out conflicts)`, `ConfirmChildSessions()`, `DiscardChildSessions()`. |
 | `ISparseEditSessionWithChildStatus<TModel,TConflict>` | Adds `HasOwnChanges`, `GetChildSessionStatus(path)`, `ResolveChildModel(path)`, `TryPreflightChildSessions(out conflicts)` and pending-state capability. |
 | `ISparseEditSessionModelAccessor<TModel>` | `GetModelForFrameworkAccess()` for infrastructure reads. |
+| `ISparseEditController<TModel>` | Read-only save state and validation capability exposed to UI adapters. |
 
 `Model` is the live mutable object, not a snapshot. Accessing it through the minimal interface can disable session dirty caching because later raw mutations cannot notify. Frameworks use the dedicated model accessor when they control how the reference is used.
 

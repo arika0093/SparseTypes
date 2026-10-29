@@ -68,6 +68,7 @@ public sealed class SparseSessionScopeContext<TModel>
     private readonly Dictionary<SparsePath, ChildEntry> _children = new();
     private readonly List<DetachedChildEntry> _detached = new();
     private INotifyPropertyChanged? _sessionNotifier;
+    private ISparseCollectionDraftRegistry? _collectionDraftRegistry;
     private SparsePassThroughStateScope _stateScope;
     private bool _disposed;
 
@@ -99,6 +100,12 @@ public sealed class SparseSessionScopeContext<TModel>
             {
                 _sessionNotifier = notifier;
                 notifier.PropertyChanged += OnParentSessionChanged;
+            }
+
+            if (session is ISparseCollectionDraftRegistry collectionDraftRegistry)
+            {
+                _collectionDraftRegistry = collectionDraftRegistry;
+                collectionDraftRegistry.CollectionDraftsChanged += OnCollectionDraftsChanged;
             }
         }
         catch
@@ -145,6 +152,57 @@ public sealed class SparseSessionScopeContext<TModel>
         }
 
         throw new ArgumentException("The path does not resolve to a model value of the requested type.", nameof(path));
+    }
+
+    /// <summary>Closes the child session at a path when it has no pending changes.</summary>
+    /// <param name="parentSession">The exact parent session assigned to the owning scope.</param>
+    /// <param name="path">The generated typed path to the child model.</param>
+    /// <typeparam name="TChild">The child model type.</typeparam>
+    /// <typeparam name="TChildPaths">The child model's generated path builder type.</typeparam>
+    /// <typeparam name="TConflict">The generated structured conflict type for the parent session.</typeparam>
+    /// <typeparam name="TChildSession">The generated child-model edit-session type.</typeparam>
+    /// <returns>True when no session is open or the clean session was closed; false when it has pending changes.</returns>
+    /// <exception cref="ArgumentException">The parent session differs from the owning scope session.</exception>
+    /// <exception cref="ObjectDisposedException">The scope context has been disposed.</exception>
+    public bool TryCloseChildSession<TChild, TChildPaths, TConflict, TChildSession>(
+        ISparseEditSessionWithChildren<TModel, TConflict> parentSession,
+        ISparseChildEditPath<TModel, TChild, TChildPaths, TChildSession> path
+    )
+        where TChild : class
+        where TChildPaths : ISparseTypedPath<TChild, TChild>
+        where TConflict : class
+        where TChildSession : ISparseEditSessionWithPaths<TChild, TChildPaths>
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(parentSession);
+        ArgumentNullException.ThrowIfNull(path);
+        if (!ReferenceEquals(parentSession, _session))
+        {
+            throw new ArgumentException("The parent session must be the session assigned to this scope.", nameof(parentSession));
+        }
+
+        var untypedPath = path.UntypedPath;
+        if (!_children.TryGetValue(untypedPath, out var entry))
+        {
+            return true;
+        }
+
+        if (entry.HasChanges())
+        {
+            return false;
+        }
+
+        _children.Remove(untypedPath);
+        try
+        {
+            entry.Dispose();
+        }
+        finally
+        {
+            NotifyChanged();
+        }
+
+        return true;
     }
 
     internal bool TryOpenChildSession<TChild, TChildPaths, TConflict, TChildSession>(
@@ -484,6 +542,12 @@ public sealed class SparseSessionScopeContext<TModel>
                 _sessionNotifier = null;
             }
 
+            if (_collectionDraftRegistry is not null)
+            {
+                _collectionDraftRegistry.CollectionDraftsChanged -= OnCollectionDraftsChanged;
+                _collectionDraftRegistry = null;
+            }
+
             SparseSessionScopeOwnership.Release(_session, this);
             if (_ownsLocalStateScope)
             {
@@ -566,6 +630,8 @@ public sealed class SparseSessionScopeContext<TModel>
             NotifyChanged();
         }
     }
+
+    private void OnCollectionDraftsChanged() => NotifyChanged();
 
     // Reports whether the parent owns no changes under a child path. Query
     // failures conservatively report dirt, preserving the previous

@@ -29,11 +29,7 @@ public sealed class SparseCollectionAllocationTests
                         inner =>
                         {
                             inner.OpenComponent<SparseCollection<TModel, TElement>>(0);
-                            inner.AddAttribute(
-                                1,
-                                nameof(SparseCollection<TModel, TElement>.Path),
-                                path
-                            );
+                            inner.AddAttribute(1, nameof(SparseCollection<TModel, TElement>.Path), path);
                             inner.AddAttribute(
                                 2,
                                 nameof(SparseCollection<TModel, TElement>.RowTemplate),
@@ -42,10 +38,7 @@ public sealed class SparseCollectionAllocationTests
                                         row => rowBuilder => rowBuilder.AddContent(0, row.Item)
                                     )
                             );
-                            inner.AddComponentReferenceCapture(
-                                3,
-                                component => capture((SparseCollection<TModel, TElement>)component)
-                            );
+                            inner.AddComponentReferenceCapture(3, component => capture((SparseCollection<TModel, TElement>)component));
                             inner.CloseComponent();
                         }
                 )
@@ -53,10 +46,7 @@ public sealed class SparseCollectionAllocationTests
             builder.CloseComponent();
         };
 
-    private static object RowDelegate(
-        SparseCollectionRow<BlazorDraftBoard, BlazorDraftLine> row,
-        string field
-    ) =>
+    private static object RowDelegate(SparseCollectionRow<BlazorDraftBoard, BlazorDraftLine> row, string field) =>
         typeof(SparseCollectionRow<BlazorDraftBoard, BlazorDraftLine>)
             .GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)
             .ShouldNotBeNull()
@@ -64,12 +54,7 @@ public sealed class SparseCollectionAllocationTests
             .ShouldNotBeNull();
 
     private static BlazorDraftBoard BoardWith(params (int Id, string Title)[] drafts) =>
-        new()
-        {
-            Drafts = drafts
-                .Select(static draft => new BlazorDraftLine { Id = draft.Id, Title = draft.Title })
-                .ToList(),
-        };
+        new() { Drafts = drafts.Select(static draft => new BlazorDraftLine { Id = draft.Id, Title = draft.Title }).ToList() };
 
     [Test]
     public async Task RowsInOneRebuildShareBothOperationDelegates()
@@ -81,8 +66,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -107,8 +91,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -136,8 +119,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 secondBoard.CreateEditSession(),
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -158,8 +140,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 board.CreateEditSession(),
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -186,8 +167,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -207,8 +187,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 board.CreateEditSession(),
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -222,9 +201,7 @@ public sealed class SparseCollectionAllocationTests
         view.RemovedItems.ShouldBeSameAs(first);
 
         ((System.Collections.Generic.ICollection<BlazorDraftLine>)first).IsReadOnly.ShouldBeTrue();
-        Should.Throw<NotSupportedException>(() =>
-            ((System.Collections.Generic.IList<BlazorDraftLine>)first).Add(new BlazorDraftLine())
-        );
+        Should.Throw<NotSupportedException>(() => ((System.Collections.Generic.IList<BlazorDraftLine>)first).Add(new BlazorDraftLine()));
         view.RemovedItems.ShouldBeSameAs(first);
         first.Select(static item => item.Title).ShouldBe(["One", "Three"]);
     }
@@ -240,8 +217,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -281,8 +257,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -308,8 +283,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 BoardWith((9, "Fresh")).CreateEditSession(),
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
         collection.ShouldNotBeNull().RemovedItems.ShouldBeEmpty();
@@ -326,8 +300,7 @@ public sealed class SparseCollectionAllocationTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -339,7 +312,7 @@ public sealed class SparseCollectionAllocationTests
         var stateType = typeof(SparseCollectionState);
         var constructor = stateType
             .GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
-            .Single(static candidate => candidate.GetParameters().Length == 7);
+            .Single(static candidate => candidate.GetParameters().Length == 9);
         object badEntry = default(SparseCollectionItemState);
         stateType
             .Assembly.GetType("SparseTypes.SparseCollectionItemState")
@@ -353,18 +326,15 @@ public sealed class SparseCollectionAllocationTests
                 false,
                 true,
                 false,
+                Array.Empty<object?>(),
+                Array.Empty<object?>(),
                 new List<SparseCollectionItemState> { (SparseCollectionItemState)badEntry },
                 (Func<object?, SparseCollectionItemState>)(static _ => default),
                 (Func<Guid, SparseCollectionItemState>)(static _ => default),
             ]);
         var viewType = typeof(SparseCollection<BlazorDraftBoard, BlazorDraftLine>);
-        viewType
-            .GetField("_collectionState", BindingFlags.Instance | BindingFlags.NonPublic)
-            .ShouldNotBeNull()
-            .SetValue(view, badState);
-        var removedField = viewType
-            .GetField("_removedItems", BindingFlags.Instance | BindingFlags.NonPublic)
-            .ShouldNotBeNull();
+        viewType.GetField("_collectionState", BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull().SetValue(view, badState);
+        var removedField = viewType.GetField("_removedItems", BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
         removedField.SetValue(view, null);
 
         Should.Throw<InvalidOperationException>(() => view.RemovedItems);
@@ -415,18 +385,14 @@ public sealed class SparseCollectionAllocationTests
     {
         foreach (var rowCount in new[] { 0, 1, 100 })
         {
-            var drafts = Enumerable
-                .Range(0, rowCount)
-                .Select(static index => (index + 1, $"Draft {index + 1}"))
-                .ToArray();
+            var drafts = Enumerable.Range(0, rowCount).Select(static index => (index + 1, $"Draft {index + 1}")).ToArray();
             SparseCollection<BlazorDraftBoard, BlazorDraftLine>? collection = null;
 
             using var tree = await Headless.Tree.CreateAsync(
                 EditWithCollection(
                     BoardWith(drafts).CreateEditSession(),
                     BlazorDraftBoard.SparsePath.Drafts,
-                    (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                        collection = captured
+                    (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
                 )
             );
 
@@ -447,9 +413,7 @@ public sealed class SparseCollectionAllocationTests
             }
 
             var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-            Console.WriteLine(
-                $"rebuild-smoke rows={rowCount}: rebuilds={rebuilds} allocated-bytes={allocated}"
-            );
+            Console.WriteLine($"rebuild-smoke rows={rowCount}: rebuilds={rebuilds} allocated-bytes={allocated}");
             view.Rows.Count.ShouldBe(rowCount);
             if (rowCount > 1)
             {

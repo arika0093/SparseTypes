@@ -4,7 +4,7 @@ using SparseTypes.Generated;
 namespace SparseTypes;
 
 /// <summary>
-/// Path-addressed typed editing facade for one session collection member.
+/// Path-addressed typed editing facade for one session collection.
 /// </summary>
 /// <remarks>A thin typed front over the member's <see cref="IArrayDescriptor"/>.</remarks>
 /// <typeparam name="TElement">The collection element model type.</typeparam>
@@ -13,27 +13,53 @@ public class SparseCollectionEditor<TElement>
 {
     private readonly IDescriptorSet _descriptors;
     private readonly Action<Action> _batch;
-    private readonly string _memberName;
+    private readonly object? _ownerSession;
+    private readonly Func<TElement, TElement>? _cloneElement;
 
     /// <summary>Creates an editing facade for one session collection member.</summary>
     /// <param name="descriptors">The session descriptor set, read live per operation.</param>
-    /// <param name="path">A single-member collection path (for example <c>Order.SparsePath.Items</c>).</param>
+    /// <param name="path">A collection member path (for example <c>Order.SparsePath.Customer.Key(id).Items</c>).</param>
     /// <param name="batch">The session batch runner (for example <c>session.BatchEdit</c>).</param>
     /// <exception cref="ArgumentNullException">A dependency is null.</exception>
-    /// <exception cref="ArgumentException">The path does not address one member.</exception>
+    /// <exception cref="ArgumentException">The path does not address a collection member or belongs to a different root model.</exception>
     public SparseCollectionEditor(IDescriptorSet descriptors, SparsePath path, Action<Action> batch)
+        : this(descriptors, path, batch, null, null) { }
+
+    /// <summary>Creates an editing facade for a collection owned by an edit session.</summary>
+    /// <param name="descriptors">The session descriptor set, read live per operation.</param>
+    /// <param name="path">A collection member path.</param>
+    /// <param name="batch">The session batch runner.</param>
+    /// <param name="ownerSession">The session that owns this facade.</param>
+    public SparseCollectionEditor(IDescriptorSet descriptors, SparsePath path, Action<Action> batch, object? ownerSession)
+        : this(descriptors, path, batch, ownerSession, null) { }
+
+    /// <summary>Creates a session-owned collection editor with generated element cloning.</summary>
+    /// <param name="descriptors">The session descriptor set, read live per operation.</param>
+    /// <param name="path">A collection member path.</param>
+    /// <param name="batch">The session batch runner.</param>
+    /// <param name="ownerSession">The session that owns this facade.</param>
+    /// <param name="cloneElement">The generated deep-clone operation for collection items.</param>
+    public SparseCollectionEditor(
+        IDescriptorSet descriptors,
+        SparsePath path,
+        Action<Action> batch,
+        object? ownerSession,
+        Func<TElement, TElement>? cloneElement
+    )
     {
         ArgumentNullException.ThrowIfNull(descriptors);
         ArgumentNullException.ThrowIfNull(batch);
-        if (path.Segments.Count != 1 || path.Segments[0].Kind != SparsePathSegmentKind.Member)
+        if (path.IsRoot || path.Segments[path.Segments.Count - 1].Kind != SparsePathSegmentKind.Member)
         {
-            throw new ArgumentException("The collection path must address exactly one member.", nameof(path));
+            throw new ArgumentException("The collection path must address a member.", nameof(path));
         }
 
+        _ = descriptors.ResolveModel(SparsePath.Root(path.RootType));
         _descriptors = descriptors;
+        _ownerSession = ownerSession;
+        _cloneElement = cloneElement;
         Path = path;
         _batch = batch;
-        _memberName = path.Segments[0].Name;
     }
 
     /// <summary>Gets the addressed collection path.</summary>
@@ -71,6 +97,51 @@ public class SparseCollectionEditor<TElement>
     /// <returns>True when the member resolves to a live sequence.</returns>
     /// <remarks>Immutable collections stay readable; only edits report <c>NotMutable</c>.</remarks>
     public bool IsAvailable(out SparseCollectionEditError error) => TryResolveArray(out _, out error);
+
+    /// <summary>Begins editing a new item without inserting it into the collection.</summary>
+    /// <typeparam name="TParent">The model containing the collection.</typeparam>
+    /// <typeparam name="TItem">The reference-type item model.</typeparam>
+    /// <typeparam name="TChildPaths">The generated path builder rooted at the item model.</typeparam>
+    /// <typeparam name="TChildSession">The generated edit-session type for the item model.</typeparam>
+    /// <typeparam name="TConflict">The product's structured conflict type.</typeparam>
+    /// <param name="itemPath">A generated path to a collection element, usually <c>collectionPath.At(0)</c>.</param>
+    /// <param name="initialModel">The initial item state.</param>
+    /// <param name="parentSession">The parent session that tracks this uninserted draft.</param>
+    /// <returns>An independent draft whose acceptance inserts the item.</returns>
+    public SparseCollectionAddDraft<TParent, TItem, TChildPaths, TChildSession, TConflict> BeginAdd<
+        TParent,
+        TItem,
+        TChildPaths,
+        TChildSession,
+        TConflict
+    >(
+        ISparseChildEditPath<TParent, TItem, TChildPaths, TChildSession> itemPath,
+        TItem initialModel,
+        ISparseEditSessionWithChildren<TParent, TConflict> parentSession
+    )
+        where TParent : class
+        where TItem : class
+        where TChildPaths : ISparseTypedPath<TItem, TItem>
+        where TChildSession : ISparseEditSessionWithPaths<TItem, TChildPaths>
+        where TConflict : class
+    {
+        if (typeof(TItem) != typeof(TElement))
+        {
+            throw new ArgumentException("The generated item path does not match this collection's element type.", nameof(itemPath));
+        }
+
+        if (_ownerSession is null || !ReferenceEquals(_ownerSession, parentSession))
+        {
+            throw new ArgumentException("The parent session must own this collection editor.", nameof(parentSession));
+        }
+
+        return new SparseCollectionAddDraft<TParent, TItem, TChildPaths, TChildSession, TConflict>(
+            (SparseCollectionEditor<TItem>)(object)this,
+            itemPath,
+            initialModel,
+            parentSession
+        );
+    }
 
     /// <summary>Reads the underlying model at a position.</summary>
     /// <param name="index">The zero-based position.</param>
@@ -194,6 +265,12 @@ public class SparseCollectionEditor<TElement>
             return false;
         }
 
+        if (HasPendingDraftForItem(array, index))
+        {
+            error = SparseCollectionEditError.PendingChildDraft;
+            return false;
+        }
+
         if (!array.CanSetItem)
         {
             error = SparseCollectionEditError.NotMutable;
@@ -227,6 +304,12 @@ public class SparseCollectionEditor<TElement>
         if (index < 0 || index >= array.Count)
         {
             error = SparseCollectionEditError.IndexOutOfRange;
+            return false;
+        }
+
+        if (HasPendingDraftForItem(array, index))
+        {
+            error = SparseCollectionEditError.PendingChildDraft;
             return false;
         }
 
@@ -291,16 +374,110 @@ public class SparseCollectionEditor<TElement>
     /// <param name="mutation">The observable mutation to group.</param>
     protected void Batched(Action mutation) => _batch(mutation);
 
+    /// <summary>Gets whether this editor was created with generated element cloning.</summary>
+    protected bool HasElementCloner => _cloneElement is not null;
+
+    /// <summary>Clones an element using the generated path's deep-copy operation.</summary>
+    protected TElement CloneElement(TElement element)
+    {
+        if (_cloneElement is null)
+        {
+            throw new InvalidOperationException("The generated collection path does not provide an element clone operation.");
+        }
+
+        return _cloneElement(element);
+    }
+
+    /// <summary>Creates a detached deep copy of a collection item when a generated clone is available.</summary>
+    protected bool TryCloneElement(TElement element, out TElement clone)
+    {
+        if (_cloneElement is null)
+        {
+            clone = default!;
+            return false;
+        }
+
+        clone = _cloneElement(element);
+        return clone is not null;
+    }
+
+    /// <summary>Gets the owner session when it exposes baseline collection state.</summary>
+    protected bool TryGetCollectionState(out SparseCollectionState state)
+    {
+        state = default;
+        if (_ownerSession is not ISparseEditSessionWithCollectionState stateSession)
+        {
+            return false;
+        }
+
+        try
+        {
+            state = stateSession.CollectionState(Path);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Gets the retained baseline revision when the owner session exposes it.</summary>
+    protected bool TryGetBaselineRevision(out long revision)
+    {
+        if (_ownerSession is ISparseEditSessionWithBaselineRevision baselineSession)
+        {
+            revision = baselineSession.BaselineRevision;
+            return true;
+        }
+
+        revision = 0;
+        return false;
+    }
+
+    /// <summary>Reports whether a child or uninserted draft is registered under the supplied path.</summary>
+    protected bool HasPendingDraftUnder(SparsePath path) =>
+        (_ownerSession is ISparseCollectionDraftRegistry drafts && drafts.HasPendingCollectionDraftUnder(path))
+        || (_ownerSession is ISparseChildSessionRegistry children && children.HasPendingChildSessionUnder(path));
+
+    /// <summary>Reports whether removing or replacing an item would invalidate an open nested draft.</summary>
+    protected bool HasPendingDraftForItem(IArrayDescriptor array, int index)
+    {
+        var item = array.GetItemModel(index);
+        if (item is not null && _ownerSession is ISparseCollectionDraftRegistry drafts && drafts.HasPendingCollectionDraftFor(item))
+        {
+            return true;
+        }
+
+        if (!array.IsKeyed)
+        {
+            return false;
+        }
+
+        var key = array.GetItemKey(index);
+        if (key is not null && !array.IsUnassignedKey(key))
+        {
+            return HasPendingDraftUnder(Path.Key(key));
+        }
+
+        if (array.GetItemTemporaryKey(index) is { } temporaryKey)
+        {
+            return HasPendingDraftUnder(Path.TemporaryKey(temporaryKey));
+        }
+
+        return false;
+    }
+
     /// <summary>Resolves the live sequence descriptor for one operation.</summary>
     /// <param name="array">The live descriptor, or null when unavailable.</param>
     /// <param name="error">The resolution failure, or <c>None</c> on success.</param>
-    /// <returns>True when the member resolves to a live sequence.</returns>
+    /// <returns>True when the path resolves to a live sequence.</returns>
     protected bool TryResolveArray(out IArrayDescriptor array, out SparseCollectionEditError error)
     {
         array = null!;
-        if (!_descriptors.TryGet(_memberName, out var member) || member is null)
+        var member = _descriptors.Find(Path);
+        if (member is null)
         {
-            error = SparseCollectionEditError.UnknownCollection;
+            error = Path.Segments.Count == 1 ? SparseCollectionEditError.UnknownCollection : SparseCollectionEditError.PathUnavailable;
             return false;
         }
 

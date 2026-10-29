@@ -14,7 +14,8 @@ internal static class SparseEditSessionStateEmitter
         string modelType,
         ImmutableArray<SparseMemberModel> members,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        string? implementationNamespace
+        string? implementationNamespace,
+        bool hasDescriptorAccess
     )
     {
         if (!HasStateSurface(dialect))
@@ -26,7 +27,7 @@ internal static class SparseEditSessionStateEmitter
         var pathType = SparseFragmentPatchEmitter.GetPathType(dialect);
         AppendFieldState(code, modelType, pathType, states, dialect);
         AppendStateSnapshot(code, states);
-        AppendCollectionState(code, modelType, members, pathType, states);
+        AppendCollectionState(code, modelType, members, pathType, states, hasDescriptorAccess);
         AppendObserveMembers(code, modelType, pathType, states, dialect, implementationNamespace);
     }
 
@@ -394,65 +395,74 @@ internal static class SparseEditSessionStateEmitter
         string modelType,
         ImmutableArray<SparseMemberModel> members,
         string pathType,
-        SparseStateContracts states
+        SparseStateContracts states,
+        bool hasDescriptorAccess
     )
     {
-        code.AppendLine("/// <summary>Queries the keyed or dictionary collection state at a root collection path.</summary>");
+        code.AppendLine("/// <summary>Queries the keyed or dictionary collection state at a root-preserving path.</summary>");
         code.AppendLine(
-            "/// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session. Root collection members only; navigate the change set for nested collections and use <see cref=\"FieldState\"/> for other members.</remarks>"
+            "/// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session.</remarks>"
         );
-        code.AppendLine("/// <param name=\"collectionPath\">The root collection member path.</param>");
+        code.AppendLine("/// <param name=\"collectionPath\">The collection member path.</param>");
         code.AppendLine("/// <returns>The live collection state view.</returns>");
         code.AppendLine(
-            "/// <exception cref=\"global::System.ArgumentException\">The path does not address a root keyed or dictionary collection member.</exception>"
+            "/// <exception cref=\"global::System.ArgumentException\">The path does not address a keyed or dictionary collection member.</exception>"
         );
         code.AppendLine("public " + states.CollectionStateType + " CollectionState(" + pathType + " collectionPath)");
         code.OpenBlock();
-        SparseChangeSetNaming.ComputePublicNames(members, out var propNames, out _);
-        var emitted = false;
-        foreach (var member in members)
+        if (hasDescriptorAccess && !string.IsNullOrEmpty(states.CollectionStateQueryType))
         {
-            var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
-            var isDict = SparseChangeSetBasicsEmitter.IsDict(member);
-            if (!isKeyed && !isDict)
-            {
-                continue;
-            }
-
-            // Full-path equality keeps dispatch exact (root type, member, and
-            // collection kind all match) without naming path segment internals.
-            var navigation = modelType + ".SparsePath." + SparseNaming.EscapeIdentifier(member.Property.Name);
-            var property = SparseNaming.EscapeIdentifier(propNames[member.Id]);
-            var factory = isKeyed ? "KeyedState" : "DictionaryState";
             code.AppendLine(
-                "if (collectionPath.Equals(("
-                    + pathType
-                    + ")"
-                    + navigation
-                    + ")) return "
-                    + states.StateQueryType
-                    + "."
-                    + factory
-                    + "(_session."
+                "if ("
+                    + states.CollectionStateQueryType
+                    + ".TryGetState<"
+                    + modelType
+                    + ">(_session."
                     + states.CreateChangeSetFromLiveModelMember
-                    + "()."
-                    + property
-                    + ", collectionPath);"
+                    + "(), Descriptors, collectionPath, out var state) && state.HasValue) return state.Value;"
             );
-            emitted = true;
-        }
-
-        if (!emitted)
-        {
             code.AppendLine(
-                "throw new global::System.ArgumentException(\"This model has no keyed or dictionary collection members. Use FieldState for other members.\", nameof(collectionPath));"
+                "throw new global::System.ArgumentException(\"The path does not address a live keyed or dictionary collection member.\", nameof(collectionPath));"
             );
         }
         else
         {
-            code.AppendLine(
-                "throw new global::System.ArgumentException(\"The path does not address a root keyed or dictionary collection member. Use FieldState for other members.\", nameof(collectionPath));"
-            );
+            SparseChangeSetNaming.ComputePublicNames(members, out var propNames, out _);
+            var emitted = false;
+            foreach (var member in members)
+            {
+                var isKeyed = SparseChangeSetBasicsEmitter.IsKeyed(member);
+                var isDict = SparseChangeSetBasicsEmitter.IsDict(member);
+                if (!isKeyed && !isDict)
+                {
+                    continue;
+                }
+
+                var navigation = modelType + ".SparsePath." + SparseNaming.EscapeIdentifier(member.Property.Name);
+                var property = SparseNaming.EscapeIdentifier(propNames[member.Id]);
+                var factory = isKeyed ? "KeyedState" : "DictionaryState";
+                code.AppendLine(
+                    "if (collectionPath.Equals(("
+                        + pathType
+                        + ")"
+                        + navigation
+                        + ")) return "
+                        + states.StateQueryType
+                        + "."
+                        + factory
+                        + "(_session."
+                        + states.CreateChangeSetFromLiveModelMember
+                        + "()."
+                        + property
+                        + ", collectionPath);"
+                );
+                emitted = true;
+            }
+
+            var message = emitted
+                ? "The path does not address a root keyed or dictionary collection member. Use FieldState for other members."
+                : "This model has no keyed or dictionary collection members. Use FieldState for other members.";
+            code.AppendLine("throw new global::System.ArgumentException(\"" + message + "\", nameof(collectionPath));");
         }
 
         code.CloseBlock();

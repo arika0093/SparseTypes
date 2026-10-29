@@ -15,10 +15,7 @@ public partial class StateNullableHolder
 public sealed class CollectionStateTests
 {
     private static KeyedServerHolder Holder(params (string Id, string Name)[] rows) =>
-        new()
-        {
-            Items = rows.Select(row => new KeyedServer { Id = row.Id, Name = row.Name }).ToList(),
-        };
+        new() { Items = rows.Select(row => new KeyedServer { Id = row.Id, Name = row.Name }).ToList() };
 
     [Test]
     public void CleanCollectionReportsEmpty()
@@ -264,13 +261,8 @@ public sealed class CollectionStateTests
     [Test]
     public void MissingRootReportsAncestorChangeForEveryPath()
     {
-        var present = Optional<KeyedServerHolder.Fragment?>.Present(
-            KeyedServerHolder.Fragment.From(Holder(("a", "a")))
-        );
-        var changes = KeyedServerHolder.ChangeSet.Between(
-            Optional<KeyedServerHolder.Fragment?>.Missing,
-            present
-        );
+        var present = Optional<KeyedServerHolder.Fragment?>.Present(KeyedServerHolder.Fragment.From(Holder(("a", "a"))));
+        var changes = KeyedServerHolder.ChangeSet.Between(Optional<KeyedServerHolder.Fragment?>.Missing, present);
 
         // A whole-root transition replaces member entries: every member path
         // reports an ancestor change with missing endpoints.
@@ -345,32 +337,21 @@ public sealed class CollectionStateTests
     {
         var session = new ClusterHolder
         {
-            Groups =
-            [
-                new ServerGroup
-                {
-                    Name = "g",
-                    Servers = [new KeyedServer { Id = "s", Name = "before" }],
-                },
-            ],
+            Groups = [new ServerGroup { Name = "g", Servers = [new KeyedServer { Id = "s", Name = "before" }] }],
         }.CreateEditSession();
         session.Observable.Groups[0].Servers[0].Name = "after";
 
         // Session collection state is root-only; nested rows resolve through
         // the typed change-set navigation with full type inference.
         var changes = session.CreateChangeSet();
-        var nested = changes
-            .Groups.GetChange("g")
-            .Edit.Servers.KeyedState(ClusterHolder.SparsePath.Groups.Key("g").Servers);
+        var nested = changes.Groups.GetChange("g").Edit.Servers.KeyedState(ClusterHolder.SparsePath.Groups.Key("g").Servers);
 
         nested.IsChanged.ShouldBeTrue();
         var row = nested.GetItemState("s");
         row.IsEdited.ShouldBeTrue();
         row.IsReordered.ShouldBeFalse();
 
-        var leaf = session.FieldState(
-            ClusterHolder.SparsePath.Groups.Key("g").Servers.Key("s").Name
-        );
+        var leaf = session.FieldState(ClusterHolder.SparsePath.Groups.Key("g").Servers.Key("s").Name);
         leaf.IsChanged.ShouldBeTrue();
         leaf.After.Value.ShouldBe("after");
     }
@@ -381,20 +362,12 @@ public sealed class CollectionStateTests
         var scalar = new Settings().CreateEditSession();
         Should.Throw<ArgumentException>(() => scalar.CollectionState(Settings.SparsePath.Label));
         Should.Throw<ArgumentException>(() => scalar.CollectionState(Settings.SparsePath.Nested));
-        Should.Throw<ArgumentException>(() =>
-            scalar.CollectionState(SparsePath.Root<Settings>().Member("Missing"))
-        );
-        Should.Throw<ArgumentException>(() =>
-            scalar.CollectionState(SparsePath.Root<Nested>().Member("Host"))
-        );
+        Should.Throw<ArgumentException>(() => scalar.CollectionState(SparsePath.Root<Settings>().Member("Missing")));
+        Should.Throw<ArgumentException>(() => scalar.CollectionState(SparsePath.Root<Nested>().Member("Host")));
 
         var keyed = Holder(("a", "a")).CreateEditSession();
-        Should.Throw<ArgumentException>(() =>
-            keyed.CollectionState(KeyedServerHolder.SparsePath.Items.Key("a"))
-        );
-        Should.Throw<ArgumentException>(() =>
-            keyed.CollectionState(SparsePath.Root<KeyedServerHolder>().Member("Missing"))
-        );
+        Should.Throw<ArgumentException>(() => keyed.CollectionState(KeyedServerHolder.SparsePath.Items.Key("a")));
+        Should.Throw<ArgumentException>(() => keyed.CollectionState(SparsePath.Root<KeyedServerHolder>().Member("Missing")));
 
         // A model without keyed or dictionary members always throws.
         Should.Throw<ArgumentException>(() => scalar.CollectionState(Settings.SparsePath.Label));

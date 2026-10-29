@@ -121,7 +121,7 @@ internal static class SparsePathBuilderEmitter
         using var navigations = new SharedIndentedBuilder(code.CancellationToken);
         foreach (var member in members)
         {
-            AppendMemberNavigation(navigations, member, pathType, dialect, qualifyChildPaths);
+            AppendMemberNavigation(navigations, member, pathType, dialect, qualifyChildPaths, config);
         }
 
         code.Append(navigations.ToString());
@@ -178,7 +178,8 @@ internal static class SparsePathBuilderEmitter
         SparseMemberModel member,
         string pathType,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        System.Func<string, string>? qualifyChildPaths = null
+        System.Func<string, string>? qualifyChildPaths = null,
+        SparseGeneratorConfig? config = null
     )
     {
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -202,7 +203,7 @@ internal static class SparsePathBuilderEmitter
 
         if (SparseChangeSetBasicsEmitter.IsKeyed(member) || SparseChangeSetBasicsEmitter.IsDict(member) || SparseChangeSetBasicsEmitter.IsSet(member))
         {
-            AppendCollectionNavigation(code, member, pathType, dialect, qualifyChildPaths);
+            AppendCollectionNavigation(code, member, pathType, dialect, qualifyChildPaths, config);
             return;
         }
 
@@ -227,7 +228,8 @@ internal static class SparsePathBuilderEmitter
         SparseMemberModel member,
         string pathType,
         SparseFragmentPatchEmitter.SparsePatchDialect dialect,
-        System.Func<string, string>? qualifyChildPaths = null
+        System.Func<string, string>? qualifyChildPaths = null,
+        SparseGeneratorConfig? config = null
     )
     {
         var name = SparseNaming.EscapeIdentifier(member.Property.Name);
@@ -236,12 +238,58 @@ internal static class SparsePathBuilderEmitter
         code.AppendLine("/// <summary>Gets the path builder for '" + name + "'.</summary>");
         code.AppendLine("public " + builderName + " " + name + " => new " + builderName + "(_path.Member(" + literal + "));");
         var collectionType = member.Property.Type.Name;
-        var collectionInterface = dialect.TypedPathInterfaceType is { Length: > 0 } typedCollectionInterface
-            ? " : " + typedCollectionInterface + "<TRoot, " + collectionType + ">"
-            : string.Empty;
+        var collectionInterfaces = new System.Collections.Generic.List<string>();
+        using var collectionPathMembers = new SharedIndentedBuilder(code.CancellationToken);
+        if (dialect.TypedPathInterfaceType is { Length: > 0 } typedCollectionInterface)
+        {
+            collectionInterfaces.Add(typedCollectionInterface + "<TRoot, " + collectionType + ">");
+        }
+
+        if (
+            SparseChangeSetBasicsEmitter.IsKeyed(member)
+            && dialect.TypedPathInterfaceType is { Length: > 0 }
+            && member.Collection.ElementType.Name is { Length: > 0 } elementType
+            && member.Collection.KeyTypeName is { Length: > 0 } keyType
+            && config?.CollectionPathInterfaceMetadataName is { Length: > 0 } collectionPathInterface
+        )
+        {
+            collectionInterfaces.Add("global::" + collectionPathInterface + "<TRoot, " + elementType + ">");
+            if (config.KeyedCollectionPathInterfaceMetadataName is { Length: > 0 } keyedCollectionPathInterface)
+            {
+                collectionInterfaces.Add("global::" + keyedCollectionPathInterface + "<TRoot, " + elementType + ", " + keyType + ">");
+            }
+
+            var collectionPathType = "global::" + collectionPathInterface + "<TRoot, " + elementType + ">";
+            var elementTypedPath = SparseFragmentPatchEmitter.GetTypedPathType(dialect, "TRoot", elementType);
+            collectionPathMembers.AppendLine("/// <summary>Gets a typed path to an element at the given position.</summary>");
+            collectionPathMembers.AppendLine(
+                elementTypedPath + " " + collectionPathType + ".At(int index) => new " + elementTypedPath + "(_path.At(index));"
+            );
+            collectionPathMembers.AppendLine(
+                elementType
+                    + " "
+                    + collectionPathType
+                    + ".CloneElement("
+                    + elementType
+                    + " element) => "
+                    + elementType
+                    + ".Fragment.From(element).ToModel();"
+            );
+            if (config.KeyedCollectionPathInterfaceMetadataName is { Length: > 0 })
+            {
+                var keyedPathType = "global::" + config.KeyedCollectionPathInterfaceMetadataName + "<TRoot, " + elementType + ", " + keyType + ">";
+                collectionPathMembers.AppendLine("/// <summary>Gets a typed path to the element with the given key.</summary>");
+                collectionPathMembers.AppendLine(
+                    elementTypedPath + " " + keyedPathType + ".Key(" + keyType + " key) => new " + elementTypedPath + "(_path.Key(key));"
+                );
+            }
+        }
+
+        var collectionInterface = collectionInterfaces.Count == 0 ? string.Empty : " : " + string.Join(", ", collectionInterfaces);
         code.AppendLine("/// <summary>Collection path builder for '" + name + "'.</summary>");
         code.AppendLine((dialect.PathIsValueType ? "public readonly struct " : "public sealed class ") + builderName + collectionInterface);
         code.OpenBlock();
+        code.Append(collectionPathMembers.ToString());
         // Public-first order, matching the root builder above.
         code.AppendLine("/// <summary>Converts this builder to its model-agnostic path.</summary>");
         code.AppendLine("public static implicit operator " + pathType + "(" + builderName + " paths) => paths._path;");

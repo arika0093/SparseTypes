@@ -75,6 +75,26 @@ public interface ISparseChangeSet
     );
 }
 
+/// <summary>Generated bridge for reflection-free nested collection-state queries.</summary>
+/// <remarks>Generated change sets implement this only when their product config opts into the query contract.</remarks>
+[EditorBrowsable(EditorBrowsableState.Advanced)]
+public interface ISparseCollectionChangeSetQueries
+{
+    /// <summary>Gets the semantic state of a keyed collection or dictionary member.</summary>
+    /// <param name="memberName">The member CLR name.</param>
+    /// <param name="path">The full root-preserving collection path.</param>
+    /// <param name="state">The collection state when the member has a supported shape.</param>
+    /// <returns>True when the member is a keyed collection or dictionary.</returns>
+    bool TryGetCollectionState(string memberName, SparsePath path, out SparseCollectionState state);
+
+    /// <summary>Gets the nested change set for a keyed or structural dictionary item.</summary>
+    /// <param name="memberName">The collection member CLR name.</param>
+    /// <param name="identity">The item's permanent or temporary identity segment.</param>
+    /// <param name="item">The nested change set when the item carries one.</param>
+    /// <returns>True when the item has a nested change set.</returns>
+    bool TryGetCollectionItemChange(string memberName, SparsePathSegment identity, [NotNullWhen(true)] out ISparseChangeSet? item);
+}
+
 /// <summary>Read-only baseline-aware change set associated with a model type.</summary>
 /// <typeparam name="TModel">The model type whose changes this change set describes.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]

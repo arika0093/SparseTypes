@@ -15,24 +15,39 @@ internal interface ISparseStateSnapshotScope
 /// <remarks>Exposes the concrete generated path builder (<see cref="Path"/>).</remarks>
 /// <typeparam name="TModel">The live editable model type.</typeparam>
 /// <typeparam name="TPaths">The concrete generated root path builder type.</typeparam>
-public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>, ISparseStateSnapshotScope, IDisposable
+public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>, ISparseStateSnapshotScope, ISparseValidationScope, IDisposable
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
 {
     private readonly object _sync = new();
     private readonly INotifyPropertyChanged? _notifier;
     private readonly PropertyChangedEventHandler? _notifierHandler;
+    private readonly SparseValidationStore<TModel>? _validation;
+    private readonly EventHandler<System.ComponentModel.DataErrorsChangedEventArgs>? _validationHandler;
     private SparseChangeSetQueryView? _snapshot;
     private long _snapshotVersion;
     private long _sessionVersion;
     private object? _snapshotModel;
     private bool _disposed;
 
-    internal SparseEditContext(ISparseEditSessionWithPaths<TModel, TPaths> session, TPaths path, EditContext editContext)
+    internal SparseEditContext(
+        ISparseEditSessionWithPaths<TModel, TPaths> session,
+        TPaths path,
+        EditContext editContext,
+        ISparseEditController<TModel>? controller
+    )
     {
         Session = session;
         Path = path;
         EditContext = editContext;
+        Controller = controller;
+        _validation = controller?.Validation;
+        if (_validation is not null)
+        {
+            _validationHandler = (_, _) => EditContext.NotifyValidationStateChanged();
+            _validation.ErrorsChanged += _validationHandler;
+        }
+
         if (session is INotifyPropertyChanged notifier)
         {
             _notifier = notifier;
@@ -54,6 +69,9 @@ public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>
     /// <summary>Gets the original-model edit context bound to the session model.</summary>
     public EditContext EditContext { get; }
 
+    /// <summary>Gets the optional save and validation controller attached to this scope.</summary>
+    public ISparseEditController<TModel>? Controller { get; }
+
     /// <summary>Gets whether the session model differs from the retained baseline.</summary>
     public bool HasChanges => Session.HasChanges;
 
@@ -65,6 +83,14 @@ public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>
 
     /// <summary>Gets whether a redo entry is available.</summary>
     public bool CanRedo => History?.CanRedo == true;
+
+    /// <summary>Gets validation errors at a path and its descendants.</summary>
+    /// <param name="path">The path to inspect.</param>
+    /// <returns>The controller's validation messages, or an empty list when no controller is attached.</returns>
+    IEnumerable<string> ISparseValidationScope.GetValidationMessages(SparsePath path) =>
+        _validation is null
+            ? Array.Empty<string>()
+            : _validation.GetPathErrors(path).Select(static error => error?.ToString() ?? string.Empty).ToArray();
 
     /// <summary>Undoes the newest history entry, throwing on conflict.</summary>
     /// <exception cref="InvalidOperationException">
@@ -292,6 +318,11 @@ public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>
             if (_notifier is not null && _notifierHandler is not null)
             {
                 _notifier.PropertyChanged -= _notifierHandler;
+            }
+
+            if (_validation is not null && _validationHandler is not null)
+            {
+                _validation.ErrorsChanged -= _validationHandler;
             }
 
             _snapshot = null;

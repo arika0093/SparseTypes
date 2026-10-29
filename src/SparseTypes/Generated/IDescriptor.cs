@@ -165,6 +165,10 @@ public interface IArrayDescriptor
     /// <remarks>Null when unkeyed or the item has no key.</remarks>
     object? GetItemKey(int index);
 
+    /// <summary>Gets the temporary identity of an unassigned item at an index.</summary>
+    /// <remarks>Null when the item has no temporary identity.</remarks>
+    Guid? GetItemTemporaryKey(int index);
+
     /// <summary>Finds the unique index with an equal assigned key.</summary>
     /// <remarks>Returns -1 for unassigned, absent, or ambiguous identities.</remarks>
     int IndexOfKey(object? key);

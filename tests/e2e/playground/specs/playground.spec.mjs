@@ -1,12 +1,27 @@
 import { expect, test as base } from "@playwright/test";
+import { fileURLToPath } from "node:url";
 
 const localOrigin = "http://127.0.0.1:4173";
+const cdnAssets = [
+  [
+    "https://unpkg.com/sortablejs@1.15.6/Sortable.min.js",
+    fileURLToPath(new URL("../node_modules/sortablejs/Sortable.min.js", import.meta.url)),
+  ],
+  [
+    "https://unpkg.com/imask@7.6.1/dist/imask.min.js",
+    fileURLToPath(new URL("../node_modules/imask/dist/imask.min.js", import.meta.url)),
+  ],
+];
 
 const test = base.extend({
   page: async ({ page }, use) => {
     const pageErrors = [];
     const consoleErrors = [];
     const failedResponses = [];
+
+    for (const [url, path] of cdnAssets) {
+      await page.route(url, route => route.fulfill({ path }));
+    }
 
     page.on("pageerror", error => pageErrors.push(error.message));
     page.on("console", message => {
@@ -359,6 +374,59 @@ test("enterprise accepts a section draft and saves the catalog", async ({ page }
   await fluentButton(reviewDialog, "Save").click();
   await expect(page.getByText("No committed changes", { exact: true })).toBeVisible();
   await expect(itemCode).toHaveValue("e2e-item-code");
+});
+
+test("enterprise edits, cancels, duplicates, resets, restores, and saves price tiers", async ({ page }) => {
+  await openCase(page, "enterprise-editing", "Enterprise master editing with child sessions");
+  await page.getByText("2. Commercial", { exact: true }).click();
+
+  const commercialSection = page.locator("#enterprise-commercial-panel");
+  const priceTierSection = commercialSection.locator(".pg-catalog-list-section").filter({ hasText: "Price tiers" });
+  const tierRows = priceTierSection.locator(".pg-roster-list").first().locator(":scope > .pg-roster-row:not(.pg-removed)");
+  await expect(tierRows).toHaveCount(2);
+
+  const standardRow = tierRows.filter({ hasText: "Standard" }).first();
+  await fluentButton(standardRow, "Edit details").click();
+  const tierDialog = page.locator(".pg-catalog-dialog").filter({ has: page.locator("dialog[open]") });
+  const label = tierDialog.locator(".pg-row").filter({ hasText: "Label" }).locator("input");
+  await enterText(label, "Cancelled tier edit");
+  await fluentButton(tierDialog, "Cancel").click();
+  await expect(standardRow.locator("strong")).toHaveText("Standard");
+
+  await fluentButton(standardRow, "Edit details").click();
+  await enterText(label, "Edited standard tier");
+  await fluentButton(tierDialog, "Save tier").click();
+  await expect(standardRow.locator("strong")).toHaveText("Edited standard tier");
+  await fluentButton(standardRow, "Reset row").click();
+  await expect(standardRow.locator("strong")).toHaveText("Standard");
+
+  await fluentButton(standardRow, "Duplicate").click();
+  await expect(tierRows).toHaveCount(3);
+  await expect(tierDialog.locator("dialog[open]")).toBeVisible();
+  await fluentButton(tierDialog, "Cancel").click();
+
+  const volumeRow = tierRows.filter({ hasText: "Volume" }).first();
+  await volumeRow.locator('fluent-button[title="Remove tier"]').click();
+  await expect(tierRows).toHaveCount(2);
+  await fluentButton(priceTierSection, "Restore").click();
+  await expect(tierRows).toHaveCount(3);
+  await expect(tierRows.filter({ hasText: "Volume" })).toHaveCount(1);
+
+  const tierToSave = tierRows.filter({ hasText: "Standard" }).first();
+  await fluentButton(tierToSave, "Edit details").click();
+  await enterText(label, "Saved standard tier");
+  await fluentButton(tierDialog, "Save tier").click();
+  await expect(tierToSave.locator("strong")).toHaveText("Saved standard tier");
+
+  await fluentButton(commercialSection, "Save section draft").click();
+  await expect(page.getByText("Section draft saved to the catalog session.")).toBeVisible();
+  await fluentButton(page, "Save").first().click();
+  const reviewDialog = page.locator(".pg-catalog-review-dialog");
+  await expect(reviewDialog.locator("dialog[open]")).toBeVisible();
+  await fluentButton(reviewDialog, "Save").click();
+  await expect(page.getByText("No committed changes", { exact: true })).toBeVisible();
+  await expect(tierToSave.locator("strong")).toHaveText("Saved standard tier");
+  await expect(tierRows.filter({ hasText: "Volume" })).toHaveCount(1);
 });
 
 test("enterprise keeps a post-save edit as a new pending draft", async ({ page }) => {

@@ -4,11 +4,11 @@ Package and namespace: `SparseTypes`. Editors provide path-addressed collection 
 
 ## Obtaining an editor
 
-Generated sessions expose `session.EditCollection<TElement>(collectionPath)` and `session.EditCollection<TElement,TKey>(collectionPath)`. The second returns `SparseKeyedCollectionEditor<TElement,TKey>`.
+Generated sessions accept generated collection paths through `session.EditCollection(path)`. The path supplies the element and key types, so callers do not need to repeat them. For a raw `SparsePath`, use `session.EditCollection<TElement>(path)` or `session.EditCollection<TElement,TKey>(path)`; the keyed overload returns `SparseKeyedCollectionEditor<TElement,TKey>`.
 
 For adapters, both classes have the constructor `(IDescriptorSet descriptors, SparsePath path, Action<Action> batch)`. Equivalent descriptor extensions are `EditCollection<TElement>(path, batch)` and `EditKeyedCollection<TElement,TKey>(path, batch)` on `SparseCollectionEditors`. `IDescriptorSet` is in `SparseTypes.Generated`.
 
-These editors require a single-member collection path, such as `session.Paths.Items`. Constructor dependencies must be non-null; invalid path shape throws ArgumentException. They are not arbitrary nested-path mutation engines.
+The path may address a collection nested under a child model or keyed row, such as `Order.SparsePath.Sections.Key(sectionId).Lines`. Each operation resolves the path against the session's current descriptors, so replacing an ancestor model does not leave the editor attached to the old instance. A missing ancestor returns `PathUnavailable`; a null collection returns `NullCollection`. Constructor dependencies must be non-null, and paths that do not end at a collection member throw `ArgumentException`.
 
 ## SparseCollectionEditor<TElement>
 
@@ -25,6 +25,7 @@ These editors require a single-member collection path, such as `session.Paths.It
 | `TryReplace(int index, TElement? item, out error)` | Replaces one item. |
 | `TryRemoveAt(int index, out error)` | Removes one item. |
 | `TryMove(int oldIndex, int newIndex, out error)` | Moves an item. |
+| `BeginAdd<TParent,TItem,TChildPaths,TChildSession,TConflict>(itemPath, initialModel, parentSession)` | Opens an uninserted child draft. `TryAcceptChanges` inserts it; `DiscardChanges` leaves the parent collection unchanged. |
 
 All `error` outputs above use `SparseCollectionEditError`. Protected `Batched(Action)` and `TryResolveArray(out IArrayDescriptor, out error)` support derived editors.
 
@@ -44,6 +45,10 @@ Includes the base members and:
 | `TryRemoveByKey(TKey? key, out error)` | Removes the resolved row. |
 | `TryRemoveByTemporaryKey(Guid temporaryKey, out error)` | Removes an unassigned row by temporary identity. |
 | `TryReplaceByKey(TKey? key, TElement? item, out error)` | Replaces the resolved row. |
+| `TryGetRemovedRows(out rows, out error)` | Captures baseline handles for currently removed rows. |
+| `TryRestoreRemoved(row, out error)` | Reinserts a removed row from the captured baseline without reordering surviving rows. |
+| `TryResetByKey(key, out error)` | Resets one existing row to its latest baseline values. |
+| `BeginDuplicate<TParent,TItem,TChildPaths,TChildSession,TConflict>(key, itemPath, initializeCopy, parentSession)` | Opens an uninserted draft initialized from a deep copy of a row. The callback assigns new identity and application-owned values. |
 
 Unassigned sentinels are not stable lookup identities. Use temporary-key methods for rows awaiting server-assigned keys. Duplicate assigned or temporary identities do not resolve; keyed edits return `UnknownKey` or `UnknownTemporaryKey` without selecting the first row. On nullable keyed lists, adding a second null slot or replacing another row with null returns `DuplicateKey`. The existing null slot can be replaced at its own index.
 

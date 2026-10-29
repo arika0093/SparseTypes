@@ -14,6 +14,7 @@ SparseTypes adds model-specific APIs to supported partial models. The tables use
 | `Optional<T?>.ToObservable(Action? onChanged = null)` | Extension mapping a present model to an Observable and preserving missing/present-null states. Class models only. |
 | `session.EditCollection<TElement>(SparsePath collectionPath)` | Extension returning a path-addressed collection editor. |
 | `session.EditCollection<TElement,TKey>(SparsePath collectionPath)` | Extension returning a keyed collection editor. |
+| `session.CreateEditor(options = null)` | Creates an optional UI-neutral save and validation controller. |
 
 Import the model namespace to bring its generated extensions into scope. Their containing class names have generated hash suffixes; use extension syntax rather than naming those classes.
 

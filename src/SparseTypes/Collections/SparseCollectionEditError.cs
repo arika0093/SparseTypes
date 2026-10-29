@@ -39,4 +39,19 @@ public enum SparseCollectionEditError
 
     /// <summary>The supplied item cannot be converted to the collection element type.</summary>
     InvalidItem = 10,
+
+    /// <summary>A nested collection path cannot resolve a parent, keyed item, or member.</summary>
+    PathUnavailable = 11,
+
+    /// <summary>A nested child edit cannot be accepted because it has conflicts or an uncommitted draft.</summary>
+    ChildSessionConflict = 12,
+
+    /// <summary>A nested uninserted collection-item draft must be accepted or discarded first.</summary>
+    PendingChildDraft = 13,
+
+    /// <summary>The operation requires a generated baseline-aware collection editor.</summary>
+    BaselineUnavailable = 14,
+
+    /// <summary>The removed-row handle belongs to an older retained baseline.</summary>
+    StaleBaseline = 15,
 }

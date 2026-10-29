@@ -90,6 +90,63 @@ public sealed class SparseHeadlessComponentTests
     }
 
     [Test]
+    public async Task ControllerValidationFlowsToTypedFieldsAndCollectionRows()
+    {
+        var live = Order();
+        var session = live.CreateEditSession();
+        using var controller = session.CreateEditor(
+            new SparseEditControllerOptions<OrderDto.ChangeSet>
+            {
+                Validate = _ =>
+                    [
+                        new SparseValidationError
+                        {
+                            Path = OrderDto.SparsePath.Lines.Key("b").Quantity,
+                            Origin = "Local",
+                            Error = "Quantity is invalid.",
+                        },
+                    ],
+            }
+        );
+        SparseFieldContext<OrderDto, int>? field = null;
+        SparseCollection<OrderDto, OrderLine>? collection = null;
+        using var tree = await Headless.Tree.CreateAsync(
+            Headless.Edit(
+                session,
+                _ => { },
+                _ => builder =>
+                {
+                    builder.OpenComponent<SparseField<OrderDto, int>>(0);
+                    builder.AddAttribute(1, nameof(SparseField<OrderDto, int>.Path), OrderDto.SparsePath.Lines.Key("b").Quantity);
+                    builder.AddAttribute(
+                        2,
+                        nameof(SparseField<OrderDto, int>.ChildContent),
+                        (RenderFragment<SparseFieldContext<OrderDto, int>>)(captured => _ => field = captured)
+                    );
+                    builder.CloseComponent();
+                    builder.OpenComponent<SparseCollection<OrderDto, OrderLine>>(3);
+                    builder.AddAttribute(4, nameof(SparseCollection<OrderDto, OrderLine>.Path), OrderDto.SparsePath.Lines.UntypedPath);
+                    builder.AddAttribute(
+                        5,
+                        nameof(SparseCollection<OrderDto, OrderLine>.RowTemplate),
+                        (RenderFragment<SparseCollectionRow<OrderDto, OrderLine>>)(_ => _ => { })
+                    );
+                    builder.AddComponentReferenceCapture(6, component => collection = (SparseCollection<OrderDto, OrderLine>)component);
+                    builder.CloseComponent();
+                },
+                controller
+            )
+        );
+        session.Observable.Lines[1].Quantity = 0;
+
+        await Should.ThrowAsync<EditSessionGroupValidationException>(async () => await controller.PrepareSaveAsync());
+        await tree.FlushAsync();
+
+        field.ShouldNotBeNull().ValidationMessages.ShouldContain("Quantity is invalid.");
+        collection.ShouldNotBeNull().Rows[1].ValidationMessages.ShouldContain("Quantity is invalid.");
+    }
+
+    [Test]
     public async Task FieldWritesThroughThirdPartyValueChanged()
     {
         var live = Order();

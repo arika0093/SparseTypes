@@ -2,9 +2,12 @@
 @using SparseTypes.Blazor
 @using SparseTypes.Playground.Models
 @using SparseTypes.Playground.Components
+@inject Microsoft.JSInterop.IJSRuntime JS
 
 <SparseSessionScope @ref="_sessionScope" @key="_session" Session="_session"
     Mode="@(_sectionDraftsEnabled ? SparseChildEditMode.Draft : SparseChildEditMode.PassThrough)">
+    <SparseNavigationGuard Editor="_controller" EnableExternalConfirmation="true"
+        BeforeInternalNavigation="ConfirmInternalNavigation" />
     <div class="pg-stack">
         <FluentCard Class="pg-fluent-card pg-catalog-header" Shadow="CardShadow.None">
             <div class="pg-catalog-header-main">
@@ -183,6 +186,8 @@
 
     private EnterpriseCatalogItem _model = null!;
     private EnterpriseCatalogItem.EditSession _session = null!;
+    private SparseEditController<EnterpriseCatalogItem, EnterpriseCatalogItem.ChangeSet> _controller = null!;
+    private SparsePreparedSubmission<EnterpriseCatalogItem, EnterpriseCatalogItem.ChangeSet>? _preparedSubmission;
     private SparseSessionScope<EnterpriseCatalogItem>? _sessionScope;
     private ISparseEditHistory _history = null!;
     private FluentDialog? _saveDialog;
@@ -194,7 +199,7 @@
     private string _activeSectionTab = "enterprise-overview";
     private string _activeMasterTab = string.Empty;
 
-    private bool HasChanges => _session.HasOwnChanges;
+    private bool HasChanges => _controller.HasChanges;
     private bool CanChangeSectionDrafts =>
         !_session.HasOwnChanges && !_session.HasPendingChildSessions;
 
@@ -360,22 +365,30 @@
             return;
         }
 
-        if (!HasChanges)
+        _error = null;
+        try
         {
+            _preparedSubmission = await _controller.PrepareSaveAsync();
+        }
+        catch (EditSessionGroupValidationException exception)
+        {
+            _error = string.Join(" ", exception.Issues.Select(static issue => $"{issue.SectionId}: {issue.Message}"));
+            return;
+        }
+        catch (EditSessionStaleSubmissionException exception)
+        {
+            _error = exception.Message;
             return;
         }
 
-        _error = null;
-        if (!_session.TryCreateChangeSet(out var changes, out var conflicts))
+        if (_preparedSubmission.IsEmpty)
         {
-            _error = conflicts is null
-                ? "A child edit session target is no longer available."
-                : "Resolve the child-session conflict before saving.";
+            _error = "No changes are ready to save.";
             return;
         }
 
         _changeRows = SparseChangeRowProjection.Project(
-            changes!,
+            _preparedSubmission.Changes,
             new SparseChangeRowOptions
             {
                 FormatOperation = PlaygroundPageHelper.ChangeOperation,
@@ -402,6 +415,7 @@
     private async Task CloseSavePreview()
     {
         _saveDialogHidden = true;
+        _preparedSubmission = null;
         if (_saveDialog is null)
         {
             throw new InvalidOperationException("The catalog save dialog is not initialized.");
@@ -412,16 +426,27 @@
 
     private async Task ConfirmSave()
     {
-        await CloseSavePreview();
         try
         {
-            _session.DiscardChildSessions();
-            _session.AcceptChanges();
+            var prepared = _preparedSubmission
+                ?? throw new InvalidOperationException("The catalog save has not been prepared.");
+            var state = await _controller.SaveAsync(
+                prepared,
+                (_, _) => Task.FromResult(SparsePersistResult<EnterpriseCatalogItem>.Success(_model.DeepClone()))
+            );
+            await CloseSavePreview();
+            if (state != SparseEditSaveState.Saved)
+            {
+                _error = $"The catalog save did not complete ({state}).";
+                return;
+            }
+
             CreateSession();
             _error = null;
         }
         catch (InvalidOperationException exception)
         {
+            await CloseSavePreview();
             _error = exception.Message;
         }
     }
@@ -491,6 +516,19 @@
                     .ToArray()
             )
             {
+                if (
+                    _sessionScope?.ScopeContext is { } scopeContext
+                    && !scopeContext.TryCloseChildSession(
+                        _session,
+                        EnterpriseCatalogItem.SparsePath.WorkMasters.Key(master.StepId)
+                    )
+                )
+                {
+                    _error =
+                        $"Could not remove the work master for '{master.StepId}' while its edit session has pending changes.";
+                    return;
+                }
+
                 if (!workMasters.TryRemoveByKey(master.StepId, out var error))
                 {
                     _error =
@@ -575,8 +613,18 @@
 
     private void CreateSession()
     {
+        _controller?.Dispose();
         _session = _model.CreateEditSession();
+        _controller = _session.CreateEditor();
         _history = _session.EnableHistory();
+    }
+
+    private async Task ConfirmInternalNavigation(Microsoft.AspNetCore.Components.Routing.LocationChangingContext context)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", "There are unsaved catalog edits. Leave this page?"))
+        {
+            context.PreventNavigation();
+        }
     }
 
     private Task UndoCatalog() => ApplyHistory(_history.Undo);

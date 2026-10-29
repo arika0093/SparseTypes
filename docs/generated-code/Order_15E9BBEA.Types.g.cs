@@ -166,14 +166,15 @@ public partial class Order
         /// <remarks>Snapshot: derives one change set from the retained baseline and retains it for repeated point-in-time lookups. Live <c>FieldState</c> queries stay unnotified-mutation accurate; share the snapshot only for an explicitly captured generation.</remarks>
         /// <returns>A view serving repeated field queries without re-deriving the diff.</returns>
         public global::SparseTypes.SparseChangeSetQueryView CaptureStateSnapshot() => new global::SparseTypes.SparseChangeSetQueryView(_session.CreateChangeSetFromLiveModel());
-        /// <summary>Queries the keyed or dictionary collection state at a root collection path.</summary>
-        /// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session. Root collection members only; navigate the change set for nested collections and use <see cref="FieldState"/> for other members.</remarks>
-        /// <param name="collectionPath">The root collection member path.</param>
+        /// <summary>Queries the keyed or dictionary collection state at a root-preserving path.</summary>
+        /// <remarks>Live query: derives a fresh change set from the retained baseline on each call; the returned view snapshots that change set. State inspection only: the view never mutates the session.</remarks>
+        /// <param name="collectionPath">The collection member path.</param>
         /// <returns>The live collection state view.</returns>
-        /// <exception cref="global::System.ArgumentException">The path does not address a root keyed or dictionary collection member.</exception>
+        /// <exception cref="global::System.ArgumentException">The path does not address a keyed or dictionary collection member.</exception>
         public global::SparseTypes.SparseCollectionState CollectionState(global::SparseTypes.SparsePath collectionPath)
         {
-            throw new global::System.ArgumentException("This model has no keyed or dictionary collection members. Use FieldState for other members.", nameof(collectionPath));
+            if (global::SparseTypes.SparseCollectionStateQuery.TryGetState<global::Order>(_session.CreateChangeSetFromLiveModel(), Descriptors, collectionPath, out var state) && state.HasValue) return state.Value;
+            throw new global::System.ArgumentException("The path does not address a live keyed or dictionary collection member.", nameof(collectionPath));
         }
         /// <summary>Observes the semantic field state at a typed path with binding notifications.</summary>
         /// <remarks>Opt-in live subscription: refreshes on every session state notification (observable edits, batches, in-place apply, revert, both baseline accepts, reload, reconcile) and raises <see cref="global::System.ComponentModel.INotifyPropertyChanged.PropertyChanged"/> only on effective changes, synchronously with no UI thread marshaling. <c>IsChanged</c> is the semantic baseline diff, not a visited flag. Dispose the watcher to unsubscribe. Key segments keep identity across moves; index segments stay positional. One invalidation captures a single state snapshot shared by every watcher in that dispatch; explicit <c>Refresh</c> calls always re-read the live model.</remarks>
@@ -939,7 +940,7 @@ public partial class Order
         }
     }
     /// <summary>Baseline-aware transition between two states. Validates before-states and supports compose and rebase.</summary>
-    public sealed partial class ChangeSet : global::SparseTypes.ISparseChangeSet<global::Order>, global::SparseTypes.ISparseChangeSetPipeline<global::Order, ChangeSet>
+    public sealed partial class ChangeSet : global::SparseTypes.ISparseChangeSet<global::Order>, global::SparseTypes.ISparseChangeSetReverter, global::SparseTypes.ISparseChangeSetPipeline<global::Order, ChangeSet>, global::SparseTypes.ISparseCollectionChangeSetQueries
     {
         /// <summary>Gets the time this transition was recorded.</summary>
         public global::System.DateTimeOffset? RecordedAt => __sparse_recordedAt;
@@ -992,6 +993,25 @@ public partial class Order
             if (memberName is null) { change = null; return false; }
             change = null;
             return false;
+        }
+        /// <inheritdoc />
+        bool global::SparseTypes.ISparseCollectionChangeSetQueries.TryGetCollectionState(string memberName, global::SparseTypes.SparsePath path, out global::SparseTypes.SparseCollectionState state)
+        {
+            state = default;
+            return false;
+        }
+        /// <inheritdoc />
+        bool global::SparseTypes.ISparseCollectionChangeSetQueries.TryGetCollectionItemChange(string memberName, global::SparseTypes.SparsePathSegment identity, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::SparseTypes.ISparseChangeSet? item)
+        {
+            item = null;
+            return false;
+        }
+        /// <inheritdoc />
+        bool global::SparseTypes.ISparseChangeSetReverter.TryRevert(object current, out object? restored)
+        {
+            if (current is not global::Order typed || !Invert().TryApplyTo(typed, out var reverted, out _)) { restored = null; return false; }
+            restored = reverted;
+            return true;
         }
         /// <summary>Derives the canonical baseline-aware diff between two states.</summary>
         /// <remarks>The change set snapshots its inputs: whole-root fragments are deep-cloned and member collection containers are copied at capture, so later caller-side mutation cannot alter retained history. Element values are shared by reference. Typed <c>Before</c>/<c>After</c> endpoints return fresh container snapshots for collection members.</remarks>

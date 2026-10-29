@@ -27,6 +27,9 @@ internal sealed record SparseTransitionContracts(
     /// <summary>Optional typed model-rebase bridge used by persistence integrations.</summary>
     public string? PipelineChangeSetInterfaceType { get; init; }
 
+    /// <summary>Optional typed inverse-application contract.</summary>
+    public string? ChangeSetReverterInterfaceType { get; init; }
+
     /// <summary>Read-only keyed-sequence transition contract (open generic, arity 3).</summary>
     public string KeyedChangeInterfaceType { get; init; } = KeyedChangeInterfaceType;
 
@@ -59,4 +62,34 @@ internal sealed record SparseTransitionContracts(
 
     /// <summary>Optional helper converting typed Optional endpoints to object-valued endpoints.</summary>
     public string? OptionalBoxType { get; init; }
+
+    /// <summary>Optional collection-state type enabled for generated nested-state queries.</summary>
+    public string? CollectionStateType { get; init; }
+
+    /// <summary>Optional non-generic bridge implemented by generated change sets for nested-state queries.</summary>
+    public string? CollectionStateQueryInterfaceType { get; init; }
+
+    /// <summary>Optional path type used by generated collection-state query contracts.</summary>
+    public string? CollectionStatePathType { get; init; }
+
+    /// <summary>Optional path-segment type used by generated nested collection-item queries.</summary>
+    public string? CollectionStatePathSegmentType { get; init; }
+
+    /// <summary>Optional path-segment kind enum used by generated nested collection-item queries.</summary>
+    public string? CollectionStatePathSegmentKindType { get; init; }
+
+    /// <summary>Optional permanent-key segment member name.</summary>
+    public string? CollectionStateKeySegmentKindMemberName { get; init; }
+
+    /// <summary>Optional temporary-key segment member name.</summary>
+    public string? CollectionStateTemporaryKeySegmentKindMemberName { get; init; }
+
+    /// <summary>Optional helper type that converts typed transitions to collection-state views.</summary>
+    public string? CollectionStateQueriesType { get; init; }
+
+    /// <summary>Optional keyed transition-to-state helper method name.</summary>
+    public string? CollectionStateKeyedMethodName { get; init; }
+
+    /// <summary>Optional dictionary transition-to-state helper method name.</summary>
+    public string? CollectionStateDictionaryMethodName { get; init; }
 }

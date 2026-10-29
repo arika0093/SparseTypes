@@ -14,11 +14,13 @@ public sealed class SparseFieldContext<TModel, TValue>
 {
     private readonly ISparseEditSession<TModel> _session;
     private readonly SparseSessionScopeContext<TModel>? _scopeContext;
+    private readonly ISparseValidationScope? _validationScope;
 
     internal SparseFieldContext(
         ComponentBase receiver,
         ISparseEditSession<TModel> session,
         SparseSessionScopeContext<TModel>? scopeContext,
+        ISparseValidationScope? validationScope,
         SparseFieldBinding<TModel, TValue> binding,
         ISparseTypedPath<TModel, TValue> path
     )
@@ -26,6 +28,7 @@ public sealed class SparseFieldContext<TModel, TValue>
         ArgumentNullException.ThrowIfNull(receiver);
         _session = session;
         _scopeContext = scopeContext;
+        _validationScope = validationScope;
         Binding = binding;
         Path = path;
         ValueChanged = EventCallback.Factory.Create<TValue>(receiver, value => binding.SetAsync(value));
@@ -90,8 +93,16 @@ public sealed class SparseFieldContext<TModel, TValue>
 
     /// <summary>Gets the current validation messages for the live field.</summary>
     /// <remarks>Empty when the binding is stale.</remarks>
-    public IEnumerable<string> ValidationMessages =>
-        Binding.TryGetField(out var fieldId, out _) ? Binding.EditContext.GetValidationMessages(fieldId) : [];
+    public IEnumerable<string> ValidationMessages
+    {
+        get
+        {
+            var editContextMessages = Binding.TryGetField(out var fieldId, out _) ? Binding.EditContext.GetValidationMessages(fieldId) : [];
+            return _validationScope is null
+                ? editContextMessages
+                : editContextMessages.Concat(_validationScope.GetValidationMessages(Path.UntypedPath));
+        }
+    }
 
     /// <summary>Writes through the binding, throwing on failure.</summary>
     /// <param name="value">The value to write.</param>

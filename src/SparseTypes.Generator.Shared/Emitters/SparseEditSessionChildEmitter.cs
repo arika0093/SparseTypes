@@ -85,15 +85,89 @@ internal static class SparseEditSessionChildEmitter
             return;
         }
 
+        code.AppendLine("/// <summary>Occurs when the set of uninserted collection-item drafts changes.</summary>");
+        code.AppendLine("public event global::System.Action? CollectionDraftsChanged;");
         code.AppendLine("/// <summary>Gets whether a child session or descendant has pending changes.</summary>");
         code.AppendLine("public bool HasPendingChildSessions");
         code.OpenBlock();
         code.AppendLine("get");
         code.OpenBlock();
+        code.AppendLine("if (HasPendingCollectionDrafts) return true;");
         code.AppendLine("if (__sparse_child_sessions is null) return false;");
         code.AppendLine("foreach (var child in __sparse_child_sessions) if (child.HasChanges()) return true;");
         code.AppendLine("return false;");
         code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Gets whether an uninserted collection-item draft is open.</summary>");
+        code.AppendLine("public bool HasPendingCollectionDrafts => __sparse_collection_drafts is { Count: > 0 };");
+        code.AppendLine("/// <summary>Registers an uninserted collection-item draft with this session.</summary>");
+        code.AppendLine("/// <param name=\"path\">The collection path that will receive the item.</param>");
+        code.AppendLine("/// <param name=\"draft\">The draft handle used to release it on explicit disposal.</param>");
+        code.AppendLine(
+            "public void RegisterCollectionDraft(" + SparseFragmentPatchEmitter.GetPathType(patchDialect) + " path, global::System.IDisposable draft)"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (draft is null) throw new global::System.ArgumentNullException(nameof(draft));");
+        code.AppendLine(
+            "if (path.RootType != typeof("
+                + modelType
+                + ")) throw new global::System.ArgumentException(\"The collection draft path belongs to a different root model.\", nameof(path));"
+        );
+        code.AppendLine(
+            "__sparse_collection_drafts ??= new global::System.Collections.Generic.List<("
+                + SparseFragmentPatchEmitter.GetPathType(patchDialect)
+                + " Path, global::System.IDisposable Draft)>();"
+        );
+        code.AppendLine(
+            "foreach (var entry in __sparse_collection_drafts) if (global::System.Object.ReferenceEquals(entry.Draft, draft)) throw new global::System.InvalidOperationException(\"The collection draft is already registered.\");"
+        );
+        code.AppendLine("__sparse_collection_drafts.Add((path, draft));");
+        code.AppendLine("CollectionDraftsChanged?.Invoke();");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Unregisters a collection-item draft after acceptance or explicit disposal.</summary>");
+        code.AppendLine("/// <param name=\"draft\">The registered draft handle.</param>");
+        code.AppendLine("public void UnregisterCollectionDraft(global::System.IDisposable draft)");
+        code.OpenBlock();
+        code.AppendLine("if (draft is null) throw new global::System.ArgumentNullException(nameof(draft));");
+        code.AppendLine("if (__sparse_collection_drafts is null) return;");
+        code.AppendLine(
+            "for (var index = __sparse_collection_drafts.Count - 1; index >= 0; index--) if (global::System.Object.ReferenceEquals(__sparse_collection_drafts[index].Draft, draft)) __sparse_collection_drafts.RemoveAt(index);"
+        );
+        code.AppendLine("CollectionDraftsChanged?.Invoke();");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Determines whether an open draft is nested under the supplied model instance.</summary>");
+        code.AppendLine("/// <param name=\"model\">The model instance that would be removed or replaced.</param>");
+        code.AppendLine("public bool HasPendingCollectionDraftFor(object model)");
+        code.OpenBlock();
+        code.AppendLine("if (model is null) throw new global::System.ArgumentNullException(nameof(model));");
+        code.AppendLine("if (__sparse_collection_drafts is null) return false;");
+        code.AppendLine("foreach (var entry in __sparse_collection_drafts)");
+        code.OpenBlock();
+        code.AppendLine("var path = entry.Path;");
+        code.AppendLine("while (true)");
+        code.OpenBlock();
+        code.AppendLine("if (global::System.Object.ReferenceEquals(Descriptors.ResolveModel(path), model)) return true;");
+        code.AppendLine("var parent = path.Parent;");
+        code.AppendLine("if (!parent.HasValue) break;");
+        code.AppendLine("path = parent.Value;");
+        code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Determines whether an open collection draft is nested under the supplied path.</summary>");
+        code.AppendLine("/// <param name=\"path\">The path whose subtree would be replaced or removed.</param>");
+        code.AppendLine("public bool HasPendingCollectionDraftUnder(" + SparseFragmentPatchEmitter.GetPathType(patchDialect) + " path)");
+        code.OpenBlock();
+        code.AppendLine(
+            "if (path.RootType != typeof("
+                + modelType
+                + ")) throw new global::System.ArgumentException(\"The path belongs to a different root model.\", nameof(path));"
+        );
+        code.AppendLine("if (__sparse_collection_drafts is null) return false;");
+        code.AppendLine(
+            "foreach (var entry in __sparse_collection_drafts) if (path.Equals(entry.Path) || path.IsAncestorOf(entry.Path)) return true;"
+        );
+        code.AppendLine("return false;");
         code.CloseBlock();
         code.AppendLine("/// <summary>Applies this session and its pending child sessions to a separate model candidate.</summary>");
         code.AppendLine("/// <param name=\"current\">The model state to rebase onto.</param>");
@@ -111,6 +185,7 @@ internal static class SparseEditSessionChildEmitter
         );
         code.OpenBlock();
         code.AppendLine("if (current is null) throw new global::System.ArgumentNullException(nameof(current));");
+        code.AppendLine("if (HasPendingCollectionDrafts) { updated = null; conflicts = null; return false; }");
         code.AppendLine("var candidate = current;");
         code.AppendLine("var ownChanges = PreviewChangeSet();");
         code.AppendLine(
@@ -233,11 +308,45 @@ internal static class SparseEditSessionChildEmitter
         code.AppendLine("/// <summary>Discards pending edits in every registered child session.</summary>");
         code.AppendLine("public void DiscardChildSessions()");
         code.OpenBlock();
+        code.AppendLine("if (__sparse_collection_drafts is not null)");
+        code.OpenBlock();
+        code.AppendLine(
+            "for (var index = __sparse_collection_drafts.Count - 1; index >= 0; index--) __sparse_collection_drafts[index].Draft.Dispose();"
+        );
+        code.CloseBlock();
         code.AppendLine("if (__sparse_child_sessions is not null)");
         code.OpenBlock();
         code.AppendLine("foreach (var child in __sparse_child_sessions)");
         code.AppendLine("if (child.HasChanges()) child.Discard();");
         code.CloseBlock();
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Determines whether a child edit session is registered at or below a path.</summary>");
+        code.AppendLine("/// <param name=\"path\">The path whose subtree would be replaced or removed.</param>");
+        code.AppendLine("public bool HasPendingChildSessionUnder(" + SparseFragmentPatchEmitter.GetPathType(patchDialect) + " path)");
+        code.OpenBlock();
+        code.AppendLine(
+            "if (path.RootType != typeof("
+                + modelType
+                + ")) throw new global::System.ArgumentException(\"The path belongs to a different root model.\", nameof(path));"
+        );
+        code.AppendLine("if (__sparse_child_sessions is null) return false;");
+        code.AppendLine("foreach (var child in __sparse_child_sessions) if (path.Equals(child.Path) || path.IsAncestorOf(child.Path)) return true;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+        code.AppendLine("/// <summary>Determines whether a registered child session at or below a path has pending changes.</summary>");
+        code.AppendLine("/// <param name=\"path\">The path whose subtree is being checked.</param>");
+        code.AppendLine("public bool HasPendingChildChangesUnder(" + SparseFragmentPatchEmitter.GetPathType(patchDialect) + " path)");
+        code.OpenBlock();
+        code.AppendLine(
+            "if (path.RootType != typeof("
+                + modelType
+                + ")) throw new global::System.ArgumentException(\"The path belongs to a different root model.\", nameof(path));"
+        );
+        code.AppendLine("if (__sparse_child_sessions is null) return false;");
+        code.AppendLine(
+            "foreach (var child in __sparse_child_sessions) if ((path.Equals(child.Path) || path.IsAncestorOf(child.Path)) && child.HasChanges()) return true;"
+        );
+        code.AppendLine("return false;");
         code.CloseBlock();
     }
 
@@ -265,6 +374,7 @@ internal static class SparseEditSessionChildEmitter
         AppendChildOverlapGuard(code, patchDialect);
         code.AppendLine("candidate = _session.GetModelForFrameworkAccess();");
         code.AppendLine("hasPendingChildChanges = false;");
+        code.AppendLine("if (HasPendingCollectionDrafts) { candidate = null; conflicts = null; return false; }");
         code.AppendLine("if (__sparse_child_sessions is not null)");
         code.OpenBlock();
         code.AppendLine("foreach (var child in __sparse_child_sessions)");
@@ -302,6 +412,9 @@ internal static class SparseEditSessionChildEmitter
             "private global::System.Collections.Generic.List<"
                 + ChildRegistrationTuple(pathType, modelType, conflictType)
                 + ">? __sparse_child_sessions;"
+        );
+        code.AppendLine(
+            "private global::System.Collections.Generic.List<(" + pathType + " Path, global::System.IDisposable Draft)>? __sparse_collection_drafts;"
         );
     }
 

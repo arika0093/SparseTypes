@@ -13,6 +13,7 @@ public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposa
     where TPaths : ISparseTypedPath<TModel, TModel>
 {
     private ISparseEditSessionWithPaths<TModel, TPaths>? _session;
+    private ISparseEditController<TModel>? _controller;
     private SparseEditContext<TModel, TPaths>? _context;
     private INotifyPropertyChanged? _notifier;
     private Action? _unsubscribeHistoryChanged;
@@ -24,6 +25,10 @@ public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposa
     [Parameter]
     public ISparseEditSessionWithPaths<TModel, TPaths>? Session { get; set; }
 
+    /// <summary>Gets or sets the optional save and validation controller for the session.</summary>
+    [Parameter]
+    public ISparseEditController<TModel>? Controller { get; set; }
+
     /// <summary>Gets or sets the content rendered inside the session cascade.</summary>
     [Parameter]
     public RenderFragment<SparseEditContext<TModel, TPaths>>? ChildContent { get; set; }
@@ -32,16 +37,22 @@ public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposa
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        if (!ReferenceEquals(_session, Session))
+        if (Controller is not null && !ReferenceEquals(Controller.Session, Session))
+        {
+            throw new InvalidOperationException("The edit controller must own the same session supplied to SparseEdit.");
+        }
+
+        if (!ReferenceEquals(_session, Session) || !ReferenceEquals(_controller, Controller))
         {
             Unsubscribe();
             _context?.Dispose();
             _session = Session;
+            _controller = Controller;
             if (Session is not null)
             {
                 // Created through trusted framework access, so the observable
                 // change cache stays intact for later HasChanges reads.
-                _context = new SparseEditContext<TModel, TPaths>(Session, Session.Paths, Session.CreateEditContext());
+                _context = new SparseEditContext<TModel, TPaths>(Session, Session.Paths, Session.CreateEditContext(), Controller);
                 Subscribe(Session);
             }
             else
@@ -71,6 +82,11 @@ public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposa
 
     private void Subscribe(ISparseEditSessionWithPaths<TModel, TPaths> session)
     {
+        if (_controller is not null)
+        {
+            _controller.PropertyChanged += OnSessionChanged;
+        }
+
         if (session is INotifyPropertyChanged notifier)
         {
             _notifier = notifier;
@@ -97,6 +113,11 @@ public sealed partial class SparseEdit<TModel, TPaths> : ComponentBase, IDisposa
             // never disposed here, so remounts observe the retained stacks.
             _history.StateChanged -= OnHistoryStateChanged;
             _history = null;
+        }
+
+        if (_controller is not null)
+        {
+            _controller.PropertyChanged -= OnSessionChanged;
         }
     }
 

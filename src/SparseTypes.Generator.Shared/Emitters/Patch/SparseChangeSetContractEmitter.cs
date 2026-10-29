@@ -29,7 +29,13 @@ internal static class SparseChangeSetContractEmitter
         var contracts = dialect.TransitionContracts!;
         if (modelType is null)
         {
-            return " : " + contracts.ChangeSetInterfaceType;
+            var rootInterfaces = new List<string> { contracts.ChangeSetInterfaceType };
+            if (contracts.CollectionStateQueryInterfaceType is { Length: > 0 } queryInterface)
+            {
+                rootInterfaces.Add(queryInterface);
+            }
+
+            return " : " + string.Join(", ", rootInterfaces);
         }
 
         var interfaces = new List<string>();
@@ -38,12 +44,27 @@ internal static class SparseChangeSetContractEmitter
             interfaces.Add(typedInterfaceType + "<" + modelType + ">");
         }
 
+        if (contracts.ChangeSetReverterInterfaceType is { Length: > 0 } reverterInterfaceType)
+        {
+            interfaces.Add(reverterInterfaceType);
+        }
+
         if (contracts.PipelineChangeSetInterfaceType is string pipelineInterfaceType)
         {
             interfaces.Add(pipelineInterfaceType + "<" + modelType + ", ChangeSet>");
         }
 
-        return interfaces.Count == 0 ? " : " + contracts.ChangeSetInterfaceType : " : " + string.Join(", ", interfaces);
+        if (interfaces.Count == 0)
+        {
+            interfaces.Add(contracts.ChangeSetInterfaceType);
+        }
+
+        if (contracts.CollectionStateQueryInterfaceType is { Length: > 0 } collectionStateQueryInterface)
+        {
+            interfaces.Add(collectionStateQueryInterface);
+        }
+
+        return " : " + string.Join(", ", interfaces);
     }
 
     internal static string ScalarBases(SparseFragmentPatchEmitter.SparsePatchDialect dialect, string valueType) =>
@@ -207,7 +228,8 @@ internal static class SparseChangeSetContractEmitter
     internal static void AppendChangeSetContract(
         SharedIndentedBuilder code,
         ImmutableArray<SparseMemberModel> members,
-        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect,
+        string? modelType
     )
     {
         if (!HasContracts(dialect))
@@ -234,6 +256,21 @@ internal static class SparseChangeSetContractEmitter
         AppendTryGetValue(code, members, propNames, dialect, iface);
         AppendTryGetKeyed(code, members, propNames, dialect, iface);
         AppendTryGetDictionary(code, members, propNames, dialect, iface);
+        AppendCollectionStateQueries(code, members, propNames, dialect);
+        if (modelType is not null && contracts.ChangeSetReverterInterfaceType is { Length: > 0 } reverterInterfaceType)
+        {
+            code.AppendLine("/// <inheritdoc />");
+            code.AppendLine("bool " + reverterInterfaceType + ".TryRevert(object current, out object? restored)");
+            code.OpenBlock();
+            code.AppendLine(
+                "if (current is not "
+                    + modelType
+                    + " typed || !Invert().TryApplyTo(typed, out var reverted, out _)) { restored = null; return false; }"
+            );
+            code.AppendLine("restored = reverted;");
+            code.AppendLine("return true;");
+            code.CloseBlock();
+        }
     }
 
     private static void AppendTryGetNested(
@@ -412,6 +449,221 @@ internal static class SparseChangeSetContractEmitter
             );
         }
         code.AppendLine("change = null;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+    }
+
+    private static void AppendCollectionStateQueries(
+        SharedIndentedBuilder code,
+        ImmutableArray<SparseMemberModel> members,
+        System.Collections.Generic.Dictionary<int, string> propNames,
+        SparseFragmentPatchEmitter.SparsePatchDialect dialect
+    )
+    {
+        var contracts = dialect.TransitionContracts!;
+        if (
+            contracts.CollectionStateType is not { Length: > 0 } stateType
+            || contracts.CollectionStatePathType is not { Length: > 0 } pathType
+            || contracts.CollectionStatePathSegmentType is not { Length: > 0 } segmentType
+            || contracts.CollectionStatePathSegmentKindType is not { Length: > 0 } segmentKindType
+            || contracts.CollectionStateKeySegmentKindMemberName is not { Length: > 0 } keyKindName
+            || contracts.CollectionStateTemporaryKeySegmentKindMemberName is not { Length: > 0 } temporaryKeyKindName
+            || contracts.CollectionStateQueriesType is not { Length: > 0 } queriesType
+            || contracts.CollectionStateQueryInterfaceType is not { Length: > 0 } queryInterface
+            || contracts.CollectionStateKeyedMethodName is not { Length: > 0 } keyedMethodName
+            || contracts.CollectionStateDictionaryMethodName is not { Length: > 0 } dictionaryMethodName
+        )
+        {
+            return;
+        }
+
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine("bool " + queryInterface + ".TryGetCollectionState(string memberName, " + pathType + " path, out " + stateType + " state)");
+        code.OpenBlock();
+        foreach (var member in members)
+        {
+            if (!IsKeyed(member) && !IsDict(member))
+            {
+                continue;
+            }
+
+            var property = SparseNaming.EscapeIdentifier(propNames[member.Id]);
+            var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(member.Property.Name, true);
+            var transitionType = IsKeyed(member)
+                ? contracts.KeyedChangeInterfaceType
+                    + "<"
+                    + KeyTypeOf(member)
+                    + ", "
+                    + ElementTypeOf(member)
+                    + ", "
+                    + ElementChangeSetOf(member)
+                    + ">"
+                : contracts.DictionaryChangeInterfaceType
+                    + "<"
+                    + KeyTypeOf(member)
+                    + ", "
+                    + ValueTypeOf(member)
+                    + ", "
+                    + DictEditedType(member)
+                    + ">";
+            var methodName = IsKeyed(member) ? keyedMethodName : dictionaryMethodName;
+            code.AppendLine(
+                "if (global::System.String.Equals(memberName, "
+                    + literal
+                    + ", global::System.StringComparison.Ordinal) && "
+                    + "(object)"
+                    + property
+                    + " is "
+                    + transitionType
+                    + " __sparse_collection_"
+                    + member.Id
+                    + ") { state = "
+                    + queriesType
+                    + "."
+                    + methodName
+                    + "(__sparse_collection_"
+                    + member.Id
+                    + ", path); return true; }"
+            );
+        }
+
+        code.AppendLine("state = default;");
+        code.AppendLine("return false;");
+        code.CloseBlock();
+
+        code.AppendLine("/// <inheritdoc />");
+        code.AppendLine(
+            "bool "
+                + queryInterface
+                + ".TryGetCollectionItemChange(string memberName, "
+                + segmentType
+                + " identity, "
+                + NotNullWhenTrue
+                + "out "
+                + contracts.ChangeSetInterfaceType
+                + "? item)"
+        );
+        code.OpenBlock();
+        code.AppendLine("item = null;");
+        foreach (var member in members)
+        {
+            if (!IsKeyed(member) && !IsStructuralDict(member))
+            {
+                continue;
+            }
+
+            var property = SparseNaming.EscapeIdentifier(propNames[member.Id]);
+            var literal = Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(member.Property.Name, true);
+            var keyType = KeyTypeOf(member);
+            if (IsKeyed(member))
+            {
+                var transitionType =
+                    contracts.KeyedChangeInterfaceType + "<" + keyType + ", " + ElementTypeOf(member) + ", " + ElementChangeSetOf(member) + ">";
+                code.AppendLine(
+                    "if (global::System.String.Equals(memberName, "
+                        + literal
+                        + ", global::System.StringComparison.Ordinal) && "
+                        + "(object)"
+                        + property
+                        + " is "
+                        + transitionType
+                        + " __sparse_collection_"
+                        + member.Id
+                        + ")"
+                );
+                code.OpenBlock();
+                if (SparseKeyedCollectionEmitter.HasTemporaryKey(member))
+                {
+                    var temporaryTransitionType =
+                        contracts.TemporaryKeyedChangeInterfaceType
+                        + "<"
+                        + keyType
+                        + ", "
+                        + ElementTypeOf(member)
+                        + ", "
+                        + ElementChangeSetOf(member)
+                        + ">";
+                    code.AppendLine(
+                        "if (identity.Kind == "
+                            + segmentKindType
+                            + "."
+                            + temporaryKeyKindName
+                            + " && __sparse_collection_"
+                            + member.Id
+                            + " is "
+                            + temporaryTransitionType
+                            + " __sparse_temporary_"
+                            + member.Id
+                            + ") { item = __sparse_temporary_"
+                            + member.Id
+                            + ".GetTemporaryChange(identity.TemporaryKey!.Value).Edit as "
+                            + contracts.ChangeSetInterfaceType
+                            + "; return item is not null; }"
+                    );
+                }
+
+                code.AppendLine(
+                    "if (identity.Kind == "
+                        + segmentKindType
+                        + "."
+                        + keyKindName
+                        + " && identity.Key is not null) { item = __sparse_collection_"
+                        + member.Id
+                        + ".GetChange(("
+                        + keyType
+                        + ")identity.Key)"
+                        + ".Edit as "
+                        + contracts.ChangeSetInterfaceType
+                        + "; return item is not null; }"
+                );
+                code.CloseBlock();
+            }
+            else
+            {
+                var transitionType =
+                    contracts.DictionaryChangeInterfaceType + "<" + keyType + ", " + ValueTypeOf(member) + ", " + DictEditedType(member) + ">";
+                var itemType =
+                    contracts.StructuralDictionaryItemChangeInterfaceType
+                    + "<"
+                    + keyType
+                    + ", "
+                    + ValueTypeOf(member)
+                    + ", "
+                    + ValueChangeSetOf(member)
+                    + ">";
+                code.AppendLine(
+                    "if (global::System.String.Equals(memberName, "
+                        + literal
+                        + ", global::System.StringComparison.Ordinal) && identity.Kind == "
+                        + segmentKindType
+                        + "."
+                        + keyKindName
+                        + " && identity.Key is not null"
+                        + " && "
+                        + "(object)"
+                        + property
+                        + " is "
+                        + transitionType
+                        + " __sparse_collection_"
+                        + member.Id
+                        + " && __sparse_collection_"
+                        + member.Id
+                        + ".GetChange(("
+                        + keyType
+                        + ")identity.Key)"
+                        + " is "
+                        + itemType
+                        + " __sparse_item_"
+                        + member.Id
+                        + ") { item = __sparse_item_"
+                        + member.Id
+                        + ".Edit as "
+                        + contracts.ChangeSetInterfaceType
+                        + "; return item is not null; }"
+                );
+            }
+        }
+
         code.AppendLine("return false;");
         code.CloseBlock();
     }

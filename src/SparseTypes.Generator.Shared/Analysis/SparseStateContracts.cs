@@ -21,6 +21,9 @@ internal sealed record SparseStateContracts(
     /// <summary>Session method that captures and diffs the live model without reusing an observed snapshot.</summary>
     public string CreateChangeSetFromLiveModelMember { get; init; } = CreateChangeSetFromLiveModelMember;
 
+    /// <summary>Path-aware collection-state resolver type.</summary>
+    public string CollectionStateQueryType { get; init; } = string.Empty;
+
     /// <summary>Opt-in live field-state subscription type (open generic, arity 1).</summary>
     /// <remarks>
     /// Empty disables the observe surface while keeping the point-in-time

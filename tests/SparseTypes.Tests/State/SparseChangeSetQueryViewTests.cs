@@ -22,19 +22,13 @@ public sealed class SparseChangeSetQueryViewTests
             return Records!();
         }
 
-        public bool TryGetNestedChange(
-            string memberName,
-            [NotNullWhen(true)] out ISparseChangeSet? child
-        )
+        public bool TryGetNestedChange(string memberName, [NotNullWhen(true)] out ISparseChangeSet? child)
         {
             child = null;
             return false;
         }
 
-        public bool TryGetValueChange<T>(
-            string memberName,
-            [NotNullWhen(true)] out ISparseValueChange<T>? change
-        )
+        public bool TryGetValueChange<T>(string memberName, [NotNullWhen(true)] out ISparseValueChange<T>? change)
         {
             change = null;
             return false;
@@ -143,18 +137,8 @@ public sealed class SparseChangeSetQueryViewTests
     {
         var path = SparsePath.Root<Settings>().Member("RetryCount");
         var view = ViewOf(
-            new SparseChangeRecord(
-                path,
-                Optional<object?>.Present(3),
-                Optional<object?>.Present(4),
-                SparseChangeKind.Changed
-            ),
-            new SparseChangeRecord(
-                path,
-                Optional<object?>.Present(4),
-                Optional<object?>.Present(5),
-                SparseChangeKind.Changed
-            )
+            new SparseChangeRecord(path, Optional<object?>.Present(3), Optional<object?>.Present(4), SparseChangeKind.Changed),
+            new SparseChangeRecord(path, Optional<object?>.Present(4), Optional<object?>.Present(5), SparseChangeKind.Changed)
         );
 
         var state = view.FieldState(Settings.SparsePath.RetryCount);
@@ -172,12 +156,7 @@ public sealed class SparseChangeSetQueryViewTests
         intKey.ToString().ShouldBe(stringKey.ToString());
 
         var view = ViewOf(
-            new SparseChangeRecord(
-                intKey,
-                Optional<object?>.Present("before"),
-                Optional<object?>.Present("after"),
-                SparseChangeKind.Changed
-            )
+            new SparseChangeRecord(intKey, Optional<object?>.Present("before"), Optional<object?>.Present("after"), SparseChangeKind.Changed)
         );
 
         // Distinct typed keys never merge through display text.
@@ -192,14 +171,7 @@ public sealed class SparseChangeSetQueryViewTests
     {
         var settingsPath = SparsePath.Root<Settings>().Member("RetryCount");
         var nestedPath = SparsePath.Root<Nested>().Member("Host");
-        var view = ViewOf(
-            new SparseChangeRecord(
-                settingsPath,
-                Optional<object?>.Present(3),
-                Optional<object?>.Present(4),
-                SparseChangeKind.Changed
-            )
-        );
+        var view = ViewOf(new SparseChangeRecord(settingsPath, Optional<object?>.Present(3), Optional<object?>.Present(4), SparseChangeKind.Changed));
 
         view.FieldState(settingsPath).IsChanged.ShouldBeTrue();
         view.FieldState(nestedPath).HasChanges.ShouldBeFalse();
@@ -210,14 +182,7 @@ public sealed class SparseChangeSetQueryViewTests
     {
         var root = SparsePath.Root<Settings>();
         var leaf = root.Member("Nested").Member("Host");
-        var view = ViewOf(
-            new SparseChangeRecord(
-                root,
-                Optional<object?>.Missing,
-                Optional<object?>.Missing,
-                SparseChangeKind.Changed
-            )
-        );
+        var view = ViewOf(new SparseChangeRecord(root, Optional<object?>.Missing, Optional<object?>.Missing, SparseChangeKind.Changed));
 
         var rootState = view.FieldState(root);
         rootState.IsChanged.ShouldBeTrue();
@@ -238,9 +203,7 @@ public sealed class SparseChangeSetQueryViewTests
         var view = changes.CaptureQueryView();
 
         // RetryCount holds an int; reading it as a string fails on both paths.
-        var bad = new SparsePath<Settings, string>(
-            SparsePath.Root<Settings>().Member("RetryCount")
-        );
+        var bad = new SparsePath<Settings, string>(SparsePath.Root<Settings>().Member("RetryCount"));
         Should.Throw<InvalidOperationException>(() => changes.FieldState(bad));
         Should.Throw<InvalidOperationException>(() => view.FieldState(bad));
     }
@@ -255,15 +218,7 @@ public sealed class SparseChangeSetQueryViewTests
 
         // Later source mutations are not observed.
         stub.Records = () =>
-            new[]
-            {
-                new SparseChangeRecord(
-                    path,
-                    Optional<object?>.Present(3),
-                    Optional<object?>.Present(4),
-                    SparseChangeKind.Changed
-                ),
-            };
+            new[] { new SparseChangeRecord(path, Optional<object?>.Present(3), Optional<object?>.Present(4), SparseChangeKind.Changed) };
         view.FieldState(path).HasChanges.ShouldBeFalse();
         stub.Calls.ShouldBe(1);
     }

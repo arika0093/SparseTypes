@@ -23,6 +23,15 @@ public static partial class OrderExtensions_15E9BBEA
     public static global::Order.EditSession CreateEditSession(this global::Order model, global::System.Action? onChanged = null) => new global::Order.EditSession(model, onChanged);
     /// <summary>Creates a framework-neutral edit session that edits the supplied current model against a separate baseline snapshot.</summary>
     public static global::Order.EditSession CreateEditSession(this global::Order baseline, global::Order current, global::System.Action? onChanged = null) => new global::Order.EditSession(baseline, current, onChanged);
+    /// <summary>Creates an optional validation and save coordinator for this edit session.</summary>
+    /// <param name="session">The generated edit session.</param>
+    /// <param name="options">Validation and readiness callbacks, or null for no application validation.</param>
+    /// <returns>A controller that prepares immutable submissions and reconciles authoritative save results.</returns>
+    public static global::SparseTypes.SparseEditController<global::Order, global::Order.ChangeSet> CreateEditor(this global::Order.EditSession session, global::SparseTypes.SparseEditControllerOptions<global::Order.ChangeSet>? options = null)
+    {
+        if (session is null) throw new global::System.ArgumentNullException(nameof(session));
+        return new global::SparseTypes.SparseEditController<global::Order, global::Order.ChangeSet>(session, options);
+    }
     /// <summary>Maps an optional model to its typed observable proxy while preserving missing and present-null states.</summary>
     public static global::SparseTypes.Optional<global::Order.Observable?> ToObservable(this global::SparseTypes.Optional<global::Order?> model, global::System.Action? onChanged = null)
     {
@@ -34,23 +43,32 @@ public static partial class OrderExtensions_15E9BBEA
     /// <remarks>Each operation re-resolves the live collection and runs inside one batch, so a replaced collection never acts on stale state and one user action raises one transition notification. Keyed lookups resolve stable identity per operation and never treat a sentinel or position as durable identity. For state inspection rather than editing, read the typed ChangeSet projections instead.</remarks>
     /// <typeparam name="TElement">The collection element model type.</typeparam>
     /// <param name="session">The edit session.</param>
-    /// <param name="collectionPath">A single-member collection path.</param>
+    /// <param name="collectionPath">A path ending at a collection member.</param>
     /// <returns>An editing facade bound to the addressed member.</returns>
     public static global::SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this global::Order.EditSession session, global::SparseTypes.SparsePath collectionPath)
     {
         if (session is null) throw new global::System.ArgumentNullException(nameof(session));
-        return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit);
+        return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit, session);
     }
     /// <summary>Opens a path-addressed keyed editing facade for one collection member of this session.</summary>
     /// <remarks>Keyed operations resolve the current index per operation, so rows survive reordering; unassigned sentinels never serve as durable identity. Temporary identities address pending rows through their stable Guid.</remarks>
     /// <typeparam name="TElement">The collection element model type.</typeparam>
     /// <typeparam name="TKey">The assigned key type declared by the key attribute.</typeparam>
     /// <param name="session">The edit session.</param>
-    /// <param name="collectionPath">A single-member collection path.</param>
+    /// <param name="collectionPath">A path ending at a collection member.</param>
     /// <returns>A keyed editing facade bound to the addressed member.</returns>
-    public static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this global::Order.EditSession session, global::SparseTypes.SparsePath collectionPath)
+    public static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditKeyedCollection<TElement, TKey>(this global::Order.EditSession session, global::SparseTypes.SparsePath collectionPath)
     {
         if (session is null) throw new global::System.ArgumentNullException(nameof(session));
-        return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit);
+        return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit, session);
+    }
+    /// <summary>Opens a keyed collection editor with its element and key types inferred from the generated path.</summary>
+    /// <param name="session">The edit session.</param>
+    /// <param name="collectionPath">The generated keyed collection path.</param>
+    /// <returns>A keyed editor for the addressed collection.</returns>
+    public static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this global::Order.EditSession session, global::SparseTypes.ISparseKeyedCollectionPath<global::Order, TElement, TKey> collectionPath)
+    {
+        if (session is null) throw new global::System.ArgumentNullException(nameof(session));
+        return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath.UntypedPath, session.BatchEdit, session, collectionPath.CloneElement);
     }
 }

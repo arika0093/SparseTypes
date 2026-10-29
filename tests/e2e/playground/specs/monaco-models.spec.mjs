@@ -1,12 +1,27 @@
 import { expect, test as base } from "@playwright/test";
+import { fileURLToPath } from "node:url";
 
 const localOrigin = "http://127.0.0.1:4173";
+const cdnAssets = [
+  [
+    "https://unpkg.com/sortablejs@1.15.6/Sortable.min.js",
+    fileURLToPath(new URL("../node_modules/sortablejs/Sortable.min.js", import.meta.url)),
+  ],
+  [
+    "https://unpkg.com/imask@7.6.1/dist/imask.min.js",
+    fileURLToPath(new URL("../node_modules/imask/dist/imask.min.js", import.meta.url)),
+  ],
+];
 
 const test = base.extend({
   page: async ({ page }, use) => {
     const pageErrors = [];
     const consoleErrors = [];
     const failedResponses = [];
+
+    for (const [url, path] of cdnAssets) {
+      await page.route(url, route => route.fulfill({ path }));
+    }
 
     page.on("pageerror", error => pageErrors.push(error.message));
     page.on("console", message => {

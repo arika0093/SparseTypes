@@ -25,22 +25,13 @@ public sealed class SparseCollectionTests
                         inner =>
                         {
                             inner.OpenComponent<SparseCollection<TModel, TElement>>(0);
-                            inner.AddAttribute(
-                                1,
-                                nameof(SparseCollection<TModel, TElement>.Path),
-                                path
-                            );
+                            inner.AddAttribute(1, nameof(SparseCollection<TModel, TElement>.Path), path);
                             inner.AddAttribute(
                                 2,
                                 nameof(SparseCollection<TModel, TElement>.RowTemplate),
-                                (RenderFragment<SparseCollectionRow<TModel, TElement>>)(
-                                    row => rowBuilder => rowBuilder.AddContent(0, row.Item)
-                                )
+                                (RenderFragment<SparseCollectionRow<TModel, TElement>>)(row => rowBuilder => rowBuilder.AddContent(0, row.Item))
                             );
-                            inner.AddComponentReferenceCapture(
-                                3,
-                                component => capture((SparseCollection<TModel, TElement>)component)
-                            );
+                            inner.AddComponentReferenceCapture(3, component => capture((SparseCollection<TModel, TElement>)component));
                             inner.CloseComponent();
                         }
                 )
@@ -54,11 +45,7 @@ public sealed class SparseCollectionTests
         var temporaryId = Guid.NewGuid();
         var board = new BlazorDraftBoard
         {
-            Drafts =
-            [
-                new BlazorDraftLine { Id = 2, Title = "Existing" },
-                new BlazorDraftLine { Id = 3, Title = "Other" },
-            ],
+            Drafts = [new BlazorDraftLine { Id = 2, Title = "Existing" }, new BlazorDraftLine { Id = 3, Title = "Other" }],
         };
         var session = board.CreateEditSession();
         SparseCollection<BlazorDraftBoard, BlazorDraftLine>? collection = null;
@@ -67,8 +54,7 @@ public sealed class SparseCollectionTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -98,14 +84,8 @@ public sealed class SparseCollectionTests
         var draft = view.Rows[2];
         draft.UiKey.ShouldNotBe(Guid.Empty);
         draft.UiKey.ShouldNotBe(existing.UiKey);
-        draft.Path.UntypedPath.ShouldBe(
-            BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).UntypedPath
-        );
-        draft
-            .Select(item => item.Title)
-            .UntypedPath.ShouldBe(
-                BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).Title.UntypedPath
-            );
+        draft.Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).UntypedPath);
+        draft.Select(item => item.Title).UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).Title.UntypedPath);
         draft.ItemState.ShouldNotBeNull();
         draft.ItemState!.Value.IsAdded.ShouldBeTrue();
 
@@ -113,10 +93,7 @@ public sealed class SparseCollectionTests
         moveDraftError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
         view.Rows[0].UiKey.ShouldBe(draft.UiKey);
-        view.Rows[0]
-            .Path.UntypedPath.ShouldBe(
-                BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).UntypedPath
-            );
+        view.Rows[0].Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.TemporaryKey(temporaryId).UntypedPath);
         view.Rows[0].ItemState!.Value.IsAdded.ShouldBeTrue();
 
         session.Observable.Drafts[0].Id = 10;
@@ -125,8 +102,7 @@ public sealed class SparseCollectionTests
 
         view.Rows[0].UiKey.ShouldBe(draft.UiKey);
         view.Rows[0].Item.Id.ShouldBe(10);
-        view.Rows[0]
-            .Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(10).UntypedPath);
+        view.Rows[0].Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(10).UntypedPath);
         view.Rows[0].ItemState.ShouldNotBeNull();
         view.Rows[0].ItemState!.Value.IsAdded.ShouldBeTrue();
 
@@ -134,12 +110,10 @@ public sealed class SparseCollectionTests
         moveError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
         view.Rows[2].UiKey.ShouldBe(existing.UiKey);
-        view.Rows[2]
-            .Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(2).UntypedPath);
+        view.Rows[2].Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(2).UntypedPath);
         view.Rows[2].ItemState!.Value.IsReordered.ShouldBeTrue();
 
-        view.TryAdd(new BlazorDraftLine { Id = 4, Title = "Added" }, out var addError)
-            .ShouldBeTrue();
+        view.TryAdd(new BlazorDraftLine { Id = 4, Title = "Added" }, out var addError).ShouldBeTrue();
         addError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
         view.Rows.Count.ShouldBe(4);
@@ -148,19 +122,14 @@ public sealed class SparseCollectionTests
         removeError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
         view.Rows.Count.ShouldBe(3);
-        board
-            .Drafts.Select(static item => item.Title)
-            .ShouldBe(new[] { "Draft", "Other", "Existing" });
+        board.Drafts.Select(static item => item.Title).ShouldBe(new[] { "Draft", "Other", "Existing" });
     }
 
     [Test]
     public async Task ReconcileAndApplyKeepsRowIdentityAndActionsAcrossModelReplacement()
     {
         var temporaryId = Guid.NewGuid();
-        var board = new BlazorDraftBoard
-        {
-            Drafts = [new BlazorDraftLine { Id = 7, Title = "Existing" }],
-        };
+        var board = new BlazorDraftBoard { Drafts = [new BlazorDraftLine { Id = 7, Title = "Existing" }] };
         var session = board.CreateEditSession();
         SparseCollection<BlazorDraftBoard, BlazorDraftLine>? collection = null;
 
@@ -168,17 +137,12 @@ public sealed class SparseCollectionTests
             EditWithCollection(
                 session,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
         var view = collection.ShouldNotBeNull();
-        view.TryAdd(
-                new BlazorDraftLine { TemporaryId = temporaryId, Title = "Pending" },
-                out var addError
-            )
-            .ShouldBeTrue();
+        view.TryAdd(new BlazorDraftLine { TemporaryId = temporaryId, Title = "Pending" }, out var addError).ShouldBeTrue();
         addError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
 
@@ -205,8 +169,7 @@ public sealed class SparseCollectionTests
         view.Rows.Count.ShouldBe(2);
         view.Rows[1].Item.ShouldNotBeSameAs(pendingRow.Item);
         view.Rows[1].UiKey.ShouldBe(pendingRow.UiKey);
-        view.Rows[1]
-            .Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(42).UntypedPath);
+        view.Rows[1].Path.UntypedPath.ShouldBe(BlazorDraftBoard.SparsePath.Drafts.Key(42).UntypedPath);
 
         pendingRow.TryMoveTo(0, out var moveError).ShouldBeTrue();
         moveError.ShouldBe(SparseCollectionEditError.None);
@@ -224,10 +187,7 @@ public sealed class SparseCollectionTests
     [Test]
     public async Task SessionReplacementRefreshesRowsAndRejectsOldRowCallbacks()
     {
-        var firstBoard = new BlazorDraftBoard
-        {
-            Drafts = [new BlazorDraftLine { Id = 7, Title = "First" }],
-        };
+        var firstBoard = new BlazorDraftBoard { Drafts = [new BlazorDraftLine { Id = 7, Title = "First" }] };
         var firstSession = firstBoard.CreateEditSession();
         SparseCollection<BlazorDraftBoard, BlazorDraftLine>? collection = null;
 
@@ -235,24 +195,19 @@ public sealed class SparseCollectionTests
             EditWithCollection(
                 firstSession,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
         var staleRow = collection.ShouldNotBeNull().Rows[0];
-        var secondBoard = new BlazorDraftBoard
-        {
-            Drafts = [new BlazorDraftLine { Id = 7, Title = "Second" }],
-        };
+        var secondBoard = new BlazorDraftBoard { Drafts = [new BlazorDraftLine { Id = 7, Title = "Second" }] };
         var secondSession = secondBoard.CreateEditSession();
 
         await tree.ShowAsync(
             EditWithCollection(
                 secondSession,
                 BlazorDraftBoard.SparsePath.Drafts,
-                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) =>
-                    collection = captured
+                (SparseCollection<BlazorDraftBoard, BlazorDraftLine> captured) => collection = captured
             )
         );
 
@@ -266,5 +221,39 @@ public sealed class SparseCollectionTests
         removeError.ShouldBe(SparseCollectionEditError.None);
         await tree.FlushAsync();
         secondBoard.Drafts.ShouldBeEmpty();
+    }
+
+    [Test]
+    public async Task NestedCollectionPathRendersStateAndEditsTheCurrentParent()
+    {
+        var root = new CollectionQueryRoot { Nodes = [new CollectionQueryNode { Id = 1, Members = [new TeamMember { Id = "existing" }] }] };
+        var session = root.CreateEditSession();
+        SparseCollection<CollectionQueryRoot, TeamMember>? collection = null;
+        var path = CollectionQueryRoot.SparsePath.Nodes.Key(1).Members;
+        using var tree = await Headless.Tree.CreateAsync(builder =>
+        {
+            builder.OpenComponent<SparseSessionScope<CollectionQueryRoot>>(0);
+            builder.AddAttribute(1, nameof(SparseSessionScope<CollectionQueryRoot>.Session), session);
+            builder.AddAttribute(
+                2,
+                nameof(SparseSessionScope<CollectionQueryRoot>.ChildContent),
+                EditWithCollection(session, path.UntypedPath, (SparseCollection<CollectionQueryRoot, TeamMember> captured) => collection = captured)
+            );
+            builder.CloseComponent();
+        });
+
+        var view = collection.ShouldNotBeNull();
+        view.Rows.ShouldHaveSingleItem().Item.Id.ShouldBe("existing");
+        view.Rows[0].StateQueryError.ShouldBeNull();
+        view.Rows[0].ItemState.ShouldNotBeNull();
+        view.Rows[0].ItemState!.Value.IsEmpty.ShouldBeTrue();
+
+        view.TryAdd(new TeamMember { Id = "added" }, out var addError).ShouldBeTrue();
+        addError.ShouldBe(SparseCollectionEditError.None);
+        await tree.FlushAsync();
+
+        view.Rows.Count.ShouldBe(2);
+        view.Rows.Single(row => row.Item.Id == "added").ItemState!.Value.IsAdded.ShouldBeTrue();
+        root.Nodes[0].Members.Select(static item => item.Id).ShouldBe(["existing", "added"]);
     }
 }

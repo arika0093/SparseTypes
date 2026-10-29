@@ -69,7 +69,7 @@ internal static class SparseChangeSetEmitter
         SparseChangeSetBasicsEmitter.AppendConstructor(storageCode, members, runtime, optionalFragment, dialect, storage);
         SparseChangeSetBasicsEmitter.AppendIsEmpty(code, members, dialect);
         SparseChangeSetBasicsEmitter.AppendEmpty(code, members);
-        SparseChangeSetContractEmitter.AppendChangeSetContract(code, members, dialect);
+        SparseChangeSetContractEmitter.AppendChangeSetContract(code, members, dialect, modelType);
         SparseChangeSetBetweenEmitter.AppendBetween(code, members, runtime, optionalFragment, dialect, target);
         if (modelType is not null)
         {

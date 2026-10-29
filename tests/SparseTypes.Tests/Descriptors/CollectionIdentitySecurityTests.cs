@@ -91,7 +91,11 @@ public sealed class CollectionIdentitySecurityTests
         var row = new CollectionSecurityNullableRow { Id = 7, Name = "assigned" };
         var model = new CollectionSecurityNullableHolder { Lines = [null, row] };
         var session = model.CreateEditSession();
-        var editor = session.EditCollection<CollectionSecurityNullableRow?, int>(CollectionSecurityNullableHolder.SparsePath.Lines);
+        var editor = SparseCollectionEditors.EditKeyedCollection<CollectionSecurityNullableRow?, int>(
+            session.Descriptors,
+            CollectionSecurityNullableHolder.SparsePath.Lines,
+            session.BatchEdit
+        );
         var notifications = 0;
         session.TransitionObserved += _ => notifications++;
 

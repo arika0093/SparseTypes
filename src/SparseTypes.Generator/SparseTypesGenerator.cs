@@ -156,9 +156,20 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             {
                 TypedChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSet",
                 PipelineChangeSetInterfaceType = "global::SparseTypes.ISparseChangeSetPipeline",
+                ChangeSetReverterInterfaceType = "global::SparseTypes.ISparseChangeSetReverter",
                 ScalarTransitionType = "global::SparseTypes.SparseValueTransition",
                 ScalarRebaseType = "global::SparseTypes.SparseOptionalRebase",
                 OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
+                CollectionStateType = "global::SparseTypes.SparseCollectionState",
+                CollectionStateQueryInterfaceType = "global::SparseTypes.ISparseCollectionChangeSetQueries",
+                CollectionStatePathType = "global::SparseTypes.SparsePath",
+                CollectionStatePathSegmentType = "global::SparseTypes.SparsePathSegment",
+                CollectionStatePathSegmentKindType = "global::SparseTypes.SparsePathSegmentKind",
+                CollectionStateKeySegmentKindMemberName = "Key",
+                CollectionStateTemporaryKeySegmentKindMemberName = "TemporaryKey",
+                CollectionStateQueriesType = "global::SparseTypes.SparseStateQueries",
+                CollectionStateKeyedMethodName = "KeyedState",
+                CollectionStateDictionaryMethodName = "DictionaryState",
             }
         )
         {
@@ -181,6 +192,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
                 ObservedFieldType = "global::SparseTypes.SparseObservedField",
                 ObservedFieldHooksType = "global::SparseTypes.SparseObservedFieldHooks",
                 QueryViewType = "global::SparseTypes.SparseChangeSetQueryView",
+                CollectionStateQueryType = "global::SparseTypes.SparseCollectionStateQuery",
             },
             PayloadSchemaDescriptorType = "global::SparseTypes.SparsePayloadSchema",
             PayloadSchemaBundleType = "global::SparseTypes.SparsePayloadSchemaBundle",

@@ -152,7 +152,7 @@ public sealed partial class SparseField<TModel, TValue> : ComponentBase, IDispos
         // The binding holds no subscriptions.
         var binding = session.Bind(path.TypedPath, editContext);
         _binding = binding;
-        _field = new SparseFieldContext<TModel, TValue>(this, session, scopeContext, binding, path);
+        _field = new SparseFieldContext<TModel, TValue>(this, session, scopeContext, scope as ISparseValidationScope, binding, path);
         _boundScope = scope;
         _boundScopeContext = scopeContext;
         _boundSession = session;

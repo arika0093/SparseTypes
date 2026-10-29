@@ -24,7 +24,11 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
   create, server refresh, undo/redo with history, save, payload preview,
   and reset. Save ships a sparse change payload, and overlapping edits
   open a conflict dialog that resolves each path to the submitted or the
-  server value. The change count opens a path/before/after table.
+  server value. The keyed line editor supports add, remove, duplicate,
+  baseline reset, and restore of deleted rows. The selected-row dialog edits
+  an independent child session and discards its changes when canceled. The
+  window asks before closing with unsaved edits. The change count opens a
+  path/before/after table.
 - EfCoreSample.AppHost: Aspire host wiring PostgreSQL (with pgweb), the
   server, and the client.
 

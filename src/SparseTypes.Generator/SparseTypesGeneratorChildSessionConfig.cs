@@ -18,6 +18,8 @@ internal static class SparseTypesGeneratorChildSessionConfig
             EditSessionWithPendingStateInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithPendingState",
             EditSessionWithChangeSetInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithChangeSet",
             EditSessionWithBaselineRevisionInterfaceMetadataName = "SparseTypes.ISparseEditSessionWithBaselineRevision",
+            CollectionPathInterfaceMetadataName = "SparseTypes.ISparseCollectionPath",
+            KeyedCollectionPathInterfaceMetadataName = "SparseTypes.ISparseKeyedCollectionPath",
             SessionCapabilityContracts = new SparseSessionCapabilityContracts(
                 HistoryInterface: "SparseTypes.ISparseEditSessionWithHistory",
                 FieldStateInterface: "SparseTypes.ISparseEditSessionWithFieldState",

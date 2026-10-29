@@ -476,6 +476,9 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
     public object? GetItemKey(int index) => _access.GetItemKey?.Invoke(index);
 
     /// <inheritdoc />
+    public Guid? GetItemTemporaryKey(int index) => _access.GetItemTemporaryKey?.Invoke(index);
+
+    /// <inheritdoc />
     public int IndexOfKey(object? key) => _lookup.IndexOfKey(key);
 
     /// <inheritdoc />
@@ -565,6 +568,8 @@ public sealed class SparseArrayDescriptor : IArrayDescriptor
         public IReadOnlyList<string> KeyPropertyNames => _inner.KeyPropertyNames;
 
         public object? GetItemKey(int index) => _inner.GetItemKey(index);
+
+        public Guid? GetItemTemporaryKey(int index) => _inner.GetItemTemporaryKey(index);
 
         public int IndexOfKey(object? key) => _inner.IndexOfKey(key);
 

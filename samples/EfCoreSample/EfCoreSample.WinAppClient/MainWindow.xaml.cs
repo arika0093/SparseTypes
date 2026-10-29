@@ -43,6 +43,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private readonly HttpClient _client;
     private OrderDto.EditSession? _session;
+    private IReadOnlyList<SparseRemovedCollectionRow<OrderLineDto, int>> _removedLines = [];
     private ISparseEditHistory? _history;
     private HashSet<string> _changedPaths = [];
     private string _orderIdText = "1";
@@ -67,6 +68,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         InitializeComponent();
         DataContext = this;
+        Closing += OnWindowClosing;
         var serverAddress =
             Environment.GetEnvironmentVariable("services__server__http__0")
             ?? "http://localhost:5000";
@@ -105,6 +107,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 _session = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSession));
+                OnPropertyChanged(nameof(CanDuplicateLine));
+                OnPropertyChanged(nameof(CanResetLine));
             }
         }
     }
@@ -131,6 +135,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanMoveLineUp));
                 OnPropertyChanged(nameof(CanMoveLineDown));
                 OnPropertyChanged(nameof(CanInspectChanges));
+                OnPropertyChanged(nameof(CanDuplicateLine));
+                OnPropertyChanged(nameof(CanResetLine));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -152,6 +158,27 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public bool CanMoveLineDown =>
         HasSession && IsIdle && SelectedLineIndex >= 0 && SelectedLineIndex < Session!.Observable.Lines.Count - 1;
 
+    /// <summary>Gets whether the selected line can be duplicated.</summary>
+    public bool CanDuplicateLine => HasSession && IsIdle && SelectedLineIndex >= 0;
+
+    /// <summary>Gets whether the selected line can be reset to its baseline.</summary>
+    public bool CanResetLine => CanDuplicateLine;
+
+    /// <summary>Gets baseline rows removed from the current edit session.</summary>
+    public IReadOnlyList<SparseRemovedCollectionRow<OrderLineDto, int>> RemovedLines
+    {
+        get => _removedLines;
+        private set
+        {
+            _removedLines = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasRemovedLines));
+        }
+    }
+
+    /// <summary>Gets whether any baseline rows are available for restoration.</summary>
+    public bool HasRemovedLines => RemovedLines.Count > 0;
+
     /// <summary>Gets or sets the selected line row index.</summary>
     public int SelectedLineIndex
     {
@@ -165,6 +192,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged(nameof(CanRemoveLine));
                 OnPropertyChanged(nameof(CanMoveLineUp));
                 OnPropertyChanged(nameof(CanMoveLineDown));
+                OnPropertyChanged(nameof(CanDuplicateLine));
+                OnPropertyChanged(nameof(CanResetLine));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -282,6 +311,18 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private void OnSessionChanged() => RefreshChangeState();
 
+    private void OnWindowClosing(object? sender, CancelEventArgs args)
+    {
+        if (
+            Session?.HasChanges == true
+            && MessageBox.Show(this, "Discard the unsaved order edits and close?", "Unsaved edits", MessageBoxButton.YesNo, MessageBoxImage.Warning)
+                != MessageBoxResult.Yes
+        )
+        {
+            args.Cancel = true;
+        }
+    }
+
     private void OnHistoryStateChanged()
     {
         OnPropertyChanged(nameof(CanReset));
@@ -319,8 +360,24 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         OnPropertyChanged(nameof(CanRemoveLine));
         OnPropertyChanged(nameof(CanMoveLineUp));
         OnPropertyChanged(nameof(CanMoveLineDown));
+        OnPropertyChanged(nameof(CanDuplicateLine));
+        OnPropertyChanged(nameof(CanResetLine));
         OnPropertyChanged(nameof(CanInspectChanges));
+        RefreshRemovedLines();
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void RefreshRemovedLines()
+    {
+        var session = Session;
+        if (session is null)
+        {
+            RemovedLines = [];
+            return;
+        }
+
+        var editor = session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        RemovedLines = editor.TryGetRemovedRows(out var rows, out _) ? rows : [];
     }
 
     private void AdoptSession(OrderDto.EditSession session, string status)
@@ -557,14 +614,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        session.Observable.Lines.AddModel(
-            new OrderLineDto
-            {
-                Quantity = 1,
-                UnitPrice = 100m,
-                TemporaryId = Guid.NewGuid(),
-            }
-        );
+        var editor = session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        if (!editor.TryAdd(new OrderLineDto { Quantity = 1, UnitPrice = 100m, TemporaryId = Guid.NewGuid() }, out var error))
+        {
+            Status = $"Could not add the line ({error}).";
+            return;
+        }
+
         SelectedLineIndex = session.Observable.Lines.Count - 1;
     }
 
@@ -583,7 +639,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
         }
 
-        session.Observable.Lines.RemoveAt(index);
+        var editor = session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        if (!editor.TryRemoveAt(index, out var error))
+        {
+            Status = $"Could not remove the line ({error}).";
+            return;
+        }
+
         SelectedLineIndex = -1;
     }
 
@@ -608,6 +670,135 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         session.Observable.Lines.Move(index, targetIndex);
         SelectedLineIndex = targetIndex;
+    }
+
+    private void OnDuplicateLineClick(object sender, RoutedEventArgs e)
+    {
+        var session = Session;
+        var index = SelectedLineIndex;
+        if (session is null || IsBusy || index < 0 || index >= session.Observable.Lines.Count)
+        {
+            return;
+        }
+
+        var editor = session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        using var duplicate = editor.BeginDuplicate(
+            session.Observable.Lines[index].Id,
+            OrderDto.SparsePath.Lines.At(0),
+            copy =>
+            {
+                copy.Id = 0;
+                copy.TemporaryId = Guid.NewGuid();
+            },
+            session
+        );
+        if (!duplicate.TryAcceptChanges(out var error, out var conflicts))
+        {
+            Status = $"Could not duplicate the line ({error}; {conflicts?.Count ?? 0} conflicts).";
+            return;
+        }
+
+        SelectedLineIndex = session.Observable.Lines.Count - 1;
+    }
+
+    private void OnEditLineClick(object sender, RoutedEventArgs e)
+    {
+        var session = Session;
+        var index = SelectedLineIndex;
+        if (session is null || IsBusy || index < 0 || index >= session.Observable.Lines.Count)
+        {
+            return;
+        }
+
+        var line = session.Observable.Lines[index];
+        if (line.Id == 0)
+        {
+            Status = "Save the new line before opening an independent row draft.";
+            return;
+        }
+
+        using var draft = session.OpenChildSession(OrderDto.SparsePath.Lines.Key(line.Id));
+        var dialog = CreateLineEditDialog(draft.Session.Observable);
+        if (dialog.ShowDialog() != true)
+        {
+            draft.DiscardChanges();
+            return;
+        }
+
+        if (!draft.TryAcceptChanges(out var conflicts))
+        {
+            Status = conflicts is null
+                ? "The line draft could not be accepted."
+                : $"The line draft conflicts at {string.Join(", ", conflicts.Select(static conflict => conflict.PathText))}.";
+        }
+    }
+
+    private Window CreateLineEditDialog(object observable)
+    {
+        var dialog = new Window
+        {
+            Owner = this,
+            Title = "Edit order line",
+            Width = 360,
+            Height = 190,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            DataContext = observable,
+        };
+        var quantity = new TextBox { Margin = new Thickness(0, 4, 0, 12) };
+        quantity.SetBinding(TextBox.TextProperty, new Binding(nameof(OrderLineDto.Quantity)) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+        var unitPrice = new TextBox { Margin = new Thickness(0, 4, 0, 12) };
+        unitPrice.SetBinding(TextBox.TextProperty, new Binding(nameof(OrderLineDto.UnitPrice)) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged });
+        var save = new Button { Content = "Save row", IsDefault = true, Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 8, 0) };
+        save.Click += (_, _) => dialog.DialogResult = true;
+        var cancel = new Button { Content = "Cancel", IsCancel = true, Padding = new Thickness(10, 4, 10, 4) };
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(16),
+            Children =
+            {
+                new TextBlock { Text = "Quantity" },
+                quantity,
+                new TextBlock { Text = "Unit price" },
+                unitPrice,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Children = { save, cancel },
+                },
+            },
+        };
+        return dialog;
+    }
+
+    private void OnResetLineClick(object sender, RoutedEventArgs e)
+    {
+        var session = Session;
+        var index = SelectedLineIndex;
+        if (session is null || IsBusy || index < 0 || index >= session.Observable.Lines.Count)
+        {
+            return;
+        }
+
+        var editor = session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        if (!editor.TryResetByKey(session.Observable.Lines[index].Id, out var error))
+        {
+            Status = $"Could not reset the line ({error}).";
+        }
+    }
+
+    private void OnRestoreLineClick(object sender, RoutedEventArgs e)
+    {
+        if (Session is null || IsBusy || (sender as FrameworkElement)?.DataContext is not SparseRemovedCollectionRow<OrderLineDto, int> row)
+        {
+            return;
+        }
+
+        var editor = Session.EditCollection<OrderLineDto, int>(OrderDto.SparsePath.Lines);
+        if (!editor.TryRestoreRemoved(row, out var error))
+        {
+            Status = $"Could not restore the line ({error}).";
+        }
     }
 
     private async Task SaveAsync()

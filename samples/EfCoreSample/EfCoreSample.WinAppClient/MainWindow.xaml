@@ -51,6 +51,13 @@
       <Button
         Margin="8,0,0,0"
         Padding="12,3"
+        Click="OnEditLineClick"
+        Content="Edit selected"
+        IsEnabled="{Binding CanDuplicateLine}"
+      />
+      <Button
+        Margin="8,0,0,0"
+        Padding="12,3"
         Click="OnLoadClick"
         Content="Load"
         IsEnabled="{Binding IsIdle}"
@@ -251,6 +258,20 @@
               Content="Remove selected"
               IsEnabled="{Binding CanRemoveLine}"
             />
+            <Button
+              Margin="8,0,0,0"
+              Padding="12,3"
+              Click="OnDuplicateLineClick"
+              Content="Duplicate selected"
+              IsEnabled="{Binding CanDuplicateLine}"
+            />
+            <Button
+              Margin="8,0,0,0"
+              Padding="12,3"
+              Click="OnResetLineClick"
+              Content="Reset selected"
+              IsEnabled="{Binding CanResetLine}"
+            />
             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center">
               <Run Text="■" Foreground="#A5D6A7" />
               <Run Text="added" />
@@ -258,6 +279,25 @@
               <Run Text="edited" />
             </TextBlock>
           </StackPanel>
+          <GroupBox DockPanel.Dock="Bottom" Margin="0,6,0,0" Header="Deleted baseline lines">
+            <ItemsControl ItemsSource="{Binding RemovedLines}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <DockPanel Margin="4">
+                    <Button DockPanel.Dock="Right" Click="OnRestoreLineClick" Content="Restore" Padding="8,2" />
+                    <TextBlock VerticalAlignment="Center">
+                      <Run Text="Line " />
+                      <Run Text="{Binding Key}" />
+                      <Run Text=" — " />
+                      <Run Text="{Binding Model.Quantity}" />
+                      <Run Text=" × " />
+                      <Run Text="{Binding Model.UnitPrice}" />
+                    </TextBlock>
+                  </DockPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </GroupBox>
           <DataGrid
             x:Name="LinesGrid"
             AutoGenerateColumns="False"

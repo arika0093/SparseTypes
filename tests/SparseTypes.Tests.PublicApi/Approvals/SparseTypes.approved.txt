@@ -225,6 +225,10 @@ namespace SparseTypes
     {
         SparseTypes.RebaseResult<TChangeSet> RebaseForPipeline(TModel current);
     }
+    public interface ISparseChangeSetReverter
+    {
+        bool TryRevert(object current, out object? restored);
+    }
     public interface ISparseChangeSet<TModel> : SparseTypes.ISparseChangeSet { }
     public interface ISparseChildEditPath<TParent, TChild, TChildPaths, TChildSession> : SparseTypes.ISparseTypedPath<TParent, TChild>
         where TChild :  class
@@ -234,6 +238,31 @@ namespace SparseTypes
         TChild Clone(TChild model);
         TChildSession CreateEditSession(TChild baseline, TChild current, System.Action? onChanged);
         TChildPaths CreateRootPaths();
+    }
+    public interface ISparseChildSessionRegistry
+    {
+        bool HasPendingChildChangesUnder(SparseTypes.SparsePath path);
+        bool HasPendingChildSessionUnder(SparseTypes.SparsePath path);
+    }
+    public interface ISparseCollectionChangeSetQueries
+    {
+        bool TryGetCollectionItemChange(string memberName, SparseTypes.SparsePathSegment identity, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SparseTypes.ISparseChangeSet? item);
+        bool TryGetCollectionState(string memberName, SparseTypes.SparsePath path, out SparseTypes.SparseCollectionState state);
+    }
+    public interface ISparseCollectionDraftRegistry
+    {
+        bool HasPendingCollectionDrafts { get; }
+        event System.Action? CollectionDraftsChanged;
+        bool HasPendingCollectionDraftFor(object model);
+        bool HasPendingCollectionDraftUnder(SparseTypes.SparsePath path);
+        void RegisterCollectionDraft(SparseTypes.SparsePath path, System.IDisposable draft);
+        void UnregisterCollectionDraft(System.IDisposable draft);
+    }
+    public interface ISparseCollectionPath<TModel, TElement>
+    {
+        SparseTypes.SparsePath UntypedPath { get; }
+        SparseTypes.SparsePath<TModel, TElement> At(int index);
+        TElement CloneElement(TElement element);
     }
     public interface ISparseDictionaryChange<TKey, TValue, TEdited>
     {
@@ -286,6 +315,20 @@ namespace SparseTypes
         bool TryAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
         bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
     }
+    public interface ISparseEditController<TModel>
+        where TModel :  class
+    {
+        bool CanEdit { get; }
+        bool CanSave { get; }
+        bool HasChanges { get; }
+        bool HasErrors { get; }
+        bool HasPendingDrafts { get; }
+        bool IsBusy { get; }
+        SparseTypes.SparseEditSaveState SaveState { get; }
+        SparseTypes.ISparseEditSession<TModel> Session { get; }
+        SparseTypes.SparseValidationStore<TModel> Validation { get; }
+        event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+    }
     public interface ISparseEditHistory
     {
         bool CanRedo { get; }
@@ -329,7 +372,7 @@ namespace SparseTypes
         System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> EnumerateChangedPaths(TChangeSet changes);
         bool IsEmpty(TChangeSet changes);
     }
-    public interface ISparseEditSessionWithChildStatus<TModel, TConflict> : SparseTypes.ISparseEditSessionWithChildren<TModel, TConflict>, SparseTypes.ISparseEditSessionWithPendingState<TModel, TConflict>
+    public interface ISparseEditSessionWithChildStatus<TModel, TConflict> : SparseTypes.ISparseChildSessionRegistry, SparseTypes.ISparseCollectionDraftRegistry, SparseTypes.ISparseEditSessionWithChildren<TModel, TConflict>, SparseTypes.ISparseEditSessionWithPendingState<TModel, TConflict>
         where TModel :  class
         where TConflict :  class
     {
@@ -341,7 +384,7 @@ namespace SparseTypes
         object? ResolveChildModel(SparseTypes.SparsePath path);
         bool TryPreflightChildSessions(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
     }
-    public interface ISparseEditSessionWithChildren<TModel, TConflict>
+    public interface ISparseEditSessionWithChildren<TModel, TConflict> : SparseTypes.ISparseChildSessionRegistry, SparseTypes.ISparseCollectionDraftRegistry
         where TModel :  class
         where TConflict :  class
     {
@@ -416,6 +459,10 @@ namespace SparseTypes
         System.Collections.Generic.IReadOnlyList<TElement> Removed { get; }
         System.Collections.Generic.IEnumerable<SparseTypes.ISparseKeyedItemChange<TKey, TElement, TElementChange>> EnumerateItems();
         SparseTypes.ISparseKeyedItemChange<TKey, TElement, TElementChange> GetChange(TKey key);
+    }
+    public interface ISparseKeyedCollectionPath<TModel, TElement, TKey> : SparseTypes.ISparseCollectionPath<TModel, TElement>
+    {
+        SparseTypes.SparsePath<TModel, TElement> Key(TKey key);
     }
     public interface ISparseKeyedItemChange<TKey, TElement, TElementChange>
     {
@@ -584,6 +631,22 @@ namespace SparseTypes
         OpenChanged = 2,
         TargetMissing = 3,
     }
+    public sealed class SparseCollectionAddDraft<TParent, TElement, TChildPaths, TChildSession, TConflict> : System.IDisposable
+        where TParent :  class
+        where TElement :  class
+        where TChildPaths : SparseTypes.ISparseTypedPath<TElement, TElement>
+        where TChildSession : SparseTypes.ISparseEditSessionWithPaths<TElement, TChildPaths>
+        where TConflict :  class
+    {
+        public SparseTypes.SparsePath CollectionPath { get; }
+        public bool IsOpen { get; }
+        public bool IsTargetMissing { get; }
+        public TChildSession Session { get; }
+        public void AcceptChanges() { }
+        public void DiscardChanges() { }
+        public void Dispose() { }
+        public bool TryAcceptChanges(out SparseTypes.SparseCollectionEditError error, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
+    }
     public enum SparseCollectionEditError
     {
         None = 0,
@@ -597,24 +660,44 @@ namespace SparseTypes
         UnassignedKey = 8,
         UnknownTemporaryKey = 9,
         InvalidItem = 10,
+        PathUnavailable = 11,
+        ChildSessionConflict = 12,
+        PendingChildDraft = 13,
+        BaselineUnavailable = 14,
+        StaleBaseline = 15,
     }
     public class SparseCollectionEditor<TElement>
     {
         public SparseCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch) { }
+        public SparseCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch, object? ownerSession) { }
+        public SparseCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch, object? ownerSession, System.Func<TElement, TElement>? cloneElement) { }
         public bool CanAdd { get; }
         public bool CanInsert { get; }
         public bool CanMove { get; }
         public bool CanRemove { get; }
         public bool CanReplace { get; }
         public int Count { get; }
+        protected bool HasElementCloner { get; }
         public bool IsKeyed { get; }
         public System.Collections.Generic.IReadOnlyList<string> KeyPropertyNames { get; }
         public System.Type? KeyType { get; }
         public SparseTypes.SparsePath Path { get; }
         protected void Batched(System.Action mutation) { }
+        public SparseTypes.SparseCollectionAddDraft<TParent, TItem, TChildPaths, TChildSession, TConflict> BeginAdd<TParent, TItem, TChildPaths, TChildSession, TConflict>(SparseTypes.ISparseChildEditPath<TParent, TItem, TChildPaths, TChildSession> itemPath, TItem initialModel, SparseTypes.ISparseEditSessionWithChildren<TParent, TConflict> parentSession)
+            where TParent :  class
+            where TItem :  class
+            where TChildPaths : SparseTypes.ISparseTypedPath<TItem, TItem>
+            where TChildSession : SparseTypes.ISparseEditSessionWithPaths<TItem, TChildPaths>
+            where TConflict :  class { }
+        protected TElement CloneElement(TElement element) { }
+        protected bool HasPendingDraftForItem(SparseTypes.Generated.IArrayDescriptor array, int index) { }
+        protected bool HasPendingDraftUnder(SparseTypes.SparsePath path) { }
         public bool IsAvailable(out SparseTypes.SparseCollectionEditError error) { }
         public bool TryAdd(TElement? item, out SparseTypes.SparseCollectionEditError error) { }
+        protected bool TryCloneElement(TElement element, out TElement clone) { }
         public bool TryGetAt(int index, out TElement? value, out SparseTypes.SparseCollectionEditError error) { }
+        protected bool TryGetBaselineRevision(out long revision) { }
+        protected bool TryGetCollectionState(out SparseTypes.SparseCollectionState state) { }
         public bool TryInsert(int index, TElement? item, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryMove(int oldIndex, int newIndex, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryRemoveAt(int index, out SparseTypes.SparseCollectionEditError error) { }
@@ -624,7 +707,10 @@ namespace SparseTypes
     public static class SparseCollectionEditors
     {
         public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath collectionPath, System.Action<System.Action> batch) { }
+        public static SparseTypes.SparseCollectionEditor<TElement> EditCollection<TElement>(this SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath collectionPath, System.Action<System.Action> batch, object ownerSession) { }
         public static SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditKeyedCollection<TElement, TKey>(this SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath collectionPath, System.Action<System.Action> batch) { }
+        public static SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditKeyedCollection<TElement, TKey>(this SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath collectionPath, System.Action<System.Action> batch, object ownerSession) { }
+        public static SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditKeyedCollection<TElement, TKey>(this SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath collectionPath, System.Action<System.Action> batch, object ownerSession, System.Func<TElement, TElement> cloneElement) { }
     }
     public readonly struct SparseCollectionItemState : System.IEquatable<SparseTypes.SparseCollectionItemState>
     {
@@ -640,16 +726,34 @@ namespace SparseTypes
         public bool IsReordered { get; }
         public object? Key { get; }
         public System.Guid? TemporaryKey { get; }
+        public bool TryGetBaselineValue(object? current, out object? baseline) { }
+    }
+    public sealed class SparseCollectionRowIdentityStore<TElement>
+        where TElement :  class
+    {
+        public SparseCollectionRowIdentityStore() { }
+        public void BeginRefresh() { }
+        public void EndRefresh() { }
+        public System.Guid GetOrCreate(TElement item, SparseTypes.SparsePathSegment identity, System.Guid? temporaryKey, bool isKeyed) { }
+        public void Reset() { }
     }
     public readonly struct SparseCollectionState : System.IEquatable<SparseTypes.SparseCollectionState>
     {
+        public System.Collections.Generic.IReadOnlyList<object?> BaselineOrder { get; }
         public System.Collections.Generic.IReadOnlyList<SparseTypes.SparseCollectionItemState> ChangedItems { get; }
+        public System.Collections.Generic.IReadOnlyList<object?> CurrentOrder { get; }
         public bool IsChanged { get; }
         public bool IsEmpty { get; }
         public bool OrderChanged { get; }
         public SparseTypes.SparsePath Path { get; }
         public SparseTypes.SparseCollectionItemState GetItemState(object? key) { }
         public SparseTypes.SparseCollectionItemState GetTemporaryState(System.Guid temporaryKey) { }
+        public static SparseTypes.SparseCollectionState Empty(SparseTypes.SparsePath path) { }
+    }
+    public static class SparseCollectionStateQuery
+    {
+        public static bool TryGetState<TModel>(SparseTypes.ISparseChangeSet changes, SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, out SparseTypes.SparseCollectionState? state)
+            where TModel :  class { }
     }
     public sealed class SparseConflict
     {
@@ -726,6 +830,41 @@ namespace SparseTypes
         public bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
         public bool TryPreflightAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
     }
+    public sealed class SparseEditControllerOptions<TChangeSet> : System.IEquatable<SparseTypes.SparseEditControllerOptions<TChangeSet>>
+        where TChangeSet :  class
+    {
+        public SparseEditControllerOptions() { }
+        public string ServerValidationOrigin { get; init; }
+        public System.Func<TChangeSet, System.Collections.Generic.IReadOnlyList<SparseTypes.SparseValidationError>>? Validate { get; init; }
+        public System.Func<TChangeSet, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<SparseTypes.SparseValidationError>>>? ValidateAsync { get; init; }
+        public System.Func<string?>? ValidateReadiness { get; init; }
+        public string ValidationOrigin { get; init; }
+    }
+    public sealed class SparseEditController<TModel, TChangeSet> : SparseTypes.ISparseEditController<TModel>, System.ComponentModel.INotifyPropertyChanged, System.IDisposable
+        where TModel :  class
+        where TChangeSet :  class
+    {
+        public SparseEditController(SparseTypes.ISparseEditSessionWithChangeSet<TModel, TChangeSet> session, SparseTypes.SparseEditControllerOptions<TChangeSet>? options = null) { }
+        public bool CanEdit { get; }
+        public bool CanSave { get; }
+        public bool HasChanges { get; }
+        public bool HasErrors { get; }
+        public bool HasPendingDrafts { get; }
+        public bool IsBusy { get; }
+        public string? ReconciliationError { get; }
+        public SparseTypes.SparseEditSaveState SaveState { get; }
+        public SparseTypes.ISparseEditSessionWithChangeSet<TModel, TChangeSet> Session { get; }
+        public SparseTypes.SparsePreparedSubmission<TModel, TChangeSet>? UnknownSubmission { get; }
+        public SparseTypes.SparsePreparedSubmission<TModel, TChangeSet>? UnreconciledSubmission { get; }
+        public SparseTypes.SparseValidationStore<TModel> Validation { get; }
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        public void Dispose() { }
+        public System.Threading.Tasks.Task<SparseTypes.SparsePreparedSubmission<TModel, TChangeSet>> PrepareSaveAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public void ResolveUnknownOutcomeAsNotPersisted() { }
+        public bool ResolveUnknownOutcomeAsPersisted(TModel persisted) { }
+        public bool RetryReconciliation() { }
+        public System.Threading.Tasks.Task<SparseTypes.SparseEditSaveState> SaveAsync(SparseTypes.SparsePreparedSubmission<TModel, TChangeSet> submission, System.Func<TChangeSet, System.Threading.CancellationToken, System.Threading.Tasks.Task<SparseTypes.SparsePersistResult<TModel>>> persist, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public sealed class SparseEditHistoryCollection<TChangeSet>
         where TChangeSet :  class
     {
@@ -765,6 +904,17 @@ namespace SparseTypes
         public bool TryUndo(out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseConflict>? conflicts) { }
         public void Undo() { }
     }
+    public enum SparseEditSaveState
+    {
+        Idle = 0,
+        Preparing = 1,
+        Ready = 2,
+        Saving = 3,
+        Saved = 4,
+        Rejected = 5,
+        OutcomeUnknown = 6,
+        PersistedButUnreconciled = 7,
+    }
     public enum SparseFieldChangeKind
     {
         Unchanged = 0,
@@ -787,6 +937,14 @@ namespace SparseTypes
     public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseTypes.SparseCollectionEditor<TElement>
     {
         public SparseKeyedCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch) { }
+        public SparseKeyedCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch, object? ownerSession) { }
+        public SparseKeyedCollectionEditor(SparseTypes.Generated.IDescriptorSet descriptors, SparseTypes.SparsePath path, System.Action<System.Action> batch, object? ownerSession, System.Func<TElement, TElement> cloneElement) { }
+        public SparseTypes.SparseCollectionAddDraft<TParent, TItem, TChildPaths, TChildSession, TConflict> BeginDuplicate<TParent, TItem, TChildPaths, TChildSession, TConflict>(TKey? key, SparseTypes.ISparseChildEditPath<TParent, TItem, TChildPaths, TChildSession> itemPath, System.Action<TItem>? initializeCopy, SparseTypes.ISparseEditSessionWithChildren<TParent, TConflict> parentSession)
+            where TParent :  class
+            where TItem :  class
+            where TChildPaths : SparseTypes.ISparseTypedPath<TItem, TItem>
+            where TChildSession : SparseTypes.ISparseEditSessionWithPaths<TItem, TChildPaths>
+            where TConflict :  class { }
         public bool ContainsKey(TKey? key) { }
         public int IndexOfKey(TKey? key) { }
         public int IndexOfTemporaryKey(System.Guid temporaryKey) { }
@@ -794,10 +952,13 @@ namespace SparseTypes
         public bool TryGetByKey(TKey? key, out TElement? value, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryGetByTemporaryKey(System.Guid temporaryKey, out TElement? value, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryGetKeyAt(int index, out TKey? key, out SparseTypes.SparseCollectionEditError error) { }
+        public bool TryGetRemovedRows(out System.Collections.Generic.IReadOnlyList<SparseTypes.SparseRemovedCollectionRow<TElement, TKey>> rows, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryMoveByKey(TKey? key, int newIndex, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryRemoveByKey(TKey? key, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryRemoveByTemporaryKey(System.Guid temporaryKey, out SparseTypes.SparseCollectionEditError error) { }
         public bool TryReplaceByKey(TKey? key, TElement? item, out SparseTypes.SparseCollectionEditError error) { }
+        public bool TryResetByKey(TKey? key, out SparseTypes.SparseCollectionEditError error) { }
+        public bool TryRestoreRemoved(SparseTypes.SparseRemovedCollectionRow<TElement, TKey> row, out SparseTypes.SparseCollectionEditError error) { }
     }
     public sealed class SparseObservableDictionary<TKey, TModel, TView> : System.Collections.Generic.ICollection<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IDictionary<TKey, TView>, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IReadOnlyCollection<System.Collections.Generic.KeyValuePair<TKey, TView>>, System.Collections.Generic.IReadOnlyDictionary<TKey, TView>, System.Collections.IEnumerable, System.Collections.Specialized.INotifyCollectionChanged, System.ComponentModel.INotifyPropertyChanged, System.IDisposable
         where TKey :  notnull
@@ -1062,6 +1223,31 @@ namespace SparseTypes
         public static string GetName(System.Type type) { }
         public static string GetName(System.Type type, System.Func<System.Type, string?>? resolve) { }
     }
+    public enum SparsePersistDisposition
+    {
+        Rejected = 0,
+        Persisted = 1,
+        OutcomeUnknown = 2,
+    }
+    public sealed class SparsePersistResult<TModel> : System.IEquatable<SparseTypes.SparsePersistResult<TModel>>
+        where TModel :  class
+    {
+        public SparseTypes.SparsePersistDisposition Disposition { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparseValidationError> Errors { get; }
+        public TModel Model { get; }
+        public static SparseTypes.SparsePersistResult<TModel> Reject(System.Collections.Generic.IReadOnlyList<SparseTypes.SparseValidationError>? errors = null) { }
+        public static SparseTypes.SparsePersistResult<TModel> Success(TModel model) { }
+        public static SparseTypes.SparsePersistResult<TModel> Unknown() { }
+    }
+    public sealed class SparsePreparedSubmission<TModel, TChangeSet>
+        where TModel :  class
+        where TChangeSet :  class
+    {
+        public long BaselineRevision { get; }
+        public System.Collections.Generic.IReadOnlyList<SparseTypes.SparsePath> ChangedPaths { get; }
+        public TChangeSet Changes { get; }
+        public bool IsEmpty { get; }
+    }
     public enum SparseRebaseMode
     {
         Default = 0,
@@ -1113,6 +1299,14 @@ namespace SparseTypes
     public sealed class SparseRedactBeforeAttribute : System.Attribute
     {
         public SparseRedactBeforeAttribute() { }
+    }
+    public sealed class SparseRemovedCollectionRow<TElement, TKey>
+    {
+        public int BaselineIndex { get; }
+        public long BaselineRevision { get; }
+        public SparseTypes.SparsePath CollectionPath { get; }
+        public TKey Key { get; }
+        public TElement Model { get; }
     }
     public sealed class SparseResolutionWorkspace
     {
@@ -1346,6 +1540,7 @@ namespace SparseTypes.Generated
         SparseTypes.Generated.IDescriptorSet? GetItemDescriptors(int index);
         object? GetItemKey(int index);
         object? GetItemModel(int index);
+        System.Guid? GetItemTemporaryKey(int index);
         int IndexOfKey(object? key);
         int IndexOfTemporaryKey(System.Guid temporaryKey);
         bool IsUnassignedKey(object? key);
@@ -1466,6 +1661,7 @@ namespace SparseTypes.Generated
         public SparseTypes.Generated.IDescriptorSet? GetItemDescriptors(int index) { }
         public object? GetItemKey(int index) { }
         public object? GetItemModel(int index) { }
+        public System.Guid? GetItemTemporaryKey(int index) { }
         public int IndexOfKey(object? key) { }
         public int IndexOfTemporaryKey(System.Guid temporaryKey) { }
         public bool IsUnassignedKey(object? key) { }

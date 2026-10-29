@@ -109,6 +109,26 @@ internal static class SparseModelExtensionsEmitter
                     + editSession
                     + "(baseline, current, onChanged);"
             );
+            code.AppendLine("/// <summary>Creates an optional validation and save coordinator for this edit session.</summary>");
+            code.AppendLine("/// <param name=\"session\">The generated edit session.</param>");
+            code.AppendLine("/// <param name=\"options\">Validation and readiness callbacks, or null for no application validation.</param>");
+            code.AppendLine("/// <returns>A controller that prepares immutable submissions and reconciles authoritative save results.</returns>");
+            code.AppendLine(
+                accessibility
+                    + " static global::SparseTypes.SparseEditController<"
+                    + modelType
+                    + ", "
+                    + modelType
+                    + ".ChangeSet> CreateEditor(this "
+                    + editSession
+                    + " session, global::SparseTypes.SparseEditControllerOptions<"
+                    + modelType
+                    + ".ChangeSet>? options = null)"
+            );
+            code.OpenBlock();
+            code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
+            code.AppendLine("return new global::SparseTypes.SparseEditController<" + modelType + ", " + modelType + ".ChangeSet>(session, options);");
+            code.CloseBlock();
 
             code.AppendLine(
                 "/// <summary>Maps an optional model to its typed observable proxy while preserving missing and present-null states.</summary>"
@@ -145,7 +165,7 @@ internal static class SparseModelExtensionsEmitter
             );
             code.AppendLine("/// <typeparam name=\"TElement\">The collection element model type.</typeparam>");
             code.AppendLine("/// <param name=\"session\">The edit session.</param>");
-            code.AppendLine("/// <param name=\"collectionPath\">A single-member collection path.</param>");
+            code.AppendLine("/// <param name=\"collectionPath\">A path ending at a collection member.</param>");
             code.AppendLine("/// <returns>An editing facade bound to the addressed member.</returns>");
             code.AppendLine(
                 accessibility
@@ -156,7 +176,7 @@ internal static class SparseModelExtensionsEmitter
             code.OpenBlock();
             code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
             code.AppendLine(
-                "return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit);"
+                "return global::SparseTypes.SparseCollectionEditors.EditCollection<TElement>(session.Descriptors, collectionPath, session.BatchEdit, session);"
             );
             code.CloseBlock();
             code.AppendLine("/// <summary>Opens a path-addressed keyed editing facade for one collection member of this session.</summary>");
@@ -166,20 +186,45 @@ internal static class SparseModelExtensionsEmitter
             code.AppendLine("/// <typeparam name=\"TElement\">The collection element model type.</typeparam>");
             code.AppendLine("/// <typeparam name=\"TKey\">The assigned key type declared by the key attribute.</typeparam>");
             code.AppendLine("/// <param name=\"session\">The edit session.</param>");
-            code.AppendLine("/// <param name=\"collectionPath\">A single-member collection path.</param>");
+            code.AppendLine("/// <param name=\"collectionPath\">A path ending at a collection member.</param>");
             code.AppendLine("/// <returns>A keyed editing facade bound to the addressed member.</returns>");
             code.AppendLine(
                 accessibility
-                    + " static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this "
+                    + " static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditKeyedCollection<TElement, TKey>(this "
                     + sessionType
                     + " session, global::SparseTypes.SparsePath collectionPath)"
             );
             code.OpenBlock();
             code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
             code.AppendLine(
-                "return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit);"
+                "return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath, session.BatchEdit, session);"
             );
             code.CloseBlock();
+            if (config.KeyedCollectionPathInterfaceMetadataName is { Length: > 0 } keyedCollectionPathInterface)
+            {
+                code.AppendLine(
+                    "/// <summary>Opens a keyed collection editor with its element and key types inferred from the generated path.</summary>"
+                );
+                code.AppendLine("/// <param name=\"session\">The edit session.</param>");
+                code.AppendLine("/// <param name=\"collectionPath\">The generated keyed collection path.</param>");
+                code.AppendLine("/// <returns>A keyed editor for the addressed collection.</returns>");
+                code.AppendLine(
+                    accessibility
+                        + " static global::SparseTypes.SparseKeyedCollectionEditor<TElement, TKey> EditCollection<TElement, TKey>(this "
+                        + sessionType
+                        + " session, global::"
+                        + keyedCollectionPathInterface
+                        + "<"
+                        + modelType
+                        + ", TElement, TKey> collectionPath)"
+                );
+                code.OpenBlock();
+                code.AppendLine("if (session is null) throw new global::System.ArgumentNullException(nameof(session));");
+                code.AppendLine(
+                    "return global::SparseTypes.SparseCollectionEditors.EditKeyedCollection<TElement, TKey>(session.Descriptors, collectionPath.UntypedPath, session.BatchEdit, session, collectionPath.CloneElement);"
+                );
+                code.CloseBlock();
+            }
         }
 
         code.CloseBlock();

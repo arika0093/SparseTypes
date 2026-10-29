@@ -44,6 +44,31 @@ public readonly record struct SparseCollectionItemState
     /// <summary>Gets whether this state carries no semantic change for the requested key.</summary>
     public bool IsEmpty { get; private init; }
 
+    private Func<object?, (bool Success, object? Value)>? RestoreBefore { get; init; }
+
+    /// <summary>Tries to derive the baseline row from its current value and retained row transition.</summary>
+    /// <param name="current">The current row value.</param>
+    /// <param name="baseline">The reconstructed baseline value.</param>
+    /// <returns>True when the transition provides enough information to restore the baseline.</returns>
+    public bool TryGetBaselineValue(object? current, out object? baseline)
+    {
+        if (Before.IsPresent)
+        {
+            baseline = Before.Value;
+            return true;
+        }
+
+        if (RestoreBefore is { } restore)
+        {
+            var result = restore(current);
+            baseline = result.Value;
+            return result.Success;
+        }
+
+        baseline = null;
+        return false;
+    }
+
     /// <summary>Gets whether this state contains any changes.</summary>
     public bool IsChanged => !IsEmpty;
 
@@ -55,10 +80,23 @@ public readonly record struct SparseCollectionItemState
             IsEmpty = true,
         };
 
-    internal static SparseCollectionItemState FromKeyed<TKey, TElement, TElementChange>(
-        ISparseKeyedItemChange<TKey, TElement, TElementChange> item
-    ) =>
-        new()
+    internal static SparseCollectionItemState FromKeyed<TKey, TElement, TElementChange>(ISparseKeyedItemChange<TKey, TElement, TElementChange> item)
+    {
+        Func<object?, (bool Success, object? Value)>? restoreBefore = null;
+        if (item.Edit is ISparseChangeSetReverter reverter)
+        {
+            restoreBefore = current =>
+            {
+                if (!reverter.TryRevert(current!, out var restored))
+                {
+                    return (false, null);
+                }
+
+                return (true, restored);
+            };
+        }
+
+        return new SparseCollectionItemState
         {
             Key = item.Key,
             TemporaryKey = item.TemporaryKey,
@@ -71,7 +109,9 @@ public readonly record struct SparseCollectionItemState
             IsEdited = item.IsEdited,
             IsReordered = item.IsReordered,
             IsEmpty = item.IsEmpty,
+            RestoreBefore = restoreBefore,
         };
+    }
 
     internal static SparseCollectionItemState FromDictionary<TKey, TValue>(ISparseDictionaryItemChange<TKey, TValue> entry) =>
         new()
@@ -104,6 +144,8 @@ public readonly record struct SparseCollectionState
         bool isEmpty,
         bool isChanged,
         bool orderChanged,
+        IReadOnlyList<object?> baselineOrder,
+        IReadOnlyList<object?> currentOrder,
         IReadOnlyList<SparseCollectionItemState> changedItems,
         Func<object?, SparseCollectionItemState> getItem,
         Func<Guid, SparseCollectionItemState> getTemporary
@@ -113,10 +155,28 @@ public readonly record struct SparseCollectionState
         IsEmpty = isEmpty;
         IsChanged = isChanged;
         OrderChanged = orderChanged;
+        BaselineOrder = baselineOrder;
+        CurrentOrder = currentOrder;
         ChangedItems = changedItems;
         _getItem = getItem;
         _getTemporary = getTemporary;
     }
+
+    /// <summary>Creates an empty state for a collection path that has no recorded transitions.</summary>
+    /// <param name="path">The collection path represented by the state.</param>
+    /// <returns>An empty state whose item lookups also return empty states.</returns>
+    public static SparseCollectionState Empty(SparsePath path) =>
+        new(
+            path,
+            isEmpty: true,
+            isChanged: false,
+            orderChanged: false,
+            Array.Empty<object?>(),
+            Array.Empty<object?>(),
+            Array.Empty<SparseCollectionItemState>(),
+            static _ => SparseCollectionItemState.Empty,
+            static _ => SparseCollectionItemState.Empty
+        );
 
     /// <summary>Gets the queried collection member path.</summary>
     public SparsePath Path { get; }
@@ -132,6 +192,12 @@ public readonly record struct SparseCollectionState
     /// </summary>
     /// <remarks>Keyed collections only; dictionary members always report false.</remarks>
     public bool OrderChanged { get; }
+
+    /// <summary>Gets the assigned key order at the start of the transition.</summary>
+    public IReadOnlyList<object?> BaselineOrder { get; }
+
+    /// <summary>Gets the assigned key order at the end of the transition.</summary>
+    public IReadOnlyList<object?> CurrentOrder { get; }
 
     /// <summary>Gets the changed entries in this collection snapshot.</summary>
     public IReadOnlyList<SparseCollectionItemState> ChangedItems { get; }

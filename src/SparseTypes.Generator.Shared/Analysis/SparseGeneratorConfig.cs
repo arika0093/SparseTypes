@@ -50,7 +50,9 @@ internal sealed record SparseGeneratorConfig
         string? EditChildDraftHostInterfaceMetadataName = null,
         string? EditChildDraftImplementationType = null,
         string? EditSessionPipelineInterfaceMetadataName = null,
-        string? TransportIgnoreAttributeMetadataName = null
+        string? TransportIgnoreAttributeMetadataName = null,
+        string? CollectionPathInterfaceMetadataName = null,
+        string? KeyedCollectionPathInterfaceMetadataName = null
     )
     {
         this.ModelAttributeMetadataName = ModelAttributeMetadataName;
@@ -98,6 +100,8 @@ internal sealed record SparseGeneratorConfig
         this.EditChildDraftImplementationType = EditChildDraftImplementationType;
         this.EditSessionPipelineInterfaceMetadataName = EditSessionPipelineInterfaceMetadataName;
         this.TransportIgnoreAttributeMetadataName = TransportIgnoreAttributeMetadataName;
+        this.CollectionPathInterfaceMetadataName = CollectionPathInterfaceMetadataName;
+        this.KeyedCollectionPathInterfaceMetadataName = KeyedCollectionPathInterfaceMetadataName;
         this.SessionCapabilityContracts = SessionCapabilityContracts;
     }
 
@@ -199,6 +203,12 @@ internal sealed record SparseGeneratorConfig
 
     /// <summary>Attribute that excludes a tracked member from transport payloads.</summary>
     public string? TransportIgnoreAttributeMetadataName { get; init; }
+
+    /// <summary>Product-owned generated collection-path contract, or null when inferred collection access is disabled.</summary>
+    public string? CollectionPathInterfaceMetadataName { get; init; }
+
+    /// <summary>Product-owned generated keyed collection-path contract, or null when inferred keyed access is disabled.</summary>
+    public string? KeyedCollectionPathInterfaceMetadataName { get; init; }
 
     /// <summary>Product-owned session capability contracts implemented by generated sessions, or null when disabled.</summary>
     /// <remarks>Null keeps output byte-identical for downstream products without these contracts.</remarks>

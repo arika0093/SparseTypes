@@ -1,6 +1,6 @@
 # Edit keyed collections
 
-This guide shows how to add, rename, remove, reorder, bind, and save rows in a keyed collection during an edit session. Use `session.EditCollection<TElement, TKey>(...)` when interactive UI code needs batched change notifications and structured error codes for duplicate or missing keys. Mutate a plain `List<T>` directly and diff with `before.CreateChangeSet(after)` when running batch transformations outside an edit session.
+This guide shows how to edit keyed rows inside an edit session, including collections nested under child models. Generated collection paths carry the element and key types, so `session.EditCollection(path)` is the usual entry point. Use the explicit generic overloads when the path is a raw `SparsePath`. Mutate a plain `List<T>` directly and diff with `before.CreateChangeSet(after)` when running batch transformations outside an edit session.
 
 ## Choose an editing style
 
@@ -8,7 +8,9 @@ Models declare element identity with `[SparseKey]` on a scalar property such as 
 
 If you do not need live session notifications or `Try*` validation, mutate the `List<T>` directly (`Add`, `RemoveAt`, `Insert`, or index swaps) and call `before.CreateChangeSet(after)`. Note that duplicate keys in `before` or `after` throw `InvalidOperationException` when diffing.
 
-If you are working inside an edit session, call `session.EditCollection<TElement, TKey>(Order.SparsePath.Items)` to obtain a keyed editor. `session.Observable.Items` also exposes an `IList` view (`Add`, `RemoveAt`, `Insert`, `Count`, `IndexOf`), but prefer the keyed editor for keyed collections because its `Try*` methods return `false` with a `SparseCollectionEditError` (`DuplicateKey`, `UnknownKey`) instead of letting invalid state reach the diff step. For the complete editor API, see [Collection editors](../reference/collection-editors.md).
+Inside an edit session, use `session.EditCollection(Order.SparsePath.Items)` to obtain a keyed editor. A nested path such as `Order.SparsePath.Sections.Key(sectionId).Items` is resolved against the current model each time an editor operation runs. The editor reports a missing ancestor separately from a null collection. `session.Observable.Items` also exposes an `IList` view (`Add`, `RemoveAt`, `Insert`, `Count`, `IndexOf`), but the keyed editor returns structured errors such as `DuplicateKey` or `UnknownKey`. For the complete editor API, see [Collection editors](../reference/collection-editors.md).
+
+Use `BeginAdd` when a new row needs a separate editing scope before it enters the parent list. Use `BeginDuplicate` to initialize a draft from a copied row and assign application-owned identifiers in its callback. Both drafts must be accepted explicitly; disposing an open draft discards it. After removing an existing row, `TryGetRemovedRows` captures baseline handles that `TryRestoreRemoved` can insert. `TryResetByKey` restores one current row from the latest baseline. These baseline operations do not undo edits made before removal; use session history for that.
 
 <!-- illustrative: shows obtaining a keyed collection editor from an edit session -->
 ```csharp

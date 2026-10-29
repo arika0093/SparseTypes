@@ -7,7 +7,7 @@ namespace SparseTypes;
 /// <typeparam name="TModel">The parent model type.</typeparam>
 /// <typeparam name="TConflict">The product's structured conflict type.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ISparseEditSessionWithChildren<TModel, TConflict>
+public interface ISparseEditSessionWithChildren<TModel, TConflict> : ISparseCollectionDraftRegistry, ISparseChildSessionRegistry
     where TModel : class
     where TConflict : class
 {

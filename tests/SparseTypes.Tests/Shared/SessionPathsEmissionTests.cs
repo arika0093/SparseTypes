@@ -178,6 +178,34 @@ public sealed class SessionPathsEmissionTests
     }
 
     [Test]
+    public void KeyedCollectionBuilderUsesConfiguredPathContracts()
+    {
+        var config = PlainConfig(TypedPathsDialect()) with
+        {
+            CollectionPathInterfaceMetadataName = "Downstream.ISparseCollectionPath",
+            KeyedCollectionPathInterfaceMetadataName = "Downstream.ISparseKeyedCollectionPath",
+        };
+        using var code = new SharedIndentedBuilder(CancellationToken.None);
+        SparsePathBuilderEmitter.AppendPathsClass(
+            code,
+            "global::Ns.ReadModel",
+            ImmutableArray.Create(KeyedMember()),
+            TypedPathsDialect(),
+            model: ReadModel(),
+            config: config
+        );
+
+        var text = code.ToString();
+        text.ShouldContain("global::Downstream.ISparseCollectionPath<TRoot, global::Ns.Item>");
+        text.ShouldContain("global::Downstream.ISparseKeyedCollectionPath<TRoot, global::Ns.Item, global::System.Int32>");
+        text.ShouldContain("global::Downstream.ISparseCollectionPath<TRoot, global::Ns.Item>.At(int index)");
+        text.ShouldContain(
+            "global::Downstream.ISparseKeyedCollectionPath<TRoot, global::Ns.Item, global::System.Int32>.Key(global::System.Int32 key)"
+        );
+        text.ShouldNotContain("SparseTypes.ISparse");
+    }
+
+    [Test]
     public void PathsTypeResolvesNestedOrRelocated()
     {
         var model = ReadModel();
