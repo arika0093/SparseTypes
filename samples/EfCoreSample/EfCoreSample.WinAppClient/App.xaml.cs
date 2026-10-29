@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>
 /// The WPF application entry point. The main window is opened via

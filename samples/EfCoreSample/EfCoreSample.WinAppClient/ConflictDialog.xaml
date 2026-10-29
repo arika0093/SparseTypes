@@ -1,8 +1,8 @@
 <Window
-  x:Class="EfCoreSample.Client.ConflictDialog"
+  x:Class="EfCoreSample.WinAppClient.ConflictDialog"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:local="clr-namespace:EfCoreSample.Client"
+  xmlns:local="clr-namespace:EfCoreSample.WinAppClient"
   Title="Resolve conflicts"
   Width="720"
   Height="460"

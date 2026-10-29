@@ -5,7 +5,7 @@ using System.Windows;
 using EfCoreSample.Contracts;
 using SparseTypes;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>
 /// Lets the user resolve semantic conflicts path by path, choosing the

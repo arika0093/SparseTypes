@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>Shows the exact JSON body of the pending change payload.</summary>
 public partial class PayloadDialog : Window

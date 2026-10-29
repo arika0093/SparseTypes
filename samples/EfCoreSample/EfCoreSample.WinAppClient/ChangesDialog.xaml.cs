@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using SparseTypes;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>Lists the pending edits in a path/before/after table.</summary>
 public partial class ChangesDialog : Window

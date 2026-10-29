@@ -13,7 +13,7 @@ using System.Windows.Media;
 using EfCoreSample.Contracts;
 using SparseTypes;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>
 /// The order editor window. The form binds to the live edit session's
@@ -128,6 +128,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsIdle));
                 OnPropertyChanged(nameof(CanReset));
                 OnPropertyChanged(nameof(CanRemoveLine));
+                OnPropertyChanged(nameof(CanMoveLineUp));
+                OnPropertyChanged(nameof(CanMoveLineDown));
                 OnPropertyChanged(nameof(CanInspectChanges));
                 CommandManager.InvalidateRequerySuggested();
             }
@@ -143,6 +145,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// <summary>Gets whether the selected line can be removed right now.</summary>
     public bool CanRemoveLine => HasSession && IsIdle && SelectedLineIndex >= 0;
 
+    /// <summary>Gets whether the selected line can move up.</summary>
+    public bool CanMoveLineUp => HasSession && IsIdle && SelectedLineIndex > 0 && SelectedLineIndex < Session!.Observable.Lines.Count;
+
+    /// <summary>Gets whether the selected line can move down.</summary>
+    public bool CanMoveLineDown =>
+        HasSession && IsIdle && SelectedLineIndex >= 0 && SelectedLineIndex < Session!.Observable.Lines.Count - 1;
+
     /// <summary>Gets or sets the selected line row index.</summary>
     public int SelectedLineIndex
     {
@@ -154,6 +163,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 _selectedLineIndex = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(CanRemoveLine));
+                OnPropertyChanged(nameof(CanMoveLineUp));
+                OnPropertyChanged(nameof(CanMoveLineDown));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
@@ -306,6 +317,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         LinesHeader = session is null ? "Lines" : $"Lines ({session.Observable.Lines.Count})";
         OnPropertyChanged(nameof(CanReset));
         OnPropertyChanged(nameof(CanRemoveLine));
+        OnPropertyChanged(nameof(CanMoveLineUp));
+        OnPropertyChanged(nameof(CanMoveLineDown));
         OnPropertyChanged(nameof(CanInspectChanges));
         CommandManager.InvalidateRequerySuggested();
     }
@@ -572,6 +585,29 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         session.Observable.Lines.RemoveAt(index);
         SelectedLineIndex = -1;
+    }
+
+    private void OnMoveLineUpClick(object sender, RoutedEventArgs e) => MoveSelectedLine(-1);
+
+    private void OnMoveLineDownClick(object sender, RoutedEventArgs e) => MoveSelectedLine(1);
+
+    private void MoveSelectedLine(int offset)
+    {
+        var session = Session;
+        if (session is null || IsBusy)
+        {
+            return;
+        }
+
+        var index = SelectedLineIndex;
+        var targetIndex = index + offset;
+        if (index < 0 || index >= session.Observable.Lines.Count || targetIndex < 0 || targetIndex >= session.Observable.Lines.Count)
+        {
+            return;
+        }
+
+        session.Observable.Lines.Move(index, targetIndex);
+        SelectedLineIndex = targetIndex;
     }
 
     private async Task SaveAsync()

@@ -1,0 +1,9 @@
+body {
+  margin: 0;
+}
+
+.payload-highlight pre {
+  margin: 0;
+  overflow-x: auto;
+  border-radius: var(--mantine-radius-sm);
+}

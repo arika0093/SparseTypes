@@ -5,9 +5,10 @@
     <AspireUseCliBundle>true</AspireUseCliBundle>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.4" />
     <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.4" />
     <ProjectReference
-      Include="../EfCoreSample.Client/EfCoreSample.Client.csproj"
+      Include="../EfCoreSample.WinAppClient/EfCoreSample.WinAppClient.csproj"
       IsAspireProjectResource="true"
     />
     <ProjectReference

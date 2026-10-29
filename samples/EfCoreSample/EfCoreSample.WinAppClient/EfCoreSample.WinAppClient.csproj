@@ -2,8 +2,8 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <AssemblyName>EfCoreSample.Client</AssemblyName>
-    <RootNamespace>EfCoreSample.Client</RootNamespace>
+    <AssemblyName>EfCoreSample.WinAppClient</AssemblyName>
+    <RootNamespace>EfCoreSample.WinAppClient</RootNamespace>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>

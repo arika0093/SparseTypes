@@ -12,9 +12,15 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 - EfCoreSample.Server: Minimal API plus the mapper and the PostgreSQL context.
   The OpenAPI document includes the generated change payload schemas via
   `SparseTypes.OpenApi.AspNetCore`, and `/` serves the Swagger UI.
-- EfCoreSample.Client: WPF order editor and edit-session showcase. The form
+- EfCoreSample.WebClient: React and TypeScript order editor. It supports
+  adding, editing, removing, and reordering order lines, including unsaved lines.
+  It builds a `ChangePayload` from the loaded and edited values, then sends it
+  through the existing HTTP API. Its types come from the server's build-time
+  OpenAPI document.
+- EfCoreSample.WinAppClient: WPF order editor and edit-session showcase. The form
   binds to the live edit session's observable proxy with changed-field
-  highlighting and read-only gray cells; toolbar commands cover load,
+  highlighting and read-only gray cells; line buttons move the selected row up
+  and down, and toolbar commands cover load,
   create, server refresh, undo/redo with history, save, payload preview,
   and reset. Save ships a sparse change payload, and overlapping edits
   open a conflict dialog that resolves each path to the submitted or the
@@ -24,16 +30,27 @@ entity mapper, and persists it with Entity Framework Core over PostgreSQL.
 
 ## Run
 
-Start PostgreSQL, pgweb, the server, and the client through Aspire:
+Install the web-client dependencies, then start PostgreSQL, pgweb, the server,
+and the clients through Aspire:
 
 ```bash
+npm ci --prefix samples/EfCoreSample/EfCoreSample.WebClient
 dotnet run --project samples/EfCoreSample/EfCoreSample.AppHost
 ```
 
-The client starts on demand from the Aspire dashboard. The server listens on
+The web client starts with the AppHost at `http://localhost:5173`. Its Vite
+development server proxies API requests to the server. The WPF client remains
+available to start from the Aspire dashboard. The server listens on
 `http://localhost:5000`, so `/` opens the Swagger UI and
 `GET http://localhost:5000/orders/1` returns the seeded order, including its
 concurrency token.
+
+Running the AppHost with `dotnet run` builds the server first. That build writes
+`obj/openapi/order-api.json` and runs `openapi-typescript` to update
+`EfCoreSample.WebClient/src/generated/api.d.ts` before Aspire starts the
+resources. The browser client uses those generated types for the order
+endpoints and payload. It reads the payload schema identity from the server
+rather than copying the generated identity into a separate constant.
 
 The server alone also runs standalone against any reachable PostgreSQL:
 

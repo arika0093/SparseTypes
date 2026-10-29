@@ -1,8 +1,8 @@
 <Window
-  x:Class="EfCoreSample.Client.MainWindow"
+  x:Class="EfCoreSample.WinAppClient.MainWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:local="clr-namespace:EfCoreSample.Client"
+  xmlns:local="clr-namespace:EfCoreSample.WinAppClient"
   Title="EfCoreSample Order Editor"
   Width="880"
   Height="620"
@@ -230,6 +230,20 @@
               Click="OnAddLineClick"
               Content="Add line"
               IsEnabled="{Binding HasSession}"
+            />
+            <Button
+              Margin="0,0,8,0"
+              Padding="12,3"
+              Click="OnMoveLineUpClick"
+              Content="Move up"
+              IsEnabled="{Binding CanMoveLineUp}"
+            />
+            <Button
+              Margin="0,0,8,0"
+              Padding="12,3"
+              Click="OnMoveLineDownClick"
+              Content="Move down"
+              IsEnabled="{Binding CanMoveLineDown}"
             />
             <Button
               Padding="12,3"

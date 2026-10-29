@@ -4,7 +4,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using EfCoreSample.Contracts;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>
 /// Highlights DataGrid rows whose line has pending edits. Bound with a

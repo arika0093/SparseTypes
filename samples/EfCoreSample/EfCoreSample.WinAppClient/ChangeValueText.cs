@@ -3,7 +3,7 @@ using System.Globalization;
 using EfCoreSample.Contracts;
 using SparseTypes;
 
-namespace EfCoreSample.Client;
+namespace EfCoreSample.WinAppClient;
 
 /// <summary>Formats change values for the changes table and conflict rows.</summary>
 internal static class ChangeValueText

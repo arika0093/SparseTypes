@@ -1,4 +1,4 @@
-import type { components, paths } from "./generated/api";
+import type { components, paths } from "../generated/api";
 
 type OrderResponse = components["schemas"]["OrderDto"];
 type GeneratedChangePayload = paths["/orders/{id}"]["put"] extends {
