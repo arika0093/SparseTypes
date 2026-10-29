@@ -129,9 +129,13 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
                 + id
                 + ".Add(new "
                 + trans
-                + ".Item(__it.Key, __tt, default, __tua, -1, __corder"
+                + ".Item(__it.Key, __tt, default, __tua, -1, (__preserveTempAddOrder"
                 + id
-                + ".Count, true, false, false, false, __tuedit, false)); }"
+                + " && __corder"
+                + id
+                + ".Count > 0 ? __it.AfterIndex : __corder"
+                + id
+                + ".Count), true, false, false, false, __tuedit, false)); }"
         );
         code.CloseBlock();
         // Removed: already-applied when absent; replay when still base;
@@ -251,10 +255,22 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
     }
 
     /// <summary>Emits rebased temporary orders from the current temp order.</summary>
-    internal static void AppendTempOrderOutput(SharedIndentedBuilder code, int id)
+    internal static void AppendTempOrderOutput(SharedIndentedBuilder code, SparseMemberModel member, int id)
     {
-        // Rebased-before is the current state; rebased-after appends replayed
-        // temporary additions in replay order.
+        code.AppendLine("if (__preserveTempAddOrder" + id + ")");
+        code.OpenBlock();
+        code.AppendLine("__rtbO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder" + id + ");");
+        code.AppendLine(
+            "__rtaO"
+                + id
+                + " = new global::System.Collections.Generic.List<global::System.Guid>("
+                + SparseChangeSetBasicsEmitter.KeyedTempAfterOrder(member)
+                + ");"
+        );
+        code.CloseBlock();
+        code.AppendLine("else");
+        code.OpenBlock();
+        // Concurrent changes keep the established replay order: current temporary items first, then additions.
         code.AppendLine("__rtbO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder" + id + ");");
         code.AppendLine("__rtaO" + id + " = new global::System.Collections.Generic.List<global::System.Guid>(__tcorder" + id + ");");
         code.AppendLine("var __rtaOseen" + id + " = new global::System.Collections.Generic.HashSet<global::System.Guid>(__tcorder" + id + ");");
@@ -267,5 +283,6 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
                 + id
                 + ".Add(__it.TemporaryKey.Value);"
         );
+        code.CloseBlock();
     }
 }

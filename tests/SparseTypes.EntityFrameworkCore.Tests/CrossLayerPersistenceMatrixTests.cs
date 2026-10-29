@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using SparseTypes.EntityFrameworkCore.Tests.Concurrency;
 using SparseTypes.EntityFrameworkCore.Tests.Sample;
 
@@ -207,6 +208,46 @@ public sealed class CrossLayerPersistenceMatrixTests
         session.HasChanges.ShouldBeFalse();
         address.HasChanges.ShouldBeFalse();
         history.CanUndo.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task PipelineSavePersistsNewTemporaryLineAtRequestedPosition()
+    {
+        using var connection = TestDatabases.OpenMemory();
+        using var context = TestDatabases.CreateSample(connection, new QueryCounter());
+        var entity = SeedOrder(context);
+        var before = ReadOrderDto(entity);
+        var draft = CloneOrder(before);
+        var session = draft.CreateEditSession();
+        session.Observable.Lines.AddModel(PendingLine(9, TempA));
+        session.Observable.Lines.Move(2, 0);
+
+        var submitted = session.CreateChangeSet();
+        submitted.Lines.OrderChanged.ShouldBeTrue();
+        submitted.Lines.GetTemporaryChange(TempA).AfterIndex.ShouldBe(0);
+        var json = JsonSerializer.Serialize(submitted.ToPayload(), OrderDto.PayloadJson.Default);
+        var request = JsonSerializer.Deserialize<OrderDto.ChangePayload>(json, OrderDto.PayloadJson.Default)!;
+        var changes = request.ToChangeSet();
+        changes.Lines.OrderChanged.ShouldBeTrue();
+        changes.Lines.GetTemporaryChange(TempA).AfterIndex.ShouldBe(0);
+        changes.Lines.AfterOrder.ShouldBe([0, entity.Lines[0].Id, entity.Lines[1].Id]);
+        var rebased = changes.RebaseOnto(before);
+        rebased.HasConflicts.ShouldBeFalse();
+        rebased.Rebased.Lines.OrderChanged.ShouldBeTrue();
+        rebased.Rebased.Lines.GetTemporaryChange(TempA).AfterIndex.ShouldBe(0);
+        var mapper = PipelineOrderMapper.Create(context.Model);
+        var result = await mapper.PipelineExecuteAsync(context, changes, order => order.Id == entity.Id, session);
+
+        result.Stage.ShouldBe(SparseEntityPipelineStage.Saved);
+        entity.Lines.Select(static line => line.Quantity).ShouldBe([9, 1, 2]);
+        entity.Lines.Select(static line => line.SortOrder).ShouldBe([0, 1, 2]);
+        using var fresh = TestDatabases.CreateSample(connection, new QueryCounter());
+        var persisted = await fresh
+            .Orders.Include(static order => order.Lines)
+            .SingleAsync(order => order.Id == entity.Id);
+        persisted.Lines.OrderBy(static line => line.SortOrder).Select(static line => line.Quantity).ShouldBe([9, 1, 2]);
+        draft.Lines.Select(static line => line.Quantity).ShouldBe([9, 1, 2]);
+        session.HasChanges.ShouldBeFalse();
     }
 
     [Test]

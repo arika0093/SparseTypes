@@ -375,17 +375,7 @@ internal static class SparsePayloadSchemaEmitter
         var key = schema.TypeSchema(SparseChangeSetBasicsEmitter.KeyTypeOf(member));
         var valueType = SparseChangeSetBasicsEmitter.IsKeyed(member) ? member.Collection.ElementType : member.Collection.ValueType!.Value;
         var isModelValue = valueType.IsFragmentModel;
-        var valueSchema = isModelValue
-            ? schema.Reference(
-                SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
-                    context.Dialect,
-                    valueType.NonNullableName,
-                    "Root",
-                    context.ImplementationNamespace
-                ),
-                SchemaComponentName(valueType.NonNullableName, "Root")
-            )
-            : schema.TypeSchema(valueType);
+        var valueSchema = schema.TypeSchema(valueType);
         var properties = new List<(string, string)>
         {
             ("key", key),
@@ -394,7 +384,7 @@ internal static class SparsePayloadSchemaEmitter
             ("after", Endpoint(valueSchema, includeRedacted: false, allowNull: valueType.IsReferenceType, openApi31)),
             ("beforeIndex", Object(("type", String("integer")), ("minimum", "0"))),
             ("afterIndex", Object(("type", String("integer")), ("minimum", "0"))),
-            ("isReordered", BooleanTrue(openApi31)),
+            ("isReordered", BooleanFlag()),
         };
         if (isModelValue)
         {
@@ -466,39 +456,23 @@ internal static class SparsePayloadSchemaEmitter
 
         if (SparseChangeSetBasicsEmitter.IsKeyed(member))
         {
-            return Object(("type", String("array")), ("items", ItemValueSchema(context, schema, member.Collection.ElementType)));
+            return Object(("type", String("array")), ("items", ItemValueSchema(schema, member.Collection.ElementType)));
         }
 
         if (SparseChangeSetBasicsEmitter.IsDict(member))
         {
-            return Object(("type", String("object")), ("additionalProperties", ItemValueSchema(context, schema, member.Collection.ValueType!.Value)));
+            return Object(("type", String("object")), ("additionalProperties", ItemValueSchema(schema, member.Collection.ValueType!.Value)));
         }
 
         if (member.Collection.Semantic == SparseCollectionSemantic.ScalarSequence && !IsByteArray(member.Property.Type.RuntimeName))
         {
-            return Object(("type", String("array")), ("items", ItemValueSchema(context, schema, member.Collection.ElementType)));
+            return Object(("type", String("array")), ("items", ItemValueSchema(schema, member.Collection.ElementType)));
         }
 
         return schema.TypeSchema(member.Property.Type);
     }
 
-    private static string ItemValueSchema(PayloadJsonEmissionContext context, SchemaBuilder schema, SparseTypeModel valueType)
-    {
-        if (valueType.IsFragmentModel)
-        {
-            return schema.Reference(
-                SparseChangeSetPayloadEmitter.QualifiedChildPayloadType(
-                    context.Dialect,
-                    valueType.NonNullableName,
-                    "Root",
-                    context.ImplementationNamespace
-                ),
-                SchemaComponentName(valueType.NonNullableName, "Root")
-            );
-        }
-
-        return schema.TypeSchema(valueType);
-    }
+    private static string ItemValueSchema(SchemaBuilder schema, SparseTypeModel valueType) => schema.TypeSchema(valueType);
 
     private static string Endpoint(string valueSchema, bool includeRedacted, bool allowNull, bool openApi31)
     {
@@ -549,8 +523,7 @@ internal static class SparsePayloadSchemaEmitter
             ? Object(("type", Array(String("string"), String("null"))), ("format", String("date-time")))
             : Object(("type", String("string")), ("format", String("date-time")), ("nullable", "true"));
 
-    private static string BooleanTrue(bool openApi31) =>
-        openApi31 ? Object(("type", String("boolean")), ("const", "true")) : Object(("type", String("boolean")), ("enum", Array("true")));
+    private static string BooleanFlag() => Object(("type", String("boolean")));
 
     private static string Object(params (string Name, string Schema)[] properties)
     {

@@ -186,6 +186,36 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         }
 
         code.AppendLine("var __rebaseCurrentOrder" + id + " = new global::System.Collections.Generic.List<" + keyType + ">(__corder" + id + ");");
+        if (hasTempRebase)
+        {
+            code.AppendLine(
+                "bool __preserveTempAddOrder"
+                    + id
+                    + " = "
+                    + KeyedBeforeOrder(member)
+                    + " is not null && "
+                    + KeyedAfterOrder(member)
+                    + " is not null && "
+                    + KeyedTempBeforeOrder(member)
+                    + " is not null && "
+                    + KeyedTempAfterOrder(member)
+                    + " is not null && "
+                    + facade
+                    + ".KeyOrderEquals<"
+                    + keyType
+                    + ">("
+                    + KeyedBeforeOrder(member)
+                    + ", __rebaseCurrentOrder"
+                    + id
+                    + ") && "
+                    + facade
+                    + ".KeyOrderEquals<global::System.Guid>("
+                    + KeyedTempBeforeOrder(member)
+                    + ", __tcorder"
+                    + id
+                    + ");"
+            );
+        }
         code.AppendLine("var __rlist" + id + " = new global::System.Collections.Generic.List<" + trans + ".Item>();");
         code.AppendLine("bool __any" + id + " = false;");
         code.AppendLine("if (" + KeyedItems(member) + " is not null) foreach (var __it in " + KeyedItems(member) + ")");
@@ -540,26 +570,64 @@ internal static class SparseChangeSetKeyedRebaseEmitter
             code.AppendLine(
                 "if (__unassignedOnlyAdds"
                     + id
-                    + ") { __nbO"
+                    + ") __nbO"
                     + id
                     + " = new global::System.Collections.Generic.List<"
                     + keyType
                     + ">(__corder"
                     + id
-                    + "); __naO"
-                    + id
-                    + " = new global::System.Collections.Generic.List<"
-                    + keyType
-                    + ">(__corder"
-                    + id
-                    + "); foreach (var __newItem in __rlist"
-                    + id
-                    + ") if (__newItem.IsAdded && "
-                    + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__newItem.Key")
-                    + ") __naO"
-                    + id
-                    + ".Add(__newItem.Key); }"
+                    + ");"
             );
+            if (hasTempRebase)
+            {
+                code.AppendLine(
+                    "if (__unassignedOnlyAdds"
+                        + id
+                        + " && __preserveTempAddOrder"
+                        + id
+                        + ") __naO"
+                        + id
+                        + " = new global::System.Collections.Generic.List<"
+                        + keyType
+                        + ">("
+                        + KeyedAfterOrder(member)
+                        + "); else if (__unassignedOnlyAdds"
+                        + id
+                        + ") { __naO"
+                        + id
+                        + " = new global::System.Collections.Generic.List<"
+                        + keyType
+                        + ">(__corder"
+                        + id
+                        + "); foreach (var __newItem in __rlist"
+                        + id
+                        + ") if (__newItem.IsAdded && "
+                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__newItem.Key")
+                        + ") __naO"
+                        + id
+                        + ".Add(__newItem.Key); }"
+                );
+            }
+            else
+            {
+                code.AppendLine(
+                    "if (__unassignedOnlyAdds"
+                        + id
+                        + ") { __naO"
+                        + id
+                        + " = new global::System.Collections.Generic.List<"
+                        + keyType
+                        + ">(__corder"
+                        + id
+                        + "); foreach (var __newItem in __rlist"
+                        + id
+                        + ") if (__newItem.IsAdded && "
+                        + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "__newItem.Key")
+                        + ") __naO"
+                        + id
+                        + ".Add(__newItem.Key); }"
+                );
+            }
         }
         code.AppendLine(
             "if ("
@@ -659,7 +727,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         code.CloseBlock();
         if (hasTempRebase)
         {
-            SparseChangeSetKeyedTempRebaseEmitter.AppendTempOrderOutput(code, id);
+            SparseChangeSetKeyedTempRebaseEmitter.AppendTempOrderOutput(code, member, id);
         }
         code.AppendLine(
             "if (__any"

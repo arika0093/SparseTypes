@@ -8,6 +8,8 @@ Generated payload readers honour `JsonSerializerOptions.PropertyNameCaseInsensit
 
 Scalar enum codecs reject undefined values on read and write. Flags enums accept combinations of declared bits, including zero. These checks apply to the shared scalar codecs and payload codecs, including nullable and wide enum types.
 
+Keyed item snapshot endpoints serialize model values as ordinary JSON values. OpenAPI hosts must register a `SparsePayloadSchema` for each type in `PayloadJson.Schema.RequiredExternalSchemaTypes`; use `SparsePayloadSchemaNames.GetName` for the component name referenced by the generated bundle.
+
 
 This package ships C# sources only — there is no runtime assembly and no `lib/` assets.
 Referencing it compiles the shared sources into the consuming generator via

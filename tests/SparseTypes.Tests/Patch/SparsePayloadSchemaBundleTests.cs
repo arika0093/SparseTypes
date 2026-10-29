@@ -212,6 +212,48 @@ public sealed class SparsePayloadSchemaBundleTests
     }
 
     [Test]
+    public void KeyedModelItemSchemaMatchesItsJsonSnapshotAndReorderFlag()
+    {
+        var schemas = PayloadSchemaOrder.PayloadJson.Schema;
+        var item30 = schemas.OpenApi30Schemas.Single(static schema => schema.Name.Contains("_Item_lines", StringComparison.Ordinal));
+        var item31 = schemas.OpenApi31Schemas.Single(static schema => schema.Name.Contains("_Item_lines", StringComparison.Ordinal));
+
+        using var document30 = System.Text.Json.JsonDocument.Parse(item30.OpenApi30JsonSchema);
+        using var document31 = System.Text.Json.JsonDocument.Parse(item31.OpenApi31JsonSchema);
+        var add30 = document30.RootElement.GetProperty("oneOf")[0];
+        var add31 = document31.RootElement.GetProperty("oneOf")[0];
+        var valueRef30 = GetValueReference(add30.GetProperty("properties").GetProperty("after"));
+        var valueRef31 = GetValueReference(add31.GetProperty("properties").GetProperty("after"));
+        valueRef30.ShouldEndWith("PayloadSchemaOrderLine");
+        valueRef31.ShouldEndWith("PayloadSchemaOrderLine");
+        valueRef30.ShouldNotEndWith("_Root");
+        valueRef31.ShouldNotEndWith("_Root");
+
+        var reorder30 = add30.GetProperty("properties").GetProperty("isReordered");
+        reorder30.GetProperty("type").GetString().ShouldBe("boolean");
+        reorder30.TryGetProperty("enum", out _).ShouldBeFalse();
+        var reorder31 = add31.GetProperty("properties").GetProperty("isReordered");
+        reorder31.GetProperty("type").GetString().ShouldBe("boolean");
+        reorder31.TryGetProperty("const", out _).ShouldBeFalse();
+
+        static string GetValueReference(System.Text.Json.JsonElement endpoint) =>
+            endpoint.GetProperty("oneOf")
+                .EnumerateArray()
+                .Single(variant => GetStringValue(variant.GetProperty("properties").GetProperty("state")) == "value")
+                .GetProperty("properties")
+                .GetProperty("value")
+                .GetProperty("$ref")
+                .GetString()!
+                .Split('/')
+                .Last();
+
+        static string? GetStringValue(System.Text.Json.JsonElement schema) =>
+            schema.TryGetProperty("const", out var constant)
+                ? constant.GetString()
+                : schema.GetProperty("enum")[0].GetString();
+    }
+
+    [Test]
     public void SchemaIdentityTracksNestedWireShapesInsteadOfNestedClrNames()
     {
         var first = new PayloadSchemaNestedProbeA.ChangePayload().Schema;
@@ -326,4 +368,24 @@ public partial class PayloadSchemaNestedProbeCompatible
     public PayloadSchemaNestedChildA? Child { get; set; }
 
     public string? Note { get; set; }
+}
+
+[SparseModel]
+public partial class PayloadSchemaOrderLine
+{
+    public int Id { get; set; }
+
+    [SparseKey(Unassigned = 0)]
+    public int Key => Id;
+
+    [SparseTemporaryKey]
+    public Guid? TemporaryId { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+}
+
+[SparseModel]
+public partial class PayloadSchemaOrder
+{
+    public List<PayloadSchemaOrderLine> Lines { get; set; } = [];
 }
