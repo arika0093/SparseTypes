@@ -512,8 +512,6 @@ function sameEndpoint(before, after, wireType) {
   return equalWireValue(before.value, after.value, wireType);
 }
 function equalWireValue(before, after, wireType) {
-  if (wireType === "decimal-string") return normalizeDecimal(before) === normalizeDecimal(after);
-  if (wireType === "int64-string" || wireType === "uint64-string") return BigInt(before) === BigInt(after);
   if (Array.isArray(before) || Array.isArray(after)) {
     return Array.isArray(before) && Array.isArray(after) && before.length === after.length
       && before.every((value, index) => equalWireValue(value, after[index], wireType));
@@ -524,6 +522,9 @@ function equalWireValue(before, after, wireType) {
     return beforeKeys.length === afterKeys.length && beforeKeys.every((key, index) =>
       key === afterKeys[index] && equalWireValue(before[key], after[key], wireType));
   }
+  if (before === null || after === null || before === undefined || after === undefined) return Object.is(before, after);
+  if (wireType === "decimal-string") return normalizeDecimal(before) === normalizeDecimal(after);
+  if (wireType === "int64-string" || wireType === "uint64-string") return BigInt(before) === BigInt(after);
   return equal(before, after);
 }
 function snapshot(modelName, value) {

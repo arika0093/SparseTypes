@@ -853,3 +853,125 @@ test("generates nested, sequence, dictionary, and redacted member changes safely
     await rm(output, { recursive: true, force: true });
   }
 });
+
+test("compares precision-sensitive sequences element by element", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const members = (
+      input.components.schemas.OrderMembers["x-sparsetypes"] as {
+        members: Array<Record<string, unknown>>;
+      }
+    ).members;
+    members.push(
+      {
+        name: "decimals",
+        shape: "sequence",
+        nullable: false,
+        redactBefore: false,
+        elementWireType: "decimal-string",
+      },
+      {
+        name: "longs",
+        shape: "sequence",
+        nullable: false,
+        redactBefore: false,
+        elementWireType: "int64-string",
+      },
+      {
+        name: "ulongs",
+        shape: "sequence",
+        nullable: true,
+        redactBefore: false,
+        elementWireType: "uint64-string",
+      },
+    );
+    const dto = input.components.schemas.OrderDto as {
+      properties: Record<string, unknown>;
+    };
+    dto.properties = {
+      ...dto.properties,
+      decimals: { type: "array", items: { type: "string" } },
+      longs: { type: "array", items: { type: "string" } },
+      ulongs: { type: "array", items: { type: "string" } },
+    };
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { decimals: ["1.0", "2.50"] },
+        { decimals: ["1.00", "2.5"] },
+      ),
+      undefined,
+    );
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { longs: ["1", "2"] },
+        { longs: ["1", "2"] },
+      ),
+      undefined,
+    );
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { ulongs: ["0", "18446744073709551615"] },
+        { ulongs: ["0", "18446744073709551615"] },
+      ),
+      undefined,
+    );
+    const decimalDiff = changes.buildOrderDtoChangePayload(
+      { decimals: ["1.0", "2.0"] },
+      { decimals: ["1.0", "2.5"] },
+    );
+    assert.deepEqual(decimalDiff.change.members.decimals.after, {
+      state: "value",
+      value: ["1.0", "2.5"],
+    });
+    const longDiff = changes.buildOrderDtoChangePayload(
+      { longs: ["1", "2"] },
+      { longs: ["1", "3"] },
+    );
+    assert.ok(longDiff.change.members.longs);
+    const ulongDiff = changes.buildOrderDtoChangePayload(
+      { ulongs: ["1"] },
+      { ulongs: ["2"] },
+    );
+    assert.ok(ulongDiff.change.members.ulongs);
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { decimals: [null, "1.0"] },
+        { decimals: [null, "1.00"] },
+      ),
+      undefined,
+    );
+    const nullDiff = changes.buildOrderDtoChangePayload(
+      { decimals: [null, "1.0"] },
+      { decimals: [null, "2.0"] },
+    );
+    assert.ok(nullDiff.change.members.decimals);
+    assert.equal(
+      changes.buildOrderDtoChangePayload({ decimals: [] }, { decimals: [] }),
+      undefined,
+    );
+    const emptyDiff = changes.buildOrderDtoChangePayload(
+      { decimals: [] },
+      { decimals: ["1.0"] },
+    );
+    assert.ok(emptyDiff.change.members.decimals);
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { decimals: ["1.0", "1.0"] },
+        { decimals: ["1.00", "1.00"] },
+      ),
+      undefined,
+    );
+    const lengthDiff = changes.buildOrderDtoChangePayload(
+      { longs: ["1"] },
+      { longs: ["1", "2"] },
+    );
+    assert.ok(lengthDiff.change.members.longs);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
