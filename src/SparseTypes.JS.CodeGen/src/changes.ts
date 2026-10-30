@@ -908,6 +908,32 @@ function sameEndpoint(before, after, wireType) {
   if (before.state !== "value") return true;
   return equalWireValue(before.value, after.value, wireType);
 }
+function dateTimeOffsetUtcTicks(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{7})(Z|[+-]\d{2}:\d{2})$/.exec(value);
+  if (!match) return undefined;
+  const year = Number(match[1]); const month = Number(match[2]); const day = Number(match[3]);
+  const hour = Number(match[4]); const minute = Number(match[5]); const second = Number(match[6]);
+  const fraction = BigInt(match[7]);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 60) return undefined;
+  const adjustedMonth = Math.floor((month - 3 + 12) % 12);
+  const adjustedYear = year + Math.floor((month - 3) / 12);
+  const days = BigInt(Math.floor(adjustedYear * 365.25) - Math.floor(adjustedYear / 100) + Math.floor(adjustedYear / 400) + Math.floor((adjustedMonth * 306 + 5) / 10) + day - 719469);
+  let offsetMinutes = 0;
+  if (match[8] !== "Z") {
+    const sign = match[8][0] === "-" ? -1 : 1;
+    const offsetHour = Number(match[8].slice(1, 3)); const offsetMinute = Number(match[8].slice(4, 6));
+    if (offsetHour > 14 || offsetMinute > 59 || (offsetHour === 14 && offsetMinute !== 0)) return undefined;
+    offsetMinutes = sign * (offsetHour * 60 + offsetMinute);
+  }
+  return ((days * 86400n + BigInt(hour * 3600 + minute * 60 + second - offsetMinutes * 60)) * 10000000n) + fraction;
+}
+function equalDateTimeOffset(before, after) {
+  if (typeof before !== "string" || typeof after !== "string") return equal(before, after);
+  const left = dateTimeOffsetUtcTicks(before);
+  const right = dateTimeOffsetUtcTicks(after);
+  if (left === undefined || right === undefined) return before === after;
+  return left === right;
+}
 function equalWireValue(before, after, wireType) {
   if (wireType === "guid-string" && typeof before === "string" && typeof after === "string") {
     // C# Guid equality is case-independent; compare canonically so a
@@ -918,6 +944,19 @@ function equalWireValue(before, after, wireType) {
   }
   // Precision checks stay below the Array/object/null handling so null
   // elements and nested values compare without throwing (issues 380/386).
+  if (wireType === "datetime-string") {
+    // C# DateTime equality compares ticks only: the same wall-clock value
+    // with Utc and Unspecified kinds is equal, while Local values are
+    // rejected by the reader. The canonical wire form is a fixed-width
+    // seven-fractional-digit timestamp with an optional trailing Z, so
+    // stripping one trailing Z compares exactly the C# equality inputs.
+    // Kind itself is retained on the wire (Z vs absent suffix).
+    if (typeof before !== "string" || typeof after !== "string") return equal(before, after);
+    const beforeTicks = before.endsWith("Z") ? before.slice(0, -1) : before;
+    const afterTicks = after.endsWith("Z") ? after.slice(0, -1) : after;
+    return beforeTicks === afterTicks;
+  }
+  if (wireType === "datetimeoffset-string") return equalDateTimeOffset(before, after);
   if (Array.isArray(before) || Array.isArray(after)) {
     return Array.isArray(before) && Array.isArray(after) && before.length === after.length
       && before.every((value, index) => equalWireValue(value, after[index], wireType));
