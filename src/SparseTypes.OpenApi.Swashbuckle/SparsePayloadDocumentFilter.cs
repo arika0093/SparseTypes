@@ -72,7 +72,7 @@ internal sealed class SparsePayloadDocumentFilter(
                     if (
                         installed.Add(name)
                         && swaggerDoc.Components.Schemas.TryGetValue(name, out _)
-                        && !IsOwnedBy(context, recordedName, name, type)
+                        && !IsOwnedBy(context, registry, recordedName, name, type)
                     )
                     {
                         throw new InvalidOperationException(
@@ -90,7 +90,7 @@ internal sealed class SparsePayloadDocumentFilter(
         }
     }
 
-    private static bool IsOwnedBy(DocumentFilterContext context, string? recordedName, string name, Type type)
+    private static bool IsOwnedBy(DocumentFilterContext context, SparseSchemaNameRegistry registry, string? recordedName, string name, Type type)
     {
         // The schema repository knows every endpoint-generated schema: a
         // lookup hit for this exact type proves same-type ownership.
@@ -99,9 +99,15 @@ internal sealed class SparsePayloadDocumentFilter(
             return true;
         }
 
-        // Otherwise only the application's schema ID policy can demonstrate
-        // ownership: it must have assigned this exact name to this exact type.
-        return string.Equals(recordedName, name, StringComparison.Ordinal);
+        // Otherwise the application schema pipeline must have assigned this
+        // exact name to this exact type, either through the recorded schema ID
+        // policy entry or the observed endpoint schema generation.
+        if (string.Equals(recordedName, name, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return registry.TryGetObservedName(type, out var observed) && string.Equals(observed, name, StringComparison.Ordinal);
     }
 }
 
