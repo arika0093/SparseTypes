@@ -544,13 +544,14 @@ test("generates API types, model declarations, ChangePayload diff, and fetch cli
       path.join(output, "consumer.ts"),
       `
 import { buildOrderDtoChangePayload, createClient, parseOrderDto } from "./index.js";
-import type { OptionalOrderDto, OptionalOrderLineDto, OrderDto } from "./index.js";
+import type { OptionalOrderDto, OrderDto, OrderLineDtoAssignedItem, OrderLineDtoUnassignedItem } from "./index.js";
 const dto: OrderDto = { name: "Order" };
 // @ts-expect-error DTO nullability follows the OpenAPI contract.
 const invalidDto: OrderDto = { name: null };
 const state: OptionalOrderDto = { name: undefined, lines: Object.freeze([]) };
-const preciseLine: OptionalOrderLineDto = { key: 0, unitPrice: "12345678901234567890.1234" };
-const order: OptionalOrderDto = { lines: [preciseLine], address: { city: "Tokyo" }, prices: { exact: "12345678901234567890.12", empty: null } };
+const preciseLine: OrderLineDtoAssignedItem = { key: 1, unitPrice: "12345678901234567890.1234" };
+const unassignedLine: OrderLineDtoUnassignedItem = { key: 0, temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de", unitPrice: "0.1" };
+const order: OptionalOrderDto = { lines: [preciseLine, unassignedLine], address: { city: "Tokyo" }, prices: { exact: "12345678901234567890.12", empty: null } };
 buildOrderDtoChangePayload(state, state);
 buildOrderDtoChangePayload(state, order);
 parseOrderDto(dto);
@@ -3735,6 +3736,84 @@ parseLedgerDto(state);
         path.join(output, "precision-consumer.ts"),
       ],
       { stdio: "inherit" },
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("preserves required keyed identities in Optional model types", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-keyed-"));
+  try {
+    await generate({ input: document(), output });
+    const modelsTypes = await readFile(path.join(output, "models.d.ts"), "utf8");
+    assert.match(
+      modelsTypes,
+      /export type OrderLineDtoAssignedItem = OptionalOrderLineDto & Required<Pick<OrderLineDto, "key">>;/,
+    );
+    assert.match(
+      modelsTypes,
+      /export type OrderLineDtoUnassignedItem = OptionalOrderLineDto & \{ "key": 0; "temporaryId": string \};/,
+    );
+    assert.match(
+      modelsTypes,
+      /export type OrderLineDtoKeyedItem = OrderLineDtoAssignedItem \| OrderLineDtoUnassignedItem;/,
+    );
+    assert.match(modelsTypes, /readonly \(OrderLineDtoKeyedItem\)\[\]/);
+    await writeFile(
+      path.join(output, "keyed-consumer.ts"),
+      `
+import type { OptionalOrderDto, OptionalOrderLineDto, OrderLineDtoAssignedItem, OrderLineDtoKeyedItem, OrderLineDtoUnassignedItem } from "./index.js";
+const assigned: OrderLineDtoKeyedItem = { key: 1, quantity: 2 };
+const unassigned: OrderLineDtoKeyedItem = { key: 0, temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de", quantity: 1 };
+const viaAlias: OrderLineDtoAssignedItem = { key: 2 };
+const viaUnassigned: OrderLineDtoUnassignedItem = { key: 0, temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de" };
+const inParent: OptionalOrderDto = { lines: [assigned, unassigned] };
+const bare: OptionalOrderLineDto = { quantity: 1 };
+// @ts-expect-error keyed elements require their stable identity members.
+const missingKey: OrderLineDtoKeyedItem = { quantity: 1 };
+// @ts-expect-error unassigned rows require a temporary key.
+const missingTemp: OrderLineDtoUnassignedItem = { key: 0 };
+void viaAlias;
+void viaUnassigned;
+void inParent;
+void bare;
+void missingKey;
+void missingTemp;
+`,
+    );
+    execFileSync(
+      "tsgo",
+      [
+        "--ignoreConfig",
+        "--noEmit",
+        "--strict",
+        "--exactOptionalPropertyTypes",
+        "--lib",
+        "ES2022,DOM",
+        "--module",
+        "ESNext",
+        "--moduleResolution",
+        "Bundler",
+        path.join(output, "keyed-consumer.ts"),
+      ],
+      { stdio: "inherit" },
+    );
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    assert.throws(
+      () =>
+        changes.buildOrderDtoChangePayload({ lines: [] }, { lines: [{}] }),
+      /missing key property 'key'/,
+    );
+    assert.throws(
+      () =>
+        changes.buildOrderDtoChangePayload(
+          { lines: [] },
+          { lines: [{ key: 0 }] },
+        ),
+      /temporary key/,
     );
   } finally {
     await rm(output, { recursive: true, force: true });

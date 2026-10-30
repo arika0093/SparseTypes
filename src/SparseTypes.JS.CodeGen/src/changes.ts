@@ -505,6 +505,55 @@ export function emitModelsDts(
   models: ChangeModel[],
 ): string {
   const modelByIdentity = new Map(models.map((model) => [model.model, model]));
+  // Keyed-element editable types keep stable identity members statically
+  // required. OptionalT stays fully deep-optional; parents of keyed
+  // collections reference the TKeyedItem union instead.
+  const keyedItemOf = new Map<string, string>();
+  const keyedItems = models.flatMap((model) => {
+    const usages = model.members.filter(
+      (member) => member.shape === "keyed" && member.itemModel,
+    );
+    return usages.flatMap((member) => {
+      const child = modelByIdentity.get(member.itemModel);
+      if (!child || keyedItemOf.has(child.model)) return [];
+      const keys = ((member.keyProperties ?? []) as unknown[]).filter(
+        (key): key is string => typeof key === "string",
+      );
+      const temporaryKey =
+        typeof member.temporaryKey === "string" ? member.temporaryKey : undefined;
+      const unassignedKey = Object.prototype.hasOwnProperty.call(member, "unassignedKey")
+        ? member.unassignedKey
+        : undefined;
+      keyedItemOf.set(child.model, `${child.typeName}KeyedItem`);
+      if (keys.length === 0) return [];
+      const required = `Required<Pick<${child.typeName}, ${keys.map((key) => JSON.stringify(key)).join(" | ")}>>`;
+      // A second keying of the same item with different identity rules, or a
+      // composite key, falls back to required keys only rather than guessing
+      // an unassigned-key union.
+      const singleKeying = !usages.some(
+        (other) =>
+          other !== member &&
+          other.itemModel === member.itemModel &&
+          (JSON.stringify(other.keyProperties ?? []) !==
+            JSON.stringify(member.keyProperties ?? []) ||
+            other.temporaryKey !== member.temporaryKey),
+      );
+      if (
+        temporaryKey === undefined ||
+        unassignedKey === undefined ||
+        keys.length !== 1 ||
+        !singleKeying
+      )
+        return [
+          `export type ${child.typeName}KeyedItem = Optional${child.typeName} & ${required};`,
+        ];
+      return [
+        `export type ${child.typeName}AssignedItem = Optional${child.typeName} & ${required};`,
+        `export type ${child.typeName}UnassignedItem = Optional${child.typeName} & { ${JSON.stringify(keys[0])}: ${JSON.stringify(unassignedKey)}; ${JSON.stringify(temporaryKey)}: string };`,
+        `export type ${child.typeName}KeyedItem = ${child.typeName}AssignedItem | ${child.typeName}UnassignedItem;`,
+      ];
+    });
+  });
   const aliases = models
     .map(
       (model) =>
@@ -543,7 +592,7 @@ export function emitModelsDts(
           if (member.shape === "nested" && child) {
             value = `Optional${child.typeName}${member.nullable ? " | null" : ""}`;
           } else if (member.shape === "keyed" && child) {
-            value = `readonly (Optional${child.typeName}${member.elementNullable ? " | null" : ""})[]`;
+            value = `readonly (${keyedItemOf.get(child.model) ?? `Optional${child.typeName}`}${member.elementNullable ? " | null" : ""})[]`;
           } else if (member.shape === "dictionary" && child) {
             value = `Record<string, Optional${child.typeName}${member.valueNullable ? " | null" : ""}>`;
           } else if (member.shape === "sequence") {
@@ -582,8 +631,7 @@ export function emitModelsDts(
       return `export type Optional${model.typeName} = DeepOptional<Omit<${model.typeName}, ${omitted}>> & {\n${fields}\n};`;
     })
     .join("\n");
-  return `import type { components } from "./api.js";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;
-}
+  return `import type { components } from "./api.js";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}${keyedBlock}\n\n${models}.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;}
 
 export function emitModelsJs(
   document: OpenApiDocument,
