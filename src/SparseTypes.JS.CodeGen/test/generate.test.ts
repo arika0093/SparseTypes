@@ -1713,3 +1713,92 @@ test("converts keyed DTO snapshots using integer and nullable schema types", asy
     await rm(output, { recursive: true, force: true });
   }
 });
+test("emits canonical precision-sensitive scalar encodings", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const lineMembers = input.components.schemas.OrderLineMembers[
+      "x-sparsetypes"
+    ] as { members: Array<Record<string, unknown>> };
+    lineMembers.members.find((member) => member.name === "quantity")!.wireType =
+      "int64-string";
+    lineMembers.members.find((member) => member.name === "id")!.wireType =
+      "uint64-string";
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const item = (overrides: Record<string, unknown>) => ({
+      id: "1",
+      key: 1,
+      temporaryId: null,
+      quantity: "1",
+      unitPrice: "1.00",
+      ...overrides,
+    });
+    const changeUnitPrice = (before: unknown, after: unknown) =>
+      changes.buildOrderDtoChangePayload(
+        { lines: [item({ unitPrice: before })] },
+        { lines: [item({ unitPrice: after })] },
+      ).change.members.lines.items[0].members.unitPrice;
+    // Canonical decimals preserve scale.
+    assert.deepEqual(changeUnitPrice("1.00", "2.50"), {
+      kind: "replace",
+      before: { state: "value", value: "1.00" },
+      after: { state: "value", value: "2.50" },
+    });
+    // Negative zero normalizes while preserving scale.
+    assert.equal(changeUnitPrice("1.00", "-0.00").after.value, "0.00");
+    assert.equal(changeUnitPrice("1.00", "-0").after.value, "0");
+    // Non-canonical decimal spellings throw before a payload is built.
+    for (const bad of ["1e3", "+1", "001", " 1", "1 ", ".5", "5.", "NaN"]) {
+      assert.throws(() => changeUnitPrice("1.00", bad), /canonical|finite/);
+    }
+    // Decimal bounds: scale, precision, and range are enforced.
+    assert.throws(
+      () => changeUnitPrice("1.00", `1.${"0".repeat(29)}`),
+      /scale/,
+    );
+    assert.throws(() => changeUnitPrice("1.00", "1".repeat(30)), /29/);
+    assert.throws(
+      () => changeUnitPrice("1.00", "79228162514264337593543950336"),
+      /out of range/,
+    );
+    // JS numbers with exponent forms or non-finite values throw.
+    assert.throws(() => changeUnitPrice("1.00", 1e21), /canonical/);
+    assert.throws(() => changeUnitPrice("1.00", NaN), /finite/);
+    assert.equal(changeUnitPrice(3, 5).after.value, "5");
+    const changeQuantity = (before: unknown, after: unknown) =>
+      changes.buildOrderDtoChangePayload(
+        { lines: [item({ quantity: before })] },
+        { lines: [item({ quantity: after })] },
+      ).change.members.lines.items[0].members.quantity;
+    // 64-bit integers reject non-canonical spellings and out-of-range values.
+    for (const bad of ["001", "+1", " 1", "1 ", "1e3", "1.0"]) {
+      assert.throws(() => changeQuantity("1", bad), /canonical/);
+    }
+    assert.throws(
+      () => changeQuantity("1", "9223372036854775808"),
+      /out of range/,
+    );
+    assert.equal(
+      changeQuantity("1", "-9223372036854775808").after.value,
+      "-9223372036854775808",
+    );
+    assert.equal(changeQuantity("1", 42).after.value, "42");
+    assert.throws(() => changeQuantity("1", 2 ** 53), /strings/);
+    const changeId = (before: unknown, after: unknown) =>
+      changes.buildOrderDtoChangePayload(
+        { lines: [item({ id: before })] },
+        { lines: [item({ id: after })] },
+      ).change.members.lines.items[0].members.id;
+    assert.throws(() => changeId("1", "-1"), /canonical/);
+    assert.equal(
+      changeId("1", "18446744073709551615").after.value,
+      "18446744073709551615",
+    );
+    assert.throws(() => changeId("1", "18446744073709551616"), /out of range/);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

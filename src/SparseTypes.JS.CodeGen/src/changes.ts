@@ -447,23 +447,43 @@ function encodeWireValue(value, wireType) {
     return result;
   }
   if (typeof value === "number") {
-    if (!Number.isFinite(value) || (wireType !== "decimal-string" && !Number.isSafeInteger(value))) {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("Precision-sensitive SparseTypes values must be finite numbers or canonical strings.");
+    }
+    if (wireType === "decimal-string") return canonicalDecimal(String(value));
+    if (!Number.isSafeInteger(value)) {
       throw new TypeError("Precision-sensitive SparseTypes values must be supplied as strings.");
     }
-    return String(value);
+    return canonicalInteger(String(value), wireType);
   }
   if (typeof value !== "string") throw new TypeError("Precision-sensitive SparseTypes values must be numbers or strings.");
-  if (wireType === "decimal-string") normalizeDecimal(value);
-  else {
-    if (!/^-?\d+$/.test(value) || (wireType === "uint64-string" && value.startsWith("-"))) {
-      throw new TypeError("A precision-sensitive integer value is invalid.");
-    }
-    const integer = BigInt(value);
-    const minimum = wireType === "int64-string" ? -(1n << 63n) : 0n;
-    const maximum = wireType === "int64-string" ? (1n << 63n) - 1n : (1n << 64n) - 1n;
-    if (integer < minimum || integer > maximum) throw new TypeError("A precision-sensitive integer value is out of range.");
+  if (wireType === "decimal-string") return canonicalDecimal(value);
+  return canonicalInteger(value, wireType);
+}
+function canonicalDecimal(text) {
+  const match = /^(-)?(0|[1-9][0-9]*)(\.([0-9]+))?$/.exec(text);
+  if (!match) {
+    throw new TypeError("A decimal value '" + text + "' is not canonical: use [-]digits[.fraction] without exponent, plus sign, whitespace, or leading zeros.");
   }
-  return value;
+  const fraction = match[4] ?? "";
+  if (fraction.length > 28) throw new TypeError("A decimal value exceeds the maximum scale of 28.");
+  const significant = (match[2] + fraction).replace(/^0+/, "") || "0";
+  if (significant.length > 29) throw new TypeError("A decimal value exceeds 29 significant digits.");
+  if (BigInt(significant) > (1n << 96n) - 1n) throw new TypeError("A decimal value is out of range.");
+  if (significant === "0") return fraction.length ? "0." + fraction : "0";
+  return (match[1] ?? "") + match[2] + (fraction.length ? "." + fraction : "");
+}
+function canonicalInteger(text, wireType) {
+  const pattern = wireType === "uint64-string" ? /^(0|[1-9][0-9]*)$/ : /^(-)?(0|[1-9][0-9]*)$/;
+  if (!pattern.test(text)) {
+    throw new TypeError("A precision-sensitive integer value '" + text + "' is not canonical: use [-]digits without plus sign, whitespace, exponent, or leading zeros.");
+  }
+  const normalized = text === "-0" ? "0" : text;
+  const integer = BigInt(normalized);
+  const minimum = wireType === "int64-string" ? -(1n << 63n) : 0n;
+  const maximum = wireType === "int64-string" ? (1n << 63n) - 1n : (1n << 64n) - 1n;
+  if (integer < minimum || integer > maximum) throw new TypeError("A precision-sensitive integer value is out of range.");
+  return normalized;
 }
 function normalizeDecimal(value) {
   const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(String(value));
