@@ -7,7 +7,7 @@ import {
   emitModelsDts,
   emitModelsJs,
 } from "./changes.js";
-import { emitClientDts, emitClientJs } from "./client.js";
+import { collectOperations, emitClientDts, emitClientJs } from "./client.js";
 import { loadDocument, makeTypes, type OpenApiDocument } from "./openapi.js";
 
 export interface GenerateOptions {
@@ -26,9 +26,10 @@ export async function generate({
   if (!input || output === "")
     throw new TypeError("Input and a non-empty output path are required.");
   const document = await loadDocument(input);
-  // Resolve reusable parameter references before type generation so local
-  // #/components/parameters/... problems report actionable codegen errors
+  // Resolve operation references before type bundling so missing or cyclic
+  // requestBody/response/parameter refs fail with actionable diagnostics
   // instead of generic schema-resolution failures.
+  collectOperations(document);
   const clientDts = emitClientDts(document);
   const clientJs = emitClientJs(document);
   const apiTypes = await makeTypes(document);

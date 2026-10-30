@@ -8,6 +8,8 @@ export interface OpenApiDocument extends Record<string, any> {
   components: {
     schemas: Record<string, OpenApiSchema>;
     parameters?: Record<string, OpenApiSchema>;
+    requestBodies?: Record<string, OpenApiSchema>;
+    responses?: Record<string, OpenApiSchema>;
   };
 }
 export type OpenApiSchema = Record<string, any>;
@@ -66,6 +68,71 @@ export function refName(schema: OpenApiSchema | undefined): string | undefined {
   return decodeURIComponent(ref.slice("#/components/schemas/".length))
     .replace(/~1/g, "/")
     .replace(/~0/g, "~");
+}
+
+/// Resolves a local `#/...` JSON-pointer reference against the document,
+/// following chained `$ref` values. Shared by parameter, requestBody and
+/// response resolution so every consumer observes the same semantics.
+/// Throws an actionable error for external, missing or cyclic references.
+export function resolveDocumentRef(
+  document: OpenApiDocument,
+  ref: string,
+  seen: string[] = [],
+): Record<string, any> {
+  if (!ref.startsWith("#/")) {
+    throw new Error(
+      `OpenAPI reference '${ref}' cannot be resolved: only local '#/...' references are supported.`,
+    );
+  }
+  if (seen.includes(ref)) {
+    throw new Error(
+      `OpenAPI reference '${ref}' is cyclic: ${[...seen, ref].join(" -> ")}.`,
+    );
+  }
+  const segments = ref
+    .slice(2)
+    .split("/")
+    .map((segment) =>
+      decodeURIComponent(segment).replace(/~1/g, "/").replace(/~0/g, "~"),
+    );
+  let current: unknown = document;
+  for (let index = 0; index < segments.length; index++) {
+    const segment = segments[index]!;
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      !Object.prototype.hasOwnProperty.call(current, segment)
+    ) {
+      throw new Error(
+        `OpenAPI reference '${ref}' does not resolve: '${segments.slice(index).join("/")}' is not defined.`,
+      );
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  if (
+    current === null ||
+    typeof current !== "object" ||
+    Array.isArray(current)
+  ) {
+    throw new Error(
+      `OpenAPI reference '${ref}' does not resolve to an object.`,
+    );
+  }
+  const target = current as Record<string, any>;
+  if (typeof target.$ref === "string" && target.$ref !== ref) {
+    return resolveDocumentRef(document, target.$ref, [...seen, ref]);
+  }
+  return target;
+}
+
+/// Follows an inline object's own `$ref` (if any) via [resolveDocumentRef].
+/// Values without `$ref` are returned unchanged.
+export function dereferenceObject<T extends Record<string, any>>(
+  document: OpenApiDocument,
+  value: T | undefined,
+): T | undefined {
+  if (!value || typeof value.$ref !== "string") return value;
+  return resolveDocumentRef(document, value.$ref) as T;
 }
 
 export function schemaRef(

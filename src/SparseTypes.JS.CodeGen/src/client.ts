@@ -1,4 +1,4 @@
-import { parameterRefName } from "./openapi.js";
+import { dereferenceObject, parameterRefName } from "./openapi.js";
 import type { OpenApiDocument } from "./openapi.js";
 
 const METHODS = new Set([
@@ -158,7 +158,7 @@ function operationName(
   return name;
 }
 
-function collectOperations(document: OpenApiDocument): Operation[] {
+export function collectOperations(document: OpenApiDocument): Operation[] {
   const operations: Operation[] = [];
   const used = new Set<string>();
   for (const [path, pathItem] of Object.entries(document.paths)) {
@@ -182,11 +182,15 @@ function collectOperations(document: OpenApiDocument): Operation[] {
       const parameters = [...merged.values()];
       for (const parameter of parameters) validateParameter(parameter);
       const operationNameValue = operationName(operation, method, path, used);
+      const resolvedBody = dereferenceObject(document, operation.requestBody);
+      for (const response of Object.values(operation.responses ?? {})) {
+        dereferenceObject(document, response as Record<string, any>);
+      }
       const serialization = requestSerialization(
         operationNameValue,
         method,
         path,
-        operation.requestBody,
+        resolvedBody,
       );
       validateSuccessMedia(
         operationNameValue,
@@ -200,12 +204,12 @@ function collectOperations(document: OpenApiDocument): Operation[] {
         operation,
         name: operationNameValue,
         parameters,
-        requestBody: operation.requestBody,
+        requestBody: resolvedBody,
         requestKind: serialization?.kind,
         requestMediaType: serialization?.mediaType,
         argsRequired:
           parameters.some((parameter) => parameter.required) ||
-          operation.requestBody?.required === true,
+          resolvedBody?.required === true,
       });
     }
   }
@@ -286,20 +290,24 @@ export function emitClientJs(document: OpenApiDocument): string {
       }),
     ),
     argsRequired: operation.argsRequired,
-    bodyRequired: operation.operation.requestBody?.required === true,
+    bodyRequired: operation.requestBody?.required === true,
     requestKind: operation.requestKind,
     requestMediaType: operation.requestMediaType,
     requestMedia: Object.keys(operation.requestBody?.content ?? {}),
-    successMedia: successfulMedia(operation.operation.responses),
+    successMedia: successfulMedia(document, operation.operation.responses),
   }));
   return `const operations = ${JSON.stringify(manifests, null, 2)};\n\n${CLIENT_RUNTIME}\n\nexport function createClient(options = {}) {\n  const baseUrl = options.baseUrl ?? ${JSON.stringify(document.servers?.[0]?.url ?? "")};\n  const fetcher = options.fetch ?? globalThis.fetch;\n  if (typeof fetcher !== "function") throw new TypeError("A fetch implementation is required.");\n  const client = {};\n  for (const operation of operations) {\n    client[operation.name] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, false);\n    client[operation.name + "Raw"] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, true);\n  }\n  return client;\n}\n`;
 }
 
-function successfulMedia(responses: Record<string, any> = {}): string[] {
+function successfulMedia(
+  document: OpenApiDocument,
+  responses: Record<string, any> = {},
+): string[] {
   const media = new Set<string>();
   for (const [status, response] of Object.entries(responses ?? {})) {
     if (!/^[23]/.test(status)) continue;
-    for (const type of Object.keys(response?.content ?? {})) media.add(type);
+    const resolved = dereferenceObject(document, response) ?? response;
+    for (const type of Object.keys(resolved?.content ?? {})) media.add(type);
   }
   return [...media];
 }

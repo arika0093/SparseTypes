@@ -2258,3 +2258,146 @@ test("rejects unsupported or ambiguous media types with actionable diagnostics",
     await rm(output, { recursive: true, force: true });
   }
 });
+test("resolves referenced requestBodies and responses", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.components.requestBodies = {
+      SaveOrder: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ChangePayload" },
+          },
+        },
+      },
+    };
+    input.components.responses = {
+      OrderResponse: {
+        description: "OK",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/OrderDto" },
+          },
+        },
+      },
+      OrderDeleted: { description: "No content" },
+      OrderConflict: {
+        description: "Conflict",
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/OrderConflict" },
+          },
+        },
+      },
+    };
+    const put = input.paths["/orders/{id}"].put;
+    put.requestBody = { $ref: "#/components/requestBodies/SaveOrder" };
+    put.responses = {
+      "200": { $ref: "#/components/responses/OrderResponse" },
+      "204": { $ref: "#/components/responses/OrderDeleted" },
+      "409": { $ref: "#/components/responses/OrderConflict" },
+    };
+    input.components.parameters = {
+      OrderId: {
+        name: "id",
+        in: "path",
+        required: true,
+        schema: { type: "integer" },
+      },
+    };
+    input.paths["/orders/{id}"].get.parameters = [
+      { $ref: "#/components/parameters/OrderId" },
+    ];
+    await generate({ input, output });
+    const generated = await readFile(path.join(output, "changes.js"), "utf8");
+    assert.match(generated, /buildOrderDtoChangePayload/);
+    const clientSource = await readFile(path.join(output, "client.js"), "utf8");
+    assert.match(clientSource, /"bodyRequired": true/);
+    assert.match(clientSource, /"application\/json"/);
+
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    const requiredClient = clientModule.createClient({
+      fetch: async () => {
+        throw new Error("unexpected fetch");
+      },
+    });
+    await assert.rejects(
+      requiredClient.saveOrder({
+        params: { path: { id: 1 } },
+        headers: { "If-Match": "v1" },
+      }),
+      /Missing required request body/,
+    );
+    const emptyClient = clientModule.createClient({
+      fetch: async () => new Response(null, { status: 204 }),
+    });
+    assert.equal(
+      await emptyClient.saveOrder({
+        params: { path: { id: 1 } },
+        headers: { "If-Match": "v1" },
+        body: {},
+      }),
+      undefined,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("supports escaped, chained, and invalid local references", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const escaped = document();
+    escaped.components.requestBodies = {
+      "Save/Special~Order": {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { $ref: "#/components/schemas/ChangePayload" },
+          },
+        },
+      },
+      AliasOrder: {
+        $ref: "#/components/requestBodies/Save~1Special~0Order",
+      },
+    };
+    const put = escaped.paths["/orders/{id}"].put;
+    put.requestBody = { $ref: "#/components/requestBodies/AliasOrder" };
+    await generate({ input: escaped, output });
+    const clientSource = await readFile(path.join(output, "client.js"), "utf8");
+    assert.match(clientSource, /"bodyRequired": true/);
+
+    const missing = document();
+    missing.paths["/orders/{id}"].put.requestBody = {
+      $ref: "#/components/requestBodies/DoesNotExist",
+    };
+    await assert.rejects(
+      generate({ input: missing, output }),
+      /DoesNotExist.*is not defined/,
+    );
+
+    const cyclic = document();
+    cyclic.components.requestBodies = {
+      First: { $ref: "#/components/requestBodies/Second" },
+      Second: { $ref: "#/components/requestBodies/First" },
+    };
+    cyclic.paths["/orders/{id}"].put.requestBody = {
+      $ref: "#/components/requestBodies/First",
+    };
+    await assert.rejects(generate({ input: cyclic, output }), /is cyclic/);
+
+    const external = document();
+    external.paths["/orders/{id}"].put.requestBody = {
+      $ref: "https://example.test/openapi.json#/components/requestBodies/SaveOrder",
+    };
+    await assert.rejects(
+      generate({ input: external, output }),
+      /only local '#\/\.\.\.' references are supported/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
