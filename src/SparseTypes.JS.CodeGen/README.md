@@ -9,7 +9,7 @@ The generated package contains:
 - `api.d.ts`: OpenAPI path and component declarations produced with `openapi-typescript`.
 - `models.js` and `models.d.ts`: model type aliases (`T`), sparse state types (`OptionalT`, `DeepOptional`, `DeepReadonly`), and runtime schema validators (`parseT`).
 - `changes.js` and `changes.d.ts`: `buildTChangePayload(before, after)` functions that diff two client states into a version `"0.1"` `ChangePayload` envelope.
-- `client.js` and `client.d.ts`: a `fetch`-based `createClient()` helper and `ApiError` class with typed operation methods (`operation(args, init)` and `operationRaw(args, init)`).
+- `client.js` and `client.d.ts`: a `fetch`-based `createClient()` helper and `ApiError` class with typed operation methods (`operation(args, init)` and `operationRaw(args, init)`). Method names derive from `operationId` (sanitized to camelCase, with a path-derived fallback and numeric suffixes for collisions); each name and its `Raw` variant share one namespace, so `foo` plus `fooRaw` yields `foo` and `fooRaw2` instead of overwriting an operation.
 - `index.js`, `index.d.ts`, and `package.json`: an ES module entry point (`@sparsetypes/generated` by default).
 
 The generated code has no runtime npm dependencies and runs in browsers and Node.js.
