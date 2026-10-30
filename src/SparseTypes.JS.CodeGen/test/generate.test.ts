@@ -115,6 +115,10 @@ function document(): OpenApiDocument {
             additionalProperties: { type: ["number", "null"] },
           },
           address: { $ref: "#/components/schemas/AddressDto" },
+          contacts: {
+            type: "object",
+            additionalProperties: { $ref: "#/components/schemas/ChildDto" },
+          },
           lines: {
             type: "array",
             items: { $ref: "#/components/schemas/OrderLineDto" },
@@ -122,6 +126,10 @@ function document(): OpenApiDocument {
           version: { type: "string" },
         }),
         AddressDto: schema({ city: { type: "string" } }),
+        ChildDto: schema({
+          name: { type: "string" },
+          secret: { type: "string" },
+        }),
         OrderLineDto: schema({
           id: { type: "integer" },
           key: { type: "integer" },
@@ -250,6 +258,16 @@ function document(): OpenApiDocument {
               childModel: "Sample.Contracts.AddressDto",
             },
             {
+              name: "contacts",
+              shape: "dictionary",
+              nullable: true,
+              redactBefore: true,
+              valueNullable: true,
+              itemModel: "Sample.Contracts.ChildDto",
+              keyProperties: [],
+              ordered: false,
+            },
+            {
               name: "lines",
               shape: "keyed",
               nullable: false,
@@ -289,6 +307,39 @@ function document(): OpenApiDocument {
             model: "Sample.Contracts.AddressDto",
             schemaIdentity,
             membersComponent: "AddressMembers",
+          },
+        },
+        ChildMembers: {
+          ...schema({}),
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model: "Sample.Contracts.ChildDto",
+            schemaIdentity,
+            members: [
+              {
+                name: "name",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
+              {
+                name: "secret",
+                shape: "value",
+                nullable: false,
+                redactBefore: true,
+              },
+            ],
+          },
+        },
+        ChildChangePayload: {
+          ...schema({}),
+          "x-sparsetypes": {
+            version: 1,
+            role: "payload",
+            model: "Sample.Contracts.ChildDto",
+            schemaIdentity,
+            membersComponent: "ChildMembers",
           },
         },
       },
@@ -2524,6 +2575,137 @@ test("resolves relative servers and rejects bad server variables", async () => {
       generate({ input: badEnum, output }),
       /not in its enum/,
     );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("emits replace for nullable nested-model dictionary value transitions", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    await generate({ input: document(), output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+
+    const created = changes.buildOrderDtoChangePayload(
+      { contacts: { primary: null } },
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+    );
+    assert.deepEqual(created.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "replace",
+        before: { state: "redacted" },
+        after: {
+          state: "value",
+          value: { name: "Alice", secret: "s1" },
+        },
+      },
+    ]);
+
+    const cleared = changes.buildOrderDtoChangePayload(
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+      { contacts: { primary: null } },
+    );
+    assert.deepEqual(cleared.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "replace",
+        before: { state: "redacted" },
+        after: { state: "null" },
+      },
+    ]);
+
+    const added = changes.buildOrderDtoChangePayload(
+      { contacts: {} },
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+    );
+    assert.deepEqual(added.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "add",
+        after: {
+          state: "value",
+          value: { name: "Alice", secret: "s1" },
+        },
+      },
+    ]);
+
+    // Explicit undefined has no JSON representation, so it behaves like an
+    // absent key and produces an add.
+    const fromUndefined = changes.buildOrderDtoChangePayload(
+      { contacts: { primary: undefined } },
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+    );
+    assert.deepEqual(fromUndefined.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "add",
+        after: {
+          state: "value",
+          value: { name: "Alice", secret: "s1" },
+        },
+      },
+    ]);
+
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { contacts: { primary: null } },
+        { contacts: { primary: null } },
+      ),
+      undefined,
+    );
+
+    const edited = changes.buildOrderDtoChangePayload(
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+      { contacts: { primary: { name: "Bob", secret: "s1" } } },
+    );
+    assert.deepEqual(edited.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "update",
+        members: {
+          name: {
+            kind: "replace",
+            before: { state: "value", value: "Alice" },
+            after: { state: "value", value: "Bob" },
+          },
+        },
+      },
+    ]);
+
+    const redactedEdit = changes.buildOrderDtoChangePayload(
+      { contacts: { primary: { name: "Alice", secret: "s1" } } },
+      { contacts: { primary: { name: "Alice", secret: "s2" } } },
+    );
+    assert.deepEqual(
+      redactedEdit.change.members.contacts.items[0].members.secret.before,
+      { state: "redacted" },
+    );
+
+    assert.throws(
+      () =>
+        changes.buildOrderDtoChangePayload(
+          { contacts: { primary: 42 } },
+          { contacts: { primary: null } },
+        ),
+      /must be objects, null, or missing/,
+    );
+
+    // The payload survives JSON serialization with its wire shape intact.
+    const roundTripped = JSON.parse(JSON.stringify(created));
+    assert.deepEqual(roundTripped.change.members.contacts.items, [
+      {
+        key: "primary",
+        kind: "replace",
+        before: { state: "redacted" },
+        after: {
+          state: "value",
+          value: { name: "Alice", secret: "s1" },
+        },
+      },
+    ]);
   } finally {
     await rm(output, { recursive: true, force: true });
   }

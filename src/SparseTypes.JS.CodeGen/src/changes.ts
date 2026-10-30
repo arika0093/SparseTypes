@@ -708,6 +708,15 @@ function diffKeyed(model, member, before, after, redact) {
     } : {}),
   };
 }
+function isNestedObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function dictionaryItemEndpoint(modelName, item) {
+  if (item === undefined) return { state: "missing" };
+  if (item === null) return { state: "null" };
+  if (!isNestedObject(item)) throw new TypeError("Dictionary model values must be objects, null, or missing.");
+  return endpoint(snapshotDto(modelName, item), false);
+}
 function diffDictionary(model, member, before, after, redact) {
   const secret = member.redactBefore || redact;
   const b = state(before, member.name, member.valueWireType); const a = state(after, member.name, member.valueWireType);
@@ -731,8 +740,17 @@ function diffDictionary(model, member, before, after, redact) {
     }
     const previous = b.value[key]; const current = a.value[key];
     if (member.itemModel) {
-      const nested = diffMembers(member.itemModel, previous, current, secret);
-      if (nested && Object.keys(nested).length) items.push({ key, kind: "update", members: nested });
+      if (isNestedObject(previous) && isNestedObject(current)) {
+        const nested = diffMembers(member.itemModel, previous, current, secret);
+        if (nested && Object.keys(nested).length) items.push({ key, kind: "update", members: nested });
+      } else {
+        // Whole-value presence changes (null/missing <-> model) are a
+        // replace: diffing a missing model as a nested update would emit
+        // member changes the server cannot apply.
+        const itemBefore = dictionaryItemEndpoint(member.itemModel, previous);
+        const itemAfter = dictionaryItemEndpoint(member.itemModel, current);
+        if (!sameEndpoint(itemBefore, itemAfter)) items.push({ key, kind: "replace", before: secret ? { state: "redacted" } : itemBefore, after: itemAfter });
+      }
     } else if (!sameEndpoint(endpoint(previous, false, member.valueWireType), endpoint(current, false, member.valueWireType), member.valueWireType)) {
       items.push({ key, kind: "replace", before: endpoint(previous, secret, member.valueWireType), after: endpoint(current, false, member.valueWireType) });
     }
