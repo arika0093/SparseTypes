@@ -427,6 +427,44 @@ function keyedGuidProperties(
   });
 }
 
+
+// Precision-sensitive members (decimal/int64/uint64 and 64-bit enums) travel
+// in ChangePayload endpoints as strings, but an ordinary DTO may still carry
+// them as JSON numbers. JSON.parse rounds those before parseT or the payload
+// builders ever see them, so a numeric DTO representation is inherently lossy
+// beyond 2^53 integers / high-scale decimals. With
+// `requireLosslessPrecision`, generation fails for such members instead of
+// silently producing a lossy client.
+export function assertLosslessPrecision(models: ChangeModel[]): void {
+  for (const model of models) {
+    for (const member of model.members) {
+      const wireType =
+        member.shape === "sequence"
+          ? member.elementWireType
+          : member.shape === "dictionary"
+            ? member.valueWireType
+            : member.wireType;
+      if (!isPrecisionStringType(wireType)) continue;
+      if (member.childModel ?? member.itemModel) continue;
+      const snapshotTypes = (
+        Array.isArray(member.snapshotType)
+          ? member.snapshotType
+          : member.snapshotType
+            ? [member.snapshotType]
+            : []
+      ) as string[];
+      if (
+        snapshotTypes.length > 0 &&
+        !snapshotTypes.some((type) => type === "number" || type === "integer")
+      )
+        continue;
+      throw new Error(
+        `Model '${model.model}' member '${member.name}' uses precision-sensitive wire type '${wireType}' but the DTO carries it as ${snapshotTypes.length > 0 ? `JSON ${snapshotTypes.join("/")} (already rounded by JSON.parse beyond 2^53 / high-scale decimals)` : "a schema without a JSON type"}. Use a string-based DTO contract for this member, or drop the 'requireLosslessPrecision' option.`,
+      );
+    }
+  }
+}
+
 function jsString(value: unknown): string {
   return JSON.stringify(value);
 }

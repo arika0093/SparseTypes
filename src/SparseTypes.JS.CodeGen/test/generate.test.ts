@@ -3488,3 +3488,255 @@ test("rejects wrapper, ambiguous, inconsistent, and unknown DTO mappings", async
     await rm(output, { recursive: true, force: true });
   }
 });
+
+function precisionDocument(stringContract: boolean): OpenApiDocument {
+  const model = "Sample.Contracts.LedgerDto";
+  const entryModel = "Sample.Contracts.EntryDto";
+  const numeric = (type: string) =>
+    stringContract ? { type: "string" } : { type };
+  const nullableNumeric = (type: string) =>
+    stringContract ? { type: ["string", "null"] } : { type: [type, "null"] };
+  return {
+    openapi: "3.1.0",
+    info: { title: "Test", version: "1.0" },
+    servers: [{ url: "/" }],
+    paths: {
+      "/ledger/{id}": {
+        put: {
+          operationId: "saveLedger",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/LedgerChangePayload" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "OK",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/LedgerDto" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        LedgerDto: {
+          type: "object",
+          properties: {
+            bigInt: numeric("integer"),
+            bigSeq: { type: "array", items: numeric("integer") },
+            bigMap: { type: "object", additionalProperties: nullableNumeric("number") },
+            exactTotal: { type: "string" },
+            uid: { type: "string" },
+            entries: {
+              type: "array",
+              items: { $ref: "#/components/schemas/EntryDto" },
+            },
+          },
+        },
+        EntryDto: {
+          type: "object",
+          properties: {
+            id: { type: "integer" },
+            key: { type: "integer" },
+            tempId: { type: ["string", "null"] },
+            amount: numeric("number"),
+          },
+        },
+        LedgerMembers: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model,
+            schemaIdentity,
+            members: [
+              { name: "bigInt", shape: "value", nullable: false, redactBefore: false, wireType: "int64-string" },
+              { name: "bigSeq", shape: "sequence", nullable: false, redactBefore: false, elementWireType: "int64-string" },
+              { name: "bigMap", shape: "dictionary", nullable: false, redactBefore: false, valueWireType: "decimal-string" },
+              { name: "exactTotal", shape: "value", nullable: false, redactBefore: false, wireType: "decimal-string" },
+              { name: "uid", shape: "value", nullable: false, redactBefore: false, wireType: "uint64-string" },
+              {
+                name: "entries",
+                shape: "keyed",
+                nullable: false,
+                redactBefore: false,
+                itemModel: entryModel,
+                keyProperties: ["key"],
+                keyType: "integer-number",
+                unassignedKey: 0,
+                temporaryKey: "tempId",
+                ordered: true,
+              },
+            ],
+          },
+        },
+        EntryMembers: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model: entryModel,
+            schemaIdentity,
+            members: [
+              { name: "id", shape: "value", nullable: false, redactBefore: false },
+              { name: "key", shape: "value", nullable: false, redactBefore: false },
+              { name: "tempId", shape: "value", nullable: true, redactBefore: false },
+              { name: "amount", shape: "value", nullable: false, redactBefore: false, wireType: "decimal-string" },
+            ],
+          },
+        },
+        LedgerChangePayload: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "payload",
+            model,
+            schemaIdentity,
+            membersComponent: "LedgerMembers",
+          },
+        },
+        EntryChangePayload: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "payload",
+            model: entryModel,
+            schemaIdentity,
+            membersComponent: "EntryMembers",
+          },
+        },
+      },
+    },
+  };
+}
+
+test("documents precision boundaries and failure modes for numeric DTOs", async () => {
+  // The loss happens in JSON.parse, before generated code ever runs.
+  assert.equal(JSON.parse('{"v":9007199254740993}').v, 9007199254740992);
+  assert.equal(JSON.parse('{"v":12345678901234567890.1234}').v, 12345678901234568000);
+
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-precision-"));
+  try {
+    await generate({ input: precisionDocument(false), output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const modelModule = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    // String-held states encode exactly into the payload.
+    const payload = changes.buildLedgerDtoChangePayload(
+      { bigInt: "9007199254740993", exactTotal: "12345678901234567890.123400" },
+      { bigInt: "9007199254740994", exactTotal: "12345678901234567890.1234" },
+    );
+    assert.deepEqual(payload.change.members.bigInt.after, {
+      state: "value",
+      value: "9007199254740994",
+    });
+    assert.ok(!("exactTotal" in payload.change.members));
+    // Unsafe numbers are rejected instead of silently encoded.
+    assert.throws(
+      () =>
+        changes.buildLedgerDtoChangePayload({}, { bigInt: 2 ** 53 }),
+      /must be supplied as strings/,
+    );
+    // Keyed snapshots cannot preserve unrepresentable decimals as numbers.
+    assert.throws(
+      () =>
+        changes.buildLedgerDtoChangePayload(
+          { entries: [] },
+          {
+            entries: [
+              {
+                id: 0,
+                key: 0,
+                tempId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+                amount: "12345678901234567890.1234",
+              },
+            ],
+          },
+        ),
+      /cannot preserve this decimal/,
+    );
+    // A numeric DTO contract fails the declared losslessness requirement.
+    await assert.rejects(
+      generate({ input: precisionDocument(false), output, requireLosslessPrecision: true }),
+      /Sample\.Contracts\.LedgerDto.*bigInt.*int64-string/,
+    );
+    void modelModule;
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("accepts a string-based precision DTO contract as lossless", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-precision-"));
+  try {
+    await generate({
+      input: precisionDocument(true),
+      output,
+      requireLosslessPrecision: true,
+    });
+    const modelModule = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    const dto = {
+      bigInt: "9007199254740993",
+      bigSeq: ["9007199254740993"],
+      bigMap: { kept: "12345678901234567890.1234", gone: null },
+      exactTotal: "12345678901234567890.1234",
+      uid: "18446744073709551615",
+    };
+    assert.deepEqual(modelModule.parseLedgerDto(dto), dto);
+    await writeFile(
+      path.join(output, "precision-consumer.ts"),
+      `
+import { buildLedgerDtoChangePayload, parseLedgerDto } from "./index.js";
+import type { OptionalLedgerDto } from "./index.js";
+const state: OptionalLedgerDto = {
+  bigInt: "9007199254740993",
+  bigSeq: ["9007199254740993"],
+  bigMap: { kept: "12345678901234567890.1234" },
+  exactTotal: "12345678901234567890.1234",
+  uid: "18446744073709551615",
+};
+buildLedgerDtoChangePayload(state, state);
+parseLedgerDto(state);
+`,
+    );
+    execFileSync(
+      "tsgo",
+      [
+        "--ignoreConfig",
+        "--noEmit",
+        "--strict",
+        "--exactOptionalPropertyTypes",
+        "--lib",
+        "ES2022,DOM",
+        "--module",
+        "ESNext",
+        "--moduleResolution",
+        "Bundler",
+        path.join(output, "precision-consumer.ts"),
+      ],
+      { stdio: "inherit" },
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

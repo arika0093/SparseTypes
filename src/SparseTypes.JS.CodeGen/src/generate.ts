@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  assertLosslessPrecision,
   assertSupportedValidationSchemas,
   collectChangeModels,
   emitChangesDts,
@@ -14,6 +15,11 @@ import { loadDocument, makeTypes, type OpenApiDocument } from "./openapi.js";
 export interface GenerateOptions {
   input: string | URL | OpenApiDocument;
   output?: string;
+  // Fail generation when a precision-sensitive member (decimal, int64,
+  // uint64, 64-bit enums) is carried as a JSON number in the ordinary DTO,
+  // which JSON.parse cannot decode losslessly. See the README precision
+  // policy; the default (false) documents the loss instead of failing.
+  requireLosslessPrecision?: boolean;
 }
 
 const GENERATED_HEADER =
@@ -23,6 +29,7 @@ const DEFAULT_OUTPUT = "node_modules/@sparsetypes/generated";
 export async function generate({
   input,
   output,
+  requireLosslessPrecision,
 }: GenerateOptions): Promise<void> {
   if (!input || output === "")
     throw new TypeError("Input and a non-empty output path are required.");
@@ -36,6 +43,7 @@ export async function generate({
   const apiTypes = await makeTypes(document);
   const changeModels = collectChangeModels(document);
   assertSupportedValidationSchemas(document, changeModels);
+  if (requireLosslessPrecision) assertLosslessPrecision(changeModels);
   const files = {
     "api.d.ts": apiTypes,
     "models.d.ts": emitModelsDts(document, changeModels),
