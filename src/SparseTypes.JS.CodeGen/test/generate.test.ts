@@ -3015,3 +3015,149 @@ test("normalizes Guid keyed and temporary identities like C#", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+
+function nullSchemaDocument(): OpenApiDocument {
+  const model = "Sample.Contracts.NullDto";
+  const properties = {
+    onlyNull: { type: "null" },
+    onlyNullUnion: { type: ["null"] },
+    maybeString: { type: ["string", "null"] },
+    legacyNullable: { type: "string", nullable: true },
+    nested: {
+      type: "object",
+      properties: { inner: { type: ["null"] } },
+    },
+    nulls: { type: "array", items: { type: ["null"] } },
+    comboAll: { allOf: [{ type: ["null"] }] },
+    comboAny: { anyOf: [{ type: "string" }, { type: ["null"] }] },
+    comboOne: { oneOf: [{ type: "string" }, { type: ["null"] }] },
+  };
+  return {
+    openapi: "3.1.0",
+    info: { title: "Test", version: "1.0" },
+    servers: [{ url: "/" }],
+    paths: {
+      "/nulls/{id}": {
+        put: {
+          operationId: "saveNull",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/NullChangePayload" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "OK",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/NullDto" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        NullDto: { type: "object", properties },
+        NullMembers: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model,
+            schemaIdentity,
+            members: Object.entries(properties).map(([name]) => ({
+              name,
+              shape: "value",
+              nullable: true,
+              redactBefore: false,
+            })),
+          },
+        },
+        NullChangePayload: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "payload",
+            model,
+            schemaIdentity,
+            membersComponent: "NullMembers",
+          },
+        },
+      },
+    },
+  };
+}
+
+test("rejects non-null values for OpenAPI 3.1 null-only schemas", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-null-"));
+  try {
+    await generate({ input: nullSchemaDocument(), output });
+    const modelModule = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    const valid = {
+      onlyNull: null,
+      onlyNullUnion: null,
+      maybeString: "text",
+      legacyNullable: null,
+      nested: { inner: null },
+      nulls: [null, null],
+      comboAll: null,
+      comboAny: "text",
+      comboOne: null,
+    };
+    assert.deepEqual(modelModule.parseNullDto(valid), valid);
+    assert.deepEqual(modelModule.parseNullDto({ maybeString: null }), {
+      maybeString: null,
+    });
+    assert.throws(
+      () => modelModule.parseNullDto({ onlyNull: "unexpected" }),
+      /onlyNull: has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ onlyNullUnion: 0 }),
+      /onlyNullUnion: has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ maybeString: 1 }),
+      /maybeString: has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ legacyNullable: 1 }),
+      /legacyNullable: has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ nested: { inner: "x" } }),
+      /inner: has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ nulls: ["x"] }),
+      /has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ comboAll: "x" }),
+      /has an invalid JSON type/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ comboAny: 1 }),
+      /does not match any allowed schema/,
+    );
+    assert.throws(
+      () => modelModule.parseNullDto({ comboOne: 1 }),
+      /must match exactly one schema/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
