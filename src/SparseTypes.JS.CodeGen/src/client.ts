@@ -175,7 +175,7 @@ type OperationArgs<T> = ParameterArguments<T> & HeaderArgument<T> & BodyArgument
 type SuccessResponses<T> = T extends { responses: infer R } ? { [K in keyof R]: \`\${K extends number ? K : K extends string ? K : never}\` extends \`2\${string}\` ? R[K] : never }[keyof R] : never;
 type Content<T> = T extends { content: infer C } ? C[keyof C] : never;
 type OperationSuccess<T> = Content<SuccessResponses<T>>;`;
-  return `import type { paths } from "./api";\n\n${argumentTypes}\n\n${types}\nexport interface ClientOptions { baseUrl?: string; fetch?: typeof globalThis.fetch; }\nexport declare class ApiError<TBody = unknown> extends Error { readonly status: number; readonly body: TBody; readonly response: Response; }\nexport interface ApiClient {\n${functions}\n}\nexport declare function createClient(options?: ClientOptions): ApiClient;\n`;
+  return `import type { paths } from "./api.js";\n\n${argumentTypes}\n\n${types}\nexport interface ClientOptions { baseUrl?: string; fetch?: typeof globalThis.fetch; }\nexport declare class ApiError<TBody = unknown> extends Error { readonly status: number; readonly body: TBody; readonly response: Response; }\nexport interface ApiClient {\n${functions}\n}\nexport declare function createClient(options?: ClientOptions): ApiClient;\n`;
 }
 
 export function emitClientJs(document: OpenApiDocument): string {

@@ -1802,3 +1802,62 @@ test("emits canonical precision-sensitive scalar encodings", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("emits NodeNext-compatible relative imports in generated declarations", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    await generate({ input: document(), output });
+    for (const file of [
+      "changes.d.ts",
+      "models.d.ts",
+      "client.d.ts",
+      "index.d.ts",
+    ]) {
+      const text = await readFile(path.join(output, file), "utf8");
+      const specifiers = [
+        ...text.matchAll(/(?:import|export)[^;]*?from\s+["']([^"']+)["']/g),
+      ].map((match) => match[1]);
+      for (const specifier of specifiers) {
+        if (specifier.startsWith(".")) {
+          assert.match(
+            specifier,
+            /\.js$/,
+            `${file} has a non-NodeNext relative specifier '${specifier}'`,
+          );
+        }
+      }
+    }
+    await writeFile(
+      path.join(output, "nodenext-consumer.ts"),
+      `
+import { buildOrderDtoChangePayload, createClient, parseOrderDto } from "./index.js";
+import type { OptionalOrderDto } from "./index.js";
+const dto = parseOrderDto({ name: "Order" });
+const state: OptionalOrderDto = { name: undefined };
+buildOrderDtoChangePayload(state, dto);
+createClient().getOrder({ params: { path: { id: 1 } } });
+`,
+    );
+    execFileSync(
+      "tsgo",
+      [
+        "--ignoreConfig",
+        "--noEmit",
+        "--strict",
+        "--skipLibCheck",
+        "false",
+        "--lib",
+        "ES2022,DOM",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--allowImportingTsExtensions",
+        "false",
+        path.join(output, "nodenext-consumer.ts"),
+      ],
+      { stdio: "inherit" },
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

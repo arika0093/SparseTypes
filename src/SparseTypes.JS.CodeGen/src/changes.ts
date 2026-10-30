@@ -228,7 +228,7 @@ export function emitChangesDts(models: ChangeModel[]): string {
     })
     .join("\n");
   const imports = models.map((model) => `Optional${model.typeName}`).join(", ");
-  return `import type { components } from "./api";\nimport type { DeepReadonly, ${imports} } from "./models";\n\n${functions}\n`;
+  return `import type { components } from "./api.js";\nimport type { DeepReadonly, ${imports} } from "./models.js";\n\n${functions}\n`;
 }
 
 export function emitModelsDts(
@@ -313,7 +313,7 @@ export function emitModelsDts(
       return `export type Optional${model.typeName} = DeepOptional<Omit<${model.typeName}, ${omitted}>> & {\n${fields}\n};`;
     })
     .join("\n");
-  return `import type { components } from "./api";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;
+  return `import type { components } from "./api.js";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;
 }
 
 export function emitModelsJs(
