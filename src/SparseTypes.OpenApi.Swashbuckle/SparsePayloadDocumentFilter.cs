@@ -34,6 +34,7 @@ internal sealed class SparsePayloadDocumentFilter(
         }
 
         var names = new Dictionary<string, Type>(StringComparer.Ordinal);
+        var installed = new HashSet<string>(StringComparer.Ordinal);
         swaggerDoc.Components ??= new OpenApiComponents();
         swaggerDoc.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
         foreach (var set in sets)
@@ -68,12 +69,39 @@ internal sealed class SparsePayloadDocumentFilter(
                         names.Add(name, type);
                     }
 
+                    if (
+                        installed.Add(name)
+                        && swaggerDoc.Components.Schemas.TryGetValue(name, out _)
+                        && !IsOwnedBy(context, recordedName, name, type)
+                    )
+                    {
+                        throw new InvalidOperationException(
+                            $"SparseTypes cannot register component '{name}' in OpenAPI document '{context.DocumentName}' "
+                                + $"for type '{type}' because a non-SparseTypes schema already uses that component name. "
+                                + "Rename the conflicting schema or customize the schema ID policy so the names no longer collide."
+                        );
+                    }
+
                     // Keep the generated identity for internal refs while
                     // replacing endpoint-generated IDs only for payload types.
                     swaggerDoc.Components.Schemas[name] = generated;
                 }
             }
         }
+    }
+
+    private static bool IsOwnedBy(DocumentFilterContext context, string? recordedName, string name, Type type)
+    {
+        // The schema repository knows every endpoint-generated schema: a
+        // lookup hit for this exact type proves same-type ownership.
+        if (context.SchemaRepository.TryLookupByType(type, out var schemaKey) && string.Equals(schemaKey?.Id, name, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Otherwise only the application's schema ID policy can demonstrate
+        // ownership: it must have assigned this exact name to this exact type.
+        return string.Equals(recordedName, name, StringComparison.Ordinal);
     }
 }
 

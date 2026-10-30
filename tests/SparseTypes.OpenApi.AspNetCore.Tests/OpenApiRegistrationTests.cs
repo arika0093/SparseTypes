@@ -400,6 +400,60 @@ public sealed class OpenApiRegistrationTests
         );
     }
 
+    [Test]
+    public async Task ComponentCollisionWithAnUnrelatedSchemaIsRejected()
+    {
+        const string curated = "SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload";
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddOpenApi(options =>
+        {
+            var existing = options.CreateSchemaReferenceId;
+            options.CreateSchemaReferenceId = type =>
+                type.Type == typeof(CollisionDto) ? curated : existing(type);
+        });
+        builder.Services.AddSparseOpenApi(PayloadModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapGet("/dto", () => new CollisionDto { Value = 1 });
+        app.MapOpenApi();
+        await app.StartAsync();
+
+        var provider = app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1");
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => provider.GetOpenApiDocumentAsync());
+
+        exception.Message.ShouldContain(curated);
+        exception.Message.ShouldContain("'v1'");
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task EndpointSchemaForTheSamePayloadTypeIsStillReplaced()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddOpenApi(options =>
+        {
+            options.CreateSchemaReferenceId = type =>
+                type.Type == typeof(PayloadModel.ChangePayload) ? "RenamedPayload" : type.Type.Name;
+        });
+        builder.Services.AddSparseOpenApi(PayloadModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapPost("/changes", (PayloadModel.ChangePayload payload) => Results.Ok(payload));
+        app.MapOpenApi();
+        await app.StartAsync();
+
+        var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+        document.Components!.Schemas!.Keys.ShouldContain("RenamedPayload");
+        document.Components.Schemas["RenamedPayload"].Extensions!.Keys.ShouldContain("x-sparsetypes");
+        await app.StopAsync();
+    }
+
+    private sealed class CollisionDto
+    {
+        public int Value { get; set; }
+    }
+
     private sealed class ReferenceEqualityComparer : IEqualityComparer<IOpenApiSchema>
     {
         internal static readonly ReferenceEqualityComparer Instance = new();

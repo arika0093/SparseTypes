@@ -52,6 +52,7 @@ public static class SparseOpenApiServiceCollectionExtensions
                 options.CreateSchemaReferenceId = type =>
                 {
                     var name = existingReferenceId(type);
+                    registry.RecordObservedName(options.DocumentName, type.Type, name);
                     if (registry.ContainsType(type.Type))
                     {
                         registry.RecordEffectiveName(options.DocumentName, type.Type, name);
@@ -78,6 +79,8 @@ internal sealed class SparseSchemaNameRegistry
     private readonly ConcurrentDictionary<string, Type> _typesByName = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<(string DocumentName, Type Type), string> _effectiveNames = new();
     private readonly ConcurrentDictionary<(string DocumentName, string Name), Type> _typesByEffectiveName = new();
+    private readonly ConcurrentDictionary<(string DocumentName, string Name), Type> _observedOwners = new();
+    private readonly ConcurrentDictionary<(string DocumentName, string Name), byte> _conflictedNames = new();
 
     /// <summary>Adds curated names and rejects inconsistent type or name collisions.</summary>
     /// <param name="schemas">The generated payload schemas.</param>
@@ -127,6 +130,30 @@ internal sealed class SparseSchemaNameRegistry
 
     /// <summary>Gets the component name selected by the application for one document.</summary>
     public string? GetEffectiveName(string documentName, Type type) => _effectiveNames.TryGetValue((documentName, type), out var name) ? name : null;
+
+    /// <summary>Records the component name the application schema pipeline assigned to any CLR type.</summary>
+    /// <remarks>Best-effort ownership map used to tell endpoint-generated schemas apart from unrelated collisions. Never throws.</remarks>
+    public void RecordObservedName(string documentName, Type type, string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        var key = (documentName, name);
+        var owner = _observedOwners.GetOrAdd(key, type);
+        if (owner != type)
+        {
+            _conflictedNames.TryAdd(key, 0);
+        }
+    }
+
+    /// <summary>Reports whether the application schema pipeline demonstrably assigned a component to one CLR type.</summary>
+    public bool IsOwnedBy(string documentName, string name, Type type)
+    {
+        var key = (documentName, name);
+        return !_conflictedNames.ContainsKey(key) && _observedOwners.TryGetValue(key, out var owner) && owner == type;
+    }
 
     /// <summary>Reports whether a type belongs to a registered payload schema set.</summary>
     public bool ContainsType(Type type) => _names.ContainsKey(type);
