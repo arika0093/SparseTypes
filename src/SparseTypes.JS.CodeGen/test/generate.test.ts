@@ -2057,3 +2057,204 @@ test("merges PathItem parameters with operation overrides", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("serializes non-JSON request and response media types without double encoding", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.paths["/upload"] = {
+      post: {
+        operationId: "uploadFile",
+        requestBody: {
+          required: true,
+          content: {
+            "multipart/form-data": { schema: { type: "object" } },
+          },
+        },
+        responses: {
+          "200": {
+            description: "OK",
+            content: { "text/plain": { schema: { type: "string" } } },
+          },
+        },
+      },
+    };
+    input.paths["/notes"] = {
+      post: {
+        operationId: "saveNote",
+        requestBody: {
+          required: true,
+          content: {
+            "application/x-www-form-urlencoded": { schema: { type: "object" } },
+          },
+        },
+        responses: {
+          "200": {
+            description: "OK",
+            content: { "text/plain": { schema: { type: "string" } } },
+          },
+        },
+      },
+    };
+    input.paths["/blob"] = {
+      put: {
+        operationId: "putBlob",
+        requestBody: {
+          required: true,
+          content: {
+            "application/octet-stream": {
+              schema: { type: "string", format: "binary" },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/octet-stream": {
+                schema: { type: "string", format: "binary" },
+              },
+            },
+          },
+        },
+      },
+    };
+    input.paths["/empty"] = {
+      delete: {
+        operationId: "deleteThing",
+        responses: { "204": { description: "No content" } },
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    const seen: Array<{ url: unknown; init: RequestInit }> = [];
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
+        seen.push({ url, init: init ?? {} });
+        const headers = new Headers(init?.headers);
+        const contentType = headers.get("content-type") ?? "";
+        if (init?.body instanceof FormData) {
+          return new Response("stored", {
+            status: 200,
+            headers: { "content-type": "text/plain" },
+          });
+        }
+        if (contentType === "application/x-www-form-urlencoded") {
+          return new Response(String(init?.body), {
+            status: 200,
+            headers: { "content-type": "text/plain" },
+          });
+        }
+        if ((init?.method ?? "GET").toUpperCase() === "DELETE") {
+          return new Response(null, { status: 204 });
+        }
+        return new Response("binary-bytes", {
+          status: 200,
+          headers: { "content-type": "application/octet-stream" },
+        });
+      },
+    });
+
+    const form = new FormData();
+    form.append("file", new Blob(["data"], { type: "text/plain" }), "a.txt");
+    const stored = await client.uploadFile({ body: form });
+    assert.equal(stored, "stored");
+    // The client must not set Content-Type itself so fetch can add the boundary.
+    assert.equal(new Headers(seen[0]?.init.headers).has("content-type"), false);
+    assert.ok(seen[0]?.init.body instanceof FormData);
+
+    const echoed = await client.saveNote({ body: { title: "hi", count: 2 } });
+    assert.equal(echoed, "title=hi&count=2");
+    assert.equal(
+      new Headers(seen[1]?.init.headers).get("content-type"),
+      "application/x-www-form-urlencoded",
+    );
+
+    const bytes = new Uint8Array([1, 2, 3]);
+    const downloaded = await client.putBlob({ body: bytes });
+    assert.ok(downloaded instanceof Blob);
+    assert.equal(
+      new Headers(seen[2]?.init.headers).get("content-type"),
+      "application/octet-stream",
+    );
+    assert.deepEqual(
+      [...new Uint8Array(await downloaded.arrayBuffer())],
+      [98, 105, 110, 97, 114, 121, 45, 98, 121, 116, 101, 115],
+    );
+
+    const removed = await client.deleteThing({});
+    assert.equal(removed, undefined);
+
+    await assert.rejects(
+      client.saveNote({ body: "already=encoded" }),
+      /must be a plain object or URLSearchParams/,
+    );
+    await assert.rejects(
+      client.uploadFile({ body: ["not", "form"] }),
+      /must be FormData or a plain object/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("rejects unsupported or ambiguous media types with actionable diagnostics", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const xml = document();
+    xml.paths["/legacy"] = {
+      post: {
+        operationId: "postXml",
+        requestBody: {
+          content: { "application/xml": { schema: { type: "string" } } },
+        },
+        responses: { "200": { description: "OK" } },
+      },
+    };
+    await assert.rejects(
+      generate({ input: xml, output }),
+      /unsupported request media.*application\/xml/,
+    );
+
+    const image = document();
+    image.paths["/legacy"] = {
+      get: {
+        operationId: "getImage",
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "image/png": { schema: { type: "string", format: "binary" } },
+            },
+          },
+        },
+      },
+    };
+    await assert.rejects(
+      generate({ input: image, output }),
+      /unsupported success media.*image\/png/,
+    );
+
+    const mixed = document();
+    mixed.paths["/legacy"] = {
+      post: {
+        operationId: "postMixed",
+        requestBody: {
+          content: {
+            "application/json": { schema: { type: "object" } },
+            "text/plain": { schema: { type: "string" } },
+          },
+        },
+        responses: { "200": { description: "OK" } },
+      },
+    };
+    await assert.rejects(
+      generate({ input: mixed, output }),
+      /multiple request serialization kinds/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
