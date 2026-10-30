@@ -1861,3 +1861,83 @@ createClient().getOrder({ params: { path: { id: 1 } } });
     await rm(output, { recursive: true, force: true });
   }
 });
+test("reserves Raw method names when deduplicating operations", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const operation = (
+      operationId: string | undefined,
+      responseSchema = "#/components/schemas/OrderDto",
+    ) => ({
+      ...(operationId === undefined ? {} : { operationId }),
+      responses: {
+        "200": {
+          description: "OK",
+          content: { "application/json": { schema: { $ref: responseSchema } } },
+        },
+      },
+    });
+    // Note: duplicate operationIds are rejected by openapi-typescript during
+    // generate(), so the client emitters are exercised directly here.
+    const { emitClientDts, emitClientJs } = await import("../src/client.js");
+    const doc = {
+      ...input,
+      paths: {
+        "/a": { get: operation("foo") },
+        "/b": { get: operation("fooRaw") },
+        "/c": { get: operation("foo") },
+        "/d": { get: operation(undefined) },
+        "/e": { get: operation("foo2") },
+      },
+    };
+    const clientJs = emitClientJs(doc);
+    const clientTypes = emitClientDts(doc);
+    await writeFile(path.join(output, "client.mjs"), clientJs);
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.mjs")).href
+    );
+    const calls: string[] = [];
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL) => {
+        calls.push(String(url));
+        return new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    // `foo` reserves `fooRaw`, so the explicit `fooRaw` and the duplicate
+    // `foo` are renamed deterministically instead of overwriting each other.
+    // A pre-existing `foo2` forces the duplicate onto `foo22`.
+    assert.deepEqual(Object.keys(client).sort(), [
+      "foo",
+      "foo2",
+      "foo22",
+      "foo22Raw",
+      "foo2Raw",
+      "fooRaw",
+      "fooRaw2",
+      "fooRaw2Raw",
+      "getD",
+      "getDRaw",
+    ]);
+    await client.foo();
+    await client.fooRaw2();
+    await client.foo2();
+    await client.foo22();
+    await client.getD();
+    assert.deepEqual(calls, [
+      "https://example.test/a",
+      "https://example.test/b",
+      "https://example.test/c",
+      "https://example.test/e",
+      "https://example.test/d",
+    ]);
+    for (const name of ["foo", "fooRaw2", "foo2", "foo22", "getD"]) {
+      assert.match(clientTypes, new RegExp(`\\b${name}\\(`));
+    }
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

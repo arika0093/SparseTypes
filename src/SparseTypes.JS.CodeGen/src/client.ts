@@ -60,6 +60,9 @@ function dereference(
   return dereference(document, resolved, seen);
 }
 
+// Operation names share one namespace with their `name + "Raw"` variants,
+// which createClient() also installs. Reserve both spellings so an explicit
+// `fooRaw` operationId (or a later duplicate) is renamed instead of clobbered.
 function operationName(
   operation: Record<string, any>,
   method: string,
@@ -87,8 +90,9 @@ function operationName(
   name = name[0].toLowerCase() + name.slice(1);
   const base = name;
   let suffix = 2;
-  while (used.has(name)) name = `${base}${suffix++}`;
+  while (used.has(name) || used.has(`${name}Raw`)) name = `${base}${suffix++}`;
   used.add(name);
+  used.add(`${name}Raw`);
   return name;
 }
 
