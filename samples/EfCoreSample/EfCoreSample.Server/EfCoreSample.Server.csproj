@@ -26,6 +26,7 @@
       ReferenceOutputAssembly="false"
     />
   </ItemGroup>
+  <!-- generate web client api types after generating openapi documents -->
   <Target Name="GenerateWebClientApiTypes" AfterTargets="GenerateOpenApiDocuments" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec
       WorkingDirectory="$(MSBuildProjectDirectory)/../EfCoreSample.WebClient"
