@@ -36,6 +36,8 @@ builder.Services.AddSparseOpenApi(Order.PayloadJson.Schema);
 
 Registration adds the payload envelope, its model change union, root snapshot, member delta schemas, and any nested `[SparseModel]` payload bundles to `components.schemas`. Each generated component also includes an `x-sparsetypes` extension that records the model name, schema identity (`sha256:...`), and member metadata (shape, nullability, wire type, comparison mode, and keyed collection identity).
 
+`MembersDelta` schemas declare `additionalProperties: false`, so an unknown addressed member target is rejected by schema validation exactly as the C# payload reader rejects it during JSON parsing. Forward-compatible unknown *metadata* fields remain allowed at the envelope, operation, item, and endpoint levels.
+
 Calling `AddSparseOpenApi(...)` more than once is supported. Register each root model whose payload should appear in the document. Component names are based on the model's namespace, containing type, and generated role; generated implementation hashes are omitted.
 
 The runtime schema contract (`SparsePayloadSchemaBundle`, `SparsePayloadSchema`) and component-name helper (`SparsePayloadSchemaNames`) are available in the `SparseTypes` namespace as advanced APIs. OpenAPI adapters use these contracts so naming and generated schema metadata are shared by both integrations.

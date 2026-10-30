@@ -441,7 +441,9 @@ internal static class SparsePayloadSchemaEmitter
                 return (contractMember.JsonName, schema.Reference(type, SchemaMemberName(context.ModelType, contractMember.JsonName)));
             })
             .ToArray();
-        return Object(("type", String("object")), ("properties", Object(properties)));
+        // Unknown member targets are rejected by the C# payload reader, so
+        // the delta schema must not admit undeclared member names.
+        return Object(("type", String("object")), ("properties", Object(properties)), ("additionalProperties", "false"));
     }
 
     private static string BuildMemberChangeSchema(
