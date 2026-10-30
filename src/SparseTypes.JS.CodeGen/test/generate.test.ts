@@ -3403,3 +3403,88 @@ test("fails generation for validation-critical unsupported keywords", async () =
     await rm(output, { recursive: true, force: true });
   }
 });
+
+function payloadMetadata(input: OpenApiDocument): Record<string, any> {
+  return input.components.schemas.ChangePayload["x-sparsetypes"];
+}
+
+test("uses explicit modelSchema DTO associations including 204-only payload endpoints", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-dto-"));
+  try {
+    const input = document();
+    payloadMetadata(input).modelSchema = "OrderDto";
+    input.paths["/orders/{id}"].put.responses = {
+      "204": { description: "No content" },
+    };
+    await generate({ input, output });
+    const modelModule = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    assert.deepEqual(modelModule.parseOrderDto({ name: "explicit" }), {
+      name: "explicit",
+    });
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("rejects wrapper, ambiguous, inconsistent, and unknown DTO mappings", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-dto-"));
+  try {
+    const wrapped = (): OpenApiDocument => {
+      const input = document();
+      input.components.schemas.SaveOrderResult = {
+        type: "object",
+        properties: {
+          order: { $ref: "#/components/schemas/OrderDto" },
+          ok: { type: "boolean" },
+        },
+      };
+      input.paths["/orders/{id}"].put.responses["200"].content[
+        "application/json"
+      ].schema = { $ref: "#/components/schemas/SaveOrderResult" };
+      return input;
+    };
+    await assert.rejects(
+      generate({ input: wrapped(), output }),
+      /Response schema 'SaveOrderResult'.*looks like a wrapper/,
+    );
+    const explicitWrapped = wrapped();
+    payloadMetadata(explicitWrapped).modelSchema = "OrderDto";
+    await generate({ input: explicitWrapped, output });
+
+    const multiContent = document();
+    multiContent.paths["/orders/{id}"].put.responses["200"].content[
+      "application/hal+json"
+    ] = { schema: { $ref: "#/components/schemas/OrderLineDto" } };
+    await assert.rejects(
+      generate({ input: multiContent, output }),
+      /matches multiple response components.*OrderDto.*OrderLineDto/,
+    );
+
+    const inconsistent = document();
+    payloadMetadata(inconsistent).modelSchema = "OrderLineDto";
+    await assert.rejects(
+      generate({ input: inconsistent, output }),
+      /names DTO component 'OrderLineDto'.*return OrderDto/,
+    );
+
+    const unknown = document();
+    payloadMetadata(unknown).modelSchema = "MissingDto";
+    await assert.rejects(
+      generate({ input: unknown, output }),
+      /names unknown DTO component 'MissingDto'/,
+    );
+
+    const missing = document();
+    missing.paths["/orders/{id}"].put.responses = {
+      "204": { description: "No content" },
+    };
+    await assert.rejects(
+      generate({ input: missing, output }),
+      /Could not associate SparseTypes models.*Sample\.Contracts\.OrderDto.*modelSchema/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
