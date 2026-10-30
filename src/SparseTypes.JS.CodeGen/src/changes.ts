@@ -1063,13 +1063,19 @@ function validateUnique(entries) {
   for (const entry of entries) { if (seen.has(entry.id)) throw new TypeError("Duplicate keyed collection identity: " + entry.id); seen.add(entry.id); }
 }
 function orderedRanks(before, after) {
+  const beforeIds = new Set();
+  for (const item of before) beforeIds.add(item.id);
   const afterRank = new Map();
   let rank = 0;
-  for (const item of after) if (before.some((candidate) => candidate.id === item.id)) afterRank.set(item.id, rank++);
-  const beforeRank = new Map();
+  for (const item of after) if (beforeIds.has(item.id)) afterRank.set(item.id, rank++);
+  const reordered = new Set();
   rank = 0;
-  for (const item of before) if (afterRank.has(item.id)) beforeRank.set(item.id, rank++);
-  return new Set([...beforeRank].filter(([id, value]) => afterRank.get(id) !== value).map(([id]) => id));
+  for (const item of before) {
+    if (!afterRank.has(item.id)) continue;
+    if (afterRank.get(item.id) !== rank) reordered.add(item.id);
+    rank++;
+  }
+  return reordered;
 }
 function diffKeyed(model, member, before, after, redact) {
   const secret = member.redactBefore || redact;
