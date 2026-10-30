@@ -117,6 +117,7 @@ See [keyed collections](https://github.com/arika0093/SparseTypes/blob/main/docs/
 | Bind a Blazor form and validation | `SparseTypes.Blazor`: [edit form](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/blazor-edit-form.md), [headless components](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/blazor-headless-components.md) | Check target-framework compatibility before adding the package |
 | Coordinate independent form sections | [Edit-session groups](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/edit-session-groups.md) | Follow submission and acknowledgement scopes for the participating sessions |
 | Apply DTO changes to tracked EF Core entities | `SparseTypes.EntityFrameworkCore`: [mapping guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/efcore-mapping.md) | Use a complete projection for rebase and saved responses; filtered `IncludeFor` collections are not a complete DTO |
+| Expose `ChangePayload` in OpenAPI or generate JS/TS clients | `SparseTypes.OpenApi.AspNetCore`, `SparseTypes.OpenApi.Swashbuckle`, `@sparsetypes/codegen`: [OpenAPI guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md) | Register `T.PayloadJson.Schema` on the server and associate each `ChangePayload` request with its DTO response schema |
 
 ## Verify the consumer change
 

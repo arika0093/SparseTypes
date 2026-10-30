@@ -11,6 +11,7 @@ Each optional package connects those generated types to a specific boundary in y
 * `SparseTypes.Blazor` targets .NET 10 and provides headless components and form state integration for Blazor applications on .NET 10 or later. See [Blazor edit form](../how-to/blazor-edit-form.md) and [Blazor headless components](../how-to/blazor-headless-components.md).
 * `SparseTypes.EntityFrameworkCore` maps `ChangeSet` values onto tracked entities when persisting changes with EF Core 10 on .NET 10 or later. See [EF Core mapping](../how-to/efcore-mapping.md).
 * `SparseTypes.OpenApi.AspNetCore` and `SparseTypes.OpenApi.Swashbuckle` register `ChangePayload` schemas when exposing partial-update endpoints in OpenAPI documents on .NET 10 or later. Both packages require `SparseTypes`. See [OpenAPI integration](../how-to/openapi.md).
+* `@sparsetypes/codegen` generates dependency-free JavaScript modules and TypeScript declarations (`createClient`, `parseT` validators, and `buildTChangePayload` diff builders) from an OpenAPI 3.0 or 3.1 JSON document enriched with `ChangePayload` schemas. See [OpenAPI integration](../how-to/openapi.md#generate-a-javascript-or-typescript-client).
 * Trimmed and NativeAOT deployments require no extra package because `SparseTypes` emits AOT-compatible code and `System.Text.Json` metadata (`{ModelName}.PayloadJson.Default`) directly. See [Use SparseTypes with NativeAOT](../how-to/nativeaot.md) for publishing notes.
 
 ## `SparseTypes`
@@ -115,6 +116,26 @@ dotnet add package SparseTypes.OpenApi.AspNetCore --prerelease
 * `SparseTypes` (generates the `ChangePayload` schema metadata)
 * `Microsoft.AspNetCore.OpenApi` when using `SparseTypes.OpenApi.AspNetCore`
 * `Swashbuckle.AspNetCore` when using `SparseTypes.OpenApi.Swashbuckle`
+
+## `@sparsetypes/codegen` (`SparseTypes.JS.CodeGen`)
+
+[![npm Version](https://img.shields.io/npm/v/@sparsetypes/codegen?style=flat-square&logo=npm)](https://www.npmjs.com/package/@sparsetypes/codegen)
+
+CLI and programmatic code generator that reads an OpenAPI 3.0 or 3.1 JSON document enriched
+by `SparseTypes.OpenApi.AspNetCore` or `SparseTypes.OpenApi.Swashbuckle` and emits a dependency-free ES module with TypeScript declarations.
+
+* [OpenAPI integration](../how-to/openapi.md#generate-a-javascript-or-typescript-client)
+* [Package README](../../src/SparseTypes.JS.CodeGen/README.md)
+
+```bash
+npm install --save-dev @sparsetypes/codegen
+```
+
+### Requirements
+
+* `Node.js 20` or later to run the code generator
+* An OpenAPI 3.0 or 3.1 JSON document containing `x-sparsetypes` schema metadata registered via `SparseTypes.OpenApi.AspNetCore` or `SparseTypes.OpenApi.Swashbuckle`
+* No external runtime npm packages are required by the generated code; the generated client uses standard `fetch`
 
 ## For library developers
 ### `SparseTypes.Core`

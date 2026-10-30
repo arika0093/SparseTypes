@@ -2,7 +2,7 @@
 
 # SparseTypes
 
-[![NuGet Version](https://img.shields.io/nuget/v/SparseTypes?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes/) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/arika0093/SparseTypes/test.yaml?branch=main&label=Test&style=flat-square)
+[![NuGet Version](https://img.shields.io/nuget/v/SparseTypes?style=flat-square&logo=NuGet&color=0080CC)](https://www.nuget.org/packages/SparseTypes/) [![npm Version](https://img.shields.io/npm/v/@sparsetypes/codegen?style=flat-square&logo=npm)](https://www.npmjs.com/package/@sparsetypes/codegen) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/arika0093/SparseTypes/test.yaml?branch=main&label=Test&style=flat-square)
 
 *Build complex .NET editors with less change-management code.*
 
@@ -111,21 +111,17 @@ Let's walk through it step by step.
 | Send changes as JSON and merge concurrent edits | [Transport and rebase tutorial](docs/tutorial/send-and-rebase-changes.md) |
 | Let users resolve conflicting edits | [Conflict resolution tutorial](docs/tutorial/resolve-a-conflict.md) |
 | Persist DTO changes with EF Core | [EF Core mapping guide](docs/how-to/efcore-mapping.md) |
+| Expose `ChangePayload` in OpenAPI and generate JavaScript/TypeScript clients | [OpenAPI integration guide](docs/how-to/openapi.md) |
 
 For a client/server example with PostgreSQL persistence, see [EfCoreSample](samples/EfCoreSample/README.md).
 
 ## Install
 
-For an existing project:
-
 ```shell
 dotnet add package SparseTypes --prerelease
 ```
 
-Start with `SparseTypes` for framework-independent editing and change tracking.  
-Add `SparseTypes.Blazor` for Blazor integration.  
-Add `SparseTypes.EntityFrameworkCore` for persistence mapping.
-
+There are several other packages available, and you can choose according to your needs.  
 See [packages and requirements](docs/explanation/libraries.md).
 
 ## Documentation
