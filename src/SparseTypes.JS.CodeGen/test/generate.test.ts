@@ -1391,3 +1391,210 @@ test("rejects missing, broken, cyclic, and external parameter references", async
     /Circular OpenAPI parameter reference/,
   );
 });
+test("honors SparseRedactBefore across nested models and dictionary edits", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const members = (
+      input.components.schemas.OrderMembers["x-sparsetypes"] as {
+        members: Array<Record<string, unknown>>;
+      }
+    ).members;
+    members.push(
+      {
+        name: "secrets",
+        shape: "dictionary",
+        nullable: false,
+        redactBefore: true,
+        valueWireType: "string",
+      },
+      {
+        name: "vault",
+        shape: "nested",
+        nullable: true,
+        redactBefore: true,
+        childModel: "Sample.Contracts.AddressDto",
+      },
+      {
+        name: "crew",
+        shape: "keyed",
+        nullable: false,
+        redactBefore: true,
+        itemModel: lineModel,
+        keyProperties: ["key"],
+        keyType: "integer-number",
+        unassignedKey: 0,
+        temporaryKey: "temporaryId",
+        ordered: true,
+      },
+      {
+        name: "profiles",
+        shape: "dictionary",
+        nullable: false,
+        redactBefore: true,
+        itemModel: lineModel,
+      },
+    );
+    const dto = input.components.schemas.OrderDto as {
+      properties: Record<string, unknown>;
+    };
+    dto.properties = {
+      ...dto.properties,
+      secrets: { type: "object", additionalProperties: { type: "string" } },
+      vault: { $ref: "#/components/schemas/AddressDto" },
+      crew: {
+        type: "array",
+        items: { $ref: "#/components/schemas/OrderLineDto" },
+      },
+      profiles: {
+        type: "object",
+        additionalProperties: { $ref: "#/components/schemas/OrderLineDto" },
+      },
+    };
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const b = changes.buildOrderDtoChangePayload;
+    const sentinel = "SECRET-before-9f3a";
+    const leaked = (payload: unknown) =>
+      JSON.stringify(payload).includes(sentinel);
+    // Scalar dictionary edits and removals redact item before endpoints.
+    const dictEdit = b(
+      { secrets: { k: sentinel } },
+      { secrets: { k: "rotated" } },
+    );
+    assert.deepEqual(dictEdit.change.members.secrets.items, [
+      {
+        key: "k",
+        kind: "replace",
+        before: { state: "redacted" },
+        after: { state: "value", value: "rotated" },
+      },
+    ]);
+    assert.equal(leaked(dictEdit), false);
+    const dictRemove = b({ secrets: { k: sentinel } }, { secrets: {} });
+    assert.deepEqual(dictRemove.change.members.secrets.items, [
+      { key: "k", kind: "remove", before: { state: "redacted" } },
+    ]);
+    assert.equal(leaked(dictRemove), false);
+    // Nested redacted updates redact every nested before endpoint.
+    const nestedUpdate = b(
+      { address: { city: "same" }, vault: { city: sentinel } },
+      { address: { city: "same" }, vault: { city: "rotated" } },
+    );
+    assert.deepEqual(nestedUpdate.change.members.vault, {
+      kind: "update",
+      members: {
+        city: {
+          kind: "replace",
+          before: { state: "redacted" },
+          after: { state: "value", value: "rotated" },
+        },
+      },
+    });
+    assert.equal(leaked(nestedUpdate), false);
+    // Redacted keyed edits collapse to a whole-member blind set because
+    // per-item redacted before endpoints with edits are rejected server-side.
+    const keyedEdit = b(
+      {
+        crew: [
+          { id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 },
+        ],
+      },
+      {
+        crew: [
+          { id: 1, key: 1, temporaryId: null, quantity: 2, unitPrice: 3 },
+        ],
+      },
+    );
+    assert.equal(keyedEdit.change.members.crew.kind, "update");
+    const crewItem = keyedEdit.change.members.crew.items[0];
+    assert.equal(crewItem.key, 1);
+    assert.equal(crewItem.kind, "update");
+    assert.deepEqual(crewItem.members.quantity, {
+      kind: "replace",
+      before: { state: "redacted" },
+      after: { state: "value", value: 2 },
+    });
+    assert.equal(leaked(keyedEdit), false);
+    // Removal-only keyed changes stay granular with redacted before endpoints.
+    const keyedRemove = b(
+      {
+        crew: [
+          { id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 },
+        ],
+      },
+      { crew: [] },
+    );
+    assert.equal(keyedRemove.change.members.crew.kind, "update");
+    assert.deepEqual(
+      keyedRemove.change.members.crew.items[0].before,
+      { state: "redacted" },
+    );
+    // Model-valued dictionary edits also require whole-member replacement.
+    const dictModelEdit = b(
+      {
+        profiles: {
+          p: { id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 },
+        },
+      },
+      {
+        profiles: {
+          p: { id: 1, key: 1, temporaryId: null, quantity: 2, unitPrice: 3 },
+        },
+      },
+    );
+    assert.equal(dictModelEdit.change.members.profiles.kind, "update");
+    assert.deepEqual(dictModelEdit.change.members.profiles.items, [
+      {
+        key: "p",
+        kind: "update",
+        members: {
+          quantity: {
+            kind: "replace",
+            before: { state: "redacted" },
+            after: { state: "value", value: 2 },
+          },
+        },
+      },
+    ]);
+    assert.equal(leaked(dictModelEdit), false);
+    // Whole-root before snapshots redact when any member is redacted.
+    const rootReplace = b(
+      { name: "a", secrets: { k: sentinel } },
+      null,
+    );
+    assert.deepEqual(rootReplace.change.before, { state: "redacted" });
+    assert.equal(rootReplace.change.after.state, "null");
+    assert.equal(leaked(rootReplace), false);
+    // Unchanged redacted members emit nothing at all.
+    assert.equal(
+      b(
+        { name: "a", secrets: { k: sentinel } },
+        { name: "b", secrets: { k: sentinel } },
+      ).change.members.secrets,
+      undefined,
+    );
+    const labelOnly = b(
+      { name: "a", secrets: { k: sentinel } },
+      { name: "b", secrets: { k: sentinel } },
+    );
+    assert.equal(leaked(labelOnly), false);
+    // Blind whole-collection removal fails early with a safe error.
+    assert.throws(
+      () => b({ secrets: { k: sentinel } }, {}),
+      (error: unknown) => {
+        assert.ok(error instanceof TypeError);
+        assert.match(
+          (error as Error).message,
+          /blind whole-collection removal/,
+        );
+        assert.equal((error as Error).message.includes(sentinel), false);
+        return true;
+      },
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

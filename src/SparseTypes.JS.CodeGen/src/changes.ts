@@ -527,6 +527,9 @@ function equalWireValue(before, after, wireType) {
   if (wireType === "int64-string" || wireType === "uint64-string") return BigInt(before) === BigInt(after);
   return equal(before, after);
 }
+function hasRedactedMember(modelName) {
+  return models[modelName].members.some((member) => member.redactBefore);
+}
 function snapshot(modelName, value) {
   if (value === null || value === undefined) return value;
   const result = {};
@@ -623,14 +626,16 @@ function orderedRanks(before, after) {
   for (const item of before) if (afterRank.has(item.id)) beforeRank.set(item.id, rank++);
   return new Set([...beforeRank].filter(([id, value]) => afterRank.get(id) !== value).map(([id]) => id));
 }
-function diffKeyed(model, member, before, after) {
+function diffKeyed(model, member, before, after, redact) {
+  const secret = member.redactBefore || redact;
   const b = state(before, member.name, member.wireType); const a = state(after, member.name, member.wireType);
   if ((b.state === "value" && !Array.isArray(b.value)) || (a.state === "value" && !Array.isArray(a.value))) {
     throw new TypeError("Keyed collection values must be arrays, null, or missing.");
   }
   if (b.state !== "value" || a.state !== "value") {
     if (sameEndpoint(b, a, member.wireType)) return undefined;
-    return { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a };
+    if (secret && b.state !== "missing" && a.state === "missing") throw new TypeError("A redacted '" + member.name + "' change requires an observable after-state; blind whole-collection removal has no patch projection.");
+    return { kind: "replace", before: secret && b.state !== "missing" ? { state: "redacted" } : b, after: a };
   }
   const beforeEntries = b.value.map((item, index) => ({ item, index, ...identity(model, item, member, index) }));
   const afterEntries = a.value.map((item, index) => ({ item, index, ...identity(model, item, member, index) }));
@@ -646,14 +651,14 @@ function diffKeyed(model, member, before, after) {
       items.push({ key: entry.key, kind: "add", afterIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), after: endpoint(snapshotDto(member.itemModel, entry.item)) });
       continue;
     }
-    const members = diffMembers(member.itemModel, previous.item, entry.item);
+    const members = diffMembers(member.itemModel, previous.item, entry.item, secret);
     const isReordered = reordered.has(entry.id);
     if (members && Object.keys(members).length || isReordered) {
       items.push({ key: entry.key, kind: "update", beforeIndex: previous.index, afterIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), ...(isReordered ? { isReordered: true } : {}), ...(members && Object.keys(members).length ? { members } : {}) });
     }
   }
   for (const entry of beforeEntries) {
-    if (!afterById.has(entry.id)) items.push({ key: entry.key, kind: "remove", beforeIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), before: endpoint(snapshotDto(member.itemModel, entry.item), member.redactBefore) });
+    if (!afterById.has(entry.id)) items.push({ key: entry.key, kind: "remove", beforeIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), before: endpoint(snapshotDto(member.itemModel, entry.item), secret) });
   }
   if (!items.length) return undefined;
   return {
@@ -667,7 +672,8 @@ function diffKeyed(model, member, before, after) {
     } : {}),
   };
 }
-function diffDictionary(model, member, before, after) {
+function diffDictionary(model, member, before, after, redact) {
+  const secret = member.redactBefore || redact;
   const b = state(before, member.name, member.valueWireType); const a = state(after, member.name, member.valueWireType);
   if ((b.state === "value" && (!b.value || typeof b.value !== "object" || Array.isArray(b.value))) ||
       (a.state === "value" && (!a.value || typeof a.value !== "object" || Array.isArray(a.value)))) {
@@ -675,7 +681,8 @@ function diffDictionary(model, member, before, after) {
   }
   if (b.state !== "value" || a.state !== "value") {
     if (sameEndpoint(b, a, member.valueWireType)) return undefined;
-    return { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a };
+    if (secret && b.state !== "missing" && a.state === "missing") throw new TypeError("A redacted '" + member.name + "' change requires an observable after-state; blind whole-collection removal has no patch projection.");
+    return { kind: "replace", before: secret && b.state !== "missing" ? { state: "redacted" } : b, after: a };
   }
   const beforeKeys = Object.keys(b.value).filter((key) => b.value[key] !== undefined);
   const afterKeys = Object.keys(a.value).filter((key) => a.value[key] !== undefined);
@@ -688,10 +695,10 @@ function diffDictionary(model, member, before, after) {
     }
     const previous = b.value[key]; const current = a.value[key];
     if (member.itemModel) {
-      const nested = diffMembers(member.itemModel, previous, current);
+      const nested = diffMembers(member.itemModel, previous, current, secret);
       if (nested && Object.keys(nested).length) items.push({ key, kind: "update", members: nested });
     } else if (!sameEndpoint(endpoint(previous, false, member.valueWireType), endpoint(current, false, member.valueWireType), member.valueWireType)) {
-      items.push({ key, kind: "replace", before: endpoint(previous, false, member.valueWireType), after: endpoint(current, false, member.valueWireType) });
+      items.push({ key, kind: "replace", before: endpoint(previous, secret, member.valueWireType), after: endpoint(current, false, member.valueWireType) });
     }
   }
   for (const key of beforeKeys) {
@@ -701,45 +708,43 @@ function diffDictionary(model, member, before, after) {
       items.push({
         key,
         kind: "remove",
-        before: endpoint(before, member.redactBefore, member.itemModel ? undefined : member.valueWireType),
+        before: endpoint(before, secret, member.itemModel ? undefined : member.valueWireType),
       });
     }
   }
   if (!items.length) return undefined;
   return { kind: "update", items };
 }
-function diffMembers(modelName, before, after) {
+function diffMembers(modelName, before, after, redact) {
   const model = models[modelName];
   if (!model) throw new TypeError("Missing SparseTypes metadata for model '" + modelName + "'.");
   const members = {};
   for (const member of model.members) {
+    const secret = member.redactBefore || redact;
     if (member.shape === "nested") {
-      const nested = diffModel(member.childModel, own(before, member.name) ? before[member.name] : undefined, own(after, member.name) ? after[member.name] : undefined);
+      const nested = diffModel(member.childModel, own(before, member.name) ? before[member.name] : undefined, own(after, member.name) ? after[member.name] : undefined, secret);
       if (nested) {
-        const change = member.redactBefore && nested.kind === "replace" && nested.before?.state === "value"
-          ? { ...nested, before: { state: "redacted" } }
-          : nested;
-        Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
+        Object.defineProperty(members, member.name, { value: nested, enumerable: true, writable: true, configurable: true });
       }
       continue;
     }
     if (member.shape === "keyed") {
-      const change = diffKeyed(modelName, member, before, after);
+      const change = diffKeyed(modelName, member, before, after, secret);
       if (change) Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
       continue;
     }
     if (member.shape === "dictionary") {
-      const change = diffDictionary(modelName, member, before, after);
+      const change = diffDictionary(modelName, member, before, after, secret);
       if (change) Object.defineProperty(members, member.name, { value: change, enumerable: true, writable: true, configurable: true });
       continue;
     }
     const b = state(before, member.name, member.wireType, member.elementWireType); const a = state(after, member.name, member.wireType, member.elementWireType);
     const wireType = member.wireType ?? member.elementWireType;
-    if (!sameEndpoint(b, a, wireType)) Object.defineProperty(members, member.name, { value: { kind: "replace", before: member.redactBefore ? { state: "redacted" } : b, after: a }, enumerable: true, writable: true, configurable: true });
+    if (!sameEndpoint(b, a, wireType)) Object.defineProperty(members, member.name, { value: { kind: "replace", before: secret && (b.state === "value" || b.state === "null") ? { state: "redacted" } : b, after: a }, enumerable: true, writable: true, configurable: true });
   }
   return members;
 }
-function diffModel(modelName, before, after) {
+function diffModel(modelName, before, after, redact) {
   for (const value of [before, after]) {
     if (value !== undefined && value !== null && (typeof value !== "object" || Array.isArray(value))) {
       throw new TypeError("SparseTypes model states must be objects, null, or missing.");
@@ -748,17 +753,18 @@ function diffModel(modelName, before, after) {
   if (before === after) return undefined;
   const model = models[modelName];
   if (before === undefined || after === undefined || before === null || after === null || typeof before !== "object" || typeof after !== "object") {
-    const b = before === undefined ? { state: "missing" } : before === null ? { state: "null" } : { state: "value", value: snapshot(modelName, before) };
+    const redactRoot = redact || hasRedactedMember(modelName);
+    const b = before === undefined ? { state: "missing" } : before === null ? { state: "null" } : redactRoot ? { state: "redacted" } : { state: "value", value: snapshot(modelName, before) };
     const a = after === undefined ? { state: "missing" } : after === null ? { state: "null" } : { state: "value", value: snapshot(modelName, after) };
     return sameEndpoint(b, a) ? undefined : { kind: "replace", before: b, after: a };
   }
-  const members = diffMembers(modelName, before, after);
+  const members = diffMembers(modelName, before, after, redact);
   return Object.keys(members).length ? { kind: "update", members } : undefined;
 }
 function buildPayload(modelName, before, after) {
   validateState(before);
   validateState(after);
-  const change = diffModel(modelName, before, after);
+  const change = diffModel(modelName, before, after, false);
   if (!change) return undefined;
   const model = models[modelName];
   return { version: "0.1", schema: model.schema, change };

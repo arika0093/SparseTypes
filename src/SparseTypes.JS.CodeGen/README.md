@@ -100,6 +100,8 @@ if (body) {
 - Nested models, scalar sequences, dictionaries, and `[SparseKey]` collections follow the `x-sparsetypes` member metadata emitted in the OpenAPI document.
 - Unassigned keyed rows that use `[SparseTemporaryKey]` require a non-empty UUID in their temporary key property and emit `temporaryKey` plus `tempBeforeOrder` / `tempAfterOrder` when needed.
 - Members marked with `[SparseRedactBefore]` emit `{"state": "redacted"}` for their `before` endpoint.
+- Redaction propagates into nested models, keyed collections, and dictionaries, so every descendant `before` endpoint is redacted while `after` values still travel. Edited keyed and model-valued dictionary items stay granular with redacted leaf `before` endpoints (per-item redacted endpoints are never paired with item edits); scalar dictionary edits and removals carry redacted item `before` endpoints as blind operations.
+- No redacted collection operation requires whole-member replacement: granular blind edits, blind removals, and redacted nested updates are all accepted by the server. Blind whole-collection removal (a missing `after` with a redacted `before`) has no patch projection and throws a safe error naming only the member path instead of emitting an unprojectable payload.
 - Precision-sensitive scalar wire types (`decimal`, `long`, `ulong`, and 64-bit enums) accept strings or safe numbers in `OptionalT` and serialize as canonical strings in change endpoints.
 
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).
