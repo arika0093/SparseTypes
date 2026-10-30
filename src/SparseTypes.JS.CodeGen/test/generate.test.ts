@@ -1598,3 +1598,118 @@ test("honors SparseRedactBefore across nested models and dictionary edits", asyn
     await rm(output, { recursive: true, force: true });
   }
 });
+test("converts keyed DTO snapshots using integer and nullable schema types", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    // DTO schemas under test: integer, nullable number, nullable integer.
+    input.components.schemas.OrderLineDto.properties.quantity = {
+      type: "integer",
+    };
+    input.components.schemas.OrderLineDto.properties.unitPrice = {
+      type: ["number", "null"],
+    };
+    input.components.schemas.OrderLineDto.properties.id = {
+      type: ["integer", "null"],
+    };
+    const lineMembers = input.components.schemas.OrderLineMembers[
+      "x-sparsetypes"
+    ] as { members: Array<Record<string, unknown>> };
+    lineMembers.members.find((member) => member.name === "quantity")!.wireType =
+      "int64-string";
+    lineMembers.members.find((member) => member.name === "id")!.wireType =
+      "uint64-string";
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const models = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    const line = (overrides: Record<string, unknown>) => ({
+      id: "7",
+      key: 1,
+      temporaryId: null,
+      quantity: "123",
+      unitPrice: "0.5",
+      ...overrides,
+    });
+    // Keyed addition snapshots convert string states to DTO numbers.
+    const added = changes.buildOrderDtoChangePayload(
+      { lines: [] },
+      {
+        lines: [
+          {
+            ...line({ id: "7", quantity: "123", unitPrice: "0.5" }),
+            key: 0,
+            temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+          },
+        ],
+      },
+    );
+    assert.equal(added.change.members.lines.items[0].after.value.quantity, 123);
+    assert.equal(
+      added.change.members.lines.items[0].after.value.unitPrice,
+      0.5,
+    );
+    assert.equal(added.change.members.lines.items[0].after.value.id, 7);
+    models.parseOrderLineDto(added.change.members.lines.items[0].after.value);
+    // Nullable entries survive the round trip.
+    const nullable = changes.buildOrderDtoChangePayload(
+      { lines: [] },
+      {
+        lines: [
+          {
+            ...line({ quantity: "8", unitPrice: null, id: null }),
+            key: 0,
+            temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+          },
+        ],
+      },
+    );
+    assert.equal(
+      nullable.change.members.lines.items[0].after.value.quantity,
+      8,
+    );
+    assert.equal(
+      nullable.change.members.lines.items[0].after.value.unitPrice,
+      null,
+    );
+    // Keyed removal snapshots convert as well.
+    const removed = changes.buildOrderDtoChangePayload(
+      {
+        lines: [
+          {
+            ...line({ quantity: "9", unitPrice: "1.5", id: "11" }),
+            key: 0,
+            temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+          },
+        ],
+      },
+      { lines: [] },
+    );
+    assert.equal(
+      removed.change.members.lines.items[0].before.value.quantity,
+      9,
+    );
+    // Unsafe integers fail early instead of rounding.
+    assert.throws(
+      () =>
+        changes.buildOrderDtoChangePayload(
+          { lines: [] },
+          {
+            lines: [
+              {
+                ...line({ quantity: "9007199254740993" }),
+                key: 0,
+                temporaryId: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+              },
+            ],
+          },
+        ),
+      /cannot preserve this integer/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

@@ -561,13 +561,13 @@ function snapshotDto(modelName, value) {
       result[member.name] = entries;
     } else if (member.shape === "value") {
       result[member.name] = snapshotScalar(current, member.wireType, member.snapshotType);
-    } else if (member.shape === "sequence" && Array.isArray(current) && member.snapshotType === "number") {
-      result[member.name] = current.map((item) => snapshotScalar(item, member.elementWireType, "number"));
-    } else if (member.shape === "dictionary" && member.snapshotType === "number") {
+    } else if (member.shape === "sequence" && Array.isArray(current) && isNumericSnapshotType(member.snapshotType)) {
+      result[member.name] = current.map((item) => snapshotScalar(item, member.elementWireType, member.snapshotType));
+    } else if (member.shape === "dictionary" && current && typeof current === "object" && !Array.isArray(current) && isNumericSnapshotType(member.snapshotType)) {
       const entries = {};
       for (const key of Object.keys(current)) {
         Object.defineProperty(entries, key, {
-          value: snapshotScalar(current[key], member.valueWireType, "number"),
+          value: snapshotScalar(current[key], member.valueWireType, member.snapshotType),
           enumerable: true, writable: true, configurable: true,
         });
       }
@@ -576,8 +576,13 @@ function snapshotDto(modelName, value) {
   }
   return result;
 }
+function isNumericSnapshotType(snapshotType) {
+  if (snapshotType === "number" || snapshotType === "integer") return true;
+  if (Array.isArray(snapshotType)) return snapshotType.some((type) => type === "number" || type === "integer");
+  return false;
+}
 function snapshotScalar(value, wireType, snapshotType) {
-  if (snapshotType !== "number" || value === null || value === undefined) return value;
+  if (!isNumericSnapshotType(snapshotType) || value === null || value === undefined) return value;
   if (wireType === "decimal-string" && typeof value === "string") {
     const number = Number(value);
     if (!Number.isFinite(number) || normalizeDecimal(String(number)) !== normalizeDecimal(value)) {
@@ -586,7 +591,12 @@ function snapshotScalar(value, wireType, snapshotType) {
     return number;
   }
   if ((wireType === "int64-string" || wireType === "uint64-string") && typeof value === "string") {
-    const integer = BigInt(value);
+    let integer;
+    try {
+      integer = BigInt(value);
+    } catch {
+      throw new TypeError("A keyed DTO snapshot cannot preserve this integer as an OpenAPI number.");
+    }
     const number = Number(value);
     if (!Number.isSafeInteger(number) || BigInt(String(number)) !== integer) {
       throw new TypeError("A keyed DTO snapshot cannot preserve this integer as an OpenAPI number.");
