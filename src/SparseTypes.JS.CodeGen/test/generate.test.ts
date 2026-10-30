@@ -10,6 +10,9 @@ import type { OpenApiDocument } from "../src/openapi.js";
 
 const orderModel = "Sample.Contracts.OrderDto";
 const lineModel = "Sample.Contracts.OrderLineDto";
+const deviceModel = "Sample.Contracts.DeviceDto";
+const deviceLinkModel = "Sample.Contracts.DeviceLinkDto";
+const deviceHolderModel = "Sample.Contracts.DeviceHolderDto";
 const schemaIdentity = "sha256:" + "a".repeat(64);
 
 function document(): OpenApiDocument {
@@ -342,6 +345,149 @@ function document(): OpenApiDocument {
             membersComponent: "ChildMembers",
           },
         },
+      },
+    },
+  };
+}
+
+function guidDocument(): OpenApiDocument {
+  const schema = (properties: Record<string, any>) => ({
+    type: "object",
+    properties,
+  });
+  const members = (model: string, entries: Record<string, any>[]) => ({
+    ...schema({}),
+    "x-sparsetypes": {
+      version: 1,
+      role: "members",
+      model,
+      schemaIdentity,
+      members: entries,
+    },
+  });
+  const payload = (model: string, membersComponent: string) => ({
+    ...schema({}),
+    "x-sparsetypes": {
+      version: 1,
+      role: "payload",
+      model,
+      schemaIdentity,
+      membersComponent,
+    },
+  });
+  const value = (extra: Record<string, any> = {}): Record<string, any> => ({
+    shape: "value",
+    nullable: false,
+    redactBefore: false,
+    ...extra,
+  });
+  return {
+    openapi: "3.1.0",
+    info: { title: "GuidTest", version: "1.0" },
+    servers: [{ url: "/" }],
+    paths: {
+      "/devices/batch": {
+        get: {
+          operationId: "getDevices",
+          responses: {
+            "200": {
+              description: "OK",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/DeviceHolderDto" },
+                },
+              },
+            },
+          },
+        },
+        put: {
+          operationId: "saveDevices",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/DeviceHolderChangePayload",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "OK",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/DeviceHolderDto" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        DeviceHolderDto: schema({
+          devices: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DeviceDto" },
+          },
+          links: {
+            type: "array",
+            items: { $ref: "#/components/schemas/DeviceLinkDto" },
+          },
+        }),
+        DeviceDto: schema({
+          deviceId: { type: "string", format: "uuid" },
+          temporaryId: { type: ["string", "null"], format: "uuid" },
+          name: { type: "string" },
+          fingerprint: { type: "string", format: "uuid" },
+        }),
+        DeviceLinkDto: schema({
+          tenantId: { type: "string" },
+          deviceId: { type: "string", format: "uuid" },
+          name: { type: "string" },
+        }),
+        DeviceMembers: members(deviceModel, [
+          { ...value({ wireType: "guid-string" }), name: "deviceId" },
+          { ...value({ nullable: true }), name: "temporaryId" },
+          { ...value(), name: "name" },
+          { ...value({ wireType: "guid-string" }), name: "fingerprint" },
+        ]),
+        DeviceChangePayload: payload(deviceModel, "DeviceMembers"),
+        DeviceLinkMembers: members(deviceLinkModel, [
+          { ...value(), name: "tenantId" },
+          { ...value({ wireType: "guid-string" }), name: "deviceId" },
+          { ...value(), name: "name" },
+        ]),
+        DeviceLinkChangePayload: payload(deviceLinkModel, "DeviceLinkMembers"),
+        DeviceHolderMembers: members(deviceHolderModel, [
+          {
+            name: "devices",
+            shape: "keyed",
+            nullable: false,
+            redactBefore: false,
+            itemModel: deviceModel,
+            keyProperties: ["deviceId"],
+            keyType: "guid-string",
+            unassignedKey: "00000000-0000-0000-0000-000000000000",
+            temporaryKey: "temporaryId",
+            ordered: true,
+          },
+          {
+            name: "links",
+            shape: "keyed",
+            nullable: false,
+            redactBefore: false,
+            itemModel: deviceLinkModel,
+            keyProperties: ["tenantId", "deviceId"],
+            ordered: true,
+          },
+        ]),
+        DeviceHolderChangePayload: payload(
+          deviceHolderModel,
+          "DeviceHolderMembers",
+        ),
       },
     },
   };
@@ -2708,6 +2854,163 @@ test("emits replace for nullable nested-model dictionary value transitions", asy
         },
       },
     ]);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("normalizes Guid keyed and temporary identities like C#", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    await generate({ input: guidDocument(), output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const models = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    const lower = "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de";
+    const upper = lower.toUpperCase();
+    const empty = "00000000-0000-0000-0000-000000000000";
+
+    // A case-only spelling change in keys, temporaries, and Guid values is
+    // not a change: identities match and endpoints compare canonically.
+    assert.equal(
+      changes.buildDeviceHolderDtoChangePayload(
+        {
+          devices: [
+            {
+              deviceId: lower,
+              temporaryId: null,
+              name: "A",
+              fingerprint: lower,
+            },
+          ],
+        },
+        {
+          devices: [
+            {
+              deviceId: upper,
+              temporaryId: null,
+              name: "A",
+              fingerprint: upper,
+            },
+          ],
+        },
+      ),
+      undefined,
+    );
+
+    // The empty Guid sentinel matches case-insensitively, so an uppercase
+    // sentinel still takes the temporary identity with canonical emission.
+    const added = changes.buildDeviceHolderDtoChangePayload(
+      { devices: [] },
+      {
+        devices: [
+          {
+            deviceId: empty.toUpperCase(),
+            temporaryId: upper,
+            name: "New",
+            fingerprint: lower,
+          },
+        ],
+      },
+    );
+    assert.equal(added.change.members.devices.items[0].key, empty);
+    assert.equal(added.change.members.devices.items[0].temporaryKey, lower);
+    assert.deepEqual(added.change.members.devices.tempAfterOrder, [lower]);
+    // Snapshots keep their spelling; the canonical key carries identity.
+    assert.equal(
+      added.change.members.devices.items[0].after.value.deviceId,
+      empty.toUpperCase(),
+    );
+
+    // Duplicate identities under canonical GUID equality are rejected.
+    assert.throws(
+      () =>
+        changes.buildDeviceHolderDtoChangePayload(
+          {
+            devices: [
+              {
+                deviceId: lower,
+                temporaryId: null,
+                name: "A",
+                fingerprint: lower,
+              },
+              {
+                deviceId: upper,
+                temporaryId: null,
+                name: "B",
+                fingerprint: lower,
+              },
+            ],
+          },
+          { devices: [] },
+        ),
+      /Duplicate keyed collection identity/,
+    );
+
+    // An invalid GUID on a Guid-typed key fails with an actionable error.
+    assert.throws(
+      () =>
+        changes.buildDeviceHolderDtoChangePayload(
+          { devices: [] },
+          {
+            devices: [
+              {
+                deviceId: "not-a-guid",
+                temporaryId: null,
+                name: "Bad",
+                fingerprint: lower,
+              },
+            ],
+          },
+        ),
+      /not a valid UUID/,
+    );
+
+    // The DTO validator still accepts either spelling of a UUID.
+    assert.deepEqual(
+      models.parseDeviceDto({ deviceId: upper, fingerprint: lower }),
+      { deviceId: upper, fingerprint: lower },
+    );
+
+    // Composite keys normalize their Guid components and nothing else.
+    const tenant = "acme";
+    assert.equal(
+      changes.buildDeviceHolderDtoChangePayload(
+        {
+          links: [{ tenantId: tenant, deviceId: lower, name: "A" }],
+        },
+        {
+          links: [{ tenantId: tenant, deviceId: upper, name: "A" }],
+        },
+      ),
+      undefined,
+    );
+    const linkAdded = changes.buildDeviceHolderDtoChangePayload(
+      { links: [] },
+      {
+        links: [{ tenantId: "ACME", deviceId: upper, name: "A" }],
+      },
+    );
+    assert.deepEqual(linkAdded.change.members.links.items[0].key, [
+      "ACME",
+      lower,
+    ]);
+    assert.throws(
+      () =>
+        changes.buildDeviceHolderDtoChangePayload(
+          {
+            links: [
+              { tenantId: tenant, deviceId: lower, name: "A" },
+              { tenantId: tenant, deviceId: upper, name: "B" },
+            ],
+          },
+          { links: [] },
+        ),
+      /Duplicate keyed collection identity/,
+    );
   } finally {
     await rm(output, { recursive: true, force: true });
   }
