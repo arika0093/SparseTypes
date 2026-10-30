@@ -103,10 +103,21 @@ function collectOperations(document: OpenApiDocument): Operation[] {
     const sharedParameters = pathItem.parameters ?? [];
     for (const [method, operation] of Object.entries(pathItem)) {
       if (!METHODS.has(method) || !operation) continue;
-      const parameters = [
-        ...sharedParameters,
-        ...(operation.parameters ?? []),
-      ].map((parameter) => dereference(document, parameter));
+      // Per OpenAPI, an operation parameter with the same (name, in) identity
+      // overrides the PathItem parameter instead of duplicating it. Resolve
+      // $refs before comparing so equivalent identities are recognized.
+      const merged = new Map<string, Parameter>();
+      for (const parameter of sharedParameters) {
+        const resolved = dereference(document, parameter);
+        merged.set(`${resolved.name}\0${resolved.in}`, resolved);
+      }
+      for (const parameter of operation.parameters ?? []) {
+        const resolved = dereference(document, parameter);
+        // Map.set on an existing key replaces the definition in place, so
+        // overrides keep the PathItem order while new parameters append.
+        merged.set(`${resolved.name}\0${resolved.in}`, resolved);
+      }
+      const parameters = [...merged.values()];
       for (const parameter of parameters) validateParameter(parameter);
       operations.push({
         path,
