@@ -160,4 +160,20 @@ yield `undefined`, and any other binary media is returned as a `Blob` (binary
 is never silently converted to text). The `*Raw` methods always return the
 untouched `Response`, so callers can decode custom media themselves.
 
+### Base URLs and server overrides
+
+Each operation uses its resolved server URL as its default base: an
+Operation-level `servers` entry wins over a PathItem-level entry, which wins
+over the document-level `servers`. The first entry of the winning `servers`
+array is used. Server variables (`{name}`) are substituted from their
+`default` values (validated against `enum`); a variable without a default or
+with a default outside its `enum` fails code generation. Relative server URLs
+are resolved against the nearest absolute ancestor server URL, or kept
+relative otherwise.
+
+Passing `baseUrl` to `createClient({ baseUrl })` overrides every server URL
+for all operations, which is useful for proxies, mocks, and tests. Operation
+paths and query parameters are appended to whichever base is in effect, so a
+trailing slash on the base never produces a double slash.
+
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).
