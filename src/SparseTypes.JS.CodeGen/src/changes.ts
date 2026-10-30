@@ -652,7 +652,7 @@ function diffKeyed(model, member, before, after) {
     }
   }
   for (const entry of beforeEntries) {
-    if (!afterById.has(entry.id)) items.push({ key: entry.key, kind: "remove", beforeIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), before: { state: "redacted" } });
+    if (!afterById.has(entry.id)) items.push({ key: entry.key, kind: "remove", beforeIndex: entry.index, ...(entry.temporary ? { temporaryKey: entry.temporary } : {}), before: endpoint(snapshotDto(member.itemModel, entry.item), member.redactBefore) });
   }
   if (!items.length) return undefined;
   return {
@@ -693,7 +693,17 @@ function diffDictionary(model, member, before, after) {
       items.push({ key, kind: "replace", before: endpoint(previous, false, member.valueWireType), after: endpoint(current, false, member.valueWireType) });
     }
   }
-  for (const key of beforeKeys) if (!own(a.value, key)) items.push({ key, kind: "remove", before: { state: "redacted" } });
+  for (const key of beforeKeys) {
+    if (!own(a.value, key)) {
+      const previous = b.value[key];
+      const before = member.itemModel ? snapshotDto(member.itemModel, previous) : previous;
+      items.push({
+        key,
+        kind: "remove",
+        before: endpoint(before, member.redactBefore, member.itemModel ? undefined : member.valueWireType),
+      });
+    }
+  }
   if (!items.length) return undefined;
   return { kind: "update", items };
 }

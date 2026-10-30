@@ -14,7 +14,7 @@ export default function JsonHighlight({ code }: JsonHighlightProps) {
     let active = true;
     setHtml(undefined);
     setError(undefined);
-    void codeToHtml(code, { lang: "json", theme: "github-light" })
+    void codeToHtml(code, { lang: "json", theme: "dark-plus" })
       .then((highlighted) => {
         if (active) setHtml(highlighted);
       })
@@ -40,7 +40,9 @@ export default function JsonHighlight({ code }: JsonHighlightProps) {
             dangerouslySetInnerHTML={{ __html: html }}
           />
         ) : (
-          <Code block>{code}</Code>
+          <Code block style={{ fontSize: "0.95rem", lineHeight: 1.6 }}>
+            {code}
+          </Code>
         )}
       </Box>
     </Stack>

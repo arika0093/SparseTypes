@@ -35,6 +35,7 @@ type EditableField = "name" | "notes" | "code" | "shipCity";
 
 interface OrderEditorProps {
   order: EditableOrder;
+  original: EditableOrder;
   disabled: boolean;
   onFieldChange: (field: EditableField, value: string) => void;
   onLineChange: (
@@ -49,6 +50,8 @@ interface OrderEditorProps {
 interface SortableLineRowProps {
   line: EditableLine;
   index: number;
+  original?: EditableLine;
+  orderChanged: boolean;
   disabled: boolean;
   onLineChange: OrderEditorProps["onLineChange"];
   onRemoveLine: OrderEditorProps["onRemoveLine"];
@@ -64,6 +67,8 @@ function sortableLineId(line: EditableLine): string {
 function SortableLineRow({
   line,
   index,
+  original,
+  orderChanged,
   disabled,
   onLineChange,
   onRemoveLine,
@@ -86,11 +91,17 @@ function SortableLineRow({
   };
 
   return (
-    <Table.Tr ref={setNodeRef} style={style}>
+    <Table.Tr ref={setNodeRef} style={style} data-order-changed={orderChanged}>
       <Table.Td>{line.id > 0 ? `#${line.id}` : "New"}</Table.Td>
       <Table.Td>
         <NumberInput
           aria-label={`Line ${index + 1} quantity`}
+          classNames={{
+            input:
+              !original || line.quantity !== original.quantity
+                ? "changed-input"
+                : undefined,
+          }}
           value={line.quantity}
           onChange={(value) => {
             const parsed = Number(value);
@@ -106,6 +117,12 @@ function SortableLineRow({
       <Table.Td>
         <NumberInput
           aria-label={`Line ${index + 1} unit price`}
+          classNames={{
+            input:
+              !original || line.unitPrice !== original.unitPrice
+                ? "changed-input"
+                : undefined,
+          }}
           value={line.unitPrice}
           onChange={(value) => {
             const parsed = Number(value);
@@ -149,6 +166,7 @@ function SortableLineRow({
 
 export default function OrderEditor({
   order,
+  original,
   disabled,
   onFieldChange,
   onLineChange,
@@ -156,6 +174,19 @@ export default function OrderEditor({
   onReorderLines,
   onRemoveLine,
 }: OrderEditorProps) {
+  const currentLineIds = new Set(
+    order.lines.filter((line) => line.id > 0).map((line) => line.id),
+  );
+  const originalLineOrder = new Map(
+    original.lines
+      .filter((line) => currentLineIds.has(line.id))
+      .map((line, index) => [line.id, index] as const),
+  );
+  const currentLineOrder = new Map(
+    order.lines
+      .filter((line) => line.id > 0)
+      .map((line, index) => [line.id, index] as const),
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, {
@@ -181,6 +212,9 @@ export default function OrderEditor({
           <TextInput
             label="Customer"
             value={order.name}
+            classNames={{
+              input: order.name !== original.name ? "changed-input" : undefined,
+            }}
             onChange={(event) =>
               onFieldChange("name", event.currentTarget.value)
             }
@@ -189,6 +223,9 @@ export default function OrderEditor({
           <TextInput
             label="Code"
             value={order.code}
+            classNames={{
+              input: order.code !== original.code ? "changed-input" : undefined,
+            }}
             onChange={(event) =>
               onFieldChange("code", event.currentTarget.value)
             }
@@ -197,6 +234,12 @@ export default function OrderEditor({
           <TextInput
             label="Shipping city"
             value={order.shipCity}
+            classNames={{
+              input:
+                order.shipCity !== original.shipCity
+                  ? "changed-input"
+                  : undefined,
+            }}
             onChange={(event) =>
               onFieldChange("shipCity", event.currentTarget.value)
             }
@@ -205,6 +248,10 @@ export default function OrderEditor({
           <Textarea
             label="Notes"
             value={order.notes ?? ""}
+            classNames={{
+              input:
+                order.notes !== original.notes ? "changed-input" : undefined,
+            }}
             onChange={(event) =>
               onFieldChange("notes", event.currentTarget.value)
             }
@@ -251,6 +298,19 @@ export default function OrderEditor({
                         key={sortableLineId(line)}
                         line={line}
                         index={index}
+                        original={
+                          line.id > 0
+                            ? original.lines.find(
+                                (candidate) => candidate.id === line.id,
+                              )
+                            : undefined
+                        }
+                        orderChanged={
+                          line.id > 0
+                            ? originalLineOrder.get(line.id) !==
+                              currentLineOrder.get(line.id)
+                            : false
+                        }
                         disabled={disabled}
                         onLineChange={onLineChange}
                         onRemoveLine={onRemoveLine}

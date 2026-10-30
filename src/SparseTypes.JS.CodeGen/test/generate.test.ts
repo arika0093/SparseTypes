@@ -479,7 +479,16 @@ void client.saveOrder({ params: { path: { id: 1 } }, headers: { "If-Match": "ver
                 key: 2,
                 kind: "remove",
                 beforeIndex: 1,
-                before: { state: "redacted" },
+                before: {
+                  state: "value",
+                  value: {
+                    id: 2,
+                    key: 2,
+                    temporaryId: null,
+                    quantity: 1,
+                    unitPrice: 4,
+                  },
+                },
               },
             ],
             beforeOrder: [1, 2],
@@ -564,7 +573,11 @@ test("distinguishes missing from null and rejects duplicate keyed identities", a
     );
     assert.deepEqual(priceChanges.change.members.prices.items, [
       { key: "added", kind: "add", after: { state: "null" } },
-      { key: "removed", kind: "remove", before: { state: "redacted" } },
+      {
+        key: "removed",
+        kind: "remove",
+        before: { state: "value", value: "2.00" },
+      },
     ]);
     const representableSnapshot = changes.buildOrderDtoChangePayload(
       { lines: [] },
@@ -625,6 +638,40 @@ test("distinguishes missing from null and rejects duplicate keyed identities", a
       () => changes.buildOrderDtoChangePayload(cyclic, {}),
       /cyclic/,
     );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("redacts removed keyed values only when the member requests it", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const orderMembers = input.components.schemas.OrderMembers[
+      "x-sparsetypes"
+    ] as {
+      members: Array<{ name: string; redactBefore?: boolean }>;
+    };
+    const lines = orderMembers.members.find(
+      (member) => member.name === "lines",
+    );
+    assert.ok(lines);
+    lines.redactBefore = true;
+
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const payload = changes.buildOrderDtoChangePayload(
+      {
+        lines: [{ id: 1, key: 1, quantity: 1, unitPrice: 3 }],
+      },
+      { lines: [] },
+    );
+
+    assert.deepEqual(payload.change.members.lines.items[0].before, {
+      state: "redacted",
+    });
   } finally {
     await rm(output, { recursive: true, force: true });
   }
@@ -789,7 +836,11 @@ test("generates nested, sequence, dictionary, and redacted member changes safely
       },
       { key: "added", kind: "add", after: { state: "value", value: 5 } },
       { key: "__proto__", kind: "add", after: { state: "value", value: 3 } },
-      { key: "removed", kind: "remove", before: { state: "redacted" } },
+      {
+        key: "removed",
+        kind: "remove",
+        before: { state: "value", value: 2 },
+      },
     ]);
     assert.deepEqual(payload.change.members.address.members, {
       city: {

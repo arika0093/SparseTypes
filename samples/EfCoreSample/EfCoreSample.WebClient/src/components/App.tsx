@@ -205,9 +205,10 @@ export default function App() {
             </Button>
           </Group>
         </Paper>
-        {draft && (
+        {original && draft && (
           <OrderEditor
             order={draft}
+            original={original}
             disabled={busy}
             onFieldChange={editField}
             onLineChange={updateLine}
