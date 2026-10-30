@@ -3161,3 +3161,245 @@ test("rejects non-null values for OpenAPI 3.1 null-only schemas", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+
+function validationDocument(): OpenApiDocument {
+  const model = "Sample.Contracts.CheckedDto";
+  const nodeModel = "Sample.Contracts.NodeDto";
+  const properties = {
+    even: { type: "integer", multipleOf: 2 },
+    score: { type: "number", exclusiveMinimum: 0, exclusiveMaximum: 10 },
+    legacy: { type: "number", minimum: 5, exclusiveMinimum: true },
+    legacyMax: { type: "number", maximum: 5, exclusiveMaximum: true },
+    forbidden: { not: { const: "banned" } },
+    tags: { type: "array", items: { type: "string" }, uniqueItems: true },
+    rows: {
+      type: "array",
+      items: { type: "object", properties: { id: { type: "integer" } } },
+      uniqueItems: true,
+    },
+    config: { type: "object", minProperties: 1, maxProperties: 2 },
+    id: { type: "string", format: "uuid" },
+    mail: { type: "string", format: "email" },
+    day: { type: "string", format: "date" },
+    when: { type: "string", format: "date-time" },
+    tree: { $ref: "#/components/schemas/NodeDto" },
+  };
+  const members = (names: string[]) =>
+    names.map((name) => ({
+      name,
+      shape: "value",
+      nullable: false,
+      redactBefore: false,
+    }));
+  const payload = (name: string, target: string) => ({
+    type: "object",
+    properties: {},
+    "x-sparsetypes": {
+      version: 1,
+      role: "payload",
+      model: name,
+      schemaIdentity,
+      membersComponent: target,
+    },
+  });
+  return {
+    openapi: "3.1.0",
+    info: { title: "Test", version: "1.0" },
+    servers: [{ url: "/" }],
+    paths: {
+      "/checked/{id}": {
+        put: {
+          operationId: "saveChecked",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CheckedChangePayload" },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "OK",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/CheckedDto" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        CheckedDto: { type: "object", properties },
+        NodeDto: {
+          type: "object",
+          properties: {
+            value: { type: "integer" },
+            next: {
+              anyOf: [
+                { $ref: "#/components/schemas/NodeDto" },
+                { type: "null" },
+              ],
+            },
+          },
+        },
+        CheckedMembers: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model,
+            schemaIdentity,
+            members: [
+              ...members(Object.keys(properties).filter((name) => name !== "tree")),
+              {
+                name: "tree",
+                shape: "nested",
+                nullable: true,
+                redactBefore: false,
+                childModel: nodeModel,
+              },
+            ],
+          },
+        },
+        NodeMembers: {
+          type: "object",
+          properties: {},
+          "x-sparsetypes": {
+            version: 1,
+            role: "members",
+            model: nodeModel,
+            schemaIdentity,
+            members: members(["value", "next"]),
+          },
+        },
+        CheckedChangePayload: payload(model, "CheckedMembers"),
+        NodeChangePayload: payload(nodeModel, "NodeMembers"),
+      },
+    },
+  };
+}
+
+const checkedValid = {
+  even: 4,
+  score: 5,
+  legacy: 6,
+  legacyMax: 4,
+  forbidden: "ok",
+  tags: ["a", "b"],
+  rows: [{ id: 1 }, { id: 2 }],
+  config: { a: 1 },
+  id: "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de",
+  mail: "user@example.test",
+  day: "2024-02-29",
+  when: "2024-02-29T12:00:00Z",
+  tree: { value: 1, next: { value: 2, next: null } },
+};
+
+test("enforces numeric boundaries, collections, formats, not, and recursive refs", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-validate-"));
+  try {
+    await generate({ input: validationDocument(), output });
+    const modelModule = await import(
+      pathToFileURL(path.join(output, "models.js")).href
+    );
+    assert.deepEqual(modelModule.parseCheckedDto(checkedValid), checkedValid);
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, even: 3 }),
+      /even: is not a multiple/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, score: 0 }),
+      /score: is below the exclusive minimum/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, score: 10 }),
+      /score: is above the exclusive maximum/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, legacy: 5 }),
+      /legacy: is below the exclusive minimum/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, legacyMax: 5 }),
+      /legacyMax: is above the exclusive maximum/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, forbidden: "banned" }),
+      /forbidden: matches a forbidden schema/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, tags: ["a", "a"] }),
+      /tags: has duplicate items/,
+    );
+    assert.throws(
+      () =>
+        modelModule.parseCheckedDto({ ...checkedValid, rows: [{ id: 1 }, { id: 1 }] }),
+      /rows: has duplicate items/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, config: {} }),
+      /config: has fewer than minProperties/,
+    );
+    assert.throws(
+      () =>
+        modelModule.parseCheckedDto({ ...checkedValid, config: { a: 1, b: 2, c: 3 } }),
+      /config: has more than maxProperties/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, id: "nope" }),
+      /id: is not a UUID/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, mail: "nope" }),
+      /mail: is not an email address/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, day: "2024-02-30" }),
+      /day: is not a date/,
+    );
+    assert.throws(
+      () => modelModule.parseCheckedDto({ ...checkedValid, when: "2024-01-01" }),
+      /when: is not a date-time/,
+    );
+    assert.throws(
+      () =>
+        modelModule.parseCheckedDto({
+          ...checkedValid,
+          tree: { value: 1, next: { value: "oops", next: null } },
+        }),
+      /tree\.next: does not match any allowed schema/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("fails generation for validation-critical unsupported keywords", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-validate-"));
+  try {
+    const withContains = validationDocument();
+    (withContains.components.schemas.CheckedDto as Record<string, any>).properties.tags.contains =
+      { type: "string" };
+    await assert.rejects(
+      generate({ input: withContains, output }),
+      /Sample\.Contracts\.CheckedDto.*unsupported validation keyword 'contains'/,
+    );
+    const withTuples = validationDocument();
+    (withTuples.components.schemas.CheckedDto as Record<string, any>).properties.tags =
+      { type: "array", items: [{ type: "string" }, { type: "number" }] };
+    await assert.rejects(
+      generate({ input: withTuples, output }),
+      /tuple-form 'items'/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

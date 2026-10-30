@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
+  assertSupportedValidationSchemas,
   collectChangeModels,
   emitChangesDts,
   emitChangesJs,
@@ -34,6 +35,7 @@ export async function generate({
   const clientJs = emitClientJs(document);
   const apiTypes = await makeTypes(document);
   const changeModels = collectChangeModels(document);
+  assertSupportedValidationSchemas(document, changeModels);
   const files = {
     "api.d.ts": apiTypes,
     "models.d.ts": emitModelsDts(document, changeModels),
