@@ -331,6 +331,23 @@ public sealed class SparsePayloadSchemaBundleTests
     private sealed class FirstPayload { }
 
     private sealed class SecondPayload { }
+
+    [Test]
+    public void MembersDeltaSchemasForbidUnknownMemberNames()
+    {
+        var schemas = PayloadSchemaOrder.PayloadJson.Schema;
+        var deltas = schemas.OpenApi30Schemas.Where(static schema => schema.Name.Contains("_MembersDelta", StringComparison.Ordinal)).ToArray();
+        deltas.ShouldNotBeEmpty();
+        foreach (var schema in deltas)
+        {
+            foreach (var json in new[] { schema.OpenApi30JsonSchema, schema.OpenApi31JsonSchema })
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(json);
+                document.RootElement.TryGetProperty("additionalProperties", out var additional).ShouldBeTrue(schema.Name);
+                additional.GetBoolean().ShouldBeFalse(schema.Name);
+            }
+        }
+    }
 }
 
 [SparseModel]
