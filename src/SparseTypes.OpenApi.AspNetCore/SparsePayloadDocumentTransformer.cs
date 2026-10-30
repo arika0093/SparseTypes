@@ -44,6 +44,7 @@ internal sealed class SparsePayloadDocumentTransformer(
         }
 
         var names = new Dictionary<string, Type>(StringComparer.Ordinal);
+        var installed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var set in sets)
         {
             foreach (var descriptor in set.GetSchemas(version))
@@ -77,6 +78,19 @@ internal sealed class SparsePayloadDocumentTransformer(
                     else
                     {
                         names.Add(name, type);
+                    }
+
+                    if (
+                        installed.Add(name)
+                        && document.Components.Schemas.TryGetValue(name, out _)
+                        && !registry.IsOwnedBy(context.DocumentName, name, type)
+                    )
+                    {
+                        throw new InvalidOperationException(
+                            $"SparseTypes cannot register component '{name}' in OpenAPI document '{context.DocumentName}' "
+                                + $"for type '{type}' because a non-SparseTypes schema already uses that component name. "
+                                + "Rename the conflicting schema or customize the schema ID policy so the names no longer collide."
+                        );
                     }
 
                     // Replace any endpoint-generated schema with the canonical

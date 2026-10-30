@@ -34,6 +34,7 @@ internal sealed class SparsePayloadDocumentFilter(
         }
 
         var names = new Dictionary<string, Type>(StringComparer.Ordinal);
+        var installed = new HashSet<string>(StringComparer.Ordinal);
         swaggerDoc.Components ??= new OpenApiComponents();
         swaggerDoc.Components.Schemas ??= new Dictionary<string, IOpenApiSchema>();
         foreach (var set in sets)
@@ -68,12 +69,45 @@ internal sealed class SparsePayloadDocumentFilter(
                         names.Add(name, type);
                     }
 
+                    if (
+                        installed.Add(name)
+                        && swaggerDoc.Components.Schemas.TryGetValue(name, out _)
+                        && !IsOwnedBy(context, registry, recordedName, name, type)
+                    )
+                    {
+                        throw new InvalidOperationException(
+                            $"SparseTypes cannot register component '{name}' in OpenAPI document '{context.DocumentName}' "
+                                + $"for type '{type}' because a non-SparseTypes schema already uses that component name. "
+                                + "Rename the conflicting schema or customize the schema ID policy so the names no longer collide."
+                        );
+                    }
+
                     // Keep the generated identity for internal refs while
                     // replacing endpoint-generated IDs only for payload types.
                     swaggerDoc.Components.Schemas[name] = generated;
                 }
             }
         }
+    }
+
+    private static bool IsOwnedBy(DocumentFilterContext context, SparseSchemaNameRegistry registry, string? recordedName, string name, Type type)
+    {
+        // The schema repository knows every endpoint-generated schema: a
+        // lookup hit for this exact type proves same-type ownership.
+        if (context.SchemaRepository.TryLookupByType(type, out var schemaKey) && string.Equals(schemaKey?.Id, name, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Otherwise the application schema pipeline must have assigned this
+        // exact name to this exact type, either through the recorded schema ID
+        // policy entry or the observed endpoint schema generation.
+        if (string.Equals(recordedName, name, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return registry.TryGetObservedName(type, out var observed) && string.Equals(observed, name, StringComparison.Ordinal);
     }
 }
 

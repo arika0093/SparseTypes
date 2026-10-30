@@ -414,6 +414,63 @@ public sealed class SparsePayloadSchemaTests
         }
     }
 
+    [Test]
+    public async Task ComponentCollisionWithAnUnrelatedSchemaIsRejected()
+    {
+        const string curated = "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload";
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+            options.CustomSchemaIds(type => type == typeof(SwashbuckleCollisionDto) ? curated : TestSchemaId(type)));
+        builder.Services.AddSparseOpenApi(OpenApiTestModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapGet("/dto", () => new SwashbuckleCollisionDto { Value = 1 });
+        await app.StartAsync();
+
+        var provider = app.Services.GetRequiredService<ISwaggerProvider>();
+        var exception = Should.Throw<InvalidOperationException>(() => provider.GetSwagger("v1"));
+
+        exception.Message.ShouldContain(curated);
+        exception.Message.ShouldContain("'v1'");
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task EndpointSchemaForTheSamePayloadTypeIsStillReplaced()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+            options.CustomSchemaIds(type => type == typeof(OpenApiTestModel.ChangePayload) ? "RenamedPayload" : TestSchemaId(type)));
+        builder.Services.AddSparseOpenApi(OpenApiTestModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapPost("/changes", (OpenApiTestModel.ChangePayload payload) => Results.Ok(payload));
+        await app.StartAsync();
+
+        var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+        document.Components!.Schemas!.Keys.ShouldContain("RenamedPayload");
+        document.Components.Schemas["RenamedPayload"].Extensions!.Keys.ShouldContain("x-sparsetypes");
+        await app.StopAsync();
+    }
+
+    private sealed class SwashbuckleCollisionDto
+    {
+        public int Value { get; set; }
+    }
+
+    private static string TestSchemaId(Type type) =>
+        "Test_"
+            + (type.FullName ?? type.Name).Replace('.', '_')
+                .Replace('+', '_')
+                .Replace('`', '_')
+                .Replace('[', '_')
+                .Replace(']', '_')
+                .Replace(',', '_')
+                .Replace(' ', '_');
+
     private static OpenApiSchema ResolveComponent(OpenApiDocument document, string name)
     {
         IOpenApiSchema schema = document.Components!.Schemas![name];
