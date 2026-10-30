@@ -2401,3 +2401,130 @@ test("supports escaped, chained, and invalid local references", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("honors Operation and PathItem server overrides", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.servers = [{ url: "https://api.example.com/v1" }];
+    input.paths["/orders/{id}"].servers = [
+      { url: "https://orders.example.com/v2/" },
+    ];
+    input.paths["/orders/{id}"].put.servers = [
+      {
+        url: "{protocol}://ops.example.com/{base}",
+        variables: {
+          protocol: { default: "https" },
+          base: { default: "v3", enum: ["v3"] },
+        },
+      },
+    ];
+    input.paths["/orders/{id}"].get.parameters.push({
+      name: "verbose",
+      in: "query",
+      schema: { type: "boolean" },
+    });
+    await generate({ input, output });
+    const clientSource = await readFile(path.join(output, "client.js"), "utf8");
+    assert.match(clientSource, /https:\/\/orders\.example\.com\/v2/);
+    assert.match(clientSource, /https:\/\/ops\.example\.com\/v3/);
+
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    const urls: string[] = [];
+    const client = clientModule.createClient({
+      fetch: async (url: RequestInfo | URL) => {
+        urls.push(String(url));
+        return new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await client.getOrder({
+      params: { path: { id: 7 }, query: { verbose: true } },
+    });
+    await client.saveOrder({
+      params: { path: { id: 7 } },
+      headers: { "If-Match": "v1" },
+      body: {},
+    });
+    assert.deepEqual(urls, [
+      "https://orders.example.com/v2/orders/7?verbose=true",
+      "https://ops.example.com/v3/orders/7",
+    ]);
+
+    const overridden: string[] = [];
+    const proxy = clientModule.createClient({
+      baseUrl: "https://proxy.example.test/root/",
+      fetch: async (url: RequestInfo | URL) => {
+        overridden.push(String(url));
+        return new Response(JSON.stringify({}), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await proxy.getOrder({ params: { path: { id: 7 } } });
+    await proxy.saveOrder({
+      params: { path: { id: 7 } },
+      headers: { "If-Match": "v1" },
+      body: {},
+    });
+    assert.deepEqual(overridden, [
+      "https://proxy.example.test/root/orders/7",
+      "https://proxy.example.test/root/orders/7",
+    ]);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("resolves relative servers and rejects bad server variables", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const relative = document();
+    relative.servers = [{ url: "https://api.example.com/v1" }];
+    relative.paths["/orders/{id}"].put.servers = [{ url: "inner" }];
+    relative.paths["/orders/{id}"].get.servers = [{ url: "/alt" }];
+    await generate({ input: relative, output });
+    const clientSource = await readFile(path.join(output, "client.js"), "utf8");
+    assert.match(clientSource, /https:\/\/api\.example\.com\/v1\/inner/);
+    assert.match(clientSource, /https:\/\/api\.example\.com\/alt/);
+
+    const undeclared = document();
+    undeclared.paths["/orders/{id}"].put.servers = [
+      { url: "https://{missing}.example.com", variables: {} },
+    ];
+    await assert.rejects(
+      generate({ input: undeclared, output }),
+      /variable 'missing'.*no entry/,
+    );
+
+    const noDefault = document();
+    noDefault.paths["/orders/{id}"].put.servers = [
+      {
+        url: "https://{region}.example.com",
+        variables: { region: { enum: ["a", "b"] } },
+      },
+    ];
+    await assert.rejects(
+      generate({ input: noDefault, output }),
+      /without a default value/,
+    );
+
+    const badEnum = document();
+    badEnum.paths["/orders/{id}"].put.servers = [
+      {
+        url: "https://{region}.example.com",
+        variables: { region: { default: "c", enum: ["a", "b"] } },
+      },
+    ];
+    await assert.rejects(
+      generate({ input: badEnum, output }),
+      /not in its enum/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

@@ -21,6 +21,7 @@ interface Operation {
   requestBody: Record<string, any> | undefined;
   requestKind: string | undefined;
   requestMediaType: string | undefined;
+  baseUrl: string;
   argsRequired: boolean;
 }
 
@@ -168,6 +169,17 @@ export function collectOperations(document: OpenApiDocument): Operation[] {
       // Per OpenAPI, an operation parameter with the same (name, in) identity
       // overrides the PathItem parameter instead of duplicating it. Resolve
       // $refs before comparing so equivalent identities are recognized.
+      const operationNameValue = operationName(operation, method, path, used);
+      // Operation servers win over PathItem servers, which win over document
+      // servers; an explicit client-level baseUrl still overrides everything.
+      const baseUrl = resolveOperationBaseUrl(
+        operationNameValue,
+        method,
+        path,
+        operation,
+        pathItem,
+        document,
+      );
       const merged = new Map<string, Parameter>();
       for (const parameter of sharedParameters) {
         const resolved = dereference(document, parameter);
@@ -181,7 +193,6 @@ export function collectOperations(document: OpenApiDocument): Operation[] {
       }
       const parameters = [...merged.values()];
       for (const parameter of parameters) validateParameter(parameter);
-      const operationNameValue = operationName(operation, method, path, used);
       const resolvedBody = dereferenceObject(document, operation.requestBody);
       for (const response of Object.values(operation.responses ?? {})) {
         dereferenceObject(document, response as Record<string, any>);
@@ -207,6 +218,7 @@ export function collectOperations(document: OpenApiDocument): Operation[] {
         requestBody: resolvedBody,
         requestKind: serialization?.kind,
         requestMediaType: serialization?.mediaType,
+        baseUrl,
         argsRequired:
           parameters.some((parameter) => parameter.required) ||
           resolvedBody?.required === true,
@@ -214,6 +226,99 @@ export function collectOperations(document: OpenApiDocument): Operation[] {
     }
   }
   return operations;
+}
+
+function resolveOperationBaseUrl(
+  name: string,
+  method: string,
+  path: string,
+  operation: Record<string, any>,
+  pathItem: Record<string, any>,
+  document: OpenApiDocument,
+): string {
+  const label = `operation '${name}' (${method.toUpperCase()} ${path})`;
+  const documentBase = resolveServerEntry(document.servers, label);
+  const pathBase = resolveServerEntry(pathItem.servers, label) ?? documentBase;
+  const operationBase = resolveServerEntry(operation.servers, label);
+  if (operationBase === undefined) return pathBase ?? "";
+  return joinServerUrl(operationBase, pathBase, label);
+}
+
+function resolveServerEntry(
+  servers: Array<Record<string, any>> | undefined,
+  label: string,
+): string | undefined {
+  if (!servers || servers.length === 0) return undefined;
+  const server = servers[0]!;
+  const raw = typeof server.url === "string" ? server.url : "/";
+  return substituteServerVariables(raw, server, label);
+}
+
+function substituteServerVariables(
+  raw: string,
+  server: Record<string, any>,
+  label: string,
+): string {
+  return raw.replace(/\{([^}]+)\}/g, (match, variable: string) => {
+    const declared = server.variables?.[variable];
+    if (declared === undefined || declared === null) {
+      throw new Error(
+        `OpenAPI ${label} declares server URL '${raw}' with variable '${variable}' that has no entry in servers variables.`,
+      );
+    }
+    if (declared.default === undefined) {
+      throw new Error(
+        `OpenAPI ${label} declares server variable '${variable}' without a default value; codegen cannot form a base URL.`,
+      );
+    }
+    const value = String(declared.default);
+    if (
+      Array.isArray(declared.enum) &&
+      !declared.enum.map(String).includes(value)
+    ) {
+      throw new Error(
+        `OpenAPI ${label} declares server variable '${variable}' whose default '${value}' is not in its enum.`,
+      );
+    }
+    return value;
+  });
+}
+
+function joinServerUrl(
+  raw: string,
+  fallbackBase: string | undefined,
+  label: string,
+): string {
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw) || raw.startsWith("//")) {
+    return stripTrailingSlash(raw);
+  }
+  if (raw.startsWith("/")) {
+    if (fallbackBase && /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(fallbackBase)) {
+      return stripTrailingSlash(new URL(raw, fallbackBase).origin + raw);
+    }
+    return stripTrailingSlash(raw);
+  }
+  if (fallbackBase) {
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(fallbackBase)) {
+      try {
+        const base = fallbackBase.endsWith("/")
+          ? fallbackBase
+          : `${fallbackBase}/`;
+        return stripTrailingSlash(new URL(raw, base).href);
+      } catch (error) {
+        throw new Error(
+          `OpenAPI ${label} declares server URL '${raw}' that cannot be resolved against '${fallbackBase}': ${error instanceof Error ? error.message : String(error)}.`,
+        );
+      }
+    }
+    return `${stripTrailingSlash(fallbackBase)}/${raw}`;
+  }
+  return stripTrailingSlash(raw);
+}
+
+function stripTrailingSlash(value: string): string {
+  if (value.length > 1) return value.replace(/\/+$/, "") || "/";
+  return value;
 }
 
 function validateParameter(parameter: Parameter): void {
@@ -280,6 +385,7 @@ export function emitClientJs(document: OpenApiDocument): string {
     name: operation.name,
     method: operation.method.toUpperCase(),
     path: operation.path,
+    baseUrl: operation.baseUrl,
     parameters: operation.parameters.map(
       ({ name, in: location, style, explode, required }) => ({
         name,
@@ -296,7 +402,7 @@ export function emitClientJs(document: OpenApiDocument): string {
     requestMedia: Object.keys(operation.requestBody?.content ?? {}),
     successMedia: successfulMedia(document, operation.operation.responses),
   }));
-  return `const operations = ${JSON.stringify(manifests, null, 2)};\n\n${CLIENT_RUNTIME}\n\nexport function createClient(options = {}) {\n  const baseUrl = options.baseUrl ?? ${JSON.stringify(document.servers?.[0]?.url ?? "")};\n  const fetcher = options.fetch ?? globalThis.fetch;\n  if (typeof fetcher !== "function") throw new TypeError("A fetch implementation is required.");\n  const client = {};\n  for (const operation of operations) {\n    client[operation.name] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, false);\n    client[operation.name + "Raw"] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, true);\n  }\n  return client;\n}\n`;
+  return `const operations = ${JSON.stringify(manifests, null, 2)};\n\n${CLIENT_RUNTIME}\n\nexport function createClient(options = {}) {\n  const defaultBaseUrl = options.baseUrl ?? ${JSON.stringify(document.servers?.[0]?.url ?? "")};\n  const fetcher = options.fetch ?? globalThis.fetch;\n  if (typeof fetcher !== "function") throw new TypeError("A fetch implementation is required.");\n  const client = {};\n  for (const operation of operations) {\n    const baseUrl = options.baseUrl ?? operation.baseUrl ?? defaultBaseUrl;\n    client[operation.name] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, false);\n    client[operation.name + "Raw"] = (args = {}, init = {}) => invoke(fetcher, baseUrl, operation, args, init, true);\n  }\n  return client;\n}\n`;
 }
 
 function successfulMedia(
@@ -368,7 +474,9 @@ function buildUrl(baseUrl, operation, args) {
     if (parameter.required && value === undefined) throw new TypeError("Missing query parameter '" + parameter.name + "'.");
     serializeQuery(pairs, parameter, value);
   }
-  const prefix = baseUrl.endsWith("/") && path.startsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  let prefix = baseUrl ?? "";
+  if (prefix.length > 1) prefix = prefix.replace(/\/+$/, "");
+  if (prefix.endsWith("/") && path.startsWith("/")) prefix = prefix.slice(0, -1);
   const url = prefix + path;
   const suffix = pairs.join("&");
   return suffix ? url + (url.includes("?") ? "&" : "?") + suffix : url;
