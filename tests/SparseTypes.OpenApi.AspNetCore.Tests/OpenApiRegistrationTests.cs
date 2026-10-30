@@ -376,6 +376,123 @@ public sealed class OpenApiRegistrationTests
         }
     }
 
+    [Test]
+    public async Task PayloadSchemasPublishExplicitDtoAssociations()
+    {
+        foreach (var version in new[] { OpenApiSpecVersion.OpenApi3_0, OpenApiSpecVersion.OpenApi3_1 })
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseUrls("http://127.0.0.1:0");
+            builder.Services.AddOpenApi(options => options.OpenApiVersion = version);
+            builder.Services.AddSparseOpenApi(PayloadModel.PayloadJson.Schema);
+            builder.Services.AddSparseOpenApi(Basket.PayloadJson.Schema, [BasketItemDtoSchema()]);
+            await using var app = builder.Build();
+            app.MapGet("/model", () => new PayloadModel { Name = "x" });
+            app.MapGet("/basket", () => new Basket());
+            app.MapGet("/item", () => new BasketItem { Id = 1, Quantity = 2 });
+            app.MapPost("/changes", (PayloadModel.ChangePayload payload) => Results.NoContent());
+            app.MapOpenApi();
+            await app.StartAsync();
+
+            var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+            var payloadDto = DtoAssociation(document, "SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload");
+            var basketDto = DtoAssociation(document, "SparseTypes_OpenApi_AspNetCore_Tests_Basket_ChangePayload");
+            var itemDto = DtoAssociation(document, "SparseTypes_OpenApi_AspNetCore_Tests_BasketItem_ChangePayload");
+            payloadDto.ShouldBe("PayloadModel");
+            basketDto.ShouldBe("Basket");
+            itemDto.ShouldBe(BasketItemDtoSchema().Name);
+            document.Components!.Schemas!.Keys.ShouldContain(payloadDto!);
+            document.Components.Schemas.Keys.ShouldContain(basketDto!);
+            document.Components.Schemas.Keys.ShouldContain(itemDto!);
+
+            await app.StopAsync();
+        }
+    }
+
+    [Test]
+    public async Task PayloadSchemaOmitsDtoAssociationWhenModelIsAbsent()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddOpenApi();
+        builder.Services.AddSparseOpenApi(PayloadModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapPost("/changes", (PayloadModel.ChangePayload payload) => Results.NoContent());
+        app.MapOpenApi();
+        await app.StartAsync();
+
+        var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+        DtoAssociation(document, "SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload").ShouldBeNull();
+
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task CustomSchemaIdIsUsedForDtoAssociation()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddOpenApi(options =>
+        {
+            var existing = options.CreateSchemaReferenceId;
+            options.CreateSchemaReferenceId = type => type.Type == typeof(PayloadModel) ? "CustomDto" : existing(type);
+        });
+        builder.Services.AddSparseOpenApi(PayloadModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapGet("/model", () => new PayloadModel { Name = "x" });
+        app.MapOpenApi();
+        await app.StartAsync();
+
+        var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+        var dto = DtoAssociation(document, "SparseTypes_OpenApi_AspNetCore_Tests_PayloadModel_ChangePayload");
+        dto.ShouldBe("CustomDto");
+        document.Components!.Schemas!.Keys.ShouldContain("CustomDto");
+
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task SameShortModelNamesResolveToTheirOwnDtoComponents()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddOpenApi();
+        builder.Services.AddSparseOpenApi(SameName.V1.Note.PayloadJson.Schema, [NoteDtoSchema(typeof(SameName.V1.Note))]);
+        builder.Services.AddSparseOpenApi(SameName.V2.Note.PayloadJson.Schema, [NoteDtoSchema(typeof(SameName.V2.Note))]);
+        await using var app = builder.Build();
+        app.MapOpenApi();
+        await app.StartAsync();
+
+        var document = await app.Services.GetRequiredKeyedService<IOpenApiDocumentProvider>("v1").GetOpenApiDocumentAsync();
+
+        DtoAssociation(document, SparsePayloadSchemaNames.GetName(typeof(SameName.V1.Note.ChangePayload))).ShouldBe(NoteDtoSchema(typeof(SameName.V1.Note)).Name);
+        DtoAssociation(document, SparsePayloadSchemaNames.GetName(typeof(SameName.V2.Note.ChangePayload))).ShouldBe(NoteDtoSchema(typeof(SameName.V2.Note)).Name);
+
+        await app.StopAsync();
+    }
+
+    private static string? DtoAssociation(OpenApiDocument document, string componentName)
+    {
+        var schema = document.Components!.Schemas![componentName];
+        if (schema.Extensions is null || !schema.Extensions.TryGetValue("x-sparsetypes", out var metadata))
+        {
+            return null;
+        }
+
+        if (metadata is not JsonNodeExtension node || node.Node is not JsonObject metadataObject)
+        {
+            return null;
+        }
+
+        return metadataObject.TryGetPropertyValue("dto", out var dto) ? dto?.GetValue<string>() : null;
+    }
+
+    private static SparsePayloadSchema NoteDtoSchema(Type modelType) =>
+        new(modelType, SparsePayloadSchemaNames.GetName(modelType), """{"type":"object","properties":{"text":{"type":"string"}}}""");
+
     private static SparsePayloadSchema BasketItemDtoSchema() =>
         new(
             typeof(BasketItem),

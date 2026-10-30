@@ -128,9 +128,6 @@ internal sealed class SparseSchemaNameRegistry
         _effectiveNames.TryAdd(typeKey, name);
     }
 
-    /// <summary>Gets the component name selected by the application for one document.</summary>
-    public string? GetEffectiveName(string documentName, Type type) => _effectiveNames.TryGetValue((documentName, type), out var name) ? name : null;
-
     /// <summary>Records the component name the application schema pipeline assigned to any CLR type.</summary>
     /// <remarks>Best-effort ownership map used to tell endpoint-generated schemas apart from unrelated collisions. Never throws.</remarks>
     public void RecordObservedName(string documentName, Type type, string? name)
@@ -148,11 +145,34 @@ internal sealed class SparseSchemaNameRegistry
         }
     }
 
+    /// <summary>Gets the component name selected by the application for one document.</summary>
+    public string? GetEffectiveName(string documentName, Type type) => _effectiveNames.TryGetValue((documentName, type), out var name) ? name : null;
+
     /// <summary>Reports whether the application schema pipeline demonstrably assigned a component to one CLR type.</summary>
     public bool IsOwnedBy(string documentName, string name, Type type)
     {
         var key = (documentName, name);
         return !_conflictedNames.ContainsKey(key) && _observedOwners.TryGetValue(key, out var owner) && owner == type;
+    }
+
+    /// <summary>Gets the component name the application schema pipeline assigned to a CLR type in one document.</summary>
+    public bool TryGetObservedName(string documentName, Type type, out string? name)
+    {
+        foreach (var entry in _observedOwners)
+        {
+            if (
+                string.Equals(entry.Key.DocumentName, documentName, StringComparison.Ordinal)
+                && entry.Value == type
+                && !_conflictedNames.ContainsKey(entry.Key)
+            )
+            {
+                name = entry.Key.Name;
+                return true;
+            }
+        }
+
+        name = null;
+        return false;
     }
 
     /// <summary>Reports whether a type belongs to a registered payload schema set.</summary>

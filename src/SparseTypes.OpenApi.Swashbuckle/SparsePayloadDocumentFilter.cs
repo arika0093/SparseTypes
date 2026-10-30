@@ -88,6 +88,125 @@ internal sealed class SparsePayloadDocumentFilter(
                 }
             }
         }
+        PublishDtoAssociations(swaggerDoc, sets);
+    }
+
+    private void PublishDtoAssociations(OpenApiDocument swaggerDoc, SparsePayloadSchemaSet[] sets)
+    {
+        var components = swaggerDoc.Components?.Schemas;
+        if (components is null)
+        {
+            return;
+        }
+
+        var externals = sets.SelectMany(static set => set.ExternalSchemas).ToArray();
+        foreach (var set in sets)
+        {
+            foreach (var descriptor in set.GetSchemas())
+            {
+                var modelName = ReadPayloadModel(descriptor);
+                if (modelName is null)
+                {
+                    continue;
+                }
+
+                var modelType = ResolveModelType(modelName);
+                if (modelType is null)
+                {
+                    continue;
+                }
+
+                var dto =
+                    externals.FirstOrDefault(schema => schema.Type == modelType)?.Name
+                    ?? (registry.TryGetObservedName(modelType, out var observed) ? observed : null)
+                    ?? registry.GetEffectiveName(modelType);
+
+                if (dto is null || !components.ContainsKey(dto))
+                {
+                    continue;
+                }
+
+                if (components.TryGetValue(descriptor.Name, out var installed))
+                {
+                    AddDtoAssociation(installed, dto);
+                }
+            }
+        }
+    }
+
+    private static string? ReadPayloadModel(SparseTypes.SparsePayloadSchema descriptor)
+    {
+        using var json = System.Text.Json.JsonDocument.Parse(descriptor.OpenApi31JsonSchema);
+        if (json.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!json.RootElement.TryGetProperty("x-sparsetypes", out var metadata) || metadata.ValueKind != System.Text.Json.JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!metadata.TryGetProperty("role", out var role) || role.GetString() != "payload")
+        {
+            return null;
+        }
+
+        return metadata.TryGetProperty("model", out var model) && model.ValueKind == System.Text.Json.JsonValueKind.String ? model.GetString() : null;
+    }
+
+    private static Type? ResolveModelType(string modelName)
+    {
+        const string globalPrefix = "global::";
+        if (modelName.StartsWith(globalPrefix, StringComparison.Ordinal))
+        {
+            modelName = modelName.Substring(globalPrefix.Length);
+        }
+
+        var direct = Type.GetType(modelName, throwOnError: false);
+        if (direct is not null)
+        {
+            return direct;
+        }
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type? resolved;
+            try
+            {
+                resolved = assembly.GetType(modelName, throwOnError: false, ignoreCase: false);
+            }
+            catch (Exception)
+            {
+                // Best-effort model lookup: an unloadable assembly simply has no match.
+                continue;
+            }
+
+            if (resolved is not null)
+            {
+                return resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private static void AddDtoAssociation(IOpenApiSchema installed, string dtoComponent)
+    {
+        if (installed is not OpenApiSchema concrete || concrete.Extensions is null)
+        {
+            return;
+        }
+
+        if (!concrete.Extensions.TryGetValue("x-sparsetypes", out var metadata) || metadata is not JsonNodeExtension nodeExtension)
+        {
+            return;
+        }
+
+        if (nodeExtension.Node is System.Text.Json.Nodes.JsonObject metadataObject && !metadataObject.ContainsKey("dto"))
+        {
+            metadataObject["dto"] = dtoComponent;
+        }
     }
 
     private static bool IsOwnedBy(DocumentFilterContext context, SparseSchemaNameRegistry registry, string? recordedName, string name, Type type)
