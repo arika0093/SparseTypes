@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm run generate:api",
     "dev": "vite",
     "generate:api": "sparsetypes-codegen ../EfCoreSample.Server/obj/openapi/order-api.json",
+    "prebuild": "npm run generate:api",
     "build": "tsc -b && vite build",
     "format": "prettier --write src",
     "format:check": "prettier --check src"
