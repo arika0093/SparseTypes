@@ -1,4 +1,4 @@
-import { refName } from "./openapi.js";
+import { parameterRefName } from "./openapi.js";
 import type { OpenApiDocument } from "./openapi.js";
 
 const METHODS = new Set([
@@ -22,10 +22,42 @@ interface Operation {
   argsRequired: boolean;
 }
 
-function dereference(document: OpenApiDocument, value: Parameter): Parameter {
+function dereference(
+  document: OpenApiDocument,
+  value: Parameter,
+  seen: Set<string> = new Set(),
+): Parameter {
   if (!value?.$ref) return value;
-  const name = refName(value);
-  return name ? (document.components?.parameters?.[name] ?? value) : value;
+  const ref = value.$ref;
+  if (typeof ref !== "string") {
+    throw new Error(
+      `OpenAPI parameter reference must be a string, but received ${typeof ref}.`,
+    );
+  }
+  const name = parameterRefName(value);
+  if (name === undefined) {
+    if (ref.startsWith("#/")) {
+      throw new Error(
+        `Unsupported OpenAPI parameter reference '${ref}'; only local '#/components/parameters/...' references are supported.`,
+      );
+    }
+    throw new Error(
+      `Unsupported external OpenAPI parameter reference '${ref}'; only local '#/components/parameters/...' references are supported.`,
+    );
+  }
+  if (seen.has(name)) {
+    throw new Error(
+      `Circular OpenAPI parameter reference '#/components/parameters/${name}' detected.`,
+    );
+  }
+  const resolved = document.components?.parameters?.[name];
+  if (!resolved) {
+    throw new Error(
+      `Unresolved OpenAPI parameter reference '${ref}'; no such entry exists in components.parameters.`,
+    );
+  }
+  seen.add(name);
+  return dereference(document, resolved, seen);
 }
 
 function operationName(

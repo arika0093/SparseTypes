@@ -48,6 +48,17 @@ export async function makeTypes(document: OpenApiDocument): Promise<string> {
   return astToString(ast);
 }
 
+export function parameterRefName(
+  parameter: OpenApiSchema | undefined,
+): string | undefined {
+  const ref = parameter?.$ref;
+  const prefix = "#/components/parameters/";
+  if (typeof ref !== "string" || !ref.startsWith(prefix)) return undefined;
+  return decodeURIComponent(ref.slice(prefix.length))
+    .replace(/~1/g, "/")
+    .replace(/~0/g, "~");
+}
+
 export function refName(schema: OpenApiSchema | undefined): string | undefined {
   const ref = schema?.$ref;
   if (typeof ref !== "string" || !ref.startsWith("#/components/schemas/"))

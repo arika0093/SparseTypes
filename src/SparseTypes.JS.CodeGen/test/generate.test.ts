@@ -1255,3 +1255,139 @@ test("preserves undefined-as-missing dictionary removals", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("resolves reusable component parameters at path and operation levels", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.components.parameters = {
+      WidgetId: {
+        name: "id",
+        in: "path",
+        required: true,
+        schema: { type: "integer" },
+      },
+      SearchTerm: {
+        name: "q",
+        in: "query",
+        schema: { type: "string" },
+      },
+      WidgetVersion: {
+        name: "If-Match",
+        in: "header",
+        required: true,
+        schema: { type: "string" },
+      },
+      "a/b": {
+        name: "slash",
+        in: "query",
+        schema: { type: "string" },
+      },
+    };
+    input.paths["/widgets/{id}"] = {
+      parameters: [{ $ref: "#/components/parameters/WidgetId" }],
+      get: {
+        operationId: "getWidget",
+        parameters: [
+          { $ref: "#/components/parameters/SearchTerm" },
+          { $ref: "#/components/parameters/WidgetVersion" },
+          { $ref: "#/components/parameters/a~1b" },
+        ],
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+        },
+      },
+      put: {
+        operationId: "replaceWidget",
+        parameters: [
+          { $ref: "#/components/parameters/WidgetVersion" },
+          { name: "mode", in: "query", schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+        },
+      },
+    };
+    await generate({ input, output });
+    const clientTypes = await readFile(
+      path.join(output, "client.d.ts"),
+      "utf8",
+    );
+    assert.match(clientTypes, /getWidget/);
+    assert.match(clientTypes, /replaceWidget/);
+    const generated = await readFile(path.join(output, "client.js"), "utf8");
+    assert.match(generated, /SearchTerm|\"q\"/);
+    assert.ok(!generated.includes("$ref"), "runtime manifest must not contain unresolved refs");
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    let seenUrl = "";
+    let seenHeaders = new Headers();
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL, init: RequestInit) => {
+        seenUrl = String(url);
+        seenHeaders = new Headers(init.headers);
+        return new Response(JSON.stringify("ok"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await client.getWidget({
+      params: { path: { id: 7 }, query: { q: "hello", slash: "x" } },
+      headers: { "If-Match": "v1" },
+    });
+    assert.equal(seenUrl, "https://example.test/widgets/7?q=hello&slash=x");
+    assert.equal(seenHeaders.get("if-match"), "v1");
+    // Operation-level inline parameters work alongside shared references.
+    await client.replaceWidget({
+      params: { path: { id: 7 }, query: { mode: "fast" } },
+      headers: { "If-Match": "v2" },
+    });
+    assert.equal(seenUrl, "https://example.test/widgets/7?mode=fast");
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("rejects missing, broken, cyclic, and external parameter references", async () => {
+  const badRef = async (parameters: Array<Record<string, unknown>>, pattern: RegExp) => {
+    const input = document();
+    input.paths["/broken"] = {
+      get: {
+        operationId: "getBroken",
+        parameters,
+        responses: { "200": { description: "OK" } },
+      },
+    };
+    await assert.rejects(generate({ input, output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")) }), pattern);
+  };
+  await badRef(
+    [{ $ref: "#/components/parameters/Missing" }],
+    /Unresolved OpenAPI parameter reference '#\/components\/parameters\/Missing'/,
+  );
+  await badRef(
+    [{ $ref: "#/components/schemas/OrderDto" }],
+    /Unsupported OpenAPI parameter reference '#\/components\/schemas\/OrderDto'/,
+  );
+  await badRef(
+    [{ $ref: "https://example.test/shared.json#/components/parameters/Other" }],
+    /Unsupported external OpenAPI parameter reference/,
+  );
+  const cyclic = document();
+  cyclic.components.parameters = {
+    LoopA: { $ref: "#/components/parameters/LoopB" },
+    LoopB: { $ref: "#/components/parameters/LoopA" },
+  };
+  cyclic.paths["/broken"] = {
+    get: {
+      operationId: "getBroken",
+      parameters: [{ $ref: "#/components/parameters/LoopA" }],
+      responses: { "200": { description: "OK" } },
+    },
+  };
+  await assert.rejects(
+    generate({ input: cyclic, output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")) }),
+    /Circular OpenAPI parameter reference/,
+  );
+});

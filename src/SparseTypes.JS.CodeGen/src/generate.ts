@@ -26,10 +26,13 @@ export async function generate({
   if (!input || output === "")
     throw new TypeError("Input and a non-empty output path are required.");
   const document = await loadDocument(input);
-  const apiTypes = await makeTypes(document);
-  const changeModels = collectChangeModels(document);
+  // Resolve reusable parameter references before type generation so local
+  // #/components/parameters/... problems report actionable codegen errors
+  // instead of generic schema-resolution failures.
   const clientDts = emitClientDts(document);
   const clientJs = emitClientJs(document);
+  const apiTypes = await makeTypes(document);
+  const changeModels = collectChangeModels(document);
   const files = {
     "api.d.ts": apiTypes,
     "models.d.ts": emitModelsDts(document, changeModels),
