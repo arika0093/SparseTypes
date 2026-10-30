@@ -415,6 +415,8 @@ public sealed class SparsePayloadSchemaTests
     }
 
     [Test]
+
+    [Test]
     public async Task ComponentCollisionWithAnUnrelatedSchemaIsRejected()
     {
         const string curated = "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload";
@@ -460,6 +462,111 @@ public sealed class SparsePayloadSchemaTests
     {
         public int Value { get; set; }
     }
+
+    public async Task PayloadSchemasPublishExplicitDtoAssociations()
+    {
+        foreach (var version in new[] { OpenApiSpecVersion.OpenApi3_0, OpenApiSpecVersion.OpenApi3_1 })
+        {
+            var builder = WebApplication.CreateBuilder();
+            builder.WebHost.UseUrls("http://127.0.0.1:0");
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddSparseOpenApi(OpenApiTestModel.PayloadJson.Schema, version);
+            builder.Services.AddSparseOpenApi(OpenApiBasket.PayloadJson.Schema, version, [OpenApiBasketItemDtoSchema()]);
+            await using var app = builder.Build();
+            app.MapGet("/model", () => new OpenApiTestModel { DisplayName = "x", Count = 1 });
+            app.MapGet("/basket", () => new OpenApiBasket());
+            app.MapGet("/item", () => new OpenApiBasketItem { Id = 1, Quantity = 2 });
+            app.MapPost("/changes", (OpenApiTestModel.ChangePayload payload) => Results.NoContent());
+            await app.StartAsync();
+
+            var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+            var payloadDto = DtoAssociation(document, "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload");
+            var basketDto = DtoAssociation(document, "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiBasket_ChangePayload");
+            var itemDto = DtoAssociation(document, "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiBasketItem_ChangePayload");
+            payloadDto.ShouldBe("OpenApiTestModel");
+            basketDto.ShouldBe("OpenApiBasket");
+            itemDto.ShouldBe(OpenApiBasketItemDtoSchema().Name);
+            document.Components!.Schemas!.Keys.ShouldContain(payloadDto!);
+            document.Components.Schemas.Keys.ShouldContain(basketDto!);
+            document.Components.Schemas.Keys.ShouldContain(itemDto!);
+
+            await app.StopAsync();
+        }
+    }
+
+    [Test]
+    public async Task PayloadSchemaOmitsDtoAssociationWhenModelIsAbsent()
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddSparseOpenApi(OpenApiTestModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapPost("/changes", (OpenApiTestModel.ChangePayload payload) => Results.NoContent());
+        DtoAssociation(document, "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload").ShouldBeNull();
+
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task CustomSchemaIdIsUsedForDtoAssociation()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen(options =>
+            options.CustomSchemaIds(type => type == typeof(OpenApiTestModel) ? "CustomDto" : TestSchemaId(type)));
+        builder.Services.AddSparseOpenApi(OpenApiTestModel.PayloadJson.Schema);
+        await using var app = builder.Build();
+        app.MapGet("/model", () => new OpenApiTestModel { DisplayName = "x", Count = 1 });
+        await app.StartAsync();
+
+        var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+        var dto = DtoAssociation(document, "SparseTypes_OpenApi_Swashbuckle_Tests_OpenApiTestModel_ChangePayload");
+        dto.ShouldBe("CustomDto");
+        document.Components!.Schemas!.Keys.ShouldContain("CustomDto");
+
+        await app.StopAsync();
+    }
+
+    [Test]
+    public async Task SameShortModelNamesResolveToTheirOwnDtoComponents()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.AddSparseOpenApi(SameName.V1.Note.PayloadJson.Schema, OpenApiSpecVersion.OpenApi3_1, [NoteDtoSchema(typeof(SameName.V1.Note))]);
+        builder.Services.AddSparseOpenApi(SameName.V2.Note.PayloadJson.Schema, OpenApiSpecVersion.OpenApi3_1, [NoteDtoSchema(typeof(SameName.V2.Note))]);
+        await using var app = builder.Build();
+        await app.StartAsync();
+
+        var document = app.Services.GetRequiredService<ISwaggerProvider>().GetSwagger("v1");
+
+        DtoAssociation(document, SparseTypes.SparsePayloadSchemaNames.GetName(typeof(SameName.V1.Note.ChangePayload))).ShouldBe(NoteDtoSchema(typeof(SameName.V1.Note)).Name);
+        DtoAssociation(document, SparseTypes.SparsePayloadSchemaNames.GetName(typeof(SameName.V2.Note.ChangePayload))).ShouldBe(NoteDtoSchema(typeof(SameName.V2.Note)).Name);
+
+        await app.StopAsync();
+    }
+
+    private static string? DtoAssociation(OpenApiDocument document, string componentName)
+    {
+        var schema = document.Components!.Schemas![componentName];
+        if (schema.Extensions is null || !schema.Extensions.TryGetValue("x-sparsetypes", out var metadata))
+        {
+            return null;
+        }
+
+        if (metadata is not JsonNodeExtension node || node.Node is not JsonObject metadataObject)
+        {
+            return null;
+        }
+
+        return metadataObject.TryGetPropertyValue("dto", out var dto) ? dto?.GetValue<string>() : null;
+    }
+
+    private static SparsePayloadSchema NoteDtoSchema(Type modelType) =>
+        new(modelType, SparseTypes.SparsePayloadSchemaNames.GetName(modelType), """{"type":"object","properties":{"text":{"type":"string"}}}""");
 
     private static string TestSchemaId(Type type) =>
         "Test_"

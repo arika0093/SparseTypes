@@ -40,6 +40,18 @@ Registration adds the payload envelope, its model change union, root snapshot, m
 
 Calling `AddSparseOpenApi(...)` more than once is supported. Register each root model whose payload should appear in the document. Component names are based on the model's namespace, containing type, and generated role; generated implementation hashes are omitted.
 
+## Model-to-DTO associations
+
+Each `ChangePayload` component carries an `x-sparsetypes` extension. In addition to the static build-time metadata (`version`, `role`, `model`, `schemaIdentity`, `membersComponent`), the ASP.NET Core and Swashbuckle integrations publish an explicit `dto` property that names the ordinary OpenAPI DTO component for the payload's model (for example, `"dto": "OrderDto"`). Both integrations emit equivalent metadata for OpenAPI 3.0 and 3.1.
+
+The DTO component is resolved from the application schema pipeline, never invented:
+
+1. An explicitly registered external schema for the model type wins.
+2. Otherwise the component the application's schema ID policy assigned to the model CLR type itself is used (this accounts for custom schema ID selectors and same short class names across namespaces).
+3. When the model type has no component in the document (for example, a `204` response or a wrapper result DTO that never exposes the raw model), `dto` is omitted.
+
+Because the association follows the model type rather than any single operation's response shape, it stays correct for `204` responses, wrapper result DTOs, multiple media types, and endpoints whose response is not the request model. Nested models resolve the same way, so a keyed line model maps to its own DTO component independent of its parent operation.
+
 The runtime schema contract (`SparsePayloadSchemaBundle`, `SparsePayloadSchema`) and component-name helper (`SparsePayloadSchemaNames`) are available in the `SparseTypes` namespace as advanced APIs. OpenAPI adapters use these contracts so naming and generated schema metadata are shared by both integrations.
 
 ## Generate a JS/TS client

@@ -150,7 +150,7 @@ internal sealed class SparseSchemaNameRegistry
     public string? GetEffectiveName(Type type) => _effectiveNames.TryGetValue(type, out var name) ? name : null;
 
     /// <summary>Records the component name the application schema pipeline assigned to any CLR type.</summary>
-    /// <remarks>Best-effort ownership map used to tell endpoint-generated schemas apart from unrelated collisions. Never throws.</remarks>
+    /// <remarks>Best-effort ownership map used to tell endpoint-generated schemas apart from unrelated collisions and to resolve ordinary DTO components. Never throws.</remarks>
     public void RecordObservedName(Type type, string name)
     {
         if (string.IsNullOrWhiteSpace(name))
