@@ -347,6 +347,60 @@ public sealed class ChangePayloadTests
     }
 
     [Test]
+    public void Payload_AcceptsJavaScriptPresenceReplaceWireShape()
+    {
+        // Mirrors the wire JSON the JavaScript codegen emits for a
+        // null -> model dictionary value transition: a replace item with
+        // null/value endpoints instead of a nested member update.
+        var payload = PayloadJsonTestSupport.Deserialize<StructuralDictHolder.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"servers":{"kind":"update","items":[{"key":"web","kind":"replace","before":{"state":"null"},"after":{"state":"value","value":{"Id":"s1","Name":"New","Count":0}}}]}}}}"""
+        )!;
+        payload.Validate().IsValid.ShouldBeTrue();
+
+        // The baseline-aware paths convert and rebase without throwing.
+        var converted = payload.ToChangeSet();
+        converted.Servers.GetChange("web").IsEdited.ShouldBeTrue();
+        var basis = Optional<StructuralDictHolder.Fragment?>.Present(
+            StructuralDictHolder.Fragment.From(new StructuralDictHolder { Servers = new() { ["db"] = Server("s2", "Db") } }));
+        var rebased = converted.RebaseOnto(basis);
+        rebased.HasConflicts.ShouldBeTrue();
+
+        // Blind patch application requires the entry to exist, exactly like
+        // scalar replace items: a missing key throws instead of silently
+        // inventing the entry.
+        Should.Throw<InvalidOperationException>(() => payload.ToPatch().Apply(basis));
+
+        // With the entry present, the replacement applies.
+        var present = Optional<StructuralDictHolder.Fragment?>.Present(
+            StructuralDictHolder.Fragment.From(
+                new StructuralDictHolder { Servers = new() { ["web"] = Server("s1", "Old") } }));
+        var applied = payload.ToPatch().Apply(present);
+        applied.Value!.Servers.Value!["web"].Name.ShouldBe("New");
+
+        // The mixed path reports a conflict and leaves the model untouched,
+        // both when the key is missing and when it holds another value.
+        var missing = new StructuralDictHolder { Servers = new() { ["db"] = Server("s2", "Db") } };
+        payload.TryApplyMixedTo(missing, out var missingUpdated, out _).ShouldBeFalse();
+        missingUpdated.ShouldBeNull();
+        missing.Servers.ContainsKey("web").ShouldBeFalse();
+        var divergent = new StructuralDictHolder { Servers = new() { ["web"] = Server("s9", "Diverged") } };
+        payload.TryApplyMixedTo(divergent, out var divergentUpdated, out _).ShouldBeFalse();
+        divergentUpdated.ShouldBeNull();
+        divergent.Servers["web"].Name.ShouldBe("Diverged");
+
+        // A redacted before-state on a redactBefore member projects the
+        // requested after-state through the baseline-free ToPatch path.
+        var redacted = PayloadJsonTestSupport.Deserialize<RedactedSecretMap.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"secrets":{"kind":"update","items":[{"key":"k","kind":"replace","before":{"state":"redacted"},"after":{"state":"value","value":"after"}}]}}}}"""
+        )!;
+        var redactedBasis = Optional<RedactedSecretMap.Fragment?>.Present(
+            RedactedSecretMap.Fragment.From(new RedactedSecretMap { Secrets = new() { ["k"] = "before" } }));
+        var redactedApplied = redacted.ToPatch().Apply(redactedBasis);
+        redactedApplied.Value!.Secrets.Value!["k"].ShouldBe("after");
+    }
+
+
+    [Test]
     public void SparsePayloadTransitionsComposeAcrossKeyedAndDictionaryValues()
     {
         var keyedInitial = KeyedState();
