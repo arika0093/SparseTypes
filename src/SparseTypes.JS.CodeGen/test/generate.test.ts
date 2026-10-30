@@ -975,3 +975,131 @@ test("compares precision-sensitive sequences element by element", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+
+test("encodes query parameters exactly once and preserves style separators", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.paths["/search"] = {
+      get: {
+        operationId: "search",
+        parameters: [
+          { name: "term", in: "query", schema: { type: "string" }, style: "form", explode: true },
+          { name: "tags", in: "query", schema: { type: "array", items: { type: "string" } }, style: "form", explode: true },
+          { name: "ids", in: "query", schema: { type: "array", items: { type: "string" } }, style: "form", explode: false },
+          { name: "coords", in: "query", schema: { type: "array", items: { type: "string" } }, style: "spaceDelimited", explode: false },
+          { name: "pipes", in: "query", schema: { type: "array", items: { type: "string" } }, style: "pipeDelimited", explode: false },
+          { name: "filter", in: "query", schema: { type: "object" }, style: "deepObject", explode: true },
+          { name: "objExplode", in: "query", schema: { type: "object" }, style: "form", explode: true },
+          { name: "objFlat", in: "query", schema: { type: "object" }, style: "form", explode: false },
+        ],
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+        },
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    let seenUrl = "";
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL) => {
+        seenUrl = String(url);
+        return new Response(JSON.stringify("ok"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await client.search({
+      params: {
+        query: {
+          term: "a&b",
+          tags: ["x&y", "c d"],
+          ids: ["a&b", "c"],
+          coords: ["p", "q&r"],
+          pipes: ["m|n", "o p"],
+          filter: { q: "a&b", r: "c d" },
+          objExplode: { a: "x&y", b: "z z" },
+          objFlat: { k1: "v&1", k2: "v 2" },
+        },
+      },
+    });
+    const query = seenUrl.split("?")[1] ?? "";
+    // Scalar: exactly one encoding pass.
+    assert.ok(query.includes("term=a%26b"), seenUrl);
+    assert.ok(!query.includes("%2526"), seenUrl);
+    // Form explode arrays repeat the name with single-encoded items.
+    assert.ok(query.includes("tags=x%26y"), seenUrl);
+    assert.ok(query.includes("tags=c%20d"), seenUrl);
+    // Form non-explode arrays keep raw comma separators.
+    assert.ok(query.includes("ids=a%26b,c"), seenUrl);
+    // Delimited styles preserve their separators.
+    assert.ok(query.includes("coords=p%20q%26r"), seenUrl);
+    assert.ok(query.includes("pipes=m%7Cn%7Cno%20p") || query.includes("pipes=m|n|o%20p") || query.includes("pipes=m%7Cn|o%20p"), seenUrl);
+    // Deep objects encode brackets once and values once.
+    assert.ok(query.includes("filter%5Bq%5D=a%26b"), seenUrl);
+    assert.ok(query.includes("filter%5Br%5D=c%20d"), seenUrl);
+    // Form explode objects spread properties; non-explode keeps commas.
+    assert.ok(query.includes("a=x%26y"), seenUrl);
+    assert.ok(query.includes("objFlat=k1%2Cv%261%2Ck2%2Cv%202") || query.includes("objFlat=k1,v%261,k2,v%202"), seenUrl);
+    // Reserved characters, percent, plus, spaces and unicode round-trip.
+    let secondUrl = "";
+    const probe = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL) => {
+        secondUrl = String(url);
+        return new Response(JSON.stringify("ok"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await probe.search({ params: { query: { term: "100% a+b caf\u00e9" } } });
+    assert.ok(secondUrl.includes("term=100%25%20a%2Bb%20caf%C3%A9"), secondUrl);
+    assert.ok(!secondUrl.includes("%2525"), secondUrl);
+    const parsed = new URL(secondUrl);
+    assert.equal(parsed.searchParams.get("term"), "100% a+b caf\u00e9");
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
+
+test("keeps path serialization single-encoded", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.paths["/files/{name}"] = {
+      get: {
+        operationId: "getFile",
+        parameters: [
+          { name: "name", in: "path", required: true, schema: { type: "string" }, style: "simple" },
+        ],
+        responses: {
+          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+        },
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    let seenUrl = "";
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL) => {
+        seenUrl = String(url);
+        return new Response(JSON.stringify("ok"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await client.getFile({ params: { path: { name: "a/b?c d" } } });
+    assert.equal(seenUrl, "https://example.test/files/a%2Fb%3Fc%20d");
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});

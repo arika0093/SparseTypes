@@ -194,24 +194,24 @@ function serializeSimple(value, explode) {
   if (value && typeof value === "object") return Object.entries(value).map(([key, item]) => explode ? encode(key) + "=" + encode(item) : encode(key) + "," + encode(item)).join(",");
   return encode(value);
 }
-function serializeQuery(search, parameter, value) {
+function serializeQuery(pairs, parameter, value) {
   if (value === undefined) return;
   const name = parameter.name;
   if (parameter.style === "deepObject" && value && typeof value === "object" && !Array.isArray(value)) {
-    for (const [key, item] of Object.entries(value)) search.append(name + "[" + key + "]", String(item));
+    for (const [key, item] of Object.entries(value)) pairs.push(encode(name + "[" + key + "]") + "=" + encode(item));
     return;
   }
-  if (Array.isArray(value) && parameter.style === "spaceDelimited") { search.append(name, value.map(String).join(" ")); return; }
-  if (Array.isArray(value) && parameter.style === "pipeDelimited") { search.append(name, value.map(String).join("|")); return; }
+  if (Array.isArray(value) && parameter.style === "spaceDelimited") { pairs.push(encode(name) + "=" + value.map(encode).join("%20")); return; }
+  if (Array.isArray(value) && parameter.style === "pipeDelimited") { pairs.push(encode(name) + "=" + value.map(encode).join("|")); return; }
   if (parameter.style === "form" && parameter.explode && value && typeof value === "object" && !Array.isArray(value)) {
-    for (const [key, item] of Object.entries(value)) search.append(key, String(item));
+    for (const [key, item] of Object.entries(value)) pairs.push(encode(key) + "=" + encode(item));
     return;
   }
   if (parameter.style === "form" && parameter.explode && Array.isArray(value)) {
-    for (const item of value) search.append(name, String(item));
+    for (const item of value) pairs.push(encode(name) + "=" + encode(item));
     return;
   }
-  search.append(name, serializeSimple(value, parameter.explode));
+  pairs.push(encode(name) + "=" + serializeSimple(value, parameter.explode));
 }
 function buildUrl(baseUrl, operation, args) {
   let path = operation.path;
@@ -227,16 +227,16 @@ function buildUrl(baseUrl, operation, args) {
         : serializeSimple(value, parameter.explode);
     path = path.replace("{" + parameter.name + "}", formatted);
   }
-  const query = new URLSearchParams();
+  const pairs = [];
   for (const parameter of operation.parameters) {
     if (parameter.in !== "query") continue;
     const value = args.params?.query?.[parameter.name];
     if (parameter.required && value === undefined) throw new TypeError("Missing query parameter '" + parameter.name + "'.");
-    serializeQuery(query, parameter, value);
+    serializeQuery(pairs, parameter, value);
   }
   const prefix = baseUrl.endsWith("/") && path.startsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const url = prefix + path;
-  const suffix = query.toString();
+  const suffix = pairs.join("&");
   return suffix ? url + (url.includes("?") ? "&" : "?") + suffix : url;
 }
 async function responseBody(response) {
