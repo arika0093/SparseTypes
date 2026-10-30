@@ -389,8 +389,15 @@ function validate(schema, value, path, active) {
     const matchesCount = schema.oneOf.filter((child) => matches(child, value, path)).length;
     if (matchesCount !== 1) fail(path, "must match exactly one schema");
   }
-  const types = Array.isArray(schema.type) ? schema.type.filter((type) => type !== "null") : schema.type ? [schema.type] : [];
-  if (types.length && !types.some((type) => matchesType(type, value))) fail(path, "has an invalid JSON type");
+  const rawTypes = Array.isArray(schema.type) ? schema.type : schema.type ? [schema.type] : [];
+  const types = rawTypes.filter((type) => type !== "null");
+  if (types.length) {
+    if (!types.some((type) => matchesType(type, value))) fail(path, "has an invalid JSON type");
+  } else if (rawTypes.length && value !== null) {
+    // A null-only schema (type "null" or ["null"]) accepts null and nothing else.
+    // Without this branch the filtered list is empty and non-null values skip validation.
+    fail(path, "has an invalid JSON type");
+  }
   if (typeof value === "string") {
     if (schema.minLength !== undefined && value.length < schema.minLength) fail(path, "is shorter than minLength");
     if (schema.maxLength !== undefined && value.length > schema.maxLength) fail(path, "is longer than maxLength");
