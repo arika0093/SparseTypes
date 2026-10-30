@@ -22,6 +22,110 @@ export interface ChangeModel {
   typeName: string;
 }
 
+// Validation-critical keywords that parseT cannot enforce. Generation fails
+// when a DTO schema uses them so invalid values are never silently accepted.
+const UNSUPPORTED_VALIDATION_KEYWORDS = [
+  "contains",
+  "minContains",
+  "maxContains",
+  "prefixItems",
+  "patternProperties",
+  "propertyNames",
+  "dependentRequired",
+  "dependentSchemas",
+  "dependencies",
+  "unevaluatedProperties",
+  "unevaluatedItems",
+  "additionalItems",
+];
+
+export function assertSupportedValidationSchemas(
+  document: OpenApiDocument,
+  models: ChangeModel[],
+): void {
+  for (const model of models) {
+    const root = document.components.schemas[model.dto];
+    if (!root) continue;
+    checkValidationSchema(
+      root,
+      `#/components/schemas/${model.dto}`,
+      new Set(),
+      new WeakSet(),
+      document,
+      model,
+    );
+  }
+}
+
+function checkValidationSchema(
+  schema: Record<string, any>,
+  path: string,
+  resolving: Set<string>,
+  seen: WeakSet<object>,
+  document: OpenApiDocument,
+  model: ChangeModel,
+): void {
+  if (!schema || typeof schema !== "object" || seen.has(schema)) return;
+  seen.add(schema);
+  if (typeof schema.$ref === "string") {
+    const name = refName(schema);
+    if (!name)
+      throw new Error(
+        `Model '${model.model}' uses an external schema reference '${schema.$ref}' at '${path}', which parseT cannot resolve.`,
+      );
+    const target = document.components.schemas[name];
+    if (!target)
+      throw new Error(
+        `Model '${model.model}' references unknown OpenAPI schema '${name}' at '${path}'.`,
+      );
+    if (!resolving.has(name)) {
+      resolving.add(name);
+      try {
+        checkValidationSchema(
+          target,
+          `#/components/schemas/${name}`,
+          resolving,
+          seen,
+          document,
+          model,
+        );
+      } finally {
+        resolving.delete(name);
+      }
+    }
+  }
+  for (const keyword of UNSUPPORTED_VALIDATION_KEYWORDS) {
+    if (schema[keyword] !== undefined)
+      throw new Error(
+        `Model '${model.model}' uses unsupported validation keyword '${keyword}' in OpenAPI schema '${path}'. parseT cannot enforce it; remodel the constraint with a supported keyword.`,
+      );
+  }
+  if (Array.isArray(schema.items))
+    throw new Error(
+      `Model '${model.model}' uses tuple-form 'items' in OpenAPI schema '${path}'. parseT only supports single-schema 'items'.`,
+    );
+  const children: Array<[string, unknown]> = [];
+  for (const [name, child] of Object.entries(schema.properties ?? {}))
+    children.push([`${path}/properties/${name}`, child]);
+  if (schema.items) children.push([`${path}/items`, schema.items]);
+  if (schema.additionalProperties && typeof schema.additionalProperties === "object")
+    children.push([`${path}/additionalProperties`, schema.additionalProperties]);
+  for (const keyword of ["allOf", "anyOf", "oneOf"] as const)
+    for (const [index, child] of (schema[keyword] ?? []).entries())
+      children.push([`${path}/${keyword}/${index}`, child]);
+  if (schema.not) children.push([`${path}/not`, schema.not]);
+  for (const [childPath, child] of children)
+    if (child && typeof child === "object")
+      checkValidationSchema(
+        child as Record<string, any>,
+        childPath,
+        resolving,
+        seen,
+        document,
+        model,
+      );
+}
+
 export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
   const schemas = Object.entries(document.components.schemas);
   const membersByModel = new Map<
@@ -383,6 +487,7 @@ function validate(schema, value, path, active) {
   if (value === null && (schema.nullable === true || (Array.isArray(schema.type) && schema.type.includes("null")))) return;
   if (schema.const !== undefined && value !== schema.const) fail(path, "does not match its constant");
   if (Array.isArray(schema.enum) && !schema.enum.some((item) => Object.is(item, value))) fail(path, "is not an allowed enum value");
+  if (schema.not && typeof schema.not === "object" && matches(schema.not, value, path)) fail(path, "matches a forbidden schema");
   if (Array.isArray(schema.allOf)) for (const child of schema.allOf) validate(child, value, path, active);
   if (Array.isArray(schema.anyOf) && !schema.anyOf.some((child) => matches(child, value, path))) fail(path, "does not match any allowed schema");
   if (Array.isArray(schema.oneOf)) {
@@ -403,24 +508,36 @@ function validate(schema, value, path, active) {
     if (schema.maxLength !== undefined && value.length > schema.maxLength) fail(path, "is longer than maxLength");
     if (schema.pattern && !new RegExp(schema.pattern).test(value)) fail(path, "does not match its pattern");
     if (schema.format === "uuid" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) fail(path, "is not a UUID");
+    if (schema.format === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) fail(path, "is not an email address");
+    if (schema.format === "date" && !isIsoDate(value)) fail(path, "is not a date");
+    if (schema.format === "date-time" && !isIsoDateTime(value)) fail(path, "is not a date-time");
   }
   if (typeof value === "number") {
     if (!Number.isFinite(value)) fail(path, "must be finite");
     if (schema.type === "integer" && !Number.isInteger(value)) fail(path, "must be an integer");
     if (schema.minimum !== undefined && value < schema.minimum) fail(path, "is below minimum");
     if (schema.maximum !== undefined && value > schema.maximum) fail(path, "is above maximum");
+    if (typeof schema.exclusiveMinimum === "number" && value <= schema.exclusiveMinimum) fail(path, "is below the exclusive minimum");
+    else if (schema.exclusiveMinimum === true && schema.minimum !== undefined && value <= schema.minimum) fail(path, "is below the exclusive minimum");
+    if (typeof schema.exclusiveMaximum === "number" && value >= schema.exclusiveMaximum) fail(path, "is above the exclusive maximum");
+    else if (schema.exclusiveMaximum === true && schema.maximum !== undefined && value >= schema.maximum) fail(path, "is above the exclusive maximum");
+    if (schema.multipleOf !== undefined && !isMultipleOf(value, schema.multipleOf)) fail(path, "is not a multiple of the expected divisor");
   }
   if (Array.isArray(value)) {
     enter(value, active, path);
     try {
       if (schema.minItems !== undefined && value.length < schema.minItems) fail(path, "has fewer than minItems");
       if (schema.maxItems !== undefined && value.length > schema.maxItems) fail(path, "has more than maxItems");
+      if (schema.uniqueItems === true && !hasUniqueItems(value)) fail(path, "has duplicate items");
       if (schema.items) value.forEach((item, index) => validate(schema.items, item, path + "[" + index + "]", active));
     } finally { active.delete(value); }
   } else if (value !== null && typeof value === "object") {
     enter(value, active, path);
     try {
       const properties = schema.properties ?? {};
+      const propertyNames = Object.keys(value);
+      if (schema.minProperties !== undefined && propertyNames.length < schema.minProperties) fail(path, "has fewer than minProperties");
+      if (schema.maxProperties !== undefined && propertyNames.length > schema.maxProperties) fail(path, "has more than maxProperties");
       for (const name of schema.required ?? []) if (!Object.prototype.hasOwnProperty.call(value, name)) fail(path + "." + name, "is required");
       for (const [name, child] of Object.entries(properties)) {
         if (Object.prototype.hasOwnProperty.call(value, name)) validate(child, value[name], path + "." + name, active);
@@ -434,6 +551,45 @@ function validate(schema, value, path, active) {
       }
     } finally { active.delete(value); }
   }
+}
+function isIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const time = Date.parse(value + "T00:00:00Z");
+  if (Number.isNaN(time)) return false;
+  const date = new Date(time);
+  return date.getUTCFullYear() === Number(value.slice(0, 4)) && date.getUTCMonth() + 1 === Number(value.slice(5, 7)) && date.getUTCDate() === Number(value.slice(8, 10));
+}
+function isIsoDateTime(value) {
+  if (!/^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:?\d{2})?$/.test(value)) return false;
+  return !Number.isNaN(Date.parse(value));
+}
+function isMultipleOf(value, divisor) {
+  if (!(divisor > 0)) return false;
+  const quotient = value / divisor;
+  const nearest = Math.round(quotient);
+  return Math.abs(quotient - nearest) <= 1e-9 * Math.max(1, Math.abs(quotient));
+}
+function deepEqualValue(left, right) {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+      && left.every((item, index) => deepEqualValue(item, right[index]));
+  }
+  if (left !== null && right !== null && typeof left === "object" && typeof right === "object") {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    return leftKeys.length === rightKeys.length
+      && leftKeys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && deepEqualValue(left[key], right[key]));
+  }
+  return false;
+}
+function hasUniqueItems(value) {
+  for (let index = 0; index < value.length; index++) {
+    for (let other = index + 1; other < value.length; other++) {
+      if (deepEqualValue(value[index], value[other])) return false;
+    }
+  }
+  return true;
 }
 function enter(value, active, path) {
   if (active.has(value)) fail(path, "contains a cyclic object");

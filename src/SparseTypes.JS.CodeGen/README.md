@@ -177,4 +177,32 @@ for all operations, which is useful for proxies, mocks, and tests. Operation
 paths and query parameters are appended to whichever base is in effect, so a
 trailing slash on the base never produces a double slash.
 
+### `parseT` validation coverage
+
+`parseT(value)` validates a loaded DTO against its OpenAPI schema and returns
+the value when it conforms. The validator is dependency-free and implements
+the following subset:
+
+| Keyword | OpenAPI 3.0 | OpenAPI 3.1 | Notes |
+| --- | --- | --- | --- |
+| `type`, `enum`, `const` | Yes | Yes | `type: ["T", "null"]` unions accept `null`; null-only schemas reject non-null values. |
+| `nullable` | Yes | Ignored | 3.0 `nullable: true` permits `null` alongside `type`. In 3.1 use a `"null"` type union instead. |
+| `required`, `properties`, `additionalProperties` | Yes | Yes | |
+| `minProperties`, `maxProperties` | Yes | Yes | |
+| `items`, `minItems`, `maxItems`, `uniqueItems` | Yes | Yes | Tuple-form `items` arrays are rejected at generation time. |
+| `minLength`, `maxLength`, `pattern` | Yes | Yes | |
+| `minimum`, `maximum` | Yes | Yes | |
+| `exclusiveMinimum`, `exclusiveMaximum` | Boolean modifiers of `minimum`/`maximum` | Numeric bounds | Both dialect forms are enforced. |
+| `multipleOf` | Yes | Yes | Positive divisors only; non-positive divisors fail validation. |
+| `allOf`, `anyOf`, `oneOf`, `not` | Yes | Yes | Local `$ref` chains, including recursive schemas, are supported. |
+| `format` | `uuid`, `date`, `date-time`, `email` | Same subset | Other formats are parsed as plain strings without format checks. |
+
+Generation fails when a DTO schema uses validation-critical keywords that
+`parseT` cannot enforce (`contains`, `prefixItems`, `patternProperties`,
+`propertyNames`, `dependentRequired`, tuple-form `items`, and related
+keywords), so invalid values are never silently accepted. External `$ref`
+targets outside `#/components/schemas/` are likewise rejected. This keeps
+the no-runtime-dependency goal: no external schema-validation library is
+bundled with the generated code.
+
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).
