@@ -1103,3 +1103,155 @@ test("keeps path serialization single-encoded", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("preserves undefined-as-missing dictionary removals", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const members = (
+      input.components.schemas.OrderMembers["x-sparsetypes"] as {
+        members: Array<Record<string, unknown>>;
+      }
+    ).members;
+    members.push({
+      name: "bigCounts",
+      shape: "dictionary",
+      nullable: false,
+      redactBefore: false,
+      valueWireType: "int64-string",
+    });
+    members.push({
+      name: "profiles",
+      shape: "dictionary",
+      nullable: false,
+      redactBefore: false,
+      itemModel: lineModel,
+    });
+    const dto = input.components.schemas.OrderDto as {
+      properties: Record<string, unknown>;
+    };
+    dto.properties = {
+      ...dto.properties,
+      bigCounts: { type: "object", additionalProperties: { type: "string" } },
+      profiles: {
+        type: "object",
+        additionalProperties: { $ref: "#/components/schemas/OrderLineDto" },
+      },
+    };
+    await generate({ input, output });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    // An own undefined value reaches the diff as an absent key, so the
+    // removal is detected instead of becoming a no-op.
+    const removed = changes.buildOrderDtoChangePayload(
+      { quantities: { theme: 1 } },
+      { quantities: { theme: undefined } },
+    );
+    assert.deepEqual(removed.change.members.quantities.items, [
+      { key: "theme", kind: "remove", before: { state: "value", value: 1 } },
+    ]);
+    // Explicit null is a present value, never conflated with undefined.
+    const nulled = changes.buildOrderDtoChangePayload(
+      { prices: { exact: "1.00" } },
+      { prices: { exact: null } },
+    );
+    assert.deepEqual(nulled.change.members.prices.items, [
+      {
+        key: "exact",
+        kind: "replace",
+        before: { state: "value", value: "1.00" },
+        after: { state: "null" },
+      },
+    ]);
+    // Absent keys on both sides are a no-op; present keys added from absent.
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { quantities: {} },
+        { quantities: {} },
+      ),
+      undefined,
+    );
+    const added = changes.buildOrderDtoChangePayload(
+      { quantities: {} },
+      { quantities: { theme: 2 } },
+    );
+    assert.deepEqual(added.change.members.quantities.items, [
+      { key: "theme", kind: "add", after: { state: "value", value: 2 } },
+    ]);
+    // Precision-sensitive dictionary values compare canonically and still
+    // honor undefined-as-missing removals.
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { prices: { exact: "1.00" } },
+        { prices: { exact: "1" } },
+      ),
+      undefined,
+    );
+    const priceRemoved = changes.buildOrderDtoChangePayload(
+      { prices: { exact: "1.00", gone: "2.00" } },
+      { prices: { exact: "1", gone: undefined } },
+    );
+    assert.deepEqual(priceRemoved.change.members.prices.items, [
+      {
+        key: "gone",
+        kind: "remove",
+        before: { state: "value", value: "2.00" },
+      },
+    ]);
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { bigCounts: { c: "42" } },
+        { bigCounts: { c: "42" } },
+      ),
+      undefined,
+    );
+    const bigRemoved = changes.buildOrderDtoChangePayload(
+      { bigCounts: { c: "42" } },
+      { bigCounts: { c: undefined } },
+    );
+    assert.deepEqual(bigRemoved.change.members.bigCounts.items, [
+      { key: "c", kind: "remove", before: { state: "value", value: "42" } },
+    ]);
+    // Nested-model dictionary values diff by members and remove by snapshot.
+    const profileEdited = changes.buildOrderDtoChangePayload(
+      { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
+      { profiles: { home: { id: 1, key: 1, quantity: 2, unitPrice: 3 } } },
+    );
+    assert.ok(profileEdited.change.members.profiles.items[0].members);
+    const profileRemoved = changes.buildOrderDtoChangePayload(
+      { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
+      { profiles: { home: undefined } },
+    );
+    assert.equal(profileRemoved.change.members.profiles.items[0].kind, "remove");
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
+        { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
+      ),
+      undefined,
+    );
+    // Null-prototype dictionaries behave like plain objects, while prototype
+    // chains are rejected instead of silently inheriting entries.
+    const nullProto = Object.create(null);
+    nullProto.kept = 1;
+    assert.equal(
+      changes.buildOrderDtoChangePayload(
+        { quantities: { kept: 1 } },
+        { quantities: nullProto },
+      ),
+      undefined,
+    );
+    const inherited = Object.create({ inherited: 1 });
+    inherited.kept = 1;
+    assert.throws(
+      () =>
+        changes.buildOrderDtoChangePayload(
+          { quantities: { kept: 1 } },
+          { quantities: inherited },
+        ),
+      /plain JSON objects/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
