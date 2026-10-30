@@ -8,7 +8,7 @@ Start with `SparseTypes` alone. It generates fragments, patches, `ChangeSet`, `C
 
 Each optional package connects those generated types to a specific boundary in your application architecture. Add an integration package only in the project that hosts that boundary:
 
-* `SparseTypes.Blazor` has headless components and form state integration for building Blazor forms on .NET 8 or later. See [Blazor edit form](../how-to/blazor-edit-form.md) and [Blazor headless components](../how-to/blazor-headless-components.md).
+* `SparseTypes.Blazor` targets .NET 10 and provides headless components and form state integration for Blazor applications on .NET 10 or later. See [Blazor edit form](../how-to/blazor-edit-form.md) and [Blazor headless components](../how-to/blazor-headless-components.md).
 * `SparseTypes.EntityFrameworkCore` maps `ChangeSet` values onto tracked entities when persisting changes with EF Core 10 on .NET 10 or later. See [EF Core mapping](../how-to/efcore-mapping.md).
 * `SparseTypes.OpenApi.AspNetCore` and `SparseTypes.OpenApi.Swashbuckle` register `ChangePayload` schemas when exposing partial-update endpoints in OpenAPI documents on .NET 10 or later. Both packages require `SparseTypes`. See [OpenAPI integration](../how-to/openapi.md).
 * Trimmed and NativeAOT deployments require no extra package because `SparseTypes` emits AOT-compatible code and `System.Text.Json` metadata (`{ModelName}.PayloadJson.Default`) directly. See [Use SparseTypes with NativeAOT](../how-to/nativeaot.md) for publishing notes.
@@ -70,7 +70,7 @@ dotnet add package SparseTypes.Blazor --prerelease
 
 ### Requirements
 
-* `.NET 8` or later
+* Target framework: `net10.0` (applications targeting .NET 10 or later can reference the package)
 * There are no other specific requirements.
   * Server, WebAssembly, and Hybrid Blazor applications are all supported.
   * It does not depend on any UI framework (such as MudBlazor, FluentUI, etc.)

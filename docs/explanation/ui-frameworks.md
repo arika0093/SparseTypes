@@ -153,7 +153,7 @@ For cross-framework validation outside Blazor, `SparseValidationStore<TModel>` i
 
 ## Blazor integration
 
-The `SparseTypes.Blazor` package (`net8.0` and `net10.0`) connects the framework-neutral edit session to Blazor's `EditContext`, `EditForm`, and `ValidationMessageStore`:
+The `SparseTypes.Blazor` package targets `net10.0` and connects the framework-neutral edit session to Blazor's `EditContext`, `EditForm`, and `ValidationMessageStore`:
 
 <!-- sample: ui-session -->
 ```csharp

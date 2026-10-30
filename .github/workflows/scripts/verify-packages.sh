@@ -20,7 +20,6 @@ declare -A portable_package_assets=(
     [SparseTypes]="netstandard2.0 net6.0 net10.0"
     [SparseTypes.Core]="netstandard2.0 net6.0 net10.0"
     [SparseTypes.Fragments]="netstandard2.0 net6.0 net10.0"
-    [SparseTypes.Blazor]="net8.0 net10.0"
 )
 
 expected_package_ids=(
@@ -189,7 +188,6 @@ for package_file in "${package_files[@]}"; do
             fi
             ;;
         SparseTypes.Blazor)
-            require_entry 'lib/net8.0/SparseTypes.Blazor.dll'
             require_entry 'lib/net10.0/SparseTypes.Blazor.dll'
             require_readme 'README.md'
             require_dependency 'SparseTypes'
@@ -294,6 +292,7 @@ unexpected_package_ids=()
 for found_id in "${!found_package_ids[@]}"; do
     if [[ -z "${portable_package_assets[${found_id}]:-}" \
         && "${found_id}" != "SparseTypes.Generator.Shared" \
+        && "${found_id}" != "SparseTypes.Blazor" \
         && "${found_id}" != "SparseTypes.EntityFrameworkCore" \
         && "${found_id}" != "SparseTypes.OpenApi.AspNetCore" \
         && "${found_id}" != "SparseTypes.OpenApi.Swashbuckle" ]]; then

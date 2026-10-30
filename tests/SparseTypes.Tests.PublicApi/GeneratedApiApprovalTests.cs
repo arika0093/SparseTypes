@@ -28,8 +28,6 @@ public sealed class GeneratedApiApprovalTests
         typeof(CatalogImmutable),
     ];
 
-    // Blazor ships net8.0 and net10.0 from identical sources (no #if in
-    // SparseEditSessionExtensions.cs); one snapshot covers both target builds.
     [Test]
     public void BlazorSurface() => PublicApiCheck.CheckAssembly(typeof(SparseEditSessionExtensions).Assembly, BlazorApprovalFile);
 
