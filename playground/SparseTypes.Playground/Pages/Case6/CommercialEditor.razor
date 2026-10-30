@@ -70,7 +70,6 @@
                         Path="CatalogCommercialDetails.SparsePath.PriceTiers">
                         <RowTemplate Context="tierRow">
                             <CatalogPriceTierEditor @key="tierRow.Item"
-                                Path="CatalogCommercialDetails.SparsePath.PriceTiers.Key(tierRow.Item.Code)"
                                 Code="@tierRow.Item.Code" Item="tierRow.Item"
                                 State="tierRow.RequireItemState()"
                                 SectionDraftsEnabled="SectionDraftsEnabled"
@@ -116,7 +115,7 @@
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    private ISparseChildEditContext<CatalogCommercialDetails, SparseConflict>? _childSession;
+    private ISparseChildEditContext<CatalogCommercialDetails>? _childSession;
     private CatalogCommercialDetails.EditSession _draftSession = null!;
     private SparseCollection<CatalogCommercialDetails, CatalogPriceTier>? _tierCollection;
     private string? _tierToOpen;

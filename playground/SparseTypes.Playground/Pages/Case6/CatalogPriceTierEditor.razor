@@ -22,10 +22,16 @@
     </div>
 </div>
 <CatalogDraftStatus HasChanges="IsTierEdited" OnChanged="ReportStatus" />
-@if (_childSession is { } childSession)
+@if (_isEditing)
 {
-    <SparseSessionScope Session="childSession.Session">
-        <SparseEdit Session="childSession.Session" Context="edit">
+    <SparseChildEditDefault Path="CatalogCommercialDetails.SparsePath.PriceTiers.Key(Code)" Context="child">
+        @{
+            if (!ReferenceEquals(_childContext, child))
+            {
+                _childContext = child;
+                _draftSession = child.Session;
+            }
+        }
         <FluentDialog @ref="_tierDialog" Hidden="@_tierDialogHidden" Modal="true" TrapFocus="true"
             Class="pg-catalog-dialog" AriaLabel="Edit price tier">
             <div class="pg-dialog-heading">
@@ -33,20 +39,20 @@
             </div>
             <div class="pg-dialog-body">
                 <div class="pg-stack pg-edit-fields">
-                    <SparseField Path="edit.Path.Label" Context="label">
+                    <SparseField Path="CatalogPriceTier.SparsePath.Label" Context="label">
                         <div class="pg-row pg-session-field @(label.IsChanged ? "pg-changed" : "")">
                             <span class="pg-name notranslate" translate="no">Label <small>string</small></span>
                             <FluentTextInput Value="@label.Value" ValueChanged="label.ValueChanged" />
                         </div>
                     </SparseField>
-                    <SparseField Path="edit.Path.MinimumQuantity" Context="minimumQuantity">
+                    <SparseField Path="CatalogPriceTier.SparsePath.MinimumQuantity" Context="minimumQuantity">
                         <div class="pg-row pg-session-field @(minimumQuantity.IsChanged ? "pg-changed" : "")">
                             <span class="pg-name notranslate" translate="no">MinimumQuantity <small>int</small></span>
                             <FluentNumberInput TValue="int" Value="@minimumQuantity.Value"
                                 ValueChanged="minimumQuantity.ValueChanged" />
                         </div>
                     </SparseField>
-                    <SparseField Path="edit.Path.UnitPrice" Context="unitPrice">
+                    <SparseField Path="CatalogPriceTier.SparsePath.UnitPrice" Context="unitPrice">
                         <div class="pg-row pg-session-field @(unitPrice.IsChanged ? "pg-changed" : "")">
                             <span class="pg-name notranslate" translate="no">UnitPrice <small>decimal</small></span>
                             <FluentNumberInput TValue="decimal" Value="@unitPrice.Value"
@@ -65,13 +71,13 @@
                         </FluentButton>
                     </div>
                 }
-                @if (_conflicts is { Count: > 0 })
+                @if (_hasConflicts)
                 {
                     <div class="pg-stack">
                         <FluentMessageBar Intent="MessageBarIntent.Error">
                             The latest tier edit could not be applied automatically. Correct the conflicting value or discard the draft.
                         </FluentMessageBar>
-                        <FluentButton Appearance="ButtonAppearance.Default" @onclick="DiscardConflictingEdit">
+                        <FluentButton Appearance="ButtonAppearance.Default" @onclick="() => DiscardConflictingEdit(child)">
                             Discard conflicting tier edit
                         </FluentButton>
                     </div>
@@ -88,7 +94,7 @@
                     <div class="pg-roster-list">
                         <SparseCollection @ref="_discountCollection"
                             TModel="CatalogPriceTier" TElement="CatalogDiscountBand"
-                            Path="edit.Path.Discounts">
+                            Path="CatalogPriceTier.SparsePath.Discounts">
                             <RowTemplate Context="bandRow">
                                 <div class="@CatalogCollectionRowState.ClassFor(bandRow.RequireItemState(), hasLocalChanges: IsBandRowChanged(bandRow))">
                                     <div class="pg-catalog-discount-row">
@@ -127,31 +133,25 @@
                 </div>
             </div>
             <div class="pg-dialog-footer">
-                <FluentButton Appearance="ButtonAppearance.Primary" @onclick="AcceptTierDialogAsync">Save tier</FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Default" @onclick="CancelTierDialogAsync">Cancel</FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Primary" @onclick="() => AcceptTierDialogAsync(child)">Save tier</FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Default" @onclick="() => CancelTierDialogAsync(child)">Cancel</FluentButton>
             </div>
         </FluentDialog>
-        </SparseEdit>
-    </SparseSessionScope>
+    </SparseChildEditDefault>
 }
 
 @code {
     [CascadingParameter]
     public ISparseEditSession<CatalogCommercialDetails>? ParentSession { get; set; }
 
+    [CascadingParameter]
+    public SparseSessionScopeContext<CatalogCommercialDetails>? ParentScopeContext { get; set; }
+
     [Parameter, EditorRequired]
     public string Code { get; set; } = string.Empty;
 
     [Parameter, EditorRequired]
     public CatalogPriceTier Item { get; set; } = null!;
-
-    [Parameter, EditorRequired]
-    public ISparseChildEditPath<
-        CatalogCommercialDetails,
-        CatalogPriceTier,
-        SparseTypes.Generated.SparseTypes_Playground_Models_CatalogPriceTier_A4E49A73SparsePaths<CatalogPriceTier>,
-        CatalogPriceTier.EditSession
-    > Path { get; set; } = null!;
 
     [Parameter]
     public SparseCollectionItemState State { get; set; }
@@ -177,24 +177,20 @@
     [Parameter]
     public EventCallback<bool> OnChanged { get; set; }
 
-    private ISparseEditChildSession<
-        CatalogPriceTier,
-        SparseTypes.Generated.SparseTypes_Playground_Models_CatalogPriceTier_A4E49A73SparsePaths<CatalogPriceTier>,
-        SparseConflict,
-        CatalogPriceTier.EditSession
-    >? _childSession;
-    private ISparseEditHistory? _history;
-    private IReadOnlyList<SparseConflict>? _conflicts;
+    private ISparseChildEditContext<CatalogPriceTier>? _childContext;
+    private CatalogPriceTier.EditSession? _draftSession;
+    private bool _hasConflicts;
     private SparseCollection<CatalogPriceTier, CatalogDiscountBand>? _discountCollection;
     private FluentDialog? _tierDialog;
     private bool _tierDialogHidden = true;
+    private bool _isEditing;
     private bool _openOnLoadHandled;
     private bool _dialogNeedsShow;
     private string? _historyError;
-    private CatalogPriceTier.Observable Draft => _childSession!.Session.Observable;
-    private bool HasChanges => _childSession?.HasChanges == true;
-    private bool CanUndo => _history?.CanUndo == true;
-    private bool CanRedo => _history?.CanRedo == true;
+    private CatalogPriceTier.Observable Draft => _draftSession!.Observable;
+    private bool HasChanges => _childContext?.HasChanges == true;
+    private bool CanUndo => _childContext?.CanUndo == true;
+    private bool CanRedo => _childContext?.CanRedo == true;
     // The tier row reflects only edits that remain in its current draft.
     private bool IsTierEdited
     {
@@ -237,27 +233,22 @@
         return OnChanged.InvokeAsync(HasChanges);
     }
 
-    private async Task DiscardConflictingEdit()
+    private async Task DiscardConflictingEdit(ISparseChildEditContext<CatalogPriceTier> child)
     {
-        _childSession!.DiscardChanges();
-        _conflicts = null;
+        child.DiscardChanges();
+        _hasConflicts = false;
+        _historyError = null;
         await OnChanged.InvokeAsync(HasChanges);
     }
 
     private Task OpenTier()
     {
-        if (_childSession is not null)
+        if (_isEditing)
         {
             return Task.CompletedTask;
         }
 
-        if (ParentSession is not ISparseEditSessionWithChildren<CatalogCommercialDetails, SparseConflict> parent)
-        {
-            throw new InvalidOperationException("The commercial edit session is unavailable.");
-        }
-
-        _childSession = parent.OpenChildSession(Path);
-        _history = _childSession.Session.EnableHistory();
+        _isEditing = true;
         _tierDialogHidden = false;
         _dialogNeedsShow = true;
         return Task.CompletedTask;
@@ -272,26 +263,29 @@
         }
     }
 
-    private async Task AcceptTierDialogAsync()
+    private async Task AcceptTierDialogAsync(ISparseChildEditContext<CatalogPriceTier> child)
     {
-        if (!_childSession!.TryAcceptChanges(out var conflicts))
+        if (!child.TryAcceptChanges())
         {
-            _historyError = conflicts is null
-                ? "The tier draft could not be saved."
+            _hasConflicts = child.Conflicts is { Count: > 0 };
+            _historyError = child.Conflicts is null
+                ? "The tier draft could not be saved because its target is unavailable."
                 : "The tier draft conflicts with newer parent edits.";
             return;
         }
 
         ReleaseChildSession();
+        _hasConflicts = false;
         _historyError = null;
         await CloseTierDialog();
         await OnChanged.InvokeAsync(HasChanges);
     }
 
-    private async Task CancelTierDialogAsync()
+    private async Task CancelTierDialogAsync(ISparseChildEditContext<CatalogPriceTier> child)
     {
-        _childSession!.DiscardChanges();
+        child.DiscardChanges();
         ReleaseChildSession();
+        _hasConflicts = false;
         _historyError = null;
         await CloseTierDialog();
         await OnChanged.InvokeAsync(HasChanges);
@@ -304,9 +298,9 @@
             await CloseTierDialog();
         }
 
-        if (_childSession is not null)
+        if (_childContext is { } child)
         {
-            _childSession.DiscardChanges();
+            child.DiscardChanges();
             ReleaseChildSession();
         }
 
@@ -317,7 +311,7 @@
     {
         try
         {
-            _history!.Undo();
+            _childContext!.Undo();
             _historyError = null;
         }
         catch (InvalidOperationException exception)
@@ -332,7 +326,7 @@
     {
         try
         {
-            _history!.Redo();
+            _childContext!.Redo();
             _historyError = null;
         }
         catch (InvalidOperationException exception)
@@ -345,10 +339,12 @@
 
     private void AddDiscountBand()
     {
-        var discounts = _childSession!.Session.EditCollection<CatalogDiscountBand, string>(
-            CatalogPriceTier.SparsePath.Discounts
-        );
-        if (!discounts.TryAdd(
+        if (_discountCollection is null)
+        {
+            throw new InvalidOperationException("The discount collection is not available.");
+        }
+
+        if (!_discountCollection.TryAdd(
             new CatalogDiscountBand
             {
                 Code = $"discount-{Guid.NewGuid():N}",
@@ -375,16 +371,23 @@
 
     private void ReleaseChildSession()
     {
-        var childSession = _childSession;
+        var childSession = _draftSession;
         if (childSession is null)
         {
             return;
         }
 
-        _childSession = null;
-        _history = null;
+        var parentSession = ParentSession ?? throw new InvalidOperationException("The tier editor requires its parent edit session.");
+        var scopeContext = ParentScopeContext ?? throw new InvalidOperationException("The tier editor requires its parent scope context.");
+        var path = CatalogCommercialDetails.SparsePath.PriceTiers.Key(Code).UntypedPath;
+        if (!scopeContext.TryCloseChildSessionAtPath(parentSession, path))
+        {
+            throw new InvalidOperationException("The tier edit session still has pending changes and cannot be closed.");
+        }
+
+        _childContext = null;
+        _draftSession = null;
         _discountCollection = null;
-        childSession.Session.DisableHistory();
-        childSession.Dispose();
+        _isEditing = false;
     }
 }

@@ -47,16 +47,17 @@ See the [history example](../how-to/edit-session.md#record-undo-and-redo-history
 
 ## Child sessions
 
-`ISparseEditChildSession<TModel,TPaths,TConflict,TSession>` extends IDisposable:
+`ISparseEditChildSession<TSession>` is the short contract for code that stores an opened child session:
 
 | Member | Contract |
 | --- | --- |
 | `Session` | Independent editable child session. |
 | `HasChanges`, `IsDetached`, `IsTargetMissing` | Draft state and current target availability. |
-| `TryAcceptChanges(out conflicts)` | Merges into the current parent target. Failure retains the draft. |
+| `TryAcceptChanges()` | Merges into the current parent target. Failure retains the draft. |
 | `AcceptChanges()` | Throwing acceptance. |
 | `DiscardChanges()`, `Dispose()` | Abandons the draft. |
-| `TryApplyPendingState(current, out updated, out conflicts)` | Projects pending child state onto a supplied model. |
+
+`ISparseEditChildSession<TModel,TConflict,TSession>` adds typed conflict details and `TryApplyPendingState(current, out updated, out conflicts)`. The path-bound `ISparseEditChildSession<TModel,TPaths,TConflict,TSession>` extends that contract for integrations that need the generated path type.
 
 The implementation `SparseEditChildSession<...>` also exposes `TryPreflightAcceptChanges(out conflicts)` and `ConfirmAccept()` for coordinated submission. Its delegate-based constructor is an adapter API; obtain children through generated `OpenChildSession`.
 

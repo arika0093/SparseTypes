@@ -173,7 +173,7 @@
     [Parameter]
     public Action? OnAccepted { get; set; }
 
-    private ISparseChildEditContext<CatalogWorkflow, SparseConflict>? _childSession;
+    private ISparseChildEditContext<CatalogWorkflow>? _childSession;
     private CatalogWorkflow.EditSession _draftSession = null!;
     private int _sortableListsVersion;
     private readonly Dictionary<string, string> _templateIdByStepId = new(StringComparer.Ordinal);

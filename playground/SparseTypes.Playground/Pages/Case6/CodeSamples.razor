@@ -140,7 +140,7 @@
         [CascadingParameter]
         SparseSessionScopeContext<EnterpriseCatalogItem>? ScopeContext { get; set; }
 
-        private ISparseChildEditContext<CatalogOverview, SparseConflict> _overview = null!;
+        private ISparseChildEditContext<CatalogOverview> _overview = null!;
         private CatalogOverview.EditSession _draft = null!;
 
         protected override void OnParametersSet()

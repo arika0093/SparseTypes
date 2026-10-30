@@ -107,7 +107,7 @@
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    private ISparseChildEditContext<CatalogOverview, SparseConflict>? _childSession;
+    private ISparseChildEditContext<CatalogOverview>? _childSession;
     private CatalogOverview.EditSession _draftSession = null!;
     private string _newAlias = string.Empty;
     private CatalogOverview.Observable Draft => _draftSession.Observable;

@@ -295,7 +295,7 @@ Nested scopes inherit Mode unless they specify their own. In this PassThrough ex
 
 PassThrough still uses conflict-aware child acceptance. A failed merge must be resolved; the mode does not make every write unconditional.
 
-`SparseSessionScopeContext<TModel>` exposes Mode, HasChanges, Changed, `HasChangesFor(path)`, `OpenChildSession(parentSession, path)`, `TryGetDetachedChild(parentSession, path, out context)`, `GetDetachedChildPaths()`, and `DisposeDetachedChildren()`. Access the active context through the component's ScopeContext or its cascade. These support child editors whose UI lifetime differs from their pending draft lifetime.
+`SparseSessionScopeContext<TModel>` exposes Mode, HasChanges, Changed, `HasChangesFor(path)`, `OpenChildSession(parentSession, path)`, and `TryCloseChildSession(parentSession, path)`. `TryCloseChildSessionAtPath(parentSession, path)` provides the same close operation for an untyped `SparsePath`. Both close methods retain a child with pending changes. The context also exposes `TryGetDetachedChild(parentSession, path, out context)`, `GetDetachedChildPaths()`, and `DisposeDetachedChildren()`. Access the active context through the component's ScopeContext or its cascade.
 
 ## SparseChildEdit and SparseChildEditDefault
 
@@ -351,7 +351,7 @@ Child acceptance merges into the parent draft; it does not save or acknowledge t
 
 ### Child context members
 
-`SparseChildEditContext` exposes Session, Path, EditContext, Mode, HasChanges, CanUndo, CanRedo, Conflicts, and the Accepted event. Operations are AcceptChanges, TryAcceptChanges(out conflicts), DiscardChanges, Undo, and Redo. `ISparseChildEditContext<TModel,TConflict>` exposes the same control surface without concrete path/EditContext members.
+`SparseChildEditContext` exposes Session, Path, EditContext, Mode, HasChanges, CanUndo, CanRedo, Conflicts, and the Accepted event. `ISparseChildEditContext<TModel>` is the consumer-facing contract when typed conflict details are not needed. It provides parameterless `TryAcceptChanges()` and exposes Conflicts as `IReadOnlyList<object>`. `ISparseChildEditContext<TModel,TConflict>` retains typed conflict access and `TryAcceptChanges(out conflicts)`.
 
 In Draft mode, history controls operate on the child draft. In PassThrough mode they operate on the active parent history, so that parent session must have history enabled. Check CanUndo/CanRedo before invoking the throwing operations.
 

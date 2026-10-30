@@ -53,7 +53,7 @@
 
 @code {
     [Parameter, EditorRequired]
-    public ISparseChildEditContext<TModel, SparseConflict> Context { get; set; } = null!;
+    public ISparseChildEditContext<TModel> Context { get; set; } = null!;
 
     [Parameter]
     public bool SectionDraftsEnabled { get; set; } = true;
@@ -73,7 +73,7 @@
     private IReadOnlyList<SparseConflict> _conflicts = [];
     private string? _message;
     private IReadOnlyList<SparseConflict> DisplayedConflicts =>
-        _conflicts.Count > 0 ? _conflicts : Context.Conflicts ?? [];
+        _conflicts.Count > 0 ? _conflicts : Context.Conflicts?.OfType<SparseConflict>().ToArray() ?? [];
 
     public async Task<bool> AcceptChildSessionAsync()
     {
@@ -83,10 +83,9 @@
         }
 
         var accepted = false;
-        IReadOnlyList<SparseConflict>? conflicts = null;
         void Accept()
         {
-            accepted = Context.TryAcceptChanges(out conflicts);
+            accepted = Context.TryAcceptChanges();
         }
 
         try
@@ -114,7 +113,7 @@
             return true;
         }
 
-        _conflicts = conflicts ?? [];
+        _conflicts = Context.Conflicts?.OfType<SparseConflict>().ToArray() ?? [];
         _message = "The child session overlaps newer parent-session edits. Discard it to reload the current section, then reapply the intended changes.";
         return false;
     }

@@ -77,7 +77,7 @@
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    private ISparseChildEditContext<CatalogWorkMaster, SparseConflict>? _childSession;
+    private ISparseChildEditContext<CatalogWorkMaster>? _childSession;
     private CatalogWorkMaster.EditSession _draftSession = null!;
     private bool HasChanges => _childSession?.HasChanges == true;
     private bool IsSectionEdited => HasChanges;

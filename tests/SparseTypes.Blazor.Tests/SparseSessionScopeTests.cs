@@ -760,8 +760,10 @@ public sealed class SparseSessionScopeTests
             OrderDto.SparsePath.Customer
         );
         ISparseChildEditContext<OrderCustomer, SparseConflict> child = typedChild;
+        ISparseChildEditContext<OrderCustomer> simpleChild = typedChild;
         var childSession = typedChild.Session;
         ReferenceEquals(child.Session, childSession).ShouldBeTrue();
+        ReferenceEquals(simpleChild.Session, childSession).ShouldBeTrue();
 
         childSession.Observable.Name = "child";
         child.CanUndo.ShouldBeTrue();
@@ -772,6 +774,8 @@ public sealed class SparseSessionScopeTests
         parent.Observable.Customer!.Name = "parent";
         child.TryAcceptChanges(out var conflicts).ShouldBeFalse();
         conflicts.ShouldNotBeNull();
+        simpleChild.TryAcceptChanges().ShouldBeFalse();
+        simpleChild.Conflicts!.Single().ShouldBeOfType<SparseConflict>();
         child.HasChanges.ShouldBeTrue();
         live.Customer.Name.ShouldBe("parent");
 
@@ -877,7 +881,7 @@ public sealed class SparseSessionScopeTests
         var path = OrderDto.SparsePath.Customer;
         var child = scope.OpenChildSession(parent, path);
 
-        scope.TryCloseChildSession(parent, path).ShouldBeTrue();
+        scope.TryCloseChildSessionAtPath(parent, path.UntypedPath).ShouldBeTrue();
         parent.HasPendingChildSessions.ShouldBeFalse();
         Should.Throw<ObjectDisposedException>(() => child.Session);
 

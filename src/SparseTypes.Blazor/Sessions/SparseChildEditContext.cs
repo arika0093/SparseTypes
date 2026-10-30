@@ -74,7 +74,9 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> 
     // from one whose draft was resynchronized after parent drift.
     internal int AcceptVersion { get; private set; }
 
-    ISparseEditSession<TModel> ISparseChildEditContext<TModel, TConflict>.Session => Session;
+    ISparseEditSession<TModel> ISparseChildEditContext<TModel>.Session => Session;
+
+    IReadOnlyList<object>? ISparseChildEditContext<TModel>.Conflicts => _conflicts;
 
     /// <summary>Gets the generated paths rooted at the child model.</summary>
     public TPaths Path => Session.Paths;
@@ -106,6 +108,9 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> 
 
     /// <summary>Gets whether the active edit history can redo an edit.</summary>
     public bool CanRedo => SparseSessionInterop.TryGetHistory(HistorySession)?.CanRedo == true;
+
+    /// <inheritdoc />
+    public bool TryAcceptChanges() => TryAcceptChanges(out _);
 
     /// <summary>Attempts to merge this child draft into its parent.</summary>
     /// <param name="conflicts">Structured conflicts when the merge fails.</param>

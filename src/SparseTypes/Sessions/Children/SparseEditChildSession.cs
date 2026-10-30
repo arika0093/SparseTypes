@@ -95,6 +95,10 @@ public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession> 
     }
 
     /// <summary>Attempts to merge the child session and its descendants into its parent.</summary>
+    /// <returns>True when the child state was merged; otherwise false.</returns>
+    public bool TryAcceptChanges() => TryAcceptChanges(out _);
+
+    /// <summary>Attempts to merge the child session and its descendants into its parent.</summary>
     /// <param name="conflicts">Structured conflicts when the merge fails.</param>
     /// <returns>True when the child state was merged; otherwise false.</returns>
     /// <remarks>A missing target reports failure with null conflicts and preserves the draft; only an explicit discard or dispose abandons it.</remarks>

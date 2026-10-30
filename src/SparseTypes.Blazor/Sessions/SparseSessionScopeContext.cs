@@ -181,7 +181,29 @@ public sealed class SparseSessionScopeContext<TModel>
             throw new ArgumentException("The parent session must be the session assigned to this scope.", nameof(parentSession));
         }
 
-        var untypedPath = path.UntypedPath;
+        return TryCloseChildSession(path.UntypedPath);
+    }
+
+    /// <summary>Closes the child session at a path when it has no pending changes.</summary>
+    /// <param name="parentSession">The exact parent session assigned to the owning scope.</param>
+    /// <param name="path">The path to the child model.</param>
+    /// <returns>True when no session is open or the clean session was closed; false when it has pending changes.</returns>
+    /// <exception cref="ArgumentException">The parent session differs from the owning scope session.</exception>
+    /// <exception cref="ObjectDisposedException">The scope context has been disposed.</exception>
+    public bool TryCloseChildSessionAtPath(ISparseEditSession<TModel> parentSession, SparsePath path)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(parentSession);
+        if (!ReferenceEquals(parentSession, _session))
+        {
+            throw new ArgumentException("The parent session must be the session assigned to this scope.", nameof(parentSession));
+        }
+
+        return TryCloseChildSession(path);
+    }
+
+    private bool TryCloseChildSession(SparsePath untypedPath)
+    {
         if (!_children.TryGetValue(untypedPath, out var entry))
         {
             return true;

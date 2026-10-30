@@ -124,7 +124,7 @@
     [Parameter]
     public EventCallback OnChanged { get; set; }
 
-    private ISparseChildEditContext<CatalogOperationsDetails, SparseConflict>? _childSession;
+    private ISparseChildEditContext<CatalogOperationsDetails>? _childSession;
     private CatalogOperationsDetails.EditSession _draftSession = null!;
     private SparseCollection<CatalogOperationsDetails, CatalogOperationDocument>? _documentCollection;
     private int _newDocumentNumber;

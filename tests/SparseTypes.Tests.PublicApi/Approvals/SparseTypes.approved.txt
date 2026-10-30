@@ -300,11 +300,7 @@ namespace SparseTypes
         bool TryPreflightChildDraft<TChild>(TSession fork, SparseTypes.SparsePath path, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts)
             where TChild :  class;
     }
-    public interface ISparseEditChildSession<TModel, TPaths, TConflict, TSession> : System.IDisposable
-        where TModel :  class
-        where TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
-        where TConflict :  class
-        where TSession : SparseTypes.ISparseEditSessionWithPaths<TModel, TPaths>
+    public interface ISparseEditChildSession<out TSession> : System.IDisposable
     {
         bool HasChanges { get; }
         bool IsDetached { get; }
@@ -312,9 +308,21 @@ namespace SparseTypes
         TSession Session { get; }
         void AcceptChanges();
         void DiscardChanges();
+        bool TryAcceptChanges();
+    }
+    public interface ISparseEditChildSession<TModel, TConflict, TSession> : SparseTypes.ISparseEditChildSession<TSession>, System.IDisposable
+        where TModel :  class
+        where TConflict :  class
+        where TSession : SparseTypes.ISparseEditSession<TModel>
+    {
         bool TryAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
         bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts);
     }
+    public interface ISparseEditChildSession<TModel, TPaths, TConflict, TSession> : SparseTypes.ISparseEditChildSession<TSession>, SparseTypes.ISparseEditChildSession<TModel, TConflict, TSession>, System.IDisposable
+        where TModel :  class
+        where TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
+        where TConflict :  class
+        where TSession : SparseTypes.ISparseEditSessionWithPaths<TModel, TPaths> { }
     public interface ISparseEditController<TModel>
         where TModel :  class
     {
@@ -806,7 +814,7 @@ namespace SparseTypes
         public static SparseTypes.SparseEditChildDraft<TChild, TSession, TConflict> Create<TParent>(TSession parent, SparseTypes.ISparseTypedPath<TParent, TChild> path)
             where TParent :  class { }
     }
-    public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession> : SparseTypes.ISparseEditChildSession<TModel, TPaths, TConflict, TSession>, System.IDisposable
+    public sealed class SparseEditChildSession<TModel, TPaths, TConflict, TSession> : SparseTypes.ISparseEditChildSession<TSession>, SparseTypes.ISparseEditChildSession<TModel, TConflict, TSession>, SparseTypes.ISparseEditChildSession<TModel, TPaths, TConflict, TSession>, System.IDisposable
         where TModel :  class
         where TPaths : SparseTypes.ISparseTypedPath<TModel, TModel>
         where TConflict :  class
@@ -826,6 +834,7 @@ namespace SparseTypes
         public void ConfirmAccept() { }
         public void DiscardChanges() { }
         public void Dispose() { }
+        public bool TryAcceptChanges() { }
         public bool TryAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
         public bool TryApplyPendingState(TModel current, out TModel? updated, out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
         public bool TryPreflightAcceptChanges(out System.Collections.Generic.IReadOnlyList<TConflict>? conflicts) { }
