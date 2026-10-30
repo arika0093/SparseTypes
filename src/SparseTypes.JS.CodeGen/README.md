@@ -95,6 +95,33 @@ if (body) {
 
 ### Diff and payload semantics
 
+`createClient()` serializes `args.body` according to the single media type
+declared in `requestBody.content`, and sets `Content-Type` to that media type:
+
+- `application/json` (or any `+json` suffix): `JSON.stringify`. The declared
+  type is used as-is when several JSON-compatible types are listed.
+- `text/*`: the body must be a string and is sent unchanged (never JSON
+  encoded).
+- `application/octet-stream`: the body must be a `Blob`, `ArrayBuffer`,
+  array-buffer view, or string, and is sent unchanged.
+- `application/x-www-form-urlencoded`: the body must be a plain object
+  (array values become repeated keys) or `URLSearchParams`.
+- `multipart/form-data`: the body must be `FormData` or a plain object.
+  Plain objects are converted field-by-field (`Blob` values pass through,
+  other objects are JSON encoded). `Content-Type` is left for `fetch` to set
+  so the multipart boundary is preserved; `null`/`undefined` fields are
+  skipped.
+
+Operations declaring any other request media type, more than one request
+serialization kind, or an unsupported 2xx/3xx response media type fail code
+generation with an error naming the operation and the offending type.
+
+Responses are decoded from the response `Content-Type` header: JSON media is
+parsed, `text/*` is returned as text, `204`/`205`/`304` and empty bodies
+yield `undefined`, and any other binary media is returned as a `Blob` (binary
+is never silently converted to text). The `*Raw` methods always return the
+untouched `Response`, so callers can decode custom media themselves.
+
 - `buildTChangePayload(before, after)` returns `undefined` when no tracked members changed.
 - Omitted properties and properties set to `undefined` map to `{"state": "missing"}`. Explicit `null` maps to `{"state": "null"}`.
 - Nested models, scalar sequences, dictionaries, and `[SparseKey]` collections follow the `x-sparsetypes` member metadata emitted in the OpenAPI document.
@@ -103,5 +130,34 @@ if (body) {
 - Redaction propagates into nested models, keyed collections, and dictionaries, so every descendant `before` endpoint is redacted while `after` values still travel. Edited keyed and model-valued dictionary items stay granular with redacted leaf `before` endpoints (per-item redacted endpoints are never paired with item edits); scalar dictionary edits and removals carry redacted item `before` endpoints as blind operations.
 - No redacted collection operation requires whole-member replacement: granular blind edits, blind removals, and redacted nested updates are all accepted by the server. Blind whole-collection removal (a missing `after` with a redacted `before`) has no patch projection and throws a safe error naming only the member path instead of emitting an unprojectable payload.
 - Precision-sensitive scalar wire types (`decimal`, `long`, `ulong`, and 64-bit enums) accept canonical strings or safe numbers in `OptionalT` and serialize as canonical strings in change endpoints. Canonical form is `[-]digits[.fraction]` for decimals (no exponent, plus sign, whitespace, or leading zeros; scale up to 28, at most 29 significant digits) and `[-]digits` for 64-bit integers within bounds; non-canonical inputs (exponent, `+1`, `001`, whitespace) throw a `TypeError` instead of rounding. Decimal scale (trailing fraction zeros) is preserved and negative zero is emitted as `0` with its scale.
+
+### Request and response media types
+
+`createClient()` serializes `args.body` according to the single media type
+declared in `requestBody.content`, and sets `Content-Type` to that media type:
+
+- `application/json` (or any `+json` suffix): `JSON.stringify`. The declared
+  type is used as-is when several JSON-compatible types are listed.
+- `text/*`: the body must be a string and is sent unchanged (never JSON
+  encoded).
+- `application/octet-stream`: the body must be a `Blob`, `ArrayBuffer`,
+  array-buffer view, or string, and is sent unchanged.
+- `application/x-www-form-urlencoded`: the body must be a plain object
+  (array values become repeated keys) or `URLSearchParams`.
+- `multipart/form-data`: the body must be `FormData` or a plain object.
+  Plain objects are converted field-by-field (`Blob` values pass through,
+  other objects are JSON encoded). `Content-Type` is left for `fetch` to set
+  so the multipart boundary is preserved; `null`/`undefined` fields are
+  skipped.
+
+Operations declaring any other request media type, more than one request
+serialization kind, or an unsupported 2xx/3xx response media type fail code
+generation with an error naming the operation and the offending type.
+
+Responses are decoded from the response `Content-Type` header: JSON media is
+parsed, `text/*` is returned as text, `204`/`205`/`304` and empty bodies
+yield `undefined`, and any other binary media is returned as a `Blob` (binary
+is never silently converted to text). The `*Raw` methods always return the
+untouched `Response`, so callers can decode custom media themselves.
 
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).

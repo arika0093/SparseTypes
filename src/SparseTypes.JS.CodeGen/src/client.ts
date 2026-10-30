@@ -19,7 +19,69 @@ interface Operation {
   name: string;
   parameters: Parameter[];
   requestBody: Record<string, any> | undefined;
+  requestKind: string | undefined;
+  requestMediaType: string | undefined;
   argsRequired: boolean;
+}
+
+export const SUPPORTED_MEDIA_DOC =
+  "application/json (or any +json suffix), text/*, application/octet-stream, multipart/form-data, application/x-www-form-urlencoded";
+
+function mediaKind(type: string): string | undefined {
+  const mime = type.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (mime === "application/json" || mime.endsWith("+json")) return "json";
+  if (mime.startsWith("text/")) return "text";
+  if (mime === "application/octet-stream") return "octet-stream";
+  if (mime === "multipart/form-data") return "multipart";
+  if (mime === "application/x-www-form-urlencoded") return "urlencoded";
+  return undefined;
+}
+
+function describeOperation(name: string, method: string, path: string): string {
+  return `operation '${name}' (${method.toUpperCase()} ${path})`;
+}
+
+function requestSerialization(
+  name: string,
+  method: string,
+  path: string,
+  requestBody: Record<string, any> | undefined,
+): { kind: string; mediaType: string } | undefined {
+  const media = Object.keys(requestBody?.content ?? {});
+  if (media.length === 0) return undefined;
+  const unsupported = media.filter((type) => !mediaKind(type));
+  if (unsupported.length > 0) {
+    throw new Error(
+      `OpenAPI ${describeOperation(name, method, path)} declares unsupported request media type(s) ${unsupported.map((type) => `'${type}'`).join(", ")}. Supported request media: ${SUPPORTED_MEDIA_DOC}.`,
+    );
+  }
+  const kinds = [...new Set(media.map((type) => mediaKind(type)))];
+  if (kinds.length > 1) {
+    throw new Error(
+      `OpenAPI ${describeOperation(name, method, path)} declares multiple request serialization kinds (${kinds.join(", ")}). Narrow requestBody.content to a single supported media type.`,
+    );
+  }
+  return { kind: kinds[0]!, mediaType: media[0]! };
+}
+
+function validateSuccessMedia(
+  name: string,
+  method: string,
+  path: string,
+  responses: Record<string, any> = {},
+): void {
+  const unsupported = new Set<string>();
+  for (const [status, response] of Object.entries(responses ?? {})) {
+    if (!/^[23]/.test(status)) continue;
+    for (const type of Object.keys(response?.content ?? {})) {
+      if (!mediaKind(type)) unsupported.add(type);
+    }
+  }
+  if (unsupported.size > 0) {
+    throw new Error(
+      `OpenAPI ${describeOperation(name, method, path)} declares unsupported success media type(s) ${[...unsupported].map((type) => `'${type}'`).join(", ")}. Supported response media: application/json (or any +json suffix), text/*, application/octet-stream, or no content.`,
+    );
+  }
 }
 
 function dereference(
@@ -119,13 +181,28 @@ function collectOperations(document: OpenApiDocument): Operation[] {
       }
       const parameters = [...merged.values()];
       for (const parameter of parameters) validateParameter(parameter);
+      const operationNameValue = operationName(operation, method, path, used);
+      const serialization = requestSerialization(
+        operationNameValue,
+        method,
+        path,
+        operation.requestBody,
+      );
+      validateSuccessMedia(
+        operationNameValue,
+        method,
+        path,
+        operation.responses,
+      );
       operations.push({
         path,
         method,
         operation,
-        name: operationName(operation, method, path, used),
+        name: operationNameValue,
         parameters,
         requestBody: operation.requestBody,
+        requestKind: serialization?.kind,
+        requestMediaType: serialization?.mediaType,
         argsRequired:
           parameters.some((parameter) => parameter.required) ||
           operation.requestBody?.required === true,
@@ -210,6 +287,8 @@ export function emitClientJs(document: OpenApiDocument): string {
     ),
     argsRequired: operation.argsRequired,
     bodyRequired: operation.operation.requestBody?.required === true,
+    requestKind: operation.requestKind,
+    requestMediaType: operation.requestMediaType,
     requestMedia: Object.keys(operation.requestBody?.content ?? {}),
     successMedia: successfulMedia(operation.operation.responses),
   }));
@@ -286,21 +365,72 @@ function buildUrl(baseUrl, operation, args) {
   const suffix = pairs.join("&");
   return suffix ? url + (url.includes("?") ? "&" : "?") + suffix : url;
 }
+function isJsonMime(mime) { return mime === "application/json" || mime.endsWith("+json"); }
 async function responseBody(response) {
+  if (response.status === 204 || response.status === 205 || response.status === 304) return undefined;
+  const contentType = response.headers.get("content-type") ?? "";
+  const mime = contentType.split(";")[0].trim().toLowerCase();
+  if (!mime) {
+    const text = await response.text();
+    return text ? text : undefined;
+  }
+  if (!isJsonMime(mime) && mime !== "application/octet-stream" && !mime.startsWith("text/")) return response.blob();
+  if (mime === "application/octet-stream") return response.blob();
   const text = await response.text();
   if (!text) return undefined;
-  const contentType = response.headers.get("content-type") ?? "";
-  if (/[/+]json(?:\s*;|$)/i.test(contentType) || /application\/json/i.test(contentType)) return JSON.parse(text);
+  if (isJsonMime(mime)) return JSON.parse(text);
   return text;
+}
+function appendFormValue(form, name, value) {
+  if (value === undefined || value === null) return;
+  if (typeof Blob !== "undefined" && value instanceof Blob) { form.append(name, value); return; }
+  if (typeof value === "object") { form.append(name, JSON.stringify(value)); return; }
+  form.append(name, String(value));
+}
+function serializeBody(kind, mediaType, body) {
+  if (kind === "json") return { body: JSON.stringify(body), contentType: mediaType, boundary: false };
+  if (kind === "text") {
+    if (typeof body !== "string") throw new TypeError("A text/* request body must be a string; received " + typeof body + ".");
+    return { body, contentType: mediaType, boundary: false };
+  }
+  if (kind === "octet-stream") {
+    const binary = typeof Blob !== "undefined" && body instanceof Blob;
+    const buffer = typeof ArrayBuffer !== "undefined" && (body instanceof ArrayBuffer || ArrayBuffer.isView(body));
+    if (!binary && !buffer && typeof body !== "string") throw new TypeError("An application/octet-stream request body must be a Blob, ArrayBuffer, ArrayBuffer view, or string.");
+    return { body, contentType: mediaType, boundary: false };
+  }
+  if (kind === "urlencoded") {
+    if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) return { body: body.toString(), contentType: mediaType, boundary: false };
+    if (!body || typeof body !== "object" || Array.isArray(body)) throw new TypeError("An application/x-www-form-urlencoded request body must be a plain object or URLSearchParams.");
+    const params = new URLSearchParams();
+    for (const [name, value] of Object.entries(body)) {
+      if (value === undefined || value === null) continue;
+      if (Array.isArray(value)) for (const item of value) params.append(name, String(item));
+      else params.append(name, String(value));
+    }
+    return { body: params.toString(), contentType: mediaType, boundary: false };
+  }
+  if (typeof FormData !== "undefined" && body instanceof FormData) return { body, contentType: undefined, boundary: true };
+  if (!body || typeof body !== "object" || Array.isArray(body)) throw new TypeError("A multipart/form-data request body must be FormData or a plain object.");
+  const form = new FormData();
+  for (const [name, value] of Object.entries(body)) {
+    if (Array.isArray(value)) for (const item of value) appendFormValue(form, name, item);
+    else appendFormValue(form, name, value);
+  }
+  return { body: form, contentType: undefined, boundary: true };
 }
 async function invoke(fetcher, baseUrl, operation, args, overrides, raw) {
   const url = buildUrl(baseUrl, operation, args);
   const headers = new Headers(args.headers);
   const requestedBody = Object.prototype.hasOwnProperty.call(args, "body") && args.body !== undefined;
-  const generatedBody = requestedBody ? JSON.stringify(args.body) : undefined;
-  if (generatedBody !== undefined && !headers.has("content-type")) {
-    const media = operation.requestMedia.find((type) => type.includes("json"));
-    if (media) headers.set("content-type", media);
+  let generatedBody;
+  let boundary = false;
+  if (requestedBody) {
+    if (!operation.requestKind) throw new TypeError("Operation '" + operation.name + "' declares no request media type, so args.body cannot be serialized.");
+    const serialized = serializeBody(operation.requestKind, operation.requestMediaType, args.body);
+    generatedBody = serialized.body;
+    boundary = serialized.boundary;
+    if (serialized.contentType && !headers.has("content-type")) headers.set("content-type", serialized.contentType);
   }
   const overrideHeaders = new Headers(overrides.headers);
   overrideHeaders.forEach((value, name) => headers.set(name, value));
@@ -313,6 +443,7 @@ async function invoke(fetcher, baseUrl, operation, args, overrides, raw) {
   if (operation.bodyRequired && !requestedBody && !hasOverrideBody) throw new TypeError("Missing required request body.");
   const body = hasOverrideBody ? overrides.body : generatedBody;
   if (hasOverrideBody && !overrideHeaders.has("content-type") && !new Headers(args.headers).has("content-type")) headers.delete("content-type");
+  if (boundary && !overrideHeaders.has("content-type") && !new Headers(args.headers).has("content-type")) headers.delete("content-type");
   const init = { ...overrides, method: overrides.method ?? operation.method, headers };
   if (body === undefined) delete init.body; else init.body = body;
   const response = await fetcher(url, init);
