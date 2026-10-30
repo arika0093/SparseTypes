@@ -36,7 +36,7 @@ try {
     "tool",
     "restore",
     "--tool-manifest",
-    "../.config/dotnet-tools.json",
+    "../../.config/dotnet-tools.json",
   ]);
   run(process.execPath, [nbgvScript]);
   run(process.execPath, [

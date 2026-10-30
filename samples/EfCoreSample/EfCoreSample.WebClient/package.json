@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "generate:api": "npm --prefix ../../../javascript run build && node ../../../javascript/dist/src/cli.js ../EfCoreSample.Server/obj/openapi/order-api.json",
+    "generate:api": "npm --prefix ../../../src/SparseTypes.JS.CodeGen run build && node ../../../src/SparseTypes.JS.CodeGen/dist/src/cli.js ../EfCoreSample.Server/obj/openapi/order-api.json",
     "build": "tsc -b && vite build",
     "format": "prettier --write src",
     "format:check": "prettier --check src"
@@ -24,7 +24,7 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
-    "@sparsetypes/codegen": "file:../../../javascript",
+    "@sparsetypes/codegen": "file:../../../src/SparseTypes.JS.CodeGen",
     "prettier": "3.9.10",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"

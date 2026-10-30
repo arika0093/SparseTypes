@@ -374,11 +374,11 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: |
-            javascript/package-lock.json
+            src/SparseTypes.JS.CodeGen/package-lock.json
             samples/EfCoreSample/EfCoreSample.WebClient/package-lock.json
 
       - name: Install codegen dependencies
-        run: npm ci --prefix javascript
+        run: npm ci --prefix src/SparseTypes.JS.CodeGen
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
@@ -390,12 +390,12 @@ jobs:
 
       - name: Test and type-check codegen
         run: |
-          npm test --prefix javascript
-          npm run typecheck --prefix javascript
-          npm run format:check --prefix javascript
+          npm test --prefix src/SparseTypes.JS.CodeGen
+          npm run typecheck --prefix src/SparseTypes.JS.CodeGen
+          npm run format:check --prefix src/SparseTypes.JS.CodeGen
 
       - name: Check package contents
-        working-directory: javascript
+        working-directory: src/SparseTypes.JS.CodeGen
         run: npm run pack:versioned -- --dry-run
 
       - name: Install sample web dependencies
@@ -411,7 +411,7 @@ jobs:
 
       - name: Pack codegen npm package
         id: npm-package
-        working-directory: javascript
+        working-directory: src/SparseTypes.JS.CodeGen
         run: |
           npm run pack:versioned -- --pack-destination "$RUNNER_TEMP"
           version="$(dotnet nbgv get-version --variable NpmPackageVersion)"

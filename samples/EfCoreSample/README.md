@@ -38,7 +38,7 @@ Install the code generator and web-client dependencies, then start PostgreSQL,
 pgweb, the server, and the clients through Aspire:
 
 ```bash
-npm ci --prefix javascript
+npm ci --prefix src/SparseTypes.JS.CodeGen
 npm ci --prefix samples/EfCoreSample/EfCoreSample.WebClient
 dotnet run --project samples/EfCoreSample/EfCoreSample.AppHost
 ```
