@@ -1941,3 +1941,119 @@ test("reserves Raw method names when deduplicating operations", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+test("merges PathItem parameters with operation overrides", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    input.components.parameters = {
+      XMode: {
+        name: "X-Mode",
+        in: "header",
+        required: false,
+        schema: { type: "string" },
+      },
+      XModeRequired: {
+        name: "X-Mode",
+        in: "header",
+        required: true,
+        schema: { type: "string" },
+      },
+    };
+    input.paths["/search"] = {
+      parameters: [
+        {
+          name: "filter",
+          in: "query",
+          required: false,
+          schema: { type: "string" },
+        },
+        {
+          name: "page",
+          in: "query",
+          required: false,
+          schema: { type: "integer" },
+        },
+        { $ref: "#/components/parameters/XMode" },
+      ],
+      get: {
+        operationId: "searchOrders",
+        parameters: [
+          {
+            name: "filter",
+            in: "query",
+            required: true,
+            style: "spaceDelimited",
+            schema: { type: "array", items: { type: "string" } },
+          },
+          // Same name in a different location is a distinct parameter.
+          {
+            name: "page",
+            in: "header",
+            required: false,
+            schema: { type: "string" },
+          },
+          { $ref: "#/components/parameters/XModeRequired" },
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/OrderDto" },
+              },
+            },
+          },
+        },
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    const calls: Array<{ url: string; headers: Headers }> = [];
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
+        calls.push({ url: String(url), headers: new Headers(init?.headers) });
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+    await client.searchOrders({
+      params: { query: { filter: ["x", "y"] } },
+      headers: { "X-Mode": "a" },
+    });
+    // The operation definition wins: a single spaceDelimited `filter` key
+    // (not the PathItem form serialization), plus the unoverridden `page`.
+    // Spaces are single-encoded as %20 per the canonical query encoding.
+    assert.equal(calls[0].url, "https://example.test/search?filter=x%20y");
+    assert.equal(calls[0].headers.get("x-mode"), "a");
+    // Requiredness follows the override: `filter` and `X-Mode` are required.
+    await assert.rejects(
+      client.searchOrders({ headers: { "X-Mode": "a" } }),
+      /Missing query parameter 'filter'/,
+    );
+    await assert.rejects(
+      client.searchOrders({ params: { query: { filter: ["x"] } } }),
+      /Missing header parameter 'X-Mode'/,
+    );
+    // The generated types expose the merged operation.
+    const clientTypes = await readFile(
+      path.join(output, "client.d.ts"),
+      "utf8",
+    );
+    assert.match(clientTypes, /searchOrders/);
+    // The runtime manifest carries each (name, in) identity exactly once,
+    // with the operation definition winning.
+    const clientJs = await readFile(path.join(output, "client.js"), "utf8");
+    assert.equal(clientJs.split('"name": "filter"').length - 1, 1);
+    assert.match(
+      clientJs,
+      /"name": "X-Mode",\s*"in": "header"[\s\S]*?"required": true/,
+    );
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
