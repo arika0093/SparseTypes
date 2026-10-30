@@ -231,4 +231,47 @@ the model. The link is resolved as follows:
 Child models stay reachable from an associated parent through nested, keyed,
 or dictionary properties, as before.
 
+### Numeric precision and lossless DTOs
+
+`ChangePayload` endpoints encode precision-sensitive scalars (`decimal`,
+`long`, `ulong`, and 64-bit enums) as strings, so diffs never lose
+precision. The ordinary response DTO is a different story: when it carries
+those members as JSON numbers, `JSON.parse` rounds them **before** `parseT`
+or `buildTChangePayload` runs, and no generated code can restore the lost
+digits.
+
+| DTO shape | Lossless? | Notes |
+| --- | --- | --- |
+| `decimal` as JSON string | Yes | Recommended. Editable states accept strings; payloads encode canonically. |
+| `long`/`ulong`/64-bit enum as JSON string | Yes | Recommended. Same handling as `decimal`. |
+| `long`/`ulong` as JSON number within ±2^53 | Yes, in practice | Exactly representable; safe numbers pass through unchanged. |
+| `long`/`ulong` as JSON number beyond ±2^53 | No | `JSON.parse` rounds to the nearest `double`; precision is unrecoverable. |
+| `decimal` as JSON number | No, beyond ~15-17 significant digits | High-scale values (for example `12345678901234567890.1234`) are rounded on parse. |
+| Plain `double`/`float`/`int` as JSON number | Yes | Round-trips exactly as the `double` the server emitted. |
+
+Recommended lossless configuration: model precision-sensitive members as
+`type: string` in the DTO schemas. The generated `OptionalT` editable types
+already accept those string forms (`StringElements`, `StringRecordValues`,
+and `DeepOptional<T> | string`), `parseT` validates the DTO as usual, keyed
+snapshots keep the strings, and `buildTChangePayload` encodes them
+canonically. If the DTO instead uses JSON numbers for such members, the
+generated client is lossy for out-of-range values: `encodeWireValue` throws
+when a caller supplies an unsafe number (or a non-numeric value) where a
+precision string is required, and keyed snapshots throw when a stored
+string cannot be preserved as an OpenAPI number.
+
+Pass `requireLosslessPrecision: true` to `generate()` to declare the
+losslessness requirement: generation then fails with an error naming the
+model and member when a precision-sensitive member is carried as a JSON
+number (or an unresolvable schema) in the DTO. The default (`false`) keeps
+the permissive behavior and documents the loss here instead of failing.
+
+```ts
+await generate({
+  input: "./openapi/order-api.json",
+  output: "node_modules/@sparsetypes/generated",
+  requireLosslessPrecision: true,
+});
+```
+
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).
