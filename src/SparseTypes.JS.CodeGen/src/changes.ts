@@ -165,6 +165,7 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
           ...member,
           snapshotType: valueSchema?.type,
           snapshotFormat: valueSchema?.format,
+          guidKeyProperties: keyedGuidProperties(document, dtoByModel, member),
         };
       }),
       payload: payload.component,
@@ -200,6 +201,23 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
 function modelTypeName(model: string): string {
   const name = model.split(/[.+]/).at(-1) ?? model;
   return name.replace(/`[0-9]+$/, "");
+}
+
+/// Names of key properties whose DTO schema is a UUID, used to normalize
+/// GUID key components case-insensitively like C# Guid equality.
+function keyedGuidProperties(
+  document: OpenApiDocument,
+  dtoByModel: Map<string, string>,
+  member: ChangeMember,
+): string[] {
+  if (member.shape !== "keyed" || !member.itemModel) return [];
+  const childDto = dtoByModel.get(member.childModel ?? member.itemModel);
+  const schema = childDto ? document.components.schemas[childDto] : undefined;
+  const names = Array.isArray(member.keyProperties) ? member.keyProperties : [];
+  return names.filter((name: string) => {
+    const property = unwrapSchema(schema?.properties?.[name]);
+    return property?.format === "uuid";
+  });
 }
 
 function jsString(value: unknown): string {
@@ -538,6 +556,15 @@ function sameEndpoint(before, after, wireType) {
   return equalWireValue(before.value, after.value, wireType);
 }
 function equalWireValue(before, after, wireType) {
+  if (wireType === "guid-string" && typeof before === "string" && typeof after === "string") {
+    // C# Guid equality is case-independent; compare canonically so a
+    // case-only spelling change is not a change. Other values stay strict.
+    if (GUID_PATTERN.test(before) && GUID_PATTERN.test(after)) {
+      return before.toLowerCase() === after.toLowerCase();
+    }
+  }
+  // Precision checks stay below the Array/object/null handling so null
+  // elements and nested values compare without throwing (issues 380/386).
   if (Array.isArray(before) || Array.isArray(after)) {
     return Array.isArray(before) && Array.isArray(after) && before.length === after.length
       && before.every((value, index) => equalWireValue(value, after[index], wireType));
@@ -633,21 +660,50 @@ function snapshotScalar(value, wireType, snapshotType) {
 }
 function identity(model, item, member, index) {
   if (item === null || typeof item !== "object") throw new TypeError("Keyed collection elements must be objects.");
-  const keyParts = member.keyProperties.map((name) => {
+  if (!Array.isArray(member.keyProperties) || member.keyProperties.length === 0) {
+    throw new TypeError("A keyed collection member needs key properties.");
+  }
+  const names = member.keyProperties;
+  const keyParts = names.map((name) => {
     if (!own(item, name) || item[name] === undefined) throw new TypeError("A keyed collection item is missing key property '" + name + "'.");
     return item[name];
   });
-  const key = keyParts.length === 1 ? keyParts[0] : keyParts;
-  const unassigned = Object.prototype.hasOwnProperty.call(member, "unassignedKey") && equal(key, member.unassignedKey);
+  const key = keyParts.length === 1 ? canonicalKeyPart(keyParts[0], isGuidKey(member, names[0])) : keyParts.map((part, position) => canonicalKeyPart(part, isGuidKey(member, names[position])));
+  const unassigned = Object.prototype.hasOwnProperty.call(member, "unassignedKey") && equalKey(key, member.unassignedKey, member);
   if (unassigned && member.temporaryKey) {
     const temporary = item[member.temporaryKey];
-    if (typeof temporary !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(temporary) ||
-        /^00000000-0000-0000-0000-000000000000$/i.test(temporary)) {
+    if (typeof temporary !== "string" || !GUID_PATTERN.test(temporary) ||
+        EMPTY_GUID_PATTERN.test(temporary)) {
       throw new TypeError("An unassigned keyed item needs a valid, non-empty temporary key.");
     }
-    return { key, id: "temporary:" + temporary, temporary, unassigned };
+    const canonicalTemporary = temporary.toLowerCase();
+    return { key, id: "temporary:" + canonicalTemporary, temporary: canonicalTemporary, unassigned };
   }
   return { key, id: unassigned ? "unassigned:" + index : "key:" + JSON.stringify(key), temporary: undefined, unassigned };
+}
+const GUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMPTY_GUID_PATTERN = /^0{8}-0{4}-0{4}-0{4}-0{12}$/i;
+function isGuidKey(member, name) {
+  if (member.keyType === "guid-string" && (member.keyProperties ?? []).length <= 1) return true;
+  return (member.guidKeyProperties ?? []).includes(name);
+}
+function canonicalKeyPart(value, isGuid) {
+  if (!isGuid || value === null || value === undefined) return value;
+  if (typeof value !== "string" || !GUID_PATTERN.test(value)) {
+    throw new TypeError("A GUID key component is not a valid UUID: " + JSON.stringify(value) + ".");
+  }
+  return value.toLowerCase();
+}
+function canonicalKeyValue(value, isGuid) {
+  return isGuid && typeof value === "string" && GUID_PATTERN.test(value) ? value.toLowerCase() : value;
+}
+function canonicalKey(key, member) {
+  const names = Array.isArray(member.keyProperties) ? member.keyProperties : [];
+  if (Array.isArray(key)) return key.map((part, position) => canonicalKeyValue(part, isGuidKey(member, names[position])));
+  return canonicalKeyValue(key, isGuidKey(member, names[0]));
+}
+function equalKey(left, right, member) {
+  return equal(canonicalKey(left, member), canonicalKey(right, member));
 }
 function validateUnique(entries) {
   const seen = new Set();

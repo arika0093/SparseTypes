@@ -68,6 +68,27 @@ public sealed class TemporaryKeyEchoApplyTests
             .Lines.ShouldBeEmpty();
     }
 
+    [Test]
+    public void LowercaseTemporaryKeyWirePayloadResolvesRow()
+    {
+        // The JavaScript codegen emits canonical lowercase D-form temporary
+        // keys; they must resolve to the same rows as any other spelling.
+        const string temporary = "f4ef9705-b5e2-41f6-a7ac-1f3b0a8c14de";
+        var payload = PayloadJsonTestSupport.Deserialize<TempOrderHolder.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"lines":{"kind":"update","items":[{"key":0,"kind":"add","afterIndex":0,"temporaryKey":"__TEMP__","after":{"state":"value","value":{"Id":0,"TemporaryId":"__TEMP__","Name":"New"}}}],"beforeOrder":[],"afterOrder":[0],"tempBeforeOrder":[],"tempAfterOrder":["__TEMP__"]}}}}"""
+                .Replace("__TEMP__", temporary)
+        )!;
+        payload.Validate().IsValid.ShouldBeTrue();
+        payload.TryApplyMixedTo(new TempOrderHolder(), out var updated, out _).ShouldBeTrue();
+        var line = updated!.Lines.Single();
+        line.TemporaryId.ShouldBe(Guid.Parse(temporary));
+        line.Name.ShouldBe("New");
+        var applied = payload.ToPatch().Apply(
+            Optional<TempOrderHolder.Fragment?>.Present(TempOrderHolder.Fragment.From(new TempOrderHolder()))
+        );
+        applied.Value!.ToModel().Lines.Single().TemporaryId.ShouldBe(Guid.Parse(temporary));
+    }
+
     private static Optional<TempOrderHolder.Fragment?> State(int id, Guid temporary, string name) =>
         Optional<TempOrderHolder.Fragment?>.Present(
             TempOrderHolder.Fragment.From(
