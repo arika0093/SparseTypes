@@ -158,42 +158,36 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
   }
 
   const dtoByModel = new Map<string, string>();
-  for (const pathItem of Object.values(document.paths) as Record<
-    string,
-    any
-  >[]) {
-    for (const operation of Object.values(pathItem ?? {}) as Record<
-      string,
-      any
-    >[]) {
-      const requestBody = dereferenceObject(document, operation?.requestBody);
-      const request = (
-        Object.values(requestBody?.content ?? {}) as Record<string, any>[]
-      ).find((entry) => entry.schema);
-      const requestRef = schemaRef(request?.schema);
-      const payload = requestRef
-        ? payloadByComponent.get(requestRef)
-        : undefined;
-      if (!payload) continue;
-      for (const [status, rawResponse] of Object.entries(
-        operation.responses ?? {},
-      ) as [string, Record<string, any>][]) {
-        if (!/^[23]/.test(status)) continue;
-        const response =
-          dereferenceObject(document, rawResponse) ?? rawResponse;
-        const schema = (
-          Object.values(response?.content ?? {}) as Record<string, any>[]
-        )
-          .map((entry) => entry.schema)
-          .find(Boolean);
-        const component = schemaRef(schema);
-        if (component) {
-          dtoByModel.set(payload.metadata.model, component);
-          payloadByModel.set(payload.metadata.model, payload);
-          break;
-        }
+  for (const [model, payload] of payloadByModel) {
+    const explicit = explicitDtoComponent(document, model, payload);
+    const inferred = inferredDtoComponents(
+      document,
+      payloadByComponent,
+      payload,
+    );
+    if (explicit) {
+      if (inferred.size > 0 && !inferred.has(explicit)) {
+        const genuine = [...inferred]
+          .filter((candidate) =>
+            responseMatchesMembers(document, membersByModel, model, candidate),
+          )
+          .sort();
+        if (genuine.length > 0)
+          throw new Error(
+            `Model '${model}' names DTO component '${explicit}' in payload schema '${payload.component}', but operations carrying its payload return ${genuine.join(", ")}. Fix the payload 'modelSchema' metadata or the operation responses.`,
+          );
       }
+      dtoByModel.set(model, explicit);
+      continue;
     }
+    if (inferred.size > 1)
+      throw new Error(
+        `Model '${model}' matches multiple response components (${[...inferred].sort().join(", ")}). Name the DTO explicitly with 'modelSchema' in the payload 'x-sparsetypes' metadata.`,
+      );
+    const [only] = inferred;
+    if (!only) continue;
+    assertResponseMatchesMembers(document, membersByModel, model, only);
+    dtoByModel.set(model, only);
   }
 
   let changed = true;
@@ -228,7 +222,7 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
   );
   if (missing.length > 0) {
     throw new Error(
-      `Could not associate SparseTypes models with ordinary OpenAPI schemas: ${missing.join(", ")}. Ensure payload models occur in a response schema.`,
+      `Could not associate SparseTypes models with ordinary OpenAPI schemas: ${missing.join(", ")}. Ensure payload models occur in a response schema, or name the DTO with 'modelSchema' in the payload 'x-sparsetypes' metadata.`,
     );
   }
   for (const [model, entry] of membersByModel) {
@@ -300,6 +294,115 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
           .join("_")
       : modelTypeName(model.model),
   }));
+}
+
+function explicitDtoComponent(
+  document: OpenApiDocument,
+  model: string,
+  payload: { component: string; metadata: Record<string, any> },
+): string | undefined {
+  const explicit = payload.metadata.modelSchema ?? payload.metadata.dto;
+  if (explicit === undefined) return undefined;
+  if (
+    typeof explicit !== "string" ||
+    !document.components.schemas[explicit]
+  )
+    throw new Error(
+      `Model '${model}' names unknown DTO component '${String(explicit)}' in payload schema '${payload.component}'. Declare 'modelSchema' with an existing '#/components/schemas/<name>'.`,
+    );
+  return explicit;
+}
+
+function inferredDtoComponents(
+  document: OpenApiDocument,
+  payloadByComponent: Map<string, { component: string; metadata: Record<string, any> }>,
+  payload: { component: string; metadata: Record<string, any> },
+): Set<string> {
+  const inferred = new Set<string>();
+  for (const pathItem of Object.values(document.paths) as Record<string, any>[]) {
+    for (const operation of Object.values(pathItem ?? {}) as Record<string, any>[]) {
+      // Resolve local requestBody/response refs before reading content so
+      // referenced payloads and DTOs participate in inference (issue 391).
+      const requestBody = dereferenceObject(document, operation?.requestBody);
+      const request = (
+        Object.values(requestBody?.content ?? {}) as Record<string, any>[]
+      ).find((entry) => entry.schema);
+      if (payloadByComponent.get(schemaRef(request?.schema) ?? "") !== payload)
+        continue;
+      for (const [status, rawResponse] of Object.entries(
+        operation.responses ?? {},
+      ) as [string, Record<string, any>][]) {
+        if (!/^[23]/.test(status)) continue;
+        const response = dereferenceObject(document, rawResponse) ?? rawResponse;
+        for (const entry of Object.values(response?.content ?? {}) as Record<string, any>[]) {
+          const component = schemaRef(entry?.schema);
+          if (component) inferred.add(component);
+        }
+      }
+    }
+  }
+  return inferred;
+}
+
+function assertResponseMatchesMembers(
+  document: OpenApiDocument,
+  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  model: string,
+  component: string,
+): void {
+  const memberNames = memberNamesOf(membersByModel, model);
+  if (!responseMatchesMembers(document, membersByModel, model, component))
+    throw new Error(
+      `Response schema '${component}' for model '${model}' shares no properties with the model's members (${memberNames.join(", ")}); it looks like a wrapper/result type. Name the DTO explicitly with 'modelSchema' in the payload 'x-sparsetypes' metadata.`,
+    );
+}
+
+function memberNamesOf(
+  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  model: string,
+): string[] {
+  return (
+    (membersByModel.get(model)?.metadata.members ?? []) as ChangeMember[]
+  ).map((member) => member.name);
+}
+
+function responseMatchesMembers(
+  document: OpenApiDocument,
+  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  model: string,
+  component: string,
+): boolean {
+  const memberNames = memberNamesOf(membersByModel, model);
+  if (memberNames.length === 0) return true;
+  const defined = new Set<string>();
+  collectDefinedProperties(document, component, new Set(), defined);
+  return memberNames.some((name) => defined.has(name));
+}
+
+function collectDefinedProperties(
+  document: OpenApiDocument,
+  component: string,
+  seen: Set<string>,
+  defined: Set<string>,
+): void {
+  if (seen.has(component)) return;
+  seen.add(component);
+  const schema = document.components.schemas[component];
+  for (const name of Object.keys(schema?.properties ?? {})) defined.add(name);
+  for (const variant of [
+    ...(schema?.allOf ?? []),
+    ...(schema?.anyOf ?? []),
+    ...(schema?.oneOf ?? []),
+  ] as Record<string, any>[]) {
+    if (!variant || typeof variant !== "object") continue;
+    if (typeof variant.$ref === "string") {
+      const name = refName(variant);
+      if (name && document.components.schemas[name])
+        collectDefinedProperties(document, name, seen, defined);
+    } else {
+      for (const name of Object.keys(variant.properties ?? {})) defined.add(name);
+    }
+  }
 }
 
 function modelTypeName(model: string): string {

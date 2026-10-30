@@ -18,7 +18,7 @@ The generated code has no runtime npm dependencies and runs in browsers and Node
 
 - Node.js 20 or later to run the generator.
 - An OpenAPI 3.0 or 3.1 JSON document emitted by a server that registers `T.PayloadJson.Schema` with `SparseTypes.OpenApi.AspNetCore` or `SparseTypes.OpenApi.Swashbuckle`.
-- Each SparseTypes model must also appear in an ordinary OpenAPI response schema (or be reachable from one through nested, keyed, or dictionary properties) so the generator can associate the `ChangePayload` metadata with its DTO schema.
+- Each SparseTypes model must be associated with an ordinary OpenAPI response DTO schema (see DTO association below).
 
 ## Install
 
@@ -204,5 +204,31 @@ keywords), so invalid values are never silently accepted. External `$ref`
 targets outside `#/components/schemas/` are likewise rejected. This keeps
 the no-runtime-dependency goal: no external schema-validation library is
 bundled with the generated code.
+
+### DTO association
+
+A `ChangePayload` request schema is linked to the ordinary DTO returned for
+the model. The link is resolved as follows:
+
+1. **Explicit metadata (preferred).** When the payload schema's
+   `x-sparsetypes` metadata names `modelSchema` (a key of
+   `#/components/schemas/`), that component is used as the DTO. This also
+   covers API shapes where the payload endpoint returns `204`/no content,
+   where the payload endpoint and the DTO endpoint are independent, or where
+   the payload endpoint returns a wrapper/result object. An unknown
+   component fails generation; a `modelSchema` that disagrees with a
+   genuine-looking (member-overlapping) response DTO also fails with an
+   error naming the model and the components.
+2. **Legacy response inference (unambiguous only).** Otherwise the generator
+   collects every `2xx`/`3xx` response schema of operations carrying the
+   payload. Inference applies only when exactly one distinct component is
+   found and it shares at least one property with the model's members (a
+   response wrapper such as `SaveOrderResult` fails this check instead of
+   being silently bound as the model). Ambiguous, wrapper-like, or missing
+   mappings fail generation with an error naming the model; add
+   `modelSchema` to resolve them.
+
+Child models stay reachable from an associated parent through nested, keyed,
+or dictionary properties, as before.
 
 For server setup and OpenAPI schema registration, see the [OpenAPI integration guide](https://github.com/arika0093/SparseTypes/blob/main/docs/how-to/openapi.md).
