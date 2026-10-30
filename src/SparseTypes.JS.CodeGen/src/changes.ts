@@ -1,4 +1,10 @@
-import { metadataOf, refName, schemaRef, unwrapSchema } from "./openapi.js";
+import {
+  dereferenceObject,
+  metadataOf,
+  refName,
+  schemaRef,
+  unwrapSchema,
+} from "./openapi.js";
 import type { OpenApiDocument } from "./openapi.js";
 
 export interface ChangeMember extends Record<string, any> {
@@ -56,21 +62,21 @@ export function collectChangeModels(document: OpenApiDocument): ChangeModel[] {
       string,
       any
     >[]) {
+      const requestBody = dereferenceObject(document, operation?.requestBody);
       const request = (
-        Object.values(operation?.requestBody?.content ?? {}) as Record<
-          string,
-          any
-        >[]
+        Object.values(requestBody?.content ?? {}) as Record<string, any>[]
       ).find((entry) => entry.schema);
       const requestRef = schemaRef(request?.schema);
       const payload = requestRef
         ? payloadByComponent.get(requestRef)
         : undefined;
       if (!payload) continue;
-      for (const [status, response] of Object.entries(
+      for (const [status, rawResponse] of Object.entries(
         operation.responses ?? {},
       ) as [string, Record<string, any>][]) {
         if (!/^[23]/.test(status)) continue;
+        const response =
+          dereferenceObject(document, rawResponse) ?? rawResponse;
         const schema = (
           Object.values(response?.content ?? {}) as Record<string, any>[]
         )
