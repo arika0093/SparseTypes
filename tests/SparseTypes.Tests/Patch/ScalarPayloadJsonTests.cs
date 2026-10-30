@@ -220,6 +220,15 @@ public sealed class ScalarPayloadJsonTests
 
         var restored = PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(numericJson).ToChangeSet();
         restored.Amount.After.Value.ShouldBe(0.1m);
+
+        // Exponent-form numbers are accepted when the value fits in System.Decimal.
+        var exponentJson = json.Replace("\"value\":\"0.1\"", "\"value\":1e-1");
+        PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(exponentJson).ToChangeSet().Amount.After.Value.ShouldBe(0.1m);
+
+        // Out-of-range numbers never convert to a decimal.
+        Should.Throw<JsonException>(() =>
+            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(json.Replace("\"value\":\"0.1\"", "\"value\":1e30}"))
+        );
     }
 
     [Test]
@@ -301,9 +310,12 @@ public sealed class ScalarPayloadJsonTests
         );
 
         var decimalJson = RoundTripPayload(before, new ScalarLedger { Amount = 0.1m });
-        Should.Throw<JsonException>(() =>
-            PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(decimalJson.Replace("\"value\":\"0.1\"}", "\"value\":\"1e-1\"}"))
-        );
+        foreach (var invalid in new[] { "1e-1", "+0.1", " 0.1", "00.1" })
+        {
+            Should.Throw<JsonException>(() =>
+                PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(decimalJson.Replace("\"value\":\"0.1\"}", "\"value\":\"" + invalid + "\"}"))
+            );
+        }
 
         var guidJson = RoundTripPayload(before, new ScalarLedger { Token = new Guid("11111111-2222-3333-4444-555555555555") });
         Should.Throw<JsonException>(() =>

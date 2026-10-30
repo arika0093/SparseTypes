@@ -827,9 +827,18 @@ function encodeWireValue(value, wireType) {
     if (!Number.isFinite(value)) {
       throw new TypeError("Precision-sensitive SparseTypes values must be finite numbers or canonical strings.");
     }
-    if (wireType === "decimal-string") return canonicalDecimal(String(value));
-    if (!Number.isSafeInteger(value)) {
+    if (wireType !== "decimal-string" && !Number.isSafeInteger(value)) {
       throw new TypeError("Precision-sensitive SparseTypes values must be supplied as strings.");
+    }
+    // Shortest-round-trip numbers at or beyond 1e21 (or below 1e-7) use
+    // exponent notation, which is not canonical decimal output. Expand them
+    // to fixed-point so the emitted wire value stays canonical, and reject
+    // values outside the decimal range or precision (the C# reader cannot
+    // decode those; supply them as exact strings instead).
+    if (wireType === "decimal-string") {
+      const text = canonicalDecimalText(String(value));
+      checkDecimalRange(text);
+      return text;
     }
     return canonicalInteger(String(value), wireType);
   }
@@ -861,6 +870,32 @@ function canonicalInteger(text, wireType) {
   const maximum = wireType === "int64-string" ? (1n << 63n) - 1n : (1n << 64n) - 1n;
   if (integer < minimum || integer > maximum) throw new TypeError("A precision-sensitive integer value is out of range.");
   return normalized;
+}
+function canonicalDecimalText(text) {
+  const match = /^([+-]?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/.exec(text);
+  if (!match) return text;
+  const fraction = match[3] ?? "";
+  const digits = (match[2] + fraction).replace(/^0+/, "") || "0";
+  let scale = fraction.length - Number(match[4]);
+  let result = digits;
+  if (scale < 0) {
+    result = digits + "0".repeat(-scale);
+  } else if (scale > 0) {
+    result = result.length > scale ? result.slice(0, -scale) + "." + result.slice(-scale) : "0." + "0".repeat(scale - result.length) + result;
+  }
+  return (match[1] === "-" && digits !== "0" ? "-" : "") + result;
+}
+function checkDecimalRange(text) {
+  const match = /^(-?)(\d+)(?:\.(\d+))?$/.exec(text);
+  if (!match) throw new TypeError("A decimal value is invalid.");
+  const integer = match[2].replace(/^0+/, "") || "0";
+  const fraction = match[3] ?? "";
+  if (fraction.length > 28) {
+    throw new TypeError("A decimal value exceeds the supported precision; supply it as a string.");
+  }
+  if (integer.length > 29 || (integer.length === 29 && integer > "79228162514264337593543950335")) {
+    throw new TypeError("A decimal value is out of range; supply it as a string.");
+  }
 }
 function normalizeDecimal(value) {
   const match = /^([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?$/.exec(String(value));

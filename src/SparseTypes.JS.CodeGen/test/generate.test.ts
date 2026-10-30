@@ -1962,8 +1962,9 @@ test("emits canonical precision-sensitive scalar encodings", async () => {
       () => changeUnitPrice("1.00", "79228162514264337593543950336"),
       /out of range/,
     );
-    // JS numbers with exponent forms or non-finite values throw.
-    assert.throws(() => changeUnitPrice("1.00", 1e21), /canonical/);
+    // Exactly representable exponent-form decimal numbers expand to canonical
+    // fixed-point output (issue 406); non-finite values still throw.
+    assert.equal(changeUnitPrice("1.00", 1e21).after.value, "1000000000000000000000");
     assert.throws(() => changeUnitPrice("1.00", NaN), /finite/);
     assert.equal(changeUnitPrice(3, 5).after.value, "5");
     const changeQuantity = (before: unknown, after: unknown) =>
