@@ -1182,17 +1182,68 @@ test("encodes query parameters exactly once and preserves style separators", asy
       get: {
         operationId: "search",
         parameters: [
-          { name: "term", in: "query", schema: { type: "string" }, style: "form", explode: true },
-          { name: "tags", in: "query", schema: { type: "array", items: { type: "string" } }, style: "form", explode: true },
-          { name: "ids", in: "query", schema: { type: "array", items: { type: "string" } }, style: "form", explode: false },
-          { name: "coords", in: "query", schema: { type: "array", items: { type: "string" } }, style: "spaceDelimited", explode: false },
-          { name: "pipes", in: "query", schema: { type: "array", items: { type: "string" } }, style: "pipeDelimited", explode: false },
-          { name: "filter", in: "query", schema: { type: "object" }, style: "deepObject", explode: true },
-          { name: "objExplode", in: "query", schema: { type: "object" }, style: "form", explode: true },
-          { name: "objFlat", in: "query", schema: { type: "object" }, style: "form", explode: false },
+          {
+            name: "term",
+            in: "query",
+            schema: { type: "string" },
+            style: "form",
+            explode: true,
+          },
+          {
+            name: "tags",
+            in: "query",
+            schema: { type: "array", items: { type: "string" } },
+            style: "form",
+            explode: true,
+          },
+          {
+            name: "ids",
+            in: "query",
+            schema: { type: "array", items: { type: "string" } },
+            style: "form",
+            explode: false,
+          },
+          {
+            name: "coords",
+            in: "query",
+            schema: { type: "array", items: { type: "string" } },
+            style: "spaceDelimited",
+            explode: false,
+          },
+          {
+            name: "pipes",
+            in: "query",
+            schema: { type: "array", items: { type: "string" } },
+            style: "pipeDelimited",
+            explode: false,
+          },
+          {
+            name: "filter",
+            in: "query",
+            schema: { type: "object" },
+            style: "deepObject",
+            explode: true,
+          },
+          {
+            name: "objExplode",
+            in: "query",
+            schema: { type: "object" },
+            style: "form",
+            explode: true,
+          },
+          {
+            name: "objFlat",
+            in: "query",
+            schema: { type: "object" },
+            style: "form",
+            explode: false,
+          },
         ],
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+          "200": {
+            description: "OK",
+            content: { "application/json": { schema: { type: "string" } } },
+          },
         },
       },
     };
@@ -1236,13 +1287,22 @@ test("encodes query parameters exactly once and preserves style separators", asy
     assert.ok(query.includes("ids=a%26b,c"), seenUrl);
     // Delimited styles preserve their separators.
     assert.ok(query.includes("coords=p%20q%26r"), seenUrl);
-    assert.ok(query.includes("pipes=m%7Cn%7Cno%20p") || query.includes("pipes=m|n|o%20p") || query.includes("pipes=m%7Cn|o%20p"), seenUrl);
+    assert.ok(
+      query.includes("pipes=m%7Cn%7Cno%20p") ||
+        query.includes("pipes=m|n|o%20p") ||
+        query.includes("pipes=m%7Cn|o%20p"),
+      seenUrl,
+    );
     // Deep objects encode brackets once and values once.
     assert.ok(query.includes("filter%5Bq%5D=a%26b"), seenUrl);
     assert.ok(query.includes("filter%5Br%5D=c%20d"), seenUrl);
     // Form explode objects spread properties; non-explode keeps commas.
     assert.ok(query.includes("a=x%26y"), seenUrl);
-    assert.ok(query.includes("objFlat=k1%2Cv%261%2Ck2%2Cv%202") || query.includes("objFlat=k1,v%261,k2,v%202"), seenUrl);
+    assert.ok(
+      query.includes("objFlat=k1%2Cv%261%2Ck2%2Cv%202") ||
+        query.includes("objFlat=k1,v%261,k2,v%202"),
+      seenUrl,
+    );
     // Reserved characters, percent, plus, spaces and unicode round-trip.
     let secondUrl = "";
     const probe = clientModule.createClient({
@@ -1273,10 +1333,19 @@ test("keeps path serialization single-encoded", async () => {
       get: {
         operationId: "getFile",
         parameters: [
-          { name: "name", in: "path", required: true, schema: { type: "string" }, style: "simple" },
+          {
+            name: "name",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+            style: "simple",
+          },
         ],
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+          "200": {
+            description: "OK",
+            content: { "application/json": { schema: { type: "string" } } },
+          },
         },
       },
     };
@@ -1420,7 +1489,10 @@ test("preserves undefined-as-missing dictionary removals", async () => {
       { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
       { profiles: { home: undefined } },
     );
-    assert.equal(profileRemoved.change.members.profiles.items[0].kind, "remove");
+    assert.equal(
+      profileRemoved.change.members.profiles.items[0].kind,
+      "remove",
+    );
     assert.equal(
       changes.buildOrderDtoChangePayload(
         { profiles: { home: { id: 1, key: 1, quantity: 1, unitPrice: 3 } } },
@@ -1491,7 +1563,10 @@ test("resolves reusable component parameters at path and operation levels", asyn
           { $ref: "#/components/parameters/a~1b" },
         ],
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+          "200": {
+            description: "OK",
+            content: { "application/json": { schema: { type: "string" } } },
+          },
         },
       },
       put: {
@@ -1501,7 +1576,10 @@ test("resolves reusable component parameters at path and operation levels", asyn
           { name: "mode", in: "query", schema: { type: "string" } },
         ],
         responses: {
-          "200": { description: "OK", content: { "application/json": { schema: { type: "string" } } } },
+          "200": {
+            description: "OK",
+            content: { "application/json": { schema: { type: "string" } } },
+          },
         },
       },
     };
@@ -1514,7 +1592,10 @@ test("resolves reusable component parameters at path and operation levels", asyn
     assert.match(clientTypes, /replaceWidget/);
     const generated = await readFile(path.join(output, "client.js"), "utf8");
     assert.match(generated, /SearchTerm|\"q\"/);
-    assert.ok(!generated.includes("$ref"), "runtime manifest must not contain unresolved refs");
+    assert.ok(
+      !generated.includes("$ref"),
+      "runtime manifest must not contain unresolved refs",
+    );
     const clientModule = await import(
       pathToFileURL(path.join(output, "client.js")).href
     );
@@ -1549,7 +1630,10 @@ test("resolves reusable component parameters at path and operation levels", asyn
 });
 
 test("rejects missing, broken, cyclic, and external parameter references", async () => {
-  const badRef = async (parameters: Array<Record<string, unknown>>, pattern: RegExp) => {
+  const badRef = async (
+    parameters: Array<Record<string, unknown>>,
+    pattern: RegExp,
+  ) => {
     const input = document();
     input.paths["/broken"] = {
       get: {
@@ -1558,7 +1642,13 @@ test("rejects missing, broken, cyclic, and external parameter references", async
         responses: { "200": { description: "OK" } },
       },
     };
-    await assert.rejects(generate({ input, output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")) }), pattern);
+    await assert.rejects(
+      generate({
+        input,
+        output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")),
+      }),
+      pattern,
+    );
   };
   await badRef(
     [{ $ref: "#/components/parameters/Missing" }],
@@ -1585,7 +1675,10 @@ test("rejects missing, broken, cyclic, and external parameter references", async
     },
   };
   await assert.rejects(
-    generate({ input: cyclic, output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")) }),
+    generate({
+      input: cyclic,
+      output: await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-")),
+    }),
     /Circular OpenAPI parameter reference/,
   );
 });
@@ -1696,14 +1789,10 @@ test("honors SparseRedactBefore across nested models and dictionary edits", asyn
     // per-item redacted before endpoints with edits are rejected server-side.
     const keyedEdit = b(
       {
-        crew: [
-          { id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 },
-        ],
+        crew: [{ id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 }],
       },
       {
-        crew: [
-          { id: 1, key: 1, temporaryId: null, quantity: 2, unitPrice: 3 },
-        ],
+        crew: [{ id: 1, key: 1, temporaryId: null, quantity: 2, unitPrice: 3 }],
       },
     );
     assert.equal(keyedEdit.change.members.crew.kind, "update");
@@ -1719,17 +1808,14 @@ test("honors SparseRedactBefore across nested models and dictionary edits", asyn
     // Removal-only keyed changes stay granular with redacted before endpoints.
     const keyedRemove = b(
       {
-        crew: [
-          { id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 },
-        ],
+        crew: [{ id: 1, key: 1, temporaryId: null, quantity: 1, unitPrice: 3 }],
       },
       { crew: [] },
     );
     assert.equal(keyedRemove.change.members.crew.kind, "update");
-    assert.deepEqual(
-      keyedRemove.change.members.crew.items[0].before,
-      { state: "redacted" },
-    );
+    assert.deepEqual(keyedRemove.change.members.crew.items[0].before, {
+      state: "redacted",
+    });
     // Model-valued dictionary edits also require whole-member replacement.
     const dictModelEdit = b(
       {
@@ -1759,10 +1845,7 @@ test("honors SparseRedactBefore across nested models and dictionary edits", asyn
     ]);
     assert.equal(leaked(dictModelEdit), false);
     // Whole-root before snapshots redact when any member is redacted.
-    const rootReplace = b(
-      { name: "a", secrets: { k: sentinel } },
-      null,
-    );
+    const rootReplace = b({ name: "a", secrets: { k: sentinel } }, null);
     assert.deepEqual(rootReplace.change.before, { state: "redacted" });
     assert.equal(rootReplace.change.after.state, "null");
     assert.equal(leaked(rootReplace), false);
@@ -1964,7 +2047,10 @@ test("emits canonical precision-sensitive scalar encodings", async () => {
     );
     // Exactly representable exponent-form decimal numbers expand to canonical
     // fixed-point output (issue 406); non-finite values still throw.
-    assert.equal(changeUnitPrice("1.00", 1e21).after.value, "1000000000000000000000");
+    assert.equal(
+      changeUnitPrice("1.00", 1e21).after.value,
+      "1000000000000000000000",
+    );
     assert.throws(() => changeUnitPrice("1.00", NaN), /finite/);
     assert.equal(changeUnitPrice(3, 5).after.value, "5");
     const changeQuantity = (before: unknown, after: unknown) =>
@@ -3043,7 +3129,12 @@ function nullSchemaDocument(): OpenApiDocument {
         put: {
           operationId: "saveNull",
           parameters: [
-            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
           ],
           requestBody: {
             required: true,
@@ -3213,7 +3304,12 @@ function validationDocument(): OpenApiDocument {
         put: {
           operationId: "saveChecked",
           parameters: [
-            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
           ],
           requestBody: {
             required: true,
@@ -3260,7 +3356,9 @@ function validationDocument(): OpenApiDocument {
             model,
             schemaIdentity,
             members: [
-              ...members(Object.keys(properties).filter((name) => name !== "tree")),
+              ...members(
+                Object.keys(properties).filter((name) => name !== "tree"),
+              ),
               {
                 name: "tree",
                 shape: "nested",
@@ -3334,7 +3432,8 @@ test("enforces numeric boundaries, collections, formats, not, and recursive refs
       /legacyMax: is above the exclusive maximum/,
     );
     assert.throws(
-      () => modelModule.parseCheckedDto({ ...checkedValid, forbidden: "banned" }),
+      () =>
+        modelModule.parseCheckedDto({ ...checkedValid, forbidden: "banned" }),
       /forbidden: matches a forbidden schema/,
     );
     assert.throws(
@@ -3343,7 +3442,10 @@ test("enforces numeric boundaries, collections, formats, not, and recursive refs
     );
     assert.throws(
       () =>
-        modelModule.parseCheckedDto({ ...checkedValid, rows: [{ id: 1 }, { id: 1 }] }),
+        modelModule.parseCheckedDto({
+          ...checkedValid,
+          rows: [{ id: 1 }, { id: 1 }],
+        }),
       /rows: has duplicate items/,
     );
     assert.throws(
@@ -3352,7 +3454,10 @@ test("enforces numeric boundaries, collections, formats, not, and recursive refs
     );
     assert.throws(
       () =>
-        modelModule.parseCheckedDto({ ...checkedValid, config: { a: 1, b: 2, c: 3 } }),
+        modelModule.parseCheckedDto({
+          ...checkedValid,
+          config: { a: 1, b: 2, c: 3 },
+        }),
       /config: has more than maxProperties/,
     );
     assert.throws(
@@ -3368,7 +3473,8 @@ test("enforces numeric boundaries, collections, formats, not, and recursive refs
       /day: is not a date/,
     );
     assert.throws(
-      () => modelModule.parseCheckedDto({ ...checkedValid, when: "2024-01-01" }),
+      () =>
+        modelModule.parseCheckedDto({ ...checkedValid, when: "2024-01-01" }),
       /when: is not a date-time/,
     );
     assert.throws(
@@ -3388,15 +3494,20 @@ test("fails generation for validation-critical unsupported keywords", async () =
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-validate-"));
   try {
     const withContains = validationDocument();
-    (withContains.components.schemas.CheckedDto as Record<string, any>).properties.tags.contains =
-      { type: "string" };
+    (
+      withContains.components.schemas.CheckedDto as Record<string, any>
+    ).properties.tags.contains = { type: "string" };
     await assert.rejects(
       generate({ input: withContains, output }),
       /Sample\.Contracts\.CheckedDto.*unsupported validation keyword 'contains'/,
     );
     const withTuples = validationDocument();
-    (withTuples.components.schemas.CheckedDto as Record<string, any>).properties.tags =
-      { type: "array", items: [{ type: "string" }, { type: "number" }] };
+    (
+      withTuples.components.schemas.CheckedDto as Record<string, any>
+    ).properties.tags = {
+      type: "array",
+      items: [{ type: "string" }, { type: "number" }],
+    };
     await assert.rejects(
       generate({ input: withTuples, output }),
       /tuple-form 'items'/,
@@ -3507,7 +3618,12 @@ function precisionDocument(stringContract: boolean): OpenApiDocument {
         put: {
           operationId: "saveLedger",
           parameters: [
-            { name: "id", in: "path", required: true, schema: { type: "integer" } },
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
           ],
           requestBody: {
             required: true,
@@ -3537,7 +3653,10 @@ function precisionDocument(stringContract: boolean): OpenApiDocument {
           properties: {
             bigInt: numeric("integer"),
             bigSeq: { type: "array", items: numeric("integer") },
-            bigMap: { type: "object", additionalProperties: nullableNumeric("number") },
+            bigMap: {
+              type: "object",
+              additionalProperties: nullableNumeric("number"),
+            },
             exactTotal: { type: "string" },
             uid: { type: "string" },
             entries: {
@@ -3564,11 +3683,41 @@ function precisionDocument(stringContract: boolean): OpenApiDocument {
             model,
             schemaIdentity,
             members: [
-              { name: "bigInt", shape: "value", nullable: false, redactBefore: false, wireType: "int64-string" },
-              { name: "bigSeq", shape: "sequence", nullable: false, redactBefore: false, elementWireType: "int64-string" },
-              { name: "bigMap", shape: "dictionary", nullable: false, redactBefore: false, valueWireType: "decimal-string" },
-              { name: "exactTotal", shape: "value", nullable: false, redactBefore: false, wireType: "decimal-string" },
-              { name: "uid", shape: "value", nullable: false, redactBefore: false, wireType: "uint64-string" },
+              {
+                name: "bigInt",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "int64-string",
+              },
+              {
+                name: "bigSeq",
+                shape: "sequence",
+                nullable: false,
+                redactBefore: false,
+                elementWireType: "int64-string",
+              },
+              {
+                name: "bigMap",
+                shape: "dictionary",
+                nullable: false,
+                redactBefore: false,
+                valueWireType: "decimal-string",
+              },
+              {
+                name: "exactTotal",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "decimal-string",
+              },
+              {
+                name: "uid",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "uint64-string",
+              },
               {
                 name: "entries",
                 shape: "keyed",
@@ -3593,10 +3742,31 @@ function precisionDocument(stringContract: boolean): OpenApiDocument {
             model: entryModel,
             schemaIdentity,
             members: [
-              { name: "id", shape: "value", nullable: false, redactBefore: false },
-              { name: "key", shape: "value", nullable: false, redactBefore: false },
-              { name: "tempId", shape: "value", nullable: true, redactBefore: false },
-              { name: "amount", shape: "value", nullable: false, redactBefore: false, wireType: "decimal-string" },
+              {
+                name: "id",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
+              {
+                name: "key",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
+              {
+                name: "tempId",
+                shape: "value",
+                nullable: true,
+                redactBefore: false,
+              },
+              {
+                name: "amount",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "decimal-string",
+              },
             ],
           },
         },
@@ -3630,9 +3800,14 @@ function precisionDocument(stringContract: boolean): OpenApiDocument {
 test("documents precision boundaries and failure modes for numeric DTOs", async () => {
   // The loss happens in JSON.parse, before generated code ever runs.
   assert.equal(JSON.parse('{"v":9007199254740993}').v, 9007199254740992);
-  assert.equal(JSON.parse('{"v":12345678901234567890.1234}').v, 12345678901234568000);
+  assert.equal(
+    JSON.parse('{"v":12345678901234567890.1234}').v,
+    12345678901234568000,
+  );
 
-  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-precision-"));
+  const output = await mkdtemp(
+    path.join(os.tmpdir(), "sparsetypes-precision-"),
+  );
   try {
     await generate({ input: precisionDocument(false), output });
     const changes = await import(
@@ -3653,8 +3828,7 @@ test("documents precision boundaries and failure modes for numeric DTOs", async 
     assert.ok(!("exactTotal" in payload.change.members));
     // Unsafe numbers are rejected instead of silently encoded.
     assert.throws(
-      () =>
-        changes.buildLedgerDtoChangePayload({}, { bigInt: 2 ** 53 }),
+      () => changes.buildLedgerDtoChangePayload({}, { bigInt: 2 ** 53 }),
       /must be supplied as strings/,
     );
     // Keyed snapshots cannot preserve unrepresentable decimals as numbers.
@@ -3677,7 +3851,11 @@ test("documents precision boundaries and failure modes for numeric DTOs", async 
     );
     // A numeric DTO contract fails the declared losslessness requirement.
     await assert.rejects(
-      generate({ input: precisionDocument(false), output, requireLosslessPrecision: true }),
+      generate({
+        input: precisionDocument(false),
+        output,
+        requireLosslessPrecision: true,
+      }),
       /Sample\.Contracts\.LedgerDto.*bigInt.*int64-string/,
     );
     void modelModule;
@@ -3687,7 +3865,9 @@ test("documents precision boundaries and failure modes for numeric DTOs", async 
 });
 
 test("accepts a string-based precision DTO contract as lossless", async () => {
-  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-precision-"));
+  const output = await mkdtemp(
+    path.join(os.tmpdir(), "sparsetypes-precision-"),
+  );
   try {
     await generate({
       input: precisionDocument(true),
@@ -3747,7 +3927,10 @@ test("preserves required keyed identities in Optional model types", async () => 
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-keyed-"));
   try {
     await generate({ input: document(), output });
-    const modelsTypes = await readFile(path.join(output, "models.d.ts"), "utf8");
+    const modelsTypes = await readFile(
+      path.join(output, "models.d.ts"),
+      "utf8",
+    );
     assert.match(
       modelsTypes,
       /export type OrderLineDtoAssignedItem = OptionalOrderLineDto & Required<Pick<OrderLineDto, "key">>;/,
@@ -3804,8 +3987,7 @@ void missingTemp;
       pathToFileURL(path.join(output, "changes.js")).href
     );
     assert.throws(
-      () =>
-        changes.buildOrderDtoChangePayload({ lines: [] }, { lines: [{}] }),
+      () => changes.buildOrderDtoChangePayload({ lines: [] }, { lines: [{}] }),
       /missing key property 'key'/,
     );
     assert.throws(

@@ -40,26 +40,52 @@ function document(withOkResponse = false): OpenApiDocument {
       "/orders/{id}": {
         get: {
           operationId: "getOrder",
-          parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+          ],
           responses: {
             "200": {
               description: "OK",
-              content: { "application/json": { schema: { $ref: "#/components/schemas/OrderDto" } } },
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/OrderDto" },
+                },
+              },
             },
           },
         },
         put: {
           operationId: "saveOrder",
-          parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer" } }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "integer" },
+            },
+          ],
           requestBody: {
             required: true,
-            content: { "application/json": { schema: { $ref: "#/components/schemas/ChangePayload" } } },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/ChangePayload" },
+              },
+            },
           },
           responses: withOkResponse
             ? {
                 "200": {
                   description: "OK",
-                  content: { "application/json": { schema: { $ref: "#/components/schemas/OrderDto" } } },
+                  content: {
+                    "application/json": {
+                      schema: { $ref: "#/components/schemas/OrderDto" },
+                    },
+                  },
                 },
               }
             : { "204": { description: "No content" } },
@@ -70,7 +96,10 @@ function document(withOkResponse = false): OpenApiDocument {
       schemas: {
         OrderDto: schema({
           name: { type: "string" },
-          lines: { type: "array", items: { $ref: "#/components/schemas/OrderLineDto" } },
+          lines: {
+            type: "array",
+            items: { $ref: "#/components/schemas/OrderLineDto" },
+          },
         }),
         OrderLineDto: schema({
           id: { type: "integer" },
@@ -84,7 +113,12 @@ function document(withOkResponse = false): OpenApiDocument {
             model: orderModel,
             schemaIdentity,
             members: [
-              { name: "name", shape: "value", nullable: false, redactBefore: false },
+              {
+                name: "name",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
               {
                 name: "lines",
                 shape: "keyed",
@@ -104,7 +138,11 @@ function document(withOkResponse = false): OpenApiDocument {
             schema: { type: "string" },
             change: { type: "object" },
           }),
-          "x-sparsetypes": payloadMetadata(orderModel, "OrderMembers", "OrderDto"),
+          "x-sparsetypes": payloadMetadata(
+            orderModel,
+            "OrderMembers",
+            "OrderDto",
+          ),
         },
         OrderLineMembers: {
           ...schema({}),
@@ -114,27 +152,51 @@ function document(withOkResponse = false): OpenApiDocument {
             model: lineModel,
             schemaIdentity,
             members: [
-              { name: "id", shape: "value", nullable: false, redactBefore: false },
-              { name: "quantity", shape: "value", nullable: false, redactBefore: false },
+              {
+                name: "id",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
+              {
+                name: "quantity",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
             ],
           },
         },
         OrderLineChangePayload: {
           ...schema({}),
-          "x-sparsetypes": payloadMetadata(lineModel, "OrderLineMembers", "OrderLineDto"),
+          "x-sparsetypes": payloadMetadata(
+            lineModel,
+            "OrderLineMembers",
+            "OrderLineDto",
+          ),
         },
       },
     },
   };
 }
 
-function resolveDto(document: OpenApiDocument, payloadComponent: string): string {
+function resolveDto(
+  document: OpenApiDocument,
+  payloadComponent: string,
+): string {
   const schema = document.components.schemas[payloadComponent];
   const metadata = metadataOf(schema);
   assert.ok(metadata, `${payloadComponent} must carry x-sparsetypes metadata`);
   const dto = (metadata as Record<string, any>).dto;
-  assert.equal(typeof dto, "string", `${payloadComponent} must publish an explicit dto association`);
-  assert.ok(document.components.schemas[dto], `dto component '${dto}' must exist in the document`);
+  assert.equal(
+    typeof dto,
+    "string",
+    `${payloadComponent} must publish an explicit dto association`,
+  );
+  assert.ok(
+    document.components.schemas[dto],
+    `dto component '${dto}' must exist in the document`,
+  );
   return dto;
 }
 
@@ -149,7 +211,9 @@ test("explicit SparseModel-to-DTO associations resolve without response inferenc
   assert.equal(resolveDto(as30, "ChangePayload"), "OrderDto");
 
   // The associated DTO component matches the model the operation exposes.
-  const getResponse = input.paths["/orders/{id}"].get.responses["200"].content["application/json"].schema;
+  const getResponse =
+    input.paths["/orders/{id}"].get.responses["200"].content["application/json"]
+      .schema;
   assert.equal(refName(getResponse), "OrderDto");
 });
 
@@ -157,8 +221,13 @@ test("documents carrying dto associations still generate isolated TS consumers",
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-dto-"));
   try {
     await generate({ input: document(true), output });
-    const changes = await import(pathToFileURL(path.join(output, "changes.js")).href);
-    const payload = changes.buildOrderDtoChangePayload({ name: "Before" }, { name: "After" });
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const payload = changes.buildOrderDtoChangePayload(
+      { name: "Before" },
+      { name: "After" },
+    );
     assert.equal(payload.change.members.name.after.value, "After");
     const models = await readFile(path.join(output, "models.d.ts"), "utf8");
     assert.match(models, /OptionalOrderDto/);

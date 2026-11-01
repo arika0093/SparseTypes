@@ -23,12 +23,20 @@ function document(): any {
           operationId: "savePrice",
           requestBody: {
             required: true,
-            content: { "application/json": { schema: { $ref: "#/components/schemas/PriceChangePayload" } } },
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/PriceChangePayload" },
+              },
+            },
           },
           responses: {
             "200": {
               description: "OK",
-              content: { "application/json": { schema: { $ref: "#/components/schemas/PriceDto" } } },
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/PriceDto" },
+                },
+              },
             },
           },
         },
@@ -48,8 +56,22 @@ function document(): any {
             model: "Shop.Contracts.PriceDto",
             schemaIdentity,
             members: [
-              { name: "amount", shape: "value", nullable: false, redactBefore: false, wireType: "decimal-string", comparison: "default" },
-              { name: "count", shape: "value", nullable: false, redactBefore: false, wireType: "int64-string", comparison: "default" },
+              {
+                name: "amount",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "decimal-string",
+                comparison: "default",
+              },
+              {
+                name: "count",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+                wireType: "int64-string",
+                comparison: "default",
+              },
             ],
           },
         },
@@ -76,12 +98,20 @@ test("JS emits canonical decimal strings for numeric inputs", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-decimal-"));
   try {
     await generate({ input: document(), output });
-    const changes = await import(pathToFileURL(path.join(output, "changes.js")).href);
-    const build = changes.buildPriceDtoChangePayload as (before: any, after: any) => any;
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const build = changes.buildPriceDtoChangePayload as (
+      before: any,
+      after: any,
+    ) => any;
 
     // Exponent-form numbers expand to canonical fixed-point strings.
     const big = build({}, { amount: 1e21, count: 42 });
-    assert.equal(big.change.members.amount.after.value, "1000000000000000000000");
+    assert.equal(
+      big.change.members.amount.after.value,
+      "1000000000000000000000",
+    );
     assert.equal(big.change.members.count.after.value, "42");
 
     const tiny = build({}, { amount: 1e-7, count: 7 });
@@ -98,7 +128,10 @@ test("JS emits canonical decimal strings for numeric inputs", async () => {
     assert.throws(() => build({}, { amount: 1e30, count: 1 }), /out of range/);
     assert.throws(() => build({}, { amount: 5e-324, count: 1 }), /precision/);
     const maxish = build({}, { amount: 7.9e28, count: 1 });
-    assert.equal(maxish.change.members.amount.after.value, "79000000000000000000000000000");
+    assert.equal(
+      maxish.change.members.amount.after.value,
+      "79000000000000000000000000000",
+    );
   } finally {
     await rm(output, { recursive: true, force: true });
   }

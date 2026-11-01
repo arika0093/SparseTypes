@@ -108,8 +108,14 @@ function checkValidationSchema(
   for (const [name, child] of Object.entries(schema.properties ?? {}))
     children.push([`${path}/properties/${name}`, child]);
   if (schema.items) children.push([`${path}/items`, schema.items]);
-  if (schema.additionalProperties && typeof schema.additionalProperties === "object")
-    children.push([`${path}/additionalProperties`, schema.additionalProperties]);
+  if (
+    schema.additionalProperties &&
+    typeof schema.additionalProperties === "object"
+  )
+    children.push([
+      `${path}/additionalProperties`,
+      schema.additionalProperties,
+    ]);
   for (const keyword of ["allOf", "anyOf", "oneOf"] as const)
     for (const [index, child] of (schema[keyword] ?? []).entries())
       children.push([`${path}/${keyword}/${index}`, child]);
@@ -303,10 +309,7 @@ function explicitDtoComponent(
 ): string | undefined {
   const explicit = payload.metadata.modelSchema ?? payload.metadata.dto;
   if (explicit === undefined) return undefined;
-  if (
-    typeof explicit !== "string" ||
-    !document.components.schemas[explicit]
-  )
+  if (typeof explicit !== "string" || !document.components.schemas[explicit])
     throw new Error(
       `Model '${model}' names unknown DTO component '${String(explicit)}' in payload schema '${payload.component}'. Declare 'modelSchema' with an existing '#/components/schemas/<name>'.`,
     );
@@ -315,12 +318,21 @@ function explicitDtoComponent(
 
 function inferredDtoComponents(
   document: OpenApiDocument,
-  payloadByComponent: Map<string, { component: string; metadata: Record<string, any> }>,
+  payloadByComponent: Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >,
   payload: { component: string; metadata: Record<string, any> },
 ): Set<string> {
   const inferred = new Set<string>();
-  for (const pathItem of Object.values(document.paths) as Record<string, any>[]) {
-    for (const operation of Object.values(pathItem ?? {}) as Record<string, any>[]) {
+  for (const pathItem of Object.values(document.paths) as Record<
+    string,
+    any
+  >[]) {
+    for (const operation of Object.values(pathItem ?? {}) as Record<
+      string,
+      any
+    >[]) {
       // Resolve local requestBody/response refs before reading content so
       // referenced payloads and DTOs participate in inference (issue 391).
       const requestBody = dereferenceObject(document, operation?.requestBody);
@@ -333,8 +345,12 @@ function inferredDtoComponents(
         operation.responses ?? {},
       ) as [string, Record<string, any>][]) {
         if (!/^[23]/.test(status)) continue;
-        const response = dereferenceObject(document, rawResponse) ?? rawResponse;
-        for (const entry of Object.values(response?.content ?? {}) as Record<string, any>[]) {
+        const response =
+          dereferenceObject(document, rawResponse) ?? rawResponse;
+        for (const entry of Object.values(response?.content ?? {}) as Record<
+          string,
+          any
+        >[]) {
           const component = schemaRef(entry?.schema);
           if (component) inferred.add(component);
         }
@@ -346,7 +362,10 @@ function inferredDtoComponents(
 
 function assertResponseMatchesMembers(
   document: OpenApiDocument,
-  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  membersByModel: Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >,
   model: string,
   component: string,
 ): void {
@@ -358,7 +377,10 @@ function assertResponseMatchesMembers(
 }
 
 function memberNamesOf(
-  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  membersByModel: Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >,
   model: string,
 ): string[] {
   return (
@@ -368,7 +390,10 @@ function memberNamesOf(
 
 function responseMatchesMembers(
   document: OpenApiDocument,
-  membersByModel: Map<string, { component: string; metadata: Record<string, any> }>,
+  membersByModel: Map<
+    string,
+    { component: string; metadata: Record<string, any> }
+  >,
   model: string,
   component: string,
 ): boolean {
@@ -400,7 +425,8 @@ function collectDefinedProperties(
       if (name && document.components.schemas[name])
         collectDefinedProperties(document, name, seen, defined);
     } else {
-      for (const name of Object.keys(variant.properties ?? {})) defined.add(name);
+      for (const name of Object.keys(variant.properties ?? {}))
+        defined.add(name);
     }
   }
 }
@@ -426,7 +452,6 @@ function keyedGuidProperties(
     return property?.format === "uuid";
   });
 }
-
 
 // Precision-sensitive members (decimal/int64/uint64 and 64-bit enums) travel
 // in ChangePayload endpoints as strings, but an ordinary DTO may still carry
@@ -522,8 +547,13 @@ export function emitModelsDts(
         (key): key is string => typeof key === "string",
       );
       const temporaryKey =
-        typeof member.temporaryKey === "string" ? member.temporaryKey : undefined;
-      const unassignedKey = Object.prototype.hasOwnProperty.call(member, "unassignedKey")
+        typeof member.temporaryKey === "string"
+          ? member.temporaryKey
+          : undefined;
+      const unassignedKey = Object.prototype.hasOwnProperty.call(
+        member,
+        "unassignedKey",
+      )
         ? member.unassignedKey
         : undefined;
       keyedItemOf.set(child.model, `${child.typeName}KeyedItem`);
@@ -633,8 +663,10 @@ export function emitModelsDts(
       return `export type Optional${model.typeName} = DeepOptional<Omit<${model.typeName}, ${omitted}>> & {\n${fields}\n};`;
     })
     .join("\n");
-  const keyedBlock = keyedItems.length > 0 ? `\n\n${keyedItems.join("\n")}` : "";
-  return `import type { components } from "./api.js";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}${keyedBlock}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;}
+  const keyedBlock =
+    keyedItems.length > 0 ? `\n\n${keyedItems.join("\n")}` : "";
+  return `import type { components } from "./api.js";\n\nexport type DeepReadonly<T> = T extends (...args: never[]) => unknown ? T : T extends readonly (infer U)[] ? readonly DeepReadonly<U>[] : T extends object ? { readonly [K in keyof T]: DeepReadonly<T[K]> } : T;\nexport type DeepOptional<T> = T extends readonly (infer U)[] ? readonly DeepOptional<U>[] : T extends object ? { [K in keyof T]?: DeepOptional<T[K]> | undefined } : T;\ntype StateProperty<T, K extends keyof T> = Exclude<T[K], undefined>;\ntype StringElements<T> = T extends readonly (infer U)[] ? readonly (U | string)[] : T;\n  type StringRecordValues<T> = T extends Record<string, infer U> ? { [K in keyof T]: U | string } : T;\n\n${aliases}\n\n${states}${keyedBlock}\n\n${models.map((model) => `export declare function parse${model.typeName}(value: unknown): ${model.typeName};`).join("\n")}\n`;
+}
 
 export function emitModelsJs(
   document: OpenApiDocument,

@@ -93,8 +93,18 @@ function document(): OpenApiDocument {
             model: "Perf.Contracts.RowDto",
             schemaIdentity,
             members: [
-              { name: "id", shape: "value", nullable: false, redactBefore: false },
-              { name: "value", shape: "value", nullable: false, redactBefore: false },
+              {
+                name: "id",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
+              {
+                name: "value",
+                shape: "value",
+                nullable: false,
+                redactBefore: false,
+              },
             ],
           },
         },
@@ -109,7 +119,10 @@ function document(): OpenApiDocument {
           },
         },
         WrapperDto: schema({
-          rows: { type: "array", items: { $ref: "#/components/schemas/RowDto" } },
+          rows: {
+            type: "array",
+            items: { $ref: "#/components/schemas/RowDto" },
+          },
         }),
       },
     },
@@ -124,53 +137,100 @@ function rows(count: number, offset = 0) {
 }
 
 test("keyed reorder comparison scales linearly and preserves semantics", async () => {
-  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-keyed-perf-"));
+  const output = await mkdtemp(
+    path.join(os.tmpdir(), "sparsetypes-keyed-perf-"),
+  );
   try {
     // Remap the keyed member onto the wrapper DTO response shape.
     const input = document() as any;
-    input.paths["/rows"].put.responses["200"].content["application/json"].schema = {
+    input.paths["/rows"].put.responses["200"].content[
+      "application/json"
+    ].schema = {
       $ref: "#/components/schemas/WrapperDto",
     };
-    input.components.schemas.RowMembers["x-sparsetypes"].model = "Perf.Contracts.WrapperDto";
-    input.components.schemas.RowChangePayload["x-sparsetypes"].model = "Perf.Contracts.WrapperDto";
+    input.components.schemas.RowMembers["x-sparsetypes"].model =
+      "Perf.Contracts.WrapperDto";
+    input.components.schemas.RowChangePayload["x-sparsetypes"].model =
+      "Perf.Contracts.WrapperDto";
     await generate({ input, output });
-    const changes = await import(pathToFileURL(path.join(output, "changes.js")).href);
-    const build = changes.buildWrapperDtoChangePayload as (before: any, after: any) => any;
+    const changes = await import(
+      pathToFileURL(path.join(output, "changes.js")).href
+    );
+    const build = changes.buildWrapperDtoChangePayload as (
+      before: any,
+      after: any,
+    ) => any;
 
     for (const count of [100, 1000, 10000]) {
       const before = { rows: rows(count) };
-      const frozen = { rows: Object.freeze(before.rows.map((row) => Object.freeze({ ...row }))) };
+      const frozen = {
+        rows: Object.freeze(
+          before.rows.map((row) => Object.freeze({ ...row })),
+        ),
+      };
       const startNoChange = performance.now();
-      const noChange = build(frozen, { rows: frozen.rows.map((row) => ({ ...row })) });
+      const noChange = build(frozen, {
+        rows: frozen.rows.map((row) => ({ ...row })),
+      });
       const noChangeMs = performance.now() - startNoChange;
       assert.equal(noChange, undefined);
       console.log(`keyed no-change n=${count}: ${noChangeMs.toFixed(1)}ms`);
 
       const edited = { rows: before.rows.map((row) => ({ ...row })) };
-      edited.rows[Math.floor(count / 2)] = { id: Math.floor(count / 2), value: "edited" };
+      edited.rows[Math.floor(count / 2)] = {
+        id: Math.floor(count / 2),
+        value: "edited",
+      };
       const oneEdit = build(before, edited);
       assert.equal(oneEdit.change.members.rows.items.length, 1);
-      assert.equal(oneEdit.change.members.rows.items[0].key, Math.floor(count / 2));
+      assert.equal(
+        oneEdit.change.members.rows.items[0].key,
+        Math.floor(count / 2),
+      );
 
       const removed = { rows: before.rows.slice(1).map((row) => ({ ...row })) };
       const added = {
-        rows: [...before.rows.map((row) => ({ ...row })), { id: count, value: "new" }],
+        rows: [
+          ...before.rows.map((row) => ({ ...row })),
+          { id: count, value: "new" },
+        ],
       };
-      const insertRemove = build(before, { rows: [...removed.rows.slice(0, count - 2), { id: count, value: "new" }] });
-      assert.ok(insertRemove.change.members.rows.items.some((item: any) => item.kind === "add"));
-      assert.ok(insertRemove.change.members.rows.items.some((item: any) => item.kind === "remove"));
+      const insertRemove = build(before, {
+        rows: [
+          ...removed.rows.slice(0, count - 2),
+          { id: count, value: "new" },
+        ],
+      });
+      assert.ok(
+        insertRemove.change.members.rows.items.some(
+          (item: any) => item.kind === "add",
+        ),
+      );
+      assert.ok(
+        insertRemove.change.members.rows.items.some(
+          (item: any) => item.kind === "remove",
+        ),
+      );
       void added;
 
-      const reversed = { rows: [...before.rows].reverse().map((row) => ({ ...row })) };
+      const reversed = {
+        rows: [...before.rows].reverse().map((row) => ({ ...row })),
+      };
       const startReorder = performance.now();
       const reordered = build(before, reversed);
       const reorderMs = performance.now() - startReorder;
       assert.equal(reordered.change.members.rows.items.length, count);
       assert.ok(
-        reordered.change.members.rows.items.every((item: any) => item.isReordered),
+        reordered.change.members.rows.items.every(
+          (item: any) => item.isReordered,
+        ),
       );
       console.log(`keyed reorder n=${count}: ${reorderMs.toFixed(1)}ms`);
-      assert.deepEqual(frozen.rows.length, count, "caller data must not be mutated");
+      assert.deepEqual(
+        frozen.rows.length,
+        count,
+        "caller data must not be mutated",
+      );
     }
   } finally {
     await rm(output, { recursive: true, force: true });
