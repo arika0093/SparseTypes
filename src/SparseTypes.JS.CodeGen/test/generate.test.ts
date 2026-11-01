@@ -2543,6 +2543,57 @@ test("rejects unsupported or ambiguous media types with actionable diagnostics",
     await rm(output, { recursive: true, force: true });
   }
 });
+test("accepts ASP.NET Core JSON media variants as a single JSON kind", async () => {
+  const output = await mkdtemp(
+    path.join(os.tmpdir(), "sparsetypes-aspnet-json-"),
+  );
+  try {
+    const input = document();
+    // ASP.NET Core maps [FromBody] to application/json, text/json, and
+    // application/*+json. All three carry JSON, so they must not trip the
+    // multiple-kinds diagnostic.
+    input.paths["/orders/{id}"].put.requestBody = {
+      required: true,
+      content: {
+        "text/json": {
+          schema: { $ref: "#/components/schemas/ChangePayload" },
+        },
+        "application/json": {
+          schema: { $ref: "#/components/schemas/ChangePayload" },
+        },
+        "application/*+json": {
+          schema: { $ref: "#/components/schemas/ChangePayload" },
+        },
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    let contentType: string | null = null;
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL, init?: RequestInit) => {
+        contentType = new Headers(init?.headers).get("content-type");
+        return new Response(JSON.stringify({ name: "Order" }), {
+          status: 200,
+          headers: { "content-type": "text/json" },
+        });
+      },
+    });
+    const saved = await client.saveOrder({
+      params: { path: { id: 1 } },
+      headers: { "If-Match": "version" },
+      body: {},
+    });
+    // The canonical application/json media is sent regardless of document
+    // ordering, and a text/json response still decodes as JSON.
+    assert.equal(contentType, "application/json");
+    assert.deepEqual(saved, { name: "Order" });
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
 test("resolves referenced requestBodies and responses", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
   try {

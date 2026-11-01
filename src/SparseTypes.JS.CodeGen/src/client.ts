@@ -30,7 +30,14 @@ export const SUPPORTED_MEDIA_DOC =
 
 function mediaKind(type: string): string | undefined {
   const mime = type.split(";")[0]?.trim().toLowerCase() ?? "";
-  if (mime === "application/json" || mime.endsWith("+json")) return "json";
+  // ASP.NET Core's JSON formatter maps application/json, text/json, and
+  // application/*+json alike; text/json is JSON, not plain text.
+  if (
+    mime === "application/json" ||
+    mime === "text/json" ||
+    mime.endsWith("+json")
+  )
+    return "json";
   if (mime.startsWith("text/")) return "text";
   if (mime === "application/octet-stream") return "octet-stream";
   if (mime === "multipart/form-data") return "multipart";
@@ -62,7 +69,14 @@ function requestSerialization(
       `OpenAPI ${describeOperation(name, method, path)} declares multiple request serialization kinds (${kinds.join(", ")}). Narrow requestBody.content to a single supported media type.`,
     );
   }
-  return { kind: kinds[0]!, mediaType: media[0]! };
+  // Several media types can share one kind (ASP.NET Core emits
+  // application/json, text/json, and application/*+json for [FromBody]).
+  // Prefer the canonical application/json so the generated client sends a
+  // stable Content-Type regardless of document ordering.
+  const mediaType = media.includes("application/json")
+    ? "application/json"
+    : media[0]!;
+  return { kind: kinds[0]!, mediaType };
 }
 
 function validateSuccessMedia(
@@ -481,7 +495,7 @@ function buildUrl(baseUrl, operation, args) {
   const suffix = pairs.join("&");
   return suffix ? url + (url.includes("?") ? "&" : "?") + suffix : url;
 }
-function isJsonMime(mime) { return mime === "application/json" || mime.endsWith("+json"); }
+function isJsonMime(mime) { return mime === "application/json" || mime === "text/json" || mime.endsWith("+json"); }
 async function responseBody(response) {
   if (response.status === 204 || response.status === 205 || response.status === 304) return undefined;
   const contentType = response.headers.get("content-type") ?? "";
