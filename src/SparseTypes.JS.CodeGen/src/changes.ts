@@ -493,10 +493,12 @@ export function emitChangesDts(models: ChangeModel[]): string {
     .map((model) => {
       const name = `build${model.typeName}ChangePayload`;
       const alias = `Optional${model.typeName}`;
-      return `export declare function ${name}(before: DeepReadonly<${alias}> | null | undefined, after: DeepReadonly<${alias}> | null | undefined): components["schemas"][${jsString(model.payload)}] | undefined;`;
+      return `export declare function ${name}(before: DeepReadonly<${alias}> | DeepReadonly<${model.typeName}> | null | undefined, after: DeepReadonly<${alias}> | DeepReadonly<${model.typeName}> | null | undefined): components["schemas"][${jsString(model.payload)}] | undefined;`;
     })
     .join("\n");
-  const imports = models.map((model) => `Optional${model.typeName}`).join(", ");
+  const imports = models
+    .flatMap((model) => [model.typeName, `Optional${model.typeName}`])
+    .join(", ");
   return `import type { components } from "./api.js";\nimport type { DeepReadonly, ${imports} } from "./models.js";\n\n${functions}\n`;
 }
 

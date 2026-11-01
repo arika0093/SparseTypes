@@ -24,6 +24,7 @@ declare -A portable_package_assets=(
 
 expected_package_ids=(
     "${!portable_package_assets[@]}"
+    SparseTypes.Blazor
     SparseTypes.Generator.Shared
     SparseTypes.EntityFrameworkCore
     SparseTypes.OpenApi.AspNetCore
