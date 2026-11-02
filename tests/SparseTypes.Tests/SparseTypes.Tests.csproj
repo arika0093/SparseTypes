@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
     <!-- Newer meta-analyzers avoid the costly RS1022 scan of every generated test type. -->
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.13" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
     <ProjectReference Include="../../src/SparseTypes/SparseTypes.csproj" />
     <ProjectReference
       Include="../../src/SparseTypes.Generator/SparseTypes.Generator.csproj"
