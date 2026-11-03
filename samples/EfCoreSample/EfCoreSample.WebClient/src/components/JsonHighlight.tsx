@@ -14,6 +14,11 @@ export default function JsonHighlight({ code }: JsonHighlightProps) {
     let active = true;
     setHtml(undefined);
     setError(undefined);
+    if (typeof code !== "string" || code.length === 0) {
+      return () => {
+        active = false;
+      };
+    }
     void codeToHtml(code, { lang: "json", theme: "dark-plus" })
       .then((highlighted) => {
         if (active) setHtml(highlighted);

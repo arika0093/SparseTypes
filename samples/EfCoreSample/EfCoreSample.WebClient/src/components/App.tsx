@@ -179,6 +179,12 @@ export default function App() {
     );
   }
 
+  const pendingPayload =
+    original && draft ? buildOrderDtoChangePayload(original, draft) : undefined;
+  const pendingJson = pendingPayload
+    ? JSON.stringify(pendingPayload, null, 2)
+    : undefined;
+
   return (
     <Container size="lg" py="xl">
       <Stack gap="lg">
@@ -225,13 +231,13 @@ export default function App() {
             <Accordion.Item value="payload">
               <Accordion.Control>Pending ChangePayload</Accordion.Control>
               <Accordion.Panel>
-                <JsonHighlight
-                  code={JSON.stringify(
-                    buildOrderDtoChangePayload(original, draft),
-                    null,
-                    2,
-                  )}
-                />
+                {pendingJson ? (
+                  <JsonHighlight code={pendingJson} />
+                ) : (
+                  <Text c="dimmed">
+                    No changes — edit the order to preview its ChangePayload.
+                  </Text>
+                )}
               </Accordion.Panel>
             </Accordion.Item>
           </Accordion>
