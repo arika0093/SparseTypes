@@ -1370,6 +1370,118 @@ test("keeps path serialization single-encoded", async () => {
     await rm(output, { recursive: true, force: true });
   }
 });
+
+test("serializes exploded label and matrix path parameters", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
+  try {
+    const input = document();
+    const response = {
+      "200": {
+        description: "OK",
+        content: { "application/json": { schema: { type: "string" } } },
+      },
+    };
+    input.paths["/labels/{value}"] = {
+      get: {
+        operationId: "labelArray",
+        parameters: [
+          {
+            name: "value",
+            in: "path",
+            required: true,
+            style: "label",
+            explode: true,
+            schema: { type: "array", items: { type: "string" } },
+          },
+        ],
+        responses: response,
+      },
+    };
+    input.paths["/label-objects/{value}"] = {
+      get: {
+        operationId: "labelObject",
+        parameters: [
+          {
+            name: "value",
+            in: "path",
+            required: true,
+            style: "label",
+            explode: true,
+            schema: { type: "object" },
+          },
+        ],
+        responses: response,
+      },
+    };
+    input.paths["/matrices/{value}"] = {
+      get: {
+        operationId: "matrixArray",
+        parameters: [
+          {
+            name: "value",
+            in: "path",
+            required: true,
+            style: "matrix",
+            explode: true,
+            schema: { type: "array", items: { type: "string" } },
+          },
+        ],
+        responses: response,
+      },
+    };
+    input.paths["/matrix-objects/{value}"] = {
+      get: {
+        operationId: "matrixObject",
+        parameters: [
+          {
+            name: "value",
+            in: "path",
+            required: true,
+            style: "matrix",
+            explode: true,
+            schema: { type: "object" },
+          },
+        ],
+        responses: response,
+      },
+    };
+    await generate({ input, output });
+    const clientModule = await import(
+      pathToFileURL(path.join(output, "client.js")).href
+    );
+    const urls: string[] = [];
+    const client = clientModule.createClient({
+      baseUrl: "https://example.test",
+      fetch: async (url: RequestInfo | URL) => {
+        urls.push(String(url));
+        return new Response(JSON.stringify("ok"), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    });
+
+    await client.labelArray({ params: { path: { value: ["one", "two"] } } });
+    await client.labelObject({
+      params: { path: { value: { role: "admin", name: "Jane Doe" } } },
+    });
+    await client.matrixArray({
+      params: { path: { value: ["blue", "black&white"] } },
+    });
+    await client.matrixObject({
+      params: { path: { value: { role: "admin", name: "Jane Doe" } } },
+    });
+
+    assert.deepEqual(urls, [
+      "https://example.test/labels/.one.two",
+      "https://example.test/label-objects/.role=admin.name=Jane%20Doe",
+      "https://example.test/matrices/;value=blue;value=black%26white",
+      "https://example.test/matrix-objects/;role=admin;name=Jane%20Doe",
+    ]);
+  } finally {
+    await rm(output, { recursive: true, force: true });
+  }
+});
 test("preserves undefined-as-missing dictionary removals", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "sparsetypes-codegen-"));
   try {

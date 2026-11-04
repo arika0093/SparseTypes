@@ -448,6 +448,30 @@ function serializeSimple(value, explode) {
   if (value && typeof value === "object") return Object.entries(value).map(([key, item]) => explode ? encode(key) + "=" + encode(item) : encode(key) + "," + encode(item)).join(",");
   return encode(value);
 }
+function serializePath(value, parameter) {
+  const { name, style, explode } = parameter;
+  if (style === "simple") return serializeSimple(value, explode);
+  if (style === "label") {
+    if (Array.isArray(value)) return "." + value.map(encode).join(explode ? "." : ",");
+    if (value && typeof value === "object") {
+      const entries = Object.entries(value).map(([key, item]) => explode ? encode(key) + "=" + encode(item) : encode(key) + "," + encode(item));
+      return "." + entries.join(explode ? "." : ",");
+    }
+    return "." + encode(value);
+  }
+  if (Array.isArray(value)) {
+    return explode
+      ? value.map((item) => ";" + encode(name) + "=" + encode(item)).join("")
+      : ";" + encode(name) + "=" + value.map(encode).join(",");
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value);
+    return explode
+      ? entries.map(([key, item]) => ";" + encode(key) + "=" + encode(item)).join("")
+      : ";" + encode(name) + "=" + entries.map(([key, item]) => encode(key) + "," + encode(item)).join(",");
+  }
+  return ";" + encode(name) + "=" + encode(value);
+}
 function serializeQuery(pairs, parameter, value) {
   if (value === undefined) return;
   const name = parameter.name;
@@ -476,9 +500,7 @@ function buildUrl(baseUrl, operation, args) {
       if (parameter.required) throw new TypeError("Missing path parameter '" + parameter.name + "'.");
       continue;
     }
-    const formatted = parameter.style === "label" ? "." + serializeSimple(value, parameter.explode)
-      : parameter.style === "matrix" ? ";" + parameter.name + "=" + serializeSimple(value, parameter.explode)
-        : serializeSimple(value, parameter.explode);
+    const formatted = serializePath(value, parameter);
     path = path.replace("{" + parameter.name + "}", formatted);
   }
   const pairs = [];
