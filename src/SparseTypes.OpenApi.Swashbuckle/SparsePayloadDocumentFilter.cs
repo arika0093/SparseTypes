@@ -23,6 +23,7 @@ internal sealed class SparsePayloadDocumentFilter(
 
         var version = versions[0];
         var schemas = sets.SelectMany(static set => set.GetSchemas()).ToArray();
+        SparseOpenApiSchemaParser.ValidateDefinitions(schemas, version);
         SparseOpenApiSchemaParser.ValidateReferences(schemas, version);
         var availableTypes = schemas.Select(static schema => schema.Type).ToHashSet();
         var missing = sets.SelectMany(static set => set.Bundle.RequiredExternalSchemaTypes)

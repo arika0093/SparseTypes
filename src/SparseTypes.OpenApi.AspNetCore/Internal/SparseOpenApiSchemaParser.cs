@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using SparseTypes;
@@ -12,6 +13,26 @@ namespace SparseTypes.OpenApi.Internal;
 
 internal static class SparseOpenApiSchemaParser
 {
+    internal static void ValidateDefinitions(IEnumerable<SparsePayloadSchema> schemas, OpenApiSpecVersion version)
+    {
+        var definitions = new Dictionary<string, SparsePayloadSchema>(StringComparer.Ordinal);
+        foreach (var schema in schemas)
+        {
+            if (!definitions.TryGetValue(schema.Name, out var previous))
+            {
+                definitions.Add(schema.Name, schema);
+                continue;
+            }
+
+            var previousJson = version == OpenApiSpecVersion.OpenApi3_0 ? previous.OpenApi30JsonSchema : previous.OpenApi31JsonSchema;
+            var currentJson = version == OpenApiSpecVersion.OpenApi3_0 ? schema.OpenApi30JsonSchema : schema.OpenApi31JsonSchema;
+            if (previous.Type != schema.Type || !JsonNode.DeepEquals(JsonNode.Parse(previousJson), JsonNode.Parse(currentJson)))
+            {
+                throw new InvalidOperationException($"SparseTypes schema name '{schema.Name}' has conflicting definitions for OpenAPI {version}.");
+            }
+        }
+    }
+
     internal static void ValidateReferences(IEnumerable<SparsePayloadSchema> schemas, OpenApiSpecVersion version)
     {
         var descriptors = schemas.ToArray();

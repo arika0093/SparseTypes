@@ -40,11 +40,14 @@ public static class SparseOpenApiServiceCollectionExtensions
     private static void Register(IServiceCollection services, SparsePayloadSchemaSet schemaSet)
     {
         ArgumentNullException.ThrowIfNull(services);
-        services.AddSingleton(schemaSet);
         var registry = services.Select(static descriptor => descriptor.ImplementationInstance).OfType<SparseSchemaNameRegistry>().LastOrDefault();
-        if (registry is null)
+        var registerPipeline = registry is null;
+        registry ??= new SparseSchemaNameRegistry();
+        var identities = schemaSet.GetAllIdentities();
+        registry.Validate(identities);
+
+        if (registerPipeline)
         {
-            registry = new SparseSchemaNameRegistry();
             services.AddSingleton(registry);
             services.PostConfigureAll<OpenApiOptions>(options =>
             {
@@ -64,7 +67,8 @@ public static class SparseOpenApiServiceCollectionExtensions
             });
         }
 
-        registry.Add(schemaSet.GetAllIdentities());
+        services.AddSingleton(schemaSet);
+        registry.Add(identities);
     }
 }
 
@@ -84,9 +88,11 @@ internal sealed class SparseSchemaNameRegistry
 
     /// <summary>Adds curated names and rejects inconsistent type or name collisions.</summary>
     /// <param name="schemas">The generated payload schemas.</param>
-    public void Add(IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> schemas)
+    public void Validate(IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> schemas)
     {
         ArgumentNullException.ThrowIfNull(schemas);
+        var namesByType = new Dictionary<Type, string>();
+        var typesByName = new Dictionary<string, Type>(StringComparer.Ordinal);
         foreach (var schema in schemas)
         {
             if (_names.TryGetValue(schema.Type, out var existingName) && !string.Equals(existingName, schema.Name, StringComparison.Ordinal))
@@ -99,6 +105,28 @@ internal sealed class SparseSchemaNameRegistry
                 throw new InvalidOperationException($"SparseTypes schema name '{schema.Name}' is registered for multiple types.");
             }
 
+            if (namesByType.TryGetValue(schema.Type, out existingName) && !string.Equals(existingName, schema.Name, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"SparseTypes schema type '{schema.Type}' has conflicting component names.");
+            }
+
+            if (typesByName.TryGetValue(schema.Name, out existingType) && existingType != schema.Type)
+            {
+                throw new InvalidOperationException($"SparseTypes schema name '{schema.Name}' is registered for multiple types.");
+            }
+
+            namesByType.TryAdd(schema.Type, schema.Name);
+            typesByName.TryAdd(schema.Name, schema.Type);
+        }
+    }
+
+    /// <summary>Adds curated names after validating the complete registration set.</summary>
+    /// <param name="schemas">The generated payload schemas.</param>
+    public void Add(IReadOnlyList<SparseTypes.SparsePayloadSchemaIdentity> schemas)
+    {
+        Validate(schemas);
+        foreach (var schema in schemas)
+        {
             _names.TryAdd(schema.Type, schema.Name);
             _typesByName.TryAdd(schema.Name, schema.Type);
         }

@@ -132,11 +132,13 @@ public static class SparsePayloadSchemaNames
         var names = new Stack<string>();
         for (var current = type; current is not null; current = current.DeclaringType)
         {
-            var name = RemoveGeneratedHash(current.Name);
-            if (!name.StartsWith("__Internal", StringComparison.Ordinal))
+            var name = StripArity(current.Name);
+            if (IsGeneratedContainer(current))
             {
-                names.Push(name);
+                continue;
             }
+
+            names.Push(IsGeneratedMember(current) ? name[..^9] : name);
         }
 
         if (!string.IsNullOrEmpty(type.Namespace))
@@ -170,28 +172,36 @@ public static class SparsePayloadSchemaNames
         return builder.ToString();
     }
 
-    private static string RemoveGeneratedHash(string name)
+    private static string StripArity(string name)
     {
-        var separator = name.LastIndexOf('_');
         var arity = name.IndexOf('`');
-        if (arity >= 0)
-        {
-            name = name[..arity];
-        }
+        return arity >= 0 ? name[..arity] : name;
+    }
 
-        separator = name.LastIndexOf('_');
-        if (separator < 0 || name.Length - separator != 9)
-        {
-            return name;
-        }
+    // Generated plumbing is `__Internal_<hash>` holding nested `<Role>_<hash>` types.
+    private static bool IsGeneratedContainer(Type type) => !type.IsNested && HasHashSuffix(type.Name, "__Internal_");
 
-        for (var index = separator + 1; index < name.Length; index++)
+    private static bool IsGeneratedMember(Type type) =>
+        type.DeclaringType is { } container
+        && IsGeneratedContainer(container)
+        && StripArity(type.Name) is var name
+        && name.Length > 9
+        && name.EndsWith(container.Name[^8..], StringComparison.Ordinal)
+        && name[^9] == '_';
+
+    private static bool HasHashSuffix(string name, string prefix) =>
+        name.Length == prefix.Length + 8 && name.StartsWith(prefix, StringComparison.Ordinal) && IsUpperHex(name.AsSpan(prefix.Length));
+
+    private static bool IsUpperHex(ReadOnlySpan<char> value)
+    {
+        foreach (var c in value)
         {
-            if (!Uri.IsHexDigit(name[index]))
+            if (c is not ((>= '0' and <= '9') or (>= 'A' and <= 'F')))
             {
-                return name;
+                return false;
             }
         }
-        return name[..separator];
+
+        return true;
     }
 }

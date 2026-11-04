@@ -33,6 +33,7 @@ internal sealed class SparsePayloadDocumentTransformer(
                 ? SparseTypes.SparsePayloadSchemaDialect.OpenApi30
                 : SparseTypes.SparsePayloadSchemaDialect.OpenApi31;
         var schemas = sets.SelectMany(set => set.GetSchemas(dialect)).ToArray();
+        SparseOpenApiSchemaParser.ValidateDefinitions(schemas, version);
         SparseOpenApiSchemaParser.ValidateReferences(schemas, version);
         var availableTypes = schemas.Select(static schema => schema.Type).ToHashSet();
         var missing = sets.SelectMany(static set => set.Bundle.RequiredExternalSchemaTypes)
