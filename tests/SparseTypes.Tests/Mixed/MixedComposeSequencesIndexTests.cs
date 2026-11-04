@@ -236,6 +236,41 @@ public sealed class MixedComposeSequencesIndexTests
         blindVersusChild.Composed.Select(static operation => operation.Path).ShouldBe([parent]);
     }
 
+    [Test]
+    public void WholeRootTransitionWithMembersAndEmptySecondSequenceIsIdentity()
+    {
+        var root = WholeRoot(MixedHistoryKind.Transition);
+        var composed = MixedChangeAlgebra.ComposeSequences([root, Transition("Label")], []);
+
+        composed.Succeeded.ShouldBeTrue();
+        composed.Composed.Select(static operation => operation.Path).ShouldBe(["$root", "Label"]);
+        composed.PendingContinuityChecks.ShouldBeEmpty();
+    }
+
+    [Test]
+    public void WholeRootTransitionOnlyFirstSequenceRequiresContinuityForSecondMembers()
+    {
+        var root = WholeRoot(MixedHistoryKind.Transition);
+        var composed = MixedChangeAlgebra.ComposeSequences([root], [Transition("Label")]);
+
+        composed.Succeeded.ShouldBeTrue();
+        composed.Composed.Select(static operation => operation.Path).ShouldBe(["$root"]);
+        composed.PendingContinuityChecks.ShouldHaveSingleItem().RequiresContinuityCheck.ShouldBeTrue();
+    }
+
+    [Test]
+    public void WholeRootTransitionWithMembersKeepsOwnMembersAndRequiresContinuity()
+    {
+        var root = WholeRoot(MixedHistoryKind.Transition);
+        var composed = MixedChangeAlgebra.ComposeSequences([root, Transition("Label")], [Transition("Other")]);
+
+        composed.Succeeded.ShouldBeTrue();
+        composed.Composed.Select(static operation => operation.Path).ShouldBe(["$root", "Label"]);
+        composed.PendingContinuityChecks.ShouldHaveSingleItem();
+    }
+
+    private static MixedMemberOperation WholeRoot(MixedHistoryKind history) => new("$root", history, MixedAfterKind.Value, true);
+
     private static MixedMemberOperation Transition(string path, MixedAfterKind after = MixedAfterKind.Value) =>
         new(path, MixedHistoryKind.Transition, after);
 

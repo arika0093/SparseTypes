@@ -234,9 +234,9 @@ public static class MixedChangeAlgebra
             return new MixedSequenceComposition(true, [root], failures, pending);
         }
 
-        if (firstMembers.Count == 0)
+        if (secondMembers.Count == 0)
         {
-            return new MixedSequenceComposition(true, [firstRoot!.Value, .. secondMembers.Values], failures, pending);
+            return new MixedSequenceComposition(true, [firstRoot!.Value, .. firstMembers.Values], failures, pending);
         }
 
         var firstProbe = Compose(firstRoot!.Value, secondMembers.Values.First());
