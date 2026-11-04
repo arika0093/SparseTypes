@@ -225,8 +225,20 @@ public sealed partial class SparseCollection<TModel, TElement> : ComponentBase, 
             return;
         }
 
+        int count;
+        try
+        {
+            count = editor.Count;
+        }
+        catch (Exception exception)
+        {
+            Rows = [];
+            QueryError = exception.Message;
+            SetCollectionState(null);
+            return;
+        }
+
         _rowIdentity.BeginRefresh();
-        var count = editor.Count;
         var rows = new List<SparseCollectionRow<TModel, TElement>>(count);
         SparseCollectionState? collectionState = null;
         var hasCollectionState = false;

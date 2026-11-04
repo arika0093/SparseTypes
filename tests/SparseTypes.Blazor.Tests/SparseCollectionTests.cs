@@ -1,4 +1,6 @@
+using System.Collections;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Rendering;
 
 namespace SparseTypes.Blazor.Tests;
@@ -38,6 +40,93 @@ public sealed class SparseCollectionTests
             );
             builder.CloseComponent();
         };
+
+    private sealed class ThrowingCountList<T> : IList<T>
+    {
+        private readonly List<T> _items = [];
+
+        public bool ThrowOnCount { get; set; }
+
+        public T this[int index]
+        {
+            get => _items[index];
+            set => _items[index] = value;
+        }
+
+        public int Count => ThrowOnCount ? throw new InvalidOperationException("Collection count is unavailable.") : _items.Count;
+
+        public bool IsReadOnly => false;
+
+        public void Add(T item) => _items.Add(item);
+
+        public void Clear() => _items.Clear();
+
+        public bool Contains(T item) => _items.Contains(item);
+
+        public void CopyTo(T[] array, int arrayIndex) => _items.CopyTo(array, arrayIndex);
+
+        public IEnumerator<T> GetEnumerator() => _items.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => _items.GetEnumerator();
+
+        public int IndexOf(T item) => _items.IndexOf(item);
+
+        public void Insert(int index, T item) => _items.Insert(index, item);
+
+        public bool Remove(T item) => _items.Remove(item);
+
+        public void RemoveAt(int index) => _items.RemoveAt(index);
+    }
+
+    private sealed class TestScope(ISparseEditSession<CountedBoard> session) : ISparseEditScope<CountedBoard>
+    {
+        public ISparseEditSession<CountedBoard> Session { get; } = session;
+
+        public EditContext EditContext { get; } = session.CreateEditContext();
+    }
+
+    [Test]
+    public async Task CollectionCountFailureIsRenderedThroughErrorContent()
+    {
+        var items = new ThrowingCountList<BlazorDraftLine>();
+        items.Add(new BlazorDraftLine { Id = 1, Title = "Existing" });
+        var board = new CountedBoard { Drafts = items };
+        var session = board.CreateEditSession();
+        items.ThrowOnCount = true;
+        SparseCollection<CountedBoard, BlazorDraftLine>? collection = null;
+        string? renderedError = null;
+
+        var scope = new TestScope(session);
+        using var tree = await Headless.Tree.CreateAsync(builder =>
+        {
+            builder.OpenComponent<CascadingValue<ISparseEditScope<CountedBoard>>>(0);
+            builder.AddAttribute(1, nameof(CascadingValue<ISparseEditScope<CountedBoard>>.Value), scope);
+            builder.AddAttribute(
+                2,
+                nameof(CascadingValue<ISparseEditScope<CountedBoard>>.ChildContent),
+                (RenderFragment)(child =>
+                {
+                    child.OpenComponent<SparseCollection<CountedBoard, BlazorDraftLine>>(0);
+                    child.AddAttribute(1, nameof(SparseCollection<CountedBoard, BlazorDraftLine>.Path), CountedBoard.SparsePath.Drafts.UntypedPath);
+                    child.AddAttribute(
+                        2,
+                        nameof(SparseCollection<CountedBoard, BlazorDraftLine>.ErrorContent),
+                        (RenderFragment<string>)(error => errorBuilder => renderedError = error)
+                    );
+                    child.AddComponentReferenceCapture(
+                        3,
+                        component => collection = (SparseCollection<CountedBoard, BlazorDraftLine>)component
+                    );
+                    child.CloseComponent();
+                })
+            );
+            builder.CloseComponent();
+        });
+
+        collection.ShouldNotBeNull().Rows.ShouldBeEmpty();
+        collection.QueryError!.ShouldContain("Collection count is unavailable.");
+        renderedError!.ShouldContain("Collection count is unavailable.");
+    }
 
     [Test]
     public async Task CollectionRowsKeepIdentityAcrossKeyAssignmentAndSupportEdits()
