@@ -28,30 +28,28 @@ internal static class SparseModelDiscovery
             hierarchy.Push(current);
         }
 
-        var properties = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
+        var members = new Dictionary<string, ISymbol>(StringComparer.Ordinal);
         while (hierarchy.Count > 0)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            foreach (var property in hierarchy.Pop().GetMembers().OfType<IPropertySymbol>())
+            foreach (var member in hierarchy.Pop().GetMembers())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (
-                    property.IsStatic
-                    || property.IsIndexer
-                    || property.DeclaredAccessibility != Accessibility.Public
-                    || property.GetMethod?.DeclaredAccessibility != Accessibility.Public
-                    || (!includeSparseIgnored && config is not null && IsSparseIgnored(property, config))
-                    || (requirePublicSetter && property.SetMethod?.DeclaredAccessibility != Accessibility.Public)
-                )
-                {
-                    continue;
-                }
-
-                properties[property.Name] = property;
+                members[member.Name] = member;
             }
         }
 
-        return properties.Values.OrderBy(static property => property.Name, StringComparer.Ordinal);
+        return members
+            .Values.OfType<IPropertySymbol>()
+            .Where(property =>
+                !property.IsStatic
+                && !property.IsIndexer
+                && property.DeclaredAccessibility == Accessibility.Public
+                && property.GetMethod?.DeclaredAccessibility == Accessibility.Public
+                && (includeSparseIgnored || config is null || !IsSparseIgnored(property, config))
+                && (!requirePublicSetter || property.SetMethod?.DeclaredAccessibility == Accessibility.Public)
+            )
+            .OrderBy(static property => property.Name, StringComparer.Ordinal);
     }
 
     internal static bool IsSparseIgnored(IPropertySymbol property, SparseGeneratorConfig config) =>
