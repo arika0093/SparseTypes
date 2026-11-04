@@ -245,4 +245,91 @@ public sealed class SparseEditControllerTests
         submission.IsEmpty.ShouldBeTrue();
         editor.HasPendingDrafts.ShouldBeFalse();
     }
+
+    [Test]
+    public async Task UnknownOutcomeBlocksFurtherPreparationAndSendingUntilResolved()
+    {
+        var session = new HistoryScalarModel { Name = "Base" }.CreateEditSession();
+        using var editor = session.CreateEditor();
+        session.Observable.Name = "Changed";
+        var first = await editor.PrepareSaveAsync();
+        var second = await editor.PrepareSaveAsync();
+        var persistCalls = 0;
+        await editor.SaveAsync(
+            first,
+            (_, _) =>
+            {
+                persistCalls++;
+                return Task.FromResult(SparsePersistResult<HistoryScalarModel>.Unknown());
+            }
+        );
+
+        await Should.ThrowAsync<InvalidOperationException>(async () => await editor.PrepareSaveAsync());
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await editor.SaveAsync(
+                second,
+                (_, _) =>
+                {
+                    persistCalls++;
+                    return Task.FromResult(SparsePersistResult<HistoryScalarModel>.Unknown());
+                }
+            )
+        );
+
+        persistCalls.ShouldBe(1);
+        editor.SaveState.ShouldBe(SparseEditSaveState.OutcomeUnknown);
+        ReferenceEquals(first, editor.UnknownSubmission).ShouldBeTrue();
+        editor.ResolveUnknownOutcomeAsNotPersisted();
+        (await editor.PrepareSaveAsync()).IsEmpty.ShouldBeFalse();
+    }
+
+    [Test]
+    public async Task UnreconciledResultBlocksFurtherPreparationAndSending()
+    {
+        var session = new HistoryScalarModel { Name = "Base" }.CreateEditSession();
+        using var editor = session.CreateEditor();
+        session.Observable.Name = "Changed";
+        var first = await editor.PrepareSaveAsync();
+        var second = await editor.PrepareSaveAsync();
+        var persistCalls = 0;
+        var notifier = (System.ComponentModel.INotifyPropertyChanged)session;
+        System.ComponentModel.PropertyChangedEventHandler throwingObserver = (_, _) => throw new InvalidOperationException("Notification failed.");
+        notifier.PropertyChanged += throwingObserver;
+        try
+        {
+            await Should.ThrowAsync<InvalidOperationException>(async () =>
+                await editor.SaveAsync(
+                    first,
+                    (_, _) =>
+                    {
+                        persistCalls++;
+                        return Task.FromResult(SparsePersistResult<HistoryScalarModel>.Success(new HistoryScalarModel { Name = "Changed" }));
+                    }
+                )
+            );
+        }
+        finally
+        {
+            notifier.PropertyChanged -= throwingObserver;
+        }
+
+        editor.SaveState.ShouldBe(SparseEditSaveState.PersistedButUnreconciled);
+        editor.CanEdit.ShouldBeFalse();
+
+        await Should.ThrowAsync<InvalidOperationException>(async () => await editor.PrepareSaveAsync());
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await editor.SaveAsync(
+                second,
+                (_, _) =>
+                {
+                    persistCalls++;
+                    return Task.FromResult(SparsePersistResult<HistoryScalarModel>.Unknown());
+                }
+            )
+        );
+
+        persistCalls.ShouldBe(1);
+        editor.SaveState.ShouldBe(SparseEditSaveState.PersistedButUnreconciled);
+        ReferenceEquals(first, editor.UnreconciledSubmission).ShouldBeTrue();
+    }
 }

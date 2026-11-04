@@ -302,6 +302,7 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
     public async Task<SparsePreparedSubmission<TModel, TChangeSet>> PrepareSaveAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
+        ThrowIfPersistenceOutcomeUnresolved();
         EnterOperation();
         SaveState = SparseEditSaveState.Preparing;
         NotifyStateChanged();
@@ -384,6 +385,7 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
             throw new ArgumentException("The prepared submission belongs to another edit controller.", nameof(submission));
         }
 
+        ThrowIfPersistenceOutcomeUnresolved();
         EnterOperation();
         try
         {
@@ -723,6 +725,14 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
         if (_disposed)
         {
             throw new ObjectDisposedException(GetType().FullName);
+        }
+    }
+
+    private void ThrowIfPersistenceOutcomeUnresolved()
+    {
+        if (_unknownSubmission is not null || _unreconciledSubmission is not null)
+        {
+            throw new InvalidOperationException("Resolve the previous persistence outcome before preparing or sending another submission.");
         }
     }
 
