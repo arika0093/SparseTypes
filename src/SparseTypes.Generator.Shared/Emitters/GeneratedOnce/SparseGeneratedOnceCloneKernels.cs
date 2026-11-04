@@ -53,10 +53,16 @@ internal static class SparseGeneratedOnceCloneKernels
         code.CloseBlock();
         code.AppendLine("global::System.Collections.Generic.ISet<T> clone;");
         code.AppendLine(
+            "if (source is global::System.Collections.Generic.SortedSet<T> sorted) clone = new global::System.Collections.Generic.SortedSet<T>(sorted.Comparer);"
+        );
+        code.AppendLine("else");
+        code.OpenBlock();
+        code.AppendLine(
             "clone = new global::System.Collections.Generic.HashSet<T>("
                 + setCapacity
                 + "(source as global::System.Collections.Generic.HashSet<T>)?.Comparer);"
         );
+        code.CloseBlock();
         code.AppendLine("context.Add(source, clone);");
         // A HashSet copy constructor can retain a source's oversized capacity
         // and cross the LOH threshold. Union into the count-sized set instead.
@@ -86,11 +92,18 @@ internal static class SparseGeneratedOnceCloneKernels
             code.CloseBlock();
             code.AppendLine("global::System.Collections.Generic.ISet<T> clone;");
             code.AppendLine("if (source is __SparseReadOnlySet<T> sourceView) clone = sourceView.CloneEmpty();");
+            code.AppendLine("else if (source is global::System.Collections.Generic.SortedSet<T> sorted)");
+            code.OpenBlock();
+            code.AppendLine("clone = new global::System.Collections.Generic.SortedSet<T>(sorted.Comparer);");
+            code.CloseBlock();
+            code.AppendLine("else");
+            code.OpenBlock();
             code.AppendLine(
-                "else clone = new global::System.Collections.Generic.HashSet<T>("
+                "clone = new global::System.Collections.Generic.HashSet<T>("
                     + setCapacity
                     + "(source as global::System.Collections.Generic.HashSet<T>)?.Comparer);"
             );
+            code.CloseBlock();
             code.AppendLine("var view = new __SparseReadOnlySet<T>(clone);");
             code.AppendLine("context.Add(source, view);");
             code.AppendLine("if (cloneElement is null) clone.UnionWith(source);");
@@ -212,6 +225,9 @@ internal static class SparseGeneratedOnceCloneKernels
         code.AppendLine("global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => __inner.GetEnumerator();");
         code.AppendLine("public global::System.Collections.Generic.ISet<T> CloneEmpty()");
         code.OpenBlock();
+        code.AppendLine(
+            "if (__inner is global::System.Collections.Generic.SortedSet<T> sorted) return new global::System.Collections.Generic.SortedSet<T>(sorted.Comparer);"
+        );
         code.AppendLine(
             "if (__inner is global::System.Collections.Generic.HashSet<T> hash) return new global::System.Collections.Generic.HashSet<T>("
                 + (hashSetSupportsCapacity ? "hash.Count, " : "")
