@@ -281,10 +281,10 @@ public sealed class SparseObservableList<TModel, TView>
     }
 
     /// <inheritdoc />
-    bool IList.Contains(object? value) => value is TView item && Contains(item);
+    bool IList.Contains(object? value) => TryCastView(value, out var item) && Contains(item);
 
     /// <inheritdoc />
-    int IList.IndexOf(object? value) => value is TView item ? IndexOf(item) : -1;
+    int IList.IndexOf(object? value) => TryCastView(value, out var item) ? IndexOf(item) : -1;
 
     /// <inheritdoc />
     void IList.Insert(int index, object? value) => Insert(index, CastView(value));
@@ -292,10 +292,28 @@ public sealed class SparseObservableList<TModel, TView>
     /// <inheritdoc />
     void IList.Remove(object? value)
     {
-        if (value is TView item)
+        if (TryCastView(value, out var item))
         {
             Remove(item);
         }
+    }
+
+    private static bool TryCastView(object? value, out TView view)
+    {
+        if (value is TView typed)
+        {
+            view = typed;
+            return true;
+        }
+
+        if (value is null && default(TView) is null)
+        {
+            view = default!;
+            return true;
+        }
+
+        view = default!;
+        return false;
     }
 
     /// <inheritdoc />
