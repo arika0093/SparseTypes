@@ -421,7 +421,7 @@ internal static class SparseFieldPathResolver
         {
             return TryConvertKeyText(keyType, key, out converted);
         }
-        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidCastException)
+        catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidCastException or OverflowException)
         {
             return false;
         }
