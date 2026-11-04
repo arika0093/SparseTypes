@@ -354,4 +354,40 @@ public sealed class SparseEditControllerTests
         editor.PropertyChanged -= throwingObserver;
         (await editor.PrepareSaveAsync()).IsEmpty.ShouldBeFalse();
     }
+
+    [Test]
+    public async Task PreparationPreservesSynchronousErrorsAlongsideAsyncErrors()
+    {
+        var session = new HistoryScalarModel { Name = "Base" }.CreateEditSession();
+        using var editor = session.CreateEditor(
+            new SparseEditControllerOptions<HistoryScalarModel.ChangeSet>
+            {
+                Validate = _ =>
+                    [
+                        new SparseValidationError
+                        {
+                            Path = HistoryScalarModel.SparsePath.Name,
+                            Origin = "Local",
+                            Error = "Synchronous error",
+                        },
+                    ],
+                ValidateAsync = (_, _) =>
+                    Task.FromResult<IReadOnlyList<SparseValidationError>>([
+                        new SparseValidationError
+                        {
+                            Path = HistoryScalarModel.SparsePath.Name,
+                            Origin = "Local",
+                            Error = "Asynchronous error",
+                        },
+                    ]),
+            }
+        );
+        session.Observable.Name = "Changed";
+
+        await Should.ThrowAsync<EditSessionGroupValidationException>(async () => await editor.PrepareSaveAsync());
+
+        var errors = editor.Validation.GetPathErrors(HistoryScalarModel.SparsePath.Name.Path);
+        errors.ShouldContain("Synchronous error");
+        errors.ShouldContain("Asynchronous error");
+    }
 }

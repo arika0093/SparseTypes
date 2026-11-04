@@ -178,6 +178,7 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
     private readonly EditSessionSectionHandle<TModel, TChangeSet> _handle;
     private long _editGeneration;
     private long _preparingGeneration;
+    private IReadOnlyList<SparseValidationError> _synchronousValidationErrors = Array.Empty<SparseValidationError>();
     private int _operationActive;
     private bool _isBusy;
     private bool _disposed;
@@ -603,13 +604,10 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
 
     private string? ValidateCapturedChanges(TChangeSet changes)
     {
-        if (_options.Validate is null)
-        {
-            ReplaceErrors(_options.ValidationOrigin, Array.Empty<SparseValidationError>());
-            return null;
-        }
-
-        var errors = _options.Validate(changes) ?? throw new InvalidOperationException("The validation callback returned no error list.");
+        var errors = _options.Validate is null
+            ? Array.Empty<SparseValidationError>()
+            : _options.Validate(changes) ?? throw new InvalidOperationException("The validation callback returned no error list.");
+        _synchronousValidationErrors = errors;
         ReplaceErrors(_options.ValidationOrigin, errors);
         return errors.Count == 0 ? null : "The captured change set has validation errors.";
     }
@@ -632,8 +630,9 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
             throw new InvalidOperationException("The asynchronous validation callback returned no error list.");
         }
 
-        ReplaceErrors(_options.ValidationOrigin, errors);
-        return errors.Count == 0 ? null : "The captured change set has validation errors.";
+        var combinedErrors = _synchronousValidationErrors.Count == 0 ? errors : _synchronousValidationErrors.Concat(errors).ToArray();
+        ReplaceErrors(_options.ValidationOrigin, combinedErrors);
+        return combinedErrors.Count == 0 ? null : "The captured change set has validation errors.";
     }
 
     private bool TryReconcile(SparsePreparedSubmission<TModel, TChangeSet> submission, TModel persisted, out string? error)
