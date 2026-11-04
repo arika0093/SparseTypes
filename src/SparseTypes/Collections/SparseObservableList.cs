@@ -255,7 +255,7 @@ public sealed class SparseObservableList<TModel, TView>
     bool IList.IsReadOnly => IsReadOnly;
 
     /// <inheritdoc />
-    bool IList.IsFixedSize => IsReadOnly;
+    bool IList.IsFixedSize => IsFixedSize;
 
     /// <inheritdoc />
     int ICollection.Count => Count;
