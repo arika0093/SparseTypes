@@ -62,6 +62,7 @@ public sealed class SparseSessionScopeContext<TModel>
     );
 
     private readonly ISparseEditSession<TModel> _session;
+    private readonly object _passThroughHistorySession;
     private readonly SparsePassThroughStateScope _localStateScope;
     private readonly SparsePassThroughStateScope _passThroughStateScope;
     private readonly bool _ownsLocalStateScope;
@@ -84,10 +85,12 @@ public sealed class SparseSessionScopeContext<TModel>
         SparseChildEditMode mode,
         SparsePassThroughStateScope localStateScope,
         SparsePassThroughStateScope? passThroughStateScope,
-        bool ownsLocalStateScope
+        bool ownsLocalStateScope,
+        object? passThroughHistorySession = null
     )
     {
         _session = session;
+        _passThroughHistorySession = passThroughHistorySession ?? session;
         _localStateScope = localStateScope;
         _passThroughStateScope = passThroughStateScope ?? localStateScope;
         _stateScope = mode == SparseChildEditMode.PassThrough ? _passThroughStateScope : _localStateScope;
@@ -284,12 +287,13 @@ public sealed class SparseSessionScopeContext<TModel>
                 Mode,
                 childLocalStateScope,
                 childPassThroughStateScope,
-                ownsLocalStateScope: true
+                ownsLocalStateScope: true,
+                passThroughHistorySession: _passThroughHistorySession
             );
             childLocalStateScope = null;
             var childContext = new SparseChildEditContext<TChild, TChildPaths, TConflict, TChildSession>(
                 child,
-                parentSession,
+                _passThroughHistorySession,
                 childScopeContext,
                 () => DetachOrDisposeChild(untypedPath),
                 NotifyChanged

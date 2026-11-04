@@ -15,7 +15,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> 
     where TSession : ISparseEditSessionWithPaths<TModel, TPaths>
 {
     private readonly ISparseEditChildSession<TModel, TPaths, TConflict, TSession> _child;
-    private readonly object _parentSession;
+    private readonly object _passThroughHistorySession;
     private readonly Action _invalidate;
     private readonly Action _changed;
     private readonly EditContext _editContext;
@@ -27,14 +27,14 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> 
 
     internal SparseChildEditContext(
         ISparseEditChildSession<TModel, TPaths, TConflict, TSession> child,
-        object parentSession,
+        object passThroughHistorySession,
         SparseSessionScopeContext<TModel> descendantScopeContext,
         Action invalidate,
         Action changed
     )
     {
         _child = child;
-        _parentSession = parentSession;
+        _passThroughHistorySession = passThroughHistorySession;
         DescendantScopeContext = descendantScopeContext;
         _invalidate = invalidate;
         _changed = changed;
@@ -243,7 +243,7 @@ public sealed class SparseChildEditContext<TModel, TPaths, TConflict, TSession> 
         return DescendantScopeContext.ValidateModeTransition(mode);
     }
 
-    private object HistorySession => Mode == SparseChildEditMode.PassThrough ? _parentSession : Session;
+    private object HistorySession => Mode == SparseChildEditMode.PassThrough ? _passThroughHistorySession : Session;
 
     private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
