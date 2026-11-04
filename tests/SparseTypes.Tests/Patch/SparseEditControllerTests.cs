@@ -390,4 +390,34 @@ public sealed class SparseEditControllerTests
         errors.ShouldContain("Synchronous error");
         errors.ShouldContain("Asynchronous error");
     }
+
+    [Test]
+    public async Task UnknownOutcomeRetainsKnownPersistenceWhenReconciliationThrows()
+    {
+        var session = new HistoryScalarModel { Name = "Base" }.CreateEditSession();
+        using var editor = session.CreateEditor();
+        session.Observable.Name = "Changed";
+        var submission = await editor.PrepareSaveAsync();
+        await editor.SaveAsync(submission, (_, _) => Task.FromResult(SparsePersistResult<HistoryScalarModel>.Unknown()));
+        var notifier = (System.ComponentModel.INotifyPropertyChanged)session;
+        System.ComponentModel.PropertyChangedEventHandler throwingObserver = (_, _) => throw new InvalidOperationException("Notification failed.");
+        notifier.PropertyChanged += throwingObserver;
+
+        try
+        {
+            Should.Throw<InvalidOperationException>(() => editor.ResolveUnknownOutcomeAsPersisted(new HistoryScalarModel { Name = "Changed" }));
+        }
+        finally
+        {
+            notifier.PropertyChanged -= throwingObserver;
+        }
+
+        editor.SaveState.ShouldBe(SparseEditSaveState.PersistedButUnreconciled);
+        editor.UnknownSubmission.ShouldBeNull();
+        ReferenceEquals(submission, editor.UnreconciledSubmission).ShouldBeTrue();
+        editor.ReconciliationError.ShouldBe("Notification failed.");
+        editor.RetryReconciliation().ShouldBeFalse();
+        editor.ReconciliationError.ShouldNotBe("Notification failed.");
+        ReferenceEquals(submission, editor.UnreconciledSubmission).ShouldBeTrue();
+    }
 }

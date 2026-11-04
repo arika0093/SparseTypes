@@ -539,14 +539,31 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
         EnterOperation();
         try
         {
-            if (_unknownSubmission is null)
+            var submission = _unknownSubmission;
+            if (submission is null)
             {
                 throw new InvalidOperationException("There is no unknown persistence outcome to resolve.");
             }
 
-            if (!TryReconcile(_unknownSubmission, persisted, out var error))
+            bool reconciled;
+            string? error;
+            try
             {
-                _unreconciledSubmission = _unknownSubmission;
+                reconciled = TryReconcile(submission, persisted, out error);
+            }
+            catch (Exception exception)
+            {
+                _unreconciledSubmission = submission;
+                _unreconciledModel = persisted;
+                _reconciliationError = exception.Message;
+                _unknownSubmission = null;
+                SaveState = SparseEditSaveState.PersistedButUnreconciled;
+                throw;
+            }
+
+            if (!reconciled)
+            {
+                _unreconciledSubmission = submission;
                 _unreconciledModel = persisted;
                 _reconciliationError = error;
                 _unknownSubmission = null;

@@ -460,6 +460,12 @@ internal static class SparseKeyAnalyzer
             string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
             char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character, true),
             bool boolean => boolean ? "true" : "false",
+            float single when float.IsNaN(single) => "global::System.Single.NaN",
+            float single when float.IsPositiveInfinity(single) => "global::System.Single.PositiveInfinity",
+            float single when float.IsNegativeInfinity(single) => "global::System.Single.NegativeInfinity",
+            double number when double.IsNaN(number) => "global::System.Double.NaN",
+            double number when double.IsPositiveInfinity(number) => "global::System.Double.PositiveInfinity",
+            double number when double.IsNegativeInfinity(number) => "global::System.Double.NegativeInfinity",
             _ => Convert.ToString(constant.Value, System.Globalization.CultureInfo.InvariantCulture)!,
         };
         if (constant.Value is long)
@@ -474,7 +480,7 @@ internal static class SparseKeyAnalyzer
         {
             literal += "U";
         }
-        else if (constant.Value is float)
+        else if (constant.Value is float single && !float.IsNaN(single) && !float.IsInfinity(single))
         {
             literal += "F";
         }
@@ -620,6 +626,14 @@ internal static class SparseKeyAnalyzer
             string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
             char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character.ToString(), true),
             bool boolean => boolean ? "true" : "false",
+            float single when float.IsNaN(single) || float.IsInfinity(single) => "\"" + Convert.ToString(
+                single,
+                System.Globalization.CultureInfo.InvariantCulture
+            ) + "\"",
+            double number when double.IsNaN(number) || double.IsInfinity(number) => "\"" + Convert.ToString(
+                number,
+                System.Globalization.CultureInfo.InvariantCulture
+            ) + "\"",
             byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(
                 constant.Value,
                 System.Globalization.CultureInfo.InvariantCulture
