@@ -187,6 +187,7 @@ public sealed class SparseObservableList<TModel, TView>
     public void CopyTo(TView[] array, int arrayIndex)
     {
         ArgumentNullException.ThrowIfNull(array);
+        ValidateCopyTo(array.Length, arrayIndex, _model.Count);
         for (var index = 0; index < _model.Count; index++)
         {
             array[arrayIndex + index] = Wrap(_model[index]);
@@ -326,9 +327,25 @@ public sealed class SparseObservableList<TModel, TView>
     void ICollection.CopyTo(Array array, int index)
     {
         ArgumentNullException.ThrowIfNull(array);
+        ValidateCopyTo(array, index, Count);
+        var items = new object?[Count];
         for (var itemIndex = 0; itemIndex < Count; itemIndex++)
         {
-            array.SetValue(Wrap(_model[itemIndex]), index + itemIndex);
+            items[itemIndex] = Wrap(_model[itemIndex]);
+        }
+
+        var elementType = array.GetType().GetElementType()!;
+        foreach (var item in items)
+        {
+            if (!CanStore(elementType, item))
+            {
+                throw new ArgumentException("The destination array has an incompatible element type.", nameof(array));
+            }
+        }
+
+        for (var itemIndex = 0; itemIndex < items.Length; itemIndex++)
+        {
+            array.SetValue(items[itemIndex], index + itemIndex);
         }
     }
 
@@ -801,6 +818,37 @@ public sealed class SparseObservableList<TModel, TView>
 
         throw new ArgumentException("Value has an incompatible type.", nameof(value));
     }
+
+    private static void ValidateCopyTo(int arrayLength, int arrayIndex, int count)
+    {
+        if (arrayIndex < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        }
+
+        if (arrayIndex > arrayLength - count)
+        {
+            throw new ArgumentException("The destination array does not have enough space.", "array");
+        }
+    }
+
+    private static void ValidateCopyTo(Array array, int arrayIndex, int count)
+    {
+        if (array.Rank != 1)
+        {
+            throw new RankException("The destination array must be one-dimensional.");
+        }
+
+        if (array.GetLowerBound(0) != 0)
+        {
+            throw new ArgumentException("The destination array must have a zero lower bound.", nameof(array));
+        }
+
+        ValidateCopyTo(array.Length, arrayIndex, count);
+    }
+
+    private static bool CanStore(Type elementType, object? item) =>
+        item is null ? !elementType.IsValueType || Nullable.GetUnderlyingType(elementType) is not null : elementType.IsInstanceOfType(item);
 
     private void ThrowIfDisposed()
     {

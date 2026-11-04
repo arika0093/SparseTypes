@@ -169,6 +169,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
     public void CopyTo(KeyValuePair<TKey, TView>[] array, int arrayIndex)
     {
         ArgumentNullException.ThrowIfNull(array);
+        ValidateCopyTo(array.Length, arrayIndex, Count);
         foreach (var pair in this)
         {
             array[arrayIndex++] = pair;
@@ -536,6 +537,19 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         }
     }
 
+    private static void ValidateCopyTo(int arrayLength, int arrayIndex, int count)
+    {
+        if (arrayIndex < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+        }
+
+        if (arrayIndex > arrayLength - count)
+        {
+            throw new ArgumentException("The destination array does not have enough space.", "array");
+        }
+    }
+
     private sealed class ProxyEntry
     {
         public TView View = default!;
@@ -553,6 +567,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
         public void CopyTo(TView[] array, int arrayIndex)
         {
             ArgumentNullException.ThrowIfNull(array);
+            ValidateCopyTo(array.Length, arrayIndex, Count);
             foreach (var value in this)
             {
                 array[arrayIndex++] = value;

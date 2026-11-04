@@ -101,4 +101,21 @@ public sealed class SparseObservableDictionaryValuesTests
         retained.Count.ShouldBe(1);
         retained.ShouldContain("one");
     }
+
+    [Test]
+    public void CopyTo_RejectsInvalidArgumentsWithoutMutatingDestination()
+    {
+        var empty = Create(new Dictionary<string, string>());
+        Should.Throw<ArgumentOutOfRangeException>(() => empty.CopyTo([], -1));
+        Should.Throw<ArgumentOutOfRangeException>(() => empty.Values.CopyTo([], -1));
+
+        var dictionary = Create(new Dictionary<string, string> { ["a"] = "one", ["b"] = "two" });
+        var values = new[] { "x", "y" };
+        Should.Throw<ArgumentException>(() => dictionary.Values.CopyTo(values, 1));
+        values.ShouldBe(["x", "y"]);
+
+        var pairs = new KeyValuePair<string, string>[2];
+        Should.Throw<ArgumentException>(() => dictionary.CopyTo(pairs, 1));
+        pairs.ShouldBe([default, default]);
+    }
 }
