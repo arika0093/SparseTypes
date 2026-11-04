@@ -63,6 +63,10 @@ internal static class SparseJsonScalarShapes
         code.OpenBlock();
         code.AppendLine("throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);");
         code.CloseBlock();
+        code.AppendLine("catch (global::System.OverflowException exception)");
+        code.OpenBlock();
+        code.AppendLine("throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);");
+        code.CloseBlock();
         code.AppendLine("catch (global::System.InvalidOperationException exception)");
         code.OpenBlock();
         code.AppendLine("throw new global::System.Text.Json.JsonException(\"Malformed collection key.\", exception);");

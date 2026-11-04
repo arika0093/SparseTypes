@@ -158,7 +158,12 @@ internal static class SparsePayloadJsonMemberEmitter
             code.AppendLine(
                 "if (operation != \"update\" && operation != \"replace\") throw new global::System.Text.Json.JsonException(\"Unknown collection change kind.\");"
             );
-            code.AppendLine("if (operation == \"update\" && !hasItems) change.Items = null!;");
+            code.AppendLine(
+                "if (operation == \"update\" && (!hasItems || change.Before is not null || change.After is not null)) throw new global::System.Text.Json.JsonException(\"A collection update requires items and cannot contain replacement endpoints.\");"
+            );
+            code.AppendLine(
+                "if (operation == \"replace\" && (hasItems || change.Before is null || change.After is null)) throw new global::System.Text.Json.JsonException(\"A collection replacement requires both endpoints and cannot contain items.\");"
+            );
         }
         else
         {

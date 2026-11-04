@@ -376,7 +376,7 @@ internal static class SparsePayloadSchemaEmitter
                 )
             ),
             ("required", Array(String(kind), String(context.Contract.MembersPropertyName))),
-            ("not", Object(("required", Array(String("before"), String("after")))))
+            ("not", AnyOfRequired("before", "after"))
         );
         var replace = Object(
             ("type", String("object")),
@@ -426,6 +426,9 @@ internal static class SparsePayloadSchemaEmitter
 
         return Object(("type", String("object")), ("properties", Object(properties.ToArray())));
     }
+
+    private static string AnyOfRequired(params string[] properties) =>
+        Object(("anyOf", Array(properties.Select(property => Object(("required", Array(String(property))))).ToArray())));
 
     private static string BuildMembersDeltaSchema(PayloadJsonEmissionContext context, SchemaBuilder schema)
     {
@@ -507,7 +510,7 @@ internal static class SparsePayloadSchemaEmitter
                 ("type", String("object")),
                 ("properties", Object(updateProperties.ToArray())),
                 ("required", Array(String(kind), String("items"))),
-                ("not", Object(("required", Array(String("before"), String("after")))))
+                ("not", AnyOfRequired("before", "after"))
             );
             return Object(("oneOf", Array(replace, update)), ("discriminator", Object(("propertyName", String(kind)))));
         }

@@ -228,6 +228,35 @@ public sealed class SparsePayloadSchemaTests
     }
 
     [Test]
+    public void UpdateSchemasForbidEachReplacementEndpointIndividually()
+    {
+        AssertUpdateEndpointsForbidden(OpenApiTestModel.PayloadJson.Schema.OpenApi30Schemas, "_ModelChange", openApi31: false);
+        AssertUpdateEndpointsForbidden(OpenApiTestModel.PayloadJson.Schema.OpenApi31Schemas, "_ModelChange", openApi31: true);
+        AssertUpdateEndpointsForbidden(OpenApiBasket.PayloadJson.Schema.OpenApi30Schemas, "_Change_lines", openApi31: false);
+        AssertUpdateEndpointsForbidden(OpenApiBasket.PayloadJson.Schema.OpenApi31Schemas, "_Change_lines", openApi31: true);
+    }
+
+    private static void AssertUpdateEndpointsForbidden(IReadOnlyList<SparsePayloadSchema> schemas, string suffix, bool openApi31)
+    {
+        var schemasForDialect = schemas.Single(item => item.Name.EndsWith(suffix, StringComparison.Ordinal));
+        var jsonSchema = openApi31 ? schemasForDialect.OpenApi31JsonSchema : schemasForDialect.OpenApi30JsonSchema;
+        var schema = JsonNode.Parse(jsonSchema)!;
+        var update = schema["oneOf"]!
+            .AsArray()
+            .Single(variant => ReadWireConstant(variant!["properties"]!["kind"]!) == "update")!;
+        var forbidden = update["not"]?["anyOf"]?.AsArray();
+        (forbidden is not null).ShouldBeTrue();
+
+        foreach (var endpoint in new[] { "before", "after" })
+        {
+            forbidden!.Any(branch => branch!["required"]!.AsArray().Single()!.GetValue<string>() == endpoint).ShouldBeTrue(endpoint);
+        }
+    }
+
+    private static string? ReadWireConstant(JsonNode schema) =>
+        schema["const"]?.GetValue<string>() ?? schema["enum"]?.AsArray().SingleOrDefault()?.GetValue<string>();
+
+    [Test]
     public void StateAndKindUseWireStringEnums()
     {
         var builder = WebApplication.CreateBuilder();

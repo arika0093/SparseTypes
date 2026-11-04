@@ -94,6 +94,34 @@ public sealed class ScalarPayloadJsonTests
         Should.Throw<JsonException>(() => JsonSerializer.Deserialize<ScalarLedger.ChangePayload>("{}"));
     }
 
+    [Test]
+    [Arguments("\"state\":\"value\",\"value\":null")]
+    [Arguments("\"value\":null,\"state\":\"value\"")]
+    public void ValueEndpointsRejectExplicitNullForNonNullableScalars(string endpoint)
+    {
+        var json = PayloadJsonTestSupport.Serialize(
+            ScalarLedger
+                .ChangeSet.Between(
+                    Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger())),
+                    Optional<ScalarLedger.Fragment?>.Present(ScalarLedger.Fragment.From(new ScalarLedger { Flag = true }))
+                )
+                .ToPayload()
+        );
+        var malformed = json.Replace("\"state\":\"value\",\"value\":true", endpoint, StringComparison.Ordinal);
+
+        Should.Throw<JsonException>(() => PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(malformed));
+    }
+
+    [Test]
+    public void MapKeyOverflowIsReportedAsJsonException()
+    {
+        var json = PayloadJsonTestSupport.WithSchemaIdentity<ScalarLedger.ChangePayload>(
+            """{"version":"0.1","change":{"kind":"update","members":{"namesById":{"kind":"replace","before":{"state":"missing"},"after":{"state":"value","value":{"9223372036854775808":"overflow"}}}}}}"""
+        );
+
+        Should.Throw<JsonException>(() => PayloadJsonTestSupport.Deserialize<ScalarLedger.ChangePayload>(json));
+    }
+
     private static ScalarLedger Ledger() =>
         new()
         {

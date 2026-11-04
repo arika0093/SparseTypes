@@ -106,6 +106,27 @@ public sealed class PayloadJsonSecurityTests
     }
 
     [Test]
+    public void CollectionChangeKindMustMatchItsShape()
+    {
+        var updateWithReplacementKind = JsonNode.Parse(KeyedJson())!;
+        updateWithReplacementKind["change"]!["members"]!["items"]!["kind"] = "replace";
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(updateWithReplacementKind.ToJsonString(), KeyedOptions(false))
+        );
+
+        var replacementWithUpdateKind = JsonNode.Parse(KeyedJson())!;
+        replacementWithUpdateKind["change"]!["members"]!["items"] = new JsonObject
+        {
+            ["kind"] = "update",
+            ["before"] = new JsonObject { ["state"] = "missing" },
+            ["after"] = new JsonObject { ["state"] = "missing" },
+        };
+        Should.Throw<JsonException>(() =>
+            JsonSerializer.Deserialize<KeyedServerHolder.ChangePayload>(replacementWithUpdateKind.ToJsonString(), KeyedOptions(false))
+        );
+    }
+
+    [Test]
     public void UnsupportedEditsAreRejectedInsteadOfDiscarded()
     {
         var json =

@@ -215,7 +215,9 @@ internal static class SparseGeneratedOnceJsonCodecs
         code.AppendLine("hasValueProperty = true;");
         code.AppendLine("if (!reader.Read()) throw new global::System.Text.Json.JsonException(\"Malformed endpoint.\");");
         code.AppendLine("hasValue = true;");
-        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
+        code.AppendLine(
+            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) { if (typeof(TValue).IsValueType && global::System.Nullable.GetUnderlyingType(typeof(TValue)) is null) throw new global::System.Text.Json.JsonException(\"A non-nullable value endpoint cannot contain null.\"); value = default; }"
+        );
         code.AppendLine("else if (rootReader is not null) value = rootReader(ref reader, options);");
         code.AppendLine("else if (TryReadPayloadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
         code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, getTypeInfo(options));");

@@ -108,7 +108,9 @@ internal static class SparseChangePayloadJsonBridgeEmitter
         // Typed declared-type metadata keeps scalar values off the object
         // serializer boundary; reader comparison tokens stay wired into the
         // runtime vocabulary.
-        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;");
+        code.AppendLine(
+            "if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) { if (typeof(TValue).IsValueType && global::System.Nullable.GetUnderlyingType(typeof(TValue)) is null) throw new global::System.Text.Json.JsonException(\"A non-nullable value endpoint cannot contain null.\"); value = default; }"
+        );
         code.AppendLine("else if (TryReadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;");
         code.AppendLine("else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, GetValueTypeTypeInfo(options));");
         code.CloseBlock();
