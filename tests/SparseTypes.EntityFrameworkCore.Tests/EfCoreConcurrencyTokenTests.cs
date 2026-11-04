@@ -1,5 +1,7 @@
+using System.Linq.Expressions;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using SparseTypes.EntityFrameworkCore.Tests.Concurrency;
 
 namespace SparseTypes.EntityFrameworkCore.Tests;
@@ -63,6 +65,53 @@ public sealed class EfCoreConcurrencyTokenTests
                 })
                 .ToList(),
         };
+
+    [Test]
+    public async Task PipelineRebasesAfterLoadingTheTrackedEntity()
+    {
+        using SqliteConnection connection = TestDatabases.OpenMemory();
+        int orderId;
+        VersionedOrderDto baseline;
+        using (var seed = TestDatabases.CreateVersioned(connection, new QueryCounter()))
+        {
+            orderId = SeedOrder(seed).Id;
+            var seedMapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
+                new VersionedOrderMapper(),
+                seed.Model
+            );
+            var tracked = await seed
+                .Orders.Include(static order => order.Lines)
+                .SingleAsync(order => order.Id == orderId);
+            baseline = seedMapper.ToDto(tracked);
+        }
+
+        var after = CloneDto(baseline);
+        after.Notes = "local";
+        var submitted = baseline.CreateChangeSet(after);
+        var race = new QueryCompilationRace(() =>
+        {
+            using var remote = TestDatabases.CreateVersioned(connection, new QueryCounter());
+            var winner = remote.Orders.Single(order => order.Id == orderId);
+            winner.Notes = "remote";
+            remote.SaveChanges();
+        });
+        var options = new DbContextOptionsBuilder<VersionedOrdersContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(race)
+            .Options;
+        using var context = new VersionedOrdersContext(options);
+        var mapper = SparseEntityMapper<VersionedOrderEntity, VersionedOrderDto>.Create(
+            new VersionedOrderMapper(),
+            context.Model
+        );
+
+        var result = await mapper.PipelineExecuteAsync(context, submitted, order => order.Id == orderId);
+
+        using var fresh = TestDatabases.CreateVersioned(connection, new QueryCounter());
+        (await fresh.Orders.SingleAsync(order => order.Id == orderId)).Notes.ShouldBe("remote");
+        result.Stage.ShouldBe(SparseEntityPipelineStage.RebaseConflict);
+        result.Rebase.Conflicts.Select(static conflict => conflict.PathText).ShouldContain("Notes");
+    }
 
     [Test]
     public async Task SuccessfulWriteAdvancesPersistedToken()
@@ -391,5 +440,20 @@ public sealed class EfCoreConcurrencyTokenTests
         persisted.Notes.ShouldBe("local notes");
         persisted.Version.ShouldNotBe(current.Version);
         persisted.Lines.Count.ShouldBe(2);
+    }
+
+    private sealed class QueryCompilationRace(Action beforeSecondQuery) : IQueryExpressionInterceptor
+    {
+        private int _queryCount;
+
+        public Expression QueryCompilationStarting(Expression queryExpression, QueryExpressionEventData eventData)
+        {
+            if (Interlocked.Increment(ref _queryCount) == 2)
+            {
+                beforeSecondQuery();
+            }
+
+            return queryExpression;
+        }
     }
 }

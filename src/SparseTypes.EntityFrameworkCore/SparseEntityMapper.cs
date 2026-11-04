@@ -161,6 +161,19 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             );
         }
 
+        var initialCurrent = await context.Set<TEntity>().AsNoTracking().Where(filter).Select(Projection).SingleAsync(cancellationToken);
+        var initialRebase = ((ISparseChangeSetPipeline<TDto, TChangeSet>)changes).RebaseForPipeline(initialCurrent);
+        if (initialRebase.HasConflicts)
+        {
+            if (onConflict is not null)
+            {
+                await onConflict(initialRebase, cancellationToken);
+            }
+
+            return new(SparseEntityPipelineStage.RebaseConflict, initialCurrent, changes, initialRebase, null, null, null);
+        }
+
+        var entity = await context.Set<TEntity>().AsTracking().Where(filter).IncludeFor(this, initialRebase.Rebased).SingleAsync(cancellationToken);
         var current = await context.Set<TEntity>().AsNoTracking().Where(filter).Select(Projection).SingleAsync(cancellationToken);
         var rebase = ((ISparseChangeSetPipeline<TDto, TChangeSet>)changes).RebaseForPipeline(current);
         if (rebase.HasConflicts)
@@ -173,7 +186,6 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             return new(SparseEntityPipelineStage.RebaseConflict, current, changes, rebase, null, null, null);
         }
 
-        var entity = await context.Set<TEntity>().AsTracking().Where(filter).IncludeFor(this, rebase.Rebased).SingleAsync(cancellationToken);
         var applyResult = ApplyWithResult(context, entity, rebase.Rebased);
         if (beforeSave is not null)
         {
