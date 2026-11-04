@@ -17,10 +17,19 @@ internal static class MixedPathSegments
         var segmentStart = 0;
         var depth = 0;
         var inQuotes = false;
+        var escapeNext = false;
         for (var i = 0; i < path.Length; i++)
         {
             var c = path[i];
-            if (c == '"' && (i == 0 || path[i - 1] != '\\'))
+            if (inQuotes && escapeNext)
+            {
+                escapeNext = false;
+            }
+            else if (inQuotes && c == '\\')
+            {
+                escapeNext = true;
+            }
+            else if (c == '"')
             {
                 inQuotes = !inQuotes;
             }
@@ -70,10 +79,19 @@ internal static class MixedPathSegments
         var count = 0;
         var depth = 0;
         var inQuotes = false;
+        var escapeNext = false;
         for (var i = 0; i < path.Length; i++)
         {
             var c = path[i];
-            if (c == '"' && (i == 0 || path[i - 1] != '\\'))
+            if (inQuotes && escapeNext)
+            {
+                escapeNext = false;
+            }
+            else if (inQuotes && c == '\\')
+            {
+                escapeNext = true;
+            }
+            else if (c == '"')
             {
                 inQuotes = !inQuotes;
             }

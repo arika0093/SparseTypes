@@ -209,6 +209,33 @@ public sealed class MixedComposeSequencesIndexTests
         composed.Composed.Select(static operation => operation.Path).ShouldBe(["Payload.Y"]);
     }
 
+    [Test]
+    [Arguments("k")]
+    [Arguments("key\\")]
+    [Arguments("key\\\\")]
+    [Arguments("a\"b")]
+    [Arguments("a\\\"b")]
+    [Arguments("a\\\\\"b")]
+    [Arguments("a.b[c]\\")]
+    public void EscapedKeyTextKeepsAncestorRelationAcrossQuoteAndBackslashRuns(string key)
+    {
+        var parent = SparsePath.Root<object>().Member("Map").Key(key).ToString();
+        var child = SparsePath.Root<object>().Member("Map").Key(key).Member("Value").ToString();
+        var sibling = SparsePath.Root<object>().Member("Map").Key(key + "x").Member("Value").ToString();
+
+        MixedChangeAlgebra.IsAncestorOrDescendant(parent, child).ShouldBeTrue();
+        MixedChangeAlgebra.IsAncestorOrDescendant(child, parent).ShouldBeTrue();
+        MixedChangeAlgebra.IsAncestorOrDescendant(parent, sibling).ShouldBeFalse();
+
+        var transitionVersusChild = MixedChangeAlgebra.ComposeSequences([Transition(parent)], [Blind(child)]);
+        transitionVersusChild.Succeeded.ShouldBeFalse();
+        transitionVersusChild.Failures.ShouldHaveSingleItem();
+
+        var blindVersusChild = MixedChangeAlgebra.ComposeSequences([Blind(parent)], [Blind(child)]);
+        blindVersusChild.Succeeded.ShouldBeTrue();
+        blindVersusChild.Composed.Select(static operation => operation.Path).ShouldBe([parent]);
+    }
+
     private static MixedMemberOperation Transition(string path, MixedAfterKind after = MixedAfterKind.Value) =>
         new(path, MixedHistoryKind.Transition, after);
 
