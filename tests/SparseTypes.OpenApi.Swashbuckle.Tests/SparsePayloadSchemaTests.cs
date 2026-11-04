@@ -234,6 +234,47 @@ public sealed class SparsePayloadSchemaTests
         AssertUpdateEndpointsForbidden(OpenApiTestModel.PayloadJson.Schema.OpenApi31Schemas, "_ModelChange", openApi31: true);
         AssertUpdateEndpointsForbidden(OpenApiBasket.PayloadJson.Schema.OpenApi30Schemas, "_Change_lines", openApi31: false);
         AssertUpdateEndpointsForbidden(OpenApiBasket.PayloadJson.Schema.OpenApi31Schemas, "_Change_lines", openApi31: true);
+        var bundle = OpenApiTestModel.PayloadJson.Schema;
+        foreach (var json in bundle.OpenApi30Schemas.Select(static schema => schema.OpenApi30JsonSchema))
+        {
+            json.ShouldNotContain("\"not\":{\"required\":[\"before\",\"after\"]}");
+        }
+
+        foreach (var json in bundle.OpenApi31Schemas.Select(static schema => schema.OpenApi31JsonSchema))
+        {
+            json.ShouldNotContain("\"not\":{\"required\":[\"before\",\"after\"]}");
+        }
+
+        var modelChange = JsonNode.Parse(
+            bundle.OpenApi31Schemas.Single(static schema => schema.Name.EndsWith("_ModelChange", StringComparison.Ordinal)).OpenApi31JsonSchema
+        )!;
+        var update = modelChange["oneOf"]!.AsArray().Single(static variant => variant!["properties"]!["kind"]!["const"]!.GetValue<string>() == "update")!;
+        var members = JsonNode.Parse("{}")!;
+        foreach (var (body, legal) in new[] { ("{}", true), ("{\"before\":{}}", false), ("{\"after\":{}}", false), ("{\"before\":{},\"after\":{}}", false) })
+        {
+            var specimen = JsonNode.Parse(body)!.AsObject();
+            specimen["kind"] = "update";
+            specimen["members"] = members.DeepClone();
+            AdmitsKeys(update, specimen).ShouldBe(legal, body);
+
+            var payload = "{\"version\":\"0.1\",\"schema\":\"" + SchemaHash() + "\",\"change\":" + specimen.ToJsonString() + "}";
+            var read = () => System.Text.Json.JsonSerializer.Deserialize(payload, OpenApiTestModel.PayloadJson.Default);
+            if (legal)
+            {
+                read.ShouldNotThrow();
+            }
+            else
+            {
+                read.ShouldThrow<System.Text.Json.JsonException>();
+            }
+        }
+
+        var replace = new[] { "{\"kind\":\"replace\",\"before\":{\"state\":\"missing\"},\"after\":{\"state\":\"missing\"}}" };
+        foreach (var body in replace)
+        {
+            var specimen = JsonNode.Parse(body)!;
+            modelChange["oneOf"]!.AsArray().Count(variant => AdmitsKeys(variant!, specimen.AsObject())).ShouldBe(1);
+        }
     }
 
     private static void AssertUpdateEndpointsForbidden(IReadOnlyList<SparsePayloadSchema> schemas, string suffix, bool openApi31)
@@ -255,6 +296,45 @@ public sealed class SparsePayloadSchemaTests
 
     private static string? ReadWireConstant(JsonNode schema) =>
         schema["const"]?.GetValue<string>() ?? schema["enum"]?.AsArray().SingleOrDefault()?.GetValue<string>();
+
+    [Test]
+    public void CollectionUpdateSchemaForbidsEachReplacementEndpointIndividually()
+    {
+        var schemas = OpenApiBasket.PayloadJson.Schema.OpenApi31Schemas;
+        var lines = schemas.Single(static schema => schema.Name.EndsWith("_Change_lines", StringComparison.Ordinal));
+        var update = JsonNode.Parse(lines.OpenApi31JsonSchema)!["oneOf"]!
+            .AsArray()
+            .Single(static variant => variant!["properties"]!["kind"]!["const"]!.GetValue<string>() == "update")!;
+        foreach (var (body, legal) in new[] { ("{}", true), ("{\"before\":{}}", false), ("{\"after\":{}}", false), ("{\"before\":{},\"after\":{}}", false) })
+        {
+            var specimen = JsonNode.Parse(body)!.AsObject();
+            specimen["kind"] = "update";
+            specimen["items"] = new JsonArray();
+            AdmitsKeys(update, specimen).ShouldBe(legal, body);
+        }
+    }
+
+    // Evaluates only key-presence keywords (required, anyOf, not) because endpoint legality is decided by them.
+    private static bool AdmitsKeys(JsonNode schema, JsonObject instance)
+    {
+        var node = schema.AsObject();
+        if (node["required"] is JsonArray required && required.Any(name => !instance.ContainsKey(name!.GetValue<string>())))
+        {
+            return false;
+        }
+
+        if (node["anyOf"] is JsonArray anyOf && !anyOf.Any(branch => AdmitsKeys(branch!, instance)))
+        {
+            return false;
+        }
+
+        return node["not"] is not JsonNode not || !AdmitsKeys(not, instance);
+    }
+
+    private static string SchemaHash() =>
+        JsonNode
+        .Parse(System.Text.Json.JsonSerializer.Serialize(OpenApiTestModel.ChangeSet.Empty.ToPayload(), OpenApiTestModel.PayloadJson.Default))!["schema"]!
+        .GetValue<string>();
 
     [Test]
     public void StateAndKindUseWireStringEnums()
