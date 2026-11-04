@@ -293,6 +293,11 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
+        if (!ReferenceEquals(node.List, _undo))
+        {
+            return true;
+        }
+
         _undo.Remove(node);
         _redo.Push(node);
         RaiseStateChanged();
@@ -340,7 +345,8 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
-        TChangeSet entry = _redo.Peek().Value;
+        LinkedListNode<TChangeSet> node = _redo.Peek();
+        TChangeSet entry = node.Value;
         bool applied;
         _replaying = true;
         try
@@ -357,7 +363,12 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             return false;
         }
 
-        LinkedListNode<TChangeSet> node = _redo.Pop();
+        if (_redo.Count == 0 || !ReferenceEquals(_redo.Peek(), node))
+        {
+            return true;
+        }
+
+        _redo.Pop();
         ReattachUndo(node);
         RaiseStateChanged();
         return true;
@@ -533,6 +544,8 @@ public sealed class SparseEditHistory<TChangeSet> : ISparseEditHistory, IDisposa
             throw new ObjectDisposedException(GetType().FullName);
         }
     }
+
+    internal bool IsDisposed => _disposed;
 
     private sealed class GroupScope : IDisposable
     {

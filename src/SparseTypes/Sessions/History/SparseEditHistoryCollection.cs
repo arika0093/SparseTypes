@@ -27,9 +27,14 @@ public sealed class SparseEditHistoryCollection<TChangeSet>
     /// <summary>Clears every tracked history without disposing it.</summary>
     public void Clear()
     {
-        for (var index = 0; index < _histories.Count; index++)
+        SparseEditHistory<TChangeSet>[] histories = _histories.ToArray();
+        for (var index = 0; index < histories.Length; index++)
         {
-            _histories[index].Clear();
+            SparseEditHistory<TChangeSet> history = histories[index];
+            if (!history.IsDisposed)
+            {
+                history.Clear();
+            }
         }
     }
 }
