@@ -332,4 +332,26 @@ public sealed class SparseEditControllerTests
         editor.SaveState.ShouldBe(SparseEditSaveState.PersistedButUnreconciled);
         ReferenceEquals(first, editor.UnreconciledSubmission).ShouldBeTrue();
     }
+
+    [Test]
+    public async Task EnterOperationNotificationFailureReleasesTheOperationLatch()
+    {
+        var session = new HistoryScalarModel { Name = "Base" }.CreateEditSession();
+        using var editor = session.CreateEditor();
+        session.Observable.Name = "Changed";
+        System.ComponentModel.PropertyChangedEventHandler throwingObserver = (_, args) =>
+        {
+            if (args.PropertyName == nameof(editor.IsBusy))
+            {
+                throw new InvalidOperationException("Notification failed.");
+            }
+        };
+        editor.PropertyChanged += throwingObserver;
+
+        await Should.ThrowAsync<InvalidOperationException>(async () => await editor.PrepareSaveAsync());
+
+        editor.IsBusy.ShouldBeFalse();
+        editor.PropertyChanged -= throwingObserver;
+        (await editor.PrepareSaveAsync()).IsEmpty.ShouldBeFalse();
+    }
 }

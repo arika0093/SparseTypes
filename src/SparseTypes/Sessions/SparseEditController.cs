@@ -304,12 +304,12 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
         ThrowIfDisposed();
         ThrowIfPersistenceOutcomeUnresolved();
         EnterOperation();
-        SaveState = SparseEditSaveState.Preparing;
-        NotifyStateChanged();
-        var generation = Interlocked.Read(ref _editGeneration);
-        _preparingGeneration = generation;
         try
         {
+            SaveState = SparseEditSaveState.Preparing;
+            NotifyStateChanged();
+            var generation = Interlocked.Read(ref _editGeneration);
+            _preparingGeneration = generation;
             var submission = await _group.PrepareAsync(cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             if (generation != Interlocked.Read(ref _editGeneration) || HasPendingDrafts)
@@ -744,7 +744,21 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
         }
 
         _isBusy = true;
-        NotifyStateChanged();
+        try
+        {
+            NotifyStateChanged();
+        }
+        catch
+        {
+            _isBusy = false;
+            Interlocked.Exchange(ref _operationActive, 0);
+            if (_disposePending)
+            {
+                Validation.Dispose();
+            }
+
+            throw;
+        }
     }
 
     private void ExitOperation()
