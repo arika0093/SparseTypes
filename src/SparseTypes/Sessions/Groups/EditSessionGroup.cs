@@ -154,6 +154,8 @@ public sealed class EditSessionGroup
             }
         }
 
+        // Validators run re-entrantly, so the group may have changed since capture.
+        AddStaleCaptureIssues(captures, issues);
         ThrowIfInvalid(issues);
         return CreateSubmission(captures);
     }
@@ -323,6 +325,37 @@ public sealed class EditSessionGroup
         return Array.AsReadOnly(captures.ToArray());
     }
 
+    private void AddStaleCaptureIssues(IReadOnlyList<EditSessionGroupCapture> captures, List<EditSessionGroupValidationIssue> issues)
+    {
+        lock (_gate)
+        {
+            foreach (var capture in captures)
+            {
+                if (!_sections.TryGetValue(capture.Section.SectionId, out var current) || !ReferenceEquals(current, capture.Section))
+                {
+                    issues.Add(
+                        new EditSessionGroupValidationIssue(
+                            capture.Section.SectionId,
+                            $"Section '{capture.Section.SectionId}' was unregistered or replaced during validation."
+                        )
+                    );
+                    continue;
+                }
+
+                SynchronizeBaselineRevision(current);
+                if (current.BaselineRevision != capture.BaselineRevision)
+                {
+                    issues.Add(
+                        new EditSessionGroupValidationIssue(
+                            capture.Section.SectionId,
+                            $"Section '{capture.Section.SectionId}' baseline changed during validation."
+                        )
+                    );
+                }
+            }
+        }
+    }
+
     private EditSessionGroupSubmission CreateSubmission(IReadOnlyList<EditSessionGroupCapture> captures)
     {
         var entries = captures
@@ -395,34 +428,7 @@ public sealed class EditSessionGroup
 
         // Phase 3: re-evaluate registration identity and baseline revisions
         // after awaits.
-        lock (_gate)
-        {
-            foreach (var capture in captures)
-            {
-                if (!_sections.TryGetValue(capture.Section.SectionId, out var current) || !ReferenceEquals(current, capture.Section))
-                {
-                    issues.Add(
-                        new EditSessionGroupValidationIssue(
-                            capture.Section.SectionId,
-                            $"Section '{capture.Section.SectionId}' was unregistered or replaced during validation."
-                        )
-                    );
-                    continue;
-                }
-
-                SynchronizeBaselineRevision(current);
-                if (current.BaselineRevision != capture.BaselineRevision)
-                {
-                    issues.Add(
-                        new EditSessionGroupValidationIssue(
-                            capture.Section.SectionId,
-                            $"Section '{capture.Section.SectionId}' baseline changed during validation."
-                        )
-                    );
-                    continue;
-                }
-            }
-        }
+        AddStaleCaptureIssues(captures, issues);
 
         cancellationToken.ThrowIfCancellationRequested();
         ThrowIfInvalid(issues);
