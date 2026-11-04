@@ -72,6 +72,25 @@ internal static class SparseTypeMetadataCache
         }
     }
 
+    /// <summary>Gets whether the property has a public getter; <c>GetProperty</c> also matches a public setter alone.</summary>
+    internal static bool IsPubliclyReadable(PropertyInfo property) => property.GetMethod is { IsPublic: true };
+
+    /// <summary>Gets whether the property has a public, non-init-only setter.</summary>
+    internal static bool IsPubliclyWritable(PropertyInfo property) => property.SetMethod is { IsPublic: true } setter && !IsInitOnly(setter);
+
+    private static bool IsInitOnly(MethodInfo setter)
+    {
+        foreach (var modifier in setter.ReturnParameter.GetRequiredCustomModifiers())
+        {
+            if (modifier.FullName == "System.Runtime.CompilerServices.IsExternalInit")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>Gets the first sequence element type, if any.</summary>
     internal static Type? GetSequenceElementType(Type type)
     {

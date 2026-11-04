@@ -76,7 +76,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
     public bool IsStale => !TryGetField(out _, out _);
 
     /// <summary>Gets whether the addressed member is read-only.</summary>
-    public bool IsReadOnly => FindLeaf() is { } leaf && leaf.IsReadOnly;
+    public bool IsReadOnly => _descriptors is null ? IsFallbackReadOnly() : FindLeaf() is { } leaf && leaf.IsReadOnly;
 
     /// <summary>Gets whether the addressed member accepts null.</summary>
     public bool IsNullable
@@ -286,6 +286,12 @@ public sealed class SparseFieldBinding<TModel, TValue>
         return true;
     }
 
+    private bool IsFallbackReadOnly() =>
+        TryGetField(out var fieldId, out _)
+        && SparseTypeMetadataCache.TryGetProperty(fieldId.Model.GetType(), fieldId.FieldName, out var property)
+        && property is not null
+        && !SparseTypeMetadataCache.IsPubliclyWritable(property);
+
     private bool TrySetFallback(TValue? value, out string? error)
     {
         if (!TryGetField(out var fieldId, out error))
@@ -296,7 +302,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         if (
             !SparseTypeMetadataCache.TryGetProperty(fieldId.Model.GetType(), fieldId.FieldName, out var property)
             || property is null
-            || !property.CanWrite
+            || !SparseTypeMetadataCache.IsPubliclyWritable(property)
         )
         {
             error = $"The field '{_path}' is read-only.";
@@ -365,7 +371,7 @@ public sealed class SparseFieldBinding<TModel, TValue>
         if (
             !SparseTypeMetadataCache.TryGetProperty(fallbackId.Model.GetType(), fallbackId.FieldName, out var property)
             || property is null
-            || !property.CanRead
+            || !SparseTypeMetadataCache.IsPubliclyReadable(property)
         )
         {
             error = $"The field '{_path}' no longer resolves to a live model member.";
@@ -502,7 +508,11 @@ public sealed class SparseFieldBinding<TModel, TValue>
         var currentType = typeof(TModel);
         foreach (var segment in _path.Segments)
         {
-            if (!SparseTypeMetadataCache.TryGetProperty(currentType, segment.Name, out var property) || property is null || !property.CanRead)
+            if (
+                !SparseTypeMetadataCache.TryGetProperty(currentType, segment.Name, out var property)
+                || property is null
+                || !SparseTypeMetadataCache.IsPubliclyReadable(property)
+            )
             {
                 return null;
             }

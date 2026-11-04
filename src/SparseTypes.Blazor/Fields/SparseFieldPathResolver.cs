@@ -216,7 +216,7 @@ internal static class SparseFieldPathResolver
                     if (
                         !SparseTypeMetadataCache.TryGetProperty(current.GetType(), segment.Name, out var property)
                         || property is null
-                        || !property.CanRead
+                        || !SparseTypeMetadataCache.IsPubliclyReadable(property)
                     )
                     {
                         return NearestField(fieldOwner, fieldNamePart, root);
