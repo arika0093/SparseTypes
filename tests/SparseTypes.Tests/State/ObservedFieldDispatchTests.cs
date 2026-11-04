@@ -246,6 +246,35 @@ public sealed class ObservedFieldDispatchTests
     }
 
     [Test]
+    public void SubscriberInvalidOperationPropagatesWhileCurrentStaysCoherent()
+    {
+        var session = new Settings().CreateEditSession();
+        using var label = session.ObserveField(Settings.SparsePath.Label);
+        var failure = new InvalidOperationException("subscriber failure");
+        ((INotifyPropertyChanged)label).PropertyChanged += (_, _) => throw failure;
+
+        var thrown = Should.Throw<InvalidOperationException>(() => session.Observable.Label = "changed");
+
+        thrown.ShouldBeSameAs(failure);
+        label.After.ShouldBe(Optional<string?>.Present("changed"));
+        label.IsChanged.ShouldBeTrue();
+    }
+
+    [Test]
+    public void ExplicitRefreshPropagatesSubscriberInvalidOperation()
+    {
+        var model = new Settings();
+        var session = model.CreateEditSession();
+        using var label = session.ObserveField(Settings.SparsePath.Label);
+        var failure = new InvalidOperationException("subscriber failure");
+        ((INotifyPropertyChanged)label).PropertyChanged += (_, _) => throw failure;
+
+        model.Label = "raw";
+
+        Should.Throw<InvalidOperationException>(() => label.Refresh()).ShouldBeSameAs(failure);
+    }
+
+    [Test]
     public void StableMembershipReusesOneDispatchArray()
     {
         var session = new Settings().CreateEditSession();

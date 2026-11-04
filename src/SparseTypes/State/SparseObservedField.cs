@@ -187,24 +187,22 @@ public sealed class SparseObservedField<T> : INotifyPropertyChanged, IDisposable
             return;
         }
 
+        SparseFieldState<T> next;
         try
         {
             // Dispatch generations share one snapshot through DispatchQuery;
             // explicit refreshes always re-read the live model.
-            if (_dispatchQuery is null)
-            {
-                Refresh();
-            }
-            else
-            {
-                RefreshWith(_dispatchQuery());
-            }
+            next = (_dispatchQuery ?? _query)();
         }
         catch (InvalidOperationException)
         {
             // Multi-step mutations pass through transiently invalid keyed
-            // states (duplicate keys mid-swap.
+            // states (duplicate keys mid-swap). Only the capture is
+            // tolerated: subscriber exceptions raised below must propagate.
+            return;
         }
+
+        RefreshWith(next);
     }
 
     private void RefreshWith(SparseFieldState<T> next)
