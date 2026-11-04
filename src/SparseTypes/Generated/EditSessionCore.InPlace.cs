@@ -206,10 +206,24 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
             );
             if (!_isEmpty(drift))
             {
-                var probe = _tryApplyTo(drift, _model);
-                if (probe.Conflicts is not null)
+                if (_tryApplyInPlace is not null && _baselineToModel is not null)
                 {
-                    return new global::SparseTypes.RebaseResult<TChangeSet>(rebased.Rebased, probe.Conflicts);
+                    var probe = ValidateInPlaceTransition(_model, applied.Updated);
+                    if (!probe.Succeeded)
+                    {
+                        return new global::SparseTypes.RebaseResult<TChangeSet>(
+                            rebased.Rebased,
+                            probe.Conflicts ?? throw new InvalidOperationException("In-place validation failed without structured conflicts.")
+                        );
+                    }
+                }
+                else
+                {
+                    var probe = _tryApplyTo(drift, _model);
+                    if (probe.Conflicts is not null)
+                    {
+                        return new global::SparseTypes.RebaseResult<TChangeSet>(rebased.Rebased, probe.Conflicts);
+                    }
                 }
             }
         }
@@ -235,8 +249,33 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         return rebased;
     }
 
+    private (bool Succeeded, IReadOnlyList<global::SparseTypes.SparseConflict>? Conflicts) ValidateInPlaceTransition(TModel current, TModel updated)
+    {
+        if (_tryApplyInPlace is null || _baselineToModel is null)
+        {
+            return (true, null);
+        }
+
+        var changes = _between(
+            global::SparseTypes.Optional<TFragment?>.Present(_fromModel(current)),
+            global::SparseTypes.Optional<TFragment?>.Present(_fromModel(updated))
+        );
+        if (_isEmpty(changes))
+        {
+            return (true, null);
+        }
+
+        var candidate = CloneLiveModel(current);
+        return _tryApplyInPlace(changes, candidate);
+    }
+
     private void RefreshAfterModelMutation()
     {
+        if (_batchDepth > 0)
+        {
+            _batchDirty = true;
+        }
+
         MarkObservedSnapshotInvalid();
         var current = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model));
         var transition = _between(_lastObserved, current);

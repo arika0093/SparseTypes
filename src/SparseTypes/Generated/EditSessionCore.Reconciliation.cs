@@ -59,6 +59,9 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
 
         error = null;
         var persistedBaseline = global::SparseTypes.Optional<TFragment?>.Present(_fromModel(persisted));
+        var fastPath = false;
+        var alreadyReconciled = false;
+        string? fastPathError = null;
 
         // Re-acknowledging an already-reconciled state is a no-op success
         // only for a verified submission.
@@ -69,36 +72,31 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
             {
                 if (ReferenceEquals(submitted, _lastReconciledSubmission))
                 {
-                    SetBaseline(persistedBaseline);
-                    SetObservedSnapshot(persistedBaseline);
-                    RefreshAfterModelMutation();
-                    error = null;
-                    return true;
+                    fastPath = true;
+                    alreadyReconciled = true;
                 }
-
-                var verifiedAdvanced = _advanceBaseline(submitted, _baseline);
-                if (verifiedAdvanced.IsPresent)
+                else
                 {
-                    var verifiedValue = verifiedAdvanced.Value;
-                    if (verifiedValue is null)
+                    var verifiedAdvanced = _advanceBaseline(submitted, _baseline);
+                    if (verifiedAdvanced.IsPresent)
                     {
-                        error = "Advancing the baseline did not produce a valid model state.";
-                        return false;
-                    }
-
-                    var verifiedAfter = _baselineToModel(verifiedValue);
-                    var verifiedPending = _between(
-                        global::SparseTypes.Optional<TFragment?>.Present(_fromModel(verifiedAfter)),
-                        global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
-                    );
-                    if (_isEmpty(verifiedPending))
-                    {
-                        SetBaseline(persistedBaseline);
-                        SetObservedSnapshot(persistedBaseline);
-                        _lastReconciledSubmission = submitted;
-                        RefreshAfterModelMutation();
-                        error = null;
-                        return true;
+                        var verifiedValue = verifiedAdvanced.Value;
+                        if (verifiedValue is null)
+                        {
+                            fastPathError = "Advancing the baseline did not produce a valid model state.";
+                        }
+                        else
+                        {
+                            var verifiedAfter = _baselineToModel(verifiedValue);
+                            var verifiedPending = _between(
+                                global::SparseTypes.Optional<TFragment?>.Present(_fromModel(verifiedAfter)),
+                                global::SparseTypes.Optional<TFragment?>.Present(_fromModel(_model))
+                            );
+                            if (_isEmpty(verifiedPending))
+                            {
+                                fastPath = true;
+                            }
+                        }
                     }
                 }
             }
@@ -106,6 +104,26 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         catch (InvalidOperationException)
         {
             // The fast-path probe failed; fall through to the full reconstruction below.
+        }
+
+        if (fastPathError is not null)
+        {
+            error = fastPathError;
+            return false;
+        }
+
+        if (fastPath)
+        {
+            SetBaseline(persistedBaseline);
+            SetObservedSnapshot(persistedBaseline);
+            if (!alreadyReconciled)
+            {
+                _lastReconciledSubmission = submitted;
+            }
+
+            RefreshAfterModelMutation();
+            error = null;
+            return true;
         }
 
         // Reconstruct the submitted-after state; a stale or incompatible
@@ -162,6 +180,16 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         {
             error = mapError ?? "Temporary correlation did not produce a mapping.";
             return false;
+        }
+
+        if (_tryApplyInPlace is not null && _baselineToModel is not null)
+        {
+            var authoritativeProbe = ValidateInPlaceTransition(submittedAfter, persisted);
+            if (!authoritativeProbe.Succeeded)
+            {
+                error = "The persisted model contains changes that cannot be applied in place.";
+                return false;
+            }
         }
 
         var backup = CloneLiveModel(_model);
@@ -396,6 +424,18 @@ public partial class EditSessionCore<TModel, TFragment, TPatch, TChangeSet, TObs
         catch (InvalidOperationException exception)
         {
             return Fail("The reconciled model cannot serve as a keyed baseline: " + exception.Message, out conflicts);
+        }
+
+        var writeProbe = ValidateInPlaceTransition(_model, applied.Updated);
+        if (!writeProbe.Succeeded)
+        {
+            if (writeProbe.Conflicts is not null)
+            {
+                conflicts = writeProbe.Conflicts;
+                return false;
+            }
+
+            return Fail("The reconciled model contains changes that cannot be applied in place.", out conflicts);
         }
 
         var backup = CloneLiveModel(_model);

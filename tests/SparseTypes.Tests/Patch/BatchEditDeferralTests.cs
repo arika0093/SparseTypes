@@ -149,4 +149,22 @@ public sealed class BatchEditDeferralTests
         probe.Transitions[0].Name.After.Value.ShouldBe("after");
         session.HasChanges.ShouldBeTrue();
     }
+
+    [Test]
+    public void InPlaceWritesInsideBatchPublishOneNetTransition()
+    {
+        var model = new NeutralSessionModel { Name = "before", Version = 1 };
+        var session = model.CreateEditSession();
+        var changes = NeutralSessionModel.ChangeSet.Between(model, new NeutralSessionModel { Name = "after", Version = 2 });
+        var transitions = new List<NeutralSessionModel.ChangeSet>();
+        session.TransitionObserved += transitions.Add;
+
+        session.BatchEdit(() => session.TryApplyInPlace(changes, out _).ShouldBeTrue());
+
+        transitions.ShouldHaveSingleItem();
+        transitions[0].Name.After.Value.ShouldBe("after");
+        transitions[0].Version.After.Value.ShouldBe(2);
+        model.Name.ShouldBe("after");
+        model.Version.ShouldBe(2);
+    }
 }

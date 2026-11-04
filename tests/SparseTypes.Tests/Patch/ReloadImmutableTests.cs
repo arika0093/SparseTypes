@@ -47,6 +47,46 @@ public sealed class ReloadImmutableTests
     }
 
     [Test]
+    public void ReconcileAndApplyRejectsServerInitChangeWithoutTouchingModel()
+    {
+        var original = new ReloadImmutableDocument { Version = 1, Title = "base" };
+        var session = original.CreateEditSession();
+        session.Observable.Title = "local";
+        var submitted = session.CreateChangeSet();
+        var persisted = new ReloadImmutableDocument { Version = 2, Title = "local" };
+
+        session.TryReconcileAndApply(submitted, persisted, out var conflicts).ShouldBeFalse();
+
+        conflicts.ShouldNotBeNull().ShouldContain(static conflict =>
+            conflict.PathText == nameof(ReloadImmutableDocument.Version)
+        );
+        ReferenceEquals(Raw(session), original).ShouldBeTrue();
+        Raw(session).Version.ShouldBe(1);
+        Raw(session).Title.ShouldBe("local");
+        session.CreateChangeSet().Title.After.Value.ShouldBe("local");
+        session.HasChanges.ShouldBeTrue();
+    }
+
+    [Test]
+    public void ReconcileRejectsServerInitChangeWithoutTouchingModel()
+    {
+        var original = new ReloadImmutableDocument { Version = 1, Title = "base" };
+        var session = original.CreateEditSession();
+        session.Observable.Title = "local";
+        var submitted = session.CreateChangeSet();
+        var persisted = new ReloadImmutableDocument { Version = 2, Title = "local" };
+
+        session.TryReconcile(submitted, persisted, out var error).ShouldBeFalse();
+
+        error.ShouldNotBeNullOrEmpty();
+        ReferenceEquals(Raw(session), original).ShouldBeTrue();
+        Raw(session).Version.ShouldBe(1);
+        Raw(session).Title.ShouldBe("local");
+        session.CreateChangeSet().Title.After.Value.ShouldBe("local");
+        session.HasChanges.ShouldBeTrue();
+    }
+
+    [Test]
     public void ReloadKeepsLocalEditsWhenServerInitChangeConflicts()
     {
         var original = new ReloadImmutableDocument { Version = 1, Title = "base" };
