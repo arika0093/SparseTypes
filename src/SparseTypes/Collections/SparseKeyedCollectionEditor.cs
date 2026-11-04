@@ -202,7 +202,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
     public bool TryGetRemovedRows(out IReadOnlyList<SparseRemovedCollectionRow<TElement, TKey>> rows, out SparseCollectionEditError error)
     {
         rows = Array.Empty<SparseRemovedCollectionRow<TElement, TKey>>();
-        if (!TryGetCollectionState(out var state) || !TryGetBaselineRevision(out var revision) || !HasElementCloner)
+        if (OwnerSession is not { } owner || !TryGetCollectionState(out var state) || !TryGetBaselineRevision(out var revision) || !HasElementCloner)
         {
             error = SparseCollectionEditError.BaselineUnavailable;
             return false;
@@ -222,7 +222,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
                 return false;
             }
 
-            result.Add(new SparseRemovedCollectionRow<TElement, TKey>(Path, key, model, item.BeforeIndex, revision, CloneElement));
+            result.Add(new SparseRemovedCollectionRow<TElement, TKey>(owner, Path, key, model, item.BeforeIndex, revision, CloneElement));
         }
 
         rows = result;
@@ -237,7 +237,7 @@ public sealed class SparseKeyedCollectionEditor<TElement, TKey> : SparseCollecti
     public bool TryRestoreRemoved(SparseRemovedCollectionRow<TElement, TKey> row, out SparseCollectionEditError error)
     {
         ArgumentNullException.ThrowIfNull(row);
-        if (!row.CollectionPath.Equals(Path))
+        if (!row.CollectionPath.Equals(Path) || !ReferenceEquals(row.Owner, OwnerSession))
         {
             error = SparseCollectionEditError.InvalidItem;
             return false;

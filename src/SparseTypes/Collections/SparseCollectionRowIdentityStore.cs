@@ -9,8 +9,8 @@ namespace SparseTypes;
 public sealed class SparseCollectionRowIdentityStore<TElement>
     where TElement : class
 {
-    private readonly Dictionary<TElement, Guid> _identityByItem = new(SparseCoreRuntime.ReferenceComparer);
-    private readonly HashSet<TElement> _itemsInRefresh = new(SparseCoreRuntime.ReferenceComparer);
+    private readonly Dictionary<TElement, List<Guid>> _identitiesByItem = new(SparseCoreRuntime.ReferenceComparer);
+    private readonly Dictionary<TElement, int> _occurrencesInRefresh = new(SparseCoreRuntime.ReferenceComparer);
     private readonly Dictionary<SparsePathSegment, Guid> _identityByPath = [];
     private readonly HashSet<SparsePathSegment> _pathsInRefresh = [];
     private readonly Dictionary<Guid, Guid> _identityByTemporaryKey = [];
@@ -19,7 +19,7 @@ public sealed class SparseCollectionRowIdentityStore<TElement>
     /// <summary>Starts a refresh generation before requesting row identities.</summary>
     public void BeginRefresh()
     {
-        _itemsInRefresh.Clear();
+        _occurrencesInRefresh.Clear();
         _pathsInRefresh.Clear();
         _temporaryKeysInRefresh.Clear();
     }
@@ -35,14 +35,21 @@ public sealed class SparseCollectionRowIdentityStore<TElement>
         ArgumentNullException.ThrowIfNull(item);
         if (!isKeyed)
         {
-            _itemsInRefresh.Add(item);
-            if (!_identityByItem.TryGetValue(item, out var itemIdentity))
+            // An unkeyed list may contain one reference several times; each occurrence needs its own identity.
+            _occurrencesInRefresh.TryGetValue(item, out var occurrence);
+            _occurrencesInRefresh[item] = occurrence + 1;
+            if (!_identitiesByItem.TryGetValue(item, out var identities))
             {
-                itemIdentity = Guid.NewGuid();
-                _identityByItem.Add(item, itemIdentity);
+                identities = [];
+                _identitiesByItem.Add(item, identities);
             }
 
-            return itemIdentity;
+            if (occurrence == identities.Count)
+            {
+                identities.Add(Guid.NewGuid());
+            }
+
+            return identities[occurrence];
         }
 
         _pathsInRefresh.Add(identity);
@@ -74,9 +81,17 @@ public sealed class SparseCollectionRowIdentityStore<TElement>
     /// <summary>Removes identities that were not observed in the current refresh generation.</summary>
     public void EndRefresh()
     {
-        foreach (var item in _identityByItem.Keys.Where(item => !_itemsInRefresh.Contains(item)).ToArray())
+        foreach (var item in _identitiesByItem.Keys.ToArray())
         {
-            _identityByItem.Remove(item);
+            if (!_occurrencesInRefresh.TryGetValue(item, out var occurrences))
+            {
+                _identitiesByItem.Remove(item);
+            }
+            else
+            {
+                var identities = _identitiesByItem[item];
+                identities.RemoveRange(occurrences, identities.Count - occurrences);
+            }
         }
 
         foreach (var path in _identityByPath.Keys.Where(path => !_pathsInRefresh.Contains(path)).ToArray())
@@ -93,8 +108,8 @@ public sealed class SparseCollectionRowIdentityStore<TElement>
     /// <summary>Forgets all retained row identities.</summary>
     public void Reset()
     {
-        _identityByItem.Clear();
-        _itemsInRefresh.Clear();
+        _identitiesByItem.Clear();
+        _occurrencesInRefresh.Clear();
         _identityByPath.Clear();
         _pathsInRefresh.Clear();
         _identityByTemporaryKey.Clear();

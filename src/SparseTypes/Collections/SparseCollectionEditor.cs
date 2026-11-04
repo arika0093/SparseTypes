@@ -65,6 +65,8 @@ public class SparseCollectionEditor<TElement>
     /// <summary>Gets the addressed collection path.</summary>
     public SparsePath Path { get; }
 
+    internal object? OwnerSession => _ownerSession;
+
     /// <summary>Gets the live item count, or zero when the collection is unavailable.</summary>
     public int Count => TryResolveArray(out var array, out _) ? array.Count : 0;
 

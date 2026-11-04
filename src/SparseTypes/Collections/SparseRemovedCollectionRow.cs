@@ -12,6 +12,7 @@ public sealed class SparseRemovedCollectionRow<TElement, TKey>
     private readonly Func<TElement, TElement> _cloneElement;
 
     internal SparseRemovedCollectionRow(
+        object owner,
         SparsePath collectionPath,
         TKey key,
         TElement model,
@@ -20,6 +21,7 @@ public sealed class SparseRemovedCollectionRow<TElement, TKey>
         Func<TElement, TElement> cloneElement
     )
     {
+        Owner = owner;
         CollectionPath = collectionPath;
         Key = key;
         _cloneElement = cloneElement;
@@ -42,6 +44,8 @@ public sealed class SparseRemovedCollectionRow<TElement, TKey>
 
     /// <summary>Gets the baseline revision captured when this handle was created.</summary>
     public long BaselineRevision { get; }
+
+    internal object Owner { get; }
 
     internal TElement CreateRestoreModel() => _cloneElement(_model);
 }

@@ -368,6 +368,28 @@ public sealed class CollectionEditingFacadeTests
     }
 
     [Test]
+    public void RemovedRowHandleFromAnotherSessionIsRejected()
+    {
+        var path = CollectionEditRoster.SparsePath.Quests;
+        var modelA = new CollectionEditRoster { Quests = [new() { Id = "a" }, new() { Id = "b", Title = "From A" }] };
+        var modelB = new CollectionEditRoster { Quests = [new() { Id = "a" }, new() { Id = "b", Title = "From B" }] };
+        var sessionA = modelA.CreateEditSession();
+        var sessionB = modelB.CreateEditSession();
+        var editorA = sessionA.EditCollection<CollectionEditQuest, string>(path);
+        var editorB = sessionB.EditCollection<CollectionEditQuest, string>(path);
+        editorA.TryRemoveByKey("b", out var error).ShouldBeTrue();
+        editorB.TryRemoveByKey("b", out error).ShouldBeTrue();
+        editorA.TryGetRemovedRows(out var rowsA, out error).ShouldBeTrue();
+
+        editorB.TryRestoreRemoved(rowsA[0], out error).ShouldBeFalse();
+
+        error.ShouldBe(SparseCollectionEditError.InvalidItem);
+        modelB.Quests.Select(static quest => quest.Id).ShouldBe(["a"]);
+        sessionA.EditCollection<CollectionEditQuest, string>(path).TryRestoreRemoved(rowsA[0], out error).ShouldBeTrue();
+        modelA.Quests[1].Title.ShouldBe("From A");
+    }
+
+    [Test]
     public void RemovedRowHandleCannotRestoreAgainstANewerBaseline()
     {
         var model = new CollectionEditRoster { Quests = [new() { Id = "a" }, new() { Id = "b" }] };

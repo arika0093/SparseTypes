@@ -27,6 +27,36 @@ public sealed class CollectionRowIdentityStoreTests
     }
 
     [Test]
+    public void UnkeyedRepeatedReferenceGetsOneStableIdentityPerOccurrence()
+    {
+        var store = new SparseCollectionRowIdentityStore<EqualElement>();
+        var repeated = new EqualElement();
+        var other = new EqualElement();
+        var lookalike = new EqualElement();
+
+        Guid[] Refresh(params EqualElement[] items)
+        {
+            store.BeginRefresh();
+            var result = items.Select((item, index) => store.GetOrCreate(item, SparsePathSegment.At(index), null, isKeyed: false)).ToArray();
+            store.EndRefresh();
+            return result;
+        }
+
+        var first = Refresh(repeated, other, repeated, lookalike);
+        first.Distinct().Count().ShouldBe(4);
+        Refresh(repeated, other, repeated, lookalike).ShouldBe(first);
+        var reordered = Refresh(other, repeated, repeated, lookalike);
+        reordered[0].ShouldBe(first[1]);
+        reordered[1].ShouldBe(first[0]);
+        reordered[2].ShouldBe(first[2]);
+        reordered[3].ShouldBe(first[3]);
+        var removed = Refresh(other, repeated);
+        removed[0].ShouldBe(first[1]);
+        removed[1].ShouldBe(first[0]);
+        Refresh(other, repeated, repeated)[2].ShouldNotBe(first[2]);
+    }
+
+    [Test]
     public void KeyReconciliationRetainsIdentityAcrossTemporaryAndPermanentPaths()
     {
         var store = new SparseCollectionRowIdentityStore<EqualElement>();
