@@ -500,6 +500,51 @@ public sealed class SparseValidationStoreTests
     }
 
     [Test]
+    public void Dispose_FinalNotificationsAllowReadsButRejectWritesAndReentry()
+    {
+        var store = Store();
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["x"]);
+        INotifyDataErrorInfo notify = store;
+        var seen = new List<string>();
+        var writeRejected = 0;
+        notify.ErrorsChanged += (_, args) =>
+        {
+            seen.Add($"{args.PropertyName}:{notify.HasErrors}:{notify.GetErrors(args.PropertyName).Cast<object?>().Count()}");
+            store.Dispose();
+            try
+            {
+                store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["y"]);
+            }
+            catch (ObjectDisposedException)
+            {
+                writeRejected++;
+            }
+        };
+
+        store.Dispose();
+
+        seen.ShouldBe(["Label:False:0", ":False:0"]);
+        writeRejected.ShouldBe(2);
+        store.IsDisposed.ShouldBeTrue();
+        Should.Throw<ObjectDisposedException>(() => store.HasErrors.ShouldBeFalse());
+        Should.Throw<ObjectDisposedException>(() => store.GetErrors(null));
+    }
+
+    [Test]
+    public void Dispose_SubscriberThrows_StillCompletesDisposal()
+    {
+        var store = Store();
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["x"]);
+        store.ErrorsChanged += (_, _) => throw new InvalidOperationException("boom");
+
+        Should.Throw<InvalidOperationException>(() => store.Dispose());
+
+        store.IsDisposed.ShouldBeTrue();
+        Should.Throw<ObjectDisposedException>(() => store.Clear());
+        store.Dispose();
+    }
+
+    [Test]
     public void ConcurrentUse_StaysConsistent()
     {
         var store = Store();

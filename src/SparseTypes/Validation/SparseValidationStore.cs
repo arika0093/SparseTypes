@@ -31,6 +31,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     private int _totalCount;
     private long _nextPathOrder;
     private bool _disposed;
+    private bool _disposing;
 
     /// <summary>Gets the root model type this store is bound to.</summary>
     public Type RootType => typeof(TModel);
@@ -42,7 +43,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         {
             lock (_sync)
             {
-                ThrowIfDisposed();
+                ThrowIfReadsRejected();
                 return _totalCount > 0;
             }
         }
@@ -332,7 +333,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     {
         lock (_sync)
         {
-            ThrowIfDisposed();
+            ThrowIfReadsRejected();
             if (path.IsRoot)
             {
                 return _pathsByRoot.TryGetValue(path.RootType, out var rootPaths) && rootPaths.Count > 0;
@@ -359,7 +360,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     {
         lock (_sync)
         {
-            ThrowIfDisposed();
+            ThrowIfReadsRejected();
             var result = new List<object?>();
             foreach (var entry in GetTypedSubtreeEntriesLocked(path))
             {
@@ -382,7 +383,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     {
         lock (_sync)
         {
-            ThrowIfDisposed();
+            ThrowIfReadsRejected();
             var result = new List<SparseValidationError>(_totalCount);
             foreach (var path in SortedEntriesLocked().Select(static entry => entry.Path))
             {
@@ -412,7 +413,7 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
     {
         lock (_sync)
         {
-            ThrowIfDisposed();
+            ThrowIfReadsRejected();
             if (propertyName is not { Length: > 0 })
             {
                 var all = new List<object?>(_totalCount);
@@ -460,12 +461,12 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         EventHandler<DataErrorsChangedEventArgs>? handler;
         lock (_sync)
         {
-            if (_disposed)
+            if (_disposed || _disposing)
             {
                 return;
             }
 
-            _disposed = true;
+            _disposing = true;
             // Single capture and reset, like Clear, then the same ordered
             // deduplicated ancestor notifications.
             var affected = SortedPathsWithErrorsLocked();
@@ -477,7 +478,19 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
             ErrorsChanged = null;
         }
 
-        Raise(notifications, handler);
+        try
+        {
+            Raise(notifications, handler);
+        }
+        finally
+        {
+            lock (_sync)
+            {
+                ErrorsChanged = null;
+                _disposed = true;
+                _disposing = false;
+            }
+        }
     }
 
     private static List<object?> Materialize(IEnumerable<object?> errors)
@@ -899,9 +912,20 @@ public sealed class SparseValidationStore<TModel> : INotifyDataErrorInfo, IDispo
         }
     }
 
-    private void ThrowIfDisposed()
+    // Reads stay available while disposal raises its final notifications so
+    // INotifyDataErrorInfo subscribers can observe the cleared state.
+    private void ThrowIfReadsRejected()
     {
         if (_disposed)
+        {
+            throw new ObjectDisposedException(GetType().FullName);
+        }
+    }
+
+    // Writes are rejected as soon as disposal starts, so handlers cannot re-add errors.
+    private void ThrowIfDisposed()
+    {
+        if (_disposed || _disposing)
         {
             throw new ObjectDisposedException(GetType().FullName);
         }
