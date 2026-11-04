@@ -546,7 +546,7 @@ public sealed class SparseObservableDictionary<TKey, TModel, TView>
 
         if (arrayIndex > arrayLength - count)
         {
-            throw new ArgumentException("The destination array does not have enough space.", "array");
+            throw new ArgumentException("The destination array does not have enough space.", nameof(arrayIndex));
         }
     }
 

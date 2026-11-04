@@ -626,14 +626,12 @@ internal static class SparseKeyAnalyzer
             string text => JsonStringLiteral(text),
             char character => JsonStringLiteral(character.ToString()),
             bool boolean => boolean ? "true" : "false",
-            float single when float.IsNaN(single) || float.IsInfinity(single) => "\"" + Convert.ToString(
-                single,
-                System.Globalization.CultureInfo.InvariantCulture
-            ) + "\"",
-            double number when double.IsNaN(number) || double.IsInfinity(number) => "\"" + Convert.ToString(
-                number,
-                System.Globalization.CultureInfo.InvariantCulture
-            ) + "\"",
+            float single when float.IsNaN(single) || float.IsInfinity(single) => "\""
+                + Convert.ToString(single, System.Globalization.CultureInfo.InvariantCulture)
+                + "\"",
+            double number when double.IsNaN(number) || double.IsInfinity(number) => "\""
+                + Convert.ToString(number, System.Globalization.CultureInfo.InvariantCulture)
+                + "\"",
             byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal => Convert.ToString(
                 constant.Value,
                 System.Globalization.CultureInfo.InvariantCulture

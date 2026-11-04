@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
 using SparseTypes.CompilerServices;
 
 namespace SparseTypes;
@@ -335,12 +336,9 @@ public sealed class SparseObservableList<TModel, TView>
         }
 
         var elementType = array.GetType().GetElementType()!;
-        foreach (var item in items)
+        if (items.Any(item => !CanStore(elementType, item)))
         {
-            if (!CanStore(elementType, item))
-            {
-                throw new ArgumentException("The destination array has an incompatible element type.", nameof(array));
-            }
+            throw new ArgumentException("The destination array has an incompatible element type.", nameof(array));
         }
 
         for (var itemIndex = 0; itemIndex < items.Length; itemIndex++)
@@ -828,7 +826,7 @@ public sealed class SparseObservableList<TModel, TView>
 
         if (arrayIndex > arrayLength - count)
         {
-            throw new ArgumentException("The destination array does not have enough space.", "array");
+            throw new ArgumentException("The destination array does not have enough space.", nameof(arrayIndex));
         }
     }
 
