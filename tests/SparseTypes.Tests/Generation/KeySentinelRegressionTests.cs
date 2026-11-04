@@ -114,4 +114,15 @@ public sealed class KeySentinelRegressionTests
         sentinel.ValueKind.ShouldBe(JsonValueKind.String);
         sentinel.GetString().ShouldBe(expected);
     }
+
+    [Test]
+    [Arguments("string", "\"a\\0b\\a\\v\\u2028\\u001f\\\"\\\\\"", "a\0b\a\v\u2028\u001f\"\\")]
+    [Arguments("char", "'\\0'", "\0")]
+    [Arguments("char", "'\\a'", "\a")]
+    [Arguments("char", "'\\v'", "\v")]
+    public void ControlCharacterSentinelProducesParsableSchema(string keyType, string unassigned, string expected)
+    {
+        var sentinel = FindUnassignedKey(Generate(keyType, unassigned));
+        sentinel.GetString().ShouldBe(expected);
+    }
 }

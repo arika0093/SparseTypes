@@ -623,8 +623,8 @@ internal static class SparseKeyAnalyzer
 
         return constant.Value switch
         {
-            string text => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(text, true),
-            char character => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(character.ToString(), true),
+            string text => JsonStringLiteral(text),
+            char character => JsonStringLiteral(character.ToString()),
             bool boolean => boolean ? "true" : "false",
             float single when float.IsNaN(single) || float.IsInfinity(single) => "\"" + Convert.ToString(
                 single,
@@ -640,6 +640,52 @@ internal static class SparseKeyAnalyzer
             ),
             _ => null,
         };
+    }
+
+    private static string JsonStringLiteral(string value)
+    {
+        var literal = new System.Text.StringBuilder(value.Length + 2);
+        literal.Append('"');
+        foreach (var character in value)
+        {
+            switch (character)
+            {
+                case '"':
+                    literal.Append("\\\"");
+                    break;
+                case '\\':
+                    literal.Append("\\\\");
+                    break;
+                case '\b':
+                    literal.Append("\\b");
+                    break;
+                case '\f':
+                    literal.Append("\\f");
+                    break;
+                case '\n':
+                    literal.Append("\\n");
+                    break;
+                case '\r':
+                    literal.Append("\\r");
+                    break;
+                case '\t':
+                    literal.Append("\\t");
+                    break;
+                default:
+                    if (character < ' ')
+                    {
+                        literal.Append("\\u").Append(((int)character).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
+                    }
+                    else
+                    {
+                        literal.Append(character);
+                    }
+
+                    break;
+            }
+        }
+
+        return literal.Append('"').ToString();
     }
 
     private static Location? AttributeLocation(AttributeData attribute, INamedTypeSymbol fallback) =>
