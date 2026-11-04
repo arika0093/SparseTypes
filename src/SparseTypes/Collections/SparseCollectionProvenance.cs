@@ -275,7 +275,7 @@ internal static class SparseCollectionProvenance
         var reset = LastReset(contributions);
         // Each distinct value records the lowest contribution index that
         // supplied it, so origins need no second scan over the contributions.
-        var originsByValue = new Dictionary<T, int>(effective.Value.Count, comparer);
+        var originsByValue = new Dictionary<ValueTuple<T>, int>(effective.Value.Count, new NullSafeKeyComparer<T>(comparer));
         var originBuffer = new int[effective.Value.Count];
         var distinctCount = 0;
         for (var index = reset + 1; index < contributions.Count; index++)
@@ -288,7 +288,7 @@ internal static class SparseCollectionProvenance
 
             foreach (var value in contribution.Value)
             {
-                if (!originsByValue.ContainsKey(value))
+                if (!originsByValue.ContainsKey(new ValueTuple<T>(value)))
                 {
                     if (distinctCount >= effective.Value.Count || !comparer.Equals(value, effective.Value[distinctCount]))
                     {
@@ -299,7 +299,7 @@ internal static class SparseCollectionProvenance
                         );
                     }
 
-                    originsByValue[value] = index;
+                    originsByValue[new ValueTuple<T>(value)] = index;
                     originBuffer[distinctCount++] = index;
                 }
             }
@@ -400,7 +400,7 @@ internal static class SparseCollectionProvenance
 
         // Each distinct value records the lowest contribution index that
         // supplied it, so origins need no second scan over the contributions.
-        var originsByValue = new Dictionary<T, int>(effectiveCount, comparer);
+        var originsByValue = new Dictionary<ValueTuple<T>, int>(effectiveCount, new NullSafeKeyComparer<T>(comparer));
         for (var index = reset + 1; index < contributions.Count; index++)
         {
             var contribution = contributions[index];
@@ -411,16 +411,16 @@ internal static class SparseCollectionProvenance
 
             foreach (var value in contribution.Value)
             {
-                if (!originsByValue.ContainsKey(value))
+                if (!originsByValue.ContainsKey(new ValueTuple<T>(value)))
                 {
-                    originsByValue[value] = index;
+                    originsByValue[new ValueTuple<T>(value)] = index;
                 }
             }
         }
 
         if (
             originsByValue.Count != effectiveCount
-            || (distinctEffective is not null && !distinctEffective.All(value => originsByValue.ContainsKey(value)))
+            || (distinctEffective is not null && !distinctEffective.All(value => originsByValue.ContainsKey(new ValueTuple<T>(value))))
         )
         {
             return Fail(
@@ -436,7 +436,7 @@ internal static class SparseCollectionProvenance
             var position = 0;
             foreach (var value in effectiveSet)
             {
-                if (!originsByValue.TryGetValue(value, out var origin))
+                if (!originsByValue.TryGetValue(new ValueTuple<T>(value), out var origin))
                 {
                     return Fail(
                         "The effective set is not the comparer-aware union of the present contributions after the last reset.",
@@ -454,7 +454,7 @@ internal static class SparseCollectionProvenance
         {
             // The union check above guarantees every effective value is
             // tracked.
-            if (!originsByValue.TryGetValue(effectiveValues[position], out var origin))
+            if (!originsByValue.TryGetValue(new ValueTuple<T>(effectiveValues[position]), out var origin))
             {
                 return Fail("The effective value contains an element supplied by no contribution.", out origins, out reason);
             }
@@ -569,4 +569,13 @@ internal static class SparseCollectionProvenance
     /// <remarks>Shared with live origin attribution so set-union membership and set-union attribution agree on equality.</remarks>
     /// <param name="value">The set-shaped value.</param>
     internal static IEqualityComparer<T>? TryGetSetComparer<T>(IEnumerable<T> value) => value is HashSet<T> hashSet ? hashSet.Comparer : null;
+
+    /// <summary>Wraps elements in a one-tuple so <see cref="Dictionary{TKey,TValue}"/> accepts null keys.</summary>
+    /// <remarks>Mirrors <see cref="HashSet{T}"/>: null hashes to 0 and equality always goes through the set comparer.</remarks>
+    internal sealed class NullSafeKeyComparer<T>(IEqualityComparer<T> comparer) : IEqualityComparer<ValueTuple<T>>
+    {
+        public bool Equals(ValueTuple<T> x, ValueTuple<T> y) => comparer.Equals(x.Item1, y.Item1);
+
+        public int GetHashCode(ValueTuple<T> obj) => obj.Item1 is null ? 0 : comparer.GetHashCode(obj.Item1);
+    }
 }

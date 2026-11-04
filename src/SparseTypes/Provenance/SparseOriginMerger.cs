@@ -72,7 +72,7 @@ internal static class SparseOriginMerger
         }
 
         // First-origin tracking while building the union.
-        var firstByValue = new Dictionary<T, string?>(comparer);
+        var firstByValue = new Dictionary<ValueTuple<T>, string?>(new SparseCollectionProvenance.NullSafeKeyComparer<T>(comparer));
         AddFirst(lower, lowerOrigins, lowerFallback, firstByValue);
         AddFirst(higher, higherOrigins, higherFallback, firstByValue);
 
@@ -82,7 +82,7 @@ internal static class SparseOriginMerger
             var position = 0;
             foreach (var value in effective)
             {
-                result[position++] = firstByValue.TryGetValue(value, out var origin) ? origin : null;
+                result[position++] = firstByValue.TryGetValue(new ValueTuple<T>(value), out var origin) ? origin : null;
             }
 
             return result;
@@ -93,7 +93,7 @@ internal static class SparseOriginMerger
         var buffer = new List<string?>();
         foreach (var value in effective)
         {
-            buffer.Add(firstByValue.TryGetValue(value, out var origin) ? origin : null);
+            buffer.Add(firstByValue.TryGetValue(new ValueTuple<T>(value), out var origin) ? origin : null);
         }
 
         return buffer.ToArray();
@@ -193,16 +193,17 @@ internal static class SparseOriginMerger
         "S3267",
         Justification = "Explicit loops track element positions while building the comparer-aware union; LINQ would obscure provenance positions."
     )]
-    private static void AddFirst<T>(IEnumerable<T> values, string?[]? origins, string? fallback, Dictionary<T, string?> firstByValue)
+    private static void AddFirst<T>(IEnumerable<T> values, string?[]? origins, string? fallback, Dictionary<ValueTuple<T>, string?> firstByValue)
     {
         ArgumentNullException.ThrowIfNull(values);
         var position = 0;
         foreach (var value in values)
         {
             var index = position++;
-            if (!firstByValue.ContainsKey(value))
+            var key = new ValueTuple<T>(value);
+            if (!firstByValue.ContainsKey(key))
             {
-                firstByValue[value] = OriginAt(origins, index, fallback);
+                firstByValue[key] = OriginAt(origins, index, fallback);
             }
         }
     }
