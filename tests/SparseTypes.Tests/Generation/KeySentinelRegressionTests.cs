@@ -114,5 +114,4 @@ public sealed class KeySentinelRegressionTests
         sentinel.ValueKind.ShouldBe(JsonValueKind.String);
         sentinel.GetString().ShouldBe(expected);
     }
-
 }
