@@ -12,11 +12,13 @@ public sealed class SparseKeyValidationScope<TKey> : IDisposable
 {
     private HashSet<TKey>? _keys;
     private readonly int _capacity;
+    private readonly Func<int, HashSet<TKey>> _create;
 
-    internal SparseKeyValidationScope(HashSet<TKey> keys, int capacity)
+    internal SparseKeyValidationScope(HashSet<TKey> keys, int capacity, Func<int, HashSet<TKey>> create)
     {
         _keys = keys;
         _capacity = capacity;
+        _create = create;
     }
 
     /// <summary>Gets the set exclusively owned by this scope.</summary>
@@ -29,7 +31,7 @@ public sealed class SparseKeyValidationScope<TKey> : IDisposable
         var keys = Interlocked.Exchange(ref _keys, null);
         if (keys is not null)
         {
-            SparseKeyValidationPool<TKey>.Return(keys, _capacity);
+            SparseKeyValidationPool<TKey>.Return(keys, _capacity, _create);
         }
     }
 }
@@ -39,8 +41,10 @@ internal static class SparseKeyValidationPool<TKey>
 {
     private const int MaximumRetainedEntries = 8192;
 
+    // The set's comparer comes from the factory, so a cached set is only valid for an equal delegate
+    // (same method and target). Mutating state captured by a factory is not tracked.
     [ThreadStatic]
-    private static KeyValuePair<HashSet<TKey>?, int> _cached;
+    private static (HashSet<TKey>? Keys, int Capacity, Func<int, HashSet<TKey>>? Create) _cached;
 
     internal static SparseKeyValidationScope<TKey> Rent(int capacity, Func<int, HashSet<TKey>> create)
     {
@@ -54,21 +58,21 @@ internal static class SparseKeyValidationPool<TKey>
             throw new ArgumentNullException(nameof(create));
         }
 
-        var keys = _cached.Key;
-        if (keys is null || _cached.Value < capacity)
+        var keys = _cached.Keys;
+        if (keys is null || _cached.Capacity < capacity || !create.Equals(_cached.Create))
         {
             keys = create(capacity);
         }
         else
         {
-            capacity = _cached.Value;
+            capacity = _cached.Capacity;
         }
 
         _cached = default;
-        return new SparseKeyValidationScope<TKey>(keys, capacity);
+        return new SparseKeyValidationScope<TKey>(keys, capacity, create);
     }
 
-    internal static void Return(HashSet<TKey> keys, int capacity)
+    internal static void Return(HashSet<TKey> keys, int capacity, Func<int, HashSet<TKey>> create)
     {
         capacity = Math.Max(capacity, keys.Count);
         if (capacity > MaximumRetainedEntries)
@@ -77,9 +81,9 @@ internal static class SparseKeyValidationPool<TKey>
         }
 
         keys.Clear();
-        if (_cached.Key is null || capacity > _cached.Value)
+        if (_cached.Keys is null || capacity > _cached.Capacity || !create.Equals(_cached.Create))
         {
-            _cached = new KeyValuePair<HashSet<TKey>?, int>(keys, capacity);
+            _cached = (keys, capacity, create);
         }
     }
 }

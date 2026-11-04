@@ -129,6 +129,55 @@ public sealed class KeyValidationScopeTests
     }
 
     [Test]
+    public void IncompatibleComparersAreNotReusedAcrossFactories()
+    {
+        var ordinal = StringComparer.Ordinal;
+        var ignoreCase = StringComparer.OrdinalIgnoreCase;
+        HashSet<string> CreateOrdinal(int count) => new(count, ordinal);
+        HashSet<string> CreateIgnoreCase(int count) => new(count, ignoreCase);
+
+        using (var first = SparseFragmentRuntime.RentKeyValidation<string>(16, CreateOrdinal))
+        {
+            first.Keys.Comparer.ShouldBeSameAs(ordinal);
+        }
+
+        using (var second = SparseFragmentRuntime.RentKeyValidation<string>(16, CreateIgnoreCase))
+        {
+            second.Keys.Comparer.ShouldBeSameAs(ignoreCase);
+            second.Keys.Add("A").ShouldBeTrue();
+            second.Keys.Add("a").ShouldBeFalse();
+        }
+
+        using var third = SparseFragmentRuntime.RentKeyValidation<string>(16, CreateOrdinal);
+        third.Keys.Comparer.ShouldBeSameAs(ordinal);
+        third.Keys.Add("A").ShouldBeTrue();
+        third.Keys.Add("a").ShouldBeTrue();
+    }
+
+    [Test]
+    public void EqualFactoryReusesAndNestedDifferentFactoryStaysIsolated()
+    {
+        var ignoreCase = StringComparer.OrdinalIgnoreCase;
+        HashSet<string> CreateIgnoreCase(int count) => new(count, ignoreCase);
+        HashSet<string>? reused;
+        using (var first = SparseFragmentRuntime.RentKeyValidation<string>(16, CreateIgnoreCase))
+        {
+            reused = first.Keys;
+        }
+
+        using var outer = SparseFragmentRuntime.RentKeyValidation<string>(16, CreateIgnoreCase);
+        outer.Keys.ShouldBeSameAs(reused);
+        outer.Keys.Add("A");
+        using (var inner = Rent<string>(16))
+        {
+            inner.Keys.ShouldNotBeSameAs(outer.Keys);
+            inner.Keys.Comparer.ShouldBeSameAs(EqualityComparer<string>.Default);
+        }
+
+        outer.Keys.Contains("a").ShouldBeTrue();
+    }
+
+    [Test]
     public void NullConstructorIsRejected() =>
         Should
             .Throw<ArgumentNullException>(() =>
