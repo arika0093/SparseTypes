@@ -9,6 +9,7 @@ internal static class SparseJsonNaming
 {
     public const int JsonIgnoreNever = 0;
     public const int JsonIgnoreAlways = 1;
+    public const int JsonIgnoreUnspecified = -1;
 
     public const string JsonPropertyNameAttribute = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
     public const string JsonIgnoreAttribute = "System.Text.Json.Serialization.JsonIgnoreAttribute";
@@ -70,7 +71,7 @@ internal static class SparseJsonNaming
             return condition;
         }
 
-        return JsonIgnoreNever;
+        return JsonIgnoreUnspecified;
     }
 
     private static bool TryParseCondition(TypedConstant constant, out int condition)

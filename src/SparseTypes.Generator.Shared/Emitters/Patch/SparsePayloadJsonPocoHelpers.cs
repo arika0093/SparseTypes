@@ -67,13 +67,12 @@ internal static class SparsePayloadJsonPocoHelpers
             "private static bool ShouldOmitPocoValue<TValue>(TValue? value, global::System.Text.Json.JsonSerializerOptions options, int condition)"
         );
         code.OpenBlock();
-        // The condition carries raw STJ JsonIgnoreCondition numbering
-        // (2 WhenWritingNull, 3 WhenWritingDefault).
+        code.AppendLine("if (condition == 0) return false; if (condition == 1) return true;");
         code.AppendLine(
-            "if (condition == 2 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull) { if (value is null) return true; }"
+            "if (condition == 2 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)) return global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!);"
         );
         code.AppendLine(
-            "if (condition == 3 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault) { if (global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)) return true; }"
+            "if (condition == 3 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)) return value is null;"
         );
         code.AppendLine("return false;");
         code.CloseBlock();
@@ -86,6 +85,9 @@ internal static class SparsePayloadJsonPocoHelpers
         code.OpenBlock();
         code.AppendLine(
             "if (converter is global::System.Text.Json.Serialization.JsonConverter<TValue> typed && converter.CanConvert(typeof(TValue))) return typed;"
+        );
+        code.AppendLine(
+            "if (converter is global::System.Text.Json.Serialization.JsonConverterFactory factory && factory.CanConvert(typeof(TValue))) return (global::System.Text.Json.Serialization.JsonConverter<TValue>)factory.CreateConverter(typeof(TValue), options)!;"
         );
         code.CloseBlock();
         code.AppendLine("return null;");
@@ -142,6 +144,45 @@ internal static class SparsePayloadJsonPocoHelpers
                 + context.ResolverReference
                 + " with a source-generated context for this value type.\");"
         );
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "private static TValue ReadPocoValue<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine("var custom = FindPocoConverter<TValue>(options);");
+        code.AppendLine("if (custom is not null) return custom.Read(ref reader, typeof(TValue), options)!;");
+        code.AppendLine("return ReadPocoDirect<TValue>(ref reader, options)!;");
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WritePocoValue<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value, global::System.Text.Json.JsonSerializerOptions options)"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("var custom = FindPocoConverter<TValue>(options);");
+        code.AppendLine("if (custom is not null) { custom.Write(writer, value, options); return; }");
+        code.AppendLine("WritePocoDirect(writer, value, options);");
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "private static TValue? ReadNullablePocoValue<TValue>(ref global::System.Text.Json.Utf8JsonReader reader, global::System.Text.Json.JsonSerializerOptions options) where TValue : struct"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) return null;");
+        code.AppendLine("var custom = FindPocoConverter<TValue?>(options);");
+        code.AppendLine("if (custom is not null) return custom.Read(ref reader, typeof(TValue?), options);");
+        code.AppendLine("return ReadPocoDirect<TValue>(ref reader, options);");
+        code.CloseBlock();
+        code.AppendLine();
+        code.AppendLine(
+            "private static void WriteNullablePocoValue<TValue>(global::System.Text.Json.Utf8JsonWriter writer, TValue? value, global::System.Text.Json.JsonSerializerOptions options) where TValue : struct"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (value is null) { writer.WriteNullValue(); return; }");
+        code.AppendLine("var custom = FindPocoConverter<TValue?>(options);");
+        code.AppendLine("if (custom is not null) { custom.Write(writer, value, options); return; }");
+        code.AppendLine("WritePocoDirect(writer, value.Value, options);");
         code.CloseBlock();
         code.AppendLine();
         code.AppendLine(

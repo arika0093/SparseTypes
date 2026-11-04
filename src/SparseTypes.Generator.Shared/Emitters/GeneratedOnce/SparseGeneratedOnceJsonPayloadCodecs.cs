@@ -118,11 +118,12 @@ internal static class SparseGeneratedOnceJsonPayloadCodecs
             "internal static bool ShouldOmitPocoValue<TValue>(TValue? value, global::System.Text.Json.JsonSerializerOptions options, int condition)"
         );
         code.OpenBlock();
+        code.AppendLine("if (condition == 0) return false; if (condition == 1) return true;");
         code.AppendLine(
-            "if (condition == 2 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull) { if (value is null) return true; }"
+            "if (condition == 2 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)) return global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!);"
         );
         code.AppendLine(
-            "if (condition == 3 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault) { if (global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)) return true; }"
+            "if (condition == 3 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)) return value is null;"
         );
         code.AppendLine("return false;");
         code.CloseBlock();
@@ -135,6 +136,9 @@ internal static class SparseGeneratedOnceJsonPayloadCodecs
         code.OpenBlock();
         code.AppendLine(
             "if (converter is global::System.Text.Json.Serialization.JsonConverter<TValue> typed && converter.CanConvert(typeof(TValue))) return typed;"
+        );
+        code.AppendLine(
+            "if (converter is global::System.Text.Json.Serialization.JsonConverterFactory factory && factory.CanConvert(typeof(TValue))) return (global::System.Text.Json.Serialization.JsonConverter<TValue>)factory.CreateConverter(typeof(TValue), options)!;"
         );
         code.CloseBlock();
         code.AppendLine("return null;");

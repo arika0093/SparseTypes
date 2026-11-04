@@ -107,12 +107,19 @@ internal static class SparsePayloadJsonPocoEmitter
             "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A leaf value must be an object.\");"
         );
         var members = poco.Members.Where(static member => !member.Property.IsJsonIgnored).ToArray();
+        var defaults = "sparse_poco_defaults_" + suffix;
+        if (members.Length > 0)
+        {
+            code.AppendLine(poco.RuntimeName + " " + defaults + " = " + DefaultConstructionFor(poco, members) + ";");
+        }
+
         for (var index = 0; index < members.Length; index++)
         {
             var member = members[index];
             var local = LocalName(suffix, index);
-            var init = InitializerFor(poco, member);
-            code.AppendLine(member.Property.Type.Name + " " + local + " = " + init + ";");
+            code.AppendLine(
+                member.Property.Type.Name + " " + local + " = " + defaults + "." + SparseNaming.EscapeIdentifier(member.Property.Name) + ";"
+            );
             if (member.Property.IsRequired)
             {
                 code.AppendLine("var " + HasName(suffix, index) + " = false;");
@@ -381,26 +388,33 @@ internal static class SparsePayloadJsonPocoEmitter
 
     private static string ScalarWrite(string elementName, string source) => "WritePocoScalar<" + elementName + ">(writer, " + source + ", options)";
 
-    private static string InitializerFor(SparsePayloadJsonPocoModel poco, SparseMemberModel member)
+    private static string DefaultConstructionFor(SparsePayloadJsonPocoModel poco, SparseMemberModel[] members)
     {
-        if (
-            poco.Constructor?.Parameters.FirstOrDefault(parameter => parameter.PropertyName == member.Property.Name) is { } bound
-            && bound.HasExplicitDefaultValue
-        )
-        {
-            return bound.DefaultExpression;
-        }
-
-        return "default!";
+        var parameters = poco.Constructor?.Parameters ?? default(ImmutableArray<ConstructorParameterBinding>);
+        var arguments = string.Join(
+            ", ",
+            parameters.Select(static parameter => parameter.HasExplicitDefaultValue ? parameter.DefaultExpression : "default!")
+        );
+        var assignments = members
+            .Where(static member => member.Property.IsRequired)
+            .Select(static member => SparseNaming.EscapeIdentifier(member.Property.Name) + " = default!");
+        var initializer = string.Join(", ", assignments);
+        var result = "new " + poco.RuntimeName + "(" + arguments + ")";
+        return initializer.Length == 0 ? result : result + " { " + initializer + " }";
     }
 
     private static string ReadExpression(string suffix, int index, SparseMemberModel member, Dictionary<string, string> suffixByName)
     {
         var declared = member.Property.Type.Name;
         var nonNull = member.Property.Type.NonNullableName;
-        if (suffixByName.TryGetValue(nonNull, out var nestedSuffix) && !IsCollectionMember(member))
+        if (suffixByName.ContainsKey(nonNull) && !IsCollectionMember(member))
         {
-            var call = "ReadPayloadPoco_" + nestedSuffix + "(ref reader, options)";
+            var call = "ReadPocoValue<" + nonNull + ">(ref reader, options)";
+            if (!member.Property.Type.IsReferenceType && declared.EndsWith("?", System.StringComparison.Ordinal))
+            {
+                return "ReadNullablePocoValue<" + nonNull + ">(ref reader, options)";
+            }
+
             if (IsNullableMember(member))
             {
                 return "(reader.TokenType == global::System.Text.Json.JsonTokenType.Null ? default! : " + call + ")";
@@ -430,9 +444,14 @@ internal static class SparsePayloadJsonPocoEmitter
     {
         var declared = member.Property.Type.Name;
         var nonNull = member.Property.Type.NonNullableName;
-        if (suffixByName.TryGetValue(nonNull, out var writeSuffix) && !IsCollectionMember(member))
+        if (suffixByName.ContainsKey(nonNull) && !IsCollectionMember(member))
         {
-            return "WritePayloadPoco_" + writeSuffix + "(writer, " + access + ", options)";
+            if (!member.Property.Type.IsReferenceType && declared.EndsWith("?", System.StringComparison.Ordinal))
+            {
+                return "WriteNullablePocoValue<" + nonNull + ">(writer, " + access + ", options)";
+            }
+
+            return "WritePocoValue<" + nonNull + ">(writer, " + access + ", options)";
         }
 
         if (IsArrayMember(member))
@@ -466,7 +485,7 @@ internal static class SparsePayloadJsonPocoEmitter
         var arguments = string.Join(", ", parameters.Select(parameter => ArgumentFor(members, suffix, parameter.PropertyName)));
         var assignments = members
             .Select((member, index) => (member, index))
-            .Where(item => !bound.Contains(item.member.Property.Name))
+            .Where(item => !bound.Contains(item.member.Property.Name) || item.member.Property.IsRequired)
             .Select(item => SparseNaming.EscapeIdentifier(item.member.Property.Name) + " = " + LocalName(suffix, item.index));
         var initializer = string.Join(", ", assignments);
         var result = "new " + poco.RuntimeName + "(" + arguments + ")";
