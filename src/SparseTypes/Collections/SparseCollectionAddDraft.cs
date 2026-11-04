@@ -115,7 +115,6 @@ public sealed class SparseCollectionAddDraft<TParent, TElement, TChildPaths, TCh
             childSession.DiscardChildSessions();
         }
 
-        Session.AcceptChanges();
         Close();
     }
 
