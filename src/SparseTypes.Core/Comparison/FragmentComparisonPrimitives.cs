@@ -58,9 +58,11 @@ internal static class FragmentComparisonPrimitives
             }
         }
 
+        // Key comparers may partition keys differently, so the reverse pass must
+        // validate values too, not just membership, to keep equality symmetric.
         foreach (DictionaryEntry entry in right)
         {
-            if (!left.Contains(entry.Key))
+            if (!left.Contains(entry.Key) || !AreValuesEqual(left[entry.Key], entry.Value))
             {
                 return false;
             }

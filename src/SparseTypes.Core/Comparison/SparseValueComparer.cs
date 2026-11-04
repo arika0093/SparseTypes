@@ -246,7 +246,7 @@ internal static class SparseValueComparer
             return leftView.ContainsAll(right) && rightView.ContainsAll(left);
         }
 
-        return PairSequenceEquals(left.ToArray(), right.ToArray());
+        return PairSequenceEquals(left.ToArray(), right.ToArray(), AreEqual);
     }
 
     /// <summary>Compares dictionaries using a caller-provided semantic value comparer.</summary>
@@ -288,7 +288,7 @@ internal static class SparseValueComparer
         var rightDictionary = AsDictionary(right);
         if (leftDictionary is not { } leftView || rightDictionary is not { } rightView)
         {
-            return AreDictionaryEqual(left, right);
+            return PairSequenceEquals(left.ToArray(), right.ToArray(), valueComparer);
         }
 
         if (leftView.Count != rightView.Count)
@@ -401,7 +401,11 @@ internal static class SparseValueComparer
         };
     }
 
-    private static bool PairSequenceEquals<TKey, TValue>(KeyValuePair<TKey, TValue>[] left, KeyValuePair<TKey, TValue>[] right)
+    private static bool PairSequenceEquals<TKey, TValue>(
+        KeyValuePair<TKey, TValue>[] left,
+        KeyValuePair<TKey, TValue>[] right,
+        Func<TValue, TValue, bool> valueComparer
+    )
     {
         if (left.Length != right.Length)
         {
@@ -421,7 +425,7 @@ internal static class SparseValueComparer
                     continue;
                 }
 
-                if (!AreEqual(leftPair.Value, rightPair.Value))
+                if (!valueComparer(leftPair.Value, rightPair.Value))
                 {
                     continue;
                 }
