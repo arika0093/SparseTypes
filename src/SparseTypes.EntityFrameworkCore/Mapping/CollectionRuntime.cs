@@ -565,7 +565,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         };
         runtime.ResolveNavigation(session, level);
         var transitionKeyType = runtime.ResolveChangeSetContract<TDto>();
-        runtime.ResolveKeys(session, transitionKeyType, declaration);
+        runtime.ResolveKeys(transitionKeyType, declaration);
         runtime.ResolveChildPlan(session, level, declaration);
         runtime.ResolvePolicies(declaration);
         runtime.ResolveCollectionSetter<TEntity>();
@@ -607,15 +607,6 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
                 SparseEntityMappingFailure.MetadataMismatch,
                 DtoName,
                 $"The entity member '{level.EntityType.ClrType.Name}.{NavigationName}' is not a collection navigation. Register it with Object() or Member()."
-            );
-        }
-
-        if (session.Model.FindEntityType(typeof(TEntityChild)) is null)
-        {
-            throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.MetadataMismatch,
-                DtoName,
-                $"The EF model has no entity type '{typeof(TEntityChild).Name}'."
             );
         }
 
@@ -711,7 +702,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         return arguments[0];
     }
 
-    private void ResolveKeys(PlanBuildSession session, Type transitionKeyType, CollectionDeclaration<TDtoChild, TEntityChild> declaration)
+    private void ResolveKeys(Type transitionKeyType, CollectionDeclaration<TDtoChild, TEntityChild> declaration)
     {
         KeyType = transitionKeyType;
         var generated = declaration.GeneratedElementDefaults;
@@ -757,7 +748,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         else
         {
             DtoKey = BoxSelector<TDtoChild>(generated.DtoKeySelector);
-            EntityKey = ResolveDefaultEntityKey(session, transitionKeyType);
+            EntityKey = ResolveDefaultEntityKey(transitionKeyType);
             KeyComparer = CreateComparer(transitionKeyType);
         }
 
@@ -800,10 +791,9 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         TemporarySetter(dto, temporaryKey);
     }
 
-    private Func<DbContext, TEntityChild, object?> ResolveDefaultEntityKey(PlanBuildSession session, Type keyType)
+    private Func<DbContext, TEntityChild, object?> ResolveDefaultEntityKey(Type keyType)
     {
-        var entityType = session.Model.FindEntityType(typeof(TEntityChild));
-        var childPrimary = entityType?.FindPrimaryKey();
+        var childPrimary = ChildEntityType.FindPrimaryKey();
         if (childPrimary is not null && childPrimary.Properties.Count == 1)
         {
             var property = childPrimary.Properties[0];
@@ -847,8 +837,7 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         }
 
         declaration.ElementConfigure?.Invoke(child);
-        var childEntityType = session.Model.FindEntityType(typeof(TEntityChild))!;
-        ChildPlan = EntityPlan<TEntityChild, TDtoChild>.Build(new PlanBuildSession(session.Model), child, childEntityType);
+        ChildPlan = EntityPlan<TEntityChild, TDtoChild>.Build(new PlanBuildSession(session.Model), child, ChildEntityType);
     }
 
     private void ResolvePolicies(CollectionDeclaration<TDtoChild, TEntityChild> declaration)

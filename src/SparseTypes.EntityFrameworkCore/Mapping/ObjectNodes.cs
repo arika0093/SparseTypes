@@ -190,13 +190,6 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             );
         }
 
-        var childEntityType =
-            session.Model.FindEntityType(typeof(TEntityChild))
-            ?? throw new SparseEntityMappingException(
-                SparseEntityMappingFailure.MetadataMismatch,
-                DtoName,
-                $"The EF model has no entity type '{typeof(TEntityChild).Name}'."
-            );
         if (!typeof(TEntityChild).IsAssignableFrom(navigation.TargetEntityType.ClrType))
         {
             throw new SparseEntityMappingException(
@@ -206,6 +199,8 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             );
         }
 
+        // The same CLR type can be owned by several navigations, each with its own entity type.
+        var childEntityType = navigation.TargetEntityType;
         session.ClaimNavigation(level.EntityType, NavigationName, DtoName);
         _navigationNullable = ReadNavigationNullability(navigation);
         _navigationOwned = navigation.ForeignKey.IsOwnership;
