@@ -441,4 +441,63 @@ public sealed class ShapeValidationTests
         match[0].Location.IsInSource.ShouldBeTrue();
         sources.ShouldBeEmpty();
     }
+
+    [Test]
+    [Arguments("int[,]")]
+    [Arguments("int[,,]")]
+    [Arguments("System.Collections.Generic.List<int[,]>")]
+    [Arguments("int[][,]")]
+    public void Generator_MultiDimensionalArrayReportsSpf008WithoutEmittingRoot(string type)
+    {
+        var source = $$"""
+            using SparseTypes;
+            [SparseModel]
+            public partial class GridModel
+            {
+                public {{type}} Value { get; set; } = null!;
+            }
+            """;
+        var (diagnostics, sources) = RunGenerator(source);
+        var match = diagnostics.Where(d => d.Id == "SPF008").ToImmutableArray();
+        match.Length.ShouldBe(1, "expected exactly one SPF008, got: " + string.Join(", ", diagnostics.Select(d => d.Id + ":" + d.GetMessage())));
+        match[0].GetMessage().ShouldContain("Value");
+        sources.ShouldBeEmpty();
+    }
+
+    [Test]
+    [Arguments("int[]")]
+    [Arguments("int[][]")]
+    [Arguments("System.Collections.Generic.List<int[]>")]
+    public void Generator_SingleDimensionalAndJaggedArraysCompile(string type)
+    {
+        var source = $$"""
+            using SparseTypes;
+            [SparseModel]
+            public partial class JaggedModel
+            {
+                public {{type}} Value { get; set; } = null!;
+            }
+            """;
+        var (diagnostics, sources) = RunGenerator(source);
+        diagnostics.Where(d => d.Id.StartsWith("SPF", StringComparison.Ordinal)).ShouldBeEmpty();
+        sources.ShouldNotBeEmpty();
+        var compilation = CreateCompilation(source);
+        var driver = CSharpGeneratorDriver.Create(new SparseTypesGenerator()).RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+        output.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ShouldBeEmpty();
+    }
+
+    [Test]
+    public void UnsupportedMemberReason_RejectsMultidimensionalArrays()
+    {
+        const string source = """
+            public class ArrayHolder
+            {
+                public int[,] Grid { get; set; } = new int[1, 1];
+            }
+            """;
+
+        SparseShapeValidation
+            .GetUnsupportedMemberReason(GetPropertyType(source, "ArrayHolder", "Grid"))
+            .ShouldBe(SparseMemberShapeProblem.UnsupportedArrayRank);
+    }
 }

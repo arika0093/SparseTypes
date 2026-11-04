@@ -29,6 +29,7 @@ internal enum SparseMemberShapeProblem
     TypeParameter,
     Error,
     RefLike,
+    UnsupportedArrayRank,
 }
 
 /// <summary>
@@ -147,6 +148,11 @@ internal static class SparseShapeValidation
 
             if (current is IArrayTypeSymbol array)
             {
+                if (array.Rank != 1)
+                {
+                    return SparseMemberShapeProblem.UnsupportedArrayRank;
+                }
+
                 pending.Push(array.ElementType);
                 continue;
             }

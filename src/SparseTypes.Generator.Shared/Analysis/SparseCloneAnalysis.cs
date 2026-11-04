@@ -77,7 +77,7 @@ internal static class SparseCloneAnalysis
     {
         if (type is IArrayTypeSymbol array)
         {
-            return IsCloneSupported(array.ElementType, config, cancellationToken, visited);
+            return array.Rank == 1 && IsCloneSupported(array.ElementType, config, cancellationToken, visited);
         }
 
         if (type is not INamedTypeSymbol named)
