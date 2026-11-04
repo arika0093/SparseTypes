@@ -301,8 +301,8 @@ internal static class SparseEditSessionChildEmitter
         code.OpenBlock();
         code.AppendLine("if (__sparse_child_sessions is not null)");
         code.OpenBlock();
-        code.AppendLine("foreach (var child in __sparse_child_sessions)");
-        code.AppendLine("if (child.HasChanges()) child.Confirm();");
+        code.AppendLine("foreach (var child in __sparse_child_sessions.ToArray())");
+        code.AppendLine("if (__sparse_child_sessions.Contains(child) && child.HasChanges()) child.Confirm();");
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("/// <summary>Discards pending edits in every registered child session.</summary>");
@@ -316,8 +316,8 @@ internal static class SparseEditSessionChildEmitter
         code.CloseBlock();
         code.AppendLine("if (__sparse_child_sessions is not null)");
         code.OpenBlock();
-        code.AppendLine("foreach (var child in __sparse_child_sessions)");
-        code.AppendLine("if (child.HasChanges()) child.Discard();");
+        code.AppendLine("foreach (var child in __sparse_child_sessions.ToArray())");
+        code.AppendLine("if (__sparse_child_sessions.Contains(child) && child.HasChanges()) child.Discard();");
         code.CloseBlock();
         code.CloseBlock();
         code.AppendLine("/// <summary>Determines whether a child edit session is registered at or below a path.</summary>");

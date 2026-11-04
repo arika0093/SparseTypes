@@ -114,4 +114,56 @@ public sealed class NestedPassThroughHistoryTests
         harness.RootHistory.CanUndo.ShouldBeFalse();
         harness.Child.CanUndo.ShouldBeFalse();
     }
+
+    [Test]
+    public void DiscardingChildSessionsToleratesSiblingRemovalDuringCallbacks()
+    {
+        var root = new CoordinatorMutationRoot
+        {
+            First = new CoordinatorMutationChild { Value = "First" },
+            Second = new CoordinatorMutationChild { Value = "Second" },
+        };
+        var session = root.CreateEditSession();
+        var parent = (ISparseEditSessionWithChildren<CoordinatorMutationRoot, SparseConflict>)session;
+        var first = parent.OpenChildSession(CoordinatorMutationRoot.SparsePath.First);
+        var second = parent.OpenChildSession(CoordinatorMutationRoot.SparsePath.Second);
+        first.Session.Observable.Value = "Edited first";
+        second.Session.Observable.Value = "Edited second";
+        ((System.ComponentModel.INotifyPropertyChanged)first.Session).PropertyChanged += (_, _) => second.Dispose();
+
+        parent.DiscardChildSessions();
+    }
+
+    [Test]
+    public void ConfirmingChildSessionsToleratesSiblingRemovalDuringCallbacks()
+    {
+        var root = new CoordinatorMutationRoot
+        {
+            First = new CoordinatorMutationChild { Value = "First" },
+            Second = new CoordinatorMutationChild { Value = "Second" },
+        };
+        var session = root.CreateEditSession();
+        var parent = (ISparseEditSessionWithChildren<CoordinatorMutationRoot, SparseConflict>)session;
+        var first = parent.OpenChildSession(CoordinatorMutationRoot.SparsePath.First);
+        var second = parent.OpenChildSession(CoordinatorMutationRoot.SparsePath.Second);
+        first.Session.Observable.Value = "Edited first";
+        second.Session.Observable.Value = "Edited second";
+        ((System.ComponentModel.INotifyPropertyChanged)first.Session).PropertyChanged += (_, _) => second.Dispose();
+
+        parent.ConfirmChildSessions();
+    }
+}
+
+[SparseModel]
+public partial class CoordinatorMutationChild
+{
+    public string Value { get; set; } = string.Empty;
+}
+
+[SparseModel]
+public partial class CoordinatorMutationRoot
+{
+    public CoordinatorMutationChild First { get; set; } = new();
+
+    public CoordinatorMutationChild Second { get; set; } = new();
 }
