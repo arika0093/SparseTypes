@@ -64,8 +64,7 @@ public readonly struct SparsePath<TModel, TValue> : IEquatable<SparsePath<TModel
     public bool Equals(SparsePath other) => Path.Equals(other);
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) =>
-        obj is SparsePath<TModel, TValue> typed ? Equals(typed) : obj is SparsePath untyped && Equals(untyped);
+    public override bool Equals(object? obj) => obj is SparsePath<TModel, TValue> typed && Equals(typed);
 
     /// <inheritdoc />
     public override int GetHashCode() => _path.GetSegmentsHashCode(typeof(TModel).GetHashCode());
