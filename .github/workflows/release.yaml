@@ -27,6 +27,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            src/SparseTypes.JS.CodeGen/package-lock.json
+            samples/EfCoreSample/EfCoreSample.WebClient/package-lock.json
+
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
@@ -53,6 +62,12 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore SparseTypes.slnx
+
+      - name: Install codegen dependencies
+        run: npm ci --prefix src/SparseTypes.JS.CodeGen
+
+      - name: Install sample web dependencies
+        run: npm ci --prefix samples/EfCoreSample/EfCoreSample.WebClient
 
       - name: Build
         run: dotnet build SparseTypes.slnx --no-restore --configuration Release
