@@ -271,6 +271,10 @@ namespace SparseTypes.Generated
             {
                 throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
             }
+            catch (global::System.OverflowException exception)
+            {
+                throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
+            }
             catch (global::System.InvalidOperationException exception)
             {
                 throw new global::System.Text.Json.JsonException("Malformed collection key.", exception);
@@ -392,7 +396,7 @@ namespace SparseTypes.Generated
                     hasValueProperty = true;
                     if (!reader.Read()) throw new global::System.Text.Json.JsonException("Malformed endpoint.");
                     hasValue = true;
-                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) value = default;
+                    if (reader.TokenType == global::System.Text.Json.JsonTokenType.Null) { if (typeof(TValue).IsValueType && global::System.Nullable.GetUnderlyingType(typeof(TValue)) is null) throw new global::System.Text.Json.JsonException("A non-nullable value endpoint cannot contain null."); value = default; }
                     else if (rootReader is not null) value = rootReader(ref reader, options);
                     else if (TryReadPayloadScalar<TValue>(ref reader, out var scalarValue)) value = scalarValue;
                     else value = global::System.Text.Json.JsonSerializer.Deserialize<TValue>(ref reader, getTypeInfo(options));
@@ -622,8 +626,9 @@ namespace SparseTypes.Generated
 
         internal static bool ShouldOmitPocoValue<TValue>(TValue? value, global::System.Text.Json.JsonSerializerOptions options, int condition)
         {
-            if (condition == 2 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull) { if (value is null) return true; }
-            if (condition == 3 || options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault) { if (global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!)) return true; }
+            if (condition == 0) return false; if (condition == 1) return true;
+            if (condition == 2 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)) return global::System.Collections.Generic.EqualityComparer<TValue>.Default.Equals(value!, default!);
+            if (condition == 3 || (condition < 0 && options.DefaultIgnoreCondition == global::System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)) return value is null;
             return false;
         }
 
@@ -632,6 +637,7 @@ namespace SparseTypes.Generated
             foreach (var converter in options.Converters)
             {
                 if (converter is global::System.Text.Json.Serialization.JsonConverter<TValue> typed && converter.CanConvert(typeof(TValue))) return typed;
+                if (converter is global::System.Text.Json.Serialization.JsonConverterFactory factory && factory.CanConvert(typeof(TValue))) return (global::System.Text.Json.Serialization.JsonConverter<TValue>)factory.CreateConverter(typeof(TValue), options)!;
             }
             return null;
         }
