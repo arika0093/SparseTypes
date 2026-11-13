@@ -37,4 +37,31 @@ public sealed class SparseObservableCopyToContractTests
         raw.CopyTo(objects, 0);
         objects[0].ShouldBe("a");
     }
+
+    [Test]
+    public void NonGenericCopyTo_CopiesIntoExactViewArray()
+    {
+        var list = Create<string>(new List<string> { "a", "b" });
+        var destination = new[] { "x", "y", "z" };
+
+        ((ICollection)list).CopyTo(destination, 1);
+
+        destination.ShouldBe(["x", "a", "b"]);
+    }
+
+    [Test]
+    public void NonGenericCopyTo_DoesNotMutateDestinationWhenWrappingFails()
+    {
+        var list = new SparseObservableList<string, string>(
+            new List<string> { "a", "b" },
+            static (value, _) => value == "b" ? throw new InvalidOperationException() : value,
+            static view => view,
+            static () => { }
+        );
+        var destination = new[] { "x", "y" };
+
+        Should.Throw<InvalidOperationException>(() => ((ICollection)list).CopyTo(destination, 0));
+
+        destination.ShouldBe(["x", "y"]);
+    }
 }

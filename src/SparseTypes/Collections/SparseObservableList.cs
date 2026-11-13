@@ -207,7 +207,12 @@ public sealed class SparseObservableList<TModel, TView>
     /// <inheritdoc />
     public int IndexOf(TView item)
     {
-        var model = _unwrap(item);
+        if (item is null && default(TModel) is not null)
+        {
+            return -1;
+        }
+
+        var model = item is null ? default! : _unwrap(item);
         for (var index = 0; index < _model.Count; index++)
         {
             if (EqualityComparer<TModel>.Default.Equals(_model[index], model))
@@ -329,13 +334,27 @@ public sealed class SparseObservableList<TModel, TView>
     {
         ArgumentNullException.ThrowIfNull(array);
         ValidateCopyTo(array, index, Count);
+        var arrayType = array.GetType();
+        var elementType = arrayType.GetElementType()!;
+        if (arrayType == typeof(TView[]))
+        {
+            var typedArray = (TView[])array;
+            var stagedItems = new TView[Count];
+            for (var itemIndex = 0; itemIndex < stagedItems.Length; itemIndex++)
+            {
+                stagedItems[itemIndex] = Wrap(_model[itemIndex]);
+            }
+
+            Array.Copy(stagedItems, 0, typedArray, index, stagedItems.Length);
+            return;
+        }
+
         var items = new object?[Count];
         for (var itemIndex = 0; itemIndex < Count; itemIndex++)
         {
             items[itemIndex] = Wrap(_model[itemIndex]);
         }
 
-        var elementType = array.GetType().GetElementType()!;
         if (items.Any(item => !CanStore(elementType, item)))
         {
             throw new ArgumentException("The destination array has an incompatible element type.", nameof(array));
@@ -413,32 +432,39 @@ public sealed class SparseObservableList<TModel, TView>
             return;
         }
 
-        var removedKeys = new HashSet<object>(SparseCoreRuntime.ReferenceComparer);
-        foreach (TModel item in items)
-        {
-            if (item is not null)
-            {
-                removedKeys.Add(item);
-            }
-        }
-
-        if (removedKeys.Count == 0)
+        if (items.Count == 0)
         {
             return;
         }
 
-        HashSet<object>? live = null;
-        if (!_membershipIndexValid)
+        if (_membershipIndexValid)
         {
-            live = CreateLiveSet();
+            foreach (TModel item in items)
+            {
+                if (item is not null)
+                {
+                    var key = (object)item;
+                    if (!_membershipCounts!.ContainsKey(key) && _proxies.Remove(key, out var entry))
+                    {
+                        entry.Active = false;
+                    }
+                }
+            }
+
+            return;
         }
 
-        foreach (var key in removedKeys)
+        HashSet<object>? live = null;
+        foreach (TModel item in items)
         {
-            var isPresent = _membershipIndexValid ? _membershipCounts!.ContainsKey(key) : live!.Contains(key);
-            if (!isPresent && _proxies.Remove(key, out var entry))
+            if (item is not null)
             {
-                entry.Active = false;
+                live ??= CreateLiveSet();
+                var key = (object)item;
+                if (!live.Contains(key) && _proxies.Remove(key, out var entry))
+                {
+                    entry.Active = false;
+                }
             }
         }
     }

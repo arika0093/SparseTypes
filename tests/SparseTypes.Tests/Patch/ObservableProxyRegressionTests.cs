@@ -235,6 +235,43 @@ public sealed class ObservableProxyRegressionTests
     }
 
     [Test]
+    public void ExternalRangeRemoveDetachesDuplicateReferenceAfterItsLastOccurrence()
+    {
+        var notified = 0;
+        var shared = new ProbeChild { Name = "shared" };
+        var source = new RangeObservableList<ProbeChild>([shared, shared]);
+        var view = ProbeList(source, () => notified++);
+        var proxy = view[0];
+
+        source.RemoveRange(0, 2);
+
+        notified.ShouldBe(1);
+        proxy.Changed();
+        notified.ShouldBe(1);
+    }
+
+    [Test]
+    public void ExternalRangeRemoveAfterRawAccessUsesLiveMembershipSnapshot()
+    {
+        var notified = 0;
+        var removed = new ProbeChild { Name = "removed" };
+        var retained = new ProbeChild { Name = "retained" };
+        var source = new RangeObservableList<ProbeChild>([removed, retained]);
+        var view = ProbeList(source, () => notified++);
+        var removedProxy = view[0];
+        var retainedProxy = view[1];
+        _ = view.UnsafeModel;
+
+        source.RemoveRange(0, 1);
+
+        notified.ShouldBe(1);
+        removedProxy.Changed();
+        notified.ShouldBe(1);
+        retainedProxy.Changed();
+        notified.ShouldBe(2);
+    }
+
+    [Test]
     public void ExternalRangeReplaceKeepsDuplicateOldModelAlive()
     {
         var notified = 0;
