@@ -807,8 +807,7 @@ internal static class SparseModelDiscovery
 
         if (type is INamedTypeSymbol named && (IsFragmentModel(type, config, cancellationToken) || IsStructuralType(type, config, cancellationToken)))
         {
-            return (IsNullableType(type) ? "nullable-model:" : "required-model:")
-                + CreatePayloadSchemaShape(named, config, cancellationToken, walk);
+            return (IsNullableType(type) ? "nullable-model:" : "required-model:") + CreatePayloadSchemaShape(named, config, cancellationToken, walk);
         }
 
         var wireType =
