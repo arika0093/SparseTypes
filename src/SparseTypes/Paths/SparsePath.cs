@@ -9,23 +9,42 @@ namespace SparseTypes;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public readonly struct SparsePath : IEquatable<SparsePath>
 {
-    private readonly SparsePathSegment[]? _storage;
+    private readonly SparsePathStorage? _storage;
+    private readonly SparsePathSegment[]? _segments;
     private readonly int _length;
     private readonly Type? _rootType;
-    private SparsePathSegment[] SegmentsArray => _storage ?? [];
+    private SparsePathSegment[] SegmentsArray => _segments ?? _storage?.GetSegments() ?? Array.Empty<SparsePathSegment>();
     internal bool IsInitialized => _rootType is not null;
 
     private SparsePath(SparsePathSegment[] ownedSegments, Type rootType)
     {
         _rootType = rootType;
-        _storage = ownedSegments;
+        _storage = null;
+        _segments = ownedSegments.Length == 0 ? null : ownedSegments;
         _length = ownedSegments.Length;
     }
 
-    private SparsePath(SparsePathSegment[] ownedSegments, int length, Type rootType)
+    private SparsePath(SparsePathStorage storage, Type rootType)
     {
         _rootType = rootType;
-        _storage = ownedSegments;
+        _storage = storage;
+        _segments = null;
+        _length = storage.Length;
+    }
+
+    private SparsePath(SparsePathStorage storage, int length, Type rootType)
+    {
+        _rootType = rootType;
+        _storage = storage;
+        _segments = null;
+        _length = length;
+    }
+
+    private SparsePath(SparsePathSegment[] segments, int length, Type rootType)
+    {
+        _rootType = rootType;
+        _storage = null;
+        _segments = segments;
         _length = length;
     }
 
@@ -37,12 +56,14 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         ArgumentNullException.ThrowIfNull(rootType);
         ArgumentNullException.ThrowIfNull(segments);
         _rootType = rootType;
-        _storage = segments.ToArray();
-        if (_storage.Any(static segment => !segment.IsInitialized))
+        var ownedSegments = segments.ToArray();
+        if (ownedSegments.Any(static segment => !segment.IsInitialized))
         {
             throw new ArgumentException("Path segments must be initialized through a segment factory.", nameof(segments));
         }
-        _length = _storage.Length;
+        _storage = null;
+        _segments = ownedSegments.Length == 0 ? null : ownedSegments;
+        _length = ownedSegments.Length;
     }
 
     /// <summary>Creates a path from a root type and segments.</summary>
@@ -92,7 +113,13 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             throw new ArgumentOutOfRangeException(nameof(length));
         }
 
-        return length == 0 ? Root(RootType) : new SparsePath(SegmentsArray, length, RootType);
+        if (length == 0)
+        {
+            return Root(RootType);
+        }
+
+        var segments = _segments ?? _storage?.TryGetMaterializedSegments();
+        return segments is not null ? new SparsePath(segments, length, RootType) : new SparsePath(_storage!, length, RootType);
     }
 
     /// <summary>Appends a member segment for a declared model member.</summary>
@@ -120,10 +147,16 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         {
             throw new ArgumentException("Path segments must be initialized through a segment factory.", nameof(segment));
         }
-        var combined = new SparsePathSegment[_length + 1];
-        Array.Copy(SegmentsArray, combined, _length);
-        combined[_length] = segment;
-        return new SparsePath(combined, RootType);
+        var segments = _segments ?? _storage?.TryGetMaterializedSegments();
+        if (segments is not null)
+        {
+            var combined = new SparsePathSegment[_length + 1];
+            Array.Copy(segments, combined, _length);
+            combined[_length] = segment;
+            return new SparsePath(combined, RootType);
+        }
+
+        return new SparsePath(new SparsePathStorage(_storage, _length, segment), RootType);
     }
 
     /// <summary>Appends another path's segments, keeping this root type.</summary>
@@ -136,9 +169,16 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return this;
         }
 
+        if (_length == 0)
+        {
+            return new SparsePath(suffix.SegmentsArray, suffix._length, RootType);
+        }
+
+        var existingSegments = SegmentsArray;
+        var suffixSegments = suffix.SegmentsArray;
         var combined = new SparsePathSegment[_length + suffix._length];
-        Array.Copy(SegmentsArray, combined, _length);
-        Array.Copy(suffix.SegmentsArray, 0, combined, _length, suffix._length);
+        Array.Copy(existingSegments, combined, _length);
+        Array.Copy(suffixSegments, 0, combined, _length, suffix._length);
         return new SparsePath(combined, RootType);
     }
 
@@ -160,7 +200,15 @@ public readonly struct SparsePath : IEquatable<SparsePath>
     {
         if (prefix._length == 0)
         {
-            return new SparsePath(SegmentsArray, _length, prefix.RootType);
+            if (_length == 0)
+            {
+                return Root(prefix.RootType);
+            }
+
+            var existingSegments = _segments ?? _storage?.TryGetMaterializedSegments();
+            return existingSegments is not null
+                ? new SparsePath(existingSegments, _length, prefix.RootType)
+                : new SparsePath(_storage!, _length, prefix.RootType);
         }
 
         var combined = new SparsePathSegment[prefix._length + _length];
@@ -178,9 +226,16 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return false;
         }
 
+        if (_length == 0)
+        {
+            return true;
+        }
+
+        var segments = SegmentsArray;
+        var otherSegments = other.SegmentsArray;
         for (var index = 0; index < _length; index++)
         {
-            if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
+            if (!segments[index].Equals(otherSegments[index]))
             {
                 return false;
             }
@@ -207,9 +262,16 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return false;
         }
 
+        if (other._length == 0)
+        {
+            return true;
+        }
+
+        var segments = SegmentsArray;
+        var otherSegments = other.SegmentsArray;
         for (var index = 0; index < other._length; index++)
         {
-            if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
+            if (!segments[index].Equals(otherSegments[index]))
             {
                 return false;
             }
@@ -232,9 +294,16 @@ public readonly struct SparsePath : IEquatable<SparsePath>
             return false;
         }
 
+        if (_length == 0)
+        {
+            return true;
+        }
+
+        var segments = SegmentsArray;
+        var otherSegments = other.SegmentsArray;
         for (var index = 0; index < _length; index++)
         {
-            if (!SegmentsArray[index].Equals(other.SegmentsArray[index]))
+            if (!segments[index].Equals(otherSegments[index]))
             {
                 return false;
             }
@@ -254,9 +323,10 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         unchecked
         {
             var hash = rootHashCode;
+            var segments = SegmentsArray;
             for (var index = 0; index < _length; index++)
             {
-                hash = (hash * 397) ^ SegmentsArray[index].GetHashCode();
+                hash = (hash * 397) ^ segments[index].GetHashCode();
             }
 
             return hash;
@@ -281,9 +351,10 @@ public readonly struct SparsePath : IEquatable<SparsePath>
         var builder = SparsePathTextBuilderPool.Rent();
         try
         {
+            var segments = SegmentsArray;
             for (var index = 0; index < _length; index++)
             {
-                var segment = SegmentsArray[index];
+                var segment = segments[index];
                 switch (segment.Kind)
                 {
                     case SparsePathSegmentKind.Member:

@@ -105,6 +105,89 @@ public sealed class SparsePathValueTests
     }
 
     [Test]
+    public void AppendingToPrefixDoesNotIncludeLaterSegments()
+    {
+        var path = SparsePath.Root<Settings>().Member("First").Member("Second").Member("Third");
+        var prefix = SparseResolutionWorkspace.StagingKey(path, 1);
+        _ = prefix.GetHashCode();
+        _ = prefix.ToString();
+
+        prefix.Append(SparsePathSegment.Member("Added")).ToString().ShouldBe("First.Added");
+        prefix.Parent.ShouldBe(SparsePath.Root<Settings>());
+    }
+
+    [Test]
+    public void AppendingAfterReadsRetainsTheMaterializedPrefix()
+    {
+        var path = SparsePath.Root<Settings>().Member("First").Member("Second");
+        var expectedHash = path.GetHashCode();
+        var expectedText = path.ToString();
+        var expectedSegments = path.Segments.ToArray();
+
+        var appended = path.Append(SparsePathSegment.Member("Third"));
+
+        appended.Parent.ShouldBe(path);
+        appended.GetHashCode().ShouldBe(unchecked((expectedHash * 397) ^ SparsePathSegment.Member("Third").GetHashCode()));
+        appended.ToString().ShouldBe(expectedText + ".Third");
+        appended.Segments.Take(expectedSegments.Length).ShouldBe(expectedSegments);
+        path.ToString().ShouldBe(expectedText);
+    }
+
+    [Test]
+    public void AppendingPathSuffixKeepsReceiverRootAndSegments()
+    {
+        var rootReceiver = SparsePath.Root<string>();
+        var suffix = SparsePath.Root<Settings>().Member("Items").Key(42).Member("Name");
+
+        var rootCombined = rootReceiver.Append(suffix);
+        rootCombined.RootType.ShouldBe(typeof(string));
+        rootCombined.ToString().ShouldBe("Items[\"42\"].Name");
+
+        var receiver = rootReceiver.Member("Parent");
+        var combined = receiver.Append(suffix);
+
+        combined.RootType.ShouldBe(typeof(string));
+        combined.ToString().ShouldBe("Parent.Items[\"42\"].Name");
+        combined.Depth.ShouldBe(4);
+        combined.Parent.ShouldBe(receiver.Append(SparsePath.Root<Settings>().Member("Items").Key(42)));
+        suffix.RootType.ShouldBe(typeof(Settings));
+        suffix.ToString().ShouldBe("Items[\"42\"].Name");
+    }
+
+    [Test]
+    public void ConcurrentFirstReadsShareOnlyImmutablePathSegments()
+    {
+        var path = SparsePath.Root<Settings>();
+        var expectedNames = Enumerable.Range(0, 64).Select(static index => "Member" + index).ToArray();
+        var expectedHash = typeof(Settings).GetHashCode();
+        foreach (var name in expectedNames)
+        {
+            var segment = SparsePathSegment.Member(name);
+            expectedHash = unchecked((expectedHash * 397) ^ segment.GetHashCode());
+            path = path.Append(segment);
+        }
+
+        var expectedText = string.Join(".", expectedNames);
+        Parallel.For(
+            0,
+            32,
+            _ =>
+            {
+                var segments = path.Segments;
+                if (
+                    segments.Count != expectedNames.Length
+                    || segments[63].Name != expectedNames[63]
+                    || path.GetHashCode() != expectedHash
+                    || path.ToString() != expectedText
+                )
+                {
+                    throw new InvalidOperationException("Concurrent path reads must observe the complete immutable path.");
+                }
+            }
+        );
+    }
+
+    [Test]
     public void SegmentViewsSupportDefaultAndIndependentEnumeration()
     {
         var empty = default(SparsePathSegments);
