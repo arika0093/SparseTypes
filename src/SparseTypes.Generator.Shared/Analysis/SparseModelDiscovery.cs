@@ -664,7 +664,7 @@ internal static class SparseModelDiscovery
 
         var payloadSchemaShape =
             type is INamedTypeSymbol payloadModel && (isFragmentModel || IsStructuralType(type, config, cancellationToken))
-                ? CreatePayloadSchemaShape(payloadModel, config, cancellationToken, new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default))
+                ? CreatePayloadSchemaShape(payloadModel, config, cancellationToken, new PayloadShapeWalk())
                 : null;
 
         return new SparseTypeModel(
@@ -691,14 +691,22 @@ internal static class SparseModelDiscovery
         INamedTypeSymbol model,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken,
-        HashSet<INamedTypeSymbol> activeModels
+        PayloadShapeWalk walk
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!activeModels.Add(model))
+        if (walk.Completed.TryGetValue(model, out var cached))
         {
+            return cached;
+        }
+
+        if (!walk.Active.Add(model))
+        {
+            walk.Truncations++;
             return "recursive";
         }
+
+        var truncationsBefore = walk.Truncations;
 
         var canonical = new StringBuilder("SparseTypes.ChangePayload.NestedSchema.v1\n");
         foreach (
@@ -721,7 +729,7 @@ internal static class SparseModelDiscovery
             AppendPayloadShape(canonical, IsRedactBefore(member.Property, config) ? "redacted-before" : "complete-before");
             AppendPayloadShape(canonical, member.MergeMode.ToString(CultureInfo.InvariantCulture));
             AppendPayloadShape(canonical, member.HasExplicitMergeMode ? "explicit-merge" : "default-merge");
-            AppendPayloadShape(canonical, GetPayloadTypeShape(member.Property.Type, config, cancellationToken, activeModels));
+            AppendPayloadShape(canonical, GetPayloadTypeShape(member.Property.Type, config, cancellationToken, walk));
 
             var collection = member.Collection;
             if (collection.Kind != SparseCollectionKind.Unsupported)
@@ -745,7 +753,7 @@ internal static class SparseModelDiscovery
             }
         }
 
-        activeModels.Remove(model);
+        walk.Active.Remove(model);
         using var sha256 = SHA256.Create();
         var digest = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonical.ToString()));
         var hexadecimal = new StringBuilder(digest.Length * 2);
@@ -753,14 +761,29 @@ internal static class SparseModelDiscovery
         {
             hexadecimal.Append(item.ToString("x2", CultureInfo.InvariantCulture));
         }
-        return "sha256:" + hexadecimal;
+        var shape = "sha256:" + hexadecimal;
+        // Shapes truncated by a cycle depend on the active path, so only cycle-free results are shared.
+        // Sharing the rest keeps diamond-shaped graphs linear instead of re-walking every path.
+        if (walk.Truncations == truncationsBefore)
+        {
+            walk.Completed[model] = shape;
+        }
+
+        return shape;
+    }
+
+    private sealed class PayloadShapeWalk
+    {
+        public HashSet<INamedTypeSymbol> Active { get; } = new(SymbolEqualityComparer.Default);
+        public Dictionary<INamedTypeSymbol, string> Completed { get; } = new(SymbolEqualityComparer.Default);
+        public int Truncations { get; set; }
     }
 
     private static string GetPayloadTypeShape(
         ITypeSymbol type,
         SparseGeneratorConfig config,
         CancellationToken cancellationToken,
-        HashSet<INamedTypeSymbol> activeModels
+        PayloadShapeWalk walk
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -771,12 +794,12 @@ internal static class SparseModelDiscovery
             AppendPayloadShape(canonical, collection.Kind.ToString());
             AppendPayloadShape(canonical, SparseCollectionAnalyzer.ClassifySemantic(collection, config, cancellationToken).ToString());
             AppendPayloadShape(canonical, IsNullableType(collection.ElementType) ? "nullable-element" : "required-element");
-            AppendPayloadShape(canonical, GetPayloadTypeShape(collection.ElementType, config, cancellationToken, activeModels));
+            AppendPayloadShape(canonical, GetPayloadTypeShape(collection.ElementType, config, cancellationToken, walk));
             var valueShape = string.Empty;
             if (collection.ValueType is ITypeSymbol valueType)
             {
                 var nullability = IsNullableType(valueType) ? "nullable-value:" : "required-value:";
-                valueShape = nullability + GetPayloadTypeShape(valueType, config, cancellationToken, activeModels);
+                valueShape = nullability + GetPayloadTypeShape(valueType, config, cancellationToken, walk);
             }
             AppendPayloadShape(canonical, valueShape);
             return canonical.ToString();
@@ -785,7 +808,7 @@ internal static class SparseModelDiscovery
         if (type is INamedTypeSymbol named && (IsFragmentModel(type, config, cancellationToken) || IsStructuralType(type, config, cancellationToken)))
         {
             return (IsNullableType(type) ? "nullable-model:" : "required-model:")
-                + CreatePayloadSchemaShape(named, config, cancellationToken, activeModels);
+                + CreatePayloadSchemaShape(named, config, cancellationToken, walk);
         }
 
         var wireType =
