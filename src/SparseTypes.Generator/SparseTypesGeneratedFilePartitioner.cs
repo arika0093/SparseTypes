@@ -12,11 +12,42 @@ namespace SparseTypes.Generator;
 /// <summary>Partitions model output into responsibility-based generated files.</summary>
 internal static class SparseTypesGeneratedFilePartitioner
 {
+    private const int TypesPartition = 0;
+    private const int ExtensionsPartition = 1;
+    private const int SerializePartition = 2;
+    private const int JsonPartition = 3;
+    private const int GeneratedPartition = 4;
+
     private const string TypesSuffix = ".Types.g.cs";
     private const string ExtensionsSuffix = ".Extensions.g.cs";
     private const string SerializeSuffix = ".Serialize.g.cs";
     private const string JsonSuffix = ".Json.g.cs";
     private const string GeneratedSuffix = ".Generated.g.cs";
+
+    private readonly record struct PartitionCriteria
+    {
+        public PartitionCriteria(string typeName, string? extensionsTypeName, string generatedNamespace, string serializeContainerSuffix)
+        {
+            TypeName = typeName;
+            ExtensionsTypeName = extensionsTypeName;
+            GeneratedNamespace = generatedNamespace;
+            SerializeContainerSuffix = serializeContainerSuffix;
+            JsonConverterSuffix = serializeContainerSuffix + "PayloadJsonConverter";
+            JsonResolverSuffix = serializeContainerSuffix + "PayloadJsonResolver";
+        }
+
+        public string TypeName { get; init; }
+
+        public string? ExtensionsTypeName { get; init; }
+
+        public string GeneratedNamespace { get; init; }
+
+        public string SerializeContainerSuffix { get; init; }
+
+        public string JsonConverterSuffix { get; init; }
+
+        public string JsonResolverSuffix { get; init; }
+    }
 
     public static ImmutableArray<SparseGeneratedSource> Partition(
         SparseModelInfo model,
@@ -44,60 +75,27 @@ internal static class SparseTypesGeneratedFilePartitioner
         }
 
         var output = ImmutableArray.CreateBuilder<SparseGeneratedSource>(5);
-        AddFile(output, root, fileBase + TypesSuffix, (_, member) => IsTypeDeclaration(member, typeName));
-        if (!string.IsNullOrEmpty(extensionsTypeName))
-        {
-            AddFile(output, root, fileBase + ExtensionsSuffix, (_, member) => IsTypeDeclaration(member, extensionsTypeName));
-        }
-        AddFile(
-            output,
-            root,
-            fileBase + SerializeSuffix,
-            (namespaceName, member) =>
-                IsType(member, namespaceName, generatedNamespace, null)
-                && IsTypeDeclaration(member, null)
-                && GetTypeName(member).EndsWith(serializeContainerSuffix, StringComparison.Ordinal)
-        );
-        AddFile(
-            output,
-            root,
-            fileBase + JsonSuffix,
-            (namespaceName, member) =>
-                IsType(member, namespaceName, generatedNamespace, null)
-                && (
-                    GetTypeName(member).EndsWith(serializeContainerSuffix + "PayloadJsonConverter", StringComparison.Ordinal)
-                    || GetTypeName(member).EndsWith(serializeContainerSuffix + "PayloadJsonResolver", StringComparison.Ordinal)
-                )
-        );
-        AddFile(
-            output,
-            root,
-            fileBase + GeneratedSuffix,
-            (namespaceName, member) =>
-                IsType(member, namespaceName, generatedNamespace, null)
-                && !GetTypeName(member).EndsWith(serializeContainerSuffix, StringComparison.Ordinal)
-                && !GetTypeName(member).EndsWith(serializeContainerSuffix + "PayloadJsonConverter", StringComparison.Ordinal)
-                && !GetTypeName(member).EndsWith(serializeContainerSuffix + "PayloadJsonResolver", StringComparison.Ordinal)
-        );
-        return output.ToImmutable();
-    }
-
-    private static void AddFile(
-        ImmutableArray<SparseGeneratedSource>.Builder output,
-        CompilationUnitSyntax original,
-        string hintName,
-        Func<string?, MemberDeclarationSyntax, bool> include
-    )
-    {
-        var members = ImmutableArray.CreateBuilder<MemberDeclarationSyntax>();
-        foreach (var member in original.Members)
+        var partitions = new List<MemberDeclarationSyntax>?[5];
+        var criteria = new PartitionCriteria(typeName, extensionsTypeName, generatedNamespace, serializeContainerSuffix);
+        foreach (var member in root.Members)
         {
             if (member is BaseNamespaceDeclarationSyntax namespaceDeclaration)
             {
+                var namespacePartitions = new List<MemberDeclarationSyntax>?[5];
                 var namespaceName = namespaceDeclaration.Name?.ToString();
-                var namespaceMembers = namespaceDeclaration.Members.Where(member => include(namespaceName, member)).ToArray();
-                if (namespaceMembers.Length > 0)
+                foreach (var namespaceMember in namespaceDeclaration.Members)
                 {
+                    AddMemberToPartitions(namespacePartitions, namespaceMember, GetPartitionMask(namespaceMember, namespaceName, criteria));
+                }
+
+                for (var partitionIndex = 0; partitionIndex < namespacePartitions.Length; partitionIndex++)
+                {
+                    var namespaceMembers = namespacePartitions[partitionIndex];
+                    if (namespaceMembers is null)
+                    {
+                        continue;
+                    }
+
                     namespaceMembers[0] = EnsureSingleLeadingNewLine(namespaceMembers[0]);
                     var partitionedNamespace = namespaceDeclaration.WithMembers(SyntaxFactory.List(namespaceMembers));
                     if (partitionedNamespace is NamespaceDeclarationSyntax blockNamespace)
@@ -107,16 +105,97 @@ internal static class SparseTypesGeneratedFilePartitioner
                             openBrace.WithTrailingTrivia(RemoveLeadingWhitespace(openBrace.TrailingTrivia))
                         );
                     }
-                    members.Add(partitionedNamespace);
+
+                    AddMemberToPartitions(partitions, partitionedNamespace, 1 << partitionIndex);
                 }
             }
-            else if (include(null, member))
+            else
             {
-                members.Add(member);
+                AddMemberToPartitions(partitions, member, GetPartitionMask(member, null, criteria));
             }
         }
 
-        if (members.Count == 0)
+        AddFile(output, root, fileBase + TypesSuffix, partitions[TypesPartition]);
+        if (!string.IsNullOrEmpty(extensionsTypeName))
+        {
+            AddFile(output, root, fileBase + ExtensionsSuffix, partitions[ExtensionsPartition]);
+        }
+
+        AddFile(output, root, fileBase + SerializeSuffix, partitions[SerializePartition]);
+        AddFile(output, root, fileBase + JsonSuffix, partitions[JsonPartition]);
+        AddFile(output, root, fileBase + GeneratedSuffix, partitions[GeneratedPartition]);
+        return output.ToImmutable();
+    }
+
+    private static int GetPartitionMask(MemberDeclarationSyntax member, string? actualNamespaceName, PartitionCriteria criteria)
+    {
+        var typeDeclaration = member as BaseTypeDeclarationSyntax;
+        var isType = typeDeclaration is not null;
+        var memberName = typeDeclaration?.Identifier.ValueText ?? string.Empty;
+        var mask = 0;
+        if (isType && string.Equals(memberName, criteria.TypeName, StringComparison.Ordinal))
+        {
+            mask |= 1 << TypesPartition;
+        }
+
+        if (
+            isType
+            && !string.IsNullOrEmpty(criteria.ExtensionsTypeName)
+            && string.Equals(memberName, criteria.ExtensionsTypeName, StringComparison.Ordinal)
+        )
+        {
+            mask |= 1 << ExtensionsPartition;
+        }
+
+        if (!isType || !string.Equals(actualNamespaceName ?? string.Empty, criteria.GeneratedNamespace, StringComparison.Ordinal))
+        {
+            return mask;
+        }
+
+        var isSerialize = memberName.EndsWith(criteria.SerializeContainerSuffix, StringComparison.Ordinal);
+        var isJson =
+            memberName.EndsWith(criteria.JsonConverterSuffix, StringComparison.Ordinal)
+            || memberName.EndsWith(criteria.JsonResolverSuffix, StringComparison.Ordinal);
+        if (isSerialize)
+        {
+            mask |= 1 << SerializePartition;
+        }
+
+        if (isJson)
+        {
+            mask |= 1 << JsonPartition;
+        }
+
+        if (!isSerialize && !isJson)
+        {
+            mask |= 1 << GeneratedPartition;
+        }
+
+        return mask;
+    }
+
+    private static void AddMemberToPartitions(List<MemberDeclarationSyntax>?[] partitions, MemberDeclarationSyntax member, int partitionMask)
+    {
+        for (var partitionIndex = 0; partitionIndex < partitions.Length; partitionIndex++)
+        {
+            if ((partitionMask & (1 << partitionIndex)) == 0)
+            {
+                continue;
+            }
+
+            var partition = partitions[partitionIndex] ??= new List<MemberDeclarationSyntax>();
+            partition.Add(member);
+        }
+    }
+
+    private static void AddFile(
+        ImmutableArray<SparseGeneratedSource>.Builder output,
+        CompilationUnitSyntax original,
+        string hintName,
+        List<MemberDeclarationSyntax>? members
+    )
+    {
+        if (members is null || members.Count == 0)
         {
             return;
         }
@@ -164,23 +243,4 @@ internal static class SparseTypesGeneratedFilePartitioner
 
         return SyntaxFactory.TriviaList(trivia.Skip(firstContent));
     }
-
-    private static bool IsType(MemberDeclarationSyntax member, string? actualNamespaceName, string expectedNamespaceName, string? typeName)
-    {
-        return string.Equals(actualNamespaceName ?? string.Empty, expectedNamespaceName, StringComparison.Ordinal)
-            && IsTypeDeclaration(member, typeName);
-    }
-
-    private static bool IsTypeDeclaration(MemberDeclarationSyntax member, string? typeName)
-    {
-        if (member is not BaseTypeDeclarationSyntax typeDeclaration)
-        {
-            return false;
-        }
-
-        return typeName is null || string.Equals(typeDeclaration.Identifier.ValueText, typeName, StringComparison.Ordinal);
-    }
-
-    private static string GetTypeName(MemberDeclarationSyntax member) =>
-        member is BaseTypeDeclarationSyntax typeDeclaration ? typeDeclaration.Identifier.ValueText : string.Empty;
 }
