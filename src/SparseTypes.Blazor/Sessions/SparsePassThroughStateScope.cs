@@ -14,7 +14,7 @@ internal sealed class SparsePassThroughStateScope : IDisposable
     private sealed class StateSource<TModel> : IStateSource
         where TModel : class
     {
-        private readonly object _sync = new();
+        private readonly System.Threading.Lock _sync = new();
         private readonly ISparseEditSession<TModel> _session;
         private readonly ISparseEditSessionWithStateSnapshot? _snapshotProvider;
         private readonly INotifyPropertyChanged? _notifier;

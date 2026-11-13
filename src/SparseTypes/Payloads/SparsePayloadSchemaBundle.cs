@@ -101,8 +101,8 @@ public sealed class SparsePayloadSchemaBundle
         var items = new Func<SparsePayloadSchemaBundle>[dependencies.Count];
         for (var index = 0; index < dependencies.Count; index++)
         {
-            items[index] =
-                dependencies[index] ?? throw new ArgumentException("Schema dependencies must not contain null entries.", nameof(dependencies));
+            items[index] = dependencies[index]
+                ?? throw new ArgumentException("Schema dependencies must not contain null entries.", nameof(dependencies));
         }
 
         return Array.AsReadOnly(items);

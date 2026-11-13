@@ -11,7 +11,11 @@ namespace SparseTypes;
 /// <remarks>The group tracks committed session baseline revisions, including changes made outside the group when the session exposes its revision.</remarks>
 public sealed class EditSessionGroup
 {
+#if NET10_0_OR_GREATER
+    private readonly Lock _gate = new();
+#else
     private readonly object _gate = new();
+#endif
     private readonly Dictionary<string, IEditSessionGroupSection> _sections = new(StringComparer.Ordinal);
     private readonly Dictionary<string, long> _baselineRevisions = new(StringComparer.Ordinal);
     private readonly HashSet<object> _sessions = new(ReferenceIdentityComparer.Instance);

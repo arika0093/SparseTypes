@@ -80,8 +80,7 @@ internal sealed class IntermediateAccess
         var assign = Expression.Assign(access, Expression.Convert(value, memberType));
         var setter = Expression.Lambda<Action<object, object?>>(assign, instance, value).Compile();
 
-        var constructor =
-            memberType.GetConstructor(Type.EmptyTypes)
+        var constructor = memberType.GetConstructor(Type.EmptyTypes)
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 dtoPath,

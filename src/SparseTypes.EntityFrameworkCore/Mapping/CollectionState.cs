@@ -131,8 +131,7 @@ internal static class CollectionState
                 );
             }
 
-            var key =
-                runtime.EntityKey(state.Context, child)
+            var key = runtime.EntityKey(state.Context, child)
                 ?? throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
                     state.DisplayPath(runtime.DtoName),

@@ -668,16 +668,13 @@ public sealed class SparseObservableList<TModel, TView>
         }
 
         var entry = new ProxyEntry();
-        entry.View = _wrap(
-            item,
-            () =>
+        entry.View = _wrap(item, () =>
+        {
+            if (entry.Active && IsPresent(item))
             {
-                if (entry.Active && IsPresent(item))
-                {
-                    _onChanged();
-                }
+                _onChanged();
             }
-        );
+        });
         _proxies.Add(key, entry);
         return entry.View;
     }

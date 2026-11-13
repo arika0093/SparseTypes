@@ -19,7 +19,7 @@ public sealed class SparseEditContext<TModel, TPaths> : ISparseEditScope<TModel>
     where TModel : class
     where TPaths : ISparseTypedPath<TModel, TModel>
 {
-    private readonly object _sync = new();
+    private readonly System.Threading.Lock _sync = new();
     private readonly INotifyPropertyChanged? _notifier;
     private readonly PropertyChangedEventHandler? _notifierHandler;
     private readonly SparseValidationStore<TModel>? _validation;

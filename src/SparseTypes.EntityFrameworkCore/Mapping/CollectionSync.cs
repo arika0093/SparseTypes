@@ -123,8 +123,7 @@ internal static class CollectionSync
                 );
             }
 
-            var key =
-                runtime.DtoKey(element)
+            var key = runtime.DtoKey(element)
                 ?? throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.CollectionKeyConflict,
                     path,
@@ -148,8 +147,7 @@ internal static class CollectionSync
                 );
             }
 
-            var created =
-                runtime.CreateFactory(element)
+            var created = runtime.CreateFactory(element)
                 ?? throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.NestedNotCreatable,
                     path,
@@ -327,8 +325,7 @@ internal static class CollectionSync
                     path,
                     $"The collection '{runtime.DtoName}' added an entry with no after-state."
                 );
-        var key =
-            runtime.DtoKey(after)
+        var key = runtime.DtoKey(after)
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.CollectionKeyConflict,
                 path,
@@ -377,8 +374,7 @@ internal static class CollectionSync
 
         // Creating the instance here allocates only; linking, tracking, and
         // correlation recording all happen in the execution phase.
-        var created =
-            runtime.CreateFactory(after)
+        var created = runtime.CreateFactory(after)
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 path,

@@ -116,7 +116,7 @@ internal static class SparseObservableDescriptorEmitter
                 || (member.Collection.ValueType is not null && member.Collection.CloneKind == SparseCloneCollectionKind.Dictionary)
             );
         var hasSet = !eventCollision && elementKnown && member.Collection.ValueType is null && member.Collection.Kind == SparseCollectionKind.Set;
-        string TypeOrNull(bool present, string name) => present ? "typeof(" + name + ")" : "null";
+        static string TypeOrNull(bool present, string name) => present ? "typeof(" + name + ")" : "null";
         return "new "
             + dialect.DescriptorShapeType
             + " { HasChild = "

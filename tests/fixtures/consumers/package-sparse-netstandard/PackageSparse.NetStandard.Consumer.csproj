@@ -12,7 +12,7 @@
   <!-- JSON transport needs an explicit System.Text.Json reference: the base
     runtime no longer brings one transitively. -->
   <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.15" />
   </ItemGroup>
   <ItemGroup Condition="'$(SparseTypesPackageVersion)' == ''">
     <ProjectReference Include="../../../../src/SparseTypes/SparseTypes.csproj" />

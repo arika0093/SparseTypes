@@ -18,7 +18,11 @@ namespace SparseTypes;
 public sealed class SparseChangeSetQueryView
 {
     private readonly ISparseChangeSet _changes;
+#if NET10_0_OR_GREATER
+    private readonly System.Threading.Lock _sync = new();
+#else
     private readonly object _sync = new();
+#endif
     private IReadOnlyList<SparseChangeRecord>? _records;
     private Dictionary<Type, TrieNode>? _roots;
     private int _projectionCount;

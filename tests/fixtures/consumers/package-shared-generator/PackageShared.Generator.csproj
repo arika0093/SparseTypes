@@ -24,7 +24,7 @@
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.6.3" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" PrivateAssets="all" />
-    <PackageReference Include="Polyfill" Version="11.4.1" PrivateAssets="all" />
+    <PackageReference Include="Polyfill" Version="11.4.5" PrivateAssets="all" />
     <PackageReference Include="SparseTypes.Generator.Shared" Version="$(SparseSharedPackageVersion)" PrivateAssets="all" />
   </ItemGroup>
 </Project>

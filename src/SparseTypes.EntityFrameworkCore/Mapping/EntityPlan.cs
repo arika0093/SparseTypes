@@ -118,9 +118,10 @@ internal sealed class EntityPlan<TEntity, TDto> : EntityPlanBase
     where TEntity : class
     where TDto : class
 {
-    private static readonly MethodInfo PrimitiveCollectionFactory =
-        typeof(EntityPlan<TEntity, TDto>).GetMethod(nameof(CreatePrimitiveCollectionNodeCore), BindingFlags.Public | BindingFlags.Static)
-        ?? throw new InvalidOperationException("The primitive collection factory is missing.");
+    private static readonly MethodInfo PrimitiveCollectionFactory = typeof(EntityPlan<TEntity, TDto>).GetMethod(
+        nameof(CreatePrimitiveCollectionNodeCore),
+        BindingFlags.Public | BindingFlags.Static
+    ) ?? throw new InvalidOperationException("The primitive collection factory is missing.");
 
     private EntityPlan(
         List<MemberNode> steps,

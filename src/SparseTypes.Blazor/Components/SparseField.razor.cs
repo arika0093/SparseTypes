@@ -43,8 +43,7 @@ public sealed partial class SparseField<TModel, TValue> : ComponentBase, IDispos
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        var scope =
-            Scope
+        var scope = Scope
             ?? throw new InvalidOperationException(
                 "SparseField must be placed inside a SparseEdit for the same model type; " + "no edit scope was cascaded."
             );

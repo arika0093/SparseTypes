@@ -105,12 +105,9 @@ public static class SparseEntityMapperServiceCollectionExtensions
     {
         services.TryAdd(ServiceDescriptor.Singleton(mapperType, mapperType));
         services.TryAdd(
-            ServiceDescriptor.Singleton(
-                typeof(ISparseEntityMapper<TEntity, TDto>),
-                serviceProvider => new SparseEntityMapperService<TEntity, TDto>(
-                    (IEntityModelMapping<TEntity, TDto>)serviceProvider.GetRequiredService(mapperType)
-                )
-            )
+            ServiceDescriptor.Singleton(typeof(ISparseEntityMapper<TEntity, TDto>), serviceProvider => new SparseEntityMapperService<TEntity, TDto>(
+                (IEntityModelMapping<TEntity, TDto>)serviceProvider.GetRequiredService(mapperType)
+            ))
         );
     }
 

@@ -51,13 +51,10 @@ internal sealed class SparseEntityMapperService<TEntity, TDto>(IEntityModelMappi
     {
         ArgumentNullException.ThrowIfNull(context);
         return _plans
-            .GetValue(
-                context.Model,
-                model => new Lazy<SparseEntityMapper<TEntity, TDto>>(
-                    () => SparseEntityMapper<TEntity, TDto>.Create(mapping, model),
-                    LazyThreadSafetyMode.ExecutionAndPublication
-                )
-            )
+            .GetValue(context.Model, model => new Lazy<SparseEntityMapper<TEntity, TDto>>(
+                () => SparseEntityMapper<TEntity, TDto>.Create(mapping, model),
+                LazyThreadSafetyMode.ExecutionAndPublication
+            ))
             .Value;
     }
 }

@@ -49,16 +49,13 @@ public sealed partial class SparseTypesGenerator
             )
             .WithComparer(EqualityComparer<string>.Default)
             .WithTrackingName("SparseTypesGenerator.StjCapabilitiesValidation");
-        context.RegisterSourceOutput(
-            stjDiagnostics,
-            static (productionContext, message) =>
+        context.RegisterSourceOutput(stjDiagnostics, static (productionContext, message) =>
+        {
+            if (message.Length != 0)
             {
-                if (message.Length != 0)
-                {
-                    productionContext.ReportDiagnostic(Diagnostic.Create(InvalidEmissionPlan, Location.None, message));
-                }
+                productionContext.ReportDiagnostic(Diagnostic.Create(InvalidEmissionPlan, Location.None, message));
             }
-        );
+        });
     }
 
     /// <summary>Derives the per-compilation configuration from probed capabilities.</summary>

@@ -6,7 +6,7 @@ namespace SparseTypes.Blazor;
 internal static class SparseSessionScopeOwnership
 {
     private static readonly ConditionalWeakTable<object, object> Owners = new();
-    private static readonly object Gate = new();
+    private static readonly System.Threading.Lock Gate = new();
 
     internal static void Register(object session, object owner)
     {

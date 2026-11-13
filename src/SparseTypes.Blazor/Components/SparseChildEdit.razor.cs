@@ -41,10 +41,10 @@ public partial class SparseChildEdit<TParent, TChild, TChildPaths, TConflict, TC
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        var parent =
-            ParentSession ?? throw new InvalidOperationException("SparseChildEdit must be placed inside a SparseSessionScope for its parent model.");
-        var scope =
-            ScopeContext ?? throw new InvalidOperationException("SparseChildEdit requires the ScopeContext from its owning SparseSessionScope.");
+        var parent = ParentSession
+            ?? throw new InvalidOperationException("SparseChildEdit must be placed inside a SparseSessionScope for its parent model.");
+        var scope = ScopeContext
+            ?? throw new InvalidOperationException("SparseChildEdit requires the ScopeContext from its owning SparseSessionScope.");
         var path = Path ?? throw new InvalidOperationException("SparseChildEdit requires a child Path.");
         if (!scope.OwnsSession(parent))
         {

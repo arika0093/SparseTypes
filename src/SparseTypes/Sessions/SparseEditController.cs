@@ -409,8 +409,7 @@ public sealed class SparseEditController<TModel, TChangeSet> : ISparseEditContro
             SparsePersistResult<TModel> result;
             try
             {
-                result =
-                    await persist(submission.Changes, cancellationToken).ConfigureAwait(false)
+                result = await persist(submission.Changes, cancellationToken).ConfigureAwait(false)
                     ?? throw new InvalidOperationException("The persistence callback returned no result.");
             }
             catch

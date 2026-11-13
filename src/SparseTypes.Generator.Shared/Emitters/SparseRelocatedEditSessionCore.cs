@@ -33,8 +33,7 @@ internal static class SparseRelocatedEditSessionCore
         }
 
         var modelType = model.ModelTypeName;
-        var sessionInterfaceMetadataName =
-            config.EditSessionInterfaceMetadataName
+        var sessionInterfaceMetadataName = config.EditSessionInterfaceMetadataName
             ?? throw new ArgumentException("An edit-session interface metadata name is required.", nameof(config));
         var modelAccessorInterfaceMetadataName = config.EditSessionModelAccessorInterfaceMetadataName;
         var sessionDialect = config.EditSessionDialect ?? throw new ArgumentException("An edit-session dialect is required.", nameof(config));

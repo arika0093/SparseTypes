@@ -451,16 +451,13 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             .Select(static (plan, _) => SparseGeneratedCapabilityPlanner.Validate(plan, Configuration.EffectiveEmissionFeatures))
             .WithComparer(EqualityComparer<ImmutableArray<string>>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnceValidation");
-        context.RegisterSourceOutput(
-            generatedOnceErrors,
-            static (productionContext, errors) =>
+        context.RegisterSourceOutput(generatedOnceErrors, static (productionContext, errors) =>
+        {
+            foreach (var message in errors)
             {
-                foreach (var message in errors)
-                {
-                    productionContext.ReportDiagnostic(Diagnostic.Create(InvalidEmissionPlan, Location.None, message));
-                }
+                productionContext.ReportDiagnostic(Diagnostic.Create(InvalidEmissionPlan, Location.None, message));
             }
-        );
+        });
         // Partial System.Text.Json surface with JSON families requested: see
         // RegisterStjSurfaceValidation for the omission-plus-diagnostic policy.
         RegisterStjSurfaceValidation(context, stjCapabilities, hasModels);
@@ -531,16 +528,13 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             )
             .WithComparer(EqualityComparer<string?>.Default)
             .WithTrackingName("SparseTypesGenerator.GeneratedOnce");
-        context.RegisterSourceOutput(
-            generatedOnce,
-            static (productionContext, source) =>
+        context.RegisterSourceOutput(generatedOnce, static (productionContext, source) =>
+        {
+            if (source is not null)
             {
-                if (source is not null)
-                {
-                    productionContext.AddSource("Generated.g.cs", SourceText.From(source, Encoding.UTF8));
-                }
+                productionContext.AddSource("Generated.g.cs", SourceText.From(source, Encoding.UTF8));
             }
-        );
+        });
 
         var shouldEmitIsExternalInit = context
             .CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider)
@@ -554,31 +548,25 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             )
             .WithComparer(EqualityComparer<bool>.Default)
             .WithTrackingName("SparseTypesGenerator.IsExternalInit");
-        context.RegisterSourceOutput(
-            shouldEmitIsExternalInit,
-            static (productionContext, emit) =>
+        context.RegisterSourceOutput(shouldEmitIsExternalInit, static (productionContext, emit) =>
+        {
+            if (emit)
             {
-                if (emit)
-                {
-                    productionContext.AddSource(IsExternalInitHintName, SourceText.From(IsExternalInitSource, Encoding.UTF8));
-                }
+                productionContext.AddSource(IsExternalInitHintName, SourceText.From(IsExternalInitSource, Encoding.UTF8));
             }
-        );
+        });
         var shouldEmitNotNullWhen = context
             .CompilationProvider.Combine(hasModels)
             .Select(static (input, _) => input.Right && input.Left.GetTypeByMetadataName(NotNullWhenAttributeName) is null)
             .WithComparer(EqualityComparer<bool>.Default)
             .WithTrackingName("SparseTypesGenerator.NotNullWhen");
-        context.RegisterSourceOutput(
-            shouldEmitNotNullWhen,
-            static (productionContext, emit) =>
+        context.RegisterSourceOutput(shouldEmitNotNullWhen, static (productionContext, emit) =>
+        {
+            if (emit)
             {
-                if (emit)
-                {
-                    productionContext.AddSource(NotNullWhenHintName, SourceText.From(NotNullWhenSource, Encoding.UTF8));
-                }
+                productionContext.AddSource(NotNullWhenHintName, SourceText.From(NotNullWhenSource, Encoding.UTF8));
             }
-        );
+        });
 
         // Discover mapper declarations and emit default-registration bridges.
         var entityMappers = context

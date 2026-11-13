@@ -97,8 +97,7 @@ public sealed class SparseEntityApplyResult
     )
     {
         ArgumentNullException.ThrowIfNull(byPath);
-        _nestedScopes =
-            nestedScopes
+        _nestedScopes = nestedScopes
             ?? new ReadOnlyDictionary<object, NestedScopeTable>(new Dictionary<object, NestedScopeTable>(ReferenceEqualityComparer.Instance));
         var pathViews = new Dictionary<string, IReadOnlyDictionary<Guid, object>>(byPath.Count, StringComparer.Ordinal);
         foreach (var path in byPath)

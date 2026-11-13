@@ -31,8 +31,8 @@ internal static class SparsePayloadJsonMemberEmitter
         code.OpenBlock();
         if (isNested)
         {
-            var childModel =
-                member.ChildModel?.NonNullableName ?? throw new global::System.InvalidOperationException("Nested member is missing its child model.");
+            var childModel = member.ChildModel?.NonNullableName
+                ?? throw new global::System.InvalidOperationException("Nested member is missing its child model.");
             code.AppendLine(
                 "if (reader.TokenType != global::System.Text.Json.JsonTokenType.StartObject) throw new global::System.Text.Json.JsonException(\"A nested model change must be an object.\");"
             );

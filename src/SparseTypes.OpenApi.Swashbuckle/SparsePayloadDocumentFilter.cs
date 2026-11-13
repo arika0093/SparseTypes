@@ -117,8 +117,7 @@ internal sealed class SparsePayloadDocumentFilter(
                     continue;
                 }
 
-                var dto =
-                    externals.FirstOrDefault(schema => schema.Type == modelType)?.Name
+                var dto = externals.FirstOrDefault(schema => schema.Type == modelType)?.Name
                     ?? (registry.TryGetObservedName(modelType, out var observed) ? observed : null)
                     ?? registry.GetEffectiveName(modelType);
 

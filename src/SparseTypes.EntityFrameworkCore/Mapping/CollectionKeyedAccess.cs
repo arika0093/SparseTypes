@@ -114,9 +114,10 @@ internal sealed class KeyedCollectionView<TDtoChild>
 /// <remarks>The ordinary <c>SparseTypes.Generator</c> emits the per-member keyed transition types consumed here.</remarks>
 internal static class KeyedCollectionView
 {
-    private static readonly MethodInfo FetcherFactory =
-        typeof(KeyedCollectionView).GetMethod(nameof(CreateFetcherCore), BindingFlags.Public | BindingFlags.Static)
-        ?? throw new InvalidOperationException("The keyed fetch factory is missing.");
+    private static readonly MethodInfo FetcherFactory = typeof(KeyedCollectionView).GetMethod(
+        nameof(CreateFetcherCore),
+        BindingFlags.Public | BindingFlags.Static
+    ) ?? throw new InvalidOperationException("The keyed fetch factory is missing.");
 
     /// <summary>Finds the closed keyed-change interface on a generated transition type.</summary>
     public static Type? FindKeyedInterface(Type transitionType)
@@ -202,8 +203,7 @@ internal static class KeyedCollectionView
         ISparseChangeSet? edit = null;
         if (item.IsEdited)
         {
-            edit =
-                (item.Edit as ISparseChangeSet)
+            edit = (item.Edit as ISparseChangeSet)
                 ?? throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.MetadataMismatch,
                     null,

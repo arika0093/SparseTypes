@@ -824,8 +824,8 @@ internal sealed class CollectionRuntime<TDtoChild, TEntityChild>
         {
             GeneratedElementConfigurators = declaration.ElementStash,
             GeneratedObjectConfigurators = declaration.ObjectStash,
-            GeneratedKeyMembers =
-                declaration.GeneratedElementDefaults?.KeyMemberNames.ToHashSet(StringComparer.Ordinal) ?? new HashSet<string>(StringComparer.Ordinal),
+            GeneratedKeyMembers = declaration.GeneratedElementDefaults?.KeyMemberNames.ToHashSet(StringComparer.Ordinal)
+                ?? new HashSet<string>(StringComparer.Ordinal),
             GeneratedKeyDeclared = declaration.GeneratedElementDefaults?.KeyType is not null,
             IsNestedScope = true,
         };

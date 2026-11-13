@@ -12,13 +12,13 @@
 
   <ItemGroup>
     <PackageReference Include="BlazorMonaco" Version="3.5.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.15" />
     <PackageReference
       Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer"
-      Version="10.0.14"
+      Version="10.0.15"
       PrivateAssets="all"
     />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.15" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="5.0.1" />
   </ItemGroup>
 

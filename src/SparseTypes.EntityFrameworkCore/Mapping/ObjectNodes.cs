@@ -351,26 +351,23 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
         }
 
         changes.TryGetNestedChange(DtoName, out child);
-        PushObjectPath(
-            collector,
-            () =>
+        PushObjectPath(collector, () =>
+        {
+            if (
+                whole is not null
+                && whole.After.IsPresent
+                && whole.After.Value is not null
+                && TryResolveAfterSnapshot(whole, out var snapshot)
+                && snapshot is not null
+            )
             {
-                if (
-                    whole is not null
-                    && whole.After.IsPresent
-                    && whole.After.Value is not null
-                    && TryResolveAfterSnapshot(whole, out var snapshot)
-                    && snapshot is not null
-                )
-                {
-                    _childPlan.CollectIncludes(child ?? changes, collector, writeAll: true, snapshot);
-                }
-                else if (child is not null && !child.IsEmpty)
-                {
-                    _childPlan.CollectIncludes(child, collector, writeAll: false, afterSnapshot: null);
-                }
+                _childPlan.CollectIncludes(child ?? changes, collector, writeAll: true, snapshot);
             }
-        );
+            else if (child is not null && !child.IsEmpty)
+            {
+                _childPlan.CollectIncludes(child, collector, writeAll: false, afterSnapshot: null);
+            }
+        });
     }
 
     public override Expression? BuildProjection(Expression entity, ReadProjectionBuildContext context, string dtoPath)
@@ -747,8 +744,7 @@ internal sealed class ObjectNode<TDto, TEntity, TDtoChild, TEntityChild> : Membe
             return target;
         }
 
-        var created =
-            _createChild!()
+        var created = _createChild!()
             ?? throw new SparseEntityMappingException(
                 SparseEntityMappingFailure.NestedNotCreatable,
                 DtoName,

@@ -352,8 +352,7 @@ public sealed class SparseEntityMapper<TEntity, TDto>
             }
 
             mapping.Configure(builder);
-            var entityType =
-                model.FindEntityType(typeof(TEntity))
+            var entityType = model.FindEntityType(typeof(TEntity))
                 ?? throw new SparseEntityMappingException(
                     SparseEntityMappingFailure.MetadataMismatch,
                     null,

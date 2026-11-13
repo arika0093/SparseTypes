@@ -84,9 +84,8 @@ internal sealed class SparseComparisonIndex
     /// <summary>Gets or builds the index for the model's containing assembly.</summary>
     public static SparseComparisonIndex ForAssembly(IAssemblySymbol assembly, SparseGeneratorConfig config, CancellationToken cancellationToken)
     {
-        var key = ConfigurationKeys.GetValue(
-            config,
-            static configuration => configuration.ModelAttributeMetadataName + "\0" + configuration.ComparisonAttributeMetadataName
+        var key = ConfigurationKeys.GetValue(config, static configuration =>
+            configuration.ModelAttributeMetadataName + "\0" + configuration.ComparisonAttributeMetadataName
         );
         lock (Gate)
         {

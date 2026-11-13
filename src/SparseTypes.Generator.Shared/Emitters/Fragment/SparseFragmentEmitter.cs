@@ -211,8 +211,7 @@ internal static class SparseFragmentEmitter
             HashSetSupportsCapacity = bclHashSetSupportsCapacity,
             HashSetImplementsReadOnlySet = bclHashSetImplementsReadOnlySet,
             MergeStrategyField = patchDialect.MergeStrategyField ?? (member => runtime.MergeStrategyFieldPrefix + member.Id),
-            RebasePolicyField =
-                patchDialect.RebasePolicyField
+            RebasePolicyField = patchDialect.RebasePolicyField
                 ?? (member => (runtime.RebasePolicyFieldPrefix ?? SparseWellKnownNames.RebasePolicyFieldPrefix) + member.Id),
         };
         var features = config.EffectiveEmissionFeatures;

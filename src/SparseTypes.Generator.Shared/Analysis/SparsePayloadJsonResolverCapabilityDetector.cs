@@ -118,9 +118,9 @@ internal static class SparsePayloadJsonResolverCapabilityDetector
             );
 
         return Check(
-                "JsonSerializerOptions.TypeInfoResolver",
-                SparseStjCapabilityDetector.HasWritableInstanceProperty(options, "TypeInfoResolver", resolver, compilation)
-            )
+            "JsonSerializerOptions.TypeInfoResolver",
+            SparseStjCapabilityDetector.HasWritableInstanceProperty(options, "TypeInfoResolver", resolver, compilation)
+        )
             ?? Check("JsonDocument.RootElement", SparseStjCapabilityDetector.HasInstanceProperty(document, "RootElement", element, compilation))
             ?? Check("JsonElement.ValueKind", SparseStjCapabilityDetector.HasInstanceProperty(element, "ValueKind", valueKind, compilation))
             ?? Check("JsonDocument.ParseValue", hasParseValue)

@@ -11,7 +11,7 @@
     <Using Remove="Shouldly" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
   <ItemGroup Condition="'$(SparseTypesPackageVersion)' == ''">
     <ProjectReference Include="../../../../src/SparseTypes/SparseTypes.csproj" />

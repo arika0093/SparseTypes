@@ -27,14 +27,14 @@
     "pack:check": "npm run pack:versioned -- --dry-run"
   },
   "dependencies": {
-    "openapi-typescript": "7.6.1"
+    "openapi-typescript": "7.13.0"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "nerdbank-gitversioning": "3.10.94",
-    "prettier": "3.9.10",
-    "typescript": "~5.8.3"
+    "prettier": "3.10.1",
+    "typescript": "~5.9.3"
   },
   "engines": {
     "node": ">=20"
