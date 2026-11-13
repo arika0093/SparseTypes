@@ -25,14 +25,7 @@ public sealed class SparseValidationStoreTests
         store.GetErrors(propertyName).Cast<object?>().ToList();
 
     private static SparseConflict Conflict(SparsePath path, string reason) =>
-        new(
-            path,
-            SparseConflictKind.Scalar,
-            Optional<object?>.Missing,
-            Optional<object?>.Missing,
-            Optional<object?>.Missing,
-            reason
-        );
+        new(path, SparseConflictKind.Scalar, Optional<object?>.Missing, Optional<object?>.Missing, Optional<object?>.Missing, reason);
 
     [Test]
     public void Contract_AddReplaceClearRaiseNotifications()
@@ -44,11 +37,7 @@ public sealed class SparseValidationStoreTests
         store.HasErrors.ShouldBeFalse();
         NameErrors(notify, "Label").ShouldBeEmpty();
 
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.LocalValidation,
-            ["required"]
-        );
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["required"]);
         store.HasErrors.ShouldBeTrue();
         notify.HasErrors.ShouldBeTrue();
         NameErrors(notify, "Label").ShouldBe(["required"]);
@@ -57,11 +46,7 @@ public sealed class SparseValidationStoreTests
         events.ShouldBe(["Label", string.Empty]);
 
         // Replace with new content notifies again with the updated errors.
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.LocalValidation,
-            ["too short"]
-        );
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["too short"]);
         NameErrors(notify, "Label").ShouldBe(["too short"]);
         events.ShouldBe(["Label", string.Empty, "Label", string.Empty]);
 
@@ -76,18 +61,10 @@ public sealed class SparseValidationStoreTests
     public void IdenticalReplacement_RaisesNoEvents()
     {
         var store = Store();
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.LocalValidation,
-            ["required"]
-        );
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["required"]);
         var events = Notifications(store);
 
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.LocalValidation,
-            ["required"]
-        );
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["required"]);
         events.ShouldBeEmpty();
         store.HasErrors.ShouldBeTrue();
     }
@@ -112,11 +89,7 @@ public sealed class SparseValidationStoreTests
         store.HasPathErrors(Settings.SparsePath.Label).ShouldBeFalse();
 
         // Keyed paths keep their identity and aggregate under the member.
-        var keyed = SparsePath
-            .Root<KeyedServerHolder>()
-            .Member(nameof(KeyedServerHolder.Items))
-            .Key("s-1")
-            .Member(nameof(KeyedServer.Name));
+        var keyed = SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items)).Key("s-1").Member(nameof(KeyedServer.Name));
         var keyedStore = new SparseValidationStore<KeyedServerHolder>();
         keyedStore.SetErrors(keyed, SparseValidationOrigins.ServerValidation, ["unknown sku"]);
         keyedStore.GetPathErrors(keyed).ShouldBe(["unknown sku"]);
@@ -154,11 +127,7 @@ public sealed class SparseValidationStoreTests
     public void DeletedOrMissingTargets_AreRetainedNeverDropped()
     {
         var store = new SparseValidationStore<KeyedServerHolder>();
-        var removed = SparsePath
-            .Root<KeyedServerHolder>()
-            .Member(nameof(KeyedServerHolder.Items))
-            .Key("gone")
-            .Member(nameof(KeyedServer.Name));
+        var removed = SparsePath.Root<KeyedServerHolder>().Member(nameof(KeyedServerHolder.Items)).Key("gone").Member(nameof(KeyedServer.Name));
         store.SetErrors(removed, SparseValidationOrigins.RebaseConflict, ["entry vanished"]);
 
         // Unresolvable paths stay stored: exact, text, and aggregate queries
@@ -217,11 +186,7 @@ public sealed class SparseValidationStoreTests
 
         // Origin-wide clearing spans paths but spares other origins.
         store.SetErrors(path, SparseValidationOrigins.LocalValidation, ["local"]);
-        store.SetErrors(
-            Settings.SparsePath.RetryCount,
-            SparseValidationOrigins.LocalValidation,
-            ["retry"]
-        );
+        store.SetErrors(Settings.SparsePath.RetryCount, SparseValidationOrigins.LocalValidation, ["retry"]);
         store.SetErrors(path, SparseValidationOrigins.ServerValidation, ["server"]);
         store.ClearOrigin(SparseValidationOrigins.LocalValidation);
         store.GetPathErrors(path).ShouldBe(["server"]);
@@ -242,16 +207,8 @@ public sealed class SparseValidationStoreTests
         before.IsEmpty.ShouldBeFalse();
 
         var store = Store();
-        store.SetErrors(
-            Settings.SparsePath.RetryCount,
-            SparseValidationOrigins.LocalValidation,
-            ["bad"]
-        );
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.ServerValidation,
-            ["stale"]
-        );
+        store.SetErrors(Settings.SparsePath.RetryCount, SparseValidationOrigins.LocalValidation, ["bad"]);
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.ServerValidation, ["stale"]);
         store.AddConflicts([
             new SparseConflict(
                 Settings.SparsePath.Label,
@@ -294,11 +251,7 @@ public sealed class SparseValidationStoreTests
         // External validators run app-side and feed results explicitly.
         var store = Store();
         var events = Notifications(store);
-        store.SetErrors(
-            Settings.SparsePath.Label,
-            SparseValidationOrigins.LocalValidation,
-            ["Label is required.", 42]
-        );
+        store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["Label is required.", 42]);
         var stored = store.GetPathErrors(Settings.SparsePath.Label);
         stored.Count.ShouldBe(2);
         stored[0].ShouldBe("Label is required.");
@@ -309,9 +262,7 @@ public sealed class SparseValidationStoreTests
         var baseModel = new Settings();
         var edited = new Settings { Label = "local" };
         var current = new Settings { Label = "server" };
-        var rebase = baseModel
-            .CreateChangeSet(edited)
-            .RebaseOnto(Optional<Settings.Fragment?>.Present(Settings.Fragment.From(current)));
+        var rebase = baseModel.CreateChangeSet(edited).RebaseOnto(Optional<Settings.Fragment?>.Present(Settings.Fragment.From(current)));
         rebase.HasConflicts.ShouldBeTrue();
         rebase.Conflicts.Select(static conflict => conflict.PathText).ShouldContain("Label");
 
@@ -344,20 +295,12 @@ public sealed class SparseValidationStoreTests
         );
 
         store.SetErrors(path, SparseValidationOrigins.LocalValidation, ["local"]);
-        var options = new SparseValidationConflictOptions
-        {
-            MessageFactory = static c => $"CUSTOM:{c.PathText}",
-        };
+        var options = new SparseValidationConflictOptions { MessageFactory = static c => $"CUSTOM:{c.PathText}" };
         store.AddConflicts([conflict], options).ShouldBe(1);
         store.GetPathErrors(path).ShouldBe(["CUSTOM:Label", "local"]);
 
         // Replace-first clears only the conflict origin, sparing local errors.
-        store
-            .AddConflicts(
-                [conflict, conflict],
-                new SparseValidationConflictOptions { ReplaceOriginFirst = true }
-            )
-            .ShouldBe(2);
+        store.AddConflicts([conflict, conflict], new SparseValidationConflictOptions { ReplaceOriginFirst = true }).ShouldBe(2);
         var merged = store.GetPathErrors(path);
         merged.Count.ShouldBe(3);
         (merged[0]?.ToString() ?? string.Empty).ShouldContain("Conflict at 'Label'");
@@ -376,12 +319,7 @@ public sealed class SparseValidationStoreTests
         var events = Notifications(store);
 
         var added = store.AddConflicts(
-            [
-                Conflict(first, "first-1"),
-                Conflict(second, "second-1"),
-                Conflict(first, "first-2"),
-                Conflict(second, "second-2"),
-            ],
+            [Conflict(first, "first-1"), Conflict(second, "second-1"), Conflict(first, "first-2"), Conflict(second, "second-2")],
             new SparseValidationConflictOptions { MessageFactory = static c => c.Reason! }
         );
 
@@ -427,9 +365,7 @@ public sealed class SparseValidationStoreTests
             },
         };
 
-        Should.Throw<InvalidOperationException>(() =>
-            store.AddConflicts([Conflict(path, "one"), Conflict(path, "two")], options)
-        );
+        Should.Throw<InvalidOperationException>(() => store.AddConflicts([Conflict(path, "one"), Conflict(path, "two")], options));
 
         store.GetPathErrors(path).ShouldBe(["existing"]);
         events.ShouldBeEmpty();
@@ -456,11 +392,7 @@ public sealed class SparseValidationStoreTests
     {
         var store = Store();
         var events = Notifications(store);
-        store.SetErrors(
-            SparsePath.Root<Settings>(),
-            SparseValidationOrigins.ServerValidation,
-            ["stale"]
-        );
+        store.SetErrors(SparsePath.Root<Settings>(), SparseValidationOrigins.ServerValidation, ["stale"]);
 
         store.HasErrors.ShouldBeTrue();
         store.HasPathErrors(SparsePath.Root<Settings>()).ShouldBeTrue();
@@ -485,13 +417,7 @@ public sealed class SparseValidationStoreTests
         store.IsDisposed.ShouldBeTrue();
 
         Should.Throw<ObjectDisposedException>(() => store.HasErrors.ShouldBeFalse());
-        Should.Throw<ObjectDisposedException>(() =>
-            store.SetErrors(
-                Settings.SparsePath.Label,
-                SparseValidationOrigins.LocalValidation,
-                ["y"]
-            )
-        );
+        Should.Throw<ObjectDisposedException>(() => store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["y"]));
         Should.Throw<ObjectDisposedException>(() => store.Clear());
         Should.Throw<ObjectDisposedException>(() => store.GetPathErrors(Settings.SparsePath.Label));
 
@@ -551,12 +477,7 @@ public sealed class SparseValidationStoreTests
         System.Threading.Tasks.Parallel.For(
             0,
             64,
-            index =>
-                store.SetErrors(
-                    SparsePath.Root<Settings>().Member($"Field{index}"),
-                    SparseValidationOrigins.LocalValidation,
-                    [$"error{index}"]
-                )
+            index => store.SetErrors(SparsePath.Root<Settings>().Member($"Field{index}"), SparseValidationOrigins.LocalValidation, [$"error{index}"])
         );
 
         store.HasErrors.ShouldBeTrue();
@@ -571,11 +492,7 @@ public sealed class SparseValidationStoreTests
     public void GetAllErrors_ReturnsDeterministicSnapshots()
     {
         var store = Store();
-        store.SetErrors(
-            Settings.SparsePath.RetryCount,
-            SparseValidationOrigins.ServerValidation,
-            ["s"]
-        );
+        store.SetErrors(Settings.SparsePath.RetryCount, SparseValidationOrigins.ServerValidation, ["s"]);
         store.SetErrors(Settings.SparsePath.Label, SparseValidationOrigins.LocalValidation, ["l"]);
 
         var snapshot = store.GetAllErrors();
@@ -588,5 +505,35 @@ public sealed class SparseValidationStoreTests
         // Later mutations never rewrite previously returned snapshots.
         store.Clear();
         snapshot.Count.ShouldBe(2);
+    }
+
+    [Test]
+    public void RepeatedQueriesRefreshValuesAndPathOrderAfterMutations()
+    {
+        var store = Store();
+        var parent = SparsePath.Root<Settings>().Member("Parent");
+        var first = parent.Member("First");
+        var second = parent.Member("Second");
+
+        store.SetErrors(first, SparseValidationOrigins.LocalValidation, ["first"]);
+        store.GetPathErrors(parent).ShouldBe(["first"]);
+        NameErrors(store, "Parent").ShouldBe(["first"]);
+        store.GetAllErrors().Select(static error => error.Error).ShouldBe(["first"]);
+
+        // Replacing a bucket must refresh error values even though its path
+        // remains in every cached query result.
+        store.SetErrors(first, SparseValidationOrigins.LocalValidation, ["updated"]);
+        store.GetPathErrors(parent).ShouldBe(["updated"]);
+        NameErrors(store, "Parent").ShouldBe(["updated"]);
+        store.GetAllErrors().Select(static error => error.Error).ShouldBe(["updated"]);
+
+        // Path additions and removals invalidate the selected, sorted paths.
+        store.SetErrors(second, SparseValidationOrigins.LocalValidation, ["second"]);
+        store.GetPathErrors(parent).ShouldBe(["updated", "second"]);
+        NameErrors(store, "Parent").ShouldBe(["updated", "second"]);
+        store.ClearErrors(first);
+        store.GetPathErrors(parent).ShouldBe(["second"]);
+        NameErrors(store, "Parent").ShouldBe(["second"]);
+        store.GetAllErrors().Select(static error => error.Error).ShouldBe(["second"]);
     }
 }
