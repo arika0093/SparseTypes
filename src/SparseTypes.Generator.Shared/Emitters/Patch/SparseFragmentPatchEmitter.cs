@@ -249,6 +249,9 @@ internal static class SparseFragmentPatchEmitter
         /// <summary>Product-owned helper for boxing presence-aware endpoints.</summary>
         public string? OptionalBoxType { get; init; }
 
+        /// <summary>Product-owned keyed-collection duplicate guard type, or null to emit guards inline.</summary>
+        public string? KeyedCollectionDuplicateGuardType { get; init; }
+
         /// <summary>Configured member policies, or empty for full disclosure.</summary>
         public ImmutableArray<SparseMemberPolicy> EffectiveMemberPolicies =>
             MemberPolicies.IsDefault ? ImmutableArray<SparseMemberPolicy>.Empty : MemberPolicies;

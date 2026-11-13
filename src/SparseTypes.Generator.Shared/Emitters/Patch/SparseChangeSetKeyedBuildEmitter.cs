@@ -104,7 +104,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
 
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap", "__k", "__item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap", "__k", "__item", dialect.KeyedCollectionDuplicateGuardType));
         code.AppendLine("__beforeOrder.Add(__k);");
         code.CloseBlock();
         code.AppendLine("var __afterOrder = new global::System.Collections.Generic.List<" + keyType + ">();");
@@ -126,7 +126,7 @@ internal static class SparseChangeSetKeyedBuildEmitter
             );
         }
 
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap", "__k", "__item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap", "__k", "__item", dialect.KeyedCollectionDuplicateGuardType));
         code.AppendLine("__afterOrder.Add(__k!);");
         code.CloseBlock();
         code.AppendLine("var __added = new global::System.Collections.Generic.List<" + elementType + ">();");

@@ -189,7 +189,18 @@ internal static class SparseKeyedSequenceSurfaceEmitter
                 internalCode.CloseBlock();
             }
         }
-        SparseKeyedSequenceApplyEmitter.EmitKeyedApply(operations, member, elementType, keyType, listType, hasPatch, comparer, runtime, split);
+        SparseKeyedSequenceApplyEmitter.EmitKeyedApply(
+            operations,
+            member,
+            elementType,
+            keyType,
+            listType,
+            hasPatch,
+            comparer,
+            runtime,
+            split,
+            dialect.KeyedCollectionDuplicateGuardType
+        );
         SparseKeyedSequenceApplyEmitter.EmitKeyedBetween(
             operations,
             member,
@@ -201,7 +212,8 @@ internal static class SparseKeyedSequenceSurfaceEmitter
             comparer,
             facade,
             runtime,
-            split
+            split,
+            dialect.KeyedCollectionDuplicateGuardType
         );
         SparseKeyedSequenceComposeEmitter.EmitKeyedCompose(
             operations,

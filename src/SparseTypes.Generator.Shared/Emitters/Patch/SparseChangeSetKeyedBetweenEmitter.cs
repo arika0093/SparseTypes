@@ -115,7 +115,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
         {
             if (hasTemp)
             {
-                SparseChangeSetKeyedTempBetweenEmitter.AppendTempBeforeBranch(code, member, id);
+                SparseChangeSetKeyedTempBetweenEmitter.AppendTempBeforeBranch(code, member, id, dialect.KeyedCollectionDuplicateGuardType);
             }
             else
             {
@@ -126,7 +126,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                 );
             }
         }
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap" + id, "__k", "__item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__beforeMap" + id, "__k", "__item", dialect.KeyedCollectionDuplicateGuardType));
         code.AppendLine("__beforeOrder" + id + ".Add(__k);");
         code.CloseBlock();
         SparseKeyedCollectionEmitter.AppendChangeSetBetweenStorage(code, member, "after");
@@ -142,7 +142,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
         {
             if (hasTemp)
             {
-                SparseChangeSetKeyedTempBetweenEmitter.AppendTempAfterBranch(code, member, id);
+                SparseChangeSetKeyedTempBetweenEmitter.AppendTempAfterBranch(code, member, id, dialect.KeyedCollectionDuplicateGuardType);
             }
             else
             {
@@ -157,7 +157,7 @@ internal static class SparseChangeSetKeyedBetweenEmitter
                 );
             }
         }
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap" + id, "__k", "__item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("__afterMap" + id, "__k", "__item", dialect.KeyedCollectionDuplicateGuardType));
         code.AppendLine("__afterOrder" + id + ".Add(__k!);");
         code.CloseBlock();
         // Edited (nested sparse ChangeSets for surviving keys).

@@ -5,7 +5,13 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseChangeSetKeyedTempRebaseEmitter
 {
     /// <summary>Emits the temp-aware current-state walk for a keyed rebase.</summary>
-    internal static void AppendTempCurrentWalk(SharedIndentedBuilder code, SparseMemberModel member, string elementType, int id)
+    internal static void AppendTempCurrentWalk(
+        SharedIndentedBuilder code,
+        SparseMemberModel member,
+        string elementType,
+        int id,
+        string? duplicateGuardType = null
+    )
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         code.AppendLine("var __tcur" + id + " = new global::System.Collections.Generic.Dictionary<global::System.Guid, " + elementType + ">();");
@@ -24,7 +30,7 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
                 + ") { var __ct = "
                 + tempOf
                 + "(__e); if (!__ct.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__ct.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__tcur" + id, "__ct.Value", "__e")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__tcur" + id, "__ct.Value", "__e", duplicateGuardType)
                 + " __tpos"
                 + id
                 + "[__ct.Value] = __tcorder"
@@ -38,7 +44,7 @@ internal static class SparseChangeSetKeyedTempRebaseEmitter
                 + ".Count; __corder"
                 + id
                 + ".Add(__ck); } else { "
-                + SparseKeyedCollectionEmitter.AddUniqueEntry("__cmap" + id, "__ck", "__e")
+                + SparseKeyedCollectionEmitter.AddUniqueEntry("__cmap" + id, "__ck", "__e", duplicateGuardType)
                 + " __cpos"
                 + id
                 + "[__ck] = __corder"

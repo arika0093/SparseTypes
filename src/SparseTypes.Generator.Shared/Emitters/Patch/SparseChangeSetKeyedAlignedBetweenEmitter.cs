@@ -71,7 +71,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
             );
             code.OpenBlock();
             code.AppendLine("var seen = keyScope.Keys;");
-            AppendValidation(code, keyOf, true);
+            AppendValidation(code, keyOf, true, dialect.KeyedCollectionDuplicateGuardType);
             code.CloseBlock();
             code.CloseBlock();
             code.AppendLine("ValidateKeys(b, count);");
@@ -82,7 +82,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
                 ? "global::System.Collections.Generic.HashSet<" + key + ">"
                 : "global::System.Collections.Generic.Dictionary<" + key + ", byte>";
             code.AppendLine("var seen = new " + seenType + "(count, comparer);");
-            AppendValidation(code, keyOf, dialect.HashSetSupportsCapacity);
+            AppendValidation(code, keyOf, dialect.HashSetSupportsCapacity, dialect.KeyedCollectionDuplicateGuardType);
         }
         code.AppendLine("for (var i = 0; i < count; i++)");
         code.OpenBlock();
@@ -122,7 +122,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         code.OpenBlock();
     }
 
-    private static void AppendValidation(SharedIndentedBuilder code, string keyOf, bool useSet)
+    private static void AppendValidation(SharedIndentedBuilder code, string keyOf, bool useSet, string? duplicateGuardType)
     {
         code.AppendLine("for (var i = 0; i < count; i++)");
         code.OpenBlock();
@@ -135,7 +135,7 @@ internal static class SparseChangeSetKeyedAlignedBetweenEmitter
         code.AppendLine(
             useSet
                 ? "if (!seen.Add(k)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\");"
-                : SparseKeyedCollectionEmitter.AddUniqueEntry("seen", "k", "0")
+                : SparseKeyedCollectionEmitter.AddUniqueEntry("seen", "k", "0", duplicateGuardType)
         );
         code.CloseBlock();
     }

@@ -125,7 +125,30 @@ internal static class SparseGeneratedOnceRemovalIndex
         code.AppendLine("slots[__slot] = removed.Count;");
         code.CloseBlock();
         code.CloseBlock();
+        AppendKeyedCollectionGuards(code);
         code.CloseBlock();
         return code.ToString();
+    }
+
+    private static void AppendKeyedCollectionGuards(SharedIndentedBuilder code)
+    {
+        code.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        code.AppendLine("internal static class " + SparseGeneratedOnceNames.KeyedCollectionGuards);
+        code.OpenBlock();
+        code.AppendLine(
+            "internal static void EnsureUniqueKey<TKey, TValue>(global::System.Collections.Generic.Dictionary<TKey, TValue> map, TKey key) where TKey : notnull"
+        );
+        code.OpenBlock();
+        code.AppendLine("if (map.ContainsKey(key)) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\");");
+        code.CloseBlock();
+        code.AppendLine(
+            "internal static void EnsureUniqueTemporaryKey<TValue>(global::System.Collections.Generic.Dictionary<global::System.Guid, TValue> map, global::System.Guid key)"
+        );
+        code.OpenBlock();
+        code.AppendLine(
+            "if (map.ContainsKey(key)) throw new global::System.InvalidOperationException(\"Duplicate temporary key in keyed collection.\");"
+        );
+        code.CloseBlock();
+        code.CloseBlock();
     }
 }

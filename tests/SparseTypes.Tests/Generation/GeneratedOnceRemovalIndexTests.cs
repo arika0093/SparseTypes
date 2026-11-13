@@ -69,6 +69,9 @@ public sealed class GeneratedOnceRemovalIndexTests
         shared.ShouldHaveSingleItem();
         var text = shared[0].Value;
         text.ShouldContain("class " + SparseGeneratedOnceNames.RemovalIndex + "<TKey>");
+        text.ShouldContain("class " + SparseGeneratedOnceNames.KeyedCollectionGuards);
+        text.ShouldContain("EnsureUniqueKey<TKey, TValue>");
+        text.ShouldContain("EnsureUniqueTemporaryKey<TValue>");
         CountOccurrences(text, "AddRemoval(").ShouldBe(1);
         CountOccurrences(text, "ContainsRemoved(").ShouldBe(1);
 
@@ -82,6 +85,7 @@ public sealed class GeneratedOnceRemovalIndexTests
         }
         var patches = string.Join("\n", perModel);
         patches.ShouldContain("global::SparseTypes.Generated.SparseRemovalIndex<");
+        patches.ShouldContain("global::SparseTypes.Generated.SparseKeyedCollectionGuards.EnsureUniqueKey(map, k!); map.Add(k!, item);");
     }
 
     [Test]

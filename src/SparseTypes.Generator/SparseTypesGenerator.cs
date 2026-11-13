@@ -206,6 +206,7 @@ public sealed partial class SparseTypesGenerator : IIncrementalGenerator
             PayloadSchemaOptionsDependenciesMemberName = "Dependencies",
             PayloadSchemaMetadataExtensionName = "x-sparsetypes",
             OptionalBoxType = "global::SparseTypes.SparseOptionalBox",
+            KeyedCollectionDuplicateGuardType = SparseGeneratedOnceNames.QualifiedKeyedCollectionGuards("SparseTypes.Generated"),
 #if SPARSE_FRAGMENTS
             EmitPatchRebase = false,
 #endif

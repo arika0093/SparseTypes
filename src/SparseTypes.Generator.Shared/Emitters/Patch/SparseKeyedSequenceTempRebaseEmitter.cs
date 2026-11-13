@@ -5,7 +5,13 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseKeyedSequenceTempRebaseEmitter
 {
     /// <summary>Emits temporary side maps for base/current/desired states.</summary>
-    internal static void AppendTempStateMaps(SharedIndentedBuilder code, SparseMemberModel member, string elementType, int id)
+    internal static void AppendTempStateMaps(
+        SharedIndentedBuilder code,
+        SparseMemberModel member,
+        string elementType,
+        int id,
+        string? duplicateGuardType = null
+    )
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
@@ -25,7 +31,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baseTemp" + id, "__t.Value", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baseTemp" + id, "__t.Value", "item", duplicateGuardType)
                 + " } }"
         );
         code.AppendLine(
@@ -36,7 +42,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__currentTemp" + id, "__t.Value", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__currentTemp" + id, "__t.Value", "item", duplicateGuardType)
                 + " } }"
         );
         code.AppendLine(
@@ -47,7 +53,7 @@ internal static class SparseKeyedSequenceTempRebaseEmitter
                 + ") { var __t = "
                 + tempOf
                 + "(item); if (!__t.HasValue) throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\"); if (__t.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__desiredTemp" + id, "__t.Value", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__desiredTemp" + id, "__t.Value", "item", duplicateGuardType)
                 + " } }"
         );
     }

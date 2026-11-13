@@ -39,7 +39,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the unassigned branch for the granular before-map build.</summary>
-    internal static void AppendTempBeforeBranch(SharedIndentedBuilder code, SparseMemberModel member, int id)
+    internal static void AppendTempBeforeBranch(SharedIndentedBuilder code, SparseMemberModel member, int id, string? duplicateGuardType = null)
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         code.AppendLine(
@@ -48,7 +48,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ") { var __bt = "
                 + tempOf
                 + "(__item); if (!__bt.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__bt.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__bT" + id, "__bt.Value", "__item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__bT" + id, "__bt.Value", "__item", duplicateGuardType)
                 + " __bTO"
                 + id
                 + ".Add(__bt.Value); __beforeOrder"
@@ -58,7 +58,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
     }
 
     /// <summary>Emits the unassigned branch for the granular after-walk.</summary>
-    internal static void AppendTempAfterBranch(SharedIndentedBuilder code, SparseMemberModel member, int id)
+    internal static void AppendTempAfterBranch(SharedIndentedBuilder code, SparseMemberModel member, int id, string? duplicateGuardType = null)
     {
         var tempOf = "__SparseTemporaryKeyOf_ChangeSet_" + id;
         code.AppendLine(
@@ -67,7 +67,7 @@ internal static class SparseChangeSetKeyedTempBetweenEmitter
                 + ") { var __at = "
                 + tempOf
                 + "(__item); if (!__at.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__at.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__aT" + id, "__at.Value", "__item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__aT" + id, "__at.Value", "__item", duplicateGuardType)
                 + " __aTO"
                 + id
                 + ".Add(__at.Value); __afterOrder"

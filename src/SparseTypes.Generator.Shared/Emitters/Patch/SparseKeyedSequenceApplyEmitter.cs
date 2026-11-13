@@ -27,7 +27,8 @@ internal static class SparseKeyedSequenceApplyEmitter
         bool hasPatch,
         string comparer,
         string runtime,
-        SparseMemberOperationSplit? split = null
+        SparseMemberOperationSplit? split = null,
+        string? duplicateGuardType = null
     )
     {
         var optionalList = runtime + "Optional<" + listType + ">";
@@ -55,7 +56,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         var keyOfApply = SparseKeyedCollectionEmitter.KeyOfMethod(member);
         if (hasTempApply)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineValidation(code, member, keyOfApply);
+            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineValidation(code, member, keyOfApply, duplicateGuardType);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -79,7 +80,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.OpenBlock();
         if (hasTempApply)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineMap(code, member, keyOfApply);
+            SparseKeyedSequenceTempBetweenEmitter.AppendApplyBaselineMap(code, member, keyOfApply, duplicateGuardType);
         }
         else
         {
@@ -92,7 +93,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                         + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\");"
                 );
             }
-            code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item"));
+            code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item", duplicateGuardType));
         }
         code.CloseBlock();
         // Removals.
@@ -317,7 +318,8 @@ internal static class SparseKeyedSequenceApplyEmitter
         string comparer,
         string facade,
         string runtime,
-        SparseMemberOperationSplit? split = null
+        SparseMemberOperationSplit? split = null,
+        string? duplicateGuardType = null
     )
     {
         var optionalList = runtime + "Optional<" + listType + ">";
@@ -346,7 +348,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         var hasTempBetween = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         if (hasTempBetween)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenBaselineValidation(code, member);
+            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenBaselineValidation(code, member, duplicateGuardType);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -410,7 +412,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                     + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the baseline of a keyed collection operation.\");"
             );
         }
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("beforeMap", "k", "item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("beforeMap", "k", "item", duplicateGuardType));
         code.AppendLine("beforeOrder.Add(k);");
         code.CloseBlock();
         code.AppendLine(
@@ -443,7 +445,7 @@ internal static class SparseKeyedSequenceApplyEmitter
         code.AppendLine("var k = " + SparseKeyedCollectionEmitter.KeyOfMethod(member) + "(item);");
         if (hasTempBetween)
         {
-            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenAfterPartition(code, member);
+            SparseKeyedSequenceTempBetweenEmitter.AppendBetweenAfterPartition(code, member, duplicateGuardType);
         }
         else if (SparseKeyedCollectionEmitter.HasUnassignedKey(member))
         {
@@ -453,7 +455,7 @@ internal static class SparseKeyedSequenceApplyEmitter
                     + ") { afterOrder.Add(k!); unassignedAfter.Add(item); continue; }"
             );
         }
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("afterMap", "k", "item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("afterMap", "k", "item", duplicateGuardType));
         code.AppendLine("afterOrder.Add(k);");
         if (hasTempBetween)
         {

@@ -182,13 +182,17 @@ internal static class SparseKeyedCollectionEmitter
     internal static string KeyOfMethod(SparseMemberModel member) => "__SparseKeyOf_" + member.Id;
 
     /// <summary>Builds a duplicate-key guard plus add for keyed map construction.</summary>
-    internal static string AddUniqueEntry(string map, string key, string value) =>
-        "if ("
-        + map
-        + ".ContainsKey("
-        + key
-        + "!"
-        + ")) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); "
+    internal static string AddUniqueEntry(string map, string key, string value, string? duplicateGuardType = null) =>
+        (
+            duplicateGuardType is null
+                ? "if ("
+                    + map
+                    + ".ContainsKey("
+                    + key
+                    + "!"
+                    + ")) throw new global::System.InvalidOperationException(\"Duplicate key in keyed collection.\"); "
+                : duplicateGuardType + ".EnsureUniqueKey(" + map + ", " + key + "!); "
+        )
         + map
         + ".Add("
         + key
@@ -212,12 +216,16 @@ internal static class SparseKeyedCollectionEmitter
     internal static string TemporaryKeyOfChangeSetMethod(SparseMemberModel member) => "__SparseTemporaryKeyOf_ChangeSet_" + member.Id;
 
     /// <summary>Builds a duplicate-temporary-key guard plus add for temp map construction.</summary>
-    internal static string AddUniqueTempEntry(string map, string temp, string value) =>
-        "if ("
-        + map
-        + ".ContainsKey("
-        + temp
-        + ")) throw new global::System.InvalidOperationException(\"Duplicate temporary key in keyed collection.\"); "
+    internal static string AddUniqueTempEntry(string map, string temp, string value, string? duplicateGuardType = null) =>
+        (
+            duplicateGuardType is null
+                ? "if ("
+                    + map
+                    + ".ContainsKey("
+                    + temp
+                    + ")) throw new global::System.InvalidOperationException(\"Duplicate temporary key in keyed collection.\"); "
+                : duplicateGuardType + ".EnsureUniqueTemporaryKey(" + map + ", " + temp + "); "
+        )
         + map
         + ".Add("
         + temp

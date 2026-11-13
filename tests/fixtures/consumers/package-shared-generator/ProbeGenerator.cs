@@ -179,6 +179,8 @@ internal static class ProbeSurface
         var descriptorErrors = SparseDescriptorCapabilities.ValidatePrerequisites(downstreamConfig, descriptorCapability);
         var kernelKinds = SparsePatchKernelCapabilities.ForCompilation(true, true, true);
         var kernelSource = SparsePatchKernelEmitter.RenderHelperSource("PackageShared.Generated", kernelKinds);
+        var keyedCollectionGuardType = SparseGeneratedOnceNames.QualifiedKeyedCollectionGuards("PackageShared.Generated");
+        var keyedCollectionHelpers = SparseGeneratedOnceRemovalIndex.BuildSource("PackageShared.Generated", cancellationToken);
 
         // Emitter/helpers (Emitters/, Infrastructure/).
         var code = new SharedIndentedBuilder(cancellationToken);
@@ -250,6 +252,26 @@ internal static class ProbeSurface
         recordedAtCode.AppendLine("#nullable enable");
         recordedAtCode.AppendLine("namespace PackageShared.Generated");
         recordedAtCode.OpenBlock();
+        recordedAtCode.AppendLine("public static class KeyedGuardProbe");
+        recordedAtCode.OpenBlock();
+        recordedAtCode.AppendLine(
+            "public static void AddUnique<TValue>(global::System.Collections.Generic.Dictionary<string, TValue> map, string key, TValue value)"
+        );
+        recordedAtCode.OpenBlock();
+        var keyedGuardCall = SparseKeyedCollectionEmitter.AddUniqueEntry("map", "key", "value", keyedCollectionGuardType);
+        if (!keyedGuardCall.Contains("EnsureUniqueKey", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The keyed collection guard was not emitted.");
+        }
+
+        recordedAtCode.AppendLine(keyedGuardCall);
+        recordedAtCode.CloseBlock();
+        recordedAtCode.CloseBlock();
+        recordedAtCode.CloseBlock();
+
+        recordedAtCode.AppendLine("#nullable enable");
+        recordedAtCode.AppendLine("namespace PackageShared.Generated");
+        recordedAtCode.OpenBlock();
         recordedAtCode.AppendLine("public sealed class ChangeSet");
         recordedAtCode.OpenBlock();
         recordedAtCode.AppendLine("private readonly bool __sparse_hasWhole;");
@@ -271,6 +293,6 @@ internal static class ProbeSurface
         );
         recordedAtCode.CloseBlock();
         recordedAtCode.CloseBlock();
-        return recordedAtCode.ToString() + "// Shared generator API and template probe passed.";
+        return keyedCollectionHelpers + recordedAtCode.ToString() + "// Shared generator API and keyed guard probe passed.";
     }
 }

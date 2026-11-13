@@ -157,7 +157,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
         code.AppendLine("var __cpos" + id + " = new global::System.Collections.Generic.Dictionary<" + keyType + ", int>(" + comparer + ");");
         if (hasTempRebase)
         {
-            SparseChangeSetKeyedTempRebaseEmitter.AppendTempCurrentWalk(code, member, elementType, id);
+            SparseChangeSetKeyedTempRebaseEmitter.AppendTempCurrentWalk(code, member, elementType, id, dialect.KeyedCollectionDuplicateGuardType);
         }
         else
         {
@@ -174,7 +174,7 @@ internal static class SparseChangeSetKeyedRebaseEmitter
                                 + ") throw new global::System.InvalidOperationException(\"An unassigned key cannot appear in the current baseline of a keyed ChangeSet.\"); "
                             : ""
                     )
-                    + SparseKeyedCollectionEmitter.AddUniqueEntry("__cmap" + id, "__ck", "__e")
+                    + SparseKeyedCollectionEmitter.AddUniqueEntry("__cmap" + id, "__ck", "__e", dialect.KeyedCollectionDuplicateGuardType)
                     + " __cpos"
                     + id
                     + "[__ck] = __corder"

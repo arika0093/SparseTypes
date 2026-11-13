@@ -5,7 +5,7 @@ namespace SparseTypes.Generator.Shared;
 internal static class SparseKeyedSequenceTempBetweenEmitter
 {
     /// <summary>Emits baseline temporary validation for patch Between.</summary>
-    internal static void AppendBetweenBaselineValidation(SharedIndentedBuilder code, SparseMemberModel member)
+    internal static void AppendBetweenBaselineValidation(SharedIndentedBuilder code, SparseMemberModel member, string? duplicateGuardType)
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         var keyOf = SparseKeyedCollectionEmitter.KeyOfMethod(member);
@@ -22,13 +22,13 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                 + ") { var __bt = "
                 + tempOf
                 + "(__baselineItem); if (!__bt.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__bt.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__beforeTemp" + member.Id, "__bt.Value", "__baselineItem")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__beforeTemp" + member.Id, "__bt.Value", "__baselineItem", duplicateGuardType)
                 + " }"
         );
     }
 
     /// <summary>Emits after-walk temporary partition for patch Between.</summary>
-    internal static void AppendBetweenAfterPartition(SharedIndentedBuilder code, SparseMemberModel member)
+    internal static void AppendBetweenAfterPartition(SharedIndentedBuilder code, SparseMemberModel member, string? duplicateGuardType)
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         code.AppendLine(
@@ -37,7 +37,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
                 + ") { var __at = "
                 + tempOf
                 + "(item); if (!__at.HasValue) throw new global::System.InvalidOperationException(\"An unassigned keyed element is missing its temporary identity.\"); if (__at.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\"); "
-                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__afterTemp" + member.Id, "__at.Value", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueTempEntry("__afterTemp" + member.Id, "__at.Value", "item", duplicateGuardType)
                 + " afterOrder.Add(k!); unassignedAfter.Add(item); __orderTemp.Add(__at.Value); continue; }"
         );
     }
@@ -130,7 +130,7 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
 
     /// <summary>Emits baseline temporary validation for patch Apply.</summary>
     /// <remarks>Unassigned entries register by temporary identity as usual.</remarks>
-    internal static void AppendApplyBaselineValidation(SharedIndentedBuilder code, SparseMemberModel member, string keyOf)
+    internal static void AppendApplyBaselineValidation(SharedIndentedBuilder code, SparseMemberModel member, string keyOf, string? duplicateGuardType)
     {
         var tempOf = SparseKeyedCollectionEmitter.TemporaryKeyOfMethod(member);
         code.AppendLine(
@@ -153,7 +153,9 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         code.AppendLine(
             "if (__bt.Value == global::System.Guid.Empty) throw new global::System.InvalidOperationException(\"An unassigned keyed element has a reserved temporary identity.\");"
         );
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baselineTemp" + member.Id, "__bt.Value", "__baselineItem"));
+        code.AppendLine(
+            SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baselineTemp" + member.Id, "__bt.Value", "__baselineItem", duplicateGuardType)
+        );
         code.CloseBlock();
         code.AppendLine("else");
         code.OpenBlock();
@@ -161,20 +163,22 @@ internal static class SparseKeyedSequenceTempBetweenEmitter
         code.AppendLine("if (__bte.HasValue && __bte.Value != global::System.Guid.Empty)");
         code.OpenBlock();
         code.AppendLine("__baselineTempEcho" + member.Id + "++;");
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baselineTemp" + member.Id, "__bte.Value", "__baselineItem"));
+        code.AppendLine(
+            SparseKeyedCollectionEmitter.AddUniqueTempEntry("__baselineTemp" + member.Id, "__bte.Value", "__baselineItem", duplicateGuardType)
+        );
         code.CloseBlock();
         code.CloseBlock();
         code.CloseBlock();
     }
 
     /// <summary>Emits the temporary map build for patch Apply baselines.</summary>
-    internal static void AppendApplyBaselineMap(SharedIndentedBuilder code, SparseMemberModel member, string keyOf)
+    internal static void AppendApplyBaselineMap(SharedIndentedBuilder code, SparseMemberModel member, string keyOf, string? duplicateGuardType)
     {
         // Temporary baselines were validated and registered by the preceding
         // validation pass; assigned entries join the key map here.
         code.AppendLine("var k = " + keyOf + "(item);");
         code.AppendLine("if (" + SparseKeyedCollectionEmitter.IsUnassignedExpression(member, "k") + ") continue;");
-        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item"));
+        code.AppendLine(SparseKeyedCollectionEmitter.AddUniqueEntry("map", "k", "item", duplicateGuardType));
     }
 
     /// <summary>Emits temporary removals application for patch Apply.</summary>

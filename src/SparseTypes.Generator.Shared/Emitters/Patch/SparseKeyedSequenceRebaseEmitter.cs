@@ -186,7 +186,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
         var hasTempPatchRebase = SparseKeyedCollectionEmitter.HasTemporaryKey(member);
         if (hasTempPatchRebase)
         {
-            SparseKeyedSequenceTempRebaseEmitter.AppendTempStateMaps(code, member, elementType, member.Id);
+            SparseKeyedSequenceTempRebaseEmitter.AppendTempStateMaps(code, member, elementType, member.Id, dialect.KeyedCollectionDuplicateGuardType);
         }
         // Build maps.
         code.AppendLine(
@@ -225,7 +225,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                 + "(item); "
                 + baseUnassignedFragment
-                + SparseKeyedCollectionEmitter.AddUniqueEntry("baseMap", "k", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueEntry("baseMap", "k", "item", dialect.KeyedCollectionDuplicateGuardType)
                 + " }"
         );
         code.AppendLine(
@@ -270,7 +270,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                 + "(item); "
                 + currentUnassignedFragment
-                + SparseKeyedCollectionEmitter.AddUniqueEntry("currentMap", "k", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueEntry("currentMap", "k", "item", dialect.KeyedCollectionDuplicateGuardType)
                 + " }"
         );
         code.AppendLine(
@@ -318,7 +318,7 @@ internal static class SparseKeyedSequenceRebaseEmitter
                 + SparseKeyedCollectionEmitter.KeyOfMethod(member)
                 + "(item); "
                 + desiredUnassignedFragment
-                + SparseKeyedCollectionEmitter.AddUniqueEntry("desiredMap", "k", "item")
+                + SparseKeyedCollectionEmitter.AddUniqueEntry("desiredMap", "k", "item", dialect.KeyedCollectionDuplicateGuardType)
                 + " }"
         );
         // Index touched keys once for comparer-aware constant-time lookups in

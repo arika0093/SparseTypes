@@ -21,6 +21,9 @@ internal static class SparseGeneratedOnceNames
     /// <summary>Simple name of the shared ordered removal-index helper.</summary>
     public const string RemovalIndex = "SparseRemovalIndex";
 
+    /// <summary>Simple name of the shared keyed-collection duplicate guard.</summary>
+    public const string KeyedCollectionGuards = "SparseKeyedCollectionGuards";
+
     /// <summary>Simple name of the shared live-observation coordinator.</summary>
     public const string ObservationCoordinator = "SparseObservationCoordinator";
 
@@ -59,6 +62,12 @@ internal static class SparseGeneratedOnceNames
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
     /// <returns>Globally qualified type name.</returns>
     public static string QualifiedRemovalIndex(string implementationNamespace) => "global::" + implementationNamespace + "." + RemovalIndex;
+
+    /// <summary>Qualified name of the shared keyed-collection duplicate guard.</summary>
+    /// <param name="implementationNamespace">Explicit generated namespace.</param>
+    /// <returns>Globally qualified type name.</returns>
+    public static string QualifiedKeyedCollectionGuards(string implementationNamespace) =>
+        "global::" + implementationNamespace + "." + KeyedCollectionGuards;
 
     /// <summary>Qualified name of the shared field-state observation coordinator.</summary>
     /// <param name="implementationNamespace">Explicit generated namespace.</param>
