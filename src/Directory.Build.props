@@ -27,7 +27,7 @@
     <PackageReference Include="SonarAnalyzer.CSharp" Version="10.36.0.15337" PrivateAssets="all">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Polyfill" Version="11.4.5" PrivateAssets="all" />
+    <PackageReference Include="Polyfill" Version="12.0.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../assets/image.png" Pack="true" PackagePath="/" Visible="false" />
